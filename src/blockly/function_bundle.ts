@@ -11,7 +11,7 @@ import {
   type FunctionClashPolicy,
   type MergeFunctionResult,
 } from "../core/function_library/mod.ts";
-import * as enMsg from "blockly/msg/en";
+import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import {
   asWorkspaceJson,
   offsetTopBlocks,
@@ -41,18 +41,8 @@ export interface MergeFunctionOptions {
   sheets: SheetDocument[];
 }
 
-let enLocaleReady = false;
 function ensureEnLocale(): void {
-  if (enLocaleReady) return;
-  const Msg = (Blockly as unknown as { Msg?: Record<string, string> }).Msg;
-  if (Msg?.VARIABLES_SET) {
-    enLocaleReady = true;
-    return;
-  }
-  const anyMod = enMsg as { default?: Record<string, string> } & Record<string, string>;
-  const table = anyMod.default && typeof anyMod.default === "object" ? anyMod.default : anyMod;
-  Blockly.setLocale(table);
-  enLocaleReady = true;
+  ensureStockBlocklyMessages();
 }
 
 export function listWorkspaceFunctions(workspace: Blockly.Workspace): Array<{

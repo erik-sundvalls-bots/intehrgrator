@@ -21,6 +21,7 @@ import {
 } from "./blocks/rm_blocks.ts";
 import { isGenericValueBlockType, isSchemaStructureBlock } from "./blocks/target_blocks.ts";
 import { registerSchemaBlocksFromSkeleton } from "./schema_blocks.ts";
+import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import { TERM_PICK_BLOCK_TYPE } from "./blocks/term_pick.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
 import { DEFAULTS_BLOCK_TYPE } from "../core/defaults/extract.ts";
@@ -101,6 +102,7 @@ export function generateTypeScriptFromBlocklyState(
     );
     let generated: string | null = null;
     runWithoutBlocklyEvents(() => {
+      ensureStockBlocklyMessages();
       if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
       Blockly.serialization.workspaces.load(snapshot, workspace);
       generated = generateTypeScriptFromWorkspace(workspace, model, webTemplateJson, skeleton);

@@ -208,9 +208,13 @@ import { registerConversionStartBlock } from "./instance_root.ts";
 import { installCollapsedPreview } from "./field_collapsed_preview.ts";
 import { installHeaderMutatorChrome } from "./dynamic_mutator.ts";
 
+import { ensureStockBlocklyMessages } from "./stock_messages.ts";
+export { ensureStockBlocklyMessages };
+
 let generatorsReady = false;
 
 export function initBlocklyGenerators(): void {
+  ensureStockBlocklyMessages();
   if (!generatorsReady) {
     registerRmBlocks();
     registerTargetBlocks();
