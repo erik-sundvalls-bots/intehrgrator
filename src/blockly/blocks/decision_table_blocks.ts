@@ -5,6 +5,7 @@ import {
   setBlockOutputCheck,
 } from "../block_type_glyph.ts";
 import { inputAlignLeft, inputAlignRight, enforceMouthCaptionLayout } from "../mouth_layout.ts";
+import { FieldDropdownHug } from "../field_dropdown_hug.ts";
 import { FieldGridPreview, registerFieldGridPreview } from "../field_grid_preview.ts";
 import { workspaceSheet } from "../sheets_bridge.ts";
 import {
@@ -104,11 +105,41 @@ function outputValidator(this: { getSourceBlock?: () => Blockly.Block | null; ge
 
 // Allow headers that are not yet in the menu (document lag / tests / bundle load).
 // deno-lint-ignore no-explicit-any
-const DropdownBase = Blockly.FieldDropdown as any;
-class FieldDecisionOutput extends DropdownBase {
+const FieldDropdownHugBase = FieldDropdownHug as any;
+
+/**
+ * Output-column picker. Blockly keeps the closed label on the first menu
+ * entry (`out`) when `selectedOption` was cached before the chosen header
+ * existed. The label follows the field value: the column name, or "all outputs".
+ */
+class FieldDecisionOutput extends FieldDropdownHugBase {
+  constructor(menuGenerator?: unknown, optValidator?: unknown) {
+    super(menuGenerator, optValidator);
+  }
+
   doClassValidation_(newValue: unknown) {
     if (newValue == null || newValue === "") return null;
     return String(newValue);
+  }
+
+  doValueUpdate_(newValue: string): void {
+    this.getOptions(false);
+    super.doValueUpdate_(newValue);
+    const value = String(this.getValue?.() ?? newValue ?? "");
+    if (isAllOutputs(value)) {
+      this.selectedOption = ["all outputs", value];
+      return;
+    }
+    if (value && (!this.selectedOption || this.selectedOption[1] !== value)) {
+      this.selectedOption = [value, value];
+    }
+  }
+
+  getText_(): string | null {
+    const value = String(this.getValue?.() ?? "");
+    if (isAllOutputs(value)) return "all outputs";
+    if (!value) return null;
+    return value;
   }
 }
 

@@ -552,6 +552,44 @@ Deno.test("COLLECT skips empty snippet cells and optional collectDedupe drops du
   );
 });
 
+Deno.test("decision table output dropdown label shows the selected column", () => {
+  registerDecisionTableBlocks();
+  const sheet = emptyDecisionTable("Decision1");
+  sheet.headers[sheet.headers.length - 1] = "code";
+  setWorkspaceSheetsProvider(() => [sheet]);
+  const workspace = new Blockly.Workspace();
+  try {
+    const block = workspace.newBlock("decision_table");
+    block.setFieldValue("Decision1", "NAME");
+    block.setFieldValue("code", "OUTPUT");
+    const field = block.getField("OUTPUT") as {
+      getText: () => string;
+      selectedOption?: [string, string];
+    } | null;
+    assertEquals(field?.getText(), "code");
+    // Blockly can leave the closed label on the first menu entry.
+    if (field) field.selectedOption = ["out", "out"];
+    assertEquals(field?.getText(), "code");
+    const previousConfirm = globalThis.confirm;
+    globalThis.confirm = () => true;
+    try {
+      block.setFieldValue("*", "OUTPUT");
+      assertEquals(field?.getText(), "all outputs");
+      block.setFieldValue("out", "OUTPUT");
+    } finally {
+      globalThis.confirm = previousConfirm;
+    }
+    // A header that no longer matches OUTPUT is left alone. Snapping to the
+    // first output would change which column the block reads.
+    syncDecisionTableBlocksFromSheets(workspace, [sheet]);
+    assertEquals(block.getFieldValue("OUTPUT"), "out");
+    assertEquals(field?.getText(), "out");
+  } finally {
+    setWorkspaceSheetsProvider(null);
+    workspace.dispose();
+  }
+});
+
 Deno.test("UNIQUE overlap is a Constraint warning on the Decision table declaration chip", () => {
   registerDecisionTableBlocks();
   const unique = normalizeSheet({

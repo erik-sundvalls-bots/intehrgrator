@@ -4,14 +4,19 @@ export interface SheetsChrome {
   tab: string;
   add: string;
   addDecision: string;
-  addCondition: string;
+  addInput: string;
   addOutput: string;
-  outputKind: string;
-  outputType: string;
-  kindValue: string;
-  kindSnippet: string;
+  columnKind: string;
+  kindString: string;
+  kindNumber: string;
+  kindBoolean: string;
+  kindStringPattern: string;
   rename: string;
   remove: string;
+  deleteColumn: string;
+  deletedColumn: string;
+  dontCare: string;
+  columnMenu: string;
   importCsv: string;
   exportCsv: string;
   fullscreen: string;
@@ -20,6 +25,11 @@ export interface SheetsChrome {
   namePrompt: string;
   decisionNamePrompt: string;
   hitPolicy: string;
+  hitPolicyAbout: string;
+  hitPolicyFirst: string;
+  hitPolicyUnique: string;
+  hitPolicyCollect: string;
+  hitPolicyDocsLabel: string;
   kindSheet: string;
   kindDecision: string;
   snippetLint: string;
@@ -27,19 +37,32 @@ export interface SheetsChrome {
   collectDedupe: string;
 }
 
+/** Longer hit-policy write-up linked from the Sheets (i) control. */
+export const HIT_POLICY_DOCS_HREF =
+  "https://github.com/regionstockholm/intehrgrator/blob/main/docs/tutorial/sheets-and-decision-tables.md#hit-policy";
+
+export function sheetsFormat(template: string, name: string): string {
+  return template.replaceAll("{name}", name);
+}
+
 const CHROME: Record<IntehrLocale, SheetsChrome> = {
   en: {
     tab: "Tables & Sheets",
     add: "Add sheet",
     addDecision: "Add decision table",
-    addCondition: "Add condition",
+    addInput: "Add input/condition",
     addOutput: "Add output",
-    outputKind: "column kind",
-    outputType: "column type",
-    kindValue: "value",
-    kindSnippet: "snippet",
+    columnKind: "column kind",
+    kindString: "string",
+    kindNumber: "number",
+    kindBoolean: "boolean",
+    kindStringPattern: "string pattern",
     rename: "Rename",
     remove: "Delete",
+    deleteColumn: "Delete {name}",
+    deletedColumn: "Deleted column {name}. Undo can restore it.",
+    dontCare: "Don't care (—)",
+    columnMenu: "{name} column menu",
     importCsv: "Import CSV",
     exportCsv: "Export CSV",
     fullscreen: "Fullscreen",
@@ -48,6 +71,11 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     namePrompt: "Sheet name",
     decisionNamePrompt: "Decision table name",
     hitPolicy: "Hit policy",
+    hitPolicyAbout: "About hit policy",
+    hitPolicyFirst: "Use the first matching row. Later matches are ignored.",
+    hitPolicyUnique: "Only one row may match. More than one match is an error.",
+    hitPolicyCollect: "Join every matching row’s output, in row order. Blank cells are skipped.",
+    hitPolicyDocsLabel: "Sheets and decision tables",
     kindSheet: "Sheet",
     kindDecision: "Decision table",
     snippetLint: "Snippet cells (VMS-Mustache)",
@@ -58,14 +86,19 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     tab: "Tabeller & kalkylblad",
     add: "Nytt blad",
     addDecision: "Ny beslutstabell",
-    addCondition: "Nytt villkor",
+    addInput: "Lägg till indata/villkor",
     addOutput: "Ny utdata",
-    outputKind: "kolumntyp",
-    outputType: "datatyp",
-    kindValue: "värde",
-    kindSnippet: "snippet",
+    columnKind: "kolumnslag",
+    kindString: "sträng",
+    kindNumber: "tal",
+    kindBoolean: "boolesk",
+    kindStringPattern: "strängmönster",
     rename: "Byt namn",
     remove: "Ta bort",
+    deleteColumn: "Ta bort {name}",
+    deletedColumn: "Kolumnen {name} togs bort. Ångra kan återställa den.",
+    dontCare: "Spelar ingen roll (—)",
+    columnMenu: "Kolumnmeny för {name}",
     importCsv: "Importera CSV",
     exportCsv: "Exportera CSV",
     fullscreen: "Helskärm",
@@ -74,6 +107,11 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     namePrompt: "Bladnamn",
     decisionNamePrompt: "Namn på beslutstabell",
     hitPolicy: "Träffpolicy",
+    hitPolicyAbout: "Om träffpolicy",
+    hitPolicyFirst: "Använd första matchande raden. Senare träffar ignoreras.",
+    hitPolicyUnique: "Bara en rad får matcha. Fler än en träff är ett fel.",
+    hitPolicyCollect: "Slå ihop varje matchande rads utdata, i radordning. Tomma celler hoppas över.",
+    hitPolicyDocsLabel: "Blad och beslutstabeller",
     kindSheet: "Blad",
     kindDecision: "Beslutstabell",
     snippetLint: "Snippet-celler (VMS-Mustache)",
@@ -84,14 +122,19 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     tab: "Tabellen & Blätter",
     add: "Blatt hinzufügen",
     addDecision: "Entscheidungstabelle",
-    addCondition: "Bedingung",
+    addInput: "Eingabe/Bedingung",
     addOutput: "Ausgabe",
-    outputKind: "Spaltenart",
-    outputType: "Datentyp",
-    kindValue: "Wert",
-    kindSnippet: "Snippet",
+    columnKind: "Spaltenart",
+    kindString: "Zeichenkette",
+    kindNumber: "Zahl",
+    kindBoolean: "Boolesch",
+    kindStringPattern: "Zeichenkettenmuster",
     rename: "Umbenennen",
     remove: "Löschen",
+    deleteColumn: "{name} löschen",
+    deletedColumn: "Spalte {name} wurde gelöscht. Rückgängig stellt sie wieder her.",
+    dontCare: "Egal (—)",
+    columnMenu: "Spaltenmenü {name}",
     importCsv: "CSV importieren",
     exportCsv: "CSV exportieren",
     fullscreen: "Vollbild",
@@ -100,6 +143,11 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     namePrompt: "Blattname",
     decisionNamePrompt: "Name der Entscheidungstabelle",
     hitPolicy: "Trefferpolitik",
+    hitPolicyAbout: "Über Trefferpolitik",
+    hitPolicyFirst: "Die erste passende Zeile gilt. Spätere Treffer werden ignoriert.",
+    hitPolicyUnique: "Nur eine Zeile darf passen. Mehr als ein Treffer ist ein Fehler.",
+    hitPolicyCollect: "Alle passenden Ausgaben aneinanderfügen, in Zeilenreihenfolge. Leere Zellen entfallen.",
+    hitPolicyDocsLabel: "Blätter und Entscheidungstabellen",
     kindSheet: "Blatt",
     kindDecision: "Entscheidungstabelle",
     snippetLint: "Snippet-Zellen (VMS-Mustache)",
@@ -110,14 +158,19 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     tab: "Tablas y hojas",
     add: "Añadir hoja",
     addDecision: "Tabla de decisión",
-    addCondition: "Añadir condición",
+    addInput: "Añadir entrada/condición",
     addOutput: "Añadir salida",
-    outputKind: "tipo de columna",
-    outputType: "tipo de dato",
-    kindValue: "valor",
-    kindSnippet: "snippet",
+    columnKind: "tipo de columna",
+    kindString: "cadena",
+    kindNumber: "número",
+    kindBoolean: "booleano",
+    kindStringPattern: "patrón de cadena",
     rename: "Renombrar",
     remove: "Eliminar",
+    deleteColumn: "Eliminar {name}",
+    deletedColumn: "Se eliminó la columna {name}. Deshacer puede restaurarla.",
+    dontCare: "Indiferente (—)",
+    columnMenu: "Menú de columna {name}",
     importCsv: "Importar CSV",
     exportCsv: "Exportar CSV",
     fullscreen: "Pantalla completa",
@@ -126,6 +179,11 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     namePrompt: "Nombre de la hoja",
     decisionNamePrompt: "Nombre de la tabla de decisión",
     hitPolicy: "Política de acierto",
+    hitPolicyAbout: "Sobre la política de acierto",
+    hitPolicyFirst: "Se usa la primera fila que coincide. Las coincidencias posteriores se ignoran.",
+    hitPolicyUnique: "Solo una fila puede coincidir. Más de una coincidencia es un error.",
+    hitPolicyCollect: "Une la salida de cada fila coincidente, en orden. Las celdas vacías se omiten.",
+    hitPolicyDocsLabel: "Hojas y tablas de decisión",
     kindSheet: "Hoja",
     kindDecision: "Tabla de decisión",
     snippetLint: "Celdas snippet (VMS-Mustache)",
@@ -136,14 +194,19 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     tab: "Taules i fulls",
     add: "Afegeix full",
     addDecision: "Taula de decisió",
-    addCondition: "Afegeix condició",
+    addInput: "Afegeix entrada/condició",
     addOutput: "Afegeix sortida",
-    outputKind: "tipus de columna",
-    outputType: "tipus de dada",
-    kindValue: "valor",
-    kindSnippet: "snippet",
+    columnKind: "tipus de columna",
+    kindString: "cadena",
+    kindNumber: "nombre",
+    kindBoolean: "booleà",
+    kindStringPattern: "patró de cadena",
     rename: "Canvia el nom",
     remove: "Suprimeix",
+    deleteColumn: "Suprimeix {name}",
+    deletedColumn: "S'ha suprimit la columna {name}. Desfés la pot restaurar.",
+    dontCare: "Indiferent (—)",
+    columnMenu: "Menú de columna {name}",
     importCsv: "Importa CSV",
     exportCsv: "Exporta CSV",
     fullscreen: "Pantalla completa",
@@ -152,6 +215,11 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     namePrompt: "Nom del full",
     decisionNamePrompt: "Nom de la taula de decisió",
     hitPolicy: "Política d'encert",
+    hitPolicyAbout: "Sobre la política d'encert",
+    hitPolicyFirst: "S'usa la primera fila que coincideix. Les coincidències posteriors s'ignoren.",
+    hitPolicyUnique: "Només una fila pot coincidir. Més d'una coincidència és un error.",
+    hitPolicyCollect: "Uneix la sortida de cada fila coincident, en ordre. Les cel·les buides s'ometen.",
+    hitPolicyDocsLabel: "Fulls i taules de decisió",
     kindSheet: "Full",
     kindDecision: "Taula de decisió",
     snippetLint: "Cel·les snippet (VMS-Mustache)",
@@ -162,14 +230,19 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     tab: "Tableaux et feuilles",
     add: "Ajouter une feuille",
     addDecision: "Table de décision",
-    addCondition: "Ajouter une condition",
+    addInput: "Ajouter entrée/condition",
     addOutput: "Ajouter une sortie",
-    outputKind: "sorte de colonne",
-    outputType: "type",
-    kindValue: "valeur",
-    kindSnippet: "snippet",
+    columnKind: "sorte de colonne",
+    kindString: "chaîne",
+    kindNumber: "nombre",
+    kindBoolean: "booléen",
+    kindStringPattern: "motif de chaîne",
     rename: "Renommer",
     remove: "Supprimer",
+    deleteColumn: "Supprimer {name}",
+    deletedColumn: "Colonne {name} supprimée. Annuler peut la restaurer.",
+    dontCare: "Indifférent (—)",
+    columnMenu: "Menu de colonne {name}",
     importCsv: "Importer CSV",
     exportCsv: "Exporter CSV",
     fullscreen: "Plein écran",
@@ -178,6 +251,11 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     namePrompt: "Nom de la feuille",
     decisionNamePrompt: "Nom de la table de décision",
     hitPolicy: "Politique de hit",
+    hitPolicyAbout: "À propos de la politique de hit",
+    hitPolicyFirst: "La première ligne correspondante est utilisée. Les suivantes sont ignorées.",
+    hitPolicyUnique: "Une seule ligne peut correspondre. Plusieurs correspondances sont une erreur.",
+    hitPolicyCollect: "Concatène la sortie de chaque ligne correspondante, dans l'ordre. Les cellules vides sont omises.",
+    hitPolicyDocsLabel: "Feuilles et tables de décision",
     kindSheet: "Feuille",
     kindDecision: "Table de décision",
     snippetLint: "Cellules snippet (VMS-Mustache)",
