@@ -205,11 +205,16 @@ async function copyDistContents(src: string, dest: string): Promise<void> {
   await writePagesFileList(dest);
 }
 
+export const VERSION_TAG_REGEX = /^v\d+(\.\d+)*$/;
+
 /**
  * Generate client-side redirect HTML that sends users from `/recommended/` to the
  * pinned `/vX.Y(.Z)/` recommended release (or site root when no recommendation exists).
  */
 export function generateRecommendedRedirectHtml(recommendedTag?: string): string {
+  if (recommendedTag !== undefined && !VERSION_TAG_REGEX.test(recommendedTag)) {
+    throw new Error(`Invalid version tag for redirect: ${recommendedTag}`);
+  }
   const target = recommendedTag ? `../${recommendedTag}/` : "../";
   const label = recommendedTag ?? "latest";
   return `<!DOCTYPE html>

@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { dirname, join } from "@std/path";
 import { ensureDir } from "@std/fs";
 import {
@@ -540,4 +540,10 @@ Deno.test("assembleReleasePagesSite writes recommended redirect pointing to reco
   } finally {
     await live.shutdown();
   }
+});
+
+Deno.test("generateRecommendedRedirectHtml rejects invalid version tags", () => {
+  assertThrows(() => generateRecommendedRedirectHtml("invalid/path"));
+  assertThrows(() => generateRecommendedRedirectHtml("<script>alert(1)</script>"));
+  assertThrows(() => generateRecommendedRedirectHtml("1.0.0"));
 });
