@@ -1,6 +1,6 @@
 # intEHRgrator
 
-Visual integration workbench for healthcare informaticians: map source data (JSON, XML, openEHR compositions) into openEHR templates, JSON Schema, XML Schema, or free-form text — then test and export conversion scripts.
+Visual integration workbench for healthcare informaticians: map source data (JSON, XML, openEHR compositions) into target data instances (based on openEHR templates, JSON Schema, XML Schema) or to free-form text — then test and export conversion scripts.
 
 **Audience:** medical informaticians, clinical super-users, and technically minded business developers mapping clinical data.
 
@@ -8,7 +8,7 @@ Visual integration workbench for healthcare informaticians: map source data (JSO
 
 | Option | URL |
 |--------|-----|
-| **Web app (recommended)** | [regionstockholm.github.io/intehrgrator/recommended/](https://regionstockholm.github.io/intehrgrator/recommended/) |
+| **Web app (recommended version)** | [regionstockholm.github.io/intehrgrator/recommended/](https://regionstockholm.github.io/intehrgrator/recommended/) |
 | **Web app (latest / bleeding-edge)** | [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/) |
 | **Pinned web versions** | [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists stable URLs such as `…/v0.7/` |
 | **Desktop app** | [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) — Windows, Linux, macOS; no install of Deno required |
