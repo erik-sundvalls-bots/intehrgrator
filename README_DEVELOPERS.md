@@ -117,7 +117,7 @@ Use the GitHub Release UI for release notes or extra attachments, not as a subst
 
 ### Recommended end-user version
 
-`versions.json` field **`recommended`** drives the “not on recommended version” popup. On assemble, precedence is: `RECOMMENDED_VERSION` env or repo-root [`RECOMMENDED_VERSION`](RECOMMENDED_VERSION) file → else keep the previous recommendation if still published → else newest tag. To promote a release (e.g. `v0.8.8`), commit `RECOMMENDED_VERSION` containing that tag and let the next Pages deploy (main and/or release assemble) run.
+`versions.json` field **`recommended`** drives the “not on recommended version” popup and the stable `/recommended/` alias (which redirects directly to the active recommended release). On assemble, precedence is: `RECOMMENDED_VERSION` env or repo-root [`RECOMMENDED_VERSION`](RECOMMENDED_VERSION) file → else keep the previous recommendation if still published → else newest tag. To promote a release (e.g. `v0.8.8`), commit `RECOMMENDED_VERSION` containing that tag and let the next Pages deploy (main and/or release assemble) run.
 
 Bleeding-edge site root (`main` Pages) is not the same as the recommended stable tag.
 

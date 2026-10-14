@@ -6,9 +6,10 @@ Back to the [tutorial index](../TUTORIAL.md).
 
 ## Open the workbench
 
-- **Web:** [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/)
+- **Web (recommended):** [regionstockholm.github.io/intehrgrator/recommended/](https://regionstockholm.github.io/intehrgrator/recommended/)
+- **Web (latest / bleeding-edge):** [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/)
 - **Desktop:** download a build from [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) and run the binary for your platform.
-- **Stable web version:** [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists pinned URLs (`/v0.7/`, and so on). The site root is the bleeding-edge build.
+- **Pinned web versions:** [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists pinned URLs (`/v0.7/`, and so on).
 
 Three panes: **Source** (left, slide-away), **Mapping Editor** (centre), **Target & Previews** (right, tabbed and slide-away).
 

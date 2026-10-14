@@ -1,15 +1,18 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { dirname, join } from "@std/path";
 import { ensureDir } from "@std/fs";
 import {
   assembleMainPagesSite,
   assembleReleasePagesSite,
   flattenWgetNest,
+  generateRecommendedRedirectHtml,
   normalizeManifest,
   pagesRepoPathDepth,
   pickRecommendedVersion,
+  RECOMMENDED_ALIAS_DIR,
   versionHasIndex,
   VERSIONS_MANIFEST,
+  writeRecommendedRedirect,
 } from "../scripts/pages_site.ts";
 import {
   readVersionFromDenoJson,
@@ -296,6 +299,7 @@ Deno.test("assembleReleasePagesSite publishes versionDist as the bleeding-edge r
     "index.html": "<html>stale-root</html>",
     "versions.json": JSON.stringify({ versions: ["v0.6"], recommended: "v0.6" }),
     "v0.6/index.html": "<html>v0.6</html>",
+    "v0.6/pages-files.txt": "index.html\n",
   });
 
   const dir = await Deno.makeTempDir();
@@ -326,6 +330,7 @@ Deno.test("assembleReleasePagesSite keeps a still-published recommended tag over
     "index.html": "<html>live</html>",
     "versions.json": JSON.stringify({ versions: ["v0.6"], recommended: "v0.6" }),
     "v0.6/index.html": "<html>v0.6</html>",
+    "v0.6/pages-files.txt": "index.html\n",
   });
 
   const dir = await Deno.makeTempDir();
@@ -428,6 +433,7 @@ Deno.test("assembleReleasePagesSite honors a recommendedOverride even over the p
     "index.html": "<html>live</html>",
     "versions.json": JSON.stringify({ versions: ["v0.6"], recommended: "v0.6" }),
     "v0.6/index.html": "<html>v0.6</html>",
+    "v0.6/pages-files.txt": "index.html\n",
   });
 
   const dir = await Deno.makeTempDir();
@@ -448,4 +454,96 @@ Deno.test("assembleReleasePagesSite honors a recommendedOverride even over the p
   } finally {
     await live.shutdown();
   }
+});
+
+Deno.test("generateRecommendedRedirectHtml generates meta and script redirect to target tag", () => {
+  const html = generateRecommendedRedirectHtml("v0.8.7");
+  assertEquals(html.includes('<meta http-equiv="refresh" content="0; url=../v0.8.7/">'), true);
+  assertEquals(html.includes('<link rel="canonical" href="../v0.8.7/">'), true);
+  assertEquals(
+    html.includes('window.location.replace("../v0.8.7/" + window.location.search + window.location.hash);'),
+    true,
+  );
+  assertEquals(html.includes('<a href="../v0.8.7/">v0.8.7</a>'), true);
+});
+
+Deno.test("generateRecommendedRedirectHtml falls back to root when no tag is given", () => {
+  const html = generateRecommendedRedirectHtml(undefined);
+  assertEquals(html.includes('<meta http-equiv="refresh" content="0; url=../">'), true);
+  assertEquals(html.includes('<link rel="canonical" href="../">'), true);
+  assertEquals(
+    html.includes('window.location.replace("../" + window.location.search + window.location.hash);'),
+    true,
+  );
+  assertEquals(html.includes('<a href="../">latest</a>'), true);
+});
+
+Deno.test("writeRecommendedRedirect writes index.html under recommended/ directory", async () => {
+  const dir = await Deno.makeTempDir();
+  await writeRecommendedRedirect(dir, "v0.8.7");
+  const content = await Deno.readTextFile(join(dir, RECOMMENDED_ALIAS_DIR, "index.html"));
+  assertEquals(content.includes('<meta http-equiv="refresh" content="0; url=../v0.8.7/">'), true);
+});
+
+Deno.test("assembleMainPagesSite writes recommended redirect pointing to recommended version", async () => {
+  const live = await serveLiveSite({
+    "index.html": "<html>root</html>",
+    "versions.json": JSON.stringify({ versions: ["v0.8.7"], recommended: "v0.8.7" }),
+    "v0.8.7/index.html": "<html>v0.8.7</html>",
+    "v0.8.7/pages-files.txt": "index.html\n",
+  });
+
+  const dir = await Deno.makeTempDir();
+  const rootDist = join(dir, "root-dist");
+  const outDir = join(dir, "out");
+  await Deno.mkdir(rootDist, { recursive: true });
+  await Deno.writeTextFile(join(rootDist, "index.html"), "<html>main</html>");
+
+  try {
+    const manifest = await assembleMainPagesSite({
+      baseUrl: live.baseUrl,
+      rootDist,
+      outDir,
+    });
+    assertEquals(manifest.recommended, "v0.8.7");
+    const redirectHtml = await Deno.readTextFile(join(outDir, "recommended", "index.html"));
+    assertEquals(redirectHtml.includes('<meta http-equiv="refresh" content="0; url=../v0.8.7/">'), true);
+  } finally {
+    await live.shutdown();
+  }
+});
+
+Deno.test("assembleReleasePagesSite writes recommended redirect pointing to recommended version", async () => {
+  const live = await serveLiveSite({
+    "index.html": "<html>live</html>",
+    "versions.json": JSON.stringify({ versions: ["v0.8.7"], recommended: "v0.8.7" }),
+    "v0.8.7/index.html": "<html>v0.8.7</html>",
+    "v0.8.7/pages-files.txt": "index.html\n",
+  });
+
+  const dir = await Deno.makeTempDir();
+  const versionDist = join(dir, "version-dist");
+  const outDir = join(dir, "out");
+  await Deno.mkdir(versionDist, { recursive: true });
+  await Deno.writeTextFile(join(versionDist, "index.html"), "<html>v0.9</html>");
+
+  try {
+    const manifest = await assembleReleasePagesSite({
+      baseUrl: live.baseUrl,
+      versionTag: "v0.9",
+      versionDist,
+      outDir,
+    });
+    assertEquals(manifest.recommended, "v0.8.7");
+    const redirectHtml = await Deno.readTextFile(join(outDir, "recommended", "index.html"));
+    assertEquals(redirectHtml.includes('<meta http-equiv="refresh" content="0; url=../v0.8.7/">'), true);
+  } finally {
+    await live.shutdown();
+  }
+});
+
+Deno.test("generateRecommendedRedirectHtml rejects invalid version tags", () => {
+  assertThrows(() => generateRecommendedRedirectHtml("invalid/path"));
+  assertThrows(() => generateRecommendedRedirectHtml("<script>alert(1)</script>"));
+  assertThrows(() => generateRecommendedRedirectHtml("1.0.0"));
 });

@@ -13,6 +13,7 @@ export const VERSIONS_MANIFEST = "versions.json";
  * would otherwise disappear from `/vX.Y/`.
  */
 export const PAGES_FILE_LIST = "pages-files.txt";
+export const RECOMMENDED_ALIAS_DIR = "recommended";
 
 export interface VersionsManifest {
   versions: string[];
@@ -200,8 +201,54 @@ export async function mirrorVersionSubdir(
 
 async function copyDistContents(src: string, dest: string): Promise<void> {
   await ensureDir(dest);
-  await copy(src, dest, { overwrite: true, recursive: true });
+  await copy(src, dest, { overwrite: true });
   await writePagesFileList(dest);
+}
+
+export const VERSION_TAG_REGEX = /^v\d+(\.\d+)*$/;
+
+/**
+ * Generate client-side redirect HTML that sends users from `/recommended/` to the
+ * pinned `/vX.Y(.Z)/` recommended release (or site root when no recommendation exists).
+ */
+export function generateRecommendedRedirectHtml(recommendedTag?: string): string {
+  if (recommendedTag !== undefined && !VERSION_TAG_REGEX.test(recommendedTag)) {
+    throw new Error(`Invalid version tag for redirect: ${recommendedTag}`);
+  }
+  const target = recommendedTag ? `../${recommendedTag}/` : "../";
+  const label = recommendedTag ?? "latest";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting to recommended version...</title>
+  <meta http-equiv="refresh" content="0; url=${target}">
+  <link rel="canonical" href="${target}">
+  <script>
+    window.location.replace("${target}" + window.location.search + window.location.hash);
+  </script>
+</head>
+<body>
+  <p>Redirecting to recommended version: <a href="${target}">${label}</a></p>
+</body>
+</html>
+`;
+}
+
+/**
+ * Write `/recommended/index.html` into the Pages output directory to alias the current
+ * recommended release tag.
+ */
+export async function writeRecommendedRedirect(
+  outDir: string,
+  recommendedTag?: string,
+): Promise<void> {
+  const targetDir = join(outDir, RECOMMENDED_ALIAS_DIR);
+  await ensureDir(targetDir);
+  await Deno.writeTextFile(
+    join(targetDir, "index.html"),
+    generateRecommendedRedirectHtml(recommendedTag),
+  );
 }
 
 /** Relative paths, one per line, of every file currently in a Pages tree. */
@@ -307,6 +354,7 @@ export async function assembleMainPagesSite(opts: {
     }),
   });
   await writeVersionsManifest(join(opts.outDir, VERSIONS_MANIFEST), manifest);
+  await writeRecommendedRedirect(opts.outDir, manifest.recommended);
   return manifest;
 }
 
@@ -372,5 +420,6 @@ export async function assembleReleasePagesSite(opts: {
     }),
   });
   await writeVersionsManifest(join(opts.outDir, VERSIONS_MANIFEST), next);
+  await writeRecommendedRedirect(opts.outDir, next.recommended);
   return next;
 }
