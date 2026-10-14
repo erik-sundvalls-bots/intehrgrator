@@ -264,6 +264,7 @@ const mappingJsonHost = document.getElementById("spec-editor")!;
 const specEditorWrap = document.getElementById("spec-editor-wrap")!;
 const sheetsHost = document.getElementById("sheets-host")!;
 const specBulkBar = document.getElementById("mapping-spec-bulk-bar")!;
+const sheetsActions = document.getElementById("sheets-actions");
 const specMarkWarnedBtn = document.getElementById("btn-spec-mark-warned") as HTMLButtonElement;
 const specDeleteMarkedBtn = document.getElementById("btn-spec-delete-marked") as HTMLButtonElement;
 
@@ -459,6 +460,7 @@ function showTextView(view: "mapping-json" | "sheets"): void {
   if (specEditorWrap) specEditorWrap.hidden = showSheets;
   sheetsHost.hidden = !showSheets;
   specBulkBar.hidden = showSheets;
+  if (sheetsActions) sheetsActions.hidden = !showSheets;
   mappingJsonTab.classList.toggle("active", view === "mapping-json");
   sheetsTab?.classList.toggle("active", showSheets);
   if (uploadSpecBtn) uploadSpecBtn.hidden = showSheets;
@@ -672,6 +674,7 @@ async function bootBlockly(): Promise<void> {
   }, {
     getWorkspace: () => workspace,
     getLocale: () => blocklyLocale,
+    actionsHost: sheetsActions,
   });
   installDecisionTableSync(
     workspace,

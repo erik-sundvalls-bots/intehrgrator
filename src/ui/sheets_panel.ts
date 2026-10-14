@@ -8,6 +8,8 @@ import {
   addCatchAllRow,
   addDecisionColumn,
   cloneSheets,
+  decisionColumnMeta,
+  deleteColumn,
   emptyDecisionTable,
   emptySheet,
   findSheet,
@@ -17,16 +19,19 @@ import {
   parseSpreadsheetText,
   setDecisionOutputKind,
   setDecisionValueType,
+  setXy,
   sheetsEqual,
   sheetToCsv,
   trimDecisionTableSpareColumns,
+  type DecisionColumnMeta,
   type DecisionHitPolicy,
   type DecisionOutputKind,
   type DecisionValueType,
   type SheetDocument,
 } from "../core/sheets/mod.ts";
 import { fireSheetChange } from "../workbench/sheet_undo.ts";
-import { jspreadsheetDictionary, sheetsChrome } from "./sheets_i18n.ts";
+import { attachInfoTip } from "./info_tip.ts";
+import { HIT_POLICY_DOCS_HREF, jspreadsheetDictionary, sheetsChrome, sheetsFormat } from "./sheets_i18n.ts";
 import {
   retargetDecisionTableNames,
   syncDecisionTableBlocksFromSheets,
@@ -42,9 +47,13 @@ type WorksheetInstance = {
   setHeader: (column: number, value: string) => void;
   download: (includeHeaders?: boolean) => void;
   ignoreHistory: boolean;
+  headers?: HTMLTableCellElement[];
   options?: { rows?: Array<{ title?: string }> | Record<number, { title?: string }> };
   parent: { fullscreen: (activate?: boolean) => void };
 };
+
+const COG_SVG =
+  '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.22-1.13.53-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.31.6.22l2.39-.96c.49.4 1.03.72 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.22 1.13-.53 1.62-.94l2.39.96c.22.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>';
 
 export interface SheetsPanelHost {
   getSheets: () => SheetDocument[];
@@ -58,6 +67,8 @@ export function mountSheetsPanel(
   options: {
     getWorkspace: () => Workspace;
     getLocale: () => string;
+    /** Top-right slot in the mapping editor tab row. General sheet buttons live here. */
+    actionsHost?: HTMLElement | null;
   },
 ): {
   refresh: () => void;
@@ -105,18 +116,10 @@ export function mountSheetsPanel(
   fileInput.type = "file";
   fileInput.accept = ".csv,.tsv,.txt";
   fileInput.hidden = true;
-  toolbar.append(
-    tabsEl,
-    select,
-    addBtn,
-    addDtBtn,
-    renameBtn,
-    deleteBtn,
-    importBtn,
-    exportBtn,
-    fullBtn,
-    fileInput,
-  );
+  const actions = document.createElement("div");
+  actions.className = "sheets-actions-buttons";
+  actions.append(addBtn, addDtBtn, renameBtn, deleteBtn, importBtn, exportBtn, fullBtn);
+  toolbar.append(tabsEl, select, fileInput);
 
   const metaBar = document.createElement("div");
   metaBar.className = "sheets-meta";
@@ -133,12 +136,22 @@ export function mountSheetsPanel(
     opt.textContent = p;
     hitPolicySelect.append(opt);
   }
-  hitPolicyLabel.append(hitPolicySelect);
+  hitPolicyLabel.append(document.createTextNode(""), hitPolicySelect);
+  const hitPolicyInfo = document.createElement("span");
+  hitPolicyInfo.className = "info-tip";
+  const hitPolicyInfoBtn = document.createElement("button");
+  hitPolicyInfoBtn.type = "button";
+  hitPolicyInfoBtn.className = "info-tip-btn";
+  hitPolicyInfoBtn.textContent = "i";
+  const hitPolicyBalloon = document.createElement("div");
+  hitPolicyBalloon.className = "info-tip-balloon";
+  hitPolicyBalloon.hidden = true;
+  hitPolicyBalloon.setAttribute("role", "tooltip");
+  hitPolicyInfo.append(hitPolicyInfoBtn, hitPolicyBalloon);
+  attachInfoTip(hitPolicyInfo);
   const lintEl = document.createElement("p");
   lintEl.className = "sheets-snippet-lint";
   lintEl.hidden = true;
-  const outputColsEl = document.createElement("div");
-  outputColsEl.className = "sheets-output-cols";
   const addCondBtn = document.createElement("button");
   addCondBtn.type = "button";
   addCondBtn.className = "pane-btn";
@@ -157,13 +170,20 @@ export function mountSheetsPanel(
   metaBar.append(
     kindLabel,
     hitPolicyLabel,
+    hitPolicyInfo,
     addCondBtn,
     addOutBtn,
     addDefaultBtn,
     collectDedupeLabel,
-    outputColsEl,
     lintEl,
   );
+
+  const toastEl = document.createElement("div");
+  toastEl.className = "sheets-toast";
+  toastEl.setAttribute("role", "status");
+  toastEl.hidden = true;
+  let toastTimer = 0;
+  let columnMenu: HTMLElement | null = null;
 
   const emptyEl = document.createElement("p");
   emptyEl.className = "sheets-empty";
@@ -172,7 +192,7 @@ export function mountSheetsPanel(
   const gridEl = document.createElement("div");
   gridEl.className = "sheets-grid";
   gridHost.append(gridEl);
-  root.append(toolbar, metaBar, emptyEl, gridHost);
+  root.append(toolbar, metaBar, emptyEl, gridHost, toastEl);
 
   let activeName = "";
   let worksheet: WorksheetInstance | null = null;
@@ -191,7 +211,10 @@ export function mountSheetsPanel(
     fullBtn.textContent = fullscreen ? t.exitFullscreen : t.fullscreen;
     emptyEl.textContent = t.empty;
     hitPolicySelect.setAttribute("aria-label", t.hitPolicy);
-    addCondBtn.textContent = t.addCondition;
+    if (hitPolicyLabel.firstChild) hitPolicyLabel.firstChild.textContent = `${t.hitPolicy} `;
+    hitPolicyInfoBtn.setAttribute("aria-label", t.hitPolicyAbout);
+    paintHitPolicyInfo();
+    addCondBtn.textContent = t.addInput;
     addOutBtn.textContent = t.addOutput;
     addDefaultBtn.textContent = t.addDefaultRow;
     collectDedupeBox.setAttribute("aria-label", t.collectDedupe);
@@ -199,7 +222,52 @@ export function mountSheetsPanel(
     dedupeCaption.textContent = ` ${t.collectDedupe}`;
     if (!dedupeCaption.parentElement) collectDedupeLabel.append(dedupeCaption);
   };
+
+  const paintHitPolicyInfo = (): void => {
+    const t = sheetsChrome(locale);
+    hitPolicyBalloon.replaceChildren();
+    for (const [key, text] of [
+      ["FIRST", t.hitPolicyFirst],
+      ["UNIQUE", t.hitPolicyUnique],
+      ["COLLECT", t.hitPolicyCollect],
+    ] as const) {
+      const p = document.createElement("p");
+      const strong = document.createElement("strong");
+      strong.textContent = key;
+      p.append(strong, document.createTextNode(` — ${text}`));
+      hitPolicyBalloon.append(p);
+    }
+    const link = document.createElement("a");
+    link.href = HIT_POLICY_DOCS_HREF;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = t.hitPolicyDocsLabel;
+    hitPolicyBalloon.append(link);
+  };
+
+  const placeActions = (): void => {
+    const external = options.actionsHost;
+    if (!fullscreen && external) external.replaceChildren(actions);
+    else toolbar.append(actions);
+  };
+
+  const showToast = (message: string): void => {
+    toastEl.textContent = message;
+    toastEl.hidden = false;
+    if (toastTimer) globalThis.clearTimeout(toastTimer);
+    toastTimer = globalThis.setTimeout(() => {
+      toastEl.hidden = true;
+      toastTimer = 0;
+    }, 4000);
+  };
+
+  const closeColumnMenu = (): void => {
+    columnMenu?.remove();
+    columnMenu = null;
+  };
+
   paintChrome();
+  placeActions();
 
   const destroyGrid = (): void => {
     worksheet = null;
@@ -243,7 +311,6 @@ export function mountSheetsPanel(
     if (!sheet || !isDecisionTable(sheet)) {
       metaBar.hidden = true;
       lintEl.hidden = true;
-      outputColsEl.replaceChildren();
       return;
     }
     metaBar.hidden = false;
@@ -251,50 +318,6 @@ export function mountSheetsPanel(
     hitPolicySelect.value = sheet.hitPolicy ?? "FIRST";
     collectDedupeLabel.hidden = (sheet.hitPolicy ?? "FIRST") !== "COLLECT";
     collectDedupeBox.checked = sheet.collectDedupe === true;
-    outputColsEl.replaceChildren();
-    const meta = sheet.decisionColumns ?? [];
-    sheet.headers.forEach((header, i) => {
-      if (meta[i]?.role !== "output") return;
-      const wrap = document.createElement("label");
-      wrap.className = "sheets-output-col";
-      wrap.append(document.createTextNode(`${header} `));
-      const kindSel = document.createElement("select");
-      kindSel.setAttribute("aria-label", `${header} ${t.outputKind}`);
-      for (const k of ["value", "snippet"] as DecisionOutputKind[]) {
-        const opt = document.createElement("option");
-        opt.value = k;
-        opt.textContent = k === "snippet" ? t.kindSnippet : t.kindValue;
-        kindSel.append(opt);
-      }
-      kindSel.value = meta[i]?.outputKind === "snippet" ? "snippet" : "value";
-      kindSel.addEventListener("change", () => {
-        commitSheetDoc(setDecisionOutputKind(sheet, i, kindSel.value as DecisionOutputKind));
-      });
-      const typeSel = document.createElement("select");
-      typeSel.setAttribute("aria-label", `${header} ${t.outputType}`);
-      for (const k of ["string", "number", "boolean"] as DecisionValueType[]) {
-        const opt = document.createElement("option");
-        opt.value = k;
-        opt.textContent = k;
-        typeSel.append(opt);
-      }
-      typeSel.value = meta[i]?.valueType === "number" || meta[i]?.valueType === "boolean"
-        ? meta[i]!.valueType!
-        : "string";
-      typeSel.disabled = kindSel.value === "snippet";
-      typeSel.addEventListener("change", () => {
-        const nextType = typeSel.value as DecisionValueType;
-        if (!confirmValueTypeSwitch()) {
-          typeSel.value = meta[i]?.valueType === "number" || meta[i]?.valueType === "boolean"
-            ? meta[i]!.valueType!
-            : "string";
-          return;
-        }
-        commitSheetDoc(setDecisionValueType(sheet, i, nextType));
-      });
-      wrap.append(kindSel, typeSel);
-      outputColsEl.append(wrap);
-    });
     const diags = lintDecisionTable(sheet);
     if (diags.length) {
       lintEl.hidden = false;
@@ -344,6 +367,137 @@ export function mountSheetsPanel(
     notifyBlockly(after);
   };
 
+  const activeDecisionSheet = (): SheetDocument | null => {
+    const sheet = findSheet(host.getSheets(), activeName);
+    return sheet && isDecisionTable(sheet) ? sheet : null;
+  };
+
+  const applyOutputColumnKind = (index: number, kind: string): void => {
+    const sheet = activeDecisionSheet();
+    if (!sheet) return;
+    const meta = decisionColumnMeta(sheet)[index];
+    if (!meta || meta.role !== "output") return;
+    const nextKind: DecisionOutputKind = kind === "snippet" ? "snippet" : "value";
+    const nextType: DecisionValueType = kind === "number" || kind === "boolean" ? kind : "string";
+    const header = sheet.headers[index] ?? "";
+    const prevType = header ? outputTypeOf(sheet, index) : "string";
+    let next = setDecisionOutputKind(sheet, index, nextKind);
+    if (nextKind === "value") next = setDecisionValueType(next, index, nextType);
+    const newType = outputTypeOf(next, index);
+    if (prevType !== newType && !confirmValueTypeSwitch()) return;
+    closeColumnMenu();
+    commitSheetDoc(next);
+  };
+
+  const openColumnMenu = (index: number, anchor: HTMLElement): void => {
+    const sheet = activeDecisionSheet();
+    if (!sheet) return;
+    closeColumnMenu();
+    const t = sheetsChrome(locale);
+    const name = sheet.headers[index] ?? "";
+    const meta = decisionColumnMeta(sheet)[index];
+    const menu = document.createElement("div");
+    menu.id = "dt-column-menu";
+    menu.className = "dt-column-menu";
+    menu.setAttribute("role", "menu");
+    if (meta?.role === "output") {
+      const label = document.createElement("label");
+      label.className = "dt-column-kind";
+      const sel = document.createElement("select");
+      sel.setAttribute("aria-label", `${name} ${t.columnKind}`);
+      for (const [value, text] of [
+        ["string", t.kindString],
+        ["number", t.kindNumber],
+        ["boolean", t.kindBoolean],
+        ["snippet", t.kindStringPattern],
+      ] as const) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = text;
+        sel.append(opt);
+      }
+      sel.value = columnKindValue(meta);
+      sel.addEventListener("change", () => applyOutputColumnKind(index, sel.value));
+      label.append(sel);
+      menu.append(label);
+    }
+    const addInputItem = document.createElement("button");
+    addInputItem.type = "button";
+    addInputItem.className = "dt-column-menu-item";
+    addInputItem.textContent = t.addInput;
+    addInputItem.addEventListener("click", () => {
+      const current = activeDecisionSheet();
+      if (!current) return;
+      closeColumnMenu();
+      commitSheetDoc(addDecisionColumn(current, "condition"));
+    });
+    const addOutputItem = document.createElement("button");
+    addOutputItem.type = "button";
+    addOutputItem.className = "dt-column-menu-item";
+    addOutputItem.textContent = t.addOutput;
+    addOutputItem.addEventListener("click", () => {
+      const current = activeDecisionSheet();
+      if (!current) return;
+      closeColumnMenu();
+      commitSheetDoc(addDecisionColumn(current, "output"));
+    });
+    const deleteItem = document.createElement("button");
+    deleteItem.type = "button";
+    deleteItem.className = "dt-column-menu-item dt-column-menu-delete";
+    deleteItem.textContent = sheetsFormat(t.deleteColumn, name);
+    deleteItem.disabled = sheet.headers.length <= 1;
+    deleteItem.addEventListener("click", () => {
+      const current = activeDecisionSheet();
+      if (!current || current.headers.length <= 1) return;
+      const removed = current.headers[index] ?? name;
+      closeColumnMenu();
+      commitSheetDoc(deleteColumn(current, index, 1));
+      showToast(sheetsFormat(t.deletedColumn, removed));
+    });
+    menu.append(addInputItem, addOutputItem, deleteItem);
+    document.body.append(menu);
+    columnMenu = menu;
+    const box = anchor.getBoundingClientRect();
+    const menuBox = menu.getBoundingClientRect();
+    const left = Math.min(box.left, globalThis.innerWidth - menuBox.width - 8);
+    const top = Math.min(box.bottom + 4, globalThis.innerHeight - menuBox.height - 8);
+    menu.style.left = `${Math.max(8, left)}px`;
+    menu.style.top = `${Math.max(8, top)}px`;
+  };
+
+  const decorateDecisionHeaders = (sheet: SheetDocument): void => {
+    const cells = worksheet?.headers;
+    if (!cells) return;
+    const meta = decisionColumnMeta(sheet);
+    cells.forEach((cell, index) => {
+      const name = sheet.headers[index] ?? "";
+      if (!name) return;
+      const glyph = outputGlyph(meta[index]);
+      cell.classList.add("dt-col-header");
+      if (glyph) cell.dataset.dtGlyph = glyph;
+      else delete cell.dataset.dtGlyph;
+      cell.dataset.dtRole = meta[index]?.role ?? "condition";
+      const cog = document.createElement("button");
+      cog.type = "button";
+      cog.className = "dt-header-cog";
+      cog.setAttribute("aria-label", sheetsFormat(sheetsChrome(locale).columnMenu, name));
+      cog.innerHTML = COG_SVG;
+      cell.replaceChildren(document.createTextNode(name), cog);
+      cell.title = name;
+      const open = (ev: Event): void => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        openColumnMenu(index, cog);
+      };
+      cog.addEventListener("click", open);
+      cell.addEventListener("contextmenu", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        openColumnMenu(index, cell);
+      });
+    });
+  };
+
   const bindSheet = (sheet: SheetDocument): void => {
     destroyGrid();
     applying = true;
@@ -389,9 +543,27 @@ export function mountSheetsPanel(
         ondeleterow: () => commitFromWidget(),
         ondeletecolumn: () => commitFromWidget(),
         onchangeheader: () => commitFromWidget(),
+        contextMenu: (_instance, x, y, _event, items, role) => {
+          const current = activeDecisionSheet();
+          if (!current || role !== "cell") return items;
+          const col = Number(x);
+          const row = Number(y);
+          if (!Number.isFinite(col) || !Number.isFinite(row)) return items;
+          const t = sheetsChrome(locale);
+          items.push({
+            title: t.dontCare,
+            onclick: () => {
+              const live = activeDecisionSheet();
+              if (!live) return;
+              commitSheetDoc(setXy(live, col, row, "—"));
+            },
+          });
+          return items;
+        },
       }) as unknown as WorksheetInstance[];
       worksheet = created[0] ?? null;
       if (worksheet) worksheet.ignoreHistory = true;
+      if (isDecisionTable(sheet)) decorateDecisionHeaders(sheet);
       sizeGrid();
       paintMeta(sheet);
     } finally {
@@ -688,6 +860,7 @@ export function mountSheetsPanel(
     root.classList.toggle("sheets-panel--fullscreen", on);
     document.body.classList.toggle("sheets-fullscreen", on);
     paintChrome();
+    placeActions();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const sheet = findSheet(host.getSheets(), activeName);
@@ -699,6 +872,11 @@ export function mountSheetsPanel(
   fullBtn.addEventListener("click", () => setFullscreen(!fullscreen));
 
   const onKey = (ev: KeyboardEvent): void => {
+    if (ev.key === "Escape" && columnMenu) {
+      ev.preventDefault();
+      closeColumnMenu();
+      return;
+    }
     if (ev.key === "Escape" && fullscreen) {
       ev.preventDefault();
       setFullscreen(false);
@@ -718,6 +896,14 @@ export function mountSheetsPanel(
     options.getWorkspace().undo(redo);
   };
   document.addEventListener("keydown", onKey, true);
+  const onPointerDown = (ev: Event): void => {
+    const target = ev.target;
+    if (!(target instanceof Node)) return;
+    if (columnMenu?.contains(target)) return;
+    if (target instanceof Element && target.closest(".dt-header-cog")) return;
+    closeColumnMenu();
+  };
+  document.addEventListener("pointerdown", onPointerDown, true);
 
   refresh();
 
@@ -728,6 +914,7 @@ export function mountSheetsPanel(
       locale = next;
       applyDictionary(locale);
       paintChrome();
+      placeActions();
     },
     setFullscreen,
     destroy: () => {
@@ -737,6 +924,9 @@ export function mountSheetsPanel(
         sizeRaf = 0;
       }
       document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      closeColumnMenu();
+      if (toastTimer) globalThis.clearTimeout(toastTimer);
       hostResize.disconnect();
       setFullscreen(false);
       destroyGrid();
@@ -748,6 +938,27 @@ export function mountSheetsPanel(
 function applyDictionary(locale: string): void {
   const dict = jspreadsheetDictionary(locale);
   if (Object.keys(dict).length) jspreadsheet.setDictionary(dict);
+}
+
+function outputTypeOf(sheet: SheetDocument, index: number): DecisionValueType {
+  const col = decisionColumnMeta(sheet)[index];
+  if (!col || col.role !== "output") return "string";
+  if (col.outputKind === "snippet") return "string";
+  return col.valueType === "number" || col.valueType === "boolean" ? col.valueType : "string";
+}
+
+function columnKindValue(meta: DecisionColumnMeta): string {
+  if (meta.outputKind === "snippet") return "snippet";
+  if (meta.valueType === "number" || meta.valueType === "boolean") return meta.valueType;
+  return "string";
+}
+
+function outputGlyph(meta: DecisionColumnMeta | undefined): string {
+  if (!meta || meta.role !== "output") return "";
+  if (meta.outputKind === "snippet") return "{}";
+  if (meta.valueType === "number") return "🔢";
+  if (meta.valueType === "boolean") return "✓";
+  return "🔤";
 }
 
 function confirmValueTypeSwitch(): boolean {

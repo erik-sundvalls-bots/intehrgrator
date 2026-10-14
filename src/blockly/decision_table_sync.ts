@@ -37,7 +37,12 @@ export function syncDecisionTableBlocksFromSheets(
       if (!sheet) continue;
       if (block.type === DECISION_TABLE_BLOCK) {
         bindLocalsMap(block, sheet);
+        // Leave OUTPUT as the author chose it. Rewriting a missing header to the
+        // first output column would retarget a renamed column and put a field
+        // edit on the undo stack above the sheet edit that deleted it.
         applyDecisionTableOutputType(block);
+        const outputField = block.getField("OUTPUT") as { forceRerender?: () => void } | null;
+        outputField?.forceRerender?.();
       }
     }
     refreshGridPreviewFields(workspace);

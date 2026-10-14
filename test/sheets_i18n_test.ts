@@ -20,6 +20,9 @@ Deno.test("sheets chrome includes Add default row and COLLECT dedupe labels", ()
     assertEquals(t.collectDedupe.length > 0, true);
   }
   assertEquals(sheetsChrome("en").addDefaultRow, "Add default row");
+  assertEquals(sheetsChrome("en").addInput, "Add input/condition");
+  assertEquals(sheetsChrome("en").kindStringPattern, "string pattern");
+  assertEquals(sheetsChrome("en").deleteColumn, "Delete {name}");
   assertEquals(sheetsChrome("en").tab, "Tables & Sheets");
   assertEquals(sheetsChrome("sv").tab, "Tabeller & kalkylblad");
   assertEquals(sheetsChrome("de").tab, "Tabellen & Blätter");
