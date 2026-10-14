@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
-import { dirname, fromFileUrl, join, normalize } from "@std/path";
+import { basename, dirname, fromFileUrl, join, normalize } from "@std/path";
 import { WorkbenchController } from "@intehrgrator/workbench/controller.ts";
 import {
   parseExampleSetCatalog,
@@ -11,7 +11,7 @@ import type { LoadableProjectEntry, StoredProjectRecord } from "@intehrgrator/co
 const root = join(dirname(fromFileUrl(import.meta.url)), "..");
 const catalogPath = join(root, "examples", "example-sets.json");
 const catalogDir = dirname(catalogPath);
-const fixturesDir = join(root, "test", "fixtures");
+const _fixturesDir = join(root, "test", "fixtures");
 const catalogBase = "https://app.test/examples/example-sets.json";
 const localFixtures =
   "https://app.test/test/fixtures/";
@@ -90,7 +90,7 @@ async function stubbedCatalogFiles(): Promise<Record<string, { name: string; tex
       const url = resolveCatalogUri(ref, catalogBase);
       if (files[url]) continue;
       const path = normalize(join(catalogDir, ref));
-      files[url] = { name: path.split("/").pop()!, text: await Deno.readTextFile(path) };
+      files[url] = { name: basename(path), text: await Deno.readTextFile(path) };
     }
   }
   return files;

@@ -8,15 +8,16 @@ Visual integration workbench for healthcare informaticians: map source data (JSO
 
 | Option | URL |
 |--------|-----|
-| **Web app (latest)** | [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/) |
+| **Web app (recommended)** | [regionstockholm.github.io/intehrgrator/recommended/](https://regionstockholm.github.io/intehrgrator/recommended/) |
+| **Web app (latest / bleeding-edge)** | [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/) |
 | **Pinned web versions** | [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists stable URLs such as `…/v0.7/` |
 | **Desktop app** | [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) — Windows, Linux, macOS; no install of Deno required |
 
-The site root always tracks the latest `main` build and may change day to day. Use a `/vX.Y/` URL or a desktop release when you need a stable baseline for production mapping work.
+The recommended web app link redirects to the current stable pinned release from `versions.json`. The site root tracks the latest `main` (bleeding-edge) build and may change day to day. Use the recommended build, a pinned `/vX.Y/` URL, or a desktop release when you need a stable baseline for production mapping work.
 
 ## Get started
 
-1. Open the [web app](https://regionstockholm.github.io/intehrgrator/) or download a [desktop build](https://github.com/regionstockholm/intehrgrator/releases).
+1. Open the [web app](https://regionstockholm.github.io/intehrgrator/recommended/) or download a [desktop build](https://github.com/regionstockholm/intehrgrator/releases).
 2. Read the **[tutorials](docs/TUTORIAL.md)** — a short index of focused lectures (basic mapping, loops, AI, desktop MCP, and the rest).
 3. Click the **ⓘ** tips in the interface for context-sensitive help on panes and controls.
 
