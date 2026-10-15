@@ -27,6 +27,8 @@ export {
   getXy,
   insertColumn,
   insertRow,
+  moveColumns,
+  moveRows,
   normalizeSheet,
   normalizeSheets,
   sheetsFromCatalogJson,

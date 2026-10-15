@@ -6,6 +6,9 @@ export interface SheetsChrome {
   addDecision: string;
   addInput: string;
   addOutput: string;
+  outputType: string;
+  moveLeft: string;
+  moveRight: string;
   columnKind: string;
   kindString: string;
   kindNumber: string;
@@ -54,6 +57,9 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     addDecision: "Add decision table",
     addInput: "Add input/condition",
     addOutput: "Add output",
+    outputType: "Output type",
+    moveLeft: "Move left",
+    moveRight: "Move right",
     columnKind: "column kind",
     kindString: "string",
     kindNumber: "number",
@@ -92,6 +98,9 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     addDecision: "Ny beslutstabell",
     addInput: "Lägg till indata/villkor",
     addOutput: "Ny utdata",
+    outputType: "Utdatatyp",
+    moveLeft: "Flytta vänster",
+    moveRight: "Flytta höger",
     columnKind: "kolumnslag",
     kindString: "sträng",
     kindNumber: "tal",
@@ -130,6 +139,9 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     addDecision: "Entscheidungstabelle",
     addInput: "Eingabe/Bedingung",
     addOutput: "Ausgabe",
+    outputType: "Ausgabetyp",
+    moveLeft: "Nach links",
+    moveRight: "Nach rechts",
     columnKind: "Spaltenart",
     kindString: "Zeichenkette",
     kindNumber: "Zahl",
@@ -168,6 +180,9 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     addDecision: "Tabla de decisión",
     addInput: "Añadir entrada/condición",
     addOutput: "Añadir salida",
+    outputType: "Tipo de salida",
+    moveLeft: "Mover a la izquierda",
+    moveRight: "Mover a la derecha",
     columnKind: "tipo de columna",
     kindString: "cadena",
     kindNumber: "número",
@@ -206,6 +221,9 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     addDecision: "Taula de decisió",
     addInput: "Afegeix entrada/condició",
     addOutput: "Afegeix sortida",
+    outputType: "Tipus de sortida",
+    moveLeft: "Mou a l'esquerra",
+    moveRight: "Mou a la dreta",
     columnKind: "tipus de columna",
     kindString: "cadena",
     kindNumber: "nombre",
@@ -244,6 +262,9 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     addDecision: "Table de décision",
     addInput: "Ajouter entrée/condition",
     addOutput: "Ajouter une sortie",
+    outputType: "Type de sortie",
+    moveLeft: "Déplacer à gauche",
+    moveRight: "Déplacer à droite",
     columnKind: "sorte de colonne",
     kindString: "chaîne",
     kindNumber: "nombre",

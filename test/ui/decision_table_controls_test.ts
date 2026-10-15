@@ -53,11 +53,21 @@ Deno.test({
       assertEquals(await selects.count(), 1, "one column-kind dropdown");
       const kind = selects.first();
       const optionLabels = await kind.locator("option").allTextContents();
-      assertEquals(optionLabels, ["string", "number", "boolean", "string pattern"]);
-      await kind.selectOption({ label: "string pattern" });
+      assertEquals(optionLabels, ["🔤 string", "🔢 number", "✓ boolean", "{} string pattern"]);
+      assertEquals((await menu.locator(".dt-column-kind-label").textContent())?.trim(), "Output type");
+      assertEquals(await menu.getByRole("button", { name: "Add input/condition" }).count(), 0);
+      assertEquals(await menu.getByRole("button", { name: "Move left" }).count(), 1);
+      assertEquals(await menu.getByRole("button", { name: "Move right" }).count(), 1);
+      await kind.selectOption({ label: "{} string pattern" });
       await menu.waitFor({ state: "hidden", timeout: 5_000 });
       assertEquals(await outHeader.getAttribute("data-dt-glyph"), "{}");
       assertEquals((await outHeader.evaluate((el) => el.textContent ?? "")).trim(), "out");
+
+      const in1 = page.locator('.sheets-grid thead td[data-x="0"]');
+      await in1.locator(".dt-header-cog").click();
+      await page.locator("#dt-column-menu").getByRole("button", { name: "Move right" }).click();
+      await page.locator('.sheets-grid thead td[data-x="0"]', { hasText: "in2" }).waitFor({ timeout: 5_000 });
+      await page.locator('.sheets-grid thead td[data-x="1"]', { hasText: "in1" }).waitFor({ timeout: 5_000 });
 
       await page.getByRole("button", { name: "Add input/condition" }).click();
       await page.locator('.sheets-grid thead td[data-x="2"]', { hasText: "in3" }).waitFor({
@@ -144,14 +154,7 @@ Deno.test({
         const block = api.getSnapshot().blocklyBlocks.find((b) => b.id === id);
         return block?.fields.OUTPUT === "out2";
       }, blockId, { timeout: 5_000 });
-      await page.waitForFunction((id) => {
-        const root = document.querySelector(`.blocklyDraggable[data-id="${id}"]`);
-        const text = (root?.querySelector(".blocklyDropdownText")?.textContent ?? "")
-          .replaceAll("\u00a0", " ")
-          .replace("▾", "")
-          .trim();
-        return text === "out2";
-      }, blockId, { timeout: 5_000 });
+      await page.waitForFunction(blockShowsDropdown, { id: blockId, label: "out2" }, { timeout: 5_000 });
       const labelAfterColumn = await dropdownLabel(page, blockId);
       assertEquals(labelAfterColumn, "out2");
 
@@ -173,14 +176,11 @@ Deno.test({
         const block = api.getSnapshot().blocklyBlocks.find((b) => b.id === id);
         return block?.fields.OUTPUT === "*";
       }, blockId, { timeout: 5_000 });
-      await page.waitForFunction((id) => {
-        const root = document.querySelector(`.blocklyDraggable[data-id="${id}"]`);
-        const text = (root?.querySelector(".blocklyDropdownText")?.textContent ?? "")
-          .replaceAll("\u00a0", " ")
-          .replace("▾", "")
-          .trim();
-        return text === "all outputs";
-      }, blockId, { timeout: 5_000 });
+      await page.waitForFunction(
+        blockShowsDropdown,
+        { id: blockId, label: "all outputs" },
+        { timeout: 5_000 },
+      );
       assertEquals(await dropdownLabel(page, blockId), "all outputs");
     } finally {
       await browser.close();
@@ -188,14 +188,26 @@ Deno.test({
   },
 });
 
+function blockShowsDropdown(arg: { id: string; label: string }): boolean {
+  const root = document.querySelector(`.blocklyDraggable[data-id="${arg.id}"]`);
+  if (!root) return false;
+  const texts = [...root.querySelectorAll(".blocklyDropdownText")]
+    .filter((el) => el.closest(".blocklyDraggable") === root)
+    .map((el) => (el.textContent ?? "").replaceAll("\u00a0", " ").replace("▾", "").trim());
+  return texts.includes(arg.label);
+}
+
 async function dropdownLabel(
   page: import("npm:playwright@1.51.0").Page,
   blockId: string,
 ): Promise<string> {
   const text = await page.evaluate((id) => {
     const root = document.querySelector(`.blocklyDraggable[data-id="${id}"]`);
-    const el = root?.querySelector(".blocklyDropdownText");
-    return el?.textContent ?? "";
+    if (!root) return "";
+    const texts = [...root.querySelectorAll(".blocklyDropdownText")]
+      .filter((el) => el.closest(".blocklyDraggable") === root)
+      .map((el) => (el.textContent ?? "").replaceAll("\u00a0", " ").replace("▾", "").trim());
+    return texts[texts.length - 1] ?? "";
   }, blockId);
-  return text.replaceAll("\u00a0", " ").replace("▾", "").trim();
+  return text;
 }

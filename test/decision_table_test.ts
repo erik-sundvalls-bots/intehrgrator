@@ -14,6 +14,8 @@ import {
   addCatchAllRow,
   cloneSheet,
   emptyDecisionTable,
+  moveColumns,
+  moveRows,
   evaluateDecisionTable,
   isCatchAllRow,
   isDontCare,
@@ -48,6 +50,19 @@ const findings = normalizeSheet({
     ["effusion", "—", "T_EFF", "effusion"],
     ["nodule", "—", "T_NOD", "{{finding}} present"],
   ],
+});
+
+Deno.test("moving a decision column keeps its output type and moving a row keeps catch-all", () => {
+  const table = addCatchAllRow(emptyDecisionTable("Decision"));
+  const moved = moveColumns(table, 2, 0);
+  assertEquals(moved.headers, ["out", "in1", "in2"]);
+  assertEquals(moved.decisionColumns?.[0]?.role, "output");
+  assertEquals(moved.decisionColumns?.[1]?.role, "condition");
+  assertEquals(moved.values[0], ["", "", ""]);
+  const flagged = moveRows(table, table.values.length - 1, 0);
+  assertEquals(flagged.rowCatchAll?.[0], true);
+  assertEquals(flagged.rowCatchAll?.[table.values.length - 1], false);
+  assertEquals(flagged.values[0]?.[0], "—");
 });
 
 const collectJoin = normalizeSheet({

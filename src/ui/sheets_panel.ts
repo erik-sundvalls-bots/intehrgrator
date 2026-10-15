@@ -14,6 +14,8 @@ import {
   emptySheet,
   findSheet,
   isDecisionTable,
+  moveColumns,
+  moveRows,
   lintDecisionTable,
   normalizeSheet,
   parseSpreadsheetText,
@@ -407,8 +409,11 @@ export function mountSheetsPanel(
     if (meta?.role === "output") {
       const label = document.createElement("label");
       label.className = "dt-column-kind";
+      const lead = document.createElement("span");
+      lead.className = "dt-column-kind-label";
+      lead.textContent = t.outputType;
       const sel = document.createElement("select");
-      sel.setAttribute("aria-label", `${name} ${t.columnKind}`);
+      sel.setAttribute("aria-label", `${name} ${t.outputType}`);
       for (const [value, text] of [
         ["string", t.kindString],
         ["number", t.kindNumber],
@@ -417,33 +422,35 @@ export function mountSheetsPanel(
       ] as const) {
         const opt = document.createElement("option");
         opt.value = value;
-        opt.textContent = text;
+        opt.textContent = `${kindGlyph(value)} ${text}`;
         sel.append(opt);
       }
       sel.value = columnKindValue(meta);
       sel.addEventListener("change", () => applyOutputColumnKind(index, sel.value));
-      label.append(sel);
+      label.append(lead, sel);
       menu.append(label);
     }
-    const addInputItem = document.createElement("button");
-    addInputItem.type = "button";
-    addInputItem.className = "dt-column-menu-item";
-    addInputItem.textContent = t.addInput;
-    addInputItem.addEventListener("click", () => {
+    const moveLeftItem = document.createElement("button");
+    moveLeftItem.type = "button";
+    moveLeftItem.className = "dt-column-menu-item";
+    moveLeftItem.textContent = t.moveLeft;
+    moveLeftItem.disabled = index <= 0;
+    moveLeftItem.addEventListener("click", () => {
       const current = activeDecisionSheet();
-      if (!current) return;
+      if (!current || index <= 0) return;
       closeColumnMenu();
-      commitSheetDoc(addDecisionColumn(current, "condition"));
+      commitSheetDoc(moveColumns(current, index, index - 1));
     });
-    const addOutputItem = document.createElement("button");
-    addOutputItem.type = "button";
-    addOutputItem.className = "dt-column-menu-item";
-    addOutputItem.textContent = t.addOutput;
-    addOutputItem.addEventListener("click", () => {
+    const moveRightItem = document.createElement("button");
+    moveRightItem.type = "button";
+    moveRightItem.className = "dt-column-menu-item";
+    moveRightItem.textContent = t.moveRight;
+    moveRightItem.disabled = index >= sheet.headers.length - 1;
+    moveRightItem.addEventListener("click", () => {
       const current = activeDecisionSheet();
-      if (!current) return;
+      if (!current || index >= current.headers.length - 1) return;
       closeColumnMenu();
-      commitSheetDoc(addDecisionColumn(current, "output"));
+      commitSheetDoc(moveColumns(current, index, index + 1));
     });
     const deleteItem = document.createElement("button");
     deleteItem.type = "button";
@@ -458,7 +465,7 @@ export function mountSheetsPanel(
       commitSheetDoc(deleteColumn(current, index, 1));
       showToast(sheetsFormat(t.deletedColumn, removed));
     });
-    menu.append(addInputItem, addOutputItem, deleteItem);
+    menu.append(moveLeftItem, moveRightItem, deleteItem);
     document.body.append(menu);
     columnMenu = menu;
     const box = anchor.getBoundingClientRect();
@@ -469,6 +476,16 @@ export function mountSheetsPanel(
     menu.style.top = `${Math.max(8, top)}px`;
   };
 
+  const paintDecisionHeaderGlyphs = (sheet: SheetDocument): void => {
+    const cells = worksheet?.headers;
+    if (!cells) return;
+    const meta = decisionColumnMeta(sheet);
+    cells.forEach((cell, index) => {
+      if (!(sheet.headers[index] ?? "").trim()) return;
+      paintHeaderGlyph(cell, meta[index]);
+    });
+  };
+
   const decorateDecisionHeaders = (sheet: SheetDocument): void => {
     const cells = worksheet?.headers;
     if (!cells) return;
@@ -476,11 +493,8 @@ export function mountSheetsPanel(
     cells.forEach((cell, index) => {
       const name = sheet.headers[index] ?? "";
       if (!name) return;
-      const glyph = outputGlyph(meta[index]);
       cell.classList.add("dt-col-header");
-      if (glyph) cell.dataset.dtGlyph = glyph;
-      else delete cell.dataset.dtGlyph;
-      cell.dataset.dtRole = meta[index]?.role ?? "condition";
+      paintHeaderGlyph(cell, meta[index]);
       const cog = document.createElement("button");
       cog.type = "button";
       cog.className = "dt-header-cog";
@@ -534,8 +548,22 @@ export function mountSheetsPanel(
           tableHeight: viewport.heightPx,
           csvFileName: sheet.name,
           columnSorting: false,
+          columnDrag: true,
+          rowDrag: true,
           parseFormulas: false,
         }],
+        onmovecolumn: (_instance, from, to) => {
+          if (applying) return;
+          const current = findSheet(host.getSheets(), activeName);
+          if (!current) return;
+          commitSheetDoc(moveColumns(current, Number(from), Number(to)));
+        },
+        onmoverow: (_instance, from, to) => {
+          if (applying) return;
+          const current = findSheet(host.getSheets(), activeName);
+          if (!current) return;
+          commitSheetDoc(moveRows(current, Number(from), Number(to)));
+        },
         onafterchanges: () => {
           commitFromWidget();
         },
@@ -643,6 +671,7 @@ export function mountSheetsPanel(
     const sheet = findSheet(sheets, name) ?? sheets[0]!;
     if (widgetMatches(sheet)) {
       paintMeta(sheet);
+      if (isDecisionTable(sheet)) paintDecisionHeaderGlyphs(sheet);
       return;
     }
     bindSheet(sheet);
@@ -960,6 +989,20 @@ function columnKindValue(meta: DecisionColumnMeta): string {
   if (meta.outputKind === "snippet") return "snippet";
   if (meta.valueType === "number" || meta.valueType === "boolean") return meta.valueType;
   return "string";
+}
+
+function paintHeaderGlyph(cell: HTMLTableCellElement, meta: DecisionColumnMeta | undefined): void {
+  const glyph = outputGlyph(meta);
+  if (glyph) cell.dataset.dtGlyph = glyph;
+  else delete cell.dataset.dtGlyph;
+  cell.dataset.dtRole = meta?.role ?? "condition";
+}
+
+function kindGlyph(kind: "string" | "number" | "boolean" | "snippet"): string {
+  if (kind === "number") return "🔢";
+  if (kind === "boolean") return "✓";
+  if (kind === "snippet") return "{}";
+  return "🔤";
 }
 
 function outputGlyph(meta: DecisionColumnMeta | undefined): string {
