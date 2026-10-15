@@ -214,8 +214,6 @@ Deno.test("nested target signature walks RM parent/child SLOT_IDs", () => {
 Deno.test("sheet accessors collect sheetNames", () => {
   ensure();
   const workspace = new Blockly.Workspace();
-  const decl = workspace.newBlock("sheet");
-  decl.setFieldValue("icd10_snomed", "NAME");
   const lookup = workspace.newBlock("sheet_lookup");
   lookup.setFieldValue("icd10_snomed", "NAME");
   const ir = workspaceToModelJson(workspace);

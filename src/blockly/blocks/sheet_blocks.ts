@@ -5,15 +5,13 @@ import {
   inputAlignLeft,
   inputAlignRight,
 } from "../block_type_glyph.ts";
-import { FieldGridPreview, registerFieldGridPreview } from "../field_grid_preview.ts";
+import { FieldGridName, preselectSoleGridName } from "../field_grid_name.ts";
 
 /** Sheet table / row / column values (Blockly check stays `Array`). */
 const SHEET_TABLE_GLYPH = "Sheet";
 
 const SHEET_COLOUR = "#00897B";
-const SHEET_DECL_COLOUR = "#00695C";
 
-export const SHEET_BLOCK_TYPE = "sheet";
 export const SHEET_GET_CELL = "sheet_get_cell";
 export const SHEET_GET_XY = "sheet_get_xy";
 export const SHEET_GET_ROW = "sheet_get_row";
@@ -62,8 +60,24 @@ export function setSheetFocusHandler(
   sheetFocusHandler = handler;
 }
 
-function nameField(defaultName = "Sheet1"): Blockly.FieldTextInput {
-  return new Blockly.FieldTextInput(defaultName, undefined, { spellcheck: false });
+function nameField(): Blockly.FieldTextInput {
+  return new Blockly.FieldTextInput("Sheet1", undefined, { spellcheck: false });
+}
+
+function sheetNameField(): FieldGridName {
+  return new FieldGridName("sheet");
+}
+
+function focusSheetOnSelect(
+  this: Blockly.Block,
+  event: { type?: string; newElementId?: string },
+): void {
+  if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "sheet");
+  if (this.isInFlyout) return;
+  if (event?.type !== "selected" || event.newElementId !== this.id) return;
+  const name = String(this.getFieldValue("NAME") || "").trim();
+  if (!name) return;
+  sheetFocusHandler?.(name, { highlight: true });
 }
 
 function initAndRender(block: Blockly.Block): void {
@@ -75,33 +89,12 @@ function initAndRender(block: Blockly.Block): void {
 
 export function registerSheetBlocks(): void {
   if (Blockly.Blocks[SHEET_GET_CELL]) return;
-  registerFieldGridPreview();
-
-  Blockly.Blocks[SHEET_BLOCK_TYPE] = {
-    init: function (this: Blockly.Block) {
-      const field = nameField("Sheet1");
-      this.appendDummyInput()
-        .appendField("sheet")
-        .appendField(field, "NAME")
-        .appendField(new FieldGridPreview(), "GRID_PREVIEW");
-      this.setColour(SHEET_DECL_COLOUR);
-      this.setTooltip("Named Sheet. Select or click the miniature to open the Sheets editor.");
-      this.setPreviousStatement(false);
-      this.setNextStatement(false);
-    },
-    onchange: function (this: Blockly.Block, event: { type?: string; newElementId?: string }) {
-      if (this.isInFlyout) return;
-      if (event?.type === "selected" && event.newElementId === this.id) {
-        sheetFocusHandler?.(String(this.getFieldValue("NAME") || "Sheet1"), { highlight: true });
-      }
-    },
-  };
 
   Blockly.Blocks[SHEET_GET_CELL] = {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, ["String", "Number", "Boolean"]);
-      header.appendField("get").appendField(nameField(), "NAME").appendField("cell");
+      header.appendField("get").appendField(sheetNameField(), "NAME").appendField("cell");
       const a1 = this.appendValueInput("A1").setAlign(inputAlignRight()).setCheck("String");
       appendInputTypeGlyph(a1, "String");
       this.setColour(SHEET_COLOUR);
@@ -114,7 +107,7 @@ export function registerSheetBlocks(): void {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, ["String", "Number", "Boolean"]);
-      header.appendField("get").appendField(nameField(), "NAME");
+      header.appendField("get").appendField(sheetNameField(), "NAME");
       const xIn = this.appendValueInput("X").setAlign(inputAlignRight()).setCheck("Number").appendField("x");
       appendInputTypeGlyph(xIn, "Number");
       const yIn = this.appendValueInput("Y").setAlign(inputAlignRight()).setCheck("Number").appendField("y");
@@ -130,7 +123,7 @@ export function registerSheetBlocks(): void {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, SHEET_TABLE_GLYPH);
-      header.appendField("get row of").appendField(nameField(), "NAME");
+      header.appendField("get row of").appendField(sheetNameField(), "NAME");
       const yIn = this.appendValueInput("Y").setAlign(inputAlignRight()).setCheck("Number").appendField("y");
       appendInputTypeGlyph(yIn, "Number");
       this.setOutput(true, "Array");
@@ -143,7 +136,7 @@ export function registerSheetBlocks(): void {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, SHEET_TABLE_GLYPH);
-      header.appendField("get column of").appendField(nameField(), "NAME");
+      header.appendField("get column of").appendField(sheetNameField(), "NAME");
       const xIn = this.appendValueInput("X").setAlign(inputAlignRight()).setCheck("Number").appendField("x");
       appendInputTypeGlyph(xIn, "Number");
       this.setOutput(true, "Array");
@@ -156,7 +149,7 @@ export function registerSheetBlocks(): void {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, "String");
-      header.appendField("header of").appendField(nameField(), "NAME");
+      header.appendField("header of").appendField(sheetNameField(), "NAME");
       const xIn = this.appendValueInput("X").setAlign(inputAlignRight()).setCheck("Number").appendField("x");
       appendInputTypeGlyph(xIn, "Number");
       this.setOutput(true, "String");
@@ -169,7 +162,7 @@ export function registerSheetBlocks(): void {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, SHEET_TABLE_GLYPH);
-      header.appendField("data of").appendField(nameField(), "NAME");
+      header.appendField("data of").appendField(sheetNameField(), "NAME");
       this.setOutput(true, "Array");
       this.setColour(SHEET_COLOUR);
       this.setInputsInline(true);
@@ -180,7 +173,7 @@ export function registerSheetBlocks(): void {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputGlyph(header, ["String", "Number", "Boolean"]);
-      header.appendField("lookup").appendField(nameField(), "NAME");
+      header.appendField("lookup").appendField(sheetNameField(), "NAME");
       const matchCol = this.appendValueInput("MATCH_COL").setAlign(inputAlignRight()).setCheck(["String", "Number"]).appendField("where");
       appendInputTypeGlyph(matchCol, ["String", "Number"]);
       const matchVal = this.appendValueInput("MATCH_VAL").setAlign(inputAlignRight()).appendField("=");
@@ -302,6 +295,10 @@ export function registerSheetBlocks(): void {
       this.setInputsInline(true);
     },
   };
+
+  for (const type of SHEET_ACCESSOR_TYPES) {
+    (Blockly.Blocks[type] as { onchange?: typeof focusSheetOnSelect }).onchange = focusSheetOnSelect;
+  }
 }
 
 export function createSheetLookupBlock(

@@ -76,16 +76,6 @@ function decisionEval(
   return block;
 }
 
-function addDecls(workspace: Blockly.Workspace, sheets: SheetDocument[]): void {
-  let y = 20;
-  for (const sheet of sheets) {
-    const decl = workspace.newBlock("decision_table_decl");
-    decl.setFieldValue(sheet.name, "NAME");
-    if (typeof decl.moveBy === "function") decl.moveBy(420, y);
-    y += 48;
-  }
-}
-
 function termIdOf(block: Blockly.Block): string | null {
   const term = block.getInputTargetBlock(targetChildInputName("TermId"));
   if (!term) return null;
@@ -144,7 +134,6 @@ const LUNG = {
 
 function patchLung(workspace: Blockly.Workspace, sheets: SheetDocument[]): void {
   setWorkspaceSheetsProvider(() => sheets);
-  addDecls(workspace, sheets);
 
   const keywords = textKeywords(workspace);
   const byTerm = new Map(keywords.map((block) => [termIdOf(block), block]));
@@ -235,7 +224,6 @@ function flatKey(key: string): string {
 
 function patchChemo(workspace: Blockly.Workspace, sheets: SheetDocument[]): void {
   setWorkspaceSheetsProvider(() => sheets);
-  addDecls(workspace, sheets);
   const byTerm = new Map(
     textKeywords(workspace).map((block) => [termIdOf(block), block]),
   );

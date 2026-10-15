@@ -6,7 +6,7 @@ import {
 } from "../block_type_glyph.ts";
 import { inputAlignLeft, inputAlignRight, enforceMouthCaptionLayout } from "../mouth_layout.ts";
 import { FieldDropdownHug } from "../field_dropdown_hug.ts";
-import { FieldGridPreview, registerFieldGridPreview } from "../field_grid_preview.ts";
+import { FieldGridName, preselectSoleGridName } from "../field_grid_name.ts";
 import { workspaceSheet } from "../sheets_bridge.ts";
 import {
   blocklyCheckForDecisionOutput,
@@ -16,10 +16,8 @@ import {
 } from "../../core/sheets/decision_table.ts";
 
 const DT_COLOUR = "#00796B";
-const DT_DECL_COLOUR = "#004D40";
 
 export const DECISION_TABLE_BLOCK = "decision_table";
-export const DECISION_TABLE_DECL = "decision_table_decl";
 
 export const DECISION_TYPE_SWITCH_MESSAGE =
   "This changes the block’s output type. It may pop out of its socket if the parent does not accept the new type.\n\nUndo/redo on the canvas restores the previous type and connection.\n\nContinue?";
@@ -60,10 +58,6 @@ export function isDecisionTableSchemaSyncing(): boolean {
   return schemaSyncing;
 }
 
-function nameField(defaultName = "Decision1"): Blockly.FieldTextInput {
-  return new Blockly.FieldTextInput(defaultName, undefined, { spellcheck: false });
-}
-
 type ClickableField = {
   getClickTarget_?: () => Element | null;
   getSvgRoot?: () => SVGElement | null;
@@ -82,7 +76,7 @@ function confirmTypeSwitch(): boolean {
 
 function outputMenu(this: { getSourceBlock?: () => Blockly.Block | null; getValue?: () => string }): [string, string][] {
   const block = this.getSourceBlock?.();
-  const name = String(block?.getFieldValue("NAME") || "Decision1");
+  const name = String(block?.getFieldValue("NAME") || "");
   const sheet = workspaceSheet(name);
   const outs = sheet ? outputHeaders(sheet) : ["out"];
   const opts: [string, string][] = (outs.length ? outs : ["out"]).map((h) => [h, h]);
@@ -144,40 +138,17 @@ class FieldDecisionOutput extends FieldDropdownHugBase {
 }
 
 export function applyDecisionTableOutputType(block: Blockly.Block): void {
-  const name = String(block.getFieldValue("NAME") || "Decision1");
+  const name = String(block.getFieldValue("NAME") || "");
   const output = String(block.getFieldValue("OUTPUT") || "out");
   const check = blocklyCheckForDecisionOutput(workspaceSheet(name), output);
   setBlockOutputCheck(block, check);
 }
 
 /**
- * Value block: named Decision table + locals Map (condition keys) → one typed output, or all outputs as a Map.
+ * Value block: named Decision table + inputs Map (condition keys) → one typed output, or all outputs as a Map.
  */
 export function registerDecisionTableBlocks(): void {
   if (Blockly.Blocks[DECISION_TABLE_BLOCK]) return;
-  registerFieldGridPreview();
-
-  Blockly.Blocks[DECISION_TABLE_DECL] = {
-    init: function (this: Blockly.Block) {
-      const field = nameField("Decision1");
-      this.appendDummyInput()
-        .appendField("decision table")
-        .appendField(field, "NAME")
-        .appendField(new FieldGridPreview(), "GRID_PREVIEW");
-      this.setColour(DT_DECL_COLOUR);
-      this.setTooltip("Named Decision table. Select or click the miniature to open the Sheets editor.");
-      this.setPreviousStatement(false);
-      this.setNextStatement(false);
-    },
-    onchange: function (this: Blockly.Block, event: { type?: string; newElementId?: string }) {
-      if (this.isInFlyout) return;
-      if (event?.type === "selected" && event.newElementId === this.id) {
-        decisionTableFocusHandler?.(String(this.getFieldValue("NAME") || "Decision1"), {
-          highlight: true,
-        });
-      }
-    },
-  };
 
   Blockly.Blocks[DECISION_TABLE_BLOCK] = {
     init: function (this: Blockly.Block) {
@@ -185,7 +156,7 @@ export function registerDecisionTableBlocks(): void {
       appendBlockOutputGlyph(header, "String");
       header
         .appendField("decision")
-        .appendField(nameField("Decision1"), "NAME")
+        .appendField(new FieldGridName("decision-table"), "NAME")
         .appendField("→")
         .appendField(
           new FieldDecisionOutput(outputMenu, outputValidator),
@@ -195,7 +166,7 @@ export function registerDecisionTableBlocks(): void {
         INFO_SVG,
         18,
         18,
-        "Decision table: locals Map keys match condition columns. Output dropdown selects one typed column, or all outputs as a Map. Condition cells: equality, don't-care (—), or numeric predicates (90..120, >= 140). Catch-all is a row flag, not per-column *. Undo/redo restores type switches.",
+        "Decision table: inputs Map keys match condition columns. Output dropdown selects one typed column, or all outputs as a Map. Condition cells: equality, don't-care (—), or numeric predicates (90..120, >= 140). Catch-all is a row flag, not per-column *. Undo/redo restores type switches.",
         () => {
           decisionTableInfoHandler?.(fieldClickAnchor(infoField as ClickableField));
         },
@@ -204,22 +175,22 @@ export function registerDecisionTableBlocks(): void {
       const inputs = this.appendValueInput("INPUTS")
         .setCheck("Map")
         .setAlign(inputAlignRight())
-        .appendField("locals");
+        .appendField("inputs");
       appendInputTypeGlyph(inputs, "Map");
       this.setOutput(true, "String");
       this.setColour(DT_COLOUR);
       this.setInputsInline(false);
       this.setTooltip(
-        "Evaluate a Decision table. Locals Map keys match condition columns. Choose an output column or all outputs.",
+        "Evaluate a Decision table. Inputs Map keys match condition columns. Choose an output column or all outputs.",
       );
       enforceMouthCaptionLayout(this);
     },
     onchange: function (this: Blockly.Block, event: { type?: string; name?: string; newElementId?: string }) {
+      if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "decision-table");
       if (this.isInFlyout) return;
       if (event?.type === "selected" && event.newElementId === this.id) {
-        decisionTableFocusHandler?.(String(this.getFieldValue("NAME") || "Decision1"), {
-          highlight: true,
-        });
+        const name = String(this.getFieldValue("NAME") || "").trim();
+        if (name) decisionTableFocusHandler?.(name, { highlight: true });
       }
       if (event?.type === "change" && (event.name === "OUTPUT" || event.name === "NAME")) {
         applyDecisionTableOutputType(this);

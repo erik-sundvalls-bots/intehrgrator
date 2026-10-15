@@ -327,6 +327,39 @@ export function insertColumn(sheet: SheetDocument, x = 0, count = 1): SheetDocum
   return next;
 }
 
+function moveIndex<T>(items: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) return items;
+  const next = items.slice();
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item as T);
+  return next;
+}
+
+/** Reorder one column, including cells, column types, and decision-table metadata. */
+export function moveColumns(sheet: SheetDocument, from: number, to: number): SheetDocument {
+  const next = cloneSheet(sheet);
+  if (from === to || from < 0 || to < 0 || from >= next.headers.length || to >= next.headers.length) {
+    return next;
+  }
+  next.headers = moveIndex(next.headers, from, to);
+  next.values = next.values.map((row) => moveIndex(row, from, to));
+  if (next.columnTypes) next.columnTypes = moveIndex(next.columnTypes, from, to);
+  if (next.decisionColumns) next.decisionColumns = moveIndex(next.decisionColumns, from, to);
+  return next;
+}
+
+/** Reorder one row, including row names and catch-all flags. */
+export function moveRows(sheet: SheetDocument, from: number, to: number): SheetDocument {
+  const next = cloneSheet(sheet);
+  if (from === to || from < 0 || to < 0 || from >= next.values.length || to >= next.values.length) {
+    return next;
+  }
+  next.values = moveIndex(next.values, from, to);
+  if (next.rowNames) next.rowNames = moveIndex(next.rowNames, from, to);
+  if (next.rowCatchAll) next.rowCatchAll = moveIndex(next.rowCatchAll, from, to);
+  return next;
+}
+
 export function deleteColumn(sheet: SheetDocument, x = 0, count = 1): SheetDocument {
   const next = cloneSheet(sheet);
   if (x < 0 || x >= next.headers.length) return next;

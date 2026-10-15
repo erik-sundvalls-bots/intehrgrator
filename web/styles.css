@@ -698,6 +698,13 @@ body { display: flex; flex-direction: column; min-height: 100%; }
   border-radius: 6px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
+.dt-column-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+.dt-column-kind-label { color: var(--ink, #1a1a1a); }
 .dt-column-kind select { width: 100%; font-size: 12px; }
 .dt-column-menu-item {
   text-align: left;
@@ -1029,6 +1036,9 @@ body.sheets-fullscreen::before {
 }
 .blockly-mount .blocklyToolboxCategoryListsMaps {
   border-left: 15px solid #4db6ac !important;
+}
+.blockly-mount .blocklyToolboxCategoryDecisionTables {
+  border-left: 15px solid #004D40 !important;
 }
 .blockly-mount .blocklyToolboxCategorySheets {
   border-left: 15px solid #00897B !important;

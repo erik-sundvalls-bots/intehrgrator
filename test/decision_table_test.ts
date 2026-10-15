@@ -14,6 +14,8 @@ import {
   addCatchAllRow,
   cloneSheet,
   emptyDecisionTable,
+  moveColumns,
+  moveRows,
   evaluateDecisionTable,
   isCatchAllRow,
   isDontCare,
@@ -48,6 +50,19 @@ const findings = normalizeSheet({
     ["effusion", "—", "T_EFF", "effusion"],
     ["nodule", "—", "T_NOD", "{{finding}} present"],
   ],
+});
+
+Deno.test("moving a decision column keeps its output type and moving a row keeps catch-all", () => {
+  const table = addCatchAllRow(emptyDecisionTable("Decision"));
+  const moved = moveColumns(table, 2, 0);
+  assertEquals(moved.headers, ["out", "in1", "in2"]);
+  assertEquals(moved.decisionColumns?.[0]?.role, "output");
+  assertEquals(moved.decisionColumns?.[1]?.role, "condition");
+  assertEquals(moved.values[0], ["", "", ""]);
+  const flagged = moveRows(table, table.values.length - 1, 0);
+  assertEquals(flagged.rowCatchAll?.[0], true);
+  assertEquals(flagged.rowCatchAll?.[table.values.length - 1], false);
+  assertEquals(flagged.values[0]?.[0], "—");
 });
 
 const collectJoin = normalizeSheet({
@@ -249,6 +264,7 @@ Deno.test("schema sync rewrites locals Map keys from Decision table headers", ()
   const workspace = new Blockly.Workspace();
   try {
     const block = workspace.newBlock("decision_table");
+    block.setFieldValue("Decision1", "NAME");
     const map = workspace.newBlock("maps_create_with") as Blockly.Block & {
       itemCount_: number;
       updateShape_: () => void;
@@ -590,7 +606,7 @@ Deno.test("decision table output dropdown label shows the selected column", () =
   }
 });
 
-Deno.test("UNIQUE overlap is a Constraint warning on the Decision table declaration chip", () => {
+Deno.test("UNIQUE overlap is a Constraint warning on the Decision table eval block", () => {
   registerDecisionTableBlocks();
   const unique = normalizeSheet({
     name: "overlap",
@@ -609,9 +625,9 @@ Deno.test("UNIQUE overlap is a Constraint warning on the Decision table declarat
   setWorkspaceSheetsProvider(() => [unique]);
   const workspace = new Blockly.Workspace();
   try {
-    const decl = workspace.newBlock("decision_table_decl");
-    decl.setFieldValue("overlap", "NAME");
-    const messages = blockConstraintMessages(decl);
+    const evalBlock = workspace.newBlock("decision_table");
+    evalBlock.setFieldValue("overlap", "NAME");
+    const messages = blockConstraintMessages(evalBlock);
     assertEquals(messages.some((m) => m.includes("UNIQUE")), true);
   } finally {
     setWorkspaceSheetsProvider(null);

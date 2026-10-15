@@ -13,11 +13,10 @@ import {
 import {
   applyDecisionTableOutputType,
   DECISION_TABLE_BLOCK,
-  DECISION_TABLE_DECL,
   isDecisionTableSchemaSyncing,
   runDecisionTableSchemaSync,
 } from "./blocks/decision_table_blocks.ts";
-import { refreshGridPreviewFields } from "./field_grid_preview.ts";
+import { SHEET_ACCESSOR_TYPES } from "./blocks/sheet_blocks.ts";
 import { workspaceSheet } from "./sheets_bridge.ts";
 
 type MapCreateBlock = Block & {
@@ -31,21 +30,18 @@ export function syncDecisionTableBlocksFromSheets(
 ): void {
   runDecisionTableSchemaSync(() => {
     for (const block of workspace.getAllBlocks(false)) {
-      if (block.type !== DECISION_TABLE_BLOCK && block.type !== DECISION_TABLE_DECL) continue;
+      if (block.type !== DECISION_TABLE_BLOCK) continue;
       const name = String(block.getFieldValue("NAME") || "");
       const sheet = sheets.find((s) => s.name === name && isDecisionTable(s));
       if (!sheet) continue;
-      if (block.type === DECISION_TABLE_BLOCK) {
-        bindLocalsMap(block, sheet);
-        // Leave OUTPUT as the author chose it. Rewriting a missing header to the
-        // first output column would retarget a renamed column and put a field
-        // edit on the undo stack above the sheet edit that deleted it.
-        applyDecisionTableOutputType(block);
-        const outputField = block.getField("OUTPUT") as { forceRerender?: () => void } | null;
-        outputField?.forceRerender?.();
-      }
+      bindLocalsMap(block, sheet);
+      // Leave OUTPUT as the author chose it. Rewriting a missing header to the
+      // first output column would retarget a renamed column and put a field
+      // edit on the undo stack above the sheet edit that deleted it.
+      applyDecisionTableOutputType(block);
+      const outputField = block.getField("OUTPUT") as { forceRerender?: () => void } | null;
+      outputField?.forceRerender?.();
     }
-    refreshGridPreviewFields(workspace);
   });
 }
 
@@ -93,13 +89,6 @@ export function sheetsFromDecisionTableBlockEdit(
   const block = workspace.getBlockById(event.blockId);
   if (!block) return null;
 
-  if (
-    (block.type === DECISION_TABLE_BLOCK || block.type === DECISION_TABLE_DECL) &&
-    event.name === "NAME"
-  ) {
-    return renameOrRetarget(sheets, String(event.oldValue ?? ""), String(event.newValue ?? ""));
-  }
-
   if (block.type === "maps_create_with" && event.name?.startsWith("KEY")) {
     const parent = block.outputConnection?.targetBlock();
     if (!parent || parent.type !== DECISION_TABLE_BLOCK) return null;
@@ -119,19 +108,6 @@ export function sheetsFromDecisionTableBlockEdit(
   return null;
 }
 
-function renameOrRetarget(
-  sheets: SheetDocument[],
-  oldName: string,
-  newName: string,
-): SheetDocument[] | null {
-  const trimmed = newName.trim();
-  if (!trimmed || trimmed === oldName) return null;
-  const exists = sheets.some((s) => s.name === trimmed);
-  if (exists) return null;
-  if (!sheets.some((s) => s.name === oldName)) return null;
-  return sheets.map((s) => s.name === oldName ? { ...s, name: trimmed } : s);
-}
-
 export function installDecisionTableSync(
   workspace: Workspace,
   getSheets: () => SheetDocument[],
@@ -142,9 +118,6 @@ export function installDecisionTableSync(
     const next = sheetsFromDecisionTableBlockEdit(workspace, getSheets(), event);
     if (next) {
       replaceSheets(next);
-      if (event.name === "NAME") {
-        retargetDecisionTableNames(workspace, String(event.oldValue ?? ""), String(event.newValue ?? ""));
-      }
       syncDecisionTableBlocksFromSheets(workspace, next);
       return;
     }
@@ -160,19 +133,38 @@ export function installDecisionTableSync(
   return () => workspace.removeChangeListener(listener);
 }
 
+function refersToGrid(type: string): boolean {
+  return type === DECISION_TABLE_BLOCK ||
+    (SHEET_ACCESSOR_TYPES as readonly string[]).includes(type);
+}
+
 /** After a grid rename, update Blockly NAME fields that still use `from`. */
-export function retargetDecisionTableNames(
+export function retargetGridNames(
   workspace: Workspace,
   from: string,
   to: string,
 ): void {
+  const next = to.trim();
+  if (!from || !next || from === next) return;
   runDecisionTableSchemaSync(() => {
     for (const block of workspace.getAllBlocks(false)) {
-      if (block.type !== DECISION_TABLE_BLOCK && block.type !== DECISION_TABLE_DECL) continue;
-      if (String(block.getFieldValue("NAME") || "") === from) {
-        block.setFieldValue(to, "NAME");
-        if (block.type === DECISION_TABLE_BLOCK) applyDecisionTableOutputType(block);
-      }
+      if (!refersToGrid(block.type)) continue;
+      if (String(block.getFieldValue("NAME") || "") !== from) continue;
+      block.setFieldValue(next, "NAME");
+      if (block.type === DECISION_TABLE_BLOCK) applyDecisionTableOutputType(block);
+    }
+  });
+}
+
+/** After a grid delete, leave referring blocks on the canvas with no name selected. */
+export function clearGridNames(workspace: Workspace, name: string): void {
+  if (!name) return;
+  runDecisionTableSchemaSync(() => {
+    for (const block of workspace.getAllBlocks(false)) {
+      if (!refersToGrid(block.type)) continue;
+      if (String(block.getFieldValue("NAME") || "") !== name) continue;
+      block.setFieldValue("", "NAME");
+      if (block.type === DECISION_TABLE_BLOCK) applyDecisionTableOutputType(block);
     }
   });
 }

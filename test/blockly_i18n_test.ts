@@ -60,8 +60,10 @@ Deno.test("custom messages localize Source and Loops & Logic", () => {
   assertEquals(msg("sv").MODEL_LANGUAGE_LABEL, "Modell");
   assertEquals(msg("fr").SOURCE_QUERY, "source");
   assertEquals(msg("en").LOGIC_ALL, "all");
-  assertEquals(msg("en").CAT_SHEETS, "Tables & Sheets");
-  assertEquals(msg("sv").CAT_SHEETS, "Tabeller & kalkylblad");
+  assertEquals(msg("en").CAT_DECISION_TABLES, "Decision Tables");
+  assertEquals(msg("en").CAT_SHEETS, "Sheets");
+  assertEquals(msg("sv").CAT_DECISION_TABLES, "Beslutstabeller");
+  assertEquals(msg("sv").CAT_SHEETS, "Kalkylblad");
   assertEquals(msg("en").LOGIC_LOOP_INDEX, "index");
   assertEquals(msg("sv").LOGIC_LOOP_LENGTH, "längd");
   assertEquals(msg("sv").LOGIC_MATCH, "matchar");

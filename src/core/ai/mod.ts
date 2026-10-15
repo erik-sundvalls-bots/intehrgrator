@@ -409,7 +409,7 @@ function compactSheetSection(sheets: SheetDocument[] | undefined): string[] | nu
   }));
   return [
     "## Sheets and Decision tables",
-    "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; locals Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope.",
+    "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; inputs Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope.",
     "```json",
     JSON.stringify(compact, null, 2),
     "```",

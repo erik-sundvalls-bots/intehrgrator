@@ -18,8 +18,6 @@ export interface BlocklyWorkspaceJson {
 
 const GRID_NAME_TYPES = new Set([
   "decision_table",
-  "decision_table_decl",
-  "sheet",
   "sheet_lookup",
   "sheet_get_cell",
   "sheet_get_xy",
