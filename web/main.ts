@@ -167,7 +167,7 @@ import {
   localizeTaskProgress,
 } from "../src/ui/chrome_i18n.ts";
 import { wireEditorActionToolbar } from "../src/ui/editor_action_toolbar.ts";
-import { BUILD_ID, BUILD_TIMESTAMP } from "./build_info.ts";
+import { betterRendererBundled, BUILD_ID, BUILD_TIMESTAMP } from "./build_info.ts";
 import { initSplitPanes } from "../src/ui/split_pane.ts";
 import "../src/ui/shoelace.ts";
 import {
@@ -212,7 +212,6 @@ import { collectValueSlots } from "../src/core/skeleton/generate_skeleton.ts";
 import { createIndexedDbDefaultsCatalog, factoryDefaultsMapBlockState, mapBlockFromDefaultsJson, classAttributeScaffoldTarget } from "../src/core/defaults/mod.ts";
 import {
   createBetterFormBridge,
-  probeBetterRenderer,
   type BetterFormBridge,
 } from "../src/core/output/better_form_bridge.ts";
 import {
@@ -1775,14 +1774,17 @@ function installExampleSetsMenu(): void {
 }
 
 let betterFormBridge: BetterFormBridge | null = null;
-void probeBetterRenderer((path) => host.resolveAppUrl(path)).then((available) => {
+{
+  // A runtime HEAD of vendor/better/form-renderer.js is a 404 in the console
+  // whenever the licensed renderer was not copied into the build.
+  const available = betterRendererBundled();
   betterFormBridge = createBetterFormBridge(
     { resolveAppUrl: (path) => host.resolveAppUrl(path) },
     available,
   );
   const btn = document.getElementById("btn-better-form") as HTMLButtonElement | null;
   if (btn) btn.hidden = !available;
-});
+}
 
 initFileDropTargets();
 

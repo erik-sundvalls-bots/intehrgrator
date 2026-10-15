@@ -35,6 +35,14 @@ async function resolveBuildId(): Promise<string> {
 const buildId = await resolveBuildId();
 const buildTimestamp = new Date().toISOString();
 
+let betterRendererAvailable = false;
+try {
+  await Deno.stat(join(root, ".local", "better-form-renderer", "form-renderer.js"));
+  betterRendererAvailable = true;
+} catch (error) {
+  if (!(error instanceof Deno.errors.NotFound)) throw error;
+}
+
 await ensureDir(outDir);
 
 const xmlEmbedPlugin: esbuild.Plugin = {
@@ -74,6 +82,7 @@ await esbuild.build({
     "process.env.NODE_ENV": '"production"',
     "__BUILD_ID__": JSON.stringify(buildId),
     "__BUILD_TIMESTAMP__": JSON.stringify(buildTimestamp),
+    "__BETTER_RENDERER_AVAILABLE__": betterRendererAvailable ? "true" : "false",
   },
 });
 
