@@ -30,7 +30,7 @@ Use a decision table when several independent inputs together pick an output: a 
 
 On a decision table, **Add input/condition** adds a condition column. **Add output** adds an output column. **Add default row** appends a catch-all row: every input cell is don’t-care (`—`). The same `—` can be written into any cell from that cell’s context menu.
 
-Each column header shows a cogwheel. The cogwheel and a right-click on the header open the same menu: add an input/condition, add an output, or **Delete {name}** (red). Deleting a column confirms in a short toast; Undo on the canvas restores it. An output column has one kind dropdown in that menu — string, number, boolean, or **string pattern** — and the header shows the matching mark (`🔤`, `🔢`, `✓`, `{}`). A string pattern column holds a VMS-Mustache snippet (bound names such as `{{word}}`). Branching stays in the table, not inside the cell.
+Each column header shows a cogwheel. The cogwheel and a right-click on the header open the same menu: **Move left**, **Move right**, and **Delete {name}** (red). Columns and rows can also be dragged. Deleting a column confirms in a short toast; Undo on the canvas restores it. An output column has one kind dropdown in that menu, labeled **Output type** — string, number, boolean, or **string pattern** — and each option shows the same mark as the header (`🔤`, `🔢`, `✓`, `{}`). The header mark updates as soon as the type changes. A string pattern column holds a VMS-Mustache snippet (bound names such as `{{word}}`). Branching stays in the table, not inside the cell.
 
 ## Hit policy
 
