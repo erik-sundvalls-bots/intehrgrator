@@ -14,6 +14,8 @@ import type { BlocklyOptions } from "blockly/core";
 import { dataValueLeafTypes, blockTypeForRm } from "../core/rm_meta.ts";
 import type { SkeletonNode, TargetFormatId } from "../types/mod.ts";
 import { msg } from "./i18n/custom_msg.ts";
+import { sheetsChrome } from "../ui/sheets_i18n.ts";
+import { ADD_DECISION_TABLE_CALLBACK, ADD_SHEET_CALLBACK } from "./grid_flyout.ts";
 import { uniqueSchemaContainerNodes } from "./schema_blocks.ts";
 import {
   isSchemaStructureBlockType,
@@ -477,18 +479,18 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
           { kind: "block", type: "maps_isEmpty" },
         ],
       },
+      { kind: "sep" },
       {
         kind: "category",
-        name: m.CAT_SHEETS,
-        colour: 165,
-        cssconfig: { row: "blocklyToolboxCategory blocklyToolboxCategorySheets" },
+        name: m.CAT_DECISION_TABLES,
+        colour: 160,
+        cssconfig: { row: "blocklyToolboxCategory blocklyToolboxCategoryDecisionTables" },
         contents: [
-          { kind: "block", type: "sheet", fields: { NAME: "Sheet1" } },
-          { kind: "block", type: "decision_table_decl", fields: { NAME: "Decision1" } },
+          { kind: "button", text: sheetsChrome(locale).addDecision, callbackKey: ADD_DECISION_TABLE_CALLBACK },
           {
             kind: "block",
             type: "decision_table",
-            fields: { NAME: "Decision1", OUTPUT: "out" },
+            fields: { OUTPUT: "out" },
             inputs: {
               INPUTS: {
                 block: {
@@ -503,10 +505,18 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
               },
             },
           },
+        ],
+      },
+      {
+        kind: "category",
+        name: m.CAT_SHEETS,
+        colour: 165,
+        cssconfig: { row: "blocklyToolboxCategory blocklyToolboxCategorySheets" },
+        contents: [
+          { kind: "button", text: sheetsChrome(locale).add, callbackKey: ADD_SHEET_CALLBACK },
           {
             kind: "block",
             type: "sheet_lookup",
-            fields: { NAME: "Sheet1" },
             inputs: {
               MATCH_COL: { shadow: { type: "text", fields: { TEXT: "code" } } },
               MATCH_VAL: { shadow: { type: "text", fields: { TEXT: "" } } },
@@ -516,7 +526,6 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
           {
             kind: "block",
             type: "sheet_get_cell",
-            fields: { NAME: "Sheet1" },
             inputs: {
               A1: { shadow: { type: "text", fields: { TEXT: "A1" } } },
             },
@@ -524,7 +533,6 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
           {
             kind: "block",
             type: "sheet_get_xy",
-            fields: { NAME: "Sheet1" },
             inputs: {
               X: { shadow: { type: "math_number", fields: { NUM: 0 } } },
               Y: { shadow: { type: "math_number", fields: { NUM: 0 } } },
@@ -533,25 +541,21 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
           {
             kind: "block",
             type: "sheet_get_row",
-            fields: { NAME: "Sheet1" },
             inputs: { Y: { shadow: { type: "math_number", fields: { NUM: 0 } } } },
           },
           {
             kind: "block",
             type: "sheet_get_column",
-            fields: { NAME: "Sheet1" },
             inputs: { X: { shadow: { type: "math_number", fields: { NUM: 0 } } } },
           },
           {
             kind: "block",
             type: "sheet_get_header",
-            fields: { NAME: "Sheet1" },
             inputs: { X: { shadow: { type: "math_number", fields: { NUM: 0 } } } },
           },
-          { kind: "block", type: "sheet_get_data", fields: { NAME: "Sheet1" } },
+          { kind: "block", type: "sheet_get_data" },
         ],
       },
-      { kind: "sep" },
       {
         kind: "category",
         custom: "VARIABLE",

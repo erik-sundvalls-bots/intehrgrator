@@ -33,10 +33,10 @@ import { fireSheetChange } from "../workbench/sheet_undo.ts";
 import { attachInfoTip } from "./info_tip.ts";
 import { HIT_POLICY_DOCS_HREF, jspreadsheetDictionary, sheetsChrome, sheetsFormat } from "./sheets_i18n.ts";
 import {
-  retargetDecisionTableNames,
+  clearGridNames,
+  retargetGridNames,
   syncDecisionTableBlocksFromSheets,
 } from "../blockly/decision_table_sync.ts";
-import { refreshGridPreviewFields } from "../blockly/field_grid_preview.ts";
 import { DECISION_TYPE_SWITCH_MESSAGE } from "../blockly/blocks/decision_table_blocks.ts";
 import { refreshWorkspaceConstraints } from "../blockly/block_constraints.ts";
 
@@ -72,7 +72,12 @@ export function mountSheetsPanel(
   },
 ): {
   refresh: () => void;
-  showSheet: (name: string, kind?: "sheet" | "decision-table", opts?: { highlight?: boolean }) => void;
+  showSheet: (
+    name: string,
+    kind?: "sheet" | "decision-table",
+    opts?: { highlight?: boolean; create?: boolean },
+  ) => void;
+  promptNewGrid: (kind: "sheet" | "decision-table") => string | null;
   setLocale: (locale: string) => void;
   setFullscreen: (on: boolean) => void;
   destroy: () => void;
@@ -331,7 +336,6 @@ export function mountSheetsPanel(
   const notifyBlockly = (sheets: SheetDocument[]): void => {
     const ws = options.getWorkspace();
     syncDecisionTableBlocksFromSheets(ws, sheets);
-    refreshGridPreviewFields(ws);
     refreshWorkspaceConstraints(ws);
   };
 
@@ -654,10 +658,11 @@ export function mountSheetsPanel(
   const showSheet = (
     name: string,
     kind: "sheet" | "decision-table" = "sheet",
-    opts: { highlight?: boolean } = {},
+    opts: { highlight?: boolean; create?: boolean } = {},
   ): void => {
     let sheets = host.getSheets();
     if (!findSheet(sheets, name)) {
+      if (opts.create === false) return;
       const before = cloneSheets(sheets);
       const created = kind === "decision-table" ? emptyDecisionTable(name) : emptySheet(name);
       const after = [...before, created];
@@ -684,20 +689,22 @@ export function mountSheetsPanel(
     if (opts.highlight) flashHighlight();
   };
 
-  addBtn.addEventListener("click", () => {
-    const t = sheetsChrome(locale);
-    const name = globalThis.prompt(t.namePrompt, uniqueName(host.getSheets(), "Sheet"));
-    if (!name?.trim()) return;
-    showSheet(name.trim(), "sheet");
-  });
-  addDtBtn.addEventListener("click", () => {
+  const promptNewGrid = (kind: "sheet" | "decision-table"): string | null => {
     const t = sheetsChrome(locale);
     const name = globalThis.prompt(
-      t.decisionNamePrompt,
-      uniqueName(host.getSheets(), "Decision"),
+      kind === "decision-table" ? t.decisionNamePrompt : t.namePrompt,
+      uniqueName(host.getSheets(), kind === "decision-table" ? "Decision" : "Sheet"),
     );
-    if (!name?.trim()) return;
-    showSheet(name.trim(), "decision-table");
+    if (!name?.trim()) return null;
+    const trimmed = name.trim();
+    showSheet(trimmed, kind);
+    return trimmed;
+  };
+  addBtn.addEventListener("click", () => {
+    promptNewGrid("sheet");
+  });
+  addDtBtn.addEventListener("click", () => {
+    promptNewGrid("decision-table");
   });
   addCondBtn.addEventListener("click", () => {
     const sheet = findSheet(host.getSheets(), activeName);
@@ -749,7 +756,7 @@ export function mountSheetsPanel(
       refresh();
       notifyBlockly(sheets);
     });
-    retargetDecisionTableNames(options.getWorkspace(), activeName, nextName);
+    retargetGridNames(options.getWorkspace(), activeName, nextName);
     notifyBlockly(after);
     activeName = nextName;
     refresh();
@@ -759,6 +766,7 @@ export function mountSheetsPanel(
     const before = host.getSheets();
     const after = before.filter((s) => s.name !== activeName);
     host.replaceSheets(after);
+    clearGridNames(options.getWorkspace(), activeName);
     fireSheetChange(options.getWorkspace(), before, after, (sheets) => {
       host.replaceSheets(sheets, { silent: true });
       refresh();
@@ -910,6 +918,7 @@ export function mountSheetsPanel(
   return {
     refresh,
     showSheet,
+    promptNewGrid,
     setLocale: (next) => {
       locale = next;
       applyDictionary(locale);

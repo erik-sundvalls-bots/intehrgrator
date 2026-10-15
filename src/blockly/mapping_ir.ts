@@ -27,8 +27,8 @@ import { schemaSlotIdForInput } from "./schema_blocks.ts";
 import { isSchemaOptionalInput, schemaOptionalExtrasOf, schemaOptionalInputName } from "./blocks/schema_mutator.ts";
 import { blockToExpression } from "./expression_serialize.ts";
 import { isTermPickBlock } from "./blocks/term_pick.ts";
-import { SHEET_ACCESSOR_TYPES, SHEET_BLOCK_TYPE } from "./blocks/sheet_blocks.ts";
-import { DECISION_TABLE_BLOCK, DECISION_TABLE_DECL } from "./blocks/decision_table_blocks.ts";
+import { SHEET_ACCESSOR_TYPES } from "./blocks/sheet_blocks.ts";
+import { DECISION_TABLE_BLOCK } from "./blocks/decision_table_blocks.ts";
 import { MAPS_GET } from "../core/defaults/extract.ts";
 import { isVmsEscapeBlockType, isVmsRemovedBlockType } from "./vms.ts";
 import { isTemplateEscapeHatch } from "./vms_linter.ts";
@@ -444,11 +444,7 @@ function sheetNamesFromWorkspace(workspace: Workspace): string[] {
   const names = new Set<string>();
   const accessors = new Set<string>([...SHEET_ACCESSOR_TYPES, DECISION_TABLE_BLOCK]);
   for (const block of workspace.getAllBlocks(false)) {
-    if (
-      block.type !== SHEET_BLOCK_TYPE &&
-      block.type !== DECISION_TABLE_DECL &&
-      !accessors.has(block.type)
-    ) continue;
+    if (!accessors.has(block.type)) continue;
     const name = String(block.getFieldValue("NAME") || "").trim();
     if (name) names.add(name);
   }

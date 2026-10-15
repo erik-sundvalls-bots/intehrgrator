@@ -164,8 +164,8 @@ export {
 export { setSheetFocusHandler } from "./blocks/sheet_blocks.ts";
 export { setDecisionTableFocusHandler, setDecisionTableInfoHandler } from "./blocks/decision_table_blocks.ts";
 export { setWorkspaceSheetsProvider } from "./sheets_bridge.ts";
-export { setGridPreviewActivateHandler } from "./field_grid_preview.ts";
 export { installDecisionTableSync, syncDecisionTableBlocksFromSheets } from "./decision_table_sync.ts";
+export { registerGridFlyoutButtons, setGridCreateHandler } from "./grid_flyout.ts";
 export {
   canExtractToFunction,
   extractBlockToFunction,
@@ -341,8 +341,6 @@ function registerGenerators(): void {
     const ret = javascriptGenerator.valueToCode(block, "RETURN_COL", Order.NONE) || '""';
     return [`sheetLookup(${name}, ${col}, ${val}, ${ret})`, Order.FUNCTION_CALL] as [string, number];
   };
-  javascriptGenerator.forBlock["sheet"] = () => "";
-  javascriptGenerator.forBlock["decision_table_decl"] = () => "";
   javascriptGenerator.forBlock["decision_table"] = (block) => {
     const name = JSON.stringify(block.getFieldValue("NAME") || "Decision1");
     const inputs = javascriptGenerator.valueToCode(block, "INPUTS", Order.NONE) || "{}";

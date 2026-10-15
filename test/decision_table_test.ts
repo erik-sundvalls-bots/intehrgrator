@@ -249,6 +249,7 @@ Deno.test("schema sync rewrites locals Map keys from Decision table headers", ()
   const workspace = new Blockly.Workspace();
   try {
     const block = workspace.newBlock("decision_table");
+    block.setFieldValue("Decision1", "NAME");
     const map = workspace.newBlock("maps_create_with") as Blockly.Block & {
       itemCount_: number;
       updateShape_: () => void;
@@ -590,7 +591,7 @@ Deno.test("decision table output dropdown label shows the selected column", () =
   }
 });
 
-Deno.test("UNIQUE overlap is a Constraint warning on the Decision table declaration chip", () => {
+Deno.test("UNIQUE overlap is a Constraint warning on the Decision table eval block", () => {
   registerDecisionTableBlocks();
   const unique = normalizeSheet({
     name: "overlap",
@@ -609,9 +610,9 @@ Deno.test("UNIQUE overlap is a Constraint warning on the Decision table declarat
   setWorkspaceSheetsProvider(() => [unique]);
   const workspace = new Blockly.Workspace();
   try {
-    const decl = workspace.newBlock("decision_table_decl");
-    decl.setFieldValue("overlap", "NAME");
-    const messages = blockConstraintMessages(decl);
+    const evalBlock = workspace.newBlock("decision_table");
+    evalBlock.setFieldValue("overlap", "NAME");
+    const messages = blockConstraintMessages(evalBlock);
     assertEquals(messages.some((m) => m.includes("UNIQUE")), true);
   } finally {
     setWorkspaceSheetsProvider(null);

@@ -29,6 +29,7 @@ import {
   type BlocklyWorkspaceJson,
 } from "../core/function_library/blockly_json.ts";
 import { FUNCTION_BUNDLE_KIND, FUNCTION_BUNDLE_VERSION } from "../core/function_library/types.ts";
+import { stripGridDeclarationBlocks } from "./strip_grid_declarations.ts";
 
 export interface ExtractFunctionMeta {
   description?: string;
@@ -93,12 +94,7 @@ export function extractFunctionBundle(
   const defJson = topBlocks(saved).find((block) => procedureDefName(block) === name);
   if (!defJson) throw new Error(`Could not serialize Blockly Function "${name}"`);
   const gridNames = new Set(referencedGridNames({ blocks: { blocks: [defJson] } }));
-  const decls = topBlocks(saved).filter((block) =>
-    block.type === "decision_table_decl" &&
-    typeof block.fields?.NAME === "string" &&
-    gridNames.has(block.fields.NAME)
-  );
-  const fragment = [defJson, ...decls];
+  const fragment = [defJson];
   const blocklyState: BlocklyWorkspaceJson = {
     blocks: {
       languageVersion: saved.blocks?.languageVersion ?? 0,
@@ -134,7 +130,7 @@ export function extractFunctionBundleFromState(
   try {
     if (blocklyState && typeof blocklyState === "object") {
       Blockly.serialization.workspaces.load(
-        JSON.parse(JSON.stringify(blocklyState)) as Record<string, unknown>,
+        stripGridDeclarationBlocks(JSON.parse(JSON.stringify(blocklyState))) as Record<string, unknown>,
         workspace,
       );
     }
@@ -156,7 +152,7 @@ export function mergeFunctionBundleIntoState(
   try {
     if (blocklyState && typeof blocklyState === "object") {
       Blockly.serialization.workspaces.load(
-        JSON.parse(JSON.stringify(blocklyState)) as Record<string, unknown>,
+        stripGridDeclarationBlocks(JSON.parse(JSON.stringify(blocklyState))) as Record<string, unknown>,
         workspace,
       );
     }
@@ -182,9 +178,8 @@ export function mergeFunctionBundle(
   );
   if (options.clash === "replace") {
     for (const name of clashes.functions) disposeProcedure(workspace, name);
-    for (const name of clashes.sheets) disposeGridDecl(workspace, name);
   }
-  const incoming = structuredClone(asWorkspaceJson(next.blocklyState));
+  const incoming = stripGridDeclarationBlocks(structuredClone(asWorkspaceJson(next.blocklyState)));
   uniquifyIncomingVariables(incoming, workspace, next.parameters);
   remapWorkspaceIds(incoming);
   offsetTopBlocks(incoming, 24, 24 + maxTopY(workspace));
@@ -239,17 +234,6 @@ function disposeProcedure(workspace: Blockly.Workspace, name: string): void {
   for (const block of workspace.getTopBlocks(false)) {
     if (
       isProcedureDefType(block.type) &&
-      String(block.getFieldValue("NAME") || "") === name
-    ) {
-      block.dispose(false);
-    }
-  }
-}
-
-function disposeGridDecl(workspace: Blockly.Workspace, name: string): void {
-  for (const block of workspace.getTopBlocks(false)) {
-    if (
-      (block.type === "decision_table_decl" || block.type === "sheet") &&
       String(block.getFieldValue("NAME") || "") === name
     ) {
       block.dispose(false);

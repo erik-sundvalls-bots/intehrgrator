@@ -9,8 +9,10 @@ Back to the [tutorial index](../TUTORIAL.md).
 | Drawer | Use for |
 |--------|---------|
 | **Lists & maps** | Generic maps, terminology lookups (`get map key …`), list operations. The unique **default context map** is on the canvas, not in this drawer. See [Default context](default-context.md). |
-| **Sheets** | 2D grids pasted from Excel or CSV. Read them with `sheet_get_*` and `sheet_lookup`. |
 | **Logic** | Conditions, list restrictions, set operations |
+| **Decision Tables** | Rule grids. **Add decision table** creates an empty grid and selects it in the Tables & Sheets tab. The eval block picks that grid from a name dropdown. |
+| **Sheets** | Lookup grids. **Add sheet** creates an empty grid the same way. `sheet_get_*` and `sheet_lookup` pick the grid from a name dropdown. |
+| **Variables** / **Functions** | Same section of the toolbox, under the divider with the two grid drawers. |
 
 ## Sheets tab
 

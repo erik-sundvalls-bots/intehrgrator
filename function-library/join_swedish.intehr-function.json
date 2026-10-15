@@ -18,7 +18,7 @@
       "blocks": [
         {
           "type": "procedures_defreturn",
-          "id": "?txeJ^Mm#AIL$bl{v~r~",
+          "id": "W2EANf*Fesb.SL?e)Y%@",
           "x": 0,
           "y": 0,
           "extraState": {
@@ -44,7 +44,7 @@
             "STACK": {
               "block": {
                 "type": "variables_set",
-                "id": "`7m8L_O=erp?9mO^c)2T",
+                "id": "BJ-7mkwYNU`([+oT4By-",
                 "fields": {
                   "VAR": {
                     "id": "join_swedish_words_joined_words"
@@ -54,7 +54,7 @@
                   "VALUE": {
                     "block": {
                       "type": "text",
-                      "id": "p=eJIPZxscA:6{n1Ewl9",
+                      "id": "*?D]_QX8G=$={1?lL-}2",
                       "fields": {
                         "TEXT": ""
                       }
@@ -64,7 +64,7 @@
                 "next": {
                   "block": {
                     "type": "for_each_list",
-                    "id": "sIFFGQ04lz+{iuJx66Ei",
+                    "id": "DH9WMJ$2IF?fXAbQuW#)",
                     "fields": {
                       "VAR": "word"
                     },
@@ -72,7 +72,7 @@
                       "LIST": {
                         "block": {
                           "type": "variables_get",
-                          "id": "|g%Byk_XhL3JaX,[x;zv",
+                          "id": "*i=Xms|(-|m)S8}}`qQu",
                           "fields": {
                             "VAR": {
                               "id": "join_swedish_words_list_of_words"
@@ -83,7 +83,7 @@
                       "DO": {
                         "block": {
                           "type": "text_append",
-                          "id": "Z/]-FSTV)by4(~`!S8TY",
+                          "id": "etm:yBn$8Iw;y9*a5vJ.",
                           "fields": {
                             "VAR": {
                               "id": "join_swedish_words_joined_words"
@@ -93,7 +93,7 @@
                             "TEXT": {
                               "block": {
                                 "type": "decision_table",
-                                "id": "japN^1-:6ng#V|MH!=%h",
+                                "id": "^Ssqp]Qb%`q6bEInt0i/",
                                 "fields": {
                                   "NAME": "SweJoinWords",
                                   "OUTPUT": "snippet"
@@ -102,7 +102,7 @@
                                   "INPUTS": {
                                     "block": {
                                       "type": "maps_create_with",
-                                      "id": "D+I$8UU%%!M.AcE)s/vS",
+                                      "id": "Y21wa155+kam#ZZK?EiJ",
                                       "extraState": {
                                         "itemCount": 3
                                       },
@@ -115,14 +115,14 @@
                                         "VAL0": {
                                           "shadow": {
                                             "type": "text",
-                                            "id": "Hvn8ya}PIHKrF6oYMKFE",
+                                            "id": "RS+Gb8:#d65UDyoym4F~",
                                             "fields": {
                                               "TEXT": ""
                                             }
                                           },
                                           "block": {
                                             "type": "logic_compare",
-                                            "id": ";_hxz-ODh4Wpb/qu`v~t",
+                                            "id": "ybBL(NFDqU0D5k8+kAAC",
                                             "fields": {
                                               "OP": "EQ"
                                             },
@@ -130,7 +130,7 @@
                                               "A": {
                                                 "block": {
                                                   "type": "logic_loop_index",
-                                                  "id": "Q4XkVXB:,Og@?8*5fEOU",
+                                                  "id": "U|;Iqn}$[]*VNX6:Z3A%",
                                                   "fields": {
                                                     "VAR": ""
                                                   }
@@ -139,7 +139,7 @@
                                               "B": {
                                                 "block": {
                                                   "type": "math_number",
-                                                  "id": "`lgg{c]JcfPJ,0([_iW_",
+                                                  "id": "Deqx9y@:K!U$V-r:u{CA",
                                                   "fields": {
                                                     "NUM": 0
                                                   }
@@ -151,14 +151,14 @@
                                         "VAL1": {
                                           "shadow": {
                                             "type": "text",
-                                            "id": "tCa9TNh^@/AOt?G]R-C_",
+                                            "id": "%S/hYAT9cIPF+dCC48iu",
                                             "fields": {
                                               "TEXT": ""
                                             }
                                           },
                                           "block": {
                                             "type": "logic_compare",
-                                            "id": "R}2p*!De9f%G|Reij+=}",
+                                            "id": "zfWu-cqS7ChOd]C-IUml",
                                             "fields": {
                                               "OP": "EQ"
                                             },
@@ -166,7 +166,7 @@
                                               "A": {
                                                 "block": {
                                                   "type": "logic_loop_index",
-                                                  "id": "@2DJ~^V.Ev~d9yh#{/kE",
+                                                  "id": "wBeK:B*_a0.,UQI~!0^7",
                                                   "fields": {
                                                     "VAR": ""
                                                   }
@@ -175,7 +175,7 @@
                                               "B": {
                                                 "block": {
                                                   "type": "math_arithmetic",
-                                                  "id": "o`qij,z[X2A[92D9M(L.",
+                                                  "id": "y}atl:iTG%h0vE~S+ANO",
                                                   "fields": {
                                                     "OP": "MINUS"
                                                   },
@@ -183,7 +183,7 @@
                                                     "A": {
                                                       "block": {
                                                         "type": "logic_loop_length",
-                                                        "id": "3qaycpL^g40)`|(SWjPX",
+                                                        "id": "]lfrYt3?:DpMgBM3.}JY",
                                                         "fields": {
                                                           "VAR": ""
                                                         }
@@ -192,7 +192,7 @@
                                                     "B": {
                                                       "block": {
                                                         "type": "math_number",
-                                                        "id": "9%BQqum#wYG;xG4gz~uk",
+                                                        "id": "n{j39h,EC[aSx5XkUisd",
                                                         "fields": {
                                                           "NUM": 1
                                                         }
@@ -207,14 +207,14 @@
                                         "VAL2": {
                                           "shadow": {
                                             "type": "text",
-                                            "id": "FvbJ1E%]eRRwGOHbJA@6",
+                                            "id": "KBFykd0eN,,D~N2Sq;f(",
                                             "fields": {
                                               "TEXT": ""
                                             }
                                           },
                                           "block": {
                                             "type": "logic_current_item",
-                                            "id": "OTx$F7c{m!`s$MRIEuPS",
+                                            "id": "Q7rp-$[q9zl$za~rq2mY",
                                             "fields": {
                                               "VAR": ""
                                             }
@@ -237,7 +237,7 @@
             "RETURN": {
               "block": {
                 "type": "variables_get",
-                "id": "HZi62W7db4G~$,i4=u),",
+                "id": "hhVL;Yw0a-]?I`){%bsK",
                 "fields": {
                   "VAR": {
                     "id": "join_swedish_words_joined_words"
@@ -245,15 +245,6 @@
                 }
               }
             }
-          }
-        },
-        {
-          "type": "decision_table_decl",
-          "id": "+,_?+(V:%qUn::3mZBh3",
-          "x": 20,
-          "y": 20,
-          "fields": {
-            "NAME": "SweJoinWords"
           }
         }
       ]

@@ -101,8 +101,9 @@ import {
   setDecisionTableFocusHandler,
   setDecisionTableInfoHandler,
   setWorkspaceSheetsProvider,
-  setGridPreviewActivateHandler,
   installDecisionTableSync,
+  registerGridFlyoutButtons,
+  setGridCreateHandler,
   installExtractToFunctionOnWorkspace,
   installFunctionLibraryMenus,
 } from "../src/blockly/mod.ts";
@@ -646,21 +647,29 @@ async function bootBlockly(): Promise<void> {
     applyDefaultContextMapFromCanvas();
   });
   setSheetFocusHandler((name, opts) => {
+    if (!name.trim()) return;
     showTextView("sheets");
-    sheetsPanel?.showSheet(name, "sheet", { highlight: opts?.highlight ?? true });
+    sheetsPanel?.showSheet(name, "sheet", {
+      highlight: opts?.highlight ?? true,
+      create: false,
+    });
     if (opts?.highlight ?? true) flashSheetsChrome();
   });
   setDecisionTableFocusHandler((name, opts) => {
+    if (!name.trim()) return;
     showTextView("sheets");
-    sheetsPanel?.showSheet(name, "decision-table", { highlight: opts?.highlight ?? true });
+    sheetsPanel?.showSheet(name, "decision-table", {
+      highlight: opts?.highlight ?? true,
+      create: false,
+    });
     if (opts?.highlight ?? true) flashSheetsChrome();
   });
-  setGridPreviewActivateHandler((blockType, name) => {
+  setGridCreateHandler((kind) => {
+    const name = sheetsPanel?.promptNewGrid(kind);
+    if (!name) return;
     showTextView("sheets");
-    const kind = blockType === "decision_table_decl" ? "decision-table" : "sheet";
-    sheetsPanel?.showSheet(name, kind, { highlight: true });
-    flashSheetsChrome();
   });
+  registerGridFlyoutButtons(workspace);
   setDecisionTableInfoHandler((anchor) => {
     const tip = document.getElementById("decision-table-block-info");
     if (!(tip instanceof HTMLElement)) return;
@@ -793,18 +802,6 @@ async function bootBlockly(): Promise<void> {
         ? event.blockId
         : null;
       applyBlockSelection(blockId, "blockly");
-      if (blockId) {
-        const clicked = workspace.getBlockById(blockId);
-        if (clicked?.type === "sheet" || clicked?.type === "decision_table_decl") {
-          const name = String(clicked.getFieldValue("NAME") || "");
-          const kind = clicked.type === "decision_table_decl" ? "decision-table" : "sheet";
-          showTextView("sheets");
-          sheetsPanel?.showSheet(name || (kind === "decision-table" ? "Decision1" : "Sheet1"), kind, {
-            highlight: true,
-          });
-          flashSheetsChrome();
-        }
-      }
       return;
     }
     if (

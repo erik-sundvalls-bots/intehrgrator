@@ -82,7 +82,7 @@ Number reporters (`logic_loop_index` / `logic_loop_length`) for the enclosing `f
 _Avoid_: Handlebars `@index` / `@first` / `@last` as product names, binding index on `logic_list_restriction`, using index to mint `:n` slot ids
 
 **Map**:
-A key-value collection in the Mapping Editor, parallel to a Blockly List. Entries are retrieved by key, not by index. Used for nested values, quantity unpack, and other 1D lookups. Not the **default context map**. Toolbox: list and map blocks share one **Lists & maps** drawer. **Decision tables** and **Sheets** are separate drawers.
+A key-value collection in the Mapping Editor, parallel to a Blockly List. Entries are retrieved by key, not by index. Used for nested values, quantity unpack, and other 1D lookups. Not the **default context map**. Toolbox: list and map blocks share one **Lists & maps** drawer. **Decision tables** and **Sheets** are separate drawers below the divider, with **Variables** and **Functions**. A flyout button adds the grid; the blocks pick its name from a dropdown.
 _Avoid_: Dictionary, hashmap, JSON object (the object/member stack is a different Blockly metaphor), **Sheet** (2D grid), treating the default context map as a plugged `maps_create_with`
 
 **Sheet** (matrix / spreadsheet):

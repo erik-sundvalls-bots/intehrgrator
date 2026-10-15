@@ -203,10 +203,6 @@ export function defineGrammaticalJoin(
   (def as { setStatements_?: (v: boolean) => void }).setStatements_?.(true);
   def.setCommentText(spec.description);
 
-  const decl = workspace.newBlock("decision_table_decl");
-  decl.setFieldValue(spec.tableName, "NAME");
-  if (typeof decl.moveBy === "function") decl.moveBy(20, 20);
-
   const empty = workspace.newBlock("text");
   empty.setFieldValue("", "TEXT");
   const init = varSet(workspace, resultName, empty, resultId);

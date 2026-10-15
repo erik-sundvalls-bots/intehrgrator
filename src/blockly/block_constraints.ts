@@ -30,7 +30,7 @@ import {
   type SlotCardinality,
 } from "./slot_cardinality.ts";
 import { blockHatchMessages } from "./vms_linter.ts";
-import { DECISION_TABLE_BLOCK, DECISION_TABLE_DECL } from "./blocks/decision_table_blocks.ts";
+import { DECISION_TABLE_BLOCK } from "./blocks/decision_table_blocks.ts";
 import { workspaceSheet } from "./sheets_bridge.ts";
 import { lintDecisionTable } from "../core/sheets/decision_table.ts";
 import { DEFAULT_CONTEXT_MAP_TYPE, runtimeKeyWarnings } from "../core/defaults/mod.ts";
@@ -107,7 +107,7 @@ export function blockConstraintMessages(block: Block): string[] {
   // VMS hatch / dialect warnings (#40) share the Constraint warning triangle.
   messages.push(...blockHatchMessages(block));
 
-  if (block.type === DECISION_TABLE_BLOCK || block.type === DECISION_TABLE_DECL) {
+  if (block.type === DECISION_TABLE_BLOCK) {
     const name = String(block.getFieldValue("NAME") || "");
     const sheet = name ? workspaceSheet(name) : undefined;
     if (sheet) {

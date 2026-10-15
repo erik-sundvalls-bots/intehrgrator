@@ -30,6 +30,7 @@ export interface IntehrMessages {
   CAT_MATH: string;
   CAT_TEXT: string;
   CAT_LISTS_AND_MAPS: string;
+  CAT_DECISION_TABLES: string;
   CAT_SHEETS: string;
   CAT_VARIABLES: string;
   CAT_PROCEDURES: string;
@@ -98,7 +99,8 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_MATH: "Math",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Lists & maps",
-    CAT_SHEETS: "Tables & Sheets",
+    CAT_DECISION_TABLES: "Decision Tables",
+    CAT_SHEETS: "Sheets",
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Functions",
     EXTRACT_TO_FUNCTION: "Extract to function",
@@ -174,7 +176,8 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_MATH: "Matematik",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listor & mappar",
-    CAT_SHEETS: "Tabeller & kalkylblad",
+    CAT_DECISION_TABLES: "Beslutstabeller",
+    CAT_SHEETS: "Kalkylblad",
     CAT_VARIABLES: "Variabler",
     CAT_PROCEDURES: "Funktioner",
     EXTRACT_TO_FUNCTION: "Bryt ut till funktion",
@@ -250,7 +253,8 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_MATH: "Mathematik",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listen & Maps",
-    CAT_SHEETS: "Tabellen & Blätter",
+    CAT_DECISION_TABLES: "Entscheidungstabellen",
+    CAT_SHEETS: "Blätter",
     CAT_VARIABLES: "Variablen",
     CAT_PROCEDURES: "Funktionen",
     EXTRACT_TO_FUNCTION: "In Funktion auslagern",
@@ -326,7 +330,8 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_MATH: "Matemáticas",
     CAT_TEXT: "Texto",
     CAT_LISTS_AND_MAPS: "Listas y mapas",
-    CAT_SHEETS: "Tablas y hojas",
+    CAT_DECISION_TABLES: "Tablas de decisión",
+    CAT_SHEETS: "Hojas",
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Funciones",
     EXTRACT_TO_FUNCTION: "Extraer a función",
@@ -402,7 +407,8 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_MATH: "Matemàtiques",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Llistes i mapes",
-    CAT_SHEETS: "Taules i fulls",
+    CAT_DECISION_TABLES: "Taules de decisió",
+    CAT_SHEETS: "Fulls",
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Funcions",
     EXTRACT_TO_FUNCTION: "Extreure a funció",
@@ -478,7 +484,8 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_MATH: "Math",
     CAT_TEXT: "Texte",
     CAT_LISTS_AND_MAPS: "Listes et maps",
-    CAT_SHEETS: "Tableaux et feuilles",
+    CAT_DECISION_TABLES: "Tables de décision",
+    CAT_SHEETS: "Feuilles",
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Fonctions",
     EXTRACT_TO_FUNCTION: "Extraire vers une fonction",
