@@ -5,7 +5,7 @@ import {
   inputAlignLeft,
   inputAlignRight,
 } from "../block_type_glyph.ts";
-import { FieldGridName } from "../field_grid_name.ts";
+import { FieldGridName, preselectSoleGridName } from "../field_grid_name.ts";
 
 /** Sheet table / row / column values (Blockly check stays `Array`). */
 const SHEET_TABLE_GLYPH = "Sheet";
@@ -72,6 +72,7 @@ function focusSheetOnSelect(
   this: Blockly.Block,
   event: { type?: string; newElementId?: string },
 ): void {
+  if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "sheet");
   if (this.isInFlyout) return;
   if (event?.type !== "selected" || event.newElementId !== this.id) return;
   const name = String(this.getFieldValue("NAME") || "").trim();

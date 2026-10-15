@@ -24,6 +24,10 @@ Deno.test("sheets chrome includes Add default row and COLLECT dedupe labels", ()
   assertEquals(sheetsChrome("en").kindStringPattern, "string pattern");
   assertEquals(sheetsChrome("en").deleteColumn, "Delete {name}");
   assertEquals(sheetsChrome("en").tab, "Tables & Sheets");
+  assertEquals(sheetsChrome("en").selectSheet, "-- select sheet --");
+  assertEquals(sheetsChrome("en").selectTable, "-- select table --");
+  assertEquals(sheetsChrome("sv").selectSheet, "-- välj kalkylblad --");
+  assertEquals(sheetsChrome("sv").selectTable, "-- välj tabell --");
   assertEquals(sheetsChrome("sv").tab, "Tabeller & kalkylblad");
   assertEquals(sheetsChrome("de").tab, "Tabellen & Blätter");
   assertEquals(sheetsChrome("es").tab, "Tablas y hojas");

@@ -9,6 +9,13 @@ import { chromium } from "npm:playwright@1.51.0";
 import type { IntehrgratorTestApi } from "../../src/ui_test/test_api.ts";
 import { baseUrl, waitForTestApi } from "./helpers.ts";
 
+/** Blockly draws field spaces as NBSP, and appends the dropdown arrow. */
+async function flyoutText(page: { locator: (selector: string) => { first: () => { evaluate: (fn: (el: Element) => string) => Promise<string> } } }): Promise<string> {
+  return await page.locator(".blocklyFlyout").first().evaluate((el) =>
+    (el.textContent ?? "").replaceAll("\u00a0", " ")
+  );
+}
+
 Deno.test({
   name: "UI: grid drawers sit with Variables and add a grid from the flyout",
   sanitizeResources: false,
@@ -44,6 +51,8 @@ Deno.test({
       );
 
       await page.locator(".blocklyToolboxCategoryDecisionTables").click();
+      await page.locator(".blocklyFlyout").getByText("Add decision table", { exact: true }).waitFor();
+      assert((await flyoutText(page)).includes("-- select table --"), "empty decision name should prompt to select");
       await page.locator(".blocklyFlyout").getByText("Add decision table", { exact: true }).click();
       await page.locator("#tab-sheets.active").waitFor({ timeout: 5_000 });
       const decisionName = await page.locator(".sheets-select").inputValue();
@@ -51,9 +60,24 @@ Deno.test({
       await page.locator(".sheets-grid").waitFor({ state: "visible", timeout: 8_000 });
 
       await page.locator(".blocklyToolboxCategorySheets").click();
+      await page.locator(".blocklyFlyout").getByText("Add sheet", { exact: true }).waitFor();
+      assert((await flyoutText(page)).includes("-- select sheet --"), "empty sheet name should prompt to select");
       await page.locator(".blocklyFlyout").getByText("Add sheet", { exact: true }).click();
       const sheetName = await page.locator(".sheets-select").inputValue();
       assertEquals(sheetName, "Sheet");
+
+      await page.locator(".blocklyToolboxCategoryDecisionTables").click();
+      await page.locator(".blocklyFlyout").getByText("Add decision table", { exact: true }).waitFor();
+      const decisionFlyout = await flyoutText(page);
+      assert(decisionFlyout.includes("Decision"), `sole decision table should be preselected: ${decisionFlyout}`);
+      assert(!decisionFlyout.includes("-- select table --"), decisionFlyout);
+      assert(decisionFlyout.includes("inputs"), `decision mouth should say inputs: ${decisionFlyout}`);
+
+      await page.locator(".blocklyToolboxCategorySheets").click();
+      await page.locator(".blocklyFlyout").getByText("Add sheet", { exact: true }).waitFor();
+      const sheetFlyout = await flyoutText(page);
+      assert(sheetFlyout.includes("Sheet"), `sole sheet should be preselected: ${sheetFlyout}`);
+      assert(!sheetFlyout.includes("-- select sheet --"), sheetFlyout);
 
       const types = await page.evaluate(() => {
         const api = (globalThis as unknown as { intehrgratorTestApi: IntehrgratorTestApi })

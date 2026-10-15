@@ -10,7 +10,7 @@ import {
   retargetGridNames,
   sheetsFromDecisionTableBlockEdit,
 } from "@intehrgrator/blockly/decision_table_sync.ts";
-import { gridNameOptions } from "@intehrgrator/blockly/field_grid_name.ts";
+import { gridNameOptions, gridNamePlaceholder } from "@intehrgrator/blockly/field_grid_name.ts";
 import {
   ADD_DECISION_TABLE_CALLBACK,
   ADD_SHEET_CALLBACK,
@@ -46,8 +46,60 @@ Deno.test("grid name menus list only the matching kind", () => {
   } finally {
     setWorkspaceSheetsProvider(null);
   }
-  assertEquals(gridNameOptions("sheet"), [["", ""]]);
-  assertEquals(gridNameOptions("decision-table"), [["", ""]]);
+  assertEquals(gridNameOptions("sheet"), [[gridNamePlaceholder("sheet"), ""]]);
+  assertEquals(gridNameOptions("decision-table"), [[gridNamePlaceholder("decision-table"), ""]]);
+});
+
+Deno.test("a new block preselects the only grid and otherwise asks the user to select", () => {
+  ensure();
+  const workspace = new Blockly.Workspace();
+  try {
+    setWorkspaceSheetsProvider(() => [emptySheet("icd"), emptySheet("atc"), emptyDecisionTable("BMI")]);
+    const lookup = workspace.newBlock("sheet_lookup");
+    assertEquals(lookup.getFieldValue("NAME"), "");
+    const lookupLabel = lookup.getField("NAME") as { getText?: () => string };
+    assertEquals(lookupLabel.getText?.(), "-- select sheet --");
+    assertEquals(gridNameOptions("sheet")[0], ["-- select sheet --", ""]);
+
+    setWorkspaceSheetsProvider(() => [emptySheet("icd")]);
+    const only = workspace.newBlock("sheet_lookup");
+    assertEquals(only.getFieldValue("NAME"), "icd");
+    assertEquals((only.getField("NAME") as { getText?: () => string }).getText?.(), "icd");
+
+    setWorkspaceSheetsProvider(() => [emptyDecisionTable("BMI"), emptyDecisionTable("Age")]);
+    const table = workspace.newBlock("decision_table");
+    assertEquals(table.getFieldValue("NAME"), "");
+    assertEquals((table.getField("NAME") as { getText?: () => string }).getText?.(), "-- select table --");
+
+    setWorkspaceSheetsProvider(() => []);
+    const blank = workspace.newBlock("decision_table");
+    assertEquals(blank.getFieldValue("NAME"), "");
+    assertEquals((blank.getField("NAME") as { getText?: () => string }).getText?.(), "-- select table --");
+  } finally {
+    setWorkspaceSheetsProvider(null);
+    workspace.dispose();
+  }
+});
+
+Deno.test("loading a blank grid name does not snap to the only sheet", () => {
+  ensure();
+  setWorkspaceSheetsProvider(() => [emptySheet("icd")]);
+  const workspace = new Blockly.Workspace();
+  try {
+    const saved = migrateForEachSourceState({
+      blocks: {
+        languageVersion: 0,
+        blocks: [{ type: "sheet_lookup", id: "l1", fields: { NAME: "" } }],
+      },
+    });
+    Blockly.serialization.workspaces.load(saved, workspace);
+    const lookup = workspace.getAllBlocks(false).find((block) => block.type === "sheet_lookup");
+    assertEquals(lookup?.getFieldValue("NAME"), "");
+    assertEquals((lookup?.getField("NAME") as { getText?: () => string } | null)?.getText?.(), "-- select sheet --");
+  } finally {
+    setWorkspaceSheetsProvider(null);
+    workspace.dispose();
+  }
 });
 
 Deno.test("renaming a grid rewrites block names and deleting clears them", () => {
@@ -65,7 +117,7 @@ Deno.test("renaming a grid rewrites block names and deleting clears them", () =>
     assertEquals(lookup.getFieldValue("NAME"), "");
     assertEquals(table.getFieldValue("NAME"), "BodyMass");
     const label = lookup.getField("NAME") as { getText?: () => string } | null;
-    assertEquals(label?.getText?.(), "");
+    assertEquals(label?.getText?.(), "-- select sheet --");
   } finally {
     workspace.dispose();
   }

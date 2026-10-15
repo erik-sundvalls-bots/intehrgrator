@@ -6,7 +6,7 @@ import {
 } from "../block_type_glyph.ts";
 import { inputAlignLeft, inputAlignRight, enforceMouthCaptionLayout } from "../mouth_layout.ts";
 import { FieldDropdownHug } from "../field_dropdown_hug.ts";
-import { FieldGridName } from "../field_grid_name.ts";
+import { FieldGridName, preselectSoleGridName } from "../field_grid_name.ts";
 import { workspaceSheet } from "../sheets_bridge.ts";
 import {
   blocklyCheckForDecisionOutput,
@@ -145,7 +145,7 @@ export function applyDecisionTableOutputType(block: Blockly.Block): void {
 }
 
 /**
- * Value block: named Decision table + locals Map (condition keys) → one typed output, or all outputs as a Map.
+ * Value block: named Decision table + inputs Map (condition keys) → one typed output, or all outputs as a Map.
  */
 export function registerDecisionTableBlocks(): void {
   if (Blockly.Blocks[DECISION_TABLE_BLOCK]) return;
@@ -166,7 +166,7 @@ export function registerDecisionTableBlocks(): void {
         INFO_SVG,
         18,
         18,
-        "Decision table: locals Map keys match condition columns. Output dropdown selects one typed column, or all outputs as a Map. Condition cells: equality, don't-care (—), or numeric predicates (90..120, >= 140). Catch-all is a row flag, not per-column *. Undo/redo restores type switches.",
+        "Decision table: inputs Map keys match condition columns. Output dropdown selects one typed column, or all outputs as a Map. Condition cells: equality, don't-care (—), or numeric predicates (90..120, >= 140). Catch-all is a row flag, not per-column *. Undo/redo restores type switches.",
         () => {
           decisionTableInfoHandler?.(fieldClickAnchor(infoField as ClickableField));
         },
@@ -175,17 +175,18 @@ export function registerDecisionTableBlocks(): void {
       const inputs = this.appendValueInput("INPUTS")
         .setCheck("Map")
         .setAlign(inputAlignRight())
-        .appendField("locals");
+        .appendField("inputs");
       appendInputTypeGlyph(inputs, "Map");
       this.setOutput(true, "String");
       this.setColour(DT_COLOUR);
       this.setInputsInline(false);
       this.setTooltip(
-        "Evaluate a Decision table. Locals Map keys match condition columns. Choose an output column or all outputs.",
+        "Evaluate a Decision table. Inputs Map keys match condition columns. Choose an output column or all outputs.",
       );
       enforceMouthCaptionLayout(this);
     },
     onchange: function (this: Blockly.Block, event: { type?: string; name?: string; newElementId?: string }) {
+      if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "decision-table");
       if (this.isInFlyout) return;
       if (event?.type === "selected" && event.newElementId === this.id) {
         const name = String(this.getFieldValue("NAME") || "").trim();

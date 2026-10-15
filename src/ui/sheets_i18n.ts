@@ -32,6 +32,8 @@ export interface SheetsChrome {
   hitPolicyDocsLabel: string;
   kindSheet: string;
   kindDecision: string;
+  selectSheet: string;
+  selectTable: string;
   snippetLint: string;
   addDefaultRow: string;
   collectDedupe: string;
@@ -78,6 +80,8 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     hitPolicyDocsLabel: "Sheets and decision tables",
     kindSheet: "Sheet",
     kindDecision: "Decision table",
+    selectSheet: "-- select sheet --",
+    selectTable: "-- select table --",
     snippetLint: "Snippet cells (VMS-Mustache)",
     addDefaultRow: "Add default row",
     collectDedupe: "COLLECT dedupe",
@@ -114,6 +118,8 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     hitPolicyDocsLabel: "Blad och beslutstabeller",
     kindSheet: "Blad",
     kindDecision: "Beslutstabell",
+    selectSheet: "-- välj kalkylblad --",
+    selectTable: "-- välj tabell --",
     snippetLint: "Snippet-celler (VMS-Mustache)",
     addDefaultRow: "Lägg till standardrad",
     collectDedupe: "COLLECT-deduplicering",
@@ -150,6 +156,8 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     hitPolicyDocsLabel: "Blätter und Entscheidungstabellen",
     kindSheet: "Blatt",
     kindDecision: "Entscheidungstabelle",
+    selectSheet: "-- Blatt wählen --",
+    selectTable: "-- Tabelle wählen --",
     snippetLint: "Snippet-Zellen (VMS-Mustache)",
     addDefaultRow: "Standardzeile hinzufügen",
     collectDedupe: "COLLECT-Deduplizierung",
@@ -186,6 +194,8 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     hitPolicyDocsLabel: "Hojas y tablas de decisión",
     kindSheet: "Hoja",
     kindDecision: "Tabla de decisión",
+    selectSheet: "-- seleccionar hoja --",
+    selectTable: "-- seleccionar tabla --",
     snippetLint: "Celdas snippet (VMS-Mustache)",
     addDefaultRow: "Añadir fila por defecto",
     collectDedupe: "COLLECT sin duplicados",
@@ -222,6 +232,8 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     hitPolicyDocsLabel: "Fulls i taules de decisió",
     kindSheet: "Full",
     kindDecision: "Taula de decisió",
+    selectSheet: "-- selecciona un full --",
+    selectTable: "-- selecciona una taula --",
     snippetLint: "Cel·les snippet (VMS-Mustache)",
     addDefaultRow: "Afegeix fila per defecte",
     collectDedupe: "COLLECT sense duplicats",
@@ -258,6 +270,8 @@ const CHROME: Record<IntehrLocale, SheetsChrome> = {
     hitPolicyDocsLabel: "Feuilles et tables de décision",
     kindSheet: "Feuille",
     kindDecision: "Table de décision",
+    selectSheet: "-- choisir une feuille --",
+    selectTable: "-- choisir une table --",
     snippetLint: "Cellules snippet (VMS-Mustache)",
     addDefaultRow: "Ajouter une ligne par défaut",
     collectDedupe: "COLLECT sans doublons",
