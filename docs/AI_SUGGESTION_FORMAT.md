@@ -4,9 +4,9 @@ Link this doc in prompts; do not paraphrase. Machine-readable contract: [AI_SUGG
 
 ## Purpose
 
-Copy-paste AI assist and Call AI **Suggestions JSON only**: app builds a prompt → model returns one fenced JSON block → **Import Suggestions** applies it.
+Copy-paste AI assist and AI chat **Suggestions JSON only**: app builds a prompt → model returns one fenced JSON block → **Import Suggestions** applies it.
 
-Live Agent API / MCP agents, and **Call AI** in mapping-tools mode, may instead map **node-by-node** with `map_slot` (one Target value slot per call). That is first-class and better for GUI transparency (canvas pulse, attributed history). Use this envelope for Copy prompt, loops, Decision tables, Sheet lookups, and other blocks `map_slot` cannot express.
+Live Agent API / MCP agents, and **AI chat** in mapping-tools mode, may instead map **node-by-node** with `map_slot` (one Target value slot per call). That is first-class and better for GUI transparency (canvas pulse, attributed history). Use this envelope for Copy prompt, loops, Decision tables, Sheet lookups, and other blocks `map_slot` cannot express.
 
 Canonical mapping structure is Blockly JSON. AI returns a **slot-keyed subset** (no skeleton RM containers, ids, or `x`/`y`).
 

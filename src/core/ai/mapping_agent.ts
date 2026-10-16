@@ -4,6 +4,7 @@
 import { looksLikeSuggestionsPayload } from "./mod.ts";
 import {
   MAPPING_TOOLS_SYSTEM,
+  SUGGESTIONS_SYSTEM,
   postChatCompletions,
   type AiProviderCredentials,
   type ChatMessage,
@@ -21,6 +22,8 @@ export interface MappingAgentResult {
   toolNames: string[];
   imported?: ImportSuggestionsReport;
   steps: number;
+  /** Conversation after this turn, without the system prompt (for multi-turn chat). */
+  messages: ChatMessage[];
 }
 
 export interface RunMappingAgentOptions {
@@ -33,6 +36,11 @@ export interface RunMappingAgentOptions {
   maxSteps?: number;
   onAfterMutation?: () => void;
   importText?: (text: string) => ImportSuggestionsReport;
+  /**
+   * Earlier chat turns (no system prompt). When non-empty, `prompt` is sent as
+   * a follow-up user message without the tools prefix.
+   */
+  history?: ChatMessage[];
 }
 
 function parseToolArgs(raw: string): Record<string, unknown> {
@@ -68,10 +76,16 @@ export const MAPPING_TOOLS_USER_PREFIX =
 
 export async function runMappingAgent(options: RunMappingAgentOptions): Promise<MappingAgentResult> {
   const tools = mappingAgentOpenAiTools();
+  const history = options.history ?? [];
   const messages: ChatMessage[] = [
     { role: "system", content: MAPPING_TOOLS_SYSTEM },
-    { role: "user", content: `${MAPPING_TOOLS_USER_PREFIX}\n\n${options.prompt}` },
+    ...history,
+    {
+      role: "user",
+      content: history.length ? options.prompt : `${MAPPING_TOOLS_USER_PREFIX}\n\n${options.prompt}`,
+    },
   ];
+  const conversation = () => messages.slice(1);
   const toolNames: string[] = [];
   const maxSteps = options.maxSteps ?? 16;
   let lastText = "";
@@ -90,7 +104,8 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
       if (options.importText && looksLikeSuggestionsPayload(completion.text)) {
         imported = options.importText(completion.text);
       }
-      return { text: completion.text, toolNames, imported, steps: step };
+      messages.push(completion.assistantMessage ?? { role: "assistant", content: completion.text });
+      return { text: completion.text, toolNames, imported, steps: step, messages: conversation() };
     }
 
     messages.push(assistantMessageForLoop(completion.assistantMessage, calls));
@@ -121,7 +136,35 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
     imported = options.importText(lastText);
   }
-  return { text: lastText, toolNames, imported, steps: maxSteps };
+  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation() };
+}
+
+/**
+ * One "approve first" chat turn: ask for `intehrgrator-suggestions` JSON
+ * (no tools) with the chat history, so the caller can show it in the Import
+ * Suggestions dialog before anything touches the canvas.
+ */
+export async function runSuggestionsChatTurn(options: {
+  credentials: AiProviderCredentials;
+  prompt: string;
+  history?: ChatMessage[];
+  fetch?: typeof fetch;
+  signal?: AbortSignal;
+  proxyUrl?: string;
+}): Promise<{ text: string; messages: ChatMessage[] }> {
+  const history = options.history ?? [];
+  const messages: ChatMessage[] = [
+    { role: "system", content: SUGGESTIONS_SYSTEM },
+    ...history,
+    { role: "user", content: options.prompt },
+  ];
+  const completion = await postChatCompletions(options.credentials, messages, {
+    fetch: options.fetch,
+    signal: options.signal,
+    proxyUrl: options.proxyUrl,
+  });
+  messages.push({ role: "assistant", content: completion.text });
+  return { text: completion.text, messages: messages.slice(1) };
 }
 
 export async function runMappingAgentOnController(

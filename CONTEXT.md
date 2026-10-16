@@ -296,7 +296,7 @@ Blockly workspace JSON (canonical structure) ⇄ Mapping Spec widgets for **safe
 _Avoid_: Full handwritten Blockly JSON as primary editor, custom DSL as middle language
 
 **Web app**:
-Local-first web app (GitHub Pages) using browser file picker and IndexedDB behind `WebHostAdapter`. Optional in-app **Call AI** uses credentials stored in this browser only; copy-paste and IDE/MCP remain valid.
+Local-first web app (GitHub Pages) using browser file picker and IndexedDB behind `WebHostAdapter`. Optional in-app **AI chat** uses credentials stored in this browser only; copy-paste and IDE/MCP remain valid.
 _Avoid_: Web Shell (former name), GH Pages app, browser version
 
 **Desktop app**:
@@ -308,8 +308,20 @@ Second Host adapter (`VsCodeWebviewHostAdapter` + `extension/`) packaging the sa
 _Avoid_: Separate fork of the workbench
 
 **AI Assist**:
-**Copy prompt** builds a markdown prompt (target/source origins as file or URI; delivery mode: inline multipart, chat attach, or URI browse; slot manifest; link to response format spec). **Call AI** POSTs that prompt to an optional OpenAI-compatible chat endpoint whose credentials live in Host localStorage — never in the Project Bundle. Default Call AI mode loops MCP / Agent API tool names (`map_slot`, `import_suggestions`, `run_test`, …) on the live workbench; **Suggestions JSON only** is the one-shot import. Default toolbar action is **Call AI** when credentials exist, otherwise **Copy prompt**. IDE/MCP mapping and a remote HTTP Agent API remain valid without in-app credentials. Provider keys: `docs/AI_CREDENTIALS.md`.
-_Avoid_: AI Suggest button as the only path, baking API keys into the Project Bundle
+**Copy prompt** builds a markdown prompt (target/source origins as file or URI; delivery mode: inline multipart, chat attach, or URI browse; slot manifest; link to response format spec). **AI chat** (AI → **Start AI chat**) sends prompts to an optional OpenAI-compatible chat endpoint whose credentials live in Host localStorage — never in the Project Bundle. It loops MCP / Agent API tool names (`map_slot`, `import_suggestions`, `run_test`, …) on the live workbench, or asks for suggestions JSON for review; **Suggestions JSON only** in AI credentials forces the review path. IDE/MCP mapping and a remote HTTP Agent API remain valid without in-app credentials. Provider keys: `docs/AI_CREDENTIALS.md`. Architecture: `docs/MCP_ARCHITECTURE.md`.
+_Avoid_: AI Suggest button as the only path, baking API keys into the Project Bundle, **Call AI** (former one-shot action, replaced by **AI chat**)
+
+**AI chat**:
+Multi-turn chat panel in the lower split of **Target & Previews** (draggable, minimize/close, height remembered, visible on every tab). Always openable: without credentials it offers copy & paste prompting (compose the prompt from the chat input, then **Import AI answer…** into **Mapping Suggestion Import**). With credentials the user picks **Apply directly** (tool calls change the canvas; each shown as a collapsed line; **Revert last AI turn**) or **Approve first** (the answer opens in Import Suggestions before anything is applied). The first message carries the full project context (the **Copy prompt** text); later messages carry only the user text and newly added **Context chip** details. History is kept per project in browser localStorage, never in the Project Bundle; **Clear history** shrinks the context. See ADR 0013.
+_Avoid_: Call AI, copilot, saving chat history in the Project Bundle
+
+**Context chip**:
+Inline reference in the AI chat input to a source schema node, Example Instance node, target node, or Blockly block, added with right-click → **Add to AI chat**. Hover shows the full identification (file, path, type, example value; template, slot, RM type; block type, id, bound slot / source path). On send it is written as `[@Kind: label]` in the text and expanded once per chat into a fixed **Context attachments** markdown block.
+_Avoid_: canvas declaration chip, **scaffold target** chips (different concepts), pasting paths by hand
+
+**Stored prompt**:
+Reusable AI chat prompt from the **Stored prompts** ▾ menu. Built-ins are read-only (**Map the whole project** = the Copy prompt text, **Refresh merge**, **Loop with a for each block**); user prompts live in browser localStorage, are added from a `.md` / `.txt` (one prompt) or `.json` (list of `{name, text}`) file or URL, removed with ×, and exported as JSON. `{source_node}` / `{target_node}` placeholders are filled from **Context chips** in the input and stay visible when no chip matches.
+_Avoid_: prompt template (clashes with openEHR templates), storing prompts in the Project Bundle
 
 **Mapping Suggestion Import**:
 Applying parsed suggestions from an external AI response in `intehrgrator-suggestions` JSON version 2 (slot-keyed Blockly block subset). See `docs/AI_SUGGESTION_FORMAT.md`.
@@ -383,7 +395,7 @@ _Avoid_: Mapping file, saved state
 >
 > **Informatician:** Can AI help me map the boring fields?
 >
-> **Developer:** Click **Copy prompt** (or **Call AI** when credentials are saved). ▾ also chooses embed files, chat attach, URI browse, or **AI credentials**. Paste a chat reply into **Import Suggestions**, or let Call AI import it. Run Test to verify before exporting.
+> **Developer:** Click **Copy prompt**, or open **AI chat** (AI → Start AI chat) and right-click nodes → **Add to AI chat** to point at them. ▾ also chooses embed files, chat attach, URI browse, or **AI credentials**. Paste a chat reply into **Import Suggestions**, or let AI chat apply it. Run Test to verify before exporting.
 >
 > **Informatician:** I want every composition to say St. Dummy Demo Hospital and Swedish.
 >

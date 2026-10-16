@@ -4,17 +4,17 @@ Golden path: **IDE + intEHRgrator desktop side-by-side**. An AI agent calls the 
 
 **Headless:** the same API/MCP tools complete **load → inspect → map → Test Run → export** with no UI (`--headless`, or `deno task mcp` without `INTEHR_AGENT_URL`).
 
-Fallback when MCP/API is unavailable: read **mapping spec** (Blockly JSON) or **generated conversion script** from export — downstream only, not round-trip authoring. Copy-paste: **Copy prompt** → external chat → **Import Suggestions**. Web app **Call AI** is the in-app variant: saved credentials + the same mapping tool names as this API, executed on the open workbench (desktop forwards the provider HTTP call so browser CORS does not block it).
+Fallback when MCP/API is unavailable: read **mapping spec** (Blockly JSON) or **generated conversion script** from export — downstream only, not round-trip authoring. Copy-paste: **Copy prompt** → external chat → **Import Suggestions**. Web app **AI chat** is the in-app variant: saved credentials + the same mapping tool names as this API, executed on the open workbench (desktop forwards the provider HTTP call so browser CORS does not block it).
 
-## Call AI vs IDE MCP vs remote Agent API
+## AI chat vs IDE MCP vs remote Agent API
 
 | Variant | Who holds the model | Who calls intEHRgrator tools |
 |---------|---------------------|------------------------------|
 | IDE + stdio MCP | The IDE (Cursor, Claude Desktop, …) | The IDE agent, via `deno task mcp` |
-| **Call AI** (toolbar) | Your configured provider (Gemini, OpenAI, Anthropic, Ollama, LM Studio, Hugging Face, OpenCode Zen, …) | intEHRgrator, looping OpenAI-compatible `tools` named like MCP |
+| **AI chat** (AI → Start AI chat) | Your configured provider (Gemini, OpenAI, Anthropic, Ollama, LM Studio, Hugging Face, OpenCode Zen, …) | intEHRgrator, looping OpenAI-compatible `tools` named like MCP |
 | Remote HTTP agent | OpenCode `serve` / cloud runner, HF jobs, etc. | That runner, against a reachable Agent API (`--bind` + `--token` when not loopback) |
 
-Call AI credentials and provider key links live in **AI credentials…** ([AI_CREDENTIALS.md](AI_CREDENTIALS.md)). They are never in the Project Bundle. `POST /api/v1/ai-chat-completions` is a desktop-only CORS forwarder (not an MCP tool).
+AI chat credentials and provider key links live in **AI credentials…** ([AI_CREDENTIALS.md](AI_CREDENTIALS.md)). They are never in the Project Bundle. `POST /api/v1/ai-chat-completions` is a desktop-only CORS forwarder (not an MCP tool).
 
 ## Desktop Agent API
 
@@ -38,7 +38,7 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | Method | Path | MCP tool | Purpose |
 |--------|------|----------|---------|
 | GET | `/health` | — | Liveness (unauthenticated) |
-| POST | `/ai-chat-completions` | — | Desktop Call AI forwarder (provider URL + key in JSON body; not MCP) |
+| POST | `/ai-chat-completions` | — | Desktop AI chat forwarder (provider URL + key in JSON body; not MCP) |
 | GET | `/snapshot` | `get_snapshot` | Revision, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status |
 | GET | `/slots` | `list_slots` | Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers for `loops[]` |
 | GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees |
@@ -96,7 +96,7 @@ Output modes that execute for catalogued families:
 | Lung-MDT TakeCare XML | Mapping preview and Handlebars both evaluate the XML canvas (TermId + Note). |
 | Chemo symptoms TakeCare XML | TypeScript and Go template. |
 
-Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. Call AI runs these tool names in-process and does not need stdio MCP.
+Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. AI chat runs these tool names in-process and does not need stdio MCP.
 
 Pass agent identity on mutations: headers **`X-Agent-Id`**, **`X-Agent-Name`**, optional **`X-Agent-Color`** (after `register-agent`).
 
@@ -129,7 +129,7 @@ Set **`INTEHR_AGENT_URL=http://127.0.0.1:<port>`** to proxy tools to a running d
 
 ### Desktop panel
 
-In the downloaded app, **AI → Desktop → Local MCP server…** shows the Agent API URL, the token when one was set, and a copyable `mcp.json`. **Stop** makes agent tool routes return 503 (`Local MCP server is stopped`). **Start** allows them again. `GET /health`, `POST /ui-commit`, and `POST /ai-chat-completions` stay up, so Call AI and local edits are not tied to the switch. The bridge keeps polling through a 503 and resumes when you Start.
+In the downloaded app, **AI → Desktop → Local MCP server…** shows the Agent API URL, the token when one was set, and a copyable `mcp.json`. **Stop** makes agent tool routes return 503 (`Local MCP server is stopped`). **Start** allows them again. `GET /health`, `POST /ui-commit`, and `POST /ai-chat-completions` stay up, so AI chat and local edits are not tied to the switch. The bridge keeps polling through a 503 and resumes when you Start.
 
 The snippet’s command is the release binary with `--mcp` (stdio MCP proxied at `INTEHR_AGENT_URL`). A Deno dev server gets `deno run -A src/agent/mcp_stdio.ts` instead. `--mcp` does not open a second workbench window.
 

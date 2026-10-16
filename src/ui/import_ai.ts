@@ -49,7 +49,15 @@ export function formatImportReport(report: ImportSuggestionsReport): {
   return { summary, kind: "error" };
 }
 
-export function installImportAiDialog(options: ImportAiDialogOptions): void {
+export interface ImportAiDialogHandle {
+  /**
+   * Open the dialog. With `text` (e.g. an AI chat answer), prefill it for
+   * review instead of reading the clipboard; nothing is applied until Apply.
+   */
+  open(text?: string): Promise<void>;
+}
+
+export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiDialogHandle {
   const {
     dialog,
     textarea,
@@ -140,11 +148,16 @@ export function installImportAiDialog(options: ImportAiDialogOptions): void {
     return false;
   };
 
-  const open = async () => {
+  const open = async (prefill?: string) => {
     clearReport();
     cancel.textContent = ui().cancel;
     textarea.value = "";
-    dialog.showModal();
+    if (!dialog.open) dialog.showModal();
+    if (prefill !== undefined) {
+      textarea.value = prefill;
+      textarea.focus();
+      return;
+    }
     const filled = await fillFromClipboard();
     if (!filled) {
       textarea.placeholder = '{"format":"intehrgrator-suggestions","version":"2","suggestions":[…]}';
@@ -212,6 +225,7 @@ export function installImportAiDialog(options: ImportAiDialogOptions): void {
     event.preventDefault();
     apply();
   });
+  return { open };
 }
 
 function stripPathPrefix(message: string, path: string): string {

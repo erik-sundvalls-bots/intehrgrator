@@ -52,8 +52,8 @@
           <span data-i18n="importAi">Import AI suggestions</span>
         </button>
         <div class="split-btn-menu-heading" data-ai-section="own" data-i18n="menuAiOwnHeading">Your own AI</div>
-        <button type="button" class="split-btn-menu-item" role="menuitem" data-ai-action="call" data-i18n="menuCallAi">
-          Call AI
+        <button type="button" id="btn-start-ai-chat" class="split-btn-menu-item" role="menuitem" data-ai-action="chat" data-i18n="menuStartAiChat" title="Chat with your own AI about this mapping" data-i18n-title="menuStartAiChatTitle">
+          Start AI chat
         </button>
         <button type="button" class="split-btn-menu-item" role="menuitem" data-ai-action="credentials" data-i18n="menuAiCredentials">
           Configure AI credentials…
@@ -452,6 +452,7 @@
           </svg>
         </button>
       </div>
+      <div id="output-stack" class="output-stack">
       <sl-tab-group id="output-tabs" class="output-tabs">
         <sl-tab slot="nav" panel="target-schema" id="tab-target-schema" data-i18n="tabTargetSchema">Target schema</sl-tab>
         <sl-tab slot="nav" panel="script" id="tab-generated-script" data-i18n="tabScripts">Generated conversion script(s)</sl-tab>
@@ -595,6 +596,8 @@
           </div>
         </sl-tab-panel>
       </sl-tab-group>
+      <section id="ai-chat-panel" class="ai-chat-panel" hidden aria-label="AI chat" data-i18n-aria="aiChat"></section>
+      </div>
       </div>
     </section>
   </main>
@@ -774,7 +777,7 @@
       <pre id="refresh-report-body" class="refresh-report-body"></pre>
       <div class="dialog-actions">
         <button type="button" id="refresh-copy-prompt" data-i18n="copyMergePrompt">Copy merge prompt</button>
-        <button type="button" id="refresh-call-ai" data-i18n="callAi">Call AI</button>
+        <button type="button" id="refresh-call-ai" data-i18n="openInAiChat">Open in AI chat</button>
         <span class="dialog-actions-spacer"></span>
         <button type="submit" value="confirm" data-i18n="close">Close</button>
       </div>
@@ -784,13 +787,13 @@
     <form method="dialog" class="dialog-form">
       <h2 data-i18n="aiCredentialsTitle">AI credentials</h2>
       <p data-i18n-html="aiCredentialsIntroHtml">
-        Optional OpenAI-compatible chat endpoint so <strong>Call AI</strong> can map from the web app.
+        Optional OpenAI-compatible chat endpoint so <strong>AI chat</strong> can map from the web app.
         Credentials stay in this browser only — not in the Project Bundle.
-        <strong>Call AI</strong> can use the same mapping tools as MCP / the HTTP Agent API
+        <strong>AI chat</strong> can use the same mapping tools as MCP / the HTTP Agent API
         (<code>map_slot</code>, <code>import_suggestions</code>, <code>run_test</code>, …).
         An AI-assisted IDE with local MCP remains a separate, fully valid path.
         Step-by-step key pages:
-        <a href="https://github.com/regionstockholm/intehrgrator/blob/main/docs/AI_CREDENTIALS.md" target="_blank" rel="noopener noreferrer" id="ai-credentials-guide">Call AI credentials</a>.
+        <a href="https://github.com/regionstockholm/intehrgrator/blob/main/docs/AI_CREDENTIALS.md" target="_blank" rel="noopener noreferrer" id="ai-credentials-guide">AI chat credentials</a>.
       </p>
       <label class="dialog-label">
         <span data-i18n="provider">Provider</span>
@@ -817,7 +820,7 @@
         <input id="ai-model" type="text" placeholder="gpt-4.1" />
       </label>
       <fieldset class="ai-mapping-mode">
-        <legend data-i18n="howCallAiMaps">How Call AI maps</legend>
+        <legend data-i18n="howCallAiMaps">How AI chat maps</legend>
         <label class="dialog-label dialog-label--checkbox">
           <input type="radio" name="ai-mapping-mode" id="ai-mapping-mode-tools" value="tools" checked />
           <span data-i18n="mappingTools">Mapping tools (MCP / Agent API names on the live workbench)</span>
