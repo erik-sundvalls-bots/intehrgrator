@@ -1,9 +1,8 @@
 import type { Block } from "blockly/core";
-import * as enMsg from "blockly/msg/en";
+import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import type { ExprAst } from "../core/expression/mod.ts";
 import { parseExpression, serialize } from "../core/expression/mod.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
-import { Blockly } from "./blockly_core.ts";
 import {
   loopIndexBinderName,
   loopLengthBinderName,
@@ -672,9 +671,5 @@ function guardedRestriction(ast: CallAst): CallAst | null {
 }
 
 function ensureStockListMessages(): void {
-  const Msg = (Blockly as unknown as { Msg?: Record<string, string> }).Msg;
-  if (Msg?.LISTS_GET_INDEX_FIRST) return;
-  const anyMod = enMsg as { default?: Record<string, string> } & Record<string, string>;
-  const table = anyMod.default && typeof anyMod.default === "object" ? anyMod.default : anyMod;
-  Blockly.setLocale(table);
+  ensureStockBlocklyMessages();
 }

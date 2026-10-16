@@ -34,6 +34,8 @@ deno task test:xquery-engine             # optional BaseX golden
 
 `deno task test` uses `--no-check --parallel`. Type-check separately with `deno task check`.
 
+Individual tests can be run in isolation using `deno test -A --no-check --filter='<test name>' <file>` (Blockly block types and stock message strings initialize automatically via `initBlocklyGenerators()` / `ensureStockBlocklyMessages()`).
+
 ### CI
 
 | Gate | Workflow | Suites |

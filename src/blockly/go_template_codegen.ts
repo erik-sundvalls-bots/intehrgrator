@@ -19,6 +19,7 @@ import {
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
 import { isGenericValueBlockType, isSchemaStructureBlock } from "./blocks/target_blocks.ts";
 import { registerSchemaBlocksFromSkeleton } from "./schema_blocks.ts";
+import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import { DEFAULTS_BLOCK_TYPE } from "../core/defaults/extract.ts";
 import {
   CONVERSION_START_TYPE,
@@ -90,6 +91,7 @@ export function generateGoTemplateFromBlocklyState(
     );
     let generated: string | null = null;
     runWithoutBlocklyEvents(() => {
+      ensureStockBlocklyMessages();
       if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
       Blockly.serialization.workspaces.load(snapshot, workspace);
       generated = generateGoTemplateFromWorkspace(workspace, model, skeleton);

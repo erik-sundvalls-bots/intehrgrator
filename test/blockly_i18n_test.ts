@@ -69,3 +69,21 @@ Deno.test("custom messages localize Source and Loops & Logic", () => {
   assertEquals(msg("sv").LOGIC_MATCH, "matchar");
   assertEquals(msg("de").LOGIC_SET_CONN_NOT_IN, "aber nicht in");
 });
+
+Deno.test("ensureStockBlocklyMessages populates English fallback and deserializes lists_getIndex", async () => {
+  const { ensureStockBlocklyMessages } = await import("@intehrgrator/blockly/mod.ts");
+  const { Blockly } = await import("@intehrgrator/blockly/blockly_core.ts");
+  ensureStockBlocklyMessages();
+  const Msg = (Blockly as unknown as { Msg: Record<string, string> }).Msg;
+  assertEquals(typeof Msg.LISTS_GET_INDEX_FIRST, "string");
+  assertEquals(typeof Msg.INTEHR_SOURCE_QUERY, "string");
+
+  const workspace = new Blockly.Workspace();
+  try {
+    const block = workspace.newBlock("lists_getIndex");
+    assertEquals(Boolean(block), true);
+  } finally {
+    workspace.dispose();
+  }
+});
+

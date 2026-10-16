@@ -8,7 +8,7 @@ import { termSetById, termSetForMandatedCode, termSetForRmAttribute, TERM_PICK_N
 import { astToExpressionBlock } from "./expression_serialize.ts";
 import { Blockly } from "./blockly_core.ts";
 import "blockly/blocks";
-import * as enMsg from "blockly/msg/en";
+import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import {
   applyFixedFieldsToDataValueShell,
   applyOrdinalFieldsToDataValueShell,
@@ -28,7 +28,7 @@ import {
   ensureIntervalEventMathFunctionScaffold,
 } from "./blocks/rm_blocks.ts";
 import { enforceMouthCaptionLayout } from "./mouth_layout.ts";
-import { createTermPickBlock, isTermPickBlock, configureTermPick } from "./blocks/term_pick.ts";
+import { createTermPickBlock, isTermPickBlock } from "./blocks/term_pick.ts";
 import { applySkeletonBlockLabels } from "./block_labels.ts";
 import { createSourceQueryBlock, isSourceQueryBlockType } from "./source_query.ts";
 import { FOR_EACH_LIST_BLOCK, isLoopBlockType } from "./loop_block.ts";
@@ -1003,11 +1003,7 @@ type ListGetIndexBlock = BlockSvg & {
 
 /** lists_getIndex dropdown labels come from Blockly.Msg; tests may not have set a locale. */
 function ensureStockListMessages(): void {
-  const Msg = (Blockly as unknown as { Msg?: Record<string, string> }).Msg;
-  if (Msg?.LISTS_GET_INDEX_FIRST) return;
-  const anyMod = enMsg as { default?: Record<string, string> } & Record<string, string>;
-  const table = anyMod.default && typeof anyMod.default === "object" ? anyMod.default : anyMod;
-  Blockly.setLocale(table);
+  ensureStockBlocklyMessages();
 }
 
 function createCodedValueSetSelector(
