@@ -1,7 +1,7 @@
 import { compressSync, decompressSync, strToU8, strFromU8, zipSync, unzipSync } from "fflate";
 import type { ProjectBundle } from "../../types/mod.ts";
 
-export const APP_VERSION = "0.9.0";
+export const APP_VERSION = "0.9.1";
 export const BUNDLE_VERSION = 1;
 export const AUTOSAVE_STORAGE_KEY = "__autosave__";
 export const MANUAL_SAVE_KEY_PREFIX = "manual:";

@@ -1,6 +1,6 @@
 {
   "name": "intehrgrator",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "exports": "./../src/desktop/main.ts",
   "nodeModulesDir": "none",
   "compilerOptions": {
