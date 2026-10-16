@@ -4,6 +4,10 @@
     "blocks": [
       {
         "type": "default_context_map",
+        "id": ",u/SjOX`~16Duf6j/*cZ",
+        "x": 20,
+        "y": 20,
+        "deletable": false,
         "extraState": {
           "itemCount": 7,
           "targets": [
@@ -165,10 +169,7 @@
               }
             }
           }
-        },
-        "id": ",u/SjOX`~16Duf6j/*cZ",
-        "x": 20,
-        "y": 20
+        }
       },
       {
         "type": "conversion_start",
@@ -247,12 +248,12 @@
             },
             "fields": {
               "NAME": "Administrerad medicinsk onkologisk behandling per substans",
-              "INSTANCE_ENCODING": "flat-json",
               "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans/",
               "RM_TYPE": "COMPOSITION",
               "MANDATORY": "1",
               "ARCHETYPE_NODE_ID": "at0000",
-              "ARCHETYPE_CTX": "encounter"
+              "ARCHETYPE_CTX": "encounter",
+              "INSTANCE_ENCODING": "flat-json"
             },
             "inputs": {
               "ATTR_category": {
@@ -328,6 +329,55 @@
                     "ARCHETYPE_CTX": "encounter"
                   },
                   "inputs": {
+                    "ATTR_identifiers": {
+                      "block": {
+                        "type": "lists_create_with",
+                        "id": "c71aFLQHQ6-!*s3CtMrj",
+                        "extraState": {
+                          "itemCount": 1
+                        },
+                        "inputs": {
+                          "ADD0": {
+                            "block": {
+                              "type": "dv_identifier",
+                              "id": "E4wTw`=2.O/;yK`Bj$8$",
+                              "extraState": {
+                                "fields": [
+                                  "type"
+                                ]
+                              },
+                              "fields": {
+                                "NAME": "Identifier",
+                                "SLOT_ID": "",
+                                "RM_TYPE": "DV_IDENTIFIER",
+                                "MANDATORY": ""
+                              },
+                              "inputs": {
+                                "FLD_id": {
+                                  "block": {
+                                    "type": "source_query",
+                                    "id": "*|=Ij0}#0o@PFy0%fTgt",
+                                    "fields": {
+                                      "EXPRESSION": "$.SignatureUser_UserName",
+                                      "RETURN_TYPE": "string"
+                                    }
+                                  }
+                                },
+                                "OPTFLD_type": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "%uX(OgxU_[`y9$1]ku*h",
+                                    "fields": {
+                                      "TEXT": "urn:oid:1.2.752.29.4.19"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "ATTR_name": {
                       "block": {
                         "type": "source_query",
@@ -394,11 +444,11 @@
                   "extraState": {
                     "extras": [],
                     "attrs": [
-                      "encoding",
-                      "language",
-                      "subject",
                       "data",
-                      "protocol"
+                      "protocol",
+                      "subject",
+                      "language",
+                      "encoding"
                     ],
                     "rmType": "EVALUATION",
                     "prohibited": [],
@@ -456,99 +506,6 @@
                     "ARCHETYPE_CTX": "reason_for_encounter"
                   },
                   "inputs": {
-                    "ATTR_encoding": {
-                      "block": {
-                        "type": "maps_get",
-                        "id": "8X.#VmUaw{b[%()XRb=W",
-                        "fields": {
-                          "NAME": "defaults",
-                          "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/encoding/value",
-                          "RM_TYPE": "CODE_PHRASE"
-                        },
-                        "inputs": {
-                          "KEY": {
-                            "shadow": {
-                              "type": "text",
-                              "id": "zd9EkFhxLwp3FI#~ow3P",
-                              "inline": false,
-                              "fields": {
-                                "TEXT": "encoding"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "ATTR_language": {
-                      "block": {
-                        "type": "maps_get",
-                        "id": "8Ev~B6MG]zHEJ-R,.;X[",
-                        "fields": {
-                          "NAME": "defaults",
-                          "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/language/value",
-                          "RM_TYPE": "CODE_PHRASE"
-                        },
-                        "inputs": {
-                          "KEY": {
-                            "shadow": {
-                              "type": "text",
-                              "id": "w;0sVl@=Zeaxy6c#0NHt",
-                              "inline": false,
-                              "fields": {
-                                "TEXT": "language"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "ATTR_subject": {
-                      "block": {
-                        "type": "party_proxy",
-                        "id": "0sGTPl#Z-gwkJTAzFwsJ",
-                        "extraState": {
-                          "extras": [],
-                          "attrs": [],
-                          "rmType": "PARTY_PROXY",
-                          "prohibited": [],
-                          "slotCards": {},
-                          "rmCards": {}
-                        },
-                        "fields": {
-                          "NAME": "subject",
-                          "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/subject",
-                          "RM_TYPE": "PARTY_PROXY",
-                          "MANDATORY": "1",
-                          "ARCHETYPE_NODE_ID": "",
-                          "ARCHETYPE_CTX": "reason_for_encounter"
-                        },
-                        "inputs": {
-                          "KIND": {
-                            "block": {
-                              "type": "maps_get",
-                              "id": "?5CF^uNt!PO[-c:UJXRi",
-                              "fields": {
-                                "NAME": "defaults",
-                                "SLOT_ID": "",
-                                "RM_TYPE": ""
-                              },
-                              "inputs": {
-                                "KEY": {
-                                  "shadow": {
-                                    "type": "text",
-                                    "id": "p[m{LPVaQ~d%Xg/2y+aC",
-                                    "inline": false,
-                                    "fields": {
-                                      "TEXT": "subject"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
                     "ATTR_data": {
                       "block": {
                         "type": "item_tree",
@@ -589,7 +546,7 @@
                               "extraState": {
                                 "extras": [],
                                 "attrs": [],
-                                "rmType": "DV_CODED_TEXT",
+                                "rmType": "ELEMENT",
                                 "prohibited": [],
                                 "slotCards": {},
                                 "rmCards": {}
@@ -597,6 +554,8 @@
                               "fields": {
                                 "NAME": "Diagnos vårdkontakt",
                                 "RM_TYPE": "DV_CODED_TEXT",
+                                "VALUE_RM_TYPE": "",
+                                "ELEMENT_SLOT_ID": "",
                                 "MANDATORY": "1",
                                 "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/data/at0001/items/at0004/value/DV_CODED_TEXT/value",
                                 "ARCHETYPE_NODE_ID": "at0004",
@@ -628,6 +587,68 @@
                                                 "id": "O7w?p^$|8{/QBjEGF*;D",
                                                 "fields": {
                                                   "OP": "AND"
+                                                },
+                                                "inputs": {
+                                                  "A": {
+                                                    "block": {
+                                                      "type": "logic_compare",
+                                                      "id": "t|pHygMU%D%qQybSubJP",
+                                                      "fields": {
+                                                        "OP": "NEQ"
+                                                      },
+                                                      "inputs": {
+                                                        "A": {
+                                                          "block": {
+                                                            "type": "source_query",
+                                                            "id": "oR%Yr0pEd0(Dtnx;6qRP",
+                                                            "fields": {
+                                                              "EXPRESSION": "$.Diagnosnamn_ICD10",
+                                                              "RETURN_TYPE": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "B": {
+                                                          "block": {
+                                                            "type": "text",
+                                                            "id": "n0nk89v(=~8F++5rR,OI",
+                                                            "fields": {
+                                                              "TEXT": ""
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "B": {
+                                                    "block": {
+                                                      "type": "logic_compare",
+                                                      "id": "M?egV5aK?ODHCD{gn0Bk",
+                                                      "fields": {
+                                                        "OP": "NEQ"
+                                                      },
+                                                      "inputs": {
+                                                        "A": {
+                                                          "block": {
+                                                            "type": "source_query",
+                                                            "id": "nGB:dzRUhvp-8[B)Tyix",
+                                                            "fields": {
+                                                              "EXPRESSION": "$.Diagnoskod_ICD10",
+                                                              "RETURN_TYPE": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "B": {
+                                                          "block": {
+                                                            "type": "text",
+                                                            "id": "|SNC!Fm%@!oD$*$m|NYD",
+                                                            "fields": {
+                                                              "TEXT": ""
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
                                                 }
                                               }
                                             },
@@ -741,6 +762,99 @@
                           "ARCHETYPE_CTX": "reason_for_encounter"
                         }
                       }
+                    },
+                    "ATTR_subject": {
+                      "block": {
+                        "type": "party_proxy",
+                        "id": "0sGTPl#Z-gwkJTAzFwsJ",
+                        "extraState": {
+                          "extras": [],
+                          "attrs": [],
+                          "rmType": "PARTY_PROXY",
+                          "prohibited": [],
+                          "slotCards": {},
+                          "rmCards": {}
+                        },
+                        "fields": {
+                          "NAME": "subject",
+                          "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/subject",
+                          "RM_TYPE": "PARTY_PROXY",
+                          "MANDATORY": "1",
+                          "ARCHETYPE_NODE_ID": "",
+                          "ARCHETYPE_CTX": "reason_for_encounter"
+                        },
+                        "inputs": {
+                          "KIND": {
+                            "block": {
+                              "type": "maps_get",
+                              "id": "?5CF^uNt!PO[-c:UJXRi",
+                              "fields": {
+                                "NAME": "defaults",
+                                "SLOT_ID": "",
+                                "RM_TYPE": ""
+                              },
+                              "inputs": {
+                                "KEY": {
+                                  "shadow": {
+                                    "type": "text",
+                                    "id": "p[m{LPVaQ~d%Xg/2y+aC",
+                                    "inline": false,
+                                    "fields": {
+                                      "TEXT": "subject"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ATTR_language": {
+                      "block": {
+                        "type": "maps_get",
+                        "id": "8Ev~B6MG]zHEJ-R,.;X[",
+                        "fields": {
+                          "NAME": "defaults",
+                          "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/language/value",
+                          "RM_TYPE": "CODE_PHRASE"
+                        },
+                        "inputs": {
+                          "KEY": {
+                            "shadow": {
+                              "type": "text",
+                              "id": "w;0sVl@=Zeaxy6c#0NHt",
+                              "inline": false,
+                              "fields": {
+                                "TEXT": "language"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ATTR_encoding": {
+                      "block": {
+                        "type": "maps_get",
+                        "id": "8X.#VmUaw{b[%()XRb=W",
+                        "fields": {
+                          "NAME": "defaults",
+                          "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/encoding/value",
+                          "RM_TYPE": "CODE_PHRASE"
+                        },
+                        "inputs": {
+                          "KEY": {
+                            "shadow": {
+                              "type": "text",
+                              "id": "zd9EkFhxLwp3FI#~ow3P",
+                              "inline": false,
+                              "fields": {
+                                "TEXT": "encoding"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   },
                   "next": {
@@ -768,13 +882,13 @@
                               "extras": [],
                               "attrs": [
                                 "name",
-                                "encoding",
-                                "language",
-                                "subject",
                                 "description",
                                 "ism_transition",
                                 "time",
-                                "protocol"
+                                "protocol",
+                                "subject",
+                                "language",
+                                "encoding"
                               ],
                               "rmType": "ACTION",
                               "prohibited": [],
@@ -868,99 +982,6 @@
                                     "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/name/DV_TEXT/value",
                                     "RM_TYPE": "DV_TEXT",
                                     "MANDATORY": "1"
-                                  }
-                                }
-                              },
-                              "ATTR_encoding": {
-                                "block": {
-                                  "type": "maps_get",
-                                  "id": "*4|tqI`7jvu+dLH4WIF/",
-                                  "fields": {
-                                    "NAME": "defaults",
-                                    "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/encoding/value",
-                                    "RM_TYPE": "CODE_PHRASE"
-                                  },
-                                  "inputs": {
-                                    "KEY": {
-                                      "shadow": {
-                                        "type": "text",
-                                        "id": "S+;^BIj%|LQ%Xz7@?@-f",
-                                        "inline": false,
-                                        "fields": {
-                                          "TEXT": "encoding"
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              "ATTR_language": {
-                                "block": {
-                                  "type": "maps_get",
-                                  "id": "Nr}TSA4evQm)}YAee$]{",
-                                  "fields": {
-                                    "NAME": "defaults",
-                                    "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/language/value",
-                                    "RM_TYPE": "CODE_PHRASE"
-                                  },
-                                  "inputs": {
-                                    "KEY": {
-                                      "shadow": {
-                                        "type": "text",
-                                        "id": "f;!g;54[1p)m{:7f#|!{",
-                                        "inline": false,
-                                        "fields": {
-                                          "TEXT": "language"
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              "ATTR_subject": {
-                                "block": {
-                                  "type": "party_proxy",
-                                  "id": "G*OmyU=`7uLjnH2C0-`E",
-                                  "extraState": {
-                                    "extras": [],
-                                    "attrs": [],
-                                    "rmType": "PARTY_PROXY",
-                                    "prohibited": [],
-                                    "slotCards": {},
-                                    "rmCards": {}
-                                  },
-                                  "fields": {
-                                    "NAME": "subject",
-                                    "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/subject",
-                                    "RM_TYPE": "PARTY_PROXY",
-                                    "MANDATORY": "1",
-                                    "ARCHETYPE_NODE_ID": "",
-                                    "ARCHETYPE_CTX": "medication"
-                                  },
-                                  "inputs": {
-                                    "KIND": {
-                                      "block": {
-                                        "type": "maps_get",
-                                        "id": "X4;y6s-Jf+dQq%g*~o^_",
-                                        "fields": {
-                                          "NAME": "defaults",
-                                          "SLOT_ID": "",
-                                          "RM_TYPE": ""
-                                        },
-                                        "inputs": {
-                                          "KEY": {
-                                            "shadow": {
-                                              "type": "text",
-                                              "id": "~iMCQIA)Fl]g}Pz4]CX(",
-                                              "inline": false,
-                                              "fields": {
-                                                "TEXT": "subject"
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
                                   }
                                 }
                               },
@@ -1061,7 +1082,7 @@
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [],
-                                                "rmType": "DV_CODED_TEXT",
+                                                "rmType": "ELEMENT",
                                                 "prohibited": [],
                                                 "slotCards": {},
                                                 "rmCards": {}
@@ -1069,6 +1090,8 @@
                                               "fields": {
                                                 "NAME": "Substans",
                                                 "RM_TYPE": "DV_CODED_TEXT",
+                                                "VALUE_RM_TYPE": "",
+                                                "ELEMENT_SLOT_ID": "",
                                                 "MANDATORY": "1",
                                                 "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
                                                 "ARCHETYPE_NODE_ID": "at0132",
@@ -1175,7 +1198,7 @@
                                                         "extraState": {
                                                           "extras": [],
                                                           "attrs": [],
-                                                          "rmType": "DATA_VALUE",
+                                                          "rmType": "ELEMENT",
                                                           "prohibited": [],
                                                           "slotCards": {},
                                                           "rmCards": {}
@@ -1183,6 +1206,8 @@
                                                         "fields": {
                                                           "NAME": "items",
                                                           "RM_TYPE": "DATA_VALUE",
+                                                          "VALUE_RM_TYPE": "",
+                                                          "ELEMENT_SLOT_ID": "",
                                                           "MANDATORY": "",
                                                           "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0138/items",
                                                           "ARCHETYPE_NODE_ID": "",
@@ -1198,7 +1223,7 @@
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [],
-                                                        "rmType": "DV_QUANTITY",
+                                                        "rmType": "ELEMENT",
                                                         "prohibited": [],
                                                         "slotCards": {},
                                                         "rmCards": {}
@@ -1206,6 +1231,8 @@
                                                       "fields": {
                                                         "NAME": "Administrerad dos",
                                                         "RM_TYPE": "DV_QUANTITY",
+                                                        "VALUE_RM_TYPE": "",
+                                                        "ELEMENT_SLOT_ID": "",
                                                         "MANDATORY": "1",
                                                         "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0139/value/value/value",
                                                         "ARCHETYPE_NODE_ID": "at0139",
@@ -1289,7 +1316,7 @@
                                                                 "extraState": {
                                                                   "extras": [],
                                                                   "attrs": [],
-                                                                  "rmType": "DATA_VALUE",
+                                                                  "rmType": "ELEMENT",
                                                                   "prohibited": [],
                                                                   "slotCards": {},
                                                                   "rmCards": {}
@@ -1297,6 +1324,8 @@
                                                                 "fields": {
                                                                   "NAME": "items",
                                                                   "RM_TYPE": "DATA_VALUE",
+                                                                  "VALUE_RM_TYPE": "",
+                                                                  "ELEMENT_SLOT_ID": "",
                                                                   "MANDATORY": "",
                                                                   "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0141/items",
                                                                   "ARCHETYPE_NODE_ID": "",
@@ -1642,7 +1671,7 @@
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
-                                          "rmType": "DV_IDENTIFIER",
+                                          "rmType": "ELEMENT",
                                           "prohibited": [],
                                           "slotCards": {},
                                           "rmCards": {}
@@ -1650,6 +1679,8 @@
                                         "fields": {
                                           "NAME": "Beställnings-ID",
                                           "RM_TYPE": "DV_IDENTIFIER",
+                                          "VALUE_RM_TYPE": "",
+                                          "ELEMENT_SLOT_ID": "",
                                           "MANDATORY": "1",
                                           "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
                                           "ARCHETYPE_NODE_ID": "at0103",
@@ -1724,7 +1755,7 @@
                                                   "extraState": {
                                                     "extras": [],
                                                     "attrs": [],
-                                                    "rmType": "DATA_VALUE",
+                                                    "rmType": "ELEMENT",
                                                     "prohibited": [],
                                                     "slotCards": {},
                                                     "rmCards": {}
@@ -1732,6 +1763,8 @@
                                                   "fields": {
                                                     "NAME": "items",
                                                     "RM_TYPE": "DATA_VALUE",
+                                                    "VALUE_RM_TYPE": "",
+                                                    "ELEMENT_SLOT_ID": "",
                                                     "MANDATORY": "",
                                                     "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0085/items",
                                                     "ARCHETYPE_NODE_ID": "",
@@ -1741,6 +1774,99 @@
                                               }
                                             }
                                           }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ATTR_subject": {
+                                "block": {
+                                  "type": "party_proxy",
+                                  "id": "G*OmyU=`7uLjnH2C0-`E",
+                                  "extraState": {
+                                    "extras": [],
+                                    "attrs": [],
+                                    "rmType": "PARTY_PROXY",
+                                    "prohibited": [],
+                                    "slotCards": {},
+                                    "rmCards": {}
+                                  },
+                                  "fields": {
+                                    "NAME": "subject",
+                                    "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/subject",
+                                    "RM_TYPE": "PARTY_PROXY",
+                                    "MANDATORY": "1",
+                                    "ARCHETYPE_NODE_ID": "",
+                                    "ARCHETYPE_CTX": "medication"
+                                  },
+                                  "inputs": {
+                                    "KIND": {
+                                      "block": {
+                                        "type": "maps_get",
+                                        "id": "X4;y6s-Jf+dQq%g*~o^_",
+                                        "fields": {
+                                          "NAME": "defaults",
+                                          "SLOT_ID": "",
+                                          "RM_TYPE": ""
+                                        },
+                                        "inputs": {
+                                          "KEY": {
+                                            "shadow": {
+                                              "type": "text",
+                                              "id": "~iMCQIA)Fl]g}Pz4]CX(",
+                                              "inline": false,
+                                              "fields": {
+                                                "TEXT": "subject"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ATTR_language": {
+                                "block": {
+                                  "type": "maps_get",
+                                  "id": "Nr}TSA4evQm)}YAee$]{",
+                                  "fields": {
+                                    "NAME": "defaults",
+                                    "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/language/value",
+                                    "RM_TYPE": "CODE_PHRASE"
+                                  },
+                                  "inputs": {
+                                    "KEY": {
+                                      "shadow": {
+                                        "type": "text",
+                                        "id": "f;!g;54[1p)m{:7f#|!{",
+                                        "inline": false,
+                                        "fields": {
+                                          "TEXT": "language"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ATTR_encoding": {
+                                "block": {
+                                  "type": "maps_get",
+                                  "id": "*4|tqI`7jvu+dLH4WIF/",
+                                  "fields": {
+                                    "NAME": "defaults",
+                                    "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/encoding/value",
+                                    "RM_TYPE": "CODE_PHRASE"
+                                  },
+                                  "inputs": {
+                                    "KEY": {
+                                      "shadow": {
+                                        "type": "text",
+                                        "id": "S+;^BIj%|LQ%Xz7@?@-f",
+                                        "inline": false,
+                                        "fields": {
+                                          "TEXT": "encoding"
                                         }
                                       }
                                     }
@@ -1996,7 +2122,7 @@
                                     "extraState": {
                                       "extras": [],
                                       "attrs": [],
-                                      "rmType": "DV_TEXT",
+                                      "rmType": "ELEMENT",
                                       "prohibited": [],
                                       "slotCards": {},
                                       "rmCards": {}
@@ -2004,6 +2130,8 @@
                                     "fields": {
                                       "NAME": "Namn",
                                       "RM_TYPE": "DV_TEXT",
+                                      "VALUE_RM_TYPE": "",
+                                      "ELEMENT_SLOT_ID": "",
                                       "MANDATORY": "1",
                                       "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0001/value/DV_TEXT/value",
                                       "ARCHETYPE_NODE_ID": "at0001",
@@ -2045,7 +2173,7 @@
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
-                                          "rmType": "DV_IDENTIFIER",
+                                          "rmType": "ELEMENT",
                                           "prohibited": [],
                                           "slotCards": {},
                                           "rmCards": {}
@@ -2053,6 +2181,8 @@
                                         "fields": {
                                           "NAME": "Identifierare",
                                           "RM_TYPE": "DV_IDENTIFIER",
+                                          "VALUE_RM_TYPE": "",
+                                          "ELEMENT_SLOT_ID": "",
                                           "MANDATORY": "1",
                                           "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0003/value/DV_IDENTIFIER/value",
                                           "ARCHETYPE_NODE_ID": "at0003",
@@ -2125,7 +2255,7 @@
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
-                                              "rmType": "DV_CODED_TEXT",
+                                              "rmType": "ELEMENT",
                                               "prohibited": [],
                                               "slotCards": {},
                                               "rmCards": {}
@@ -2133,6 +2263,8 @@
                                             "fields": {
                                               "NAME": "Roll",
                                               "RM_TYPE": "DV_CODED_TEXT",
+                                              "VALUE_RM_TYPE": "",
+                                              "ELEMENT_SLOT_ID": "",
                                               "MANDATORY": "1",
                                               "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
                                               "ARCHETYPE_NODE_ID": "at0004",
@@ -2239,7 +2371,7 @@
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [],
-                                                        "rmType": "DATA_VALUE",
+                                                        "rmType": "ELEMENT",
                                                         "prohibited": [],
                                                         "slotCards": {},
                                                         "rmCards": {}
@@ -2247,6 +2379,8 @@
                                                       "fields": {
                                                         "NAME": "items",
                                                         "RM_TYPE": "DATA_VALUE",
+                                                        "VALUE_RM_TYPE": "",
+                                                        "ELEMENT_SLOT_ID": "",
                                                         "MANDATORY": "",
                                                         "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0005/items",
                                                         "ARCHETYPE_NODE_ID": "",
@@ -2295,7 +2429,7 @@
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [],
-                                                            "rmType": "DATA_VALUE",
+                                                            "rmType": "ELEMENT",
                                                             "prohibited": [],
                                                             "slotCards": {},
                                                             "rmCards": {}
@@ -2303,6 +2437,8 @@
                                                           "fields": {
                                                             "NAME": "items",
                                                             "RM_TYPE": "DATA_VALUE",
+                                                            "VALUE_RM_TYPE": "",
+                                                            "ELEMENT_SLOT_ID": "",
                                                             "MANDATORY": "",
                                                             "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0022/items",
                                                             "ARCHETYPE_NODE_ID": "",
@@ -2351,7 +2487,7 @@
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
-                                                                "rmType": "DATA_VALUE",
+                                                                "rmType": "ELEMENT",
                                                                 "prohibited": [],
                                                                 "slotCards": {},
                                                                 "rmCards": {}
@@ -2359,6 +2495,8 @@
                                                               "fields": {
                                                                 "NAME": "items",
                                                                 "RM_TYPE": "DATA_VALUE",
+                                                                "VALUE_RM_TYPE": "",
+                                                                "ELEMENT_SLOT_ID": "",
                                                                 "MANDATORY": "",
                                                                 "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0002/items",
                                                                 "ARCHETYPE_NODE_ID": "",
@@ -2431,7 +2569,7 @@
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [],
-                                                                    "rmType": "DV_TEXT",
+                                                                    "rmType": "ELEMENT",
                                                                     "prohibited": [],
                                                                     "slotCards": {},
                                                                     "rmCards": {}
@@ -2439,6 +2577,8 @@
                                                                   "fields": {
                                                                     "NAME": "Namn",
                                                                     "RM_TYPE": "DV_TEXT",
+                                                                    "VALUE_RM_TYPE": "",
+                                                                    "ELEMENT_SLOT_ID": "",
                                                                     "MANDATORY": "1",
                                                                     "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0001/value/DV_TEXT/value",
                                                                     "ARCHETYPE_NODE_ID": "at0001",
@@ -2480,7 +2620,7 @@
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
-                                                                        "rmType": "DV_IDENTIFIER",
+                                                                        "rmType": "ELEMENT",
                                                                         "prohibited": [],
                                                                         "slotCards": {},
                                                                         "rmCards": {}
@@ -2488,6 +2628,8 @@
                                                                       "fields": {
                                                                         "NAME": "Identifierare",
                                                                         "RM_TYPE": "DV_IDENTIFIER",
+                                                                        "VALUE_RM_TYPE": "",
+                                                                        "ELEMENT_SLOT_ID": "",
                                                                         "MANDATORY": "1",
                                                                         "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
                                                                         "ARCHETYPE_NODE_ID": "at0003",
@@ -2540,7 +2682,7 @@
                                                                           "extraState": {
                                                                             "extras": [],
                                                                             "attrs": [],
-                                                                            "rmType": "DV_IDENTIFIER",
+                                                                            "rmType": "ELEMENT",
                                                                             "prohibited": [],
                                                                             "slotCards": {},
                                                                             "rmCards": {}
@@ -2548,6 +2690,8 @@
                                                                           "fields": {
                                                                             "NAME": "Identifierare",
                                                                             "RM_TYPE": "DV_IDENTIFIER",
+                                                                            "VALUE_RM_TYPE": "",
+                                                                            "ELEMENT_SLOT_ID": "",
                                                                             "MANDATORY": "1",
                                                                             "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
                                                                             "ARCHETYPE_NODE_ID": "at0003",
@@ -2599,7 +2743,7 @@
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [],
-                                                                                "rmType": "DV_CODED_TEXT",
+                                                                                "rmType": "ELEMENT",
                                                                                 "prohibited": [],
                                                                                 "slotCards": {},
                                                                                 "rmCards": {}
@@ -2607,6 +2751,8 @@
                                                                               "fields": {
                                                                                 "NAME": "Roll",
                                                                                 "RM_TYPE": "DV_CODED_TEXT",
+                                                                                "VALUE_RM_TYPE": "",
+                                                                                "ELEMENT_SLOT_ID": "",
                                                                                 "MANDATORY": "1",
                                                                                 "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
                                                                                 "ARCHETYPE_NODE_ID": "at0004",
@@ -2713,7 +2859,7 @@
                                                                                         "extraState": {
                                                                                           "extras": [],
                                                                                           "attrs": [],
-                                                                                          "rmType": "DATA_VALUE",
+                                                                                          "rmType": "ELEMENT",
                                                                                           "prohibited": [],
                                                                                           "slotCards": {},
                                                                                           "rmCards": {}
@@ -2721,6 +2867,8 @@
                                                                                         "fields": {
                                                                                           "NAME": "items",
                                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                                          "VALUE_RM_TYPE": "",
+                                                                                          "ELEMENT_SLOT_ID": "",
                                                                                           "MANDATORY": "",
                                                                                           "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0005/items",
                                                                                           "ARCHETYPE_NODE_ID": "",
@@ -2769,7 +2917,7 @@
                                                                                             "extraState": {
                                                                                               "extras": [],
                                                                                               "attrs": [],
-                                                                                              "rmType": "DATA_VALUE",
+                                                                                              "rmType": "ELEMENT",
                                                                                               "prohibited": [],
                                                                                               "slotCards": {},
                                                                                               "rmCards": {}
@@ -2777,6 +2925,8 @@
                                                                                             "fields": {
                                                                                               "NAME": "items",
                                                                                               "RM_TYPE": "DATA_VALUE",
+                                                                                              "VALUE_RM_TYPE": "",
+                                                                                              "ELEMENT_SLOT_ID": "",
                                                                                               "MANDATORY": "",
                                                                                               "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0022/items",
                                                                                               "ARCHETYPE_NODE_ID": "",
@@ -2825,7 +2975,7 @@
                                                                                                 "extraState": {
                                                                                                   "extras": [],
                                                                                                   "attrs": [],
-                                                                                                  "rmType": "DATA_VALUE",
+                                                                                                  "rmType": "ELEMENT",
                                                                                                   "prohibited": [],
                                                                                                   "slotCards": {},
                                                                                                   "rmCards": {}
@@ -2833,6 +2983,8 @@
                                                                                                 "fields": {
                                                                                                   "NAME": "items",
                                                                                                   "RM_TYPE": "DATA_VALUE",
+                                                                                                  "VALUE_RM_TYPE": "",
+                                                                                                  "ELEMENT_SLOT_ID": "",
                                                                                                   "MANDATORY": "",
                                                                                                   "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0002/items",
                                                                                                   "ARCHETYPE_NODE_ID": "",
@@ -2881,7 +3033,7 @@
                                                                                                     "extraState": {
                                                                                                       "extras": [],
                                                                                                       "attrs": [],
-                                                                                                      "rmType": "DATA_VALUE",
+                                                                                                      "rmType": "ELEMENT",
                                                                                                       "prohibited": [],
                                                                                                       "slotCards": {},
                                                                                                       "rmCards": {}
@@ -2889,6 +3041,8 @@
                                                                                                     "fields": {
                                                                                                       "NAME": "items",
                                                                                                       "RM_TYPE": "DATA_VALUE",
+                                                                                                      "VALUE_RM_TYPE": "",
+                                                                                                      "ELEMENT_SLOT_ID": "",
                                                                                                       "MANDATORY": "",
                                                                                                       "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0021/items",
                                                                                                       "ARCHETYPE_NODE_ID": "",
@@ -2937,7 +3091,7 @@
                                                                                                         "extraState": {
                                                                                                           "extras": [],
                                                                                                           "attrs": [],
-                                                                                                          "rmType": "DATA_VALUE",
+                                                                                                          "rmType": "ELEMENT",
                                                                                                           "prohibited": [],
                                                                                                           "slotCards": {},
                                                                                                           "rmCards": {}
@@ -2945,6 +3099,8 @@
                                                                                                         "fields": {
                                                                                                           "NAME": "items",
                                                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                                                          "VALUE_RM_TYPE": "",
+                                                                                                          "ELEMENT_SLOT_ID": "",
                                                                                                           "MANDATORY": "",
                                                                                                           "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0017/items",
                                                                                                           "ARCHETYPE_NODE_ID": "",
@@ -3012,7 +3168,7 @@
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
-                                                                        "rmType": "DATA_VALUE",
+                                                                        "rmType": "ELEMENT",
                                                                         "prohibited": [],
                                                                         "slotCards": {},
                                                                         "rmCards": {}
@@ -3020,6 +3176,8 @@
                                                                       "fields": {
                                                                         "NAME": "items",
                                                                         "RM_TYPE": "DATA_VALUE",
+                                                                        "VALUE_RM_TYPE": "",
+                                                                        "ELEMENT_SLOT_ID": "",
                                                                         "MANDATORY": "",
                                                                         "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0017/items",
                                                                         "ARCHETYPE_NODE_ID": "",
@@ -3075,6 +3233,75 @@
                           "ARCHETYPE_CTX": ""
                         },
                         "inputs": {
+                          "ATTR_identifiers": {
+                            "block": {
+                              "type": "lists_create_with",
+                              "id": "P_bfPhlpGclV?G_1Tr%W",
+                              "extraState": {
+                                "itemCount": 1
+                              },
+                              "inputs": {
+                                "ADD0": {
+                                  "block": {
+                                    "type": "dv_identifier",
+                                    "id": "6Y{#3;|%Pcr=@b=CWNW^",
+                                    "extraState": {
+                                      "fields": [
+                                        "type"
+                                      ]
+                                    },
+                                    "fields": {
+                                      "NAME": "Identifier",
+                                      "SLOT_ID": "",
+                                      "RM_TYPE": "DV_IDENTIFIER",
+                                      "MANDATORY": ""
+                                    },
+                                    "inputs": {
+                                      "FLD_id": {
+                                        "block": {
+                                          "type": "text_join",
+                                          "id": "I7ww^h)O!Qz7y_vw?Als",
+                                          "extraState": {
+                                            "itemCount": 2
+                                          },
+                                          "inputs": {
+                                            "ADD0": {
+                                              "block": {
+                                                "type": "text",
+                                                "id": "3RK$]2NmlXp7+9C.MyY{",
+                                                "fields": {
+                                                  "TEXT": "SE2321000016-"
+                                                }
+                                              }
+                                            },
+                                            "ADD1": {
+                                              "block": {
+                                                "type": "source_query",
+                                                "id": "#t/tJ-*J|9|gexDuc|hO",
+                                                "fields": {
+                                                  "EXPRESSION": "$.Vardenhet_HSAID",
+                                                  "RETURN_TYPE": "string"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "OPTFLD_type": {
+                                        "block": {
+                                          "type": "text",
+                                          "id": "tqKr7UzjvIkeXrBD.Lai",
+                                          "fields": {
+                                            "TEXT": "urn:oid:1.2.752.29.4.19"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
                           "ATTR_name": {
                             "block": {
                               "type": "source_query",
@@ -3093,46 +3320,6 @@
               }
             }
           }
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "^mFoE!sySBrEe.,-;CHt",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.Diagnosnamn_ICD10",
-          "RETURN_TYPE": "string"
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "+P5_FAx6l*VoW+Hxj#XB",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.Diagnoskod_ICD10",
-          "RETURN_TYPE": "string"
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "9^y]CW}f+OqaI;T$VoVY",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.Diagnosnamn_ICD10",
-          "RETURN_TYPE": "string"
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "*WJs}(GH%9^#Wx%x]#%*",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.Diagnoskod_ICD10",
-          "RETURN_TYPE": "string"
         }
       }
     ]

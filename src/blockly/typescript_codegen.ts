@@ -488,8 +488,19 @@ function emitSimplifiedParty(
   const name = nameBlock && !nameBlock.isShadow()
     ? emitBlock(nameBlock, ctx, indent + 1)
     : null;
-  if (!name) return null;
-  return `{ name: ${asStringExpr(name)} }`;
+  const identBlock = block.getInputTargetBlock(rmAttributeInputName("identifiers"));
+  let identifiers: string | null = null;
+  if (identBlock && !identBlock.isShadow()) {
+    identifiers = identBlock.type === "lists_create_with"
+      ? emitListsCreate(identBlock, ctx)
+      : `[${emitBlock(identBlock, ctx, indent + 1)}]`;
+    if (isBlankGeneratedExpr(identifiers)) identifiers = null;
+  }
+  if (!name && !identifiers) return null;
+  const parts: string[] = [];
+  if (name) parts.push(`name: ${asStringExpr(name)}`);
+  if (identifiers) parts.push(`identifiers: ${identifiers}`);
+  return `{ ${parts.join(", ")} }`;
 }
 
 function emitStatementList(

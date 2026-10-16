@@ -33,7 +33,7 @@
       {
         "role": "output",
         "outputKind": "value",
-        "valueType": "string"
+        "valueType": "number"
       }
     ],
     "rowCatchAll": [

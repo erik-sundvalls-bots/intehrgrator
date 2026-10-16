@@ -4,6 +4,10 @@
     "blocks": [
       {
         "type": "default_context_map",
+        "id": "i$uo^^4,5L;*{l:Eyu-l",
+        "x": 20,
+        "y": 20,
+        "deletable": false,
         "extraState": {
           "itemCount": 7,
           "targets": [
@@ -165,10 +169,7 @@
               }
             }
           }
-        },
-        "id": "i$uo^^4,5L;*{l:Eyu-l",
-        "x": 20,
-        "y": 20
+        }
       },
       {
         "type": "conversion_start",
@@ -247,12 +248,12 @@
             },
             "fields": {
               "NAME": "OrdineradMedicinskOnkologiskBehandling",
-              "INSTANCE_ENCODING": "flat-json",
               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag/",
               "RM_TYPE": "COMPOSITION",
               "MANDATORY": "1",
               "ARCHETYPE_NODE_ID": "at0000",
-              "ARCHETYPE_CTX": "prescription"
+              "ARCHETYPE_CTX": "prescription",
+              "INSTANCE_ENCODING": "flat-json"
             },
             "inputs": {
               "ATTR_category": {
@@ -328,6 +329,55 @@
                     "ARCHETYPE_CTX": "prescription"
                   },
                   "inputs": {
+                    "ATTR_identifiers": {
+                      "block": {
+                        "type": "lists_create_with",
+                        "id": ")cxX!Mv/:[m4$)`}rOhD",
+                        "extraState": {
+                          "itemCount": 1
+                        },
+                        "inputs": {
+                          "ADD0": {
+                            "block": {
+                              "type": "dv_identifier",
+                              "id": "k[jXfE5^|C{1)kvCL3P!",
+                              "extraState": {
+                                "fields": [
+                                  "type"
+                                ]
+                              },
+                              "fields": {
+                                "NAME": "Identifier",
+                                "SLOT_ID": "",
+                                "RM_TYPE": "DV_IDENTIFIER",
+                                "MANDATORY": ""
+                              },
+                              "inputs": {
+                                "FLD_id": {
+                                  "block": {
+                                    "type": "source_query",
+                                    "id": ";W~vwLZz?QgP^C%~;bd/",
+                                    "fields": {
+                                      "EXPRESSION": "$.SignatureUser_UserName",
+                                      "RETURN_TYPE": "string"
+                                    }
+                                  }
+                                },
+                                "OPTFLD_type": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "LIFS4^Zzs{Vn0az~}k)^",
+                                    "fields": {
+                                      "TEXT": "urn:oid:1.2.752.29.4.19"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "ATTR_name": {
                       "block": {
                         "type": "source_query",
@@ -480,12 +530,12 @@
                                 "extras": [],
                                 "attrs": [
                                   "name",
-                                  "encoding",
-                                  "language",
-                                  "subject",
                                   "narrative",
                                   "protocol",
-                                  "activities"
+                                  "activities",
+                                  "subject",
+                                  "language",
+                                  "encoding"
                                 ],
                                 "rmType": "INSTRUCTION",
                                 "prohibited": [],
@@ -585,99 +635,6 @@
                                     }
                                   }
                                 },
-                                "ATTR_encoding": {
-                                  "block": {
-                                    "type": "maps_get",
-                                    "id": "cR0r#w:*]ohP28hExT;i",
-                                    "fields": {
-                                      "NAME": "defaults",
-                                      "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/encoding/value",
-                                      "RM_TYPE": "CODE_PHRASE"
-                                    },
-                                    "inputs": {
-                                      "KEY": {
-                                        "shadow": {
-                                          "type": "text",
-                                          "id": "VE][z~~S8QhamKt.s*P@",
-                                          "inline": false,
-                                          "fields": {
-                                            "TEXT": "encoding"
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                },
-                                "ATTR_language": {
-                                  "block": {
-                                    "type": "maps_get",
-                                    "id": "Yi;Uf}kZGcqq]nj+4/,Y",
-                                    "fields": {
-                                      "NAME": "defaults",
-                                      "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/language/value",
-                                      "RM_TYPE": "CODE_PHRASE"
-                                    },
-                                    "inputs": {
-                                      "KEY": {
-                                        "shadow": {
-                                          "type": "text",
-                                          "id": ":e:XWu/}us=4NHYld5$u",
-                                          "inline": false,
-                                          "fields": {
-                                            "TEXT": "language"
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                },
-                                "ATTR_subject": {
-                                  "block": {
-                                    "type": "party_proxy",
-                                    "id": "JgIx|C5F!VI|/gzSD!In",
-                                    "extraState": {
-                                      "extras": [],
-                                      "attrs": [],
-                                      "rmType": "PARTY_PROXY",
-                                      "prohibited": [],
-                                      "slotCards": {},
-                                      "rmCards": {}
-                                    },
-                                    "fields": {
-                                      "NAME": "subject",
-                                      "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/subject",
-                                      "RM_TYPE": "PARTY_PROXY",
-                                      "MANDATORY": "1",
-                                      "ARCHETYPE_NODE_ID": "",
-                                      "ARCHETYPE_CTX": "medication_order"
-                                    },
-                                    "inputs": {
-                                      "KIND": {
-                                        "block": {
-                                          "type": "maps_get",
-                                          "id": "JBj8^{n;{7Zsl41ECRVY",
-                                          "fields": {
-                                            "NAME": "defaults",
-                                            "SLOT_ID": "",
-                                            "RM_TYPE": ""
-                                          },
-                                          "inputs": {
-                                            "KEY": {
-                                              "shadow": {
-                                                "type": "text",
-                                                "id": "w8Zu%!dO|vfqxz1l4kcB",
-                                                "inline": false,
-                                                "fields": {
-                                                  "TEXT": "subject"
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                },
                                 "ATTR_narrative": {
                                   "block": {
                                     "type": "dv_text",
@@ -745,7 +702,7 @@
                                           "extraState": {
                                             "extras": [],
                                             "attrs": [],
-                                            "rmType": "DV_IDENTIFIER",
+                                            "rmType": "ELEMENT",
                                             "prohibited": [],
                                             "slotCards": {},
                                             "rmCards": {}
@@ -753,6 +710,8 @@
                                           "fields": {
                                             "NAME": "Beställnings-ID",
                                             "RM_TYPE": "DV_IDENTIFIER",
+                                            "VALUE_RM_TYPE": "",
+                                            "ELEMENT_SLOT_ID": "",
                                             "MANDATORY": "1",
                                             "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0004/value/DV_IDENTIFIER/value",
                                             "ARCHETYPE_NODE_ID": "at0004",
@@ -827,7 +786,7 @@
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [],
-                                                      "rmType": "DV_COUNT",
+                                                      "rmType": "ELEMENT",
                                                       "prohibited": [],
                                                       "slotCards": {},
                                                       "rmCards": {}
@@ -835,6 +794,8 @@
                                                     "fields": {
                                                       "NAME": "Kurdag",
                                                       "RM_TYPE": "DV_COUNT",
+                                                      "VALUE_RM_TYPE": "",
+                                                      "ELEMENT_SLOT_ID": "",
                                                       "MANDATORY": "1",
                                                       "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0000/items/at0030/value/DV_COUNT/value",
                                                       "ARCHETYPE_NODE_ID": "at0030",
@@ -1004,7 +965,7 @@
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [],
-                                                        "rmType": "DV_TEXT",
+                                                        "rmType": "ELEMENT",
                                                         "prohibited": [],
                                                         "slotCards": {},
                                                         "rmCards": {}
@@ -1012,6 +973,8 @@
                                                       "fields": {
                                                         "NAME": "Läkemedelsartikel",
                                                         "RM_TYPE": "DV_TEXT",
+                                                        "VALUE_RM_TYPE": "",
+                                                        "ELEMENT_SLOT_ID": "",
                                                         "MANDATORY": "1",
                                                         "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0070/value/DV_TEXT/value",
                                                         "ARCHETYPE_NODE_ID": "at0070",
@@ -1121,7 +1084,7 @@
                                                                 "extraState": {
                                                                   "extras": [],
                                                                   "attrs": [],
-                                                                  "rmType": "DV_CODED_TEXT",
+                                                                  "rmType": "ELEMENT",
                                                                   "prohibited": [],
                                                                   "slotCards": {},
                                                                   "rmCards": {}
@@ -1129,6 +1092,8 @@
                                                                 "fields": {
                                                                   "NAME": "Substans",
                                                                   "RM_TYPE": "DV_CODED_TEXT",
+                                                                  "VALUE_RM_TYPE": "",
+                                                                  "ELEMENT_SLOT_ID": "",
                                                                   "MANDATORY": "1",
                                                                   "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
                                                                   "ARCHETYPE_NODE_ID": "at0132",
@@ -1202,7 +1167,7 @@
                                                                     "extraState": {
                                                                       "extras": [],
                                                                       "attrs": [],
-                                                                      "rmType": "DV_CODED_TEXT",
+                                                                      "rmType": "ELEMENT",
                                                                       "prohibited": [],
                                                                       "slotCards": {},
                                                                       "rmCards": {}
@@ -1210,6 +1175,8 @@
                                                                     "fields": {
                                                                       "NAME": "Beredningsform",
                                                                       "RM_TYPE": "DV_CODED_TEXT",
+                                                                      "VALUE_RM_TYPE": "",
+                                                                      "ELEMENT_SLOT_ID": "",
                                                                       "MANDATORY": "1",
                                                                       "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0071/value/DV_CODED_TEXT/value",
                                                                       "ARCHETYPE_NODE_ID": "at0071",
@@ -1349,7 +1316,7 @@
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [],
-                                                                                "rmType": "DATA_VALUE",
+                                                                                "rmType": "ELEMENT",
                                                                                 "prohibited": [],
                                                                                 "slotCards": {},
                                                                                 "rmCards": {}
@@ -1357,6 +1324,8 @@
                                                                               "fields": {
                                                                                 "NAME": "items",
                                                                                 "RM_TYPE": "DATA_VALUE",
+                                                                                "VALUE_RM_TYPE": "",
+                                                                                "ELEMENT_SLOT_ID": "",
                                                                                 "MANDATORY": "",
                                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0138/items",
                                                                                 "ARCHETYPE_NODE_ID": "",
@@ -1372,7 +1341,7 @@
                                                                             "extraState": {
                                                                               "extras": [],
                                                                               "attrs": [],
-                                                                              "rmType": "DV_QUANTITY",
+                                                                              "rmType": "ELEMENT",
                                                                               "prohibited": [],
                                                                               "slotCards": {},
                                                                               "rmCards": {}
@@ -1380,6 +1349,8 @@
                                                                             "fields": {
                                                                               "NAME": "Ordinerad dos",
                                                                               "RM_TYPE": "DV_QUANTITY",
+                                                                              "VALUE_RM_TYPE": "",
+                                                                              "ELEMENT_SLOT_ID": "",
                                                                               "MANDATORY": "1",
                                                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0139/value/value/value",
                                                                               "ARCHETYPE_NODE_ID": "at0139",
@@ -1463,7 +1434,7 @@
                                                                                       "extraState": {
                                                                                         "extras": [],
                                                                                         "attrs": [],
-                                                                                        "rmType": "DATA_VALUE",
+                                                                                        "rmType": "ELEMENT",
                                                                                         "prohibited": [],
                                                                                         "slotCards": {},
                                                                                         "rmCards": {}
@@ -1471,6 +1442,8 @@
                                                                                       "fields": {
                                                                                         "NAME": "items",
                                                                                         "RM_TYPE": "DATA_VALUE",
+                                                                                        "VALUE_RM_TYPE": "",
+                                                                                        "ELEMENT_SLOT_ID": "",
                                                                                         "MANDATORY": "",
                                                                                         "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0141/items",
                                                                                         "ARCHETYPE_NODE_ID": "",
@@ -1497,7 +1470,7 @@
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
-                                                                "rmType": "DV_CODED_TEXT",
+                                                                "rmType": "ELEMENT",
                                                                 "prohibited": [],
                                                                 "slotCards": {},
                                                                 "rmCards": {}
@@ -1505,6 +1478,8 @@
                                                               "fields": {
                                                                 "NAME": "Administreringsväg",
                                                                 "RM_TYPE": "DV_CODED_TEXT",
+                                                                "VALUE_RM_TYPE": "",
+                                                                "ELEMENT_SLOT_ID": "",
                                                                 "MANDATORY": "1",
                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0091/value/DV_CODED_TEXT/value",
                                                                 "ARCHETYPE_NODE_ID": "at0091",
@@ -1644,7 +1619,7 @@
                                                                         "extraState": {
                                                                           "extras": [],
                                                                           "attrs": [],
-                                                                          "rmType": "DATA_VALUE",
+                                                                          "rmType": "ELEMENT",
                                                                           "prohibited": [],
                                                                           "slotCards": {},
                                                                           "rmCards": {}
@@ -1652,6 +1627,8 @@
                                                                         "fields": {
                                                                           "NAME": "items",
                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                          "VALUE_RM_TYPE": "",
+                                                                          "ELEMENT_SLOT_ID": "",
                                                                           "MANDATORY": "",
                                                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0093/items",
                                                                           "ARCHETYPE_NODE_ID": "",
@@ -1700,7 +1677,7 @@
                                                                             "extraState": {
                                                                               "extras": [],
                                                                               "attrs": [],
-                                                                              "rmType": "DATA_VALUE",
+                                                                              "rmType": "ELEMENT",
                                                                               "prohibited": [],
                                                                               "slotCards": {},
                                                                               "rmCards": {}
@@ -1708,6 +1685,8 @@
                                                                             "fields": {
                                                                               "NAME": "items",
                                                                               "RM_TYPE": "DATA_VALUE",
+                                                                              "VALUE_RM_TYPE": "",
+                                                                              "ELEMENT_SLOT_ID": "",
                                                                               "MANDATORY": "",
                                                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0095/items",
                                                                               "ARCHETYPE_NODE_ID": "",
@@ -1756,7 +1735,7 @@
                                                                                 "extraState": {
                                                                                   "extras": [],
                                                                                   "attrs": [],
-                                                                                  "rmType": "DATA_VALUE",
+                                                                                  "rmType": "ELEMENT",
                                                                                   "prohibited": [],
                                                                                   "slotCards": {},
                                                                                   "rmCards": {}
@@ -1764,6 +1743,8 @@
                                                                                 "fields": {
                                                                                   "NAME": "items",
                                                                                   "RM_TYPE": "DATA_VALUE",
+                                                                                  "VALUE_RM_TYPE": "",
+                                                                                  "ELEMENT_SLOT_ID": "",
                                                                                   "MANDATORY": "",
                                                                                   "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0177/items",
                                                                                   "ARCHETYPE_NODE_ID": "",
@@ -1845,7 +1826,7 @@
                                                                                           "extraState": {
                                                                                             "extras": [],
                                                                                             "attrs": [],
-                                                                                            "rmType": "DATA_VALUE",
+                                                                                            "rmType": "ELEMENT",
                                                                                             "prohibited": [],
                                                                                             "slotCards": {},
                                                                                             "rmCards": {}
@@ -1853,6 +1834,8 @@
                                                                                           "fields": {
                                                                                             "NAME": "items",
                                                                                             "RM_TYPE": "DATA_VALUE",
+                                                                                            "VALUE_RM_TYPE": "",
+                                                                                            "ELEMENT_SLOT_ID": "",
                                                                                             "MANDATORY": "",
                                                                                             "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0062/items/at0178/items",
                                                                                             "ARCHETYPE_NODE_ID": "",
@@ -1901,7 +1884,7 @@
                                                                                               "extraState": {
                                                                                                 "extras": [],
                                                                                                 "attrs": [],
-                                                                                                "rmType": "DATA_VALUE",
+                                                                                                "rmType": "ELEMENT",
                                                                                                 "prohibited": [],
                                                                                                 "slotCards": {},
                                                                                                 "rmCards": {}
@@ -1909,6 +1892,8 @@
                                                                                               "fields": {
                                                                                                 "NAME": "items",
                                                                                                 "RM_TYPE": "DATA_VALUE",
+                                                                                                "VALUE_RM_TYPE": "",
+                                                                                                "ELEMENT_SLOT_ID": "",
                                                                                                 "MANDATORY": "",
                                                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0062/items/at0051/items",
                                                                                                 "ARCHETYPE_NODE_ID": "",
@@ -1957,7 +1942,7 @@
                                                                                                   "extraState": {
                                                                                                     "extras": [],
                                                                                                     "attrs": [],
-                                                                                                    "rmType": "DATA_VALUE",
+                                                                                                    "rmType": "ELEMENT",
                                                                                                     "prohibited": [],
                                                                                                     "slotCards": {},
                                                                                                     "rmCards": {}
@@ -1965,6 +1950,8 @@
                                                                                                   "fields": {
                                                                                                     "NAME": "items",
                                                                                                     "RM_TYPE": "DATA_VALUE",
+                                                                                                    "VALUE_RM_TYPE": "",
+                                                                                                    "ELEMENT_SLOT_ID": "",
                                                                                                     "MANDATORY": "",
                                                                                                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0062/items/at0150/items",
                                                                                                     "ARCHETYPE_NODE_ID": "",
@@ -1987,7 +1974,7 @@
                                                                                   "extraState": {
                                                                                     "extras": [],
                                                                                     "attrs": [],
-                                                                                    "rmType": "DV_TEXT",
+                                                                                    "rmType": "ELEMENT",
                                                                                     "prohibited": [],
                                                                                     "slotCards": {},
                                                                                     "rmCards": {}
@@ -1995,6 +1982,8 @@
                                                                                   "fields": {
                                                                                     "NAME": "Behandlingsavsikt",
                                                                                     "RM_TYPE": "DV_TEXT",
+                                                                                    "VALUE_RM_TYPE": "",
+                                                                                    "ELEMENT_SLOT_ID": "",
                                                                                     "MANDATORY": "1",
                                                                                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0148/value/DV_TEXT/value",
                                                                                     "ARCHETYPE_NODE_ID": "at0148",
@@ -2068,7 +2057,7 @@
                                                                                             "extraState": {
                                                                                               "extras": [],
                                                                                               "attrs": [],
-                                                                                              "rmType": "DV_DATE_TIME",
+                                                                                              "rmType": "ELEMENT",
                                                                                               "prohibited": [],
                                                                                               "slotCards": {},
                                                                                               "rmCards": {}
@@ -2076,6 +2065,8 @@
                                                                                             "fields": {
                                                                                               "NAME": "Planerat administreringsdatum",
                                                                                               "RM_TYPE": "DV_DATE_TIME",
+                                                                                              "VALUE_RM_TYPE": "",
+                                                                                              "ELEMENT_SLOT_ID": "",
                                                                                               "MANDATORY": "1",
                                                                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0113/items/at0012/value/DV_DATE_TIME/value",
                                                                                               "ARCHETYPE_NODE_ID": "at0012",
@@ -2150,7 +2141,7 @@
                                                                                                       "extraState": {
                                                                                                         "extras": [],
                                                                                                         "attrs": [],
-                                                                                                        "rmType": "DATA_VALUE",
+                                                                                                        "rmType": "ELEMENT",
                                                                                                         "prohibited": [],
                                                                                                         "slotCards": {},
                                                                                                         "rmCards": {}
@@ -2158,6 +2149,8 @@
                                                                                                       "fields": {
                                                                                                         "NAME": "items",
                                                                                                         "RM_TYPE": "DATA_VALUE",
+                                                                                                        "VALUE_RM_TYPE": "",
+                                                                                                        "ELEMENT_SLOT_ID": "",
                                                                                                         "MANDATORY": "",
                                                                                                         "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0113/items/at0112/items",
                                                                                                         "ARCHETYPE_NODE_ID": "",
@@ -2211,7 +2204,7 @@
                                                                                                 "extraState": {
                                                                                                   "extras": [],
                                                                                                   "attrs": [],
-                                                                                                  "rmType": "DATA_VALUE",
+                                                                                                  "rmType": "ELEMENT",
                                                                                                   "prohibited": [],
                                                                                                   "slotCards": {},
                                                                                                   "rmCards": {}
@@ -2219,6 +2212,8 @@
                                                                                                 "fields": {
                                                                                                   "NAME": "items",
                                                                                                   "RM_TYPE": "DATA_VALUE",
+                                                                                                  "VALUE_RM_TYPE": "",
+                                                                                                  "ELEMENT_SLOT_ID": "",
                                                                                                   "MANDATORY": "",
                                                                                                   "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0069/items",
                                                                                                   "ARCHETYPE_NODE_ID": "",
@@ -2300,7 +2295,7 @@
                                                                                                           "extraState": {
                                                                                                             "extras": [],
                                                                                                             "attrs": [],
-                                                                                                            "rmType": "DATA_VALUE",
+                                                                                                            "rmType": "ELEMENT",
                                                                                                             "prohibited": [],
                                                                                                             "slotCards": {},
                                                                                                             "rmCards": {}
@@ -2308,6 +2303,8 @@
                                                                                                           "fields": {
                                                                                                             "NAME": "items",
                                                                                                             "RM_TYPE": "DATA_VALUE",
+                                                                                                            "VALUE_RM_TYPE": "",
+                                                                                                            "ELEMENT_SLOT_ID": "",
                                                                                                             "MANDATORY": "",
                                                                                                             "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0129/items/at0065/items",
                                                                                                             "ARCHETYPE_NODE_ID": "",
@@ -2356,7 +2353,7 @@
                                                                                                               "extraState": {
                                                                                                                 "extras": [],
                                                                                                                 "attrs": [],
-                                                                                                                "rmType": "DATA_VALUE",
+                                                                                                                "rmType": "ELEMENT",
                                                                                                                 "prohibited": [],
                                                                                                                 "slotCards": {},
                                                                                                                 "rmCards": {}
@@ -2364,6 +2361,8 @@
                                                                                                               "fields": {
                                                                                                                 "NAME": "items",
                                                                                                                 "RM_TYPE": "DATA_VALUE",
+                                                                                                                "VALUE_RM_TYPE": "",
+                                                                                                                "ELEMENT_SLOT_ID": "",
                                                                                                                 "MANDATORY": "",
                                                                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0129/items/at0170/items",
                                                                                                                 "ARCHETYPE_NODE_ID": "",
@@ -2417,7 +2416,7 @@
                                                                                                         "extraState": {
                                                                                                           "extras": [],
                                                                                                           "attrs": [],
-                                                                                                          "rmType": "DATA_VALUE",
+                                                                                                          "rmType": "ELEMENT",
                                                                                                           "prohibited": [],
                                                                                                           "slotCards": {},
                                                                                                           "rmCards": {}
@@ -2425,6 +2424,8 @@
                                                                                                         "fields": {
                                                                                                           "NAME": "items",
                                                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                                                          "VALUE_RM_TYPE": "",
+                                                                                                          "ELEMENT_SLOT_ID": "",
                                                                                                           "MANDATORY": "",
                                                                                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0166/items",
                                                                                                           "ARCHETYPE_NODE_ID": "",
@@ -2465,6 +2466,99 @@
                                       }
                                     }
                                   }
+                                },
+                                "ATTR_subject": {
+                                  "block": {
+                                    "type": "party_proxy",
+                                    "id": "JgIx|C5F!VI|/gzSD!In",
+                                    "extraState": {
+                                      "extras": [],
+                                      "attrs": [],
+                                      "rmType": "PARTY_PROXY",
+                                      "prohibited": [],
+                                      "slotCards": {},
+                                      "rmCards": {}
+                                    },
+                                    "fields": {
+                                      "NAME": "subject",
+                                      "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/subject",
+                                      "RM_TYPE": "PARTY_PROXY",
+                                      "MANDATORY": "1",
+                                      "ARCHETYPE_NODE_ID": "",
+                                      "ARCHETYPE_CTX": "medication_order"
+                                    },
+                                    "inputs": {
+                                      "KIND": {
+                                        "block": {
+                                          "type": "maps_get",
+                                          "id": "JBj8^{n;{7Zsl41ECRVY",
+                                          "fields": {
+                                            "NAME": "defaults",
+                                            "SLOT_ID": "",
+                                            "RM_TYPE": ""
+                                          },
+                                          "inputs": {
+                                            "KEY": {
+                                              "shadow": {
+                                                "type": "text",
+                                                "id": "w8Zu%!dO|vfqxz1l4kcB",
+                                                "inline": false,
+                                                "fields": {
+                                                  "TEXT": "subject"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "ATTR_language": {
+                                  "block": {
+                                    "type": "maps_get",
+                                    "id": "Yi;Uf}kZGcqq]nj+4/,Y",
+                                    "fields": {
+                                      "NAME": "defaults",
+                                      "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/language/value",
+                                      "RM_TYPE": "CODE_PHRASE"
+                                    },
+                                    "inputs": {
+                                      "KEY": {
+                                        "shadow": {
+                                          "type": "text",
+                                          "id": ":e:XWu/}us=4NHYld5$u",
+                                          "inline": false,
+                                          "fields": {
+                                            "TEXT": "language"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "ATTR_encoding": {
+                                  "block": {
+                                    "type": "maps_get",
+                                    "id": "cR0r#w:*]ohP28hExT;i",
+                                    "fields": {
+                                      "NAME": "defaults",
+                                      "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/encoding/value",
+                                      "RM_TYPE": "CODE_PHRASE"
+                                    },
+                                    "inputs": {
+                                      "KEY": {
+                                        "shadow": {
+                                          "type": "text",
+                                          "id": "VE][z~~S8QhamKt.s*P@",
+                                          "inline": false,
+                                          "fields": {
+                                            "TEXT": "encoding"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
                                 }
                               },
                               "next": {
@@ -2492,13 +2586,13 @@
                                           "extras": [],
                                           "attrs": [
                                             "name",
-                                            "encoding",
-                                            "language",
-                                            "subject",
                                             "description",
                                             "ism_transition",
                                             "time",
-                                            "protocol"
+                                            "protocol",
+                                            "subject",
+                                            "language",
+                                            "encoding"
                                           ],
                                           "rmType": "ACTION",
                                           "prohibited": [],
@@ -2600,99 +2694,6 @@
                                                     "id": "f)Akeb|!K2Ou)neXUgJM",
                                                     "fields": {
                                                       "TEXT": "Schemalagd administrering per substans"
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "ATTR_encoding": {
-                                            "block": {
-                                              "type": "maps_get",
-                                              "id": "l5:6d}Y=Tyv1BbF4h/Nv",
-                                              "fields": {
-                                                "NAME": "defaults",
-                                                "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/encoding/value",
-                                                "RM_TYPE": "CODE_PHRASE"
-                                              },
-                                              "inputs": {
-                                                "KEY": {
-                                                  "shadow": {
-                                                    "type": "text",
-                                                    "id": "xxbhkk?{{M2TkaKI49C%",
-                                                    "inline": false,
-                                                    "fields": {
-                                                      "TEXT": "encoding"
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "ATTR_language": {
-                                            "block": {
-                                              "type": "maps_get",
-                                              "id": "S;YMG.1HF*yegE0)QctR",
-                                              "fields": {
-                                                "NAME": "defaults",
-                                                "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/language/value",
-                                                "RM_TYPE": "CODE_PHRASE"
-                                              },
-                                              "inputs": {
-                                                "KEY": {
-                                                  "shadow": {
-                                                    "type": "text",
-                                                    "id": "Exsid|/J50%?u2O3Ulas",
-                                                    "inline": false,
-                                                    "fields": {
-                                                      "TEXT": "language"
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "ATTR_subject": {
-                                            "block": {
-                                              "type": "party_proxy",
-                                              "id": "L6:}p5v#D)WS5C}nov{~",
-                                              "extraState": {
-                                                "extras": [],
-                                                "attrs": [],
-                                                "rmType": "PARTY_PROXY",
-                                                "prohibited": [],
-                                                "slotCards": {},
-                                                "rmCards": {}
-                                              },
-                                              "fields": {
-                                                "NAME": "subject",
-                                                "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/subject",
-                                                "RM_TYPE": "PARTY_PROXY",
-                                                "MANDATORY": "1",
-                                                "ARCHETYPE_NODE_ID": "",
-                                                "ARCHETYPE_CTX": "medication"
-                                              },
-                                              "inputs": {
-                                                "KIND": {
-                                                  "block": {
-                                                    "type": "maps_get",
-                                                    "id": "ESXjHSl7k:t(ZU9f3?fA",
-                                                    "fields": {
-                                                      "NAME": "defaults",
-                                                      "SLOT_ID": "",
-                                                      "RM_TYPE": ""
-                                                    },
-                                                    "inputs": {
-                                                      "KEY": {
-                                                        "shadow": {
-                                                          "type": "text",
-                                                          "id": "3.PsdZ#edbTJR.0aN:2Q",
-                                                          "inline": false,
-                                                          "fields": {
-                                                            "TEXT": "subject"
-                                                          }
-                                                        }
-                                                      }
                                                     }
                                                   }
                                                 }
@@ -2807,7 +2808,7 @@
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [],
-                                                            "rmType": "DV_CODED_TEXT",
+                                                            "rmType": "ELEMENT",
                                                             "prohibited": [],
                                                             "slotCards": {},
                                                             "rmCards": {}
@@ -2815,6 +2816,8 @@
                                                           "fields": {
                                                             "NAME": "Substans",
                                                             "RM_TYPE": "DV_CODED_TEXT",
+                                                            "VALUE_RM_TYPE": "",
+                                                            "ELEMENT_SLOT_ID": "",
                                                             "MANDATORY": "1",
                                                             "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
                                                             "ARCHETYPE_NODE_ID": "at0132",
@@ -2921,7 +2924,7 @@
                                                                     "extraState": {
                                                                       "extras": [],
                                                                       "attrs": [],
-                                                                      "rmType": "DATA_VALUE",
+                                                                      "rmType": "ELEMENT",
                                                                       "prohibited": [],
                                                                       "slotCards": {},
                                                                       "rmCards": {}
@@ -2929,6 +2932,8 @@
                                                                     "fields": {
                                                                       "NAME": "items",
                                                                       "RM_TYPE": "DATA_VALUE",
+                                                                      "VALUE_RM_TYPE": "",
+                                                                      "ELEMENT_SLOT_ID": "",
                                                                       "MANDATORY": "",
                                                                       "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0138/items",
                                                                       "ARCHETYPE_NODE_ID": "",
@@ -2977,7 +2982,7 @@
                                                                         "extraState": {
                                                                           "extras": [],
                                                                           "attrs": [],
-                                                                          "rmType": "DATA_VALUE",
+                                                                          "rmType": "ELEMENT",
                                                                           "prohibited": [],
                                                                           "slotCards": {},
                                                                           "rmCards": {}
@@ -2985,6 +2990,8 @@
                                                                         "fields": {
                                                                           "NAME": "items",
                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                          "VALUE_RM_TYPE": "",
+                                                                          "ELEMENT_SLOT_ID": "",
                                                                           "MANDATORY": "",
                                                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0141/items",
                                                                           "ARCHETYPE_NODE_ID": "",
@@ -3224,7 +3231,7 @@
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [],
-                                                      "rmType": "DV_IDENTIFIER",
+                                                      "rmType": "ELEMENT",
                                                       "prohibited": [],
                                                       "slotCards": {},
                                                       "rmCards": {}
@@ -3232,6 +3239,8 @@
                                                     "fields": {
                                                       "NAME": "Order ID",
                                                       "RM_TYPE": "DV_IDENTIFIER",
+                                                      "VALUE_RM_TYPE": "",
+                                                      "ELEMENT_SLOT_ID": "",
                                                       "MANDATORY": "1",
                                                       "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
                                                       "ARCHETYPE_NODE_ID": "at0103",
@@ -3306,7 +3315,7 @@
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
-                                                                "rmType": "DATA_VALUE",
+                                                                "rmType": "ELEMENT",
                                                                 "prohibited": [],
                                                                 "slotCards": {},
                                                                 "rmCards": {}
@@ -3314,6 +3323,8 @@
                                                               "fields": {
                                                                 "NAME": "items",
                                                                 "RM_TYPE": "DATA_VALUE",
+                                                                "VALUE_RM_TYPE": "",
+                                                                "ELEMENT_SLOT_ID": "",
                                                                 "MANDATORY": "",
                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0085/items",
                                                                 "ARCHETYPE_NODE_ID": "",
@@ -3323,6 +3334,99 @@
                                                           }
                                                         }
                                                       }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "ATTR_subject": {
+                                            "block": {
+                                              "type": "party_proxy",
+                                              "id": "L6:}p5v#D)WS5C}nov{~",
+                                              "extraState": {
+                                                "extras": [],
+                                                "attrs": [],
+                                                "rmType": "PARTY_PROXY",
+                                                "prohibited": [],
+                                                "slotCards": {},
+                                                "rmCards": {}
+                                              },
+                                              "fields": {
+                                                "NAME": "subject",
+                                                "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/subject",
+                                                "RM_TYPE": "PARTY_PROXY",
+                                                "MANDATORY": "1",
+                                                "ARCHETYPE_NODE_ID": "",
+                                                "ARCHETYPE_CTX": "medication"
+                                              },
+                                              "inputs": {
+                                                "KIND": {
+                                                  "block": {
+                                                    "type": "maps_get",
+                                                    "id": "ESXjHSl7k:t(ZU9f3?fA",
+                                                    "fields": {
+                                                      "NAME": "defaults",
+                                                      "SLOT_ID": "",
+                                                      "RM_TYPE": ""
+                                                    },
+                                                    "inputs": {
+                                                      "KEY": {
+                                                        "shadow": {
+                                                          "type": "text",
+                                                          "id": "3.PsdZ#edbTJR.0aN:2Q",
+                                                          "inline": false,
+                                                          "fields": {
+                                                            "TEXT": "subject"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "ATTR_language": {
+                                            "block": {
+                                              "type": "maps_get",
+                                              "id": "S;YMG.1HF*yegE0)QctR",
+                                              "fields": {
+                                                "NAME": "defaults",
+                                                "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/language/value",
+                                                "RM_TYPE": "CODE_PHRASE"
+                                              },
+                                              "inputs": {
+                                                "KEY": {
+                                                  "shadow": {
+                                                    "type": "text",
+                                                    "id": "Exsid|/J50%?u2O3Ulas",
+                                                    "inline": false,
+                                                    "fields": {
+                                                      "TEXT": "language"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "ATTR_encoding": {
+                                            "block": {
+                                              "type": "maps_get",
+                                              "id": "l5:6d}Y=Tyv1BbF4h/Nv",
+                                              "fields": {
+                                                "NAME": "defaults",
+                                                "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/encoding/value",
+                                                "RM_TYPE": "CODE_PHRASE"
+                                              },
+                                              "inputs": {
+                                                "KEY": {
+                                                  "shadow": {
+                                                    "type": "text",
+                                                    "id": "xxbhkk?{{M2TkaKI49C%",
+                                                    "inline": false,
+                                                    "fields": {
+                                                      "TEXT": "encoding"
                                                     }
                                                   }
                                                 }
@@ -3595,7 +3699,7 @@
                                     "extraState": {
                                       "extras": [],
                                       "attrs": [],
-                                      "rmType": "DV_TEXT",
+                                      "rmType": "ELEMENT",
                                       "prohibited": [],
                                       "slotCards": {},
                                       "rmCards": {}
@@ -3603,6 +3707,8 @@
                                     "fields": {
                                       "NAME": "Namn",
                                       "RM_TYPE": "DV_TEXT",
+                                      "VALUE_RM_TYPE": "",
+                                      "ELEMENT_SLOT_ID": "",
                                       "MANDATORY": "1",
                                       "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0001/value/DV_TEXT/value",
                                       "ARCHETYPE_NODE_ID": "at0001",
@@ -3644,7 +3750,7 @@
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
-                                          "rmType": "DV_IDENTIFIER",
+                                          "rmType": "ELEMENT",
                                           "prohibited": [],
                                           "slotCards": {},
                                           "rmCards": {}
@@ -3652,6 +3758,8 @@
                                         "fields": {
                                           "NAME": "Identifierare",
                                           "RM_TYPE": "DV_IDENTIFIER",
+                                          "VALUE_RM_TYPE": "",
+                                          "ELEMENT_SLOT_ID": "",
                                           "MANDATORY": "1",
                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0003/value/DV_IDENTIFIER/value",
                                           "ARCHETYPE_NODE_ID": "at0003",
@@ -3724,7 +3832,7 @@
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
-                                              "rmType": "DV_CODED_TEXT",
+                                              "rmType": "ELEMENT",
                                               "prohibited": [],
                                               "slotCards": {},
                                               "rmCards": {}
@@ -3732,6 +3840,8 @@
                                             "fields": {
                                               "NAME": "Roll",
                                               "RM_TYPE": "DV_CODED_TEXT",
+                                              "VALUE_RM_TYPE": "",
+                                              "ELEMENT_SLOT_ID": "",
                                               "MANDATORY": "1",
                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0004/value/DV_CODED_TEXT/value",
                                               "ARCHETYPE_NODE_ID": "at0004",
@@ -3838,7 +3948,7 @@
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [],
-                                                        "rmType": "DATA_VALUE",
+                                                        "rmType": "ELEMENT",
                                                         "prohibited": [],
                                                         "slotCards": {},
                                                         "rmCards": {}
@@ -3846,6 +3956,8 @@
                                                       "fields": {
                                                         "NAME": "items",
                                                         "RM_TYPE": "DATA_VALUE",
+                                                        "VALUE_RM_TYPE": "",
+                                                        "ELEMENT_SLOT_ID": "",
                                                         "MANDATORY": "",
                                                         "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0005/items",
                                                         "ARCHETYPE_NODE_ID": "",
@@ -3894,7 +4006,7 @@
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [],
-                                                            "rmType": "DATA_VALUE",
+                                                            "rmType": "ELEMENT",
                                                             "prohibited": [],
                                                             "slotCards": {},
                                                             "rmCards": {}
@@ -3902,6 +4014,8 @@
                                                           "fields": {
                                                             "NAME": "items",
                                                             "RM_TYPE": "DATA_VALUE",
+                                                            "VALUE_RM_TYPE": "",
+                                                            "ELEMENT_SLOT_ID": "",
                                                             "MANDATORY": "",
                                                             "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0022/items",
                                                             "ARCHETYPE_NODE_ID": "",
@@ -3950,7 +4064,7 @@
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
-                                                                "rmType": "DATA_VALUE",
+                                                                "rmType": "ELEMENT",
                                                                 "prohibited": [],
                                                                 "slotCards": {},
                                                                 "rmCards": {}
@@ -3958,6 +4072,8 @@
                                                               "fields": {
                                                                 "NAME": "items",
                                                                 "RM_TYPE": "DATA_VALUE",
+                                                                "VALUE_RM_TYPE": "",
+                                                                "ELEMENT_SLOT_ID": "",
                                                                 "MANDATORY": "",
                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0002/items",
                                                                 "ARCHETYPE_NODE_ID": "",
@@ -4041,7 +4157,7 @@
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [],
-                                                                    "rmType": "DV_TEXT",
+                                                                    "rmType": "ELEMENT",
                                                                     "prohibited": [],
                                                                     "slotCards": {},
                                                                     "rmCards": {}
@@ -4049,6 +4165,8 @@
                                                                   "fields": {
                                                                     "NAME": "Namn",
                                                                     "RM_TYPE": "DV_TEXT",
+                                                                    "VALUE_RM_TYPE": "",
+                                                                    "ELEMENT_SLOT_ID": "",
                                                                     "MANDATORY": "1",
                                                                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0001/value/DV_TEXT/value",
                                                                     "ARCHETYPE_NODE_ID": "at0001",
@@ -4090,7 +4208,7 @@
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
-                                                                        "rmType": "DV_IDENTIFIER",
+                                                                        "rmType": "ELEMENT",
                                                                         "prohibited": [],
                                                                         "slotCards": {},
                                                                         "rmCards": {}
@@ -4098,6 +4216,8 @@
                                                                       "fields": {
                                                                         "NAME": "Identifierare",
                                                                         "RM_TYPE": "DV_IDENTIFIER",
+                                                                        "VALUE_RM_TYPE": "",
+                                                                        "ELEMENT_SLOT_ID": "",
                                                                         "MANDATORY": "1",
                                                                         "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
                                                                         "ARCHETYPE_NODE_ID": "at0003",
@@ -4150,7 +4270,7 @@
                                                                           "extraState": {
                                                                             "extras": [],
                                                                             "attrs": [],
-                                                                            "rmType": "DV_IDENTIFIER",
+                                                                            "rmType": "ELEMENT",
                                                                             "prohibited": [],
                                                                             "slotCards": {},
                                                                             "rmCards": {}
@@ -4158,6 +4278,8 @@
                                                                           "fields": {
                                                                             "NAME": "Identifierare",
                                                                             "RM_TYPE": "DV_IDENTIFIER",
+                                                                            "VALUE_RM_TYPE": "",
+                                                                            "ELEMENT_SLOT_ID": "",
                                                                             "MANDATORY": "1",
                                                                             "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
                                                                             "ARCHETYPE_NODE_ID": "at0003",
@@ -4209,7 +4331,7 @@
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [],
-                                                                                "rmType": "DV_CODED_TEXT",
+                                                                                "rmType": "ELEMENT",
                                                                                 "prohibited": [],
                                                                                 "slotCards": {},
                                                                                 "rmCards": {}
@@ -4217,6 +4339,8 @@
                                                                               "fields": {
                                                                                 "NAME": "Roll",
                                                                                 "RM_TYPE": "DV_CODED_TEXT",
+                                                                                "VALUE_RM_TYPE": "",
+                                                                                "ELEMENT_SLOT_ID": "",
                                                                                 "MANDATORY": "1",
                                                                                 "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
                                                                                 "ARCHETYPE_NODE_ID": "at0004",
@@ -4323,7 +4447,7 @@
                                                                                         "extraState": {
                                                                                           "extras": [],
                                                                                           "attrs": [],
-                                                                                          "rmType": "DATA_VALUE",
+                                                                                          "rmType": "ELEMENT",
                                                                                           "prohibited": [],
                                                                                           "slotCards": {},
                                                                                           "rmCards": {}
@@ -4331,6 +4455,8 @@
                                                                                         "fields": {
                                                                                           "NAME": "items",
                                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                                          "VALUE_RM_TYPE": "",
+                                                                                          "ELEMENT_SLOT_ID": "",
                                                                                           "MANDATORY": "",
                                                                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0005/items",
                                                                                           "ARCHETYPE_NODE_ID": "",
@@ -4379,7 +4505,7 @@
                                                                                             "extraState": {
                                                                                               "extras": [],
                                                                                               "attrs": [],
-                                                                                              "rmType": "DATA_VALUE",
+                                                                                              "rmType": "ELEMENT",
                                                                                               "prohibited": [],
                                                                                               "slotCards": {},
                                                                                               "rmCards": {}
@@ -4387,6 +4513,8 @@
                                                                                             "fields": {
                                                                                               "NAME": "items",
                                                                                               "RM_TYPE": "DATA_VALUE",
+                                                                                              "VALUE_RM_TYPE": "",
+                                                                                              "ELEMENT_SLOT_ID": "",
                                                                                               "MANDATORY": "",
                                                                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0022/items",
                                                                                               "ARCHETYPE_NODE_ID": "",
@@ -4435,7 +4563,7 @@
                                                                                                 "extraState": {
                                                                                                   "extras": [],
                                                                                                   "attrs": [],
-                                                                                                  "rmType": "DATA_VALUE",
+                                                                                                  "rmType": "ELEMENT",
                                                                                                   "prohibited": [],
                                                                                                   "slotCards": {},
                                                                                                   "rmCards": {}
@@ -4443,6 +4571,8 @@
                                                                                                 "fields": {
                                                                                                   "NAME": "items",
                                                                                                   "RM_TYPE": "DATA_VALUE",
+                                                                                                  "VALUE_RM_TYPE": "",
+                                                                                                  "ELEMENT_SLOT_ID": "",
                                                                                                   "MANDATORY": "",
                                                                                                   "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0002/items",
                                                                                                   "ARCHETYPE_NODE_ID": "",
@@ -4491,7 +4621,7 @@
                                                                                                     "extraState": {
                                                                                                       "extras": [],
                                                                                                       "attrs": [],
-                                                                                                      "rmType": "DATA_VALUE",
+                                                                                                      "rmType": "ELEMENT",
                                                                                                       "prohibited": [],
                                                                                                       "slotCards": {},
                                                                                                       "rmCards": {}
@@ -4499,6 +4629,8 @@
                                                                                                     "fields": {
                                                                                                       "NAME": "items",
                                                                                                       "RM_TYPE": "DATA_VALUE",
+                                                                                                      "VALUE_RM_TYPE": "",
+                                                                                                      "ELEMENT_SLOT_ID": "",
                                                                                                       "MANDATORY": "",
                                                                                                       "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0021/items",
                                                                                                       "ARCHETYPE_NODE_ID": "",
@@ -4547,7 +4679,7 @@
                                                                                                         "extraState": {
                                                                                                           "extras": [],
                                                                                                           "attrs": [],
-                                                                                                          "rmType": "DATA_VALUE",
+                                                                                                          "rmType": "ELEMENT",
                                                                                                           "prohibited": [],
                                                                                                           "slotCards": {},
                                                                                                           "rmCards": {}
@@ -4555,6 +4687,8 @@
                                                                                                         "fields": {
                                                                                                           "NAME": "items",
                                                                                                           "RM_TYPE": "DATA_VALUE",
+                                                                                                          "VALUE_RM_TYPE": "",
+                                                                                                          "ELEMENT_SLOT_ID": "",
                                                                                                           "MANDATORY": "",
                                                                                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0017/items",
                                                                                                           "ARCHETYPE_NODE_ID": "",
@@ -4622,7 +4756,7 @@
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
-                                                                        "rmType": "DATA_VALUE",
+                                                                        "rmType": "ELEMENT",
                                                                         "prohibited": [],
                                                                         "slotCards": {},
                                                                         "rmCards": {}
@@ -4630,6 +4764,8 @@
                                                                       "fields": {
                                                                         "NAME": "items",
                                                                         "RM_TYPE": "DATA_VALUE",
+                                                                        "VALUE_RM_TYPE": "",
+                                                                        "ELEMENT_SLOT_ID": "",
                                                                         "MANDATORY": "",
                                                                         "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0017/items",
                                                                         "ARCHETYPE_NODE_ID": "",
@@ -4695,7 +4831,7 @@
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
-                                          "rmType": "DV_TEXT",
+                                          "rmType": "ELEMENT",
                                           "prohibited": [],
                                           "slotCards": {},
                                           "rmCards": {}
@@ -4703,6 +4839,8 @@
                                         "fields": {
                                           "NAME": "Regim",
                                           "RM_TYPE": "DV_TEXT",
+                                          "VALUE_RM_TYPE": "",
+                                          "ELEMENT_SLOT_ID": "",
                                           "MANDATORY": "1",
                                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0001/value/DV_TEXT/value",
                                           "ARCHETYPE_NODE_ID": "at0001",
@@ -4744,7 +4882,7 @@
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
-                                              "rmType": "DV_TEXT",
+                                              "rmType": "ELEMENT",
                                               "prohibited": [],
                                               "slotCards": {},
                                               "rmCards": {}
@@ -4752,6 +4890,8 @@
                                             "fields": {
                                               "NAME": "Protokollversion",
                                               "RM_TYPE": "DV_TEXT",
+                                              "VALUE_RM_TYPE": "",
+                                              "ELEMENT_SLOT_ID": "",
                                               "MANDATORY": "1",
                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0031/value/DV_TEXT/value",
                                               "ARCHETYPE_NODE_ID": "at0031",
@@ -4792,7 +4932,7 @@
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [],
-                                                  "rmType": "DV_COUNT",
+                                                  "rmType": "ELEMENT",
                                                   "prohibited": [],
                                                   "slotCards": {},
                                                   "rmCards": {}
@@ -4800,6 +4940,8 @@
                                                 "fields": {
                                                   "NAME": "Kurnummer",
                                                   "RM_TYPE": "DV_COUNT",
+                                                  "VALUE_RM_TYPE": "",
+                                                  "ELEMENT_SLOT_ID": "",
                                                   "MANDATORY": "1",
                                                   "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0027/value/DV_COUNT/value",
                                                   "ARCHETYPE_NODE_ID": "at0027",
@@ -4825,6 +4967,36 @@
                                                             "type": "logic_ternary",
                                                             "id": "#?:x=la!qV#Tzg9ENAG-",
                                                             "inputs": {
+                                                              "IF": {
+                                                                "block": {
+                                                                  "type": "logic_compare",
+                                                                  "id": "l6*C]d@nEswbgbS1ttAT",
+                                                                  "fields": {
+                                                                    "OP": "NEQ"
+                                                                  },
+                                                                  "inputs": {
+                                                                    "A": {
+                                                                      "block": {
+                                                                        "type": "source_query",
+                                                                        "id": "HgStlV`,;2q*8,;DURHd",
+                                                                        "fields": {
+                                                                          "EXPRESSION": "$.PasientKurnummer",
+                                                                          "RETURN_TYPE": "string"
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    "B": {
+                                                                      "block": {
+                                                                        "type": "text",
+                                                                        "id": "HP1WXz9RtGX%]K*rb4sB",
+                                                                        "fields": {
+                                                                          "TEXT": ""
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              },
                                                               "THEN": {
                                                                 "block": {
                                                                   "type": "source_query_number",
@@ -4897,7 +5069,7 @@
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
-                                              "rmType": "DV_BOOLEAN",
+                                              "rmType": "ELEMENT",
                                               "prohibited": [],
                                               "slotCards": {},
                                               "rmCards": {}
@@ -4905,6 +5077,8 @@
                                             "fields": {
                                               "NAME": "Ges inom ramen för studie?",
                                               "RM_TYPE": "DV_BOOLEAN",
+                                              "VALUE_RM_TYPE": "",
+                                              "ELEMENT_SLOT_ID": "",
                                               "MANDATORY": "1",
                                               "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0005/value/DV_BOOLEAN/value",
                                               "ARCHETYPE_NODE_ID": "at0005",
@@ -4962,7 +5136,7 @@
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [],
-                                                  "rmType": "DV_TEXT",
+                                                  "rmType": "ELEMENT",
                                                   "prohibited": [],
                                                   "slotCards": {},
                                                   "rmCards": {}
@@ -4970,6 +5144,8 @@
                                                 "fields": {
                                                   "NAME": "Studie",
                                                   "RM_TYPE": "DV_TEXT",
+                                                  "VALUE_RM_TYPE": "",
+                                                  "ELEMENT_SLOT_ID": "",
                                                   "MANDATORY": "1",
                                                   "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/value/DV_TEXT/value",
                                                   "ARCHETYPE_NODE_ID": "at0034",
@@ -5043,11 +5219,158 @@
                           "ARCHETYPE_CTX": ""
                         },
                         "inputs": {
+                          "ATTR_identifiers": {
+                            "block": {
+                              "type": "lists_create_with",
+                              "id": "XN3x^X~6bD6OtT3tErLj",
+                              "extraState": {
+                                "itemCount": 1
+                              },
+                              "inputs": {
+                                "ADD0": {
+                                  "block": {
+                                    "type": "dv_identifier",
+                                    "id": ":Ot-j$$?/ACd+WZJn2=s",
+                                    "extraState": {
+                                      "fields": [
+                                        "type"
+                                      ]
+                                    },
+                                    "fields": {
+                                      "NAME": "Identifier",
+                                      "SLOT_ID": "",
+                                      "RM_TYPE": "DV_IDENTIFIER",
+                                      "MANDATORY": ""
+                                    },
+                                    "inputs": {
+                                      "FLD_id": {
+                                        "block": {
+                                          "type": "text_join",
+                                          "id": "/v`C=BzumiWc7MX}XbGZ",
+                                          "extraState": {
+                                            "itemCount": 2
+                                          },
+                                          "inputs": {
+                                            "ADD0": {
+                                              "block": {
+                                                "type": "text",
+                                                "id": "vn%K9p2u}m.5J+EH8g/?",
+                                                "fields": {
+                                                  "TEXT": "SE2321000016-"
+                                                }
+                                              }
+                                            },
+                                            "ADD1": {
+                                              "block": {
+                                                "type": "logic_ternary",
+                                                "id": "KK?g1d%9~bEuk55kvfs!",
+                                                "inputs": {
+                                                  "IF": {
+                                                    "block": {
+                                                      "type": "logic_compare",
+                                                      "id": "/Auxn9-+WnMNThBmjMxi",
+                                                      "fields": {
+                                                        "OP": "NEQ"
+                                                      },
+                                                      "inputs": {
+                                                        "A": {
+                                                          "block": {
+                                                            "type": "source_query",
+                                                            "id": "9;$Ckc{,|b6mZ@trf4I%",
+                                                            "fields": {
+                                                              "EXPRESSION": "$.Vardenhet_HSAID",
+                                                              "RETURN_TYPE": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "B": {
+                                                          "block": {
+                                                            "type": "text",
+                                                            "id": "ji?;;q/,=l-SQMBDWsV,",
+                                                            "fields": {
+                                                              "TEXT": ""
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "THEN": {
+                                                    "block": {
+                                                      "type": "source_query",
+                                                      "id": "9Z3X-clVgDxR+2F2IU4x",
+                                                      "fields": {
+                                                        "EXPRESSION": "$.Vardenhet_HSAID",
+                                                        "RETURN_TYPE": "string"
+                                                      }
+                                                    }
+                                                  },
+                                                  "ELSE": {
+                                                    "block": {
+                                                      "type": "source_query",
+                                                      "id": "7N2_?HT%U9uSD)N7pWJW",
+                                                      "fields": {
+                                                        "EXPRESSION": "$.PDL_enhet_HSAID",
+                                                        "RETURN_TYPE": "string"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "OPTFLD_type": {
+                                        "block": {
+                                          "type": "text",
+                                          "id": "lE.HC7SUudG323S,A0f(",
+                                          "fields": {
+                                            "TEXT": "urn:oid:1.2.752.29.4.19"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
                           "ATTR_name": {
                             "block": {
                               "type": "logic_ternary",
                               "id": "(K+Utvc=xxuJU-BfFj!F",
                               "inputs": {
+                                "IF": {
+                                  "block": {
+                                    "type": "logic_compare",
+                                    "id": "U7t}lh1Uwzo|C{zHBKbP",
+                                    "fields": {
+                                      "OP": "NEQ"
+                                    },
+                                    "inputs": {
+                                      "A": {
+                                        "block": {
+                                          "type": "source_query",
+                                          "id": ":j.v)IG?I0goB7mrBh4,",
+                                          "fields": {
+                                            "EXPRESSION": "$.Vardenhet_namn",
+                                            "RETURN_TYPE": "string"
+                                          }
+                                        }
+                                      },
+                                      "B": {
+                                        "block": {
+                                          "type": "text",
+                                          "id": "-[vot,|3;6NXP1:xUq-m",
+                                          "fields": {
+                                            "TEXT": ""
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
                                 "THEN": {
                                   "block": {
                                     "type": "source_query",
@@ -5079,46 +5402,6 @@
               }
             }
           }
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "@vd~!CGW,AP6swByF4N@",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.Vardenhet_namn",
-          "RETURN_TYPE": "string"
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "W#(R#D:Nt)yvL+yj2]6/",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.Vardenhet_HSAID",
-          "RETURN_TYPE": "string"
-        }
-      },
-      {
-        "type": "source_query",
-        "id": ",Rj@8DVT*m8@GmU/-}/2",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.PasientKurnummer",
-          "RETURN_TYPE": "string"
-        }
-      },
-      {
-        "type": "source_query",
-        "id": "XK*p6K;u7[n%lF~wEO7q",
-        "x": 0,
-        "y": 0,
-        "fields": {
-          "EXPRESSION": "$.PasientKurnummer",
-          "RETURN_TYPE": "string"
         }
       }
     ]

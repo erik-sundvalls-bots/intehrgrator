@@ -2,7 +2,10 @@ import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { Blockly } from "@intehrgrator/blockly/blockly_core.ts";
 import "blockly/blocks";
 import { registerMapBlocks } from "@intehrgrator/blockly/blocks/map_blocks.ts";
-import { registerDecisionTableBlocks } from "@intehrgrator/blockly/blocks/decision_table_blocks.ts";
+import {
+  applyDecisionTableOutputType,
+  registerDecisionTableBlocks,
+} from "@intehrgrator/blockly/blocks/decision_table_blocks.ts";
 import { blockConstraintMessages } from "@intehrgrator/blockly/block_constraints.ts";
 import { setWorkspaceSheetsProvider } from "@intehrgrator/blockly/sheets_bridge.ts";
 import { syncDecisionTableBlocksFromSheets } from "@intehrgrator/blockly/decision_table_sync.ts";
@@ -629,6 +632,48 @@ Deno.test("UNIQUE overlap is a Constraint warning on the Decision table eval blo
     evalBlock.setFieldValue("overlap", "NAME");
     const messages = blockConstraintMessages(evalBlock);
     assertEquals(messages.some((m) => m.includes("UNIQUE")), true);
+  } finally {
+    setWorkspaceSheetsProvider(null);
+    workspace.dispose();
+  }
+});
+
+Deno.test("numeric decision_table output stays in a Number socket after reload", () => {
+  registerDecisionTableBlocks();
+  if (!Blockly.Blocks["num_holder"]) {
+    Blockly.Blocks["num_holder"] = {
+      init: function (this: Blockly.Block) {
+        this.appendValueInput("N").setCheck("Number");
+      },
+    };
+  }
+  const sheet = normalizeSheet({
+    name: "imaging_term",
+    kind: "decision-table",
+    headers: ["modality", "term_id"],
+    decisionColumns: [
+      { role: "condition" },
+      { role: "output", outputKind: "value", valueType: "number" },
+    ],
+    values: [["MR", 12683]],
+  });
+  setWorkspaceSheetsProvider(() => [sheet]);
+  const workspace = new Blockly.Workspace();
+  try {
+    const holder = workspace.newBlock("num_holder");
+    const table = workspace.newBlock("decision_table");
+    table.setFieldValue("imaging_term", "NAME");
+    table.setFieldValue("term_id", "OUTPUT");
+    applyDecisionTableOutputType(table);
+    holder.getInput("N")!.connection!.connect(table.outputConnection!);
+    const saved = Blockly.serialization.workspaces.save(workspace);
+    const encoded = JSON.stringify(saved);
+    assertStringIncludes(encoded, '"outputCheck":"Number"');
+    const loaded = new Blockly.Workspace();
+    Blockly.serialization.workspaces.load(saved, loaded);
+    const again = loaded.getAllBlocks(false).find((block) => block.type === "decision_table");
+    assertEquals(again?.getParent()?.type, "num_holder");
+    loaded.dispose();
   } finally {
     setWorkspaceSheetsProvider(null);
     workspace.dispose();

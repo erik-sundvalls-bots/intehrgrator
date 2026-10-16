@@ -185,6 +185,18 @@ export function registerDecisionTableBlocks(): void {
       );
       enforceMouthCaptionLayout(this);
     },
+    // Output check is applied before the parent connection is restored. A
+    // Number column (TermId) would otherwise init as String and pop out.
+    saveExtraState: function (this: Blockly.Block): { outputCheck: string } | null {
+      const check = this.outputConnection?.getCheck();
+      const type = Array.isArray(check) ? String(check[0] ?? "") : String(check ?? "");
+      if (!type || type === "String") return null;
+      return { outputCheck: type };
+    },
+    loadExtraState: function (this: Blockly.Block, state: { outputCheck?: string } | null) {
+      const check = state && typeof state === "object" ? state.outputCheck : undefined;
+      if (check && check !== "String") setBlockOutputCheck(this, check);
+    },
     onchange: function (this: Blockly.Block, event: { type?: string; name?: string; newElementId?: string }) {
       if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "decision-table");
       if (this.isInFlyout) return;

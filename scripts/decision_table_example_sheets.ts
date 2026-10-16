@@ -23,7 +23,8 @@ function firstValue(
     decisionColumns: headers.map((header, i) => {
       if (i < conditionCount) return { role: "condition" as const };
       if (header === "term_id") {
-        return { role: "output" as const, outputKind: "value" as const, valueType: "string" as const };
+        // TextKeyWord/DatetimeKeyword TermId mouths are Number.
+        return { role: "output" as const, outputKind: "value" as const, valueType: "number" as const };
       }
       return { role: "output" as const, outputKind: "snippet" as const };
     }),

@@ -55,6 +55,63 @@ export interface MappingModelExtract {
 
 const LOOP_TYPES = new Set(["for_each_list", "for_each_source"]); // legacy type still appears mid-migration
 
+/** Name-only parties stay a string. Identifiers become map("name", …, "id", …, "type", …). */
+function partyIdentityExpression(block: Block): string | null {
+  const nameBlock = block.getInputTargetBlock(rmAttributeInputName("name"));
+  const nameExpr = nameBlock && !nameBlock.isShadow() ? blockToExpression(nameBlock) : null;
+  const rows = dvIdentifierRows(block.getInputTargetBlock(rmAttributeInputName("identifiers")));
+  if (!rows.length) return nameExpr;
+  const parts: string[] = [];
+  if (nameExpr) parts.push(`${JSON.stringify("name")}, ${nameExpr}`);
+  if (rows.length === 1) {
+    const row = rows[0]!;
+    if (row.id) parts.push(`${JSON.stringify("id")}, ${row.id}`);
+    if (row.type) parts.push(`${JSON.stringify("type")}, ${row.type}`);
+  } else {
+    const maps = rows.map((row) => {
+      const inner: string[] = [];
+      if (row.id) inner.push(`${JSON.stringify("id")}, ${row.id}`);
+      if (row.type) inner.push(`${JSON.stringify("type")}, ${row.type}`);
+      return inner.length ? `map(${inner.join(", ")})` : "";
+    }).filter(Boolean);
+    if (maps.length) parts.push(`${JSON.stringify("identifiers")}, list(${maps.join(", ")})`);
+  }
+  return parts.length ? `map(${parts.join(", ")})` : nameExpr;
+}
+
+function dvIdentifierRows(block: Block | null): Array<{ id: string | null; type: string | null }> {
+  if (!block) return [];
+  const items = block.type === "lists_create_with" ? listCreateItems(block) : [block];
+  const rows: Array<{ id: string | null; type: string | null }> = [];
+  for (const item of items) {
+    if (item.type !== "dv_identifier") continue;
+    const id = firstInputExpression(item, ["FLD_id", "OPTFLD_id"]);
+    const type = firstInputExpression(item, ["OPTFLD_type", "FLD_type"]);
+    if (id || type) rows.push({ id, type });
+  }
+  return rows;
+}
+
+function listCreateItems(block: Block): Block[] {
+  const count = Number((block as Block & { itemCount_?: number }).itemCount_ ?? 0);
+  const items: Block[] = [];
+  for (let i = 0; i < count; i++) {
+    const child = block.getInputTargetBlock(`ADD${i}`);
+    if (child && !child.isShadow()) items.push(child);
+  }
+  return items;
+}
+
+function firstInputExpression(block: Block, names: string[]): string | null {
+  for (const name of names) {
+    const child = block.getInputTargetBlock(name);
+    if (!child || child.isShadow()) continue;
+    const expr = blockToExpression(child);
+    if (expr) return expr;
+  }
+  return null;
+}
+
 export function extractMappingIr(workspace: Workspace): MappingModelExtract {
   const slots = slotsFromWorkspace(workspace);
   return {
@@ -93,16 +150,17 @@ function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] 
       }
       continue;
     }
-    if (block.type === "party_identified") {
+    if (block.type === "party_identified" || block.type === "party_related") {
       const slotId = block.getFieldValue("SLOT_ID");
-      const exprBlock = block.getInputTargetBlock(rmAttributeInputName("name"));
-      const expression = blockToExpression(exprBlock);
+      const nameBlock = block.getInputTargetBlock(rmAttributeInputName("name"));
+      const expression = partyIdentityExpression(block);
+      const rmType = block.type === "party_related" ? "PARTY_RELATED" : "PARTY_IDENTIFIED";
       if (slotId && expression && !seen.has(slotId)) {
         seen.add(slotId);
-        const hatch = hatchFromExprTree(exprBlock);
-        slots.push(hatch ? { slotId, rmType: "PARTY_IDENTIFIED", expression, hatch } : {
+        const hatch = hatchFromExprTree(nameBlock);
+        slots.push(hatch ? { slotId, rmType, expression, hatch } : {
           slotId,
-          rmType: "PARTY_IDENTIFIED",
+          rmType,
           expression,
         });
       }

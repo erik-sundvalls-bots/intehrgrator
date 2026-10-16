@@ -9,6 +9,7 @@ import { dirname, fromFileUrl, join } from "@std/path";
 import { Blockly } from "../src/blockly/blockly_core.ts";
 import { createSourceQueryBlock } from "../src/blockly/source_query.ts";
 import { targetChildInputName } from "../src/blockly/blocks/target_blocks.ts";
+import { applyDecisionTableOutputType } from "../src/blockly/blocks/decision_table_blocks.ts";
 import { setWorkspaceSheetsProvider } from "../src/blockly/sheets_bridge.ts";
 import { buildLungMdtWorkspace } from "./build-lung-mdt-blockly.ts";
 import { buildChemoSymptomsWorkspace } from "./build-chemo-symptoms-blockly.ts";
@@ -70,6 +71,9 @@ function decisionEval(
   const block = workspace.newBlock("decision_table");
   block.setFieldValue(name, "NAME");
   block.setFieldValue(output, "OUTPUT");
+  // Sheets are already installed. Type the output before it is plugged into
+  // TermId (Number) or Note (String); the check is saved in extraState.
+  applyDecisionTableOutputType(block);
   block.getInput("INPUTS")?.connection?.connect(
     mapsCreate(workspace, entries).outputConnection!,
   );
