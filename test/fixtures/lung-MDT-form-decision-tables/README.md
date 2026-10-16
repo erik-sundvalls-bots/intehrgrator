@@ -10,17 +10,31 @@ references. Combinational Note / TermId logic is authored as Decision tables
 | Table | Hit policy | Replaces |
 |-------|------------|----------|
 | `imaging_term` | FIRST | MR / Ultraljud / Röntgen TermIds 12683 / 4829 / 59 |
+| `imaging_note` | FIRST | The shared imaging Note (one Mustache snippet over `studies`) |
 | `smoking_note` | FIRST | TermId 8754 never-smoked vs smoker snippet |
-| `treatment_connector` | FIRST | Adjuvant / Neoadjuvant / Perioperativ glue |
-| `regimen_phrase` | FIRST | `regim` × `antal_kurer` × `annan_regim` |
+| `regimen_phrase` | FIRST | `regim` × `antal_kurer` × `annan_regim`, comma and space styles |
 | `dose_phrase` | FIRST | fraktionsdos × totaldos |
 | `chemoradiation_form` | FIRST | Kemoradioterapi form prefix |
-| `treatment_frame` | FIRST | TermId 14351 sentence frame |
+| `follow_glue` | FIRST | Adjuvant / Neoadjuvant / Perioperativ glue when a tillägg type is present |
+| `relation_tail` | FIRST | Relation sentence when intention and huvud are present and tillägg type is not |
+| `huvud_relation_tail` | FIRST | Relation sentence when only huvud and relation are present |
+| `intention_closing` | FIRST | Best supportive care keeps its source spelling; other intentions are folded |
+| `treatment_frame` | FIRST | TermId 14351 sentence, one row per presence combination |
+| `treatment_note` | FIRST | That sentence plus huvud / tillägg / strategi comments and vidare utredning |
 
-Repeating `#each` clusters stay on the original gold set. This sibling uses
-JSONPath locals against the shared Example Instances in
+The imaging keyword is one block. `imaging_term` picks the TermId. `imaging_note`
+holds the Note as a VMS-Mustache snippet (`{{#studies}}` walks bilddiagnostik).
+Long Handlebars `(or path path …)` gates are an any-of list restriction: any
+listed field filled. Display words (intention, type, relation, chemoradiation
+form) are folded with `text_changeCase` before they reach a snippet.
+The treatment sentence reads the first `rekommenderad_behandlingsstrategi`.
+Passthrough keywords stay Handlebars on this sibling.
+
+JSONPath locals use the shared Example Instances in
 `../lung-MDT-form/source-instance/`.
 
 Regenerate:
 
-`deno run -A --no-check scripts/build-decision-table-siblings.ts`
+`deno run -A --no-check scripts/build-decision-table-siblings.ts --only=lung`
+
+Omit `--only=lung` to regenerate the chemo sibling as well.

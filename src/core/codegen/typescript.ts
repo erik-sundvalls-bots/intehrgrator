@@ -68,6 +68,16 @@ export function createTsEmitContext(
   return { sourceVar, types: new Set(), helpers: new Set(), mappingFunctions };
 }
 
+function emitChangeCaseTs(text: string, mode: ExprAst | undefined): string {
+  const value = `String(${text} ?? "")`;
+  const which = mode?.kind === "literal" ? String(mode.value) : "LOWERCASE";
+  if (which === "UPPERCASE") return `${value}.toUpperCase()`;
+  if (which === "TITLECASE") {
+    return `${value}.replace(/\\S+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())`;
+  }
+  return `${value}.toLowerCase()`;
+}
+
 export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
   switch (ast.kind) {
     case "literal":
@@ -81,6 +91,8 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
       switch (ast.name) {
         case "trim":
           return `String(${args[0]} ?? "").trim()`;
+        case "change_case":
+          return emitChangeCaseTs(args[0] ?? '""', ast.args[1]);
         case "concat":
           return `[${args.join(", ")}].join("")`;
         case "round":

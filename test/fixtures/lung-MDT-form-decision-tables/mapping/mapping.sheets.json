@@ -43,6 +43,39 @@
     ]
   },
   {
+    "name": "imaging_note",
+    "kind": "decision-table",
+    "headers": [
+      "ready",
+      "note"
+    ],
+    "values": [
+      [
+        "—",
+        "{{#studies}}{{#bilddiagnostiskt_resultat}}{{#typ_av_undersökning}}{{[|value]}}{{[|other]}}, {{#../anatomisk_lokalisation_för_undersökning}}{{[|value]}}{{/../anatomisk_lokalisation_för_undersökning}}\n{{/typ_av_undersökning}}{{#datum}}{{[|value]}}\n{{/datum}}{{#bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}{{#anatomisk_lokalisation_misstänkt_primärtumör}}{{#namn_på_kroppsställe}}Misstänkt primärtumör: {{[|value]}}{{[|other]}}\n{{/namn_på_kroppsställe}}{{/anatomisk_lokalisation_misstänkt_primärtumör}}{{^anatomisk_lokalisation_misstänkt_primärtumör}}{{#kommentar}}Misstänkt primärtumör:\n{{/kommentar}}{{/anatomisk_lokalisation_misstänkt_primärtumör}}{{#fysiska_dimensioner}}{{#diameter_största_tumör}}Diameter största tumör: {{[|magnitude]}}{{[|unit]}}\n{{/diameter_största_tumör}}{{/fysiska_dimensioner}}{{#multifokalitet}}Multifokal: {{[|value]}}\n{{/multifokalitet}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}{{#bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0]}}\nMisstänkta lymfkörtelmetastaser:\n{{/bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0]}}{{#bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}{{#anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser}}{{#namn_på_kroppsställe}}{{[|value]}}{{[|other]}} {{/namn_på_kroppsställe}}{{#lateralitet}}{{[|value]}}{{/lateralitet}}\n{{/anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}{{#bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0]}}\nMisstänkta fjärrmetastaser:\n{{/bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0]}}{{#bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}{{#anatomisk_lokalisation_misstänkta_fjärrmetastaser}}{{#namn_på_kroppsställe}}{{[|value]}}{{[|other]}} {{/namn_på_kroppsställe}}{{#lateralitet}}{{[|value]}}{{/lateralitet}}\n{{/anatomisk_lokalisation_misstänkta_fjärrmetastaser}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}{{#kommentar}}\nÖvergripande kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostiskt_resultat}}{{#kompletterande_bilddiagnostik_hjärna}}{{#datum}}\nKompletterande bilddiagnostik hjärna: {{[|value]}}\n{{/datum}}{{#typ_av_undersökning}}{{#[|other]}}Typ av undersökning: {{[|other]}}\n{{/[|other]}}{{^[|other]}}{{#[|value]}}Typ av undersökning: {{[|value]}}\n{{/[|value]}}{{/[|other]}}{{/typ_av_undersökning}}{{#antal_förekomster_av_ett_observerat_fynd}}{{#antal_lesioner_i_hjärnan}}Antal funna metastaser hjärna: {{[|value]}}\n{{/antal_lesioner_i_hjärnan}}{{/antal_förekomster_av_ett_observerat_fynd}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/kompletterande_bilddiagnostik_hjärna}}{{/studies}}"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      true
+    ]
+  },
+  {
     "name": "smoking_note",
     "kind": "decision-table",
     "headers": [
@@ -81,40 +114,69 @@
     ]
   },
   {
-    "name": "treatment_connector",
+    "name": "regimen_phrase",
     "kind": "decision-table",
     "headers": [
-      "relation",
-      "has_huvud",
+      "style",
+      "has_regim",
+      "has_antal",
+      "has_annan",
+      "has_typ",
       "snippet"
     ],
     "values": [
       [
-        "Adjuvant",
+        "—",
         "true",
-        "Följt av"
-      ],
-      [
-        "Neoadjuvant",
         "true",
-        "Föregått av"
-      ],
-      [
-        "Perioperativ",
-        "true",
-        "Rekommenderas också tilläggsbehandling i form av"
+        "—",
+        "—",
+        " enligt regim {{regim}}, {{antal_kurer}} kurer. "
       ],
       [
         "—",
         "true",
-        "Patienten rekommenderas"
+        "—",
+        "—",
+        "—",
+        " enligt regim {{regim}}. "
       ],
       [
-        "Adjuvant",
-        "false",
-        "Följt av adjuvant behandling."
+        "comma",
+        "—",
+        "true",
+        "—",
+        "—",
+        ", {{antal_kurer}} kurer. "
       ],
       [
+        "space",
+        "—",
+        "true",
+        "—",
+        "—",
+        " {{antal_kurer}} kurer. "
+      ],
+      [
+        "—",
+        "—",
+        "—",
+        "true",
+        "—",
+        " enligt regim {{annan_regim}}. "
+      ],
+      [
+        "—",
+        "—",
+        "—",
+        "—",
+        "true",
+        ". "
+      ],
+      [
+        "—",
+        "—",
+        "—",
         "—",
         "—",
         ""
@@ -123,74 +185,6 @@
     "columnTypes": [
       "text",
       "text",
-      "text"
-    ],
-    "hitPolicy": "FIRST",
-    "collectJoin": "; ",
-    "decisionColumns": [
-      {
-        "role": "condition"
-      },
-      {
-        "role": "condition"
-      },
-      {
-        "role": "output",
-        "outputKind": "snippet",
-        "valueType": "string"
-      }
-    ],
-    "rowCatchAll": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      true
-    ]
-  },
-  {
-    "name": "regimen_phrase",
-    "kind": "decision-table",
-    "headers": [
-      "has_regim",
-      "has_antal",
-      "has_annan",
-      "snippet"
-    ],
-    "values": [
-      [
-        "true",
-        "true",
-        "—",
-        " enligt regim {{regim}}, {{antal_kurer}} kurer."
-      ],
-      [
-        "true",
-        "—",
-        "—",
-        " enligt regim {{regim}}."
-      ],
-      [
-        "—",
-        "true",
-        "—",
-        ", {{antal_kurer}} kurer."
-      ],
-      [
-        "—",
-        "—",
-        "true",
-        " enligt regim {{annan_regim}}."
-      ],
-      [
-        "—",
-        "—",
-        "—",
-        "."
-      ]
-    ],
-    "columnTypes": [
       "text",
       "text",
       "text",
@@ -209,12 +203,20 @@
         "role": "condition"
       },
       {
+        "role": "condition"
+      },
+      {
+        "role": "condition"
+      },
+      {
         "role": "output",
         "outputKind": "snippet",
         "valueType": "string"
       }
     ],
     "rowCatchAll": [
+      false,
+      false,
       false,
       false,
       false,
@@ -291,7 +293,7 @@
       [
         "Kemoradioterapi",
         "true",
-        "{{form}} "
+        "{{form_l}} "
       ],
       [
         "—",
@@ -325,6 +327,188 @@
     ]
   },
   {
+    "name": "follow_glue",
+    "kind": "decision-table",
+    "headers": [
+      "relation",
+      "snippet"
+    ],
+    "values": [
+      [
+        "Adjuvant",
+        "Följt av"
+      ],
+      [
+        "Neoadjuvant",
+        "Föregått av"
+      ],
+      [
+        "Perioperativ",
+        "Rekommenderas också tilläggsbehandling i form av"
+      ],
+      [
+        "—",
+        "Patienten rekommenderas"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  {
+    "name": "relation_tail",
+    "kind": "decision-table",
+    "headers": [
+      "relation",
+      "snippet"
+    ],
+    "values": [
+      [
+        "Adjuvant",
+        "Följt av adjuvant behandling."
+      ],
+      [
+        "Neoadjuvant",
+        "Föregått av neoadjuvant behandling."
+      ],
+      [
+        "Perioperativ",
+        "Rekommenderas också perioperativ behandling."
+      ],
+      [
+        "—",
+        "Relation till huvudbehandling: {{relation_l}}."
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  {
+    "name": "huvud_relation_tail",
+    "kind": "decision-table",
+    "headers": [
+      "relation",
+      "snippet"
+    ],
+    "values": [
+      [
+        "Adjuvant",
+        "Följt av adjuvant behandling."
+      ],
+      [
+        "Neoadjuvant",
+        "Föregått av neoadjuvant behandling."
+      ],
+      [
+        "Perioperativ",
+        "Rekommenderas också perioperativ tilläggsbehandling."
+      ],
+      [
+        "—",
+        ""
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  {
+    "name": "intention_closing",
+    "kind": "decision-table",
+    "headers": [
+      "intention",
+      "snippet"
+    ],
+    "values": [
+      [
+        "Best supportive care (BSC)",
+        " {{intention}}."
+      ],
+      [
+        "—",
+        " {{intention_l}} behandling."
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      true
+    ]
+  },
+  {
     "name": "treatment_frame",
     "kind": "decision-table",
     "headers": [
@@ -340,35 +524,105 @@
         "true",
         "true",
         "true",
-        "Patienten rekommenderas {{intention}} {{form}}{{huvud}}{{regimen}} {{connector}} {{relation}} {{tillägg}}"
+        "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} {{follow_glue}} {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"
+      ],
+      [
+        "false",
+        "true",
+        "true",
+        "true",
+        "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} {{follow_glue}} {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"
+      ],
+      [
+        "true",
+        "false",
+        "true",
+        "true",
+        "Patienten rekommenderas {{intention_l}} behandling. {{follow_glue}} {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"
+      ],
+      [
+        "false",
+        "false",
+        "true",
+        "true",
+        "Patienten rekommenderas {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"
       ],
       [
         "true",
         "true",
-        "—",
-        "—",
-        "Patienten rekommenderas {{intention}} {{form}}{{huvud}}{{regimen}}"
-      ],
-      [
-        "—",
+        "false",
         "true",
-        "—",
-        "—",
-        "Patienten rekommenderas {{form}}{{huvud}}{{regimen}}"
+        "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} Tillsammans med {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"
       ],
       [
         "true",
-        "—",
-        "—",
-        "—",
-        "Patienten rekommenderas {{intention}}."
+        "true",
+        "true",
+        "false",
+        "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} {{relation_tail}}"
       ],
       [
-        "—",
-        "—",
         "true",
         "true",
-        "{{connector}} {{relation}} {{tillägg}}"
+        "false",
+        "false",
+        "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}}"
+      ],
+      [
+        "true",
+        "false",
+        "false",
+        "true",
+        "Patienten rekommenderas {{intention_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"
+      ],
+      [
+        "true",
+        "false",
+        "true",
+        "false",
+        "Patienten rekommenderas {{intention_l}} {{relation_l}} behandling."
+      ],
+      [
+        "false",
+        "true",
+        "false",
+        "true",
+        "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_space}}{{huvud_dose}} Tillsammans med {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_space}}{{tillägg_dose}}"
+      ],
+      [
+        "false",
+        "true",
+        "true",
+        "false",
+        "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_space}}{{huvud_dose}} {{huvud_relation_tail}}"
+      ],
+      [
+        "false",
+        "true",
+        "false",
+        "false",
+        "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_space}}{{huvud_dose}}"
+      ],
+      [
+        "false",
+        "false",
+        "false",
+        "true",
+        "Patienten rekommenderas {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_space}}{{tillägg_dose}}"
+      ],
+      [
+        "false",
+        "false",
+        "true",
+        "false",
+        "Patienten rekommenderas {{relation_l}} tilläggsbehandling."
+      ],
+      [
+        "true",
+        "false",
+        "false",
+        "false",
+        "Patienten rekommenderas{{intention_closing}}"
       ],
       [
         "—",
@@ -412,6 +666,49 @@
       false,
       false,
       false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  {
+    "name": "treatment_note",
+    "kind": "decision-table",
+    "headers": [
+      "ready",
+      "note"
+    ],
+    "values": [
+      [
+        "—",
+        "{{sentence}}{{#huvud_kommentar}}\nDetaljer om huvudbehandling: {{.}}\n{{/huvud_kommentar}}{{#tillägg_kommentar}}\nDetaljer om tilläggsbehandling: {{.}}\n{{/tillägg_kommentar}}{{#strategi_kommentar}}\nKommentar om behandlingsstrategi: {{.}}\n{{/strategi_kommentar}}{{#vidare}}\nVidare utredning: {{.}}\n{{/vidare}}"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
       true
     ]
   }

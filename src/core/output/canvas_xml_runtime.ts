@@ -395,6 +395,52 @@ function serializeBlock(block: BlocklyNode | undefined): string | null {
       const elseV = serializeBlock(inputChild(block.inputs?.ELSE)) ?? "null";
       return `if(${cond}, ${thenV}, ${elseV})`;
     }
+    case "text_changeCase": {
+      const inner = serializeBlock(inputChild(block.inputs?.TEXT)) ?? '""';
+      const mode = String(block.fields?.CASE ?? "LOWERCASE");
+      return `change_case(${inner}, ${JSON.stringify(mode)})`;
+    }
+    case "text_join": {
+      const count = Number(block.extraState?.itemCount ?? 0);
+      const parts: string[] = [];
+      for (let i = 0; i < count; i++) {
+        parts.push(serializeBlock(inputChild(block.inputs?.[`ADD${i}`])) ?? '""');
+      }
+      if (parts.length === 0) return '""';
+      if (parts.length === 1) return parts[0]!;
+      return `concat(${parts.join(", ")})`;
+    }
+    case "lists_create_with": {
+      const count = Number(block.extraState?.itemCount ?? 0);
+      const parts: string[] = [];
+      for (let i = 0; i < count; i++) {
+        parts.push(serializeBlock(inputChild(block.inputs?.[`ADD${i}`])) ?? "null");
+      }
+      return `list(${parts.join(", ")})`;
+    }
+    case "logic_current_item": {
+      const name = String(block.fields?.VAR ?? "") || "item";
+      return `var(${JSON.stringify(name)})`;
+    }
+    case "logic_list_restriction": {
+      const op = String(block.fields?.OP ?? "ALL");
+      const fn = {
+        ALL: "all_of",
+        ANY: "any_of",
+        NONE: "none_of",
+        AT_LEAST: "at_least",
+        AT_MOST: "at_most",
+        EXACTLY: "exactly",
+      }[op] ?? "all_of";
+      const list = serializeBlock(inputChild(block.inputs?.LIST)) ?? "list()";
+      const pred = serializeBlock(inputChild(block.inputs?.PRED)) ?? "true";
+      const name = JSON.stringify(String(block.fields?.VAR || "item"));
+      const needsCount = op === "AT_LEAST" || op === "AT_MOST" || op === "EXACTLY";
+      const call = needsCount
+        ? `${fn}(${list}, ${Number(block.fields?.N ?? 1)}, ${name}, ${pred})`
+        : `${fn}(${list}, ${name}, ${pred})`;
+      return call;
+    }
     default:
       return null;
   }
