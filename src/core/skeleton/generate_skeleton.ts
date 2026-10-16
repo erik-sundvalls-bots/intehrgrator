@@ -25,7 +25,7 @@ import {
   returnTypeForDv,
 } from "../rm_mandatory.ts";
 import { withRmConstrainedFields } from "../rm_terminology.ts";
-import { isSubtypeOf } from "../rm_meta.ts";
+import { baseRmTypeName, isAbstractType, isSubtypeOf } from "../rm_meta.ts";
 import {
   formatCardinalityCompact,
   intervalFromAmAttribute,
@@ -466,7 +466,24 @@ export function skeletonNodeForOptionalRm(
   node.rmAttribute = attributeName;
   node.mandatory = false;
   node.silentMandatory = false;
+  // An abstract slot (uid → UID_BASED_ID, protocol → ITEM_STRUCTURE) stays an
+  // empty mouth. Concrete scaffolds keep their mandatory children, except
+  // nested abstract classes (HISTORY.events → EVENT) which the author chooses.
+  if (isAbstractType(baseRmTypeName(rmType))) {
+    node.children = [];
+  } else {
+    stripAbstractOptionalChildren(node);
+  }
   return node;
+}
+
+function stripAbstractOptionalChildren(node: SkeletonNode): void {
+  node.children = node.children
+    .filter((child) => !isAbstractType(baseRmTypeName(child.rmType)))
+    .map((child) => {
+      stripAbstractOptionalChildren(child);
+      return child;
+    });
 }
 
 /** PARTY_IDENTIFIED / PARTY_RELATED are mappable identity sockets (name + identifiers). */
