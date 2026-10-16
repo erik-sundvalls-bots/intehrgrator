@@ -320,7 +320,7 @@ Inline reference in the AI chat input to a source schema node, Example Instance 
 _Avoid_: canvas declaration chip, **scaffold target** chips (different concepts), pasting paths by hand
 
 **Stored prompt**:
-Reusable AI chat prompt from the **Stored prompts** ▾ menu. Built-ins are read-only (**Map the whole project** = the Copy prompt text, **Refresh merge**, **Loop with a for each block**); user prompts live in browser localStorage, are added from a `.md` / `.txt` (one prompt) or `.json` (list of `{name, text}`) file or URL, removed with ×, and exported as JSON. `{source_node}` / `{target_node}` placeholders are filled from **Context chips** in the input and stay visible when no chip matches.
+Reusable AI chat prompt from the **Stored prompts** ▾ menu. Built-ins are read-only (**Map the whole project** = the Copy prompt text, **Loop with a for each block**); user prompts live in browser localStorage, are added from a `.md` / `.txt` (one prompt) or `.json` (list of `{name, text}`) file or URL, removed with ×, and exported as JSON. `{source_node}` / `{target_node}` placeholders are filled from **Context chips** in the input and stay visible when no chip matches.
 _Avoid_: prompt template (clashes with openEHR templates), storing prompts in the Project Bundle
 
 **Mapping Suggestion Import**:

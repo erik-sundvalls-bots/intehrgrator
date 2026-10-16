@@ -520,6 +520,8 @@ export const en = {
   aiChatEmpty: "No messages yet.",
   addToAiChat: "Add to AI chat",
   aiChatChipRemove: "Remove",
+  aiChatDismissNotice: "Hide this notice until AI chat is opened again",
+  aiChatCopyMenuAria: "More copy/paste options",
 } as const;
 
 export type ChromeMessages = { [K in keyof typeof en]: string };

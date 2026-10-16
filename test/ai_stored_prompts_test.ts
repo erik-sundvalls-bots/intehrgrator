@@ -24,9 +24,9 @@ function memoryStorage(): Storage {
   };
 }
 
-Deno.test("stored prompts: built-ins include project, refresh and for-each", () => {
+Deno.test("stored prompts: built-ins are Map the whole project and for-each (no Refresh merge)", () => {
   const ids = BUILT_IN_PROMPTS.map((p) => p.id);
-  assertEquals(ids, ["builtin:map-project", "builtin:refresh-merge", "builtin:for-each"]);
+  assertEquals(ids, ["builtin:map-project", "builtin:for-each"]);
   assert(FOR_EACH_PROMPT_TEXT.includes("{source_node}") && FOR_EACH_PROMPT_TEXT.includes("{target_node}"));
   assert(BUILT_IN_PROMPTS.every((p) => p.builtIn));
 });

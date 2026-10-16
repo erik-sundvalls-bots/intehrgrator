@@ -1917,6 +1917,7 @@ body.sheets-fullscreen::before {
 .ai-chat-composer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
 .ai-chat-input {
   min-height: 2.6em; max-height: 9em; overflow-y: auto; padding: 4px 6px;
+  resize: vertical; /* drag taller; the 9em cap lifts on grab (ai_chat_panel.ts) */
   border: 1px solid var(--border); border-radius: 4px; background: #fff;
   font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; outline: none;
 }
@@ -1946,3 +1947,17 @@ body.sheets-fullscreen::before {
 .ai-chip-popover dd { margin: 0; font-family: var(--mono, monospace); overflow-wrap: anywhere; }
 .tree-context-menu { min-width: 160px; }
 .tree-context-menu[hidden] { display: none; }
+.split-btn-menu-separator { height: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+.ai-chat-creds-dismiss {
+  margin-left: auto; border: none; background: transparent; cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 0 4px; color: inherit;
+}
+.ai-chat-copy-split { display: inline-flex; }
+.ai-chat-actions .split-btn-chevron { padding: 3px 6px; }
+.ai-chat-actions .pane-btn .split-btn-menu-icon { font-size: 15px; vertical-align: -3px; margin-right: 4px; }
+.ai-chat-actions .pane-btn { display: inline-flex; align-items: center; }
+/* Keep a short chat split from pushing Target & Previews into a scroll. */
+.ai-chat-panel { overflow: hidden; }
+.ai-chat-body > .ai-chat-composer { flex-shrink: 0; }
+/* In a short split the notice scrolls itself rather than pushing the header out. */
+.ai-chat-body > .ai-chat-creds { flex-shrink: 1; min-height: 2.2em; overflow-y: auto; align-items: flex-start; }

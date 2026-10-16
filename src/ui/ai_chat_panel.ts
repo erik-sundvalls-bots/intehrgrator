@@ -45,6 +45,17 @@ export const AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
 export const AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 export const AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 export const PROJECT_CONTEXT_HEADING = "## Project context";
+/** Native resize corner hit area on the entry box (px). */
+const RESIZE_GRIP_PX = 18;
+
+/** Copy/paste delivery modes, same as the header **AI** menu. */
+export type AiPromptDelivery = "inline" | "attach" | "uri";
+
+export const AI_CHAT_COPY_MENU: ReadonlyArray<{ delivery: AiPromptDelivery; labelKey: "menuEmbedFiles" | "menuAttachFiles" | "menuBrowseUris" }> = [
+  { delivery: "inline", labelKey: "menuEmbedFiles" },
+  { delivery: "attach", labelKey: "menuAttachFiles" },
+  { delivery: "uri", labelKey: "menuBrowseUris" },
+];
 
 export interface AiChatTurnRequest {
   mode: ChatApplyMode;
@@ -72,8 +83,11 @@ export interface AiChatPanelOptions {
   projectId: () => string;
   hasCredentials: () => boolean;
   openCredentials: () => void;
-  buildProjectContext: () => string;
-  buildRefreshPrompt: () => string;
+  /** Full project prompt (the Copy prompt text) in a delivery mode. */
+  buildProjectContext: (delivery?: AiPromptDelivery) => string;
+  /** Last copy/paste delivery mode, shared with the header AI menu. */
+  getDelivery?: () => AiPromptDelivery;
+  setDelivery?: (delivery: AiPromptDelivery) => void;
   copyToClipboard: (text: string) => Promise<void>;
   pickTextFile: () => Promise<{ name: string; text: string } | null>;
   fetchText: (url: string) => Promise<string>;
@@ -156,6 +170,8 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   let lastTurnRevertible = false;
   let forceContext = false;
   let savedRange: Range | null = null;
+  /** × on the credentials notice; lasts only for this opening of the panel. */
+  let credsDismissed = false;
 
   panel.replaceChildren();
   panel.classList.add("ai-chat-panel");
@@ -224,7 +240,15 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   const credsText = el("p", { text: ui().aiChatNoCredentials });
   const credsBtn = el("button", { className: "pane-btn", text: ui().aiChatConfigure, type: "button" });
   credsBtn.id = "ai-chat-configure";
-  credsNotice.append(credsText, credsBtn);
+  const credsDismiss = el("button", {
+    className: "ai-chat-creds-dismiss",
+    text: "×",
+    title: ui().aiChatDismissNotice,
+    type: "button",
+  });
+  credsDismiss.id = "ai-chat-creds-dismiss";
+  credsDismiss.setAttribute("aria-label", ui().aiChatDismissNotice);
+  credsNotice.append(credsText, credsBtn, credsDismiss);
 
   const log = el("div", { className: "ai-chat-log" });
   log.id = "ai-chat-log";
@@ -239,18 +263,57 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   input.setAttribute("aria-multiline", "true");
   input.dataset.placeholder = ui().aiChatPlaceholder;
   const actions = el("div", { className: "ai-chat-actions" });
+  const iconLabel = (btn: HTMLButtonElement, icon: string, text: string) => {
+    const glyph = el("span", { className: "material-symbols-outlined split-btn-menu-icon", text: icon });
+    glyph.setAttribute("aria-hidden", "true");
+    btn.replaceChildren(glyph, el("span", { text }));
+  };
+  const copySplit = el("div", { className: "split-btn ai-chat-copy-split" });
   const copyBtn = el("button", {
-    className: "pane-btn",
-    text: ui().aiChatCopyPrompt,
+    className: "pane-btn split-btn-main",
     title: ui().aiChatCopyPromptTitle,
     type: "button",
   });
   copyBtn.id = "ai-chat-copy-prompt";
-  const importBtn = el("button", { className: "pane-btn", text: ui().aiChatImportAnswer, type: "button" });
+  iconLabel(copyBtn, "content_copy", ui().aiChatCopyPrompt);
+  const copyChevron = el("button", { className: "pane-btn split-btn-chevron", text: "▾", type: "button" });
+  copyChevron.id = "ai-chat-copy-menu-btn";
+  copyChevron.setAttribute("aria-haspopup", "menu");
+  copyChevron.setAttribute("aria-expanded", "false");
+  copyChevron.setAttribute("aria-label", ui().aiChatCopyMenuAria);
+  copyChevron.title = ui().aiChatCopyMenuAria;
+  const copyMenu = el("div", { className: "split-btn-menu ai-chat-copy-menu" });
+  copyMenu.id = "ai-chat-copy-menu";
+  copyMenu.setAttribute("role", "menu");
+  copyMenu.hidden = true;
+  for (const { delivery, labelKey } of AI_CHAT_COPY_MENU) {
+    const item = el("button", { className: "split-btn-menu-item split-btn-menu-item--icon", type: "button" });
+    item.setAttribute("role", "menuitem");
+    item.dataset.aiChatDelivery = delivery;
+    iconLabel(item, "content_copy", ui()[labelKey]);
+    item.addEventListener("click", () => {
+      closeCopyMenu();
+      options.setDelivery?.(delivery);
+      void copyPrompt(delivery);
+    });
+    copyMenu.append(item);
+  }
+  const importItem = el("button", { className: "split-btn-menu-item split-btn-menu-item--icon", type: "button" });
+  importItem.id = "ai-chat-copy-menu-import";
+  importItem.setAttribute("role", "menuitem");
+  iconLabel(importItem, "content_paste", ui().importAi);
+  importItem.addEventListener("click", () => {
+    closeCopyMenu();
+    options.openImportDialog();
+  });
+  copyMenu.append(importItem);
+  copySplit.append(copyBtn, copyChevron, copyMenu);
+  const importBtn = el("button", { className: "pane-btn", type: "button" });
   importBtn.id = "ai-chat-import-answer";
+  iconLabel(importBtn, "content_paste", ui().aiChatImportAnswer);
   const sendBtn = el("button", { className: "pane-btn pane-btn-primary", text: ui().aiChatSend, type: "button" });
   sendBtn.id = "ai-chat-send";
-  actions.append(copyBtn, importBtn, el("span", { className: "ai-chat-spacer" }), sendBtn);
+  actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), sendBtn);
   composer.append(input, actions);
   body.append(credsNotice, log, composer);
 
@@ -416,23 +479,24 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
 
   const refreshChrome = () => {
     const hasCreds = options.hasCredentials();
-    credsNotice.hidden = hasCreds;
+    credsNotice.hidden = hasCreds || credsDismissed;
     sendBtn.hidden = !hasCreds;
     sendBtn.disabled = sending;
     modeLabel.hidden = !hasCreds;
     copyBtn.classList.toggle("pane-btn-primary", !hasCreds);
+    copyChevron.classList.toggle("pane-btn-primary", !hasCreds);
     minBtn.title = minimized ? ui().aiChatRestore : ui().aiChatMinimize;
     minBtn.setAttribute("aria-label", minBtn.title);
     minBtn.textContent = minimized ? "▔" : "▁";
   };
 
   // ── compose / send ────────────────────────────────────────────────────────
-  const composePrompt = () => {
+  const composePrompt = (delivery?: AiPromptDelivery) => {
     const parts = readInputParts(input);
     const composed = composeUserMessage(parts, session.attachedChipKeys);
     const withContext = forceContext || !session.contextSent;
     const prompt = withContext
-      ? `${composed.text}\n\n${PROJECT_CONTEXT_HEADING}\n\n${options.buildProjectContext()}`
+      ? `${composed.text}\n\n${PROJECT_CONTEXT_HEADING}\n\n${options.buildProjectContext(delivery ?? options.getDelivery?.())}`
       : composed.text;
     return { parts, composed, prompt, withContext };
   };
@@ -483,9 +547,9 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     }
   };
 
-  const copyPrompt = async () => {
+  const copyPrompt = async (delivery?: AiPromptDelivery) => {
     syncProject();
-    const c = composePrompt();
+    const c = composePrompt(delivery);
     if (!c.composed.displayText) return;
     await options.copyToClipboard(c.prompt);
     commitUserTurn(c);
@@ -496,6 +560,34 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     options.setStatus(ui().aiChatPromptCopied);
   };
 
+  // ── menus ─────────────────────────────────────────────────────────────────
+  /** Fixed-position menu next to its trigger, flipping above when needed. */
+  const placeMenu = (menu: HTMLElement, trigger: HTMLElement) => {
+    const rect = trigger.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(rect.left, globalThis.innerWidth - menuRect.width - 8))}px`;
+    menu.style.top = rect.bottom + menuRect.height > globalThis.innerHeight - 8
+      ? `${Math.max(8, rect.top - menuRect.height - 4)}px`
+      : `${rect.bottom + 4}px`;
+  };
+
+  function closeCopyMenu() {
+    copyMenu.hidden = true;
+    copyChevron.setAttribute("aria-expanded", "false");
+  }
+  copyChevron.addEventListener("click", () => {
+    if (!copyMenu.hidden) {
+      closeCopyMenu();
+      return;
+    }
+    copyMenu.hidden = false;
+    copyChevron.setAttribute("aria-expanded", "true");
+    placeMenu(copyMenu, copySplit);
+  });
+  document.addEventListener("pointerdown", (ev) => {
+    if (!copyMenu.hidden && !copySplit.contains(ev.target as Node)) closeCopyMenu();
+  });
+
   // ── stored prompts ────────────────────────────────────────────────────────
   const closePromptsMenu = () => {
     promptsMenu.hidden = true;
@@ -504,7 +596,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
 
   const applyStoredPrompt = (prompt: StoredPrompt) => {
     closePromptsMenu();
-    const text = prompt.dynamic === "refresh" ? options.buildRefreshPrompt() : prompt.text;
+    const text = prompt.text;
     if (prompt.dynamic === "project") forceContext = true;
     const current = readInputParts(input);
     const chips = partsChips(current);
@@ -600,12 +692,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     }
     renderPromptsMenu();
     promptsMenu.hidden = false;
-    const rect = promptsBtn.getBoundingClientRect();
-    const menuHeight = promptsMenu.getBoundingClientRect().height;
-    promptsMenu.style.left = `${Math.max(8, Math.min(rect.left, globalThis.innerWidth - 300))}px`;
-    promptsMenu.style.top = rect.bottom + menuHeight > globalThis.innerHeight - 8
-      ? `${Math.max(8, rect.top - menuHeight - 4)}px`
-      : `${rect.bottom + 4}px`;
+    placeMenu(promptsMenu, promptsBtn);
     promptsBtn.setAttribute("aria-expanded", "true");
   });
   document.addEventListener("pointerdown", (ev) => {
@@ -630,6 +717,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
 
   const open = () => {
     syncProject();
+    if (panel.hidden) credsDismissed = false;
     panel.hidden = false;
     storage.setItem(AI_CHAT_OPEN_KEY, "1");
     if (!minimized) split();
@@ -641,6 +729,11 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   const close = () => {
     unsplit();
     panel.hidden = true;
+    credsDismissed = false;
+    // A dragged entry-box height lasts while the panel is open.
+    input.style.height = "";
+    input.style.maxHeight = "";
+    closeCopyMenu();
     hidePopover();
     storage.removeItem(AI_CHAT_OPEN_KEY);
     options.onLayout?.();
@@ -666,6 +759,19 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     renderLog();
   });
   credsBtn.addEventListener("click", () => options.openCredentials());
+  credsDismiss.addEventListener("click", () => {
+    credsDismissed = true;
+    refreshChrome();
+  });
+  // Entry box resize: lift the 9em auto-grow cap once the user grabs the
+  // native resize corner, so a deliberate drag can make it taller.
+  input.addEventListener("pointerdown", (ev) => {
+    const rect = input.getBoundingClientRect();
+    if (ev.clientX >= rect.right - RESIZE_GRIP_PX && ev.clientY >= rect.bottom - RESIZE_GRIP_PX) {
+      input.style.height = `${rect.height}px`;
+      input.style.maxHeight = "none";
+    }
+  });
   sendBtn.addEventListener("click", () => void send());
   copyBtn.addEventListener("click", () => void copyPrompt());
   importBtn.addEventListener("click", () => options.openImportDialog());
