@@ -86,6 +86,22 @@ class DockedMinimap extends Minimap {
     if (!mini) return;
     copyWorkspaceState(this.primaryWorkspace, mini);
     mini.zoomToFit();
+    this.repositionFocus();
+  }
+
+  /**
+   * Size the viewport highlight after both workspaces have blocks.
+   * FocusRegion.update divides by the minimap content width; calling it
+   * while that width is still 0 sets NaN on the highlight rect.
+   */
+  private repositionFocus(): void {
+    const mini = this.minimapWorkspace;
+    const region = this.focusRegion as { update?: () => void } | null;
+    if (!mini || !region?.update) return;
+    const primaryWidth = this.primaryWorkspace.getMetrics?.()?.contentWidth ?? 0;
+    const miniWidth = mini.getMetrics?.()?.contentWidth ?? 0;
+    if (!(primaryWidth > 0) || !(miniWidth > 0)) return;
+    region.update();
   }
 
   layoutInToolbox(mount: HTMLElement): void {
@@ -166,9 +182,29 @@ export function attachWorkspaceMinimap(
   workspace: WorkspaceSvg,
   mount: HTMLElement,
 ): void {
+  // Init paints the focus highlight immediately. A primary workspace that
+  // already has blocks and an empty minimap makes that highlight NaN.
+  const saved = Blockly.serialization.workspaces.save(workspace);
+  const hadBlocks = workspace.getAllBlocks(false).length > 0;
+  if (hadBlocks) {
+    Blockly.Events.disable();
+    try {
+      workspace.clear();
+    } finally {
+      Blockly.Events.enable();
+    }
+  }
   const minimap = new DockedMinimap(workspace);
   minimap.init();
   attached = { minimap, workspace, mount };
+  if (hadBlocks) {
+    Blockly.Events.disable();
+    try {
+      Blockly.serialization.workspaces.load(saved, workspace);
+    } finally {
+      Blockly.Events.enable();
+    }
+  }
   setAfterBlocklyEventsEnabled(refreshWorkspaceMinimap);
   mount.classList.remove("blockly-minimap-hidden");
 

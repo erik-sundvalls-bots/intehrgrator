@@ -212,7 +212,6 @@ import { collectValueSlots } from "../src/core/skeleton/generate_skeleton.ts";
 import { createIndexedDbDefaultsCatalog, factoryDefaultsMapBlockState, mapBlockFromDefaultsJson, classAttributeScaffoldTarget } from "../src/core/defaults/mod.ts";
 import {
   createBetterFormBridge,
-  probeBetterRenderer,
   type BetterFormBridge,
 } from "../src/core/output/better_form_bridge.ts";
 import {
@@ -1480,16 +1479,13 @@ bind("btn-run-test", () => {
 });
 bind("btn-autoplay", () => controller.toggleAutoplay());
 bind("btn-better-form", () => {
-  if (!betterFormBridge?.available) {
-    statusMain.textContent = localizeStatus(
-      detectLocale(),
-      "Better Form Renderer not installed. Run: deno task setup:better-forms",
-    );
+  const opened = betterFormBridge?.openViewer() ?? null;
+  if (!opened) {
+    statusMain.textContent = localizeStatus(detectLocale(), chrome("en").betterPopupBlocked);
     return;
   }
-  betterFormBridge.openViewer();
   const result = controller.getState().testResult;
-  if (result?.output !== undefined) betterFormBridge.pushComposition(result.output);
+  if (result?.output !== undefined) betterFormBridge?.pushComposition(result.output);
 });
 bind("btn-new-project", () => void handleNewProject());
 bind("btn-load-project", () => void openLoadProjectDialog());
@@ -1775,14 +1771,14 @@ function installExampleSetsMenu(): void {
 }
 
 let betterFormBridge: BetterFormBridge | null = null;
-void probeBetterRenderer((path) => host.resolveAppUrl(path)).then((available) => {
+{
+  // The viewer shell is part of the app. Licensed renderer bytes are not:
+  // the viewer asks the user to upload them into this browser.
   betterFormBridge = createBetterFormBridge(
     { resolveAppUrl: (path) => host.resolveAppUrl(path) },
-    available,
+    true,
   );
-  const btn = document.getElementById("btn-better-form") as HTMLButtonElement | null;
-  if (btn) btn.hidden = !available;
-});
+}
 
 initFileDropTargets();
 

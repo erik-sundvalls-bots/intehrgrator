@@ -147,10 +147,9 @@ export function registerCompactThrasosRenderer(): string {
       return super.makeDrawer_(block, info);
     }
   }
-  try {
+  // unregister() warns when the name is absent. The first boot has nothing to remove.
+  if (Blockly.registry.hasItem(Blockly.registry.Type.RENDERER, COMPACT_RENDERER_NAME)) {
     Blockly.blockRendering.unregister(COMPACT_RENDERER_NAME);
-  } catch {
-    // First registration in this page/runtime.
   }
   Blockly.blockRendering.register(
     COMPACT_RENDERER_NAME,

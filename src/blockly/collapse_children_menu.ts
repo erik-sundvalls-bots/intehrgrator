@@ -89,38 +89,47 @@ export function installCollapseChildrenMenu(
   labels: CollapseChildrenLabels,
 ): void {
   registerCollapseChildrenMenus(labels);
-  const probe = workspace.newBlock("text");
-  const proto = Object.getPrototypeOf(probe) as
-    | (object & { generateContextMenu?: GenerateContextMenuFn; [MENU_PATCHED]?: boolean })
-    | null;
-  if (proto && typeof proto.generateContextMenu === "function" && !proto[MENU_PATCHED]) {
-    const original = proto.generateContextMenu;
-    proto.generateContextMenu = function (this: Block) {
-      const menu = original.call(this) ?? [];
-      if (!hasChildren(this)) return menu;
-      const expand = labels.expandChildren();
-      const collapse = labels.collapseChildren();
-      if (!menu.some((item) => item.text === expand)) {
-        menu.push({
-          text: expand,
-          enabled: true,
-          callback: () => setChildBlocksCollapsed(this, false),
-          weight: 5,
-        });
-      }
-      if (!menu.some((item) => item.text === collapse)) {
-        menu.push({
-          text: collapse,
-          enabled: true,
-          callback: () => setChildBlocksCollapsed(this, true),
-          weight: 6,
-        });
-      }
-      return menu;
-    };
-    proto[MENU_PATCHED] = true;
+  // The probe is created only to reach BlockSvg.prototype. Its create/delete
+  // would otherwise sit in Blockly's event queue and later be mirrored onto
+  // the minimap, which never received the create ("Can't delete non-existent block").
+  const disabled = typeof Blockly.Events.disable === "function";
+  if (disabled) Blockly.Events.disable();
+  try {
+    const probe = workspace.newBlock("text");
+    const proto = Object.getPrototypeOf(probe) as
+      | (object & { generateContextMenu?: GenerateContextMenuFn; [MENU_PATCHED]?: boolean })
+      | null;
+    if (proto && typeof proto.generateContextMenu === "function" && !proto[MENU_PATCHED]) {
+      const original = proto.generateContextMenu;
+      proto.generateContextMenu = function (this: Block) {
+        const menu = original.call(this) ?? [];
+        if (!hasChildren(this)) return menu;
+        const expand = labels.expandChildren();
+        const collapse = labels.collapseChildren();
+        if (!menu.some((item) => item.text === expand)) {
+          menu.push({
+            text: expand,
+            enabled: true,
+            callback: () => setChildBlocksCollapsed(this, false),
+            weight: 5,
+          });
+        }
+        if (!menu.some((item) => item.text === collapse)) {
+          menu.push({
+            text: collapse,
+            enabled: true,
+            callback: () => setChildBlocksCollapsed(this, true),
+            weight: 6,
+          });
+        }
+        return menu;
+      };
+      proto[MENU_PATCHED] = true;
+    }
+    probe.dispose(false);
+  } finally {
+    if (disabled) Blockly.Events.enable();
   }
-  probe.dispose(false);
   installLongPressContextMenu(workspace);
 }
 

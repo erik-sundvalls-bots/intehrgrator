@@ -1,12 +1,9 @@
 /**
  * Optional Better Form Renderer bridge (kintegrate form-viewer absorption).
  *
- * Licensed Better renderer assets are installed locally via
- * `deno task setup:better-forms` into `.local/better-form-renderer` and copied
- * into `dist/vendor/better` at build time. They are never committed.
- *
- * This module is the seam for Push/Pull/Sync Mode against a form viewer window
- * without coupling Mapping Model / Test Run to proprietary APIs.
+ * The viewer shell ships with the app. The licensed renderer files do not:
+ * the user uploads them in the viewer, and the browser keeps them. This module
+ * only posts Push/Pull messages. It does not fetch proprietary assets.
  */
 
 export interface BetterFormBridge {
@@ -28,20 +25,6 @@ export interface BetterFormBridgeOptions {
 
 const PUSH_TYPE = "intehrgrator:better-form-push";
 const PULL_TYPE = "intehrgrator:better-form-pull-request";
-
-/** Detect whether licensed Better renderer assets are present in this build. */
-export async function probeBetterRenderer(
-  resolveAppUrl: (path: string) => string,
-): Promise<boolean> {
-  try {
-    const response = await fetch(resolveAppUrl("vendor/better/form-renderer.js"), {
-      method: "HEAD",
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
 
 export function createBetterFormBridge(
   options: BetterFormBridgeOptions,
