@@ -497,3 +497,43 @@ Deno.test("lung-MDT fixture Blockly extracts unsupported Remove types and round-
   assertEquals(second.targetSignature, first.targetSignature);
   loaded.dispose();
 });
+
+Deno.test("party_identified with an identifier serializes name, id, and type", () => {
+  ensure();
+  const workspace = new Blockly.Workspace();
+  const party = workspace.newBlock("party_identified");
+  party.setFieldValue("facility", "SLOT_ID");
+  const name = workspace.newBlock("text");
+  name.setFieldValue("Ward", "TEXT");
+  party.getInput("ATTR_name")!.connection!.connect(name.outputConnection!);
+
+  const dv = workspace.newBlock("dv_identifier") as Blockly.Block & {
+    extraDvFields_?: string[];
+    updateDvFields_?: () => void;
+  };
+  dv.extraDvFields_ = ["type"];
+  dv.updateDvFields_?.();
+  const id = workspace.newBlock("text");
+  id.setFieldValue("SE2321000016-C4DS", "TEXT");
+  dv.getInput("FLD_id")!.connection!.connect(id.outputConnection!);
+  const type = workspace.newBlock("text");
+  type.setFieldValue("urn:oid:1.2.752.29.4.19", "TEXT");
+  dv.getInput("OPTFLD_type")!.connection!.connect(type.outputConnection!);
+
+  const list = workspace.newBlock("lists_create_with") as Blockly.Block & {
+    itemCount_: number;
+    updateShape_: () => void;
+  };
+  list.itemCount_ = 1;
+  list.updateShape_();
+  list.getInput("ADD0")!.connection!.connect(dv.outputConnection!);
+  party.getInput("ATTR_identifiers")!.connection!.connect(list.outputConnection!);
+
+  const ir = workspaceToModelJson(workspace);
+  const slot = ir.slots.find((row) => row.slotId === "facility");
+  assertEquals(
+    slot?.expression,
+    'map("name", "Ward", "id", "SE2321000016-C4DS", "type", "urn:oid:1.2.752.29.4.19")',
+  );
+  workspace.dispose();
+});

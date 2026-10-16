@@ -153,7 +153,7 @@ export function getValidAttachments(
     if (context.templateConstrained.has(attr.name)) continue;
     if (context.prohibitedAttributes?.has(attr.name)) continue;
 
-    const base = baseRmTypeName(attr.typeName);
+    const base = resolveGenericSlotType(parentType, attr.typeName);
     if (isPrimitiveRmType(base)) continue;
     // ELEMENT.value is the fixed mouth. null_flavour and null_reason are
     // optional DATA_VALUE attributes and must stay addable (#187).

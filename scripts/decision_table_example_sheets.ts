@@ -23,13 +23,22 @@ function firstValue(
     decisionColumns: headers.map((header, i) => {
       if (i < conditionCount) return { role: "condition" as const };
       if (header === "term_id") {
-        return { role: "output" as const, outputKind: "value" as const, valueType: "string" as const };
+        // TextKeyWord/DatetimeKeyword TermId mouths are Number.
+        return { role: "output" as const, outputKind: "value" as const, valueType: "number" as const };
       }
       return { role: "output" as const, outputKind: "snippet" as const };
     }),
     rowCatchAll: values.map((_, i) => i === catchAllRow),
   });
 }
+
+/**
+ * Shared imaging Note. One VMS-Mustache walk of `studies` (the bilddiagnostik
+ * array, or the single study object). Sections replace `#if (or …)` / `#each`.
+ * Laterality is the source value; the old helper lowercased it.
+ */
+const IMAGING_NOTE =
+  "{{#studies}}{{#bilddiagnostiskt_resultat}}{{#typ_av_undersökning}}{{[|value]}}{{[|other]}}, {{#../anatomisk_lokalisation_för_undersökning}}{{[|value]}}{{/../anatomisk_lokalisation_för_undersökning}}\n{{/typ_av_undersökning}}{{#datum}}{{[|value]}}\n{{/datum}}{{#bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}{{#anatomisk_lokalisation_misstänkt_primärtumör}}{{#namn_på_kroppsställe}}Misstänkt primärtumör: {{[|value]}}{{[|other]}}\n{{/namn_på_kroppsställe}}{{/anatomisk_lokalisation_misstänkt_primärtumör}}{{^anatomisk_lokalisation_misstänkt_primärtumör}}{{#kommentar}}Misstänkt primärtumör:\n{{/kommentar}}{{/anatomisk_lokalisation_misstänkt_primärtumör}}{{#fysiska_dimensioner}}{{#diameter_största_tumör}}Diameter största tumör: {{[|magnitude]}}{{[|unit]}}\n{{/diameter_största_tumör}}{{/fysiska_dimensioner}}{{#multifokalitet}}Multifokal: {{[|value]}}\n{{/multifokalitet}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}{{#bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0]}}\nMisstänkta lymfkörtelmetastaser:\n{{/bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0]}}{{#bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}{{#anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser}}{{#namn_på_kroppsställe}}{{[|value]}}{{[|other]}} {{/namn_på_kroppsställe}}{{#lateralitet}}{{[|value]}}{{/lateralitet}}\n{{/anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}{{#bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0]}}\nMisstänkta fjärrmetastaser:\n{{/bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0]}}{{#bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}{{#anatomisk_lokalisation_misstänkta_fjärrmetastaser}}{{#namn_på_kroppsställe}}{{[|value]}}{{[|other]}} {{/namn_på_kroppsställe}}{{#lateralitet}}{{[|value]}}{{/lateralitet}}\n{{/anatomisk_lokalisation_misstänkta_fjärrmetastaser}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}{{#kommentar}}\nÖvergripande kommentar: {{[|value]}}\n{{/kommentar}}{{/bilddiagnostiskt_resultat}}{{#kompletterande_bilddiagnostik_hjärna}}{{#datum}}\nKompletterande bilddiagnostik hjärna: {{[|value]}}\n{{/datum}}{{#typ_av_undersökning}}{{#[|other]}}Typ av undersökning: {{[|other]}}\n{{/[|other]}}{{^[|other]}}{{#[|value]}}Typ av undersökning: {{[|value]}}\n{{/[|value]}}{{/[|other]}}{{/typ_av_undersökning}}{{#antal_förekomster_av_ett_observerat_fynd}}{{#antal_lesioner_i_hjärnan}}Antal funna metastaser hjärna: {{[|value]}}\n{{/antal_lesioner_i_hjärnan}}{{/antal_förekomster_av_ett_observerat_fynd}}{{#kommentar}}Kommentar: {{[|value]}}\n{{/kommentar}}{{/kompletterande_bilddiagnostik_hjärna}}{{/studies}}";
 
 export function lungMdtDecisionSheets(): SheetDocument[] {
   return [
@@ -38,6 +47,9 @@ export function lungMdtDecisionSheets(): SheetDocument[] {
       ["Ultraljud", "4829"],
       ["—", "59"],
     ], 1, 2),
+    firstValue("imaging_note", ["ready", "note"], [
+      ["—", IMAGING_NOTE],
+    ], 1, 0),
     firstValue("smoking_note", ["status", "snippet"], [
       ["Har aldrig rökt", "{{status}}"],
       [
@@ -45,51 +57,87 @@ export function lungMdtDecisionSheets(): SheetDocument[] {
         "{{status}} ({{typ}})\n{{#paketår}}Paketår: {{.}}\n{{/paketår}}{{#slutdatum}}Slutade: {{.}}\n{{/slutdatum}}{{#kommentar}}Kommentar: {{.}}\n{{/kommentar}}",
       ],
     ], 1, 1),
-    firstValue("treatment_connector", ["relation", "has_huvud", "snippet"], [
-      ["Adjuvant", "true", "Följt av"],
-      ["Neoadjuvant", "true", "Föregått av"],
-      ["Perioperativ", "true", "Rekommenderas också tilläggsbehandling i form av"],
-      ["—", "true", "Patienten rekommenderas"],
-      ["Adjuvant", "false", "Följt av adjuvant behandling."],
-      ["—", "—", ""],
-    ], 2, 5),
-    firstValue("regimen_phrase", ["has_regim", "has_antal", "has_annan", "snippet"], [
-      ["true", "true", "—", " enligt regim {{regim}}, {{antal_kurer}} kurer."],
-      ["true", "—", "—", " enligt regim {{regim}}."],
-      ["—", "true", "—", ", {{antal_kurer}} kurer."],
-      ["—", "—", "true", " enligt regim {{annan_regim}}."],
-      ["—", "—", "—", "."],
-    ], 3, 4),
+    // Regimen suffix. `style` only changes the antal-only row (comma vs space);
+    // the production script uses both. Every non-empty suffix ends with ". ".
+    firstValue(
+      "regimen_phrase",
+      ["style", "has_regim", "has_antal", "has_annan", "has_typ", "snippet"],
+      [
+        ["—", "true", "true", "—", "—", " enligt regim {{regim}}, {{antal_kurer}} kurer. "],
+        ["—", "true", "—", "—", "—", " enligt regim {{regim}}. "],
+        ["comma", "—", "true", "—", "—", ", {{antal_kurer}} kurer. "],
+        ["space", "—", "true", "—", "—", " {{antal_kurer}} kurer. "],
+        ["—", "—", "—", "true", "—", " enligt regim {{annan_regim}}. "],
+        ["—", "—", "—", "—", "true", ". "],
+        ["—", "—", "—", "—", "—", ""],
+      ],
+      5,
+      6,
+    ),
     firstValue("dose_phrase", ["has_fraktion", "has_total", "snippet"], [
       ["true", "true", "Fraktionsdos: {{fraktion}} {{fraktion_unit}}, Totaldos: {{total}} {{total_unit}}."],
       ["true", "—", "Fraktionsdos: {{fraktion}} {{fraktion_unit}}."],
       ["—", "true", "Totaldos: {{total}} {{total_unit}}."],
       ["—", "—", ""],
     ], 2, 3),
+    // Lowercased form, only when the type is Kemoradioterapi and a form is filled.
     firstValue("chemoradiation_form", ["typ", "has_form", "snippet"], [
-      ["Kemoradioterapi", "true", "{{form}} "],
+      ["Kemoradioterapi", "true", "{{form_l}} "],
       ["—", "—", ""],
     ], 2, 1),
+    firstValue("follow_glue", ["relation", "snippet"], [
+      ["Adjuvant", "Följt av"],
+      ["Neoadjuvant", "Föregått av"],
+      ["Perioperativ", "Rekommenderas också tilläggsbehandling i form av"],
+      ["—", "Patienten rekommenderas"],
+    ], 1, 3),
+    // intention + huvud + relation, and the tillägg type is absent.
+    firstValue("relation_tail", ["relation", "snippet"], [
+      ["Adjuvant", "Följt av adjuvant behandling."],
+      ["Neoadjuvant", "Föregått av neoadjuvant behandling."],
+      ["Perioperativ", "Rekommenderas också perioperativ behandling."],
+      ["—", "Relation till huvudbehandling: {{relation_l}}."],
+    ], 1, 3),
+    // huvud + relation, no intention and no tillägg type. Perioperativ has no period.
+    firstValue("huvud_relation_tail", ["relation", "snippet"], [
+      ["Adjuvant", "Följt av adjuvant behandling."],
+      ["Neoadjuvant", "Föregått av neoadjuvant behandling."],
+      ["Perioperativ", "Rekommenderas också perioperativ tilläggsbehandling."],
+      ["—", ""],
+    ], 1, 3),
+    firstValue("intention_closing", ["intention", "snippet"], [
+      ["Best supportive care (BSC)", " {{intention}}."],
+      ["—", " {{intention_l}} behandling."],
+    ], 1, 1),
+    // Presence combination of intention / huvud / relation / tillägg. FIRST, most
+    // specific row wins. Display words arrive already lowercased.
     firstValue(
       "treatment_frame",
       ["has_intention", "has_huvud", "has_relation", "has_tillägg", "snippet"],
       [
-        [
-          "true",
-          "true",
-          "true",
-          "true",
-          "Patienten rekommenderas {{intention}} {{form}}{{huvud}}{{regimen}} {{connector}} {{relation}} {{tillägg}}",
-        ],
-        ["true", "true", "—", "—", "Patienten rekommenderas {{intention}} {{form}}{{huvud}}{{regimen}}"],
-        ["—", "true", "—", "—", "Patienten rekommenderas {{form}}{{huvud}}{{regimen}}"],
-        ["true", "—", "—", "—", "Patienten rekommenderas {{intention}}."],
-        ["—", "—", "true", "true", "{{connector}} {{relation}} {{tillägg}}"],
+        ["true", "true", "true", "true", "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} {{follow_glue}} {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"],
+        ["false", "true", "true", "true", "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} {{follow_glue}} {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"],
+        ["true", "false", "true", "true", "Patienten rekommenderas {{intention_l}} behandling. {{follow_glue}} {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"],
+        ["false", "false", "true", "true", "Patienten rekommenderas {{relation_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"],
+        ["true", "true", "false", "true", "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} Tillsammans med {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"],
+        ["true", "true", "true", "false", "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}} {{relation_tail}}"],
+        ["true", "true", "false", "false", "Patienten rekommenderas {{intention_l}} {{huvud_form}}{{huvud_typ}}{{huvud_regimen_comma}}{{huvud_dose}}"],
+        ["true", "false", "false", "true", "Patienten rekommenderas {{intention_l}} {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_comma}}{{tillägg_dose}}"],
+        ["true", "false", "true", "false", "Patienten rekommenderas {{intention_l}} {{relation_l}} behandling."],
+        ["false", "true", "false", "true", "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_space}}{{huvud_dose}} Tillsammans med {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_space}}{{tillägg_dose}}"],
+        ["false", "true", "true", "false", "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_space}}{{huvud_dose}} {{huvud_relation_tail}}"],
+        ["false", "true", "false", "false", "Patienten rekommenderas {{huvud_form}}{{huvud_typ}}{{huvud_regimen_space}}{{huvud_dose}}"],
+        ["false", "false", "false", "true", "Patienten rekommenderas {{tillägg_form}}{{tillägg_typ}}{{tillägg_regimen_space}}{{tillägg_dose}}"],
+        ["false", "false", "true", "false", "Patienten rekommenderas {{relation_l}} tilläggsbehandling."],
+        ["true", "false", "false", "false", "Patienten rekommenderas{{intention_closing}}"],
         ["—", "—", "—", "—", ""],
       ],
       4,
-      5,
+      15,
     ),
+    firstValue("treatment_note", ["ready", "note"], [
+      ["—", "{{sentence}}{{#huvud_kommentar}}\nDetaljer om huvudbehandling: {{.}}\n{{/huvud_kommentar}}{{#tillägg_kommentar}}\nDetaljer om tilläggsbehandling: {{.}}\n{{/tillägg_kommentar}}{{#strategi_kommentar}}\nKommentar om behandlingsstrategi: {{.}}\n{{/strategi_kommentar}}{{#vidare}}\nVidare utredning: {{.}}\n{{/vidare}}"],
+    ], 1, 0),
   ];
 }
 

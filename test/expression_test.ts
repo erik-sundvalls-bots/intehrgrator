@@ -1,5 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { parseExpression, serialize, validateExpressionSource } from "@intehrgrator/core/expression/mod.ts";
+import { createSourceContext, evaluate } from "@intehrgrator/core/source/query_runtime.ts";
 
 Deno.test("expression parse and serialize round-trip", () => {
   const src = 'trim(xpathNumber("/vitals[1]/systolic"))';
@@ -22,6 +23,19 @@ Deno.test("lists_getIndex is a Mapping Expression builtin", () => {
   const ast = parseExpression(src);
   assertEquals(serialize(ast), src);
   assertEquals(validateExpressionSource(src), null);
+});
+
+Deno.test("change_case folds display text and leaves a missing path empty", () => {
+  const src = 'change_case(xpathString("$.typ"), "LOWERCASE")';
+  assertEquals(serialize(parseExpression(src)), src);
+  const present = createSourceContext(JSON.stringify({ typ: "Strålbehandling" }), "json");
+  const absent = createSourceContext(JSON.stringify({}), "json");
+  assertEquals(evaluate(src, present, "string"), "strålbehandling");
+  assertEquals(evaluate(src, absent, "string"), "");
+  assertEquals(
+    evaluate('change_case("Best supportive care (BSC)", "LOWERCASE")', present, "string"),
+    "best supportive care (bsc)",
+  );
 });
 
 Deno.test("switch and literal expressions", () => {

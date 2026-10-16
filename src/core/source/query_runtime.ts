@@ -103,6 +103,8 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
       switch (ast.name) {
         case "trim":
           return String(args[0] ?? "").trim();
+        case "change_case":
+          return changeCase(args[0], String(args[1] ?? "LOWERCASE"));
         case "concat":
           return args.map(String).join("");
         case "round":
@@ -338,6 +340,20 @@ function parseJsonAuthoringPath(expr: string): Array<string | number> {
     i = end;
   }
   return segments;
+}
+
+/** Blockly `text_changeCase`. Null stays empty so a missing source path does not print "null". */
+function changeCase(value: unknown, mode: string): string {
+  if (value == null) return "";
+  const text = String(value);
+  if (mode === "UPPERCASE") return text.toUpperCase();
+  if (mode === "TITLECASE") {
+    return text.replace(
+      /\S+/g,
+      (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    );
+  }
+  return text.toLowerCase();
 }
 
 function coerceReturn(value: unknown, returnType: string): unknown {

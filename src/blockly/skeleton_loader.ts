@@ -1,7 +1,13 @@
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
 import type { AllowedOrdinal, AllowedValue, MappingLoop, MappingModel, SkeletonNode } from "../types/mod.ts";
 import { AUTO_FIXED_LOCATABLE_ATTRS } from "../core/rm_mandatory.ts";
-import { attributesFor, blockTypeForRm, isDataValueType } from "../core/rm_meta.ts";
+import {
+  attributesFor,
+  baseRmTypeName,
+  blockTypeForRm,
+  isAbstractType,
+  isDataValueType,
+} from "../core/rm_meta.ts";
 import { parseExpression } from "../core/expression/mod.ts";
 import { skeletonNodeForOptionalRm, isRepeatingMultiplicity } from "../core/skeleton/generate_skeleton.ts";
 import { termSetById, termSetForMandatedCode, termSetForRmAttribute, TERM_PICK_NONE } from "../core/openehr_term_catalog.ts";
@@ -508,6 +514,13 @@ export function attachOptionalRmChild(
   if (typeof parent.addInput_ === "function") {
     parent.addInput_(insertion.attributeName);
   }
+  // Abstract classes (UID_BASED_ID, PARTY_PROXY, ITEM_STRUCTURE, …) have no
+  // single legal instance. Leave the mouth empty so the author picks a subtype.
+  if (isAbstractType(baseRmTypeName(insertion.rmType))) {
+    refreshBlockLayout(parent as BlockSvg);
+    refreshWorkspaceConstraints(workspace);
+    return null;
+  }
   const parentSlotId = parent.type === "element"
     ? elementContainerSlotId(parent)
     : (parent.getFieldValue("SLOT_ID") || "");
@@ -536,6 +549,11 @@ export function attachOptionalRmChild(
     ? rmAttributeInputName(insertion.attributeName)
     : optionalRmInputName(insertion.attributeName);
   connectAttributeChildren(parent, inputName, [child]);
+  // A built-in code set (null_flavour, participation mode, …) is the chooser.
+  // Do not pre-select a flavour.
+  if (isTermPickBlock(child) && child.getField("CODE")) {
+    child.setFieldValue(TERM_PICK_NONE, "CODE");
+  }
   refreshBlockLayout(parent as BlockSvg);
   refreshWorkspaceConstraints(workspace);
   return child;
@@ -1227,6 +1245,33 @@ function connectStatementChain(
   }
 }
 
+function connectInto(parent: Blockly.Block, inputName: string, child: Blockly.Block): void {
+  const input = parent.getInput(inputName);
+  if (!input?.connection || !child.outputConnection) return;
+  const existing = input.connection.targetBlock();
+  if (existing && existing !== child) existing.dispose(false);
+  try {
+    input.connection.connect(child.outputConnection);
+  } catch {
+    const prev = input.connection.getCheck();
+    input.setCheck(null);
+    try {
+      input.connection.connect(child.outputConnection);
+    } finally {
+      if (prev) input.setCheck(prev);
+    }
+  }
+}
+
+function showOptionalDvField(block: Blockly.Block, attr: string): void {
+  if (block.getInput(`FLD_${attr}`) || block.getInput(`OPTFLD_${attr}`)) return;
+  block.extraDvFields_ = block.extraDvFields_ ?? [];
+  if (!block.extraDvFields_.includes(attr)) {
+    block.extraDvFields_.push(attr);
+    (block as Blockly.Block & { updateDvFields_?: () => void }).updateDvFields_?.();
+  }
+}
+
 function attachExpressionToPartyName(
   workspace: Blockly.Workspace,
   party: Blockly.Block,
@@ -1236,26 +1281,33 @@ function attachExpressionToPartyName(
   const exprBlock = expressionToBlock(workspace, expression, returnType);
   if (exprBlock.type === "maps_create_with") {
     const count = Number((exprBlock as Blockly.Block & { itemCount_?: number }).itemCount_ ?? 0);
+    let nameChild: Blockly.Block | null = null;
+    let idChild: Blockly.Block | null = null;
+    let typeChild: Blockly.Block | null = null;
     for (let i = 0; i < count; i++) {
       const key = String(exprBlock.getFieldValue(`KEY${i}`) ?? "");
       const child = exprBlock.getInputTargetBlock(`VAL${i}`);
-      if (key !== "name" || !child || child.isShadow()) continue;
+      if (!child || child.isShadow()) continue;
+      if (key !== "name" && key !== "id" && key !== "type") continue;
       child.outputConnection?.disconnect();
-      const input = party.getInput(rmAttributeInputName("name"));
-      if (!input?.connection || !child.outputConnection) continue;
-      const existing = input.connection.targetBlock();
-      if (existing) existing.dispose(false);
-      try {
-        input.connection.connect(child.outputConnection);
-      } catch {
-        const prev = input.connection.getCheck();
-        input.setCheck(null);
-        try {
-          input.connection.connect(child.outputConnection);
-        } finally {
-          if (prev) input.setCheck(prev);
-        }
-      }
+      if (key === "name") nameChild = child;
+      else if (key === "id") idChild = child;
+      else typeChild = child;
+    }
+    if (nameChild) connectInto(party, rmAttributeInputName("name"), nameChild);
+    if (idChild || typeChild) {
+      const identifier = workspace.newBlock("dv_identifier");
+      showOptionalDvField(identifier, "type");
+      if (idChild) connectInto(identifier, "FLD_id", idChild);
+      if (typeChild) connectInto(identifier, "OPTFLD_type", typeChild);
+      const list = workspace.newBlock("lists_create_with") as Blockly.Block & {
+        itemCount_: number;
+        updateShape_: () => void;
+      };
+      list.itemCount_ = 1;
+      list.updateShape_();
+      connectInto(list, "ADD0", identifier);
+      connectInto(party, rmAttributeInputName("identifiers"), list);
     }
     exprBlock.dispose(false);
     return;

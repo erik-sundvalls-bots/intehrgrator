@@ -91,6 +91,11 @@ export function blockToExpression(block: Block | null): string | null {
       const inner = blockToExpression(block.getInputTargetBlock("TEXT"));
       return inner ? `trim(${inner})` : 'trim("")';
     }
+    case "text_changeCase": {
+      const inner = blockToExpression(block.getInputTargetBlock("TEXT")) ?? '""';
+      const mode = String(block.getFieldValue("CASE") ?? "LOWERCASE");
+      return `change_case(${inner}, ${JSON.stringify(mode)})`;
+    }
     case "text_join": {
       const parts: string[] = [];
       for (let i = 0; i < (block.itemCount_ ?? 2); i++) {

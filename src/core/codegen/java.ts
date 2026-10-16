@@ -166,6 +166,16 @@ function freshIdent(ctx: JavaEmitContext, rmType: string): string {
   return JAVA_RESERVED.has(ident) ? `_${ident}` : ident;
 }
 
+function emitChangeCaseJava(text: string, mode: ExprAst | undefined): string {
+  const value = `asString(${text})`;
+  const which = mode?.kind === "literal" ? String(mode.value) : "LOWERCASE";
+  if (which === "UPPERCASE") return `${value}.toUpperCase()`;
+  if (which === "TITLECASE") {
+    return `java.util.Arrays.stream(${value}.trim().split("\\\\s+")).map(w -> w.isEmpty() ? w : Character.toUpperCase(w.charAt(0)) + w.substring(1).toLowerCase()).collect(java.util.stream.Collectors.joining(" "))`;
+  }
+  return `${value}.toLowerCase()`;
+}
+
 export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
   switch (ast.kind) {
     case "literal":
@@ -182,6 +192,8 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
       switch (ast.name) {
         case "trim":
           return `asString(${args[0]}).trim()`;
+        case "change_case":
+          return emitChangeCaseJava(args[0] ?? '""', ast.args[1]);
         case "concat":
           return args.map((a) => `asString(${a})`).join(" + ");
         case "round":

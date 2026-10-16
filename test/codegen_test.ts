@@ -744,6 +744,15 @@ export function convertSourceToComposition() {
   assertEquals(out, "Cel,[degF]");
 });
 
+Deno.test("typescript codegen folds change_case instead of treating it as a path", () => {
+  const ctx = createTsEmitContext();
+  const src = emitTsExpression(
+    parseExpression('change_case(xpathString("$.typ"), "LOWERCASE")'),
+    ctx,
+  );
+  assertEquals(src, 'String(xpathString("$.typ") ?? "").toLowerCase()');
+});
+
 Deno.test("typescript codegen emits lists_getIndex as array access, not xpathString", () => {
   const ctx = createTsEmitContext();
   const src = emitTsExpression(

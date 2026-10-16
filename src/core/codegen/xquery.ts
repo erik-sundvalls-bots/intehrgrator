@@ -600,6 +600,10 @@ function emitSlot(slot: MappingSlot, env: XQueryEmitEnv = {}, needsRm = true): s
   ];
 }
 
+function emitChangeCaseXq(text: string, mode: string): string {
+  return `(let $t := string(${text}) return if (${mode} eq "UPPERCASE") then upper-case($t) else if (${mode} eq "TITLECASE") then string-join(for $w in tokenize($t, "\\s+") return concat(upper-case(substring($w, 1, 1)), lower-case(substring($w, 2))), " ") else lower-case($t))`;
+}
+
 /** Map Mapping Expression AST → XQuery 3.1 fragment (context variable `$source`). */
 export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
   const sourceVar = env.sourceVar ?? "$source";
@@ -616,6 +620,8 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
       switch (ast.name) {
         case "trim":
           return `normalize-space(${args[0]})`;
+        case "change_case":
+          return emitChangeCaseXq(args[0] ?? '""', args[1] ?? '"LOWERCASE"');
         case "concat":
           return `concat(${args.join(", ")})`;
         case "round":

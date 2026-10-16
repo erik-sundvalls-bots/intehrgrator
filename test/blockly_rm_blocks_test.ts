@@ -716,6 +716,75 @@ Deno.test("Optional RM Insertion attaches a typed child without clearing the can
   workspace.dispose();
 });
 
+Deno.test("optional code-set attribute scaffolds a built-in term pick with no flavour chosen", () => {
+  ensureBlocks();
+  const workspace = new Blockly.Workspace();
+  const element = workspace.newBlock("element");
+  element.setFieldValue("ELEMENT", "RM_TYPE");
+  element.setFieldValue("el/value", "SLOT_ID");
+  const child = attachOptionalRmChild(workspace as unknown as Blockly.WorkspaceSvg, element, {
+    rmType: "DV_CODED_TEXT",
+    attributeName: "null_flavour",
+  });
+  assert(child, "expected built-in null_flavour block");
+  assertEquals(child.type, "term_pick");
+  assertEquals(child.getFieldValue("SET"), "openehr:null_flavours");
+  assertEquals(child.getFieldValue("CODE"), TERM_PICK_NONE);
+  const title = child.getField("NAME");
+  assert(isSkeletonTitleField(title));
+  assertEquals(title.getValue(), "built-in");
+  assertEquals(child.getParent()?.id, element.id);
+  workspace.dispose();
+});
+
+Deno.test("optional abstract RM attribute opens an empty mouth", () => {
+  ensureBlocks();
+  const workspace = new Blockly.Workspace();
+  const composition = workspace.newBlock("composition");
+  composition.setFieldValue("COMPOSITION", "RM_TYPE");
+  composition.setFieldValue("comp", "SLOT_ID");
+  const child = attachOptionalRmChild(workspace as unknown as Blockly.WorkspaceSvg, composition, {
+    rmType: "UID_BASED_ID",
+    attributeName: "uid",
+    label: "Uid",
+  });
+  assertEquals(child, null);
+  const mouth = composition.getInput(optionalRmInputName("uid")) ??
+    composition.getInput(rmAttributeInputName("uid"));
+  assert(mouth, "expected uid mouth");
+  assertEquals(mouth.connection?.targetBlock() ?? null, null);
+  assertEquals(
+    workspace.getAllBlocks(false).some((block) => block.type === "uid_based_id"),
+    false,
+  );
+  workspace.dispose();
+});
+
+Deno.test("optional concrete RM still scaffolds, without an abstract descendant", () => {
+  ensureBlocks();
+  const workspace = new Blockly.Workspace();
+  const observation = workspace.newBlock("observation");
+  observation.setFieldValue("OBSERVATION", "RM_TYPE");
+  observation.setFieldValue("obs", "SLOT_ID");
+  const child = attachOptionalRmChild(workspace as unknown as Blockly.WorkspaceSvg, observation, {
+    rmType: "HISTORY",
+    attributeName: "state",
+    label: "State",
+  });
+  assert(child, "expected HISTORY scaffold for state");
+  assertEquals(child.getFieldValue("RM_TYPE"), "HISTORY");
+  const descendants = child.getDescendants(false);
+  assertEquals(
+    descendants.some((block) => String(block.getFieldValue("RM_TYPE") || "").toUpperCase() === "EVENT"),
+    false,
+  );
+  assert(
+    descendants.some((block) => String(block.getFieldValue("RM_TYPE") || "").toUpperCase() === "DV_DATE_TIME"),
+    "origin stays on the concrete HISTORY scaffold",
+  );
+  workspace.dispose();
+});
+
 Deno.test("term_pick can be configured to a composition category code", () => {
   ensureBlocks();
   const set = termSetById("openehr:composition_category");

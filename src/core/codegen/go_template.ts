@@ -422,6 +422,12 @@ function blockNodeToExpression(block: BlockNode): string | null {
       const expr = inner ? blockNodeToExpression(inner) : '""';
       return expr ? `trim(${expr})` : null;
     }
+    case "text_changeCase": {
+      const inner = inputChild(block.inputs?.TEXT);
+      const expr = inner ? blockNodeToExpression(inner) ?? '""' : '""';
+      const mode = String(block.fields?.CASE ?? "LOWERCASE");
+      return `change_case(${expr}, ${JSON.stringify(mode)})`;
+    }
     case "text_join": {
       const count = block.extraState?.itemCount ?? 2;
       const parts: string[] = [];
@@ -855,6 +861,12 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         }
         case "trim":
           return `(${args[0]} | trim)`;
+        case "change_case": {
+          const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
+          if (mode === "UPPERCASE") return `(${args[0]} | upper)`;
+          if (mode === "TITLECASE") return `(${args[0]} | title)`;
+          return `(${args[0]} | lower)`;
+        }
         case "concat":
           return args.join("");
         case "round":

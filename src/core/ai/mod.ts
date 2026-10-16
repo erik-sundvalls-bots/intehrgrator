@@ -1272,6 +1272,13 @@ function blockJsonToExpression(
         : '""';
       return `trim(${inner ?? '""'})`;
     }
+    case "text_changeCase": {
+      const inner = child("TEXT")
+        ? blockJsonToExpression(child("TEXT")!, rewriteSourcePath)
+        : '""';
+      const mode = String(fields.CASE ?? "LOWERCASE");
+      return `change_case(${inner ?? '""'}, ${JSON.stringify(mode)})`;
+    }
     case "text_join": {
       const itemCount = Number(
         (block.extraState as { itemCount?: number } | undefined)?.itemCount ??
