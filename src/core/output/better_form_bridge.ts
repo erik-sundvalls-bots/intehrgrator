@@ -1,14 +1,9 @@
 /**
  * Optional Better Form Renderer bridge (kintegrate form-viewer absorption).
  *
- * Licensed Better renderer assets are installed locally via
- * `deno task setup:better-forms` into `.local/better-form-renderer` and copied
- * into `dist/vendor/better` at build time. They are never committed.
- * The web bundle learns availability from the build (`betterRendererBundled`),
- * not from a runtime fetch: a missing renderer file is a 404 in the console.
- *
- * This module is the seam for Push/Pull/Sync Mode against a form viewer window
- * without coupling Mapping Model / Test Run to proprietary APIs.
+ * The viewer shell ships with the app. The licensed renderer files do not:
+ * the user uploads them in the viewer, and the browser keeps them. This module
+ * only posts Push/Pull messages. It does not fetch proprietary assets.
  */
 
 export interface BetterFormBridge {

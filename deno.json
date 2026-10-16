@@ -57,7 +57,6 @@
   },
   "tasks": {
     "vendor": "deno run -A scripts/vendor-ehrtslib.ts",
-    "setup:better-forms": "deno run -A scripts/setup-better-forms.ts",
     "convert:kintegrate-hbs": "deno run -A scripts/convert-kintegrate-hbs-to-blockly.ts",
     "test": "deno test -A --no-check --parallel --ignore=test/ui test/",
     "test:xquery-engine": "deno test -A --no-check test/xquery_engine_test.ts",
@@ -65,7 +64,7 @@
     "test:all": "deno task test && deno task test:ui",
     "wasm:go-template": "deno run -A scripts/build-go-template-wasm.ts",
     "lint": "deno lint src test scripts",
-    "check": "deno check src/**/*.ts web/main.ts scripts/*.ts",
+    "check": "deno check src/**/*.ts web/main.ts web/better_form_viewer.ts scripts/*.ts",
     "build": "deno run -A scripts/build.ts && deno run -A scripts/stage-desktop-www.ts",
     "dev": "deno run -A scripts/dev-server.ts",
     "desktop": "deno task build && deno desktop -A --no-check --config deno.json --backend webview --hmr src/desktop/main.ts",

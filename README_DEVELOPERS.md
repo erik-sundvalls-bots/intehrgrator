@@ -66,7 +66,6 @@ The UI **green-path** (`test/ui/green_path_test.ts`) walks load → Click-to-Map
 | `deno task release -- --version X.Y.Z` | Bump, tag, push; CI publishes desktop + pinned Pages |
 | `deno task release:no-test -- --version X.Y.Z` | Same as `release`, skip local unit tests (`--no-test`); CI still tests the tag |
 | `deno task wasm:go-template` | Rebuild Go template WASM in `web/wasm/` |
-| `deno task setup:better-forms` | Licensed Better Form renderer assets (not committed) |
 
 ### GitHub Pages
 

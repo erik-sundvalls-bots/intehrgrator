@@ -360,7 +360,7 @@ ehrtslib `TemplateValidator` check of each openEHR RM fragment in the **Product 
 _Avoid_: copying Source Schema mismatch onto Conversion Test Run tabs, RM-only validation when an OPT is loaded, validating MIME/glue text as a Composition
 
 **Better Form Bridge**:
-Optional seam for Push/Pull against a licensed Better Form Renderer viewer (assets from Kintegrate via `deno task setup:better-forms`, never committed). See `docs/KINTEGRATE_MIGRATION.md`.
+Optional seam for Push/Pull against a licensed Better Form Renderer the user supplies in the browser. The renderer is not part of the application. See `docs/adr/0012-better-renderer-browser-cache.md`.
 _Avoid_: formTestApi (kintegrate name for the form viewer API)
 
 **Project Bundle**:

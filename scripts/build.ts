@@ -35,14 +35,6 @@ async function resolveBuildId(): Promise<string> {
 const buildId = await resolveBuildId();
 const buildTimestamp = new Date().toISOString();
 
-let betterRendererAvailable = false;
-try {
-  await Deno.stat(join(root, ".local", "better-form-renderer", "form-renderer.js"));
-  betterRendererAvailable = true;
-} catch (error) {
-  if (!(error instanceof Deno.errors.NotFound)) throw error;
-}
-
 await ensureDir(outDir);
 
 const xmlEmbedPlugin: esbuild.Plugin = {
@@ -82,8 +74,19 @@ await esbuild.build({
     "process.env.NODE_ENV": '"production"',
     "__BUILD_ID__": JSON.stringify(buildId),
     "__BUILD_TIMESTAMP__": JSON.stringify(buildTimestamp),
-    "__BETTER_RENDERER_AVAILABLE__": betterRendererAvailable ? "true" : "false",
   },
+});
+
+await esbuild.build({
+  absWorkingDir: root,
+  plugins: [...denoPlugins({ configPath })],
+  entryPoints: ["web/better_form_viewer.ts"],
+  bundle: true,
+  outfile: "dist/better_form_viewer.js",
+  format: "esm",
+  target: "es2022",
+  platform: "browser",
+  sourcemap: true,
 });
 
 await esbuild.build({
@@ -155,15 +158,5 @@ await copy(join(root, "test", "fixtures"), join(outDir, "test", "fixtures"), {
   overwrite: true,
   recursive: true,
 });
-const localBetterRenderer = join(root, ".local", "better-form-renderer");
-try {
-  await Deno.stat(localBetterRenderer);
-  const betterOut = join(outDir, "vendor", "better");
-  await ensureDir(betterOut);
-  await copy(localBetterRenderer, betterOut, { overwrite: true, recursive: true });
-} catch (error) {
-  if (!(error instanceof Deno.errors.NotFound)) throw error;
-}
-
 esbuild.stop();
 console.log(`Built dist/ (${buildId} @ ${buildTimestamp})`);

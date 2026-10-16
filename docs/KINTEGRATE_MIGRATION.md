@@ -14,7 +14,7 @@ Kintegrate can be retired. Architectural seams are documented in
 | Right live output                                                     | **Conversion Test Run(s)** via Target instance format / canvas `handlebars()` |
 | free-text / CSV / HTML / XML produced by templates                    | **Target instance format** `free-form` (template is the conversion) or schema targets with slot mapping                       |
 | openEHR OPT / Web Template as *target*                                | **Target instance format** `openehr-template` (unchanged primary clinical path)                                               |
-| Better Form Renderer push/pull/sync                                   | Optional **Better Form Bridge** (`src/core/output/better_form_bridge.ts`); licensed assets via `deno task setup:better-forms` |
+| Better Form Renderer push/pull/sync                                   | Optional **Better Form Bridge** (`src/core/output/better_form_bridge.ts`). The user uploads the licensed files in the viewer; they stay in that browser ([ADR 0012](adr/0012-better-renderer-browser-cache.md)) |
 | `window.formTestApi`                                                  | **Workbench Test API** (`?testMode=1`) for mapping; Better `formTestApi` remains inside the optional form viewer shell        |
 
 
@@ -53,19 +53,17 @@ Handlebars editor is selected, Click-to-Map falls through to Listening Mode.
 
 ## Better Form Renderer (licensed, optional)
 
-```bash
-deno task setup:better-forms
-# or: deno task setup:better-forms C:\lokalt\dev\kintegrate
-```
+File → **Open Better form**. The viewer asks for the same three files
+Kintegrate asked the user to upload: `form-renderer.js`, `styles.css`, and
+`styles-theme.css`, from a Better Platform install the user already has.
+Nothing in the intEHRgrator repo or build contains those files. The browser
+stores them in a Cache API entry that survives a normal reload and is not
+part of the Project Bundle. **Clear renderer** in the viewer removes them.
 
-Copies `form-renderer.js`, `styles.css`, and `styles-theme.css` from
-Kintegrate's `src/vendor/` into git-ignored `.local/better-form-renderer/`.
-`deno task build` copies them to `dist/vendor/better/` when present.
-
-The Better Form Bridge posts `intehrgrator:better-form-*` messages to an
-optional viewer window. Full form-viewer HTML + Cypress form-test generator
-port from Kintegrate remains a follow-up; the seam is in place so Mapping Model
-and Host stay free of proprietary types.
+The Better Form Bridge posts `intehrgrator:better-form-*` messages to that
+viewer window. Full form-viewer HTML + Cypress form-test generator port from
+Kintegrate remains a follow-up; the seam is in place so Mapping Model and Host
+stay free of proprietary types. Decision: [ADR 0012](adr/0012-better-renderer-browser-cache.md).
 
 ## Migration checklist for existing Kintegrate workspaces
 
@@ -74,7 +72,7 @@ and Host stay free of proprietary types.
 3. Open the existing `.hbs` as a **free-form** Target instance format (seeds Conversion start → Text document → `text_handlebars` with source-root context).
 4. Add an Example Instance and **Run Test** — output should match Kintegrate's
   right column for the same helpers/path style.
-5. Optionally install Better renderer assets and open the form bridge when the
+5. Optionally open **Open Better form** and upload the licensed renderer when the
   conversion feeds a Better form.
 
 

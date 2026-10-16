@@ -32,5 +32,5 @@ conversion script language whose output is often not openEHR.
   openEHR.
 - Handlebars is not assumed to produce openEHR.
 - Project Bundles persist a format-neutral `target`.
-- Better Form Renderer binaries remain optional, locally installed licensed
-  assets and are never committed.
+- Better Form Renderer binaries stay out of the repo and out of the build.
+  The user uploads them into the browser (ADR 0012).

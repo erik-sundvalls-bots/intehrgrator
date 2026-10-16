@@ -6,6 +6,9 @@
  */
 const CACHE_PREFIX = "intehrgrator-";
 const CACHE_NAME = CACHE_PREFIX + (self.registration?.scope ?? "app");
+// Licensed Better renderer. Keep in sync with BETTER_RENDERER_CACHE
+// in src/host/better_renderer_store.ts. Deploys must not wipe it.
+const BETTER_RENDERER_CACHE = "intehrgrator-better-renderer";
 
 const PRECACHE = [
   "./",
@@ -33,7 +36,9 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+          .filter((key) =>
+            key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME && key !== BETTER_RENDERER_CACHE
+          )
           .map((key) => caches.delete(key)),
       );
       await self.clients.claim();
@@ -43,6 +48,7 @@ self.addEventListener("activate", (event) => {
 
 function isAppShellAsset(url) {
   const path = url.pathname;
+  if (path.includes("/vendor/better/")) return false;
   return (
     path.endsWith("/bundle.js") ||
     path.endsWith("/bundle.js.map") ||
@@ -58,6 +64,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Proprietary renderer: browser cache only. Never fall through to the
+  // network — a missing file must not become a build 404 in the console.
+  if (url.pathname.includes("/vendor/better/")) {
+    event.respondWith(betterRendererResponse(request));
+    return;
+  }
+
   // Navigations / HTML / app shell: network first so deploys show up promptly
   // and HTML cannot race ahead of a cache-first bundle.js.
   if (
@@ -71,6 +84,19 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(cacheFirst(request));
 });
+
+async function betterRendererResponse(request) {
+  const cache = await caches.open(BETTER_RENDERER_CACHE);
+  const cached = (await cache.match(request)) || (await cache.match(request.url));
+  if (cached) return cached;
+  return new Response(
+    "Better Form Renderer is not in this browser. Upload it from the form viewer.",
+    {
+      status: 404,
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+    },
+  );
+}
 
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
