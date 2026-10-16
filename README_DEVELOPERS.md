@@ -151,6 +151,7 @@ Bleeding-edge site root (`main` Pages) is not the same as the recommended stable
 | Project persistence | [docs/PROJECT_PERSISTENCE.md](docs/PROJECT_PERSISTENCE.md) |
 | AI suggestion format | [docs/AI_SUGGESTION_FORMAT.md](docs/AI_SUGGESTION_FORMAT.md) |
 | Agent / MCP workflow | [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) |
+| Built-in MCP architecture | [docs/MCP_ARCHITECTURE.md](docs/MCP_ARCHITECTURE.md) |
 | Testing strategy | [docs/TESTING.md](docs/TESTING.md) |
 | UI testing (Playwright harness) | [docs/UI_TESTING.md](docs/UI_TESTING.md) |
 | Planning | [GitHub Issues](https://github.com/regionstockholm/intehrgrator/issues) — see [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) |
@@ -200,7 +201,7 @@ Refresh project skills from the lockfile in `.agents/skills/` when upstream chan
 | **openEHR assistant** | Archetypes, templates, terminology, spec lookup |
 | **intEHRgrator** (local) | `deno task mcp` against a running desktop session, or headless with no `INTEHR_AGENT_URL`. Desktop also accepts `intEHRgrator --headless --load project.intehrgrator`. |
 
-Configure MCP in `.cursor/mcp.json` (see [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) for the desktop URL).
+Configure MCP in `.cursor/mcp.json` (see [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) for the desktop URL). How the built-in MCP, the Agent API and AI chat share one tool set: [docs/MCP_ARCHITECTURE.md](docs/MCP_ARCHITECTURE.md).
 
 ### Issue tracker
 

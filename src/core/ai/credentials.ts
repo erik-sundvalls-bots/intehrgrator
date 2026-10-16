@@ -103,7 +103,7 @@ export function hasAiCredentials(storage: Storage): boolean {
   return loadAiCredentials(storage) != null;
 }
 
-const SUGGESTIONS_SYSTEM =
+export const SUGGESTIONS_SYSTEM =
   "You are an intEHRgrator mapping assistant. Reply with intehrgrator-suggestions JSON version 2 only, in a fenced json block or as raw JSON.";
 
 export interface PostChatCompletionsOptions {

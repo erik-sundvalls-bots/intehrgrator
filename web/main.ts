@@ -1,4 +1,5 @@
 import * as Blockly from "blockly/core";
+import type { SchemaTreeNode } from "../src/types/mod.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
 import { WorkbenchController } from "../src/workbench/controller.ts";
 import { TASK_PROGRESS_OVERLAY_ID, taskProgressInnerHtml } from "../src/workbench/task_progress.ts";
@@ -192,14 +193,22 @@ import { openAgentObserver, updateAgentObserverActivity } from "../src/web/agent
 import { isSemanticBlocklyEvent, summarizeBlocklyEvent } from "../src/workbench/semantic_events.ts";
 import { installImportAiDialog } from "../src/ui/import_ai.ts";
 import {
-  callChatCompletions,
+  type AiChatPanelHandle,
+  type AiChatTurnRequest,
+  type AiChatTurnResult,
+  installAiChatPanel,
+} from "../src/ui/ai_chat_panel.ts";
+import type { ContextChip, ContextChipKind } from "../src/core/ai/chat_context.ts";
+import { isMutatingCallAiTool } from "../src/core/ai/controller_tools.ts";
+import { looksLikeSuggestionsPayload } from "../src/core/ai/mod.ts";
+import {
   clearAiCredentials,
   hasAiCredentials,
   loadAiCredentials,
   saveAiCredentials,
 } from "../src/core/ai/credentials.ts";
 import { AI_PROVIDER_PRESETS, applyAiProviderPreset, findAiProviderPreset } from "../src/core/ai/providers.ts";
-import { runMappingAgentOnController } from "../src/core/ai/mapping_agent.ts";
+import { runMappingAgentOnController, runSuggestionsChatTurn } from "../src/core/ai/mapping_agent.ts";
 import { DEFAULT_GITHUB_TEMPLATE_URL } from "../src/core/clinical_model/github_template.ts";
 import { DEFAULT_GITHUB_EXAMPLES_URL } from "../src/core/source/github_examples.ts";
 import {
@@ -770,6 +779,7 @@ async function bootBlockly(): Promise<void> {
   // leaves the boot defaults block on the canvas, and the next save replaces
   // the stashed project with that one block.
   controller.subscribe(render);
+  controller.subscribe(() => aiChat?.refresh());
   if (localeProject) {
     controller.restoreAfterLocaleChange(localeProject);
   }
@@ -1492,7 +1502,7 @@ bind("btn-load-project", () => void openLoadProjectDialog());
 bind("btn-save-project", () => openSaveAsDialog());
 bind("btn-export-project", () => controller.exportProject());
 bind("btn-import-project", () => void withUndoableDocumentReplace(() => controller.importProject()));
-installImportAiDialog({
+const importAiDialog = installImportAiDialog({
   dialog: requireEl<HTMLDialogElement>("dialog-import-ai"),
   textarea: requireEl<HTMLTextAreaElement>("import-ai-text"),
   report: requireEl("import-ai-report"),
@@ -1505,6 +1515,34 @@ installImportAiDialog({
   copyToClipboard: (text) => host.copyToClipboard(text),
   importText: (text) => controller.importAiSuggestions(text),
 });
+let aiChat: AiChatPanelHandle | null = null;
+/** Document before the last applied AI chat turn, for "Revert last AI turn". */
+let lastAiChatSnapshot: ReturnType<typeof controller.exportDocumentSnapshot> | null = null;
+
+aiChat = installAiChatPanel({
+  panel: requireEl("ai-chat-panel"),
+  stack: requireEl("output-stack"),
+  tabs: requireEl("output-tabs"),
+  storage: localStorage,
+  projectId: () => controller.getState().projectId,
+  hasCredentials: () => hasAiCredentials(localStorage),
+  openCredentials: () => openAiCredentialsDialog(),
+  buildProjectContext: () => controller.buildAiPromptText(lastAiDelivery()),
+  buildRefreshPrompt: () => controller.buildRefreshMergePrompt(),
+  copyToClipboard: (text) => host.copyToClipboard(text),
+  pickTextFile: () => host.pickTextFile(".md,.txt,.json,text/markdown,text/plain,application/json"),
+  fetchText: async (url) => (await host.fetchTextUrl(url)).text,
+  downloadText: (filename, text) => void host.downloadText(filename, text, "application/json"),
+  openImportDialog: (text) => void importAiDialog.open(text),
+  runTurn: (request) => runAiChatTurn(request),
+  revertLastTurn: () => revertLastAiChatTurn(),
+  setStatus: (message) => controller.setStatusMessage(message),
+  formatError: (err) => formatCallAiError(err),
+  onLayout: () => {
+    if (workspace) Blockly.svgResize(workspace);
+  },
+});
+installAddToAiChatMenus();
 installCopyAiMenu();
 installLocalMcpDialog();
 installExampleSetsMenu();
@@ -1605,8 +1643,8 @@ function installCopyAiMenu(): void {
     btn.addEventListener("click", () => {
       const action = btn.dataset.aiAction;
       handle.close();
-      if (action === "call") {
-        void callAiWithPrompt(controller.buildAiPromptText(lastAiDelivery()));
+      if (action === "chat") {
+        aiChat?.open();
       } else if (action === "credentials") {
         openAiCredentialsDialog();
       } else if (action === "local-mcp") {
@@ -2599,7 +2637,8 @@ document.getElementById("refresh-copy-prompt")?.addEventListener("click", () => 
   });
 });
 document.getElementById("refresh-call-ai")?.addEventListener("click", () => {
-  void callAiWithPrompt(controller.buildRefreshMergePrompt());
+  (document.getElementById("dialog-refresh-report") as HTMLDialogElement | null)?.close();
+  aiChat?.prefill(controller.buildRefreshMergePrompt());
 });
 
 interface LocalMcpStatusBody {
@@ -2687,6 +2726,7 @@ function updateCopyAiButtonLabel(): void {
   const messages = uiChrome();
   main.textContent = messages.menuAi;
   main.title = hasAiCredentials(localStorage) ? messages.callAiTitle : messages.copyPromptTitle;
+  aiChat?.refresh();
 }
 
 function callAiAbortSignal(): AbortSignal | undefined {
@@ -2717,17 +2757,6 @@ function formatCallAiError(err: unknown): string {
 function isToolsUnsupportedError(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err);
   return /400/.test(message) && /tool/i.test(message);
-}
-
-function applyCallAiImport(imported: { applied: number; errors: string[] }, extra = ""): void {
-  persistBlocklyCanvas({ summary: "Call AI" });
-  render();
-  controller.setStatusMessage(
-    `Call AI: ${imported.applied} applied · ${imported.errors.length} errors${extra}`,
-  );
-  if (imported.errors.length && !imported.applied) {
-    alert(imported.errors.slice(0, 8).join("\n"));
-  }
 }
 
 function selectedMappingMode(): "tools" | "suggestions" {
@@ -2810,53 +2839,233 @@ function openAiCredentialsDialog(): void {
   dialog.showModal();
 }
 
-async function callAiWithPrompt(prompt: string): Promise<void> {
-  const creds = loadAiCredentials(localStorage);
-  if (!creds) {
-    openAiCredentialsDialog();
-    controller.setStatusMessage("Save AI credentials to Call AI, or use Copy prompt.");
-    return;
+async function runApproveFirstTurn(
+  request: AiChatTurnRequest,
+  creds: NonNullable<ReturnType<typeof loadAiCredentials>>,
+  proxyUrl: string | undefined,
+  signal: AbortSignal | undefined,
+): Promise<AiChatTurnResult> {
+  const result = await runSuggestionsChatTurn({
+    credentials: creds,
+    prompt: request.prompt,
+    history: request.history,
+    proxyUrl,
+    signal,
+  });
+  let note: string | undefined;
+  if (looksLikeSuggestionsPayload(result.text)) {
+    void importAiDialog.open(result.text);
+    note = uiChrome().aiChatApproveHint;
   }
+  return { text: result.text, messages: result.messages, toolCalls: [], revertible: false, note };
+}
+
+async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
+  const creds = loadAiCredentials(localStorage);
+  if (!creds) throw new Error(uiChrome().saveAiOrCopy);
   controller.setStatusMessage("Calling AI…");
   const proxyUrl = await desktopAiProxyUrl();
   const signal = callAiAbortSignal();
-  const runSuggestions = async () => {
-    const result = await callChatCompletions(creds, prompt, { signal, proxyUrl });
-    applyCallAiImport(controller.importAiSuggestions(result.text));
-  };
+  // "Suggestions JSON only" in AI credentials means the provider cannot use
+  // tools, so review the JSON before it touches the canvas.
+  if (request.mode === "approve" || creds.mappingMode === "suggestions") {
+    return await runApproveFirstTurn(request, creds, proxyUrl, signal);
+  }
+  const before = controller.exportDocumentSnapshot();
   try {
-    if (creds.mappingMode === "suggestions") {
-      await runSuggestions();
-      return;
-    }
-    try {
-      const result = await runMappingAgentOnController(controller, {
-        credentials: creds,
-        prompt,
-        proxyUrl,
-        signal,
-        onAfterMutation: () => persistBlocklyCanvas({ summary: "Call AI" }),
-      });
-      persistBlocklyCanvas({ summary: "Call AI" });
-      render();
-      const applied = result.imported?.applied ?? 0;
-      const mapped = result.toolNames.filter((name) => name === "map_slot").length;
-      const errors = result.imported?.errors.length ?? 0;
-      controller.setStatusMessage(
-        `Call AI: ${mapped} map_slot · ${applied} suggestions · ${result.toolNames.length} tools · ${errors} errors`,
-      );
-      if (errors && !applied && !mapped) {
-        alert(result.imported?.errors.slice(0, 8).join("\n") ?? result.text.slice(0, 400));
-      }
-    } catch (err) {
-      if (!isToolsUnsupportedError(err)) throw err;
-      controller.setStatusMessage("Provider rejected mapping tools; retrying suggestions JSON…");
-      await runSuggestions();
-    }
+    const result = await runMappingAgentOnController(controller, {
+      credentials: creds,
+      prompt: request.prompt,
+      history: request.history,
+      proxyUrl,
+      signal,
+      onAfterMutation: () => persistBlocklyCanvas({ summary: "AI chat" }),
+    });
+    persistBlocklyCanvas({ summary: "AI chat" });
+    render();
+    const applied = result.imported?.applied ?? 0;
+    const mapped = result.toolNames.filter((name) => name === "map_slot").length;
+    const errors = result.imported?.errors.length ?? 0;
+    const summary =
+      `AI chat: ${mapped} map_slot · ${applied} suggestions · ${result.toolNames.length} tools · ${errors} errors`;
+    controller.setStatusMessage(summary);
+    const revertible = applied > 0 || result.toolNames.some((name) => isMutatingCallAiTool(name));
+    lastAiChatSnapshot = revertible ? before : null;
+    const errorText = errors ? `\n\n${result.imported?.errors.slice(0, 8).join("\n")}` : "";
+    return {
+      text: `${result.text || summary}${errorText}`,
+      messages: result.messages,
+      toolCalls: result.toolNames,
+      revertible,
+    };
   } catch (err) {
-    const message = formatCallAiError(err);
-    controller.setStatusMessage(`Call AI failed: ${message}`);
-    alert(message);
+    if (!isToolsUnsupportedError(err)) {
+      controller.setStatusMessage(`AI chat failed: ${formatCallAiError(err)}`);
+      throw err;
+    }
+    controller.setStatusMessage("Provider rejected mapping tools; asking for suggestions JSON…");
+    return await runApproveFirstTurn(request, creds, proxyUrl, signal);
+  }
+}
+
+function revertLastAiChatTurn(): boolean {
+  const snapshot = lastAiChatSnapshot;
+  if (!snapshot) return false;
+  lastAiChatSnapshot = null;
+  void withUndoableDocumentReplace(() => restoreDocumentFromUndo(snapshot)).then(() => {
+    render();
+    controller.setStatusMessage(uiChrome().aiChatReverted);
+  });
+  return true;
+}
+
+function findTreeNode(node: SchemaTreeNode | null | undefined, path: string): SchemaTreeNode | null {
+  if (!node) return null;
+  if (node.path === path) return node;
+  for (const child of node.children) {
+    const hit = findTreeNode(child, path);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function findExampleValue(node: SchemaTreeNode | null | undefined, syncPath: string): string | undefined {
+  if (!node) return undefined;
+  if (node.value !== undefined && canonicalSyncPath(node.path) === syncPath) {
+    return typeof node.value === "string" ? node.value : JSON.stringify(node.value);
+  }
+  for (const child of node.children) {
+    const hit = findExampleValue(child, syncPath);
+    if (hit !== undefined) return hit;
+  }
+  return undefined;
+}
+
+function chipForTreeRow(kind: ContextChipKind, row: HTMLElement): ContextChip | null {
+  const s = controller.getState();
+  const path = row.dataset.path ?? "";
+  if (!path) return null;
+  if (kind === "target") {
+    const slotId = row.dataset.slotId ?? path;
+    const node = s.skeleton.find((entry) => entry.slotId === slotId);
+    return {
+      kind,
+      label: node?.label || row.textContent?.trim().split(/\s{2,}/)[0] || slotId,
+      filename: s.templateFilename || undefined,
+      slotId,
+      path,
+      rmType: node?.rmType,
+    };
+  }
+  const tree = kind === "source-schema" ? s.schemaTree : s.exampleTree;
+  const node = findTreeNode(tree, path);
+  const type = node ? [node.type, node.multiplicity ? `[${node.multiplicity}]` : ""].join(" ").trim() : undefined;
+  const value = kind === "source-example" && node?.value !== undefined
+    ? (typeof node.value === "string" ? node.value : JSON.stringify(node.value))
+    : findExampleValue(s.exampleTree, canonicalSyncPath(path));
+  return {
+    kind,
+    label: node?.name || path,
+    filename: (kind === "source-schema" ? s.schemaFilename : s.activeExample?.filename) || undefined,
+    path,
+    type: type || undefined,
+    exampleValue: value,
+  };
+}
+
+function blockFieldValue(block: Blockly.Block, name: string): string {
+  try {
+    return String(block.getFieldValue(name) ?? "");
+  } catch {
+    return "";
+  }
+}
+
+function chipForBlock(block: Blockly.Block): ContextChip {
+  let boundSlot = "";
+  for (let at: Blockly.Block | null = block; at && !boundSlot; at = at.getParent()) {
+    boundSlot = blockFieldValue(at, "ELEMENT_SLOT_ID") || blockFieldValue(at, "SLOT_ID");
+  }
+  let boundSourcePath = blockFieldValue(block, "EXPRESSION");
+  if (!boundSourcePath) {
+    for (const child of block.getDescendants(true)) {
+      boundSourcePath = blockFieldValue(child, "EXPRESSION");
+      if (boundSourcePath) break;
+    }
+  }
+  const text = block.toString(40).trim();
+  return {
+    kind: "block",
+    label: text || block.type,
+    type: block.type,
+    blockId: block.id,
+    boundSlot: boundSlot || undefined,
+    boundSourcePath: boundSourcePath || undefined,
+  };
+}
+
+const ADD_TO_AI_CHAT_MENU_ID = "intehrgrator_add_to_ai_chat";
+
+function installAddToAiChatMenus(): void {
+  const registry = Blockly.ContextMenuRegistry?.registry;
+  if (registry && !registry.getItem(ADD_TO_AI_CHAT_MENU_ID)) {
+    registry.register({
+      id: ADD_TO_AI_CHAT_MENU_ID,
+      scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+      weight: 9,
+      displayText: () => uiChrome().addToAiChat,
+      preconditionFn: () => "enabled",
+      callback: (scope: { block?: Blockly.BlockSvg }) => {
+        if (scope.block) aiChat?.addChip(chipForBlock(scope.block));
+      },
+    } as Blockly.ContextMenuRegistry.RegistryItem);
+  }
+
+  const menu = document.createElement("div");
+  menu.id = "tree-ai-chat-menu";
+  menu.className = "split-btn-menu tree-context-menu";
+  menu.setAttribute("role", "menu");
+  menu.hidden = true;
+  const item = document.createElement("button");
+  item.type = "button";
+  item.id = "tree-add-to-ai-chat";
+  item.className = "split-btn-menu-item";
+  item.setAttribute("role", "menuitem");
+  menu.append(item);
+  document.body.append(menu);
+  let pending: ContextChip | null = null;
+  const hide = () => {
+    menu.hidden = true;
+    pending = null;
+  };
+  item.addEventListener("click", () => {
+    const chip = pending;
+    hide();
+    if (chip) aiChat?.addChip(chip);
+  });
+  document.addEventListener("pointerdown", (ev) => {
+    if (!menu.hidden && !menu.contains(ev.target as Node)) hide();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") hide();
+  });
+  for (const [treeEl, kind] of [
+    [schemaTreeEl, "source-schema"],
+    [exampleTreeEl, "source-example"],
+    [targetSchemaTreeEl, "target"],
+  ] as const) {
+    treeEl.addEventListener("contextmenu", (ev) => {
+      const row = (ev.target as Element | null)?.closest?.(".tree-row");
+      if (!(row instanceof HTMLElement)) return;
+      const chip = chipForTreeRow(kind, row);
+      if (!chip) return;
+      ev.preventDefault();
+      pending = chip;
+      item.textContent = uiChrome().addToAiChat;
+      menu.hidden = false;
+      menu.style.left = `${Math.min(ev.clientX, globalThis.innerWidth - 200)}px`;
+      menu.style.top = `${Math.min(ev.clientY, globalThis.innerHeight - 40)}px`;
+    });
   }
 }
 

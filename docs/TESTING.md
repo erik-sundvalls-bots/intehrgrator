@@ -19,7 +19,7 @@ A filename twin (`test/foo_test.ts` and `test/ui/foo_test.ts`) is **complementar
 
 The **UI green-path** (`test/ui/green_path_test.ts`) is the one Playwright test that must keep covering the major authoring steps: load Source Schema + Example Instance + target, Click-to-Map a `source_query`, RM COMPOSITION (**default context map** + Optional RM Insertion), Test Run, Generated Export. Extend it when you add a major process step; do not replace it with another single-control test.
 
-Tabbed **Target & Previews** plus pull-from-**Target schema** live in `test/ui/target_schema_tabs_test.ts` (chrome that can miss a bug the unit `placeSkeletonSubtreeOnWorkspace` tests cannot see). Joint load / **Call AI** chrome lives in `test/ui/joint_load_ai_test.ts`. The Better form viewer upload lives in `test/ui/better_form_viewer_test.ts`: the licensed renderer is not in the build, and the viewer must not request it until the user stores it in the browser.
+Tabbed **Target & Previews** plus pull-from-**Target schema** live in `test/ui/target_schema_tabs_test.ts` (chrome that can miss a bug the unit `placeSkeletonSubtreeOnWorkspace` tests cannot see). Joint load / **AI chat** chrome lives in `test/ui/joint_load_ai_test.ts`. The Better form viewer upload lives in `test/ui/better_form_viewer_test.ts`: the licensed renderer is not in the build, and the viewer must not request it until the user stores it in the browser.
 
 ## How to run
 

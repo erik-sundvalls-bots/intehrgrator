@@ -3,6 +3,14 @@ import { en, type ChromeMessages } from "./chrome_en.ts";
 /** Swedish web app chrome. Unlisted keys stay English (product names and tokens). */
 export const sv: ChromeMessages = {
   ...en,
+  menuStartAiChat: "Starta AI-chatt",
+  openInAiChat: "Öppna i AI-chatt",
+  aiChat: "AI-chatt",
+  addToAiChat: "Lägg till i AI-chatt",
+  aiChatStoredPrompts: "Sparade promptar",
+  aiChatSend: "Skicka",
+  aiChatClear: "Rensa historik",
+  aiChatRevert: "Ångra senaste AI-tur",
   appTitle: "intEHRgrator — Integrationsverktyg",
   copyPrompt: "Kopiera prompt",
   copyPromptTitle: "Kopiera AI-prompt med inbäddade filer",
