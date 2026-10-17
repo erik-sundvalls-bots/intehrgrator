@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "AI_SUGGESTION_FORMAT.schema.json",
+  "title": "intEHRgrator AI suggestion envelope",
+  "description": "Canonical version-2 JSON for Import Suggestions. Human rules: AI_SUGGESTION_FORMAT.md. One fenced block tagged intehrgrator-suggestions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "target", "suggestions"],
+  "properties": {
+    "format": {
+      "const": "intehrgrator-suggestions",
+      "description": "Literal discriminator. Do not omit."
+    },
+    "version": {
+      "const": "2",
+      "description": "String 2, not the number 2."
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "loops": {
+      "type": "array",
+      "description": "One for_each_list per repeating target container (source_query_node in LIST for source nodes). Do not nest loops inside suggestions[].",
+      "items": {
+        "$ref": "#/$defs/loopEntry"
+      }
+    },
+    "suggestions": {
+      "type": "array",
+      "description": "Value-slot fills only. Each item has slotId + Blockly value block.",
+      "items": {
+        "$ref": "#/$defs/suggestion"
+      }
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "targetId"],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["openehr-template", "json-schema", "xml-schema", "free-form"]
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Must match the loaded target id from the prompt."
+        }
+      }
+    },
+    "loopEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attachSlotId", "block"],
+      "properties": {
+        "attachSlotId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Copy verbatim from the Repeatable containers list."
+        },
+        "block": {
+          "$ref": "#/$defs/loopBlock"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "loopBlock": {
+      "oneOf": [
+        { "$ref": "#/$defs/forEachSourceBlock" },
+        { "$ref": "#/$defs/forEachListBlock" }
+      ]
+    },
+    "forEachSourceBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "fields"],
+      "properties": {
+        "type": {
+          "const": "for_each_source"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["VAR", "PATH"],
+          "properties": {
+            "VAR": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Short loop variable name, e.g. vital or item."
+            },
+            "PATH": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Absolute multi-node source path, e.g. $.measurements."
+            }
+          }
+        }
+      }
+    },
+    "forEachListBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "fields", "inputs"],
+      "properties": {
+        "type": {
+          "const": "for_each_list"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["VAR"],
+          "properties": {
+            "VAR": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Short loop variable name for each list item."
+            }
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["LIST"],
+          "properties": {
+            "LIST": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "block": {
+                  "$ref": "#/$defs/valueBlock"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "suggestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slotId", "block"],
+      "properties": {
+        "slotId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Copy verbatim from the slot manifest."
+        },
+        "loopVar": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Must equal some loops[].block.fields.VAR. EXPRESSION is then relative to that PATH."
+        },
+        "block": {
+          "$ref": "#/$defs/valueBlock"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "valueBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Blockly fragment: type, fields, inputs, extraState only. No id, x, y, mutation, or shadow.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "source_query",
+            "source_query_number",
+            "source_query_boolean",
+            "source_query_node",
+            "variables_get",
+            "text",
+            "text_code",
+            "text_handlebars",
+            "maps_create_with",
+            "maps_create_empty",
+            "maps_get",
+            "sheet_lookup",
+            "decision_table",
+            "sheet_get_cell",
+            "sheet_get_xy",
+            "sheet_get_row",
+            "sheet_get_column",
+            "sheet_get_header",
+            "sheet_get_data",
+            "math_number",
+            "logic_boolean",
+            "text_trim",
+            "text_join",
+            "math_arithmetic",
+            "logic_ternary",
+            "logic_compare",
+            "logic_operation",
+            "logic_negate",
+            "logic_list_restriction",
+            "logic_current_item",
+            "lists_set_operation"
+          ]
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "block": {
+                "$ref": "#/$defs/valueBlock"
+              }
+            }
+          }
+        },
+        "extraState": true
+      }
+    }
+  }
+}

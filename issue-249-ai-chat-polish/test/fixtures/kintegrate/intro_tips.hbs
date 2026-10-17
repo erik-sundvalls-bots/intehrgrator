@@ -1,0 +1,12 @@
+{{!-- Kintegrate startup example — plain JSON (intro.json) --}}
+If intro.json is loaded as source this example will work, otherwise likely a lot of blank spots:
+----- Start -----
+Remember, ⤡ means: {{starter_tips.tip_object.Right_click_explanations.[⤡]}}
+
+A number of tips:
+{{#with starter_tips}}
+  {{#each tip_array}}
+- {{.}}
+  {{/each}}
+{{/with}}
+----- The end -----

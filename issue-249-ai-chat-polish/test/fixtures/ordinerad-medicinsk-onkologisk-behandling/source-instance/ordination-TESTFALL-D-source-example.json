@@ -1,0 +1,46 @@
+{
+  "CytodosOrdinationKey": 17,
+  "RekvisisjonId": 314196635,
+  "Personnummer": "AWn+PyB/tOhO2QxDCTEUJJ89J4PDUdcOXReHhriraWdqFpgxXNkGhtt/4N4P",
+  "PasientenDeltarIStudie": 1,
+  "StudieId": "EU CTR 2024-513087-26",
+  "KurdefinisjonNavn": "KPF Lunga Kar+Vin dag 8",
+  "KurStartDato": "2026-02-23T00:00:00",
+  "PasientKurnummer": null,
+  "SignatureUser_UserName": "A1D8",
+  "SignatureUser_Fullname": "TakeCare_Test",
+  "SignatureDate": "2025-07-30T07:31:51.183",
+  "RekvisisjonVersjon": 3,
+  "RekvisisjonStatus": "Väntar",
+  "PDL_enhet_Namn": "OO Cancer TC TEST",
+  "PDL_enhet_HSAID": "ADNF",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Vardenhet_id": null,
+  "Vardenhet_namn": null,
+  "Vardenhet_HSAID": null,
+  "SenastUppdaterad": 1713427030140,
+  "SenastUppdaterad_orig": "2026-04-07 08:46:10.2967402 +02:00",
+  "KurDagar": [
+    {
+      "KurdagLopenummer": 3347147,
+      "Dognnummer": 1,
+      "StartTid": "2026-01-06T13:00:00",
+      "SenastUppdaterad": "2026-04-07T08:46:10.0623682+02:00",
+      "Substanser": [
+        {
+          "Lopenummer": 7583305,
+          "Doseberegnet": 0.00,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "Vinorelbin",
+          "Innholdstoff_ATC": "L01CA04",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Intravenöst",
+          "Route_CodeValue": "3.0000",
+          "SenastUppdaterad": "2026-04-27T17:16:50.4730000+02:00"
+        }
+      ]
+    }
+  ]
+}
