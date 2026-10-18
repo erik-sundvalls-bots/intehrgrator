@@ -8,7 +8,7 @@ import { chromium } from "npm:playwright@1.51.0";
 import { baseUrl, getSnapshot, loadBpFixtures, waitForTestApi } from "./helpers.ts";
 
 Deno.test({
-  name: "UI: Copy prompt menu offers Start AI chat and AI credentials",
+  name: "UI: AI menu offers copy/paste and AI credentials (no Start AI chat)",
   sanitizeResources: false,
   sanitizeOps: false,
   async fn() {
@@ -41,7 +41,6 @@ Deno.test({
         "uri",
         "btn-import-ai",
         "own",
-        "chat",
         "credentials",
         "desktop",
         "local-mcp",
@@ -66,7 +65,7 @@ Deno.test({
         "Your own AI",
       );
       assertEquals(await page.locator("#ai-menu-desktop").isHidden(), true);
-      await page.locator('[data-ai-action="chat"]').waitFor({ state: "visible" });
+      assertEquals(await page.locator('[data-ai-action="chat"]').count(), 0);
       await page.locator('[data-ai-action="credentials"]').waitFor({ state: "visible" });
       await page.click('[data-ai-action="credentials"]');
       await page.locator("#dialog-ai-credentials").waitFor({ state: "visible", timeout: 5_000 });

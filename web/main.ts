@@ -1644,9 +1644,7 @@ function installCopyAiMenu(): void {
     btn.addEventListener("click", () => {
       const action = btn.dataset.aiAction;
       handle.close();
-      if (action === "chat") {
-        aiChat?.open();
-      } else if (action === "credentials") {
+      if (action === "credentials") {
         openAiCredentialsDialog();
       } else if (action === "local-mcp") {
         openLocalMcpDialog();

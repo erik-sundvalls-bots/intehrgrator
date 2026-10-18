@@ -11,7 +11,7 @@ Fallback when MCP/API is unavailable: read **mapping spec** (Blockly JSON) or **
 | Variant | Who holds the model | Who calls intEHRgrator tools |
 |---------|---------------------|------------------------------|
 | IDE + stdio MCP | The IDE (Cursor, Claude Desktop, …) | The IDE agent, via `deno task mcp` |
-| **AI chat** (AI → Start AI chat) | Your configured provider (Gemini, OpenAI, Anthropic, Ollama, LM Studio, Hugging Face, OpenCode Zen, …) | intEHRgrator, looping OpenAI-compatible `tools` named like MCP |
+| **AI chat** (collapsible panel under Target & Previews) | Your configured provider (Gemini, OpenAI, Anthropic, Ollama, LM Studio, Hugging Face, OpenCode Zen, …) | intEHRgrator, looping OpenAI-compatible `tools` named like MCP |
 | Remote HTTP agent | OpenCode `serve` / cloud runner, HF jobs, etc. | That runner, against a reachable Agent API (`--bind` + `--token` when not loopback) |
 
 AI chat credentials and provider key links live in **AI credentials…** ([AI_CREDENTIALS.md](AI_CREDENTIALS.md)). They are never in the Project Bundle. `POST /api/v1/ai-chat-completions` is a desktop-only CORS forwarder (not an MCP tool).

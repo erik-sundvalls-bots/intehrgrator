@@ -1,5 +1,6 @@
 /**
- * Browser UI test (#249): AI chat polish — dismissible credentials notice,
+ * Browser UI test (#249): AI chat polish — always-present panel that collapses
+ * to a header bar (state remembered), dismissible credentials notice,
  * resizable entry box, Copy prompt split menu, Stored prompts divider, and no
  * built-in Refresh merge prompt.
  */
@@ -9,7 +10,7 @@ import { chromium } from "npm:playwright@1.51.0";
 import { baseUrl, loadBpFixtures, waitForTestApi } from "./helpers.ts";
 
 Deno.test({
-  name: "UI: AI chat notice ×, entry resize, copy/paste menu, prompts divider",
+  name: "UI: AI chat collapse toggle, notice ×, entry resize, copy/paste menu, prompts divider",
   sanitizeResources: false,
   sanitizeOps: false,
   async fn() {
@@ -22,24 +23,52 @@ Deno.test({
       await waitForTestApi(page);
       await page.evaluate(() => {
         localStorage.removeItem("intehrgrator.ai.credentials");
-        localStorage.removeItem("intehrgrator.ai.chatOpen");
         localStorage.removeItem("intehrgrator.aiDelivery");
       });
       await loadBpFixtures(page);
-      const openChat = async () => {
-        await page.click("#btn-copy-ai");
-        await page.click("#btn-start-ai-chat");
-        await page.locator("#ai-chat-panel").waitFor({ state: "visible", timeout: 5_000 });
-      };
-      await openChat();
+      const panel = page.locator("#ai-chat-panel");
+      const toggle = page.locator("#ai-chat-toggle");
 
-      // 1. × hides the notice for this opening only.
+      // 0. No "Start AI chat" menu item: the chat is always there, collapsed by default.
+      assertEquals(await page.locator('#menu-copy-ai [data-ai-action="chat"]').count(), 0);
+      await panel.waitFor({ state: "visible", timeout: 5_000 });
+      assertEquals(await page.locator("#ai-chat-close").count(), 0);
+      assertEquals(await toggle.getAttribute("aria-expanded"), "false");
+      assertEquals((await page.locator("#ai-chat-title").innerText()).trim(), "AI CHAT");
+      for (const id of ["#ai-chat-prompts-btn", "#ai-chat-clear", "#ai-chat-mode", "#ai-chat-input"]) {
+        assertEquals(await page.locator(id).isVisible(), false, `${id} hidden while collapsed`);
+      }
+      const barH = (await panel.boundingBox())!.height;
+      assert(barH < 48, `collapsed bar is slim (${barH}px)`);
+      // Toggle reuses the slide-button square + panel-half svg, solid primary on the light bar.
+      const [toggleBg, slideBg] = await page.evaluate(() => [
+        getComputedStyle(document.getElementById("ai-chat-toggle")!).backgroundColor,
+        getComputedStyle(document.querySelector(".pane-btn:not(.pane-btn-on-dark):not(.ai-chat-toggle)")!).backgroundColor,
+      ]);
+      assertEquals(toggleBg, slideBg);
+      assertEquals(await toggle.locator("svg").count(), 1);
+      await toggle.click();
+      assertEquals(await toggle.getAttribute("aria-expanded"), "true");
+      await page.locator("#ai-chat-input").waitFor({ state: "visible" });
+      await page.locator("#ai-chat-prompts-btn").waitFor({ state: "visible" });
+      await page.locator("#ai-chat-clear").waitFor({ state: "visible" });
+      assertEquals(await page.evaluate(() => localStorage.getItem("intehrgrator.ai.chatCollapsed")), "0");
+
+      // 1. × hides the notice until reload (collapse/expand keeps it hidden).
       const notice = page.locator("#ai-chat-creds");
       await notice.waitFor({ state: "visible" });
       await page.click("#ai-chat-creds-dismiss");
       await notice.waitFor({ state: "hidden" });
-      await page.click("#ai-chat-close");
-      await openChat();
+      await toggle.click();
+      assertEquals(await toggle.getAttribute("aria-expanded"), "false");
+      assertEquals(await page.evaluate(() => localStorage.getItem("intehrgrator.ai.chatCollapsed")), "1");
+      await toggle.click();
+      assertEquals(await notice.isVisible(), false);
+      // Expanded state survives a reload; the notice comes back.
+      await page.reload({ waitUntil: "networkidle" });
+      await waitForTestApi(page);
+      await loadBpFixtures(page);
+      assertEquals(await toggle.getAttribute("aria-expanded"), "true");
       await notice.waitFor({ state: "visible" });
 
       // 2. (Notice dismissed so the short chat split has room.) Drag the divider grip up: entry box taller (past the old 9em cap), list shorter.

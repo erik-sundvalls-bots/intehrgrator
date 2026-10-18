@@ -1,5 +1,5 @@
 /**
- * Browser UI test (#234): AI chat panel green path. Start AI chat without
+ * Browser UI test (#234): AI chat panel green path. Expand AI chat without
  * credentials, add a source chip, pick a Stored prompt, copy & paste prompt,
  * then chat with a stubbed provider that calls map_slot, and revert the turn.
  */
@@ -38,13 +38,11 @@ Deno.test({
       });
       await loadBpFixtures(page);
 
-      // Start AI chat is always enabled; without credentials the panel says so.
-      await page.click("#btn-copy-ai");
-      const start = page.locator("#btn-start-ai-chat");
-      await start.waitFor({ state: "visible", timeout: 5_000 });
-      assertEquals(await start.isDisabled(), false);
-      await start.click();
+      // The chat is always present (collapsed); expanding without credentials says so.
       await page.locator("#ai-chat-panel").waitFor({ state: "visible", timeout: 5_000 });
+      if (await page.locator("#ai-chat-toggle").getAttribute("aria-expanded") !== "true") {
+        await page.click("#ai-chat-toggle");
+      }
       await page.locator("#ai-chat-creds").waitFor({ state: "visible" });
       assertEquals(await page.locator("#ai-chat-send").isHidden(), true);
 

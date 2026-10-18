@@ -42,7 +42,10 @@ function ui() {
 }
 
 export const AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
-export const AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
+/** "0" = expanded, anything else = collapsed (the default). */
+export const AI_CHAT_COLLAPSED_KEY = "intehrgrator.ai.chatCollapsed";
+/** Pre-collapse key: "1" meant the panel was open. Read once to migrate. */
+const LEGACY_AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 export const AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 export const PROJECT_CONTEXT_HEADING = "## Project context";
 /** Smallest message list kept visible while growing the entry box (px). */
@@ -103,9 +106,10 @@ export interface AiChatPanelOptions {
 }
 
 export interface AiChatPanelHandle {
-  open(): void;
-  close(): void;
-  isOpen(): boolean;
+  /** Expand the always-present panel (no-op when already expanded). */
+  expand(): void;
+  collapse(): void;
+  isExpanded(): boolean;
   addChip(chip: ContextChip): void;
   /** Replace the input with this text and open the panel. */
   prefill(text: string): void;
@@ -155,6 +159,15 @@ export function readInputParts(root: Node): ChatInputPart[] {
   return normalizeParts(parts);
 }
 
+/** Collapsed unless the user expanded it last time (or had it open before #249). */
+export function readCollapsed(storage: Storage): boolean {
+  const stored = storage.getItem(AI_CHAT_COLLAPSED_KEY);
+  if (stored !== null) return stored !== "0";
+  const legacyOpen = storage.getItem(LEGACY_AI_CHAT_OPEN_KEY) === "1";
+  storage.removeItem(LEGACY_AI_CHAT_OPEN_KEY);
+  return !legacyOpen;
+}
+
 export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHandle {
   const { panel, stack, tabs, storage } = options;
   const confirmFn = options.confirm ?? ((m: string) => globalThis.confirm(m));
@@ -165,12 +178,12 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   let session: ChatSession = loadChatSession(storage, options.projectId());
   let sessionProject = options.projectId();
   let disposeSplit: (() => void) | null = null;
-  let minimized = false;
+  let collapsed = readCollapsed(storage);
   let sending = false;
   let lastTurnRevertible = false;
   let forceContext = false;
   let savedRange: Range | null = null;
-  /** × on the credentials notice; lasts only for this opening of the panel. */
+  /** × on the credentials notice; in memory only, so a reload shows it again. */
   let credsDismissed = false;
 
   panel.replaceChildren();
@@ -179,6 +192,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   // ── header ────────────────────────────────────────────────────────────────
   const header = el("div", { className: "ai-chat-header" });
   const title = el("h3", { className: "ai-chat-title", text: ui().aiChat });
+  title.id = "ai-chat-title";
 
   const promptsWrap = el("div", { className: "ai-chat-prompts" });
   const promptsBtn = el("button", {
@@ -221,17 +235,16 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     type: "button",
   });
   clearBtn.id = "ai-chat-clear";
-  const minBtn = el("button", { className: "pane-btn pane-btn-icon ai-chat-min", text: "▁", type: "button" });
-  minBtn.id = "ai-chat-minimize";
-  const closeBtn = el("button", {
-    className: "pane-btn pane-btn-icon ai-chat-close",
-    text: "✕",
-    title: ui().aiChatClose,
-    type: "button",
-  });
-  closeBtn.id = "ai-chat-close";
-  closeBtn.setAttribute("aria-label", ui().aiChatClose);
-  header.append(title, promptsWrap, modeLabel, spacer, clearBtn, minBtn, closeBtn);
+  // Same square toggle as the Source / Target & Previews slide buttons, with a
+  // bottom-half glyph: the chat is never closed, only collapsed to this header.
+  const toggleBtn = el("button", { className: "pane-btn pane-slide-btn ai-chat-toggle", type: "button" });
+  toggleBtn.id = "ai-chat-toggle";
+  toggleBtn.setAttribute("aria-controls", panel.id || "ai-chat-panel");
+  toggleBtn.innerHTML =
+    '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">' +
+    '<rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect>' +
+    '<rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
+  header.append(title, promptsWrap, modeLabel, spacer, clearBtn, toggleBtn);
 
   // ── body ──────────────────────────────────────────────────────────────────
   const body = el("div", { className: "ai-chat-body" });
@@ -483,9 +496,14 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     modeLabel.hidden = !hasCreds;
     copyBtn.classList.toggle("pane-btn-primary", !hasCreds);
     copyChevron.classList.toggle("pane-btn-primary", !hasCreds);
-    minBtn.title = minimized ? ui().aiChatRestore : ui().aiChatMinimize;
-    minBtn.setAttribute("aria-label", minBtn.title);
-    minBtn.textContent = minimized ? "▔" : "▁";
+    // Stored prompts, mode and Clear history live only in the expanded panel.
+    promptsWrap.hidden = collapsed;
+    clearBtn.hidden = collapsed;
+    if (collapsed) modeLabel.hidden = true;
+    panel.classList.toggle("ai-chat-panel--collapsed", collapsed);
+    toggleBtn.title = collapsed ? ui().aiChatExpand : ui().aiChatCollapse;
+    toggleBtn.setAttribute("aria-label", toggleBtn.title);
+    toggleBtn.setAttribute("aria-expanded", String(!collapsed));
   };
 
   // ── compose / send ────────────────────────────────────────────────────────
@@ -713,42 +731,36 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     });
   };
 
-  const open = () => {
+  const setCollapsed = (next: boolean, focus = false) => {
     syncProject();
-    if (panel.hidden) credsDismissed = false;
-    panel.hidden = false;
-    storage.setItem(AI_CHAT_OPEN_KEY, "1");
-    if (!minimized) split();
+    collapsed = next;
+    storage.setItem(AI_CHAT_COLLAPSED_KEY, collapsed ? "1" : "0");
+    if (collapsed) {
+      unsplit();
+      closeCopyMenu();
+      closePromptsMenu();
+      hidePopover();
+    } else {
+      split();
+    }
     refreshChrome();
-    renderLog();
+    if (!collapsed) renderLog();
     options.onLayout?.();
-    if (!minimized) input.focus();
+    if (!collapsed && focus) input.focus();
   };
-  const close = () => {
-    unsplit();
-    panel.hidden = true;
-    credsDismissed = false;
-    // A dragged entry-box height lasts while the panel is open.
-    grip.removeAttribute("aria-valuenow");
-    input.style.height = "";
-    input.style.maxHeight = "";
-    closeCopyMenu();
-    hidePopover();
-    storage.removeItem(AI_CHAT_OPEN_KEY);
-    options.onLayout?.();
+  const expand = () => {
+    if (collapsed) setCollapsed(false, true);
   };
-  const toggleMinimize = () => {
-    minimized = !minimized;
-    panel.classList.toggle("ai-chat-panel--minimized", minimized);
-    if (minimized) unsplit();
-    else split();
-    refreshChrome();
-    options.onLayout?.();
+  const collapse = () => {
+    if (!collapsed) setCollapsed(true);
   };
 
-  minBtn.addEventListener("click", toggleMinimize);
-  title.addEventListener("dblclick", toggleMinimize);
-  closeBtn.addEventListener("click", close);
+  toggleBtn.addEventListener("click", () => setCollapsed(!collapsed, true));
+  title.addEventListener("dblclick", () => setCollapsed(!collapsed, true));
+  // Collapsed, the whole slim bar is a target for expanding.
+  header.addEventListener("click", (ev) => {
+    if (collapsed && !toggleBtn.contains(ev.target as Node)) expand();
+  });
   clearBtn.addEventListener("click", () => {
     if (!confirmFn(ui().aiChatClearConfirm)) return;
     syncProject();
@@ -807,29 +819,26 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   copyBtn.addEventListener("click", () => void copyPrompt());
   importBtn.addEventListener("click", () => options.openImportDialog());
 
-  refreshChrome();
-  renderLog();
-  if (storage.getItem(AI_CHAT_OPEN_KEY) === "1") open();
+  panel.hidden = false;
+  setCollapsed(collapsed);
 
   return {
-    open,
-    close,
-    isOpen: () => !panel.hidden,
+    expand,
+    collapse,
+    isExpanded: () => !collapsed,
     addChip(chip) {
-      if (panel.hidden) open();
-      if (minimized) toggleMinimize();
+      expand();
       insertChip(chip);
     },
     prefill(text) {
-      if (panel.hidden) open();
-      if (minimized) toggleMinimize();
+      expand();
       setInputParts([{ text }]);
       input.focus();
     },
     refresh() {
       const changed = syncProject();
       refreshChrome();
-      if (changed && !panel.hidden) renderLog();
+      if (changed && !collapsed) renderLog();
     },
     inputParts: () => readInputParts(input),
   };

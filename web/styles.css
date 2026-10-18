@@ -1890,14 +1890,25 @@ body.sheets-fullscreen::before {
   background: var(--surface); border-top: 1px solid var(--border);
 }
 .ai-chat-panel[hidden] { display: none; }
-.ai-chat-panel--minimized { flex: 0 0 auto !important; }
-.ai-chat-panel--minimized .ai-chat-body { display: none; }
+/* Always present: collapsed = slim header bar (label + toggle) only. */
+.ai-chat-panel--collapsed { flex: 0 0 auto !important; }
+.ai-chat-panel--collapsed .ai-chat-body { display: none; }
+.ai-chat-panel--collapsed .ai-chat-header { border-bottom: none; cursor: pointer; }
+.ai-chat-header > [hidden] { display: none !important; }
 .ai-chat-header {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 4px 8px; background: var(--surface-alt); border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
-.ai-chat-title { margin: 0; font-size: 13px; cursor: default; user-select: none; }
+.ai-chat-title {
+  margin: 0; font-size: 12px; font-weight: 600; cursor: default; user-select: none;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.ai-chat-panel--collapsed .ai-chat-title { cursor: pointer; }
+/* Same square toggle as #btn-slide-source / #btn-slide-output, in the bar's flow. */
+.ai-chat-header .pane-btn.ai-chat-toggle {
+  position: static; width: 28px; height: 24px; min-width: 28px; padding: 0;
+}
 .ai-chat-spacer { flex: 1; }
 .ai-chat-mode { display: inline-flex; align-items: center; gap: 4px; }
 .ai-chat-mode[hidden] { display: none; }
