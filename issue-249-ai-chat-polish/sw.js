@@ -5,7 +5,7 @@
  * Cache name is stamped at build time so each deploy activates a fresh cache.
  */
 const CACHE_PREFIX = "intehrgrator-";
-const CACHE_NAME = CACHE_PREFIX + "e956279-2026-10-17T04:26:41.576Z";
+const CACHE_NAME = CACHE_PREFIX + "aa46c8a-2026-10-18T07:30:02.793Z";
 // Licensed Better renderer. Keep in sync with BETTER_RENDERER_CACHE
 // in src/host/better_renderer_store.ts. Deploys must not wipe it.
 const BETTER_RENDERER_CACHE = "intehrgrator-better-renderer";

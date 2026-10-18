@@ -188588,8 +188588,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "e956279" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-17T04:26:41.576Z" : "not built";
+var BUILD_ID = true ? "aa46c8a" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T07:30:02.793Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -192395,15 +192395,6 @@ function installAiChatPanel(options) {
     });
     copyMenu.append(item);
   }
-  const importItem = el("button", { className: "split-btn-menu-item split-btn-menu-item--icon", type: "button" });
-  importItem.id = "ai-chat-copy-menu-import";
-  importItem.setAttribute("role", "menuitem");
-  iconLabel(importItem, "content_paste", ui4().importAi);
-  importItem.addEventListener("click", () => {
-    closeCopyMenu();
-    options.openImportDialog();
-  });
-  copyMenu.append(importItem);
   copySplit.append(copyBtn, copyChevron, copyMenu);
   const importBtn = el("button", { className: "pane-btn", type: "button" });
   importBtn.id = "ai-chat-import-answer";
