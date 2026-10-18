@@ -20481,9 +20481,9 @@ var require_validator = __commonJS({
         i12++;
         return validateNumberAmpersand(xmlData, i12);
       }
-      let count = 0;
-      for (; i12 < xmlData.length; i12++, count++) {
-        if (xmlData[i12].match(/\w/) && count < 20)
+      let count2 = 0;
+      for (; i12 < xmlData.length; i12++, count2++) {
+        if (xmlData[i12].match(/\w/) && count2 < 20)
           continue;
         if (xmlData[i12] === ";")
           break;
@@ -28432,10 +28432,10 @@ function moveRows(sheet, from, to2) {
   if (next.rowCatchAll) next.rowCatchAll = moveIndex(next.rowCatchAll, from, to2);
   return next;
 }
-function deleteColumn2(sheet, x6 = 0, count = 1) {
+function deleteColumn2(sheet, x6 = 0, count2 = 1) {
   const next = cloneSheet(sheet);
   if (x6 < 0 || x6 >= next.headers.length) return next;
-  const n10 = Math.max(1, count);
+  const n10 = Math.max(1, count2);
   next.headers.splice(x6, n10);
   next.columnTypes?.splice(x6, n10);
   next.decisionColumns?.splice(x6, n10);
@@ -59801,17 +59801,17 @@ var require_jsuites = __commonJS({
                   return;
                 }
                 var pos = 0;
-                var count = 0;
+                var count2 = 0;
                 var value = (this.values[this.index] + v5).toLowerCase();
                 for (var i12 = 0; i12 < a8.length; i12++) {
                   if (a8[i12].toLowerCase().indexOf(value) == 0) {
                     pos = i12;
-                    count++;
+                    count2++;
                   }
                 }
-                if (count > 1) {
+                if (count2 > 1) {
                   this.values[this.index] += v5;
-                } else if (count == 1) {
+                } else if (count2 == 1) {
                   var t11 = a8[pos].length - this.values[this.index].length - 1;
                   this.position += t11;
                   this.values[this.index] = a8[pos];
@@ -59842,7 +59842,7 @@ var require_jsuites = __commonJS({
                   this.values[this.index] = "";
                 }
                 var pos = 0;
-                var count = 0;
+                var count2 = 0;
                 var value = (this.values[this.index] + v5).toLowerCase();
                 for (var i12 = 0; i12 < monthsFull.length; i12++) {
                   if (monthsFull[i12][0].toLowerCase().indexOf(value) == 0) {
@@ -85969,9 +85969,9 @@ function resolveTemplateLanguage(template, preferred) {
     let bestLang = "en";
     let bestCount = -1;
     for (const [lang, table] of Object.entries(defs)) {
-      const count = table && typeof table === "object" ? Object.keys(table).length : 0;
-      if (count > bestCount) {
-        bestCount = count;
+      const count2 = table && typeof table === "object" ? Object.keys(table).length : 0;
+      if (count2 > bestCount) {
+        bestCount = count2;
         bestLang = lang;
       }
     }
@@ -95105,9 +95105,9 @@ function dedupeSiblingIds(node) {
   if (!node.children?.length) return;
   const seen = /* @__PURE__ */ new Map();
   for (const child of node.children) {
-    const count = seen.get(child.id) ?? 0;
-    seen.set(child.id, count + 1);
-    if (count > 0) child.id = `${child.id}_${count}`;
+    const count2 = seen.get(child.id) ?? 0;
+    seen.set(child.id, count2 + 1);
+    if (count2 > 0) child.id = `${child.id}_${count2}`;
   }
   for (const child of node.children) dedupeSiblingIds(child);
 }
@@ -97270,9 +97270,9 @@ function isStrictNarrowing(rm2, effective) {
 function isProhibitedInterval(card) {
   return card.max === 0;
 }
-function isCardinalityMet(count, card) {
-  if (count < card.min) return false;
-  if (card.max != null && count > card.max) return false;
+function isCardinalityMet(count2, card) {
+  if (count2 < card.min) return false;
+  if (card.max != null && count2 > card.max) return false;
   return true;
 }
 function rmAttributeInterval(rmType, attrName2) {
@@ -98941,9 +98941,9 @@ function serializeBlock(block) {
     case "maps_create_empty":
       return "map()";
     case "maps_create_with": {
-      const count = Number(block.extraState?.itemCount ?? 0);
+      const count2 = Number(block.extraState?.itemCount ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         parts.push(JSON.stringify(String(block.fields?.[`KEY${i12}`] ?? "")));
         parts.push(serializeBlock(inputChild(block.inputs?.[`VAL${i12}`])) ?? "null");
       }
@@ -113043,11 +113043,11 @@ var OccurrenceValidator = class {
       });
     }
     if (exists && upper !== void 0) {
-      const count = Array.isArray(rmValue) ? rmValue.length : 1;
-      if (count > upper) {
+      const count2 = Array.isArray(rmValue) ? rmValue.length : 1;
+      if (count2 > upper) {
         messages.push({
           path,
-          message: `Too many occurrences: ${count} (max: ${upper})`,
+          message: `Too many occurrences: ${count2} (max: ${upper})`,
           severity: "error",
           constraintType: "occurrence"
         });
@@ -113063,21 +113063,21 @@ var CardinalityValidator = class {
     const card = cAttribute.cardinality;
     const interval = card && typeof card === "object" ? card.interval : void 0;
     if (!interval) return messages;
-    const count = members.length;
+    const count2 = members.length;
     const lower = interval.lower ?? 0;
     const upper = interval.upper_unbounded ? void 0 : interval.upper;
-    if (count < lower) {
+    if (count2 < lower) {
       messages.push({
         path,
-        message: `Cardinality ${count} below minimum: ${lower}`,
+        message: `Cardinality ${count2} below minimum: ${lower}`,
         severity: "error",
         constraintType: "cardinality"
       });
     }
-    if (upper !== void 0 && count > upper) {
+    if (upper !== void 0 && count2 > upper) {
       messages.push({
         path,
-        message: `Cardinality ${count} above maximum: ${upper}`,
+        message: `Cardinality ${count2} above maximum: ${upper}`,
         severity: "error",
         constraintType: "cardinality"
       });
@@ -115298,9 +115298,9 @@ function serializeBlockNodeExpression(block) {
     case "maps_create_empty":
       return "map()";
     case "maps_create_with": {
-      const count = Number(block.extraState?.itemCount ?? 0);
+      const count2 = Number(block.extraState?.itemCount ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         parts.push(JSON.stringify(String(block.fields?.[`KEY${i12}`] ?? "")));
         const value = inputChild2(block.inputs?.[`VAL${i12}`]);
         parts.push(serializeBlockNodeExpression(value) ?? "null");
@@ -115548,9 +115548,9 @@ function blockNodeToExpression(block) {
       return `change_case(${expr}, ${JSON.stringify(mode)})`;
     }
     case "text_join": {
-      const count = block.extraState?.itemCount ?? 2;
+      const count2 = block.extraState?.itemCount ?? 2;
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         const child = inputChild2(block.inputs?.[`ADD${i12}`]);
         parts.push(child ? blockNodeToExpression(child) ?? '""' : '""');
       }
@@ -115639,8 +115639,8 @@ function loopRangeExpr(path) {
 function emitJsonStructure(block, ctx) {
   if (block.type === "json_array") {
     const items = [];
-    const count = block.extraState?.itemCount ?? 0;
-    for (let i12 = 0; i12 < count; i12++) {
+    const count2 = block.extraState?.itemCount ?? 0;
+    for (let i12 = 0; i12 < count2; i12++) {
       const child = inputChild2(block.inputs?.[`ADD${i12}`]);
       if (child) items.push(...emitValueExpression(child, ctx));
     }
@@ -117637,11 +117637,11 @@ function runtimeKeyWarnings(entries) {
       messages.push("Empty runtime key is invalid");
       continue;
     }
-    const count = (seen.get(key) ?? 0) + 1;
-    seen.set(key, count);
+    const count2 = (seen.get(key) ?? 0) + 1;
+    seen.set(key, count2);
   }
-  for (const [key, count] of seen) {
-    if (count > 1) {
+  for (const [key, count2] of seen) {
+    if (count2 > 1) {
       messages.push(`Duplicate runtime key \u201C${key}\u201D (UNIQUE)`);
     }
   }
@@ -117654,10 +117654,10 @@ function mapsCreateWithToContextMap(block) {
     return structuredClone(rec);
   }
   if (rec.type !== "maps_create_with") return null;
-  const count = itemCount(rec);
+  const count2 = itemCount(rec);
   const fields = {};
   const targets = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const legacy = String(rec.fields?.[`KEY${i12}`] ?? "").trim();
     const runtimeKey = runtimeKeyFromLegacyKey(legacy);
     const chips = scaffoldTargetsFromLegacyKey(legacy);
@@ -117667,7 +117667,7 @@ function mapsCreateWithToContextMap(block) {
   }
   const out = {
     type: DEFAULT_CONTEXT_MAP_TYPE,
-    extraState: { itemCount: count, targets },
+    extraState: { itemCount: count2, targets },
     fields,
     inputs: rec.inputs ? structuredClone(rec.inputs) : {}
   };
@@ -117752,10 +117752,10 @@ function entriesFromContextMapBlock(block) {
   }
   const source = rec.type === "maps_create_with" ? mapsCreateWithToContextMap(rec) : rec;
   if (!source) return [];
-  const count = itemCount(source);
+  const count2 = itemCount(source);
   const extraTargets = source.extraState?.targets;
   const entries = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const runtimeKey = String(source.fields?.[`KEY${i12}`] ?? "").trim();
     const fromField = parseTargetsField(source.fields?.[`TARGETS${i12}`]);
     const fromExtra = Array.isArray(extraTargets?.[i12]) ? extraTargets[i12] : [];
@@ -117829,17 +117829,17 @@ function workspaceTopBlocks(state) {
 }
 function collectLegacyRemap(block, remap) {
   if (!block || block.type !== "maps_create_with") return;
-  const count = itemCount(block);
-  for (let i12 = 0; i12 < count; i12++) {
+  const count2 = itemCount(block);
+  for (let i12 = 0; i12 < count2; i12++) {
     const legacy = String(block.fields?.[`KEY${i12}`] ?? "").trim();
     if (!legacy) continue;
     remap.set(legacy, runtimeKeyFromLegacyKey(legacy));
   }
 }
 function collectContextRemap(block, remap) {
-  const count = itemCount(block);
+  const count2 = itemCount(block);
   const extraTargets = block.extraState?.targets;
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const runtimeKey = String(block.fields?.[`KEY${i12}`] ?? "").trim();
     if (!runtimeKey) continue;
     const chips = parseTargetsField(block.fields?.[`TARGETS${i12}`]);
@@ -120090,11 +120090,11 @@ function renderGenericNode(node, values2) {
 }
 function renderOpenEhrNode(node, values2, parentArchetypeRef) {
   if (node.kind === "container" && isRepeatingMultiplicity(node.multiplicity)) {
-    const count = repeatingInstanceCount(node, values2);
-    if (count > 1) {
+    const count2 = repeatingInstanceCount(node, values2);
+    if (count2 > 1) {
       const perItemSlots = perItemSlotIds(node, values2);
       const copies = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         const indexed = indexSlotValues(values2, i12, node);
         if (!subtreeHasClinicalValue(node, indexed, perItemSlots)) continue;
         const one = renderOpenEhrNodeOnce(node, indexed, parentArchetypeRef);
@@ -120419,8 +120419,8 @@ function isAbsentValue(value) {
 function fixedValue(node) {
   return node.fixedValue ?? node.fixedFields?.value ?? node.fixedFields?.defining_code;
 }
-function shouldRenderAsArray(attribute, count) {
-  return count > 1 || (/* @__PURE__ */ new Set(["content", "items", "events", "activities", "participations", "links"])).has(attribute);
+function shouldRenderAsArray(attribute, count2) {
+  return count2 > 1 || (/* @__PURE__ */ new Set(["content", "items", "events", "activities", "participations", "links"])).has(attribute);
 }
 function arrayOf(value) {
   if (Array.isArray(value)) return value.filter(isRecord8);
@@ -120696,9 +120696,9 @@ function serializeBlock2(block) {
     case "maps_create_empty":
       return "map()";
     case "maps_create_with": {
-      const count = Number(block.extraState?.itemCount ?? 0);
+      const count2 = Number(block.extraState?.itemCount ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         parts.push(JSON.stringify(String(block.fields?.[`KEY${i12}`] ?? "")));
         parts.push(serializeBlock2(inputChild3(block.inputs?.[`VAL${i12}`])) ?? "null");
       }
@@ -120751,9 +120751,9 @@ function serializeBlock2(block) {
       return `change_case(${inner}, ${JSON.stringify(mode)})`;
     }
     case "text_join": {
-      const count = Number(block.extraState?.itemCount ?? 0);
+      const count2 = Number(block.extraState?.itemCount ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         parts.push(serializeBlock2(inputChild3(block.inputs?.[`ADD${i12}`])) ?? '""');
       }
       if (parts.length === 0) return '""';
@@ -120761,9 +120761,9 @@ function serializeBlock2(block) {
       return `concat(${parts.join(", ")})`;
     }
     case "lists_create_with": {
-      const count = Number(block.extraState?.itemCount ?? 0);
+      const count2 = Number(block.extraState?.itemCount ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         parts.push(serializeBlock2(inputChild3(block.inputs?.[`ADD${i12}`])) ?? "null");
       }
       return `list(${parts.join(", ")})`;
@@ -122367,12 +122367,12 @@ function mapFromCreateWith(block) {
   const fieldKeys = Object.keys(block.fields ?? {}).filter((name2) => /^KEY\d+$/.test(name2));
   const valKeys = Object.keys(block.inputs ?? {}).filter((name2) => /^VAL\d+$/.test(name2));
   const fromNames = (names) => names.length ? Math.max(...names.map((name2) => Number(name2.slice(3)))) + 1 : 0;
-  const count = Math.max(
+  const count2 = Math.max(
     Number(block.extraState?.itemCount ?? 0),
     fromNames(fieldKeys),
     fromNames(valKeys)
   );
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const key = keyFromPair(block, i12);
     if (typeof key !== "string" || !key) continue;
     out[key] = literalFromInput(block.inputs?.[`VAL${i12}`]) ?? "";
@@ -122432,12 +122432,12 @@ function listFromCreateWith(block) {
     return one == null || one === "" ? [] : [one];
   }
   const addKeys = Object.keys(block.inputs ?? {}).filter((name2) => /^ADD\d+$/.test(name2));
-  const count = Math.max(
+  const count2 = Math.max(
     Number(block.extraState?.itemCount ?? 0),
     addKeys.length ? Math.max(...addKeys.map((name2) => Number(name2.slice(3)))) + 1 : 0
   );
   const items = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const value = literalFromInput(block.inputs?.[`ADD${i12}`]);
     if (value == null || value === "") continue;
     items.push(value);
@@ -139195,9 +139195,15 @@ var en3 = {
   aiChatCollapse: "Collapse AI chat",
   aiChatExpand: "Expand AI chat",
   aiChatClear: "Clear history",
-  aiChatClearTitle: "Clear this project's chat history (shrinks the context sent to the AI)",
+  aiChatClearTitle: "Clear chat history",
+  aiChatClearedApi: "History cleared. A fresh context starts: your next message sends the full project context again.",
+  aiChatClearedPaste: "History cleared. Also start a new chat in your external AI: the next copied prompt contains the full project context again \u2014 paste it there.",
+  aiChatHelpAria: "About the AI chat controls",
+  aiChatHelpPasteHtml: "<strong>AI chat \u2014 copy &amp; paste mode</strong> (no AI credentials)<br>Write a message and use <strong>Copy prompt</strong>, paste it into your external AI, then <strong>Import AI answer\u2026</strong>.<br><strong>Prompts \u25BE</strong> stored prompts: insert, save or remove reusable texts.<br><strong>Trash</strong> clears this project's chat history. Then also start a new chat in your external AI and paste the full prompt again: the next copied prompt automatically includes the full project context.<br><strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br><strong>Context chips</strong>: right-click source nodes, target nodes or blocks \u2192 <em>Add to AI chat</em>.<br><strong>Notes / Questions</strong> from the AI show in a yellow box; <em>Answer</em> quotes a question into the input. A <strong>NN%</strong> badge and dashed outline mark low-confidence suggestions on blocks; edit or right-click \u2192 <em>Mark as reviewed</em> to clear.<br><strong>AI credentials</strong> (menu <em>AI \u2192 Configure AI credentials\u2026</em>) connect an API so the chat can send directly.",
+  aiChatHelpApiHtml: "<strong>AI chat \u2014 API mode</strong><br><strong>Send</strong> talks to your configured AI. The first message carries the full project context; later ones only your text and new context chips.<br><strong>Prompts \u25BE</strong> stored prompts: insert, save or remove reusable texts.<br><strong>Apply directly / Approve first</strong>: let the AI change the canvas through tools (each turn can be reverted), or review its suggestions in Import AI suggestions first.<br><strong>Trash</strong> clears this project's chat history and starts a fresh context: the next message resends the full project context.<br><strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br><strong>Context chips</strong>: right-click source nodes, target nodes or blocks \u2192 <em>Add to AI chat</em>.<br><strong>Notes / Questions</strong> from the AI show in a yellow box; <em>Answer</em> quotes a question into the input. A <strong>NN%</strong> badge and dashed outline mark low-confidence suggestions on blocks; edit or right-click \u2192 <em>Mark as reviewed</em> to clear.<br><strong>AI credentials</strong> (menu <em>AI \u2192 Configure AI credentials\u2026</em>) change provider, key or model.",
   aiChatClearConfirm: "Clear the AI chat history for this project?",
   aiChatStoredPrompts: "Stored prompts",
+  aiChatStoredPromptsShort: "Prompts",
   aiChatAddPromptFile: "Add stored prompt from file\u2026",
   aiChatAddPromptUrl: "Add stored prompt from URL\u2026",
   aiChatExportPrompts: "Export stored prompts",
@@ -141788,12 +141794,12 @@ function localizeStatus(locale, message) {
           previous: m5[2],
           next: m5[3]
         });
-        const count = formatMessage(t11.warningCount, {
+        const count2 = formatMessage(t11.warningCount, {
           n: m5[4],
           warnings: plural(n10, t11.warningSingular, t11.warningPlural)
         });
         return `${head}
-${count}
+${count2}
 ${m5[5]}`;
       }
     },
@@ -142285,8 +142291,8 @@ function parseSlotCardinality(raw) {
 function rmAttributeCardinality(rmType, attrName2) {
   return rmAttributeInterval(rmType, attrName2);
 }
-function isCardinalityMet2(count, card) {
-  return isCardinalityMet(count, card);
+function isCardinalityMet2(count2, card) {
+  return isCardinalityMet(count2, card);
 }
 function cardinalityFieldOnInput(input) {
   if (!input) return null;
@@ -145535,9 +145541,9 @@ function connectExpressionToDataValueShell(shell, exprBlock) {
   return true;
 }
 function unpackMapCreateOntoDataValue(shell, mapBlock) {
-  const count = Number(mapBlock.itemCount_ ?? 0);
+  const count2 = Number(mapBlock.itemCount_ ?? 0);
   const pairs = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     pairs.push({
       key: String(mapBlock.getFieldValue(`KEY${i12}`) ?? ""),
       value: mapBlock.getInputTargetBlock(`VAL${i12}`)
@@ -146914,8 +146920,8 @@ function appendContextMapEntry(block, runtimeKey, targets) {
 function scaffoldTargetFieldAtClientPoint(workspace2, clientX, clientY) {
   for (const block of workspace2.getAllBlocks(false)) {
     if (block.type !== DEFAULT_CONTEXT_MAP_TYPE) continue;
-    const count = contextMapItemCount(block);
-    for (let i12 = 0; i12 < count; i12++) {
+    const count2 = contextMapItemCount(block);
+    for (let i12 = 0; i12 < count2; i12++) {
       const field = block.getField(`TARGETS${i12}`);
       const rect = field?.getClientRect();
       if (!rect) continue;
@@ -146942,8 +146948,8 @@ function defaultContextMapAtClientPoint(workspace2, clientX, clientY) {
 function contextMapValueInputAtClientPoint(workspace2, clientX, clientY) {
   for (const block of workspace2.getAllBlocks(false)) {
     if (block.type !== DEFAULT_CONTEXT_MAP_TYPE) continue;
-    const count = contextMapItemCount(block);
-    for (let i12 = 0; i12 < count; i12++) {
+    const count2 = contextMapItemCount(block);
+    for (let i12 = 0; i12 < count2; i12++) {
       const input = block.getInput(`VAL${i12}`);
       const conn = input?.connection;
       if (!conn) continue;
@@ -148539,9 +148545,9 @@ function blockToExpression(block) {
     case "maps_create_empty":
       return "map()";
     case "maps_create_with": {
-      const count = Number(block.itemCount_ ?? 0);
+      const count2 = Number(block.itemCount_ ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         parts.push(JSON.stringify(block.getFieldValue(`KEY${i12}`) ?? ""));
         parts.push(blockToExpression(block.getInputTargetBlock(`VAL${i12}`)) ?? "null");
       }
@@ -148588,9 +148594,9 @@ function blockToExpression(block) {
       return `lists_getIndex(${list}, ${JSON.stringify(where)})`;
     }
     case "lists_create_with": {
-      const count = Number(block.itemCount_ ?? 0);
+      const count2 = Number(block.itemCount_ ?? 0);
       const parts = [];
-      for (let i12 = 0; i12 < count; i12++) {
+      for (let i12 = 0; i12 < count2; i12++) {
         const child = block.getInputTargetBlock(`ADD${i12}`);
         if (!child) {
           parts.push("null");
@@ -149045,9 +149051,9 @@ function blockConstraintMessages(block) {
     }
   }
   if (block.type === DEFAULT_CONTEXT_MAP_TYPE) {
-    const count = contextMapItemCount(block);
+    const count2 = contextMapItemCount(block);
     const entries = [];
-    for (let i12 = 0; i12 < count; i12++) {
+    for (let i12 = 0; i12 < count2; i12++) {
       const runtimeKey = String(block.getFieldValue(`KEY${i12}`) ?? "");
       const field = block.getField(`TARGETS${i12}`);
       const scaffoldTargets = field?.getTargets() ?? parseTargetsField(block.getFieldValue(`TARGETS${i12}`));
@@ -149075,8 +149081,8 @@ function refreshSlotCardinalityState(block) {
   for (const input of block.inputList) {
     const field = cardinalityFieldOnInput(input);
     if (!field) continue;
-    const count = countInputChildren(block, input.name);
-    field.setUnmet(!isCardinalityMet2(count, { min: field.min, max: field.max }));
+    const count2 = countInputChildren(block, input.name);
+    field.setUnmet(!isCardinalityMet2(count2, { min: field.min, max: field.max }));
   }
 }
 function unmetSlotCards(block) {
@@ -149085,10 +149091,10 @@ function unmetSlotCards(block) {
     const field = cardinalityFieldOnInput(input);
     if (!field) continue;
     const card = { min: field.min, max: field.max };
-    const count = countInputChildren(block, input.name);
-    if (isCardinalityMet2(count, card)) continue;
+    const count2 = countInputChildren(block, input.name);
+    if (isCardinalityMet2(count2, card)) continue;
     const attr = input.name.startsWith(RM_ATTR_INPUT_PREFIX) ? input.name.slice(RM_ATTR_INPUT_PREFIX.length) : input.name.startsWith(OPTIONAL_INPUT_PREFIX) ? input.name.slice(OPTIONAL_INPUT_PREFIX.length) : input.name.toLowerCase();
-    out.push({ attr, card, count });
+    out.push({ attr, card, count: count2 });
   }
   return out;
 }
@@ -149545,9 +149551,9 @@ function dvIdentifierRows(block) {
   return rows;
 }
 function listCreateItems(block) {
-  const count = Number(block.itemCount_ ?? 0);
+  const count2 = Number(block.itemCount_ ?? 0);
   const items = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const child = block.getInputTargetBlock(`ADD${i12}`);
     if (child && !child.isShadow()) items.push(child);
   }
@@ -169415,14 +169421,14 @@ var Stack = class _Stack {
         this.p.lastBigReductionSize = size3;
       }
     }
-    let bufferBase = base2 ? this.stack[base2 - 1] : 0, count = this.bufferBase + this.buffer.length - bufferBase;
+    let bufferBase = base2 ? this.stack[base2 - 1] : 0, count2 = this.bufferBase + this.buffer.length - bufferBase;
     if (type < parser7.minRepeatTerm || action & 131072) {
       let pos = parser7.stateFlag(
         this.state,
         1
         /* StateFlag.Skipped */
       ) ? this.pos : this.reducePos;
-      this.storeNode(type, start, pos, count + 4, true);
+      this.storeNode(type, start, pos, count2 + 4, true);
     }
     if (action & 262144) {
       this.state = this.stack[base2];
@@ -177663,9 +177669,9 @@ function emitListsGetIndex(block, ctx) {
   return `(${listCode})[Number(${index}) - 1]`;
 }
 function emitListsCreate(block, ctx) {
-  const count = Number(block.itemCount_ ?? 0);
+  const count2 = Number(block.itemCount_ ?? 0);
   const items = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const child = block.getInputTargetBlock(`ADD${i12}`);
     items.push(child ? emitBlock2(child, ctx, 1) : "undefined");
   }
@@ -178000,9 +178006,9 @@ function emitStatementList2(first2, ctx, indent) {
 }
 function emitJson(block, ctx, indent) {
   if (block.type === "json_array") {
-    const count = Number(block.itemCount_ ?? 0);
+    const count2 = Number(block.itemCount_ ?? 0);
     const items = [];
-    for (let i12 = 0; i12 < count; i12++) {
+    for (let i12 = 0; i12 < count2; i12++) {
       const child = block.getInputTargetBlock(`ADD${i12}`);
       if (child) items.push(emitBlock3(child, ctx, indent + 1).join(""));
     }
@@ -178297,10 +178303,10 @@ function listDefaultsMapEntries(workspace2) {
 function listDefaultContextMapEntries(workspace2) {
   const map = findDefaultsMapBlock(workspace2);
   if (!map) return [];
-  const count = contextMapItemCount(map);
+  const count2 = contextMapItemCount(map);
   const extra = map.saveExtraState?.();
   const entries = [];
-  for (let i12 = 0; i12 < count; i12++) {
+  for (let i12 = 0; i12 < count2; i12++) {
     const runtimeKey = String(map.getFieldValue(`KEY${i12}`) ?? "").trim();
     const field = map.getField(`TARGETS${i12}`);
     const fromField = field?.getTargets() ?? parseTargetsField(map.getFieldValue(`TARGETS${i12}`));
@@ -178406,8 +178412,8 @@ function defaultsMapValueBlock(workspace2, key) {
   if (!map) return null;
   const wanted = key.trim();
   if (!wanted) return null;
-  const count = contextMapItemCount(map);
-  for (let i12 = 0; i12 < count; i12++) {
+  const count2 = contextMapItemCount(map);
+  for (let i12 = 0; i12 < count2; i12++) {
     if (String(map.getFieldValue(`KEY${i12}`) ?? "").trim() !== wanted) continue;
     return map.getInputTargetBlock(`VAL${i12}`);
   }
@@ -179667,11 +179673,11 @@ function showOptionalDvField(block, attr) {
 function attachExpressionToPartyName(workspace2, party, expression2, returnType) {
   const exprBlock = expressionToBlock(workspace2, expression2, returnType);
   if (exprBlock.type === "maps_create_with") {
-    const count = Number(exprBlock.itemCount_ ?? 0);
+    const count2 = Number(exprBlock.itemCount_ ?? 0);
     let nameChild = null;
     let idChild = null;
     let typeChild = null;
-    for (let i12 = 0; i12 < count; i12++) {
+    for (let i12 = 0; i12 < count2; i12++) {
       const key = String(exprBlock.getFieldValue(`KEY${i12}`) ?? "");
       const child = exprBlock.getInputTargetBlock(`VAL${i12}`);
       if (!child || child.isShadow()) continue;
@@ -182020,9 +182026,9 @@ function registerGenerators() {
   };
   javascriptGenerator.forBlock["maps_create_empty"] = () => ["({})", Order.ATOMIC];
   javascriptGenerator.forBlock["maps_create_with"] = (block) => {
-    const count = Number(block.itemCount_ ?? 0);
+    const count2 = Number(block.itemCount_ ?? 0);
     const parts = [];
-    for (let i12 = 0; i12 < count; i12++) {
+    for (let i12 = 0; i12 < count2; i12++) {
       const key = JSON.stringify(block.getFieldValue(`KEY${i12}`) ?? "");
       const val = javascriptGenerator.valueToCode(block, `VAL${i12}`, Order.NONE) || "null";
       parts.push(`${key}: ${val}`);
@@ -182149,9 +182155,9 @@ function registerGenerators() {
     const op = String(block.getFieldValue("OP") ?? "ALL");
     let code;
     if (restrictionOpNeedsCount(op)) {
-      const count = `${arr}.filter((${ident}) => ${bind3}).length`;
+      const count2 = `${arr}.filter((${ident}) => ${bind3}).length`;
       const n10 = restrictionCount(block);
-      code = op === "AT_MOST" ? `${count} <= ${n10}` : op === "EXACTLY" ? `${count} === ${n10}` : `${count} >= ${n10}`;
+      code = op === "AT_MOST" ? `${count2} <= ${n10}` : op === "EXACTLY" ? `${count2} === ${n10}` : `${count2} >= ${n10}`;
     } else {
       code = op === "ANY" ? `${arr}.some((${ident}) => ${bind3})` : op === "NONE" ? `${arr}.every((${ident}) => !${bind3})` : `${arr}.every((${ident}) => ${bind3})`;
     }
@@ -183919,10 +183925,10 @@ var WorkbenchController = class {
     const n10 = issues.length;
     return `Added example ${filename} with ${n10} schema mismatch${n10 === 1 ? "" : "es"}`;
   }
-  examplesLoadStatus(count) {
+  examplesLoadStatus(count2) {
     const mismatchCount = Object.values(this.buildExampleValidations()).reduce((sum, issues) => sum + issues.length, 0);
-    if (!mismatchCount) return `Added ${count} examples`;
-    return `Added ${count} examples with ${mismatchCount} schema mismatch${mismatchCount === 1 ? "" : "es"}`;
+    if (!mismatchCount) return `Added ${count2} examples`;
+    return `Added ${count2} examples with ${mismatchCount} schema mismatch${mismatchCount === 1 ? "" : "es"}`;
   }
   tryApplySchemaFile(filename, content2, refresh = false) {
     try {
@@ -184835,8 +184841,8 @@ function walkNamedInputs(block, indent, lines, names) {
   }
 }
 function walkMapEntries(block, indent, lines, extraAliases) {
-  const count = mapItemCount(block);
-  for (let i12 = 0; i12 < count; i12++) {
+  const count2 = mapItemCount(block);
+  for (let i12 = 0; i12 < count2; i12++) {
     const key = stringField(block, `KEY${i12}`) || `key${i12}`;
     const child = inputBlock(block, `VAL${i12}`) ?? inputShadow(block, `VAL${i12}`);
     if (!child) continue;
@@ -185395,11 +185401,11 @@ function mapItemCount(block) {
     const n10 = extra.itemCount;
     if (typeof n10 === "number") return n10;
   }
-  let count = 0;
-  while (block.fields?.[`KEY${count}`] !== void 0 || block.inputs?.[`VAL${count}`]) {
-    count++;
+  let count2 = 0;
+  while (block.fields?.[`KEY${count2}`] !== void 0 || block.inputs?.[`VAL${count2}`]) {
+    count2++;
   }
-  return count;
+  return count2;
 }
 
 // src/workbench/mapping_spec/bulk_actions.ts
@@ -187378,12 +187384,12 @@ function resolvedAxis(container, declared) {
   if (typeof getComputedStyle !== "function") return declared;
   return visualAxisFromFlexDirection(getComputedStyle(container).flexDirection, declared);
 }
-function loadSizes(key, count) {
+function loadSizes(key, count2) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed.length !== count || parsed.some((n10) => !Number.isFinite(n10) || n10 <= 0)) return null;
+    if (parsed.length !== count2 || parsed.some((n10) => !Number.isFinite(n10) || n10 <= 0)) return null;
     const sum = parsed.reduce((a8, b9) => a8 + b9, 0);
     return parsed.map((n10) => n10 / sum);
   } catch {
@@ -187396,8 +187402,8 @@ function saveSizes(key, sizes) {
   } catch {
   }
 }
-function equalSizes(count) {
-  return Array.from({ length: count }, () => 1 / count);
+function equalSizes(count2) {
+  return Array.from({ length: count2 }, () => 1 / count2);
 }
 function normalize3(sizes) {
   const sum = sizes.reduce((a8, b9) => a8 + b9, 0);
@@ -187928,11 +187934,11 @@ function mountFunctionLibraryDialog(options) {
     try {
       catalog = await controller2.loadFunctionLibraryCatalog(url);
       catalogInput.value = catalog.catalogUrl;
-      const count = catalog.functions.length;
+      const count2 = catalog.functions.length;
       const messages = ui();
       statusEl.textContent = formatMessage(messages.functionLibraryCount, {
-        n: count,
-        functions: count === 1 ? messages.functionSingular : messages.functionPlural
+        n: count2,
+        functions: count2 === 1 ? messages.functionSingular : messages.functionPlural
       });
       renderLibrary();
     } catch (err2) {
@@ -189054,8 +189060,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "5fb5348" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T13:06:39.386Z" : "not built";
+var BUILD_ID = true ? "302d094" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T13:19:46.739Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -190872,7 +190878,7 @@ var translation = {
   copy: "Copy",
   currentValue: "Current value",
   error: "Error",
-  goToSlide: (slide, count) => `Go to slide ${slide} of ${count}`,
+  goToSlide: (slide, count2) => `Go to slide ${slide} of ${count2}`,
   hidePassword: "Hide password",
   loading: "Loading",
   nextSlide: "Next slide",
@@ -192295,15 +192301,25 @@ function answerQuote(question3, index) {
 function ui4() {
   return chrome(detectLocale());
 }
+function count(n10, one, many) {
+  return `${n10} ${n10 === 1 ? one : many}`;
+}
 function formatImportReport(report) {
   const schemaCount = report.schemaIssues?.length ?? 0;
-  const validNote = schemaCount > 0 && report.applied + report.loopsAccepted > 0 ? " \xB7 valid entries only" : "";
-  const summary = `${report.applied} applied \xB7 ${report.loopsAccepted} loops \xB7 ${report.skipped} skipped \xB7 ${report.errors.length} errors \xB7 ${schemaCount} schema${validNote}`;
+  const imported = report.applied + report.loopsAccepted > 0;
+  const validNote = schemaCount > 0 && imported ? " \xB7 valid entries only" : "";
+  const summary = `${imported ? "Imported" : "Nothing imported"}: ${[
+    count(report.applied, "mapping applied", "mappings applied"),
+    count(report.loopsAccepted, "loop added", "loops added"),
+    `${report.skipped} skipped`,
+    count(report.errors.length, "error", "errors"),
+    count(schemaCount, "schema issue", "schema issues")
+  ].join(" \xB7 ")}${validNote}`;
   const hasProblems = report.errors.length > 0 || schemaCount > 0;
-  if (!hasProblems && report.applied + report.loopsAccepted > 0) {
+  if (!hasProblems && imported) {
     return { summary, kind: "ok" };
   }
-  if (report.applied + report.loopsAccepted > 0) return { summary, kind: "partial" };
+  if (imported) return { summary, kind: "partial" };
   return { summary, kind: "error" };
 }
 function installImportAiDialog(options) {
@@ -192321,6 +192337,10 @@ function installImportAiDialog(options) {
     importText
   } = options;
   const form = dialog2.querySelector("form");
+  const submit = form?.querySelector('button[type="submit"]') ?? null;
+  const setImportDone = (done) => {
+    if (submit) submit.disabled = done;
+  };
   let lastReport = null;
   const renderNotes = () => {
     const box = options.notes;
@@ -192336,8 +192356,13 @@ function installImportAiDialog(options) {
     box.hidden = !view;
   };
   textarea.addEventListener("input", renderNotes);
+  textarea.addEventListener("input", () => {
+    if (lastReport && formatImportReport(lastReport).kind === "ok") clearReport();
+    setImportDone(false);
+  });
   const clearReport = () => {
     lastReport = null;
+    setImportDone(false);
     report.hidden = true;
     report.classList.remove("import-ai-report--ok", "import-ai-report--partial", "import-ai-report--error");
     report.replaceChildren();
@@ -192386,7 +192411,9 @@ function installImportAiDialog(options) {
     copyErrors.hidden = !hasProblems;
     textarea.classList.toggle("import-ai-text--invalid", hasProblems && result.applied === 0);
     textarea.setAttribute("aria-invalid", hasProblems ? "true" : "false");
-    cancel.textContent = result.applied > 0 ? ui4().close : ui4().cancel;
+    const imported = result.applied + result.loopsAccepted > 0;
+    cancel.textContent = imported ? ui4().close : ui4().cancel;
+    setImportDone(imported);
   };
   const highlightIssue = (item) => {
     const span = locateIssueInText(textarea.value, item.path, item.message);
@@ -192869,10 +192896,12 @@ function installAiChatPanel(options) {
   const promptsWrap = el2("div", { className: "ai-chat-prompts" });
   const promptsBtn = el2("button", {
     className: "pane-btn ai-chat-prompts-btn",
-    text: `${ui5().aiChatStoredPrompts} \u25BE`,
+    text: `${ui5().aiChatStoredPromptsShort} \u25BE`,
+    title: ui5().aiChatStoredPrompts,
     type: "button"
   });
   promptsBtn.id = "ai-chat-prompts-btn";
+  promptsBtn.setAttribute("aria-label", ui5().aiChatStoredPrompts);
   promptsBtn.setAttribute("aria-haspopup", "menu");
   const promptsMenu = el2("div", { className: "split-btn-menu ai-chat-prompts-menu" });
   promptsMenu.id = "ai-chat-prompts-menu";
@@ -192896,22 +192925,41 @@ function installAiChatPanel(options) {
     storage.setItem(AI_CHAT_MODE_KEY, modeSelect.value);
     modeSelect.title = modeSelect.value === "approve" ? ui5().aiChatModeApproveTitle : ui5().aiChatModeApplyTitle;
   });
-  modeLabel.append(el2("span", { text: ui5().aiChatModeLabel }), modeSelect);
+  modeSelect.setAttribute("aria-label", ui5().aiChatModeLabel);
+  modeLabel.append(modeSelect);
   const spacer = el2("span", { className: "ai-chat-spacer" });
   const clearBtn = el2("button", {
-    className: "pane-btn ai-chat-clear",
-    text: ui5().aiChatClear,
+    className: "pane-btn pane-btn-icon ai-chat-icon-btn ai-chat-clear",
     title: ui5().aiChatClearTitle,
     type: "button"
   });
   clearBtn.id = "ai-chat-clear";
+  clearBtn.setAttribute("aria-label", ui5().aiChatClearTitle);
+  clearBtn.innerHTML = '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5-1-1h-5l-1 1H5v2h14V4h-3.5z"></path></svg>';
+  const infoTip = el2("span", { className: "info-tip info-tip--end ai-chat-info" });
+  const infoBtn = el2("button", { className: "info-tip-btn", text: "i", type: "button" });
+  infoBtn.id = "ai-chat-info-btn";
+  infoBtn.setAttribute("aria-expanded", "false");
+  infoBtn.setAttribute("aria-label", ui5().aiChatHelpAria);
+  infoBtn.setAttribute("aria-describedby", "ai-chat-info-balloon");
+  const infoBalloon = el2("span", { className: "info-tip-balloon ai-chat-info-balloon" });
+  infoBalloon.id = "ai-chat-info-balloon";
+  infoBalloon.setAttribute("role", "tooltip");
+  infoTip.append(infoBtn, infoBalloon);
+  let infoMode = null;
+  const renderInfo = (hasCreds) => {
+    if (infoMode === hasCreds) return;
+    infoMode = hasCreds;
+    infoBalloon.innerHTML = hasCreds ? ui5().aiChatHelpApiHtml : ui5().aiChatHelpPasteHtml;
+  };
   const toggleBtn = el2("button", { className: "pane-btn pane-slide-btn ai-chat-toggle", type: "button" });
   toggleBtn.id = "ai-chat-toggle";
   toggleBtn.setAttribute("aria-controls", panel.id || "ai-chat-panel");
   toggleBtn.innerHTML = '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect><rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
   const tools = el2("div", { className: "ai-chat-header-tools" });
   tools.append(promptsWrap, modeLabel, spacer, clearBtn);
-  header.append(title, tools, toggleBtn);
+  header.append(title, infoTip, tools, toggleBtn);
+  attachInfoTip(infoTip);
   const body = el2("div", { className: "ai-chat-body" });
   const credsNotice = el2("div", { className: "ai-chat-creds" });
   credsNotice.id = "ai-chat-creds";
@@ -193161,6 +193209,7 @@ function installAiChatPanel(options) {
   };
   const refreshChrome = () => {
     const hasCreds = options.hasCredentials();
+    renderInfo(hasCreds);
     credsNotice.hidden = hasCreds || credsDismissed;
     sendBtn.hidden = !hasCreds;
     sendBtn.disabled = sending;
@@ -193419,6 +193468,12 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
     syncProject();
     clearChatSession(storage, sessionProject);
     session = loadChatSession(storage, sessionProject);
+    forceContext = false;
+    session.display.push({
+      role: "note",
+      text: options.hasCredentials() ? ui5().aiChatClearedApi : ui5().aiChatClearedPaste
+    });
+    persist();
     lastTurnRevertible = false;
     renderLog();
   });
