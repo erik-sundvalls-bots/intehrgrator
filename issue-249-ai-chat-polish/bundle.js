@@ -39846,7 +39846,7 @@ var init_fontoxpath_esm = __esm({
         throw Error(`XPTY0004: ${a8} not available for ${Da[b9]} and ${Da[c9]}`);
       }
       const ti = /* @__PURE__ */ Object.create(null);
-      function ui5(a8, b9, c9) {
+      function ui6(a8, b9, c9) {
         const d7 = `${b9}~${c9}~${a8}`;
         let e12 = ti[d7];
         e12 ||= ti[d7] = si(a8, b9, c9);
@@ -39863,7 +39863,7 @@ var init_fontoxpath_esm = __esm({
           const c9 = A4(this.l, a8, b9), d7 = A4(this.A, a8, b9), e12 = ki(c9, b9), f7 = ki(d7, b9);
           return e12.X({ empty: () => w6.empty(), m: () => f7.X({ empty: () => w6.empty(), m: () => {
             const h7 = e12.first(), k5 = f7.first();
-            return ui5(this.s, h7.type, k5.type)(h7, k5, a8) ? w6.$() : w6.S();
+            return ui6(this.s, h7.type, k5.type)(h7, k5, a8) ? w6.$() : w6.S();
           }, multiple: () => {
             throw Error("XPTY0004: Sequences to compare are not singleton.");
           } }), multiple: () => {
@@ -39883,7 +39883,7 @@ var init_fontoxpath_esm = __esm({
             h7 = y7;
             k5 = F4;
             h7 ? f7 = kd(f7, h7) : k5 && (t11 = kd(t11, k5));
-            if (ui5(a8, f7.type, t11.type)(f7, t11, d7)) return true;
+            if (ui6(a8, f7.type, t11.type)(f7, t11, d7)) return true;
           }
           return false;
         }).X({ default: () => w6.$(), empty: () => w6.S() }));
@@ -40222,7 +40222,7 @@ var init_fontoxpath_esm = __esm({
                       continue;
                     }
                   }
-                  ui5("gtOp", U3.type, da.type)(U3, da, a8) && ([k5[F4], k5[N5]] = [k5[N5], k5[F4]]);
+                  ui6("gtOp", U3.type, da.type)(U3, da, a8) && ([k5[F4], k5[N5]] = [k5[N5], k5[F4]]);
                 }
               }
               let u9 = n10.Cb ? 0 : h7.length - 1;
@@ -41946,7 +41946,7 @@ var init_fontoxpath_esm = __esm({
         return (b9, c9) => (b9 = a8.exec(b9.substring(c9))) && 0 === b9.index ? (0, R4.okWithValue)(c9 + b9[0].length, b9[0]) : (0, R4.error)(c9, [a8.source], false);
       }
       ;
-      var dl = (0, R4.or)([(0, R4.token)(" "), (0, R4.token)("	"), (0, R4.token)("\r"), (0, R4.token)("\n")]), el2 = (0, R4.token)("(:"), fl2 = (0, R4.token)(":)"), gl = (0, R4.token)("(#"), hl = (0, R4.token)("#)"), il = (0, R4.token)("("), jl = (0, R4.token)(")"), kl = (0, R4.token)("["), ll = (0, R4.token)("]"), ml = (0, R4.token)("{"), nl = (0, R4.token)("}"), ol = (0, R4.token)("{{"), pl = (0, R4.token)("}}"), ql = (0, R4.token)("'"), rl = (0, R4.token)("''"), sl = (0, R4.token)('"'), tl = (0, R4.token)('""'), ul = (0, R4.token)("<![CDATA["), vl = (0, R4.token)("]]>"), wl = (0, R4.token)("/>"), xl = (0, R4.token)("</"), yl = (0, R4.token)("<!--"), zl = (0, R4.token)("-->"), Al = (0, R4.token)("<?"), Bl = (0, R4.token)("?>"), Cl = (0, R4.token)("&#x"), Dl = (0, R4.token)("&#"), El = (0, R4.token)(":*"), Fl = (0, R4.token)("*:"), Gl = (0, R4.token)(":="), Hl = (0, R4.token)("&"), Il = (0, R4.token)(":"), Jl = (0, R4.token)(";"), Kl = (0, R4.token)("*"), Ll = (0, R4.token)("@"), Ml = (0, R4.token)("$"), Nl = (0, R4.token)("#"), Ol = (0, R4.token)("%"), Pl = (0, R4.token)("?"), Ql = (0, R4.token)("="), Rl = (0, R4.followed)((0, R4.token)("!"), (0, R4.not)((0, R4.peek)(Ql), [])), Sl = (0, R4.followed)((0, R4.token)("|"), (0, R4.not)(
+      var dl = (0, R4.or)([(0, R4.token)(" "), (0, R4.token)("	"), (0, R4.token)("\r"), (0, R4.token)("\n")]), el3 = (0, R4.token)("(:"), fl2 = (0, R4.token)(":)"), gl = (0, R4.token)("(#"), hl = (0, R4.token)("#)"), il = (0, R4.token)("("), jl = (0, R4.token)(")"), kl = (0, R4.token)("["), ll = (0, R4.token)("]"), ml = (0, R4.token)("{"), nl = (0, R4.token)("}"), ol = (0, R4.token)("{{"), pl = (0, R4.token)("}}"), ql = (0, R4.token)("'"), rl = (0, R4.token)("''"), sl = (0, R4.token)('"'), tl = (0, R4.token)('""'), ul = (0, R4.token)("<![CDATA["), vl = (0, R4.token)("]]>"), wl = (0, R4.token)("/>"), xl = (0, R4.token)("</"), yl = (0, R4.token)("<!--"), zl = (0, R4.token)("-->"), Al = (0, R4.token)("<?"), Bl = (0, R4.token)("?>"), Cl = (0, R4.token)("&#x"), Dl = (0, R4.token)("&#"), El = (0, R4.token)(":*"), Fl = (0, R4.token)("*:"), Gl = (0, R4.token)(":="), Hl = (0, R4.token)("&"), Il = (0, R4.token)(":"), Jl = (0, R4.token)(";"), Kl = (0, R4.token)("*"), Ll = (0, R4.token)("@"), Ml = (0, R4.token)("$"), Nl = (0, R4.token)("#"), Ol = (0, R4.token)("%"), Pl = (0, R4.token)("?"), Ql = (0, R4.token)("="), Rl = (0, R4.followed)((0, R4.token)("!"), (0, R4.not)((0, R4.peek)(Ql), [])), Sl = (0, R4.followed)((0, R4.token)("|"), (0, R4.not)(
         (0, R4.peek)((0, R4.token)("|")),
         []
       )), Tl = (0, R4.token)("||"), Ul = (0, R4.token)("!="), Vl = (0, R4.token)("<"), Wl = (0, R4.token)("<<"), Xl = (0, R4.token)("<="), Yl = (0, R4.token)(">"), Zl = (0, R4.token)(">>"), $l = (0, R4.token)(">="), am = (0, R4.token)(","), bm = (0, R4.token)("."), cm = (0, R4.token)(".."), dm = (0, R4.token)("+"), em = (0, R4.token)("-"), fm = (0, R4.token)("/"), gm = (0, R4.token)("//"), hm = (0, R4.token)("=>"), im = (0, R4.token)("e"), jm = (0, R4.token)("E");
@@ -41960,7 +41960,7 @@ var init_fontoxpath_esm = __esm({
       var lm = (0, R4.token)("as"), mm = (0, R4.token)("cast"), nm = (0, R4.token)("castable"), om = (0, R4.token)("treat"), pm = (0, R4.token)("instance"), qm = (0, R4.token)("of"), rm2 = (0, R4.token)("node"), sm = (0, R4.token)("nodes"), tm = (0, R4.token)("delete"), um = (0, R4.token)("value"), vm = (0, R4.token)("function"), wm = (0, R4.token)("map"), xm = (0, R4.token)("element"), ym = (0, R4.token)("attribute"), zm = (0, R4.token)("schema-element"), Am = (0, R4.token)("intersect"), Bm = (0, R4.token)("except"), Cm = (0, R4.token)("union"), Dm = (0, R4.token)("otherwise"), Em = (0, R4.token)("to"), Fm = (0, R4.token)("is"), Gm = (0, R4.token)("or"), Hm = (0, R4.token)("and"), Im = (0, R4.token)("div"), Jm = (0, R4.token)("idiv"), Km = (0, R4.token)("mod"), Lm = (0, R4.token)("eq"), Mm = (0, R4.token)("ne"), Nm = (0, R4.token)("lt"), Om = (0, R4.token)("le"), Pm = (0, R4.token)("gt"), Qm = (0, R4.token)("ge"), Rm = (0, R4.token)("amp"), Sm = (0, R4.token)("quot"), Tm = (0, R4.token)("apos"), Um = (0, R4.token)("if"), Vm = (0, R4.token)("then"), Wm = (0, R4.token)("else"), Xm = (0, R4.token)("allowing"), Ym = (0, R4.token)("empty"), Zm = (0, R4.token)("at"), $m = (0, R4.token)("in"), an2 = (0, R4.token)("for"), bn2 = (0, R4.token)("let"), cn2 = (0, R4.token)("where"), dn2 = (0, R4.token)("collation"), en4 = (0, R4.token)("group"), fn2 = (0, R4.token)("by"), gn2 = (0, R4.token)("order"), hn2 = (0, R4.token)("stable"), jn2 = (0, R4.token)("return"), kn2 = (0, R4.token)("array"), ln3 = (0, R4.token)("document"), mn2 = (0, R4.token)("namespace"), nn2 = (0, R4.token)("text"), on2 = (0, R4.token)("comment"), pn2 = (0, R4.token)("processing-instruction"), qn2 = (0, R4.token)("lax"), rn2 = (0, R4.token)("strict"), sn2 = (0, R4.token)("validate"), tn2 = (0, R4.token)("type"), un2 = (0, R4.token)("declare"), vn2 = (0, R4.token)("default"), wn2 = (0, R4.token)("boundary-space"), xn2 = (0, R4.token)("strip"), yn2 = (0, R4.token)("preserve"), zn2 = (0, R4.token)("no-preserve"), An2 = (0, R4.token)("inherit"), Bn2 = (0, R4.token)("no-inherit"), Cn2 = (0, R4.token)("greatest"), Dn2 = (0, R4.token)("least"), En2 = (0, R4.token)("copy-namespaces"), Fn2 = (0, R4.token)("decimal-format"), Gn2 = (0, R4.token)("case"), Hn2 = (0, R4.token)("typeswitch"), In2 = (0, R4.token)("some"), Jn2 = (0, R4.token)("every"), Kn2 = (0, R4.token)("satisfies"), Ln2 = (0, R4.token)("replace"), Mn2 = (0, R4.token)("with"), Nn2 = (0, R4.token)("copy"), On2 = (0, R4.token)("modify"), Pn2 = (0, R4.token)("first"), Qn2 = (0, R4.token)("last"), Rn2 = (0, R4.token)("before"), Sn2 = (0, R4.token)("after"), Tn2 = (0, R4.token)("into"), Un2 = (0, R4.token)("insert"), Vn2 = (0, R4.token)("rename"), Wn2 = (0, R4.token)("switch"), Xn2 = (0, R4.token)("variable"), Yn2 = (0, R4.token)("external"), Zn2 = (0, R4.token)("updating"), $n2 = (0, R4.token)("import"), ao2 = (0, R4.token)("schema"), bo2 = (0, R4.token)("module"), co2 = (0, R4.token)("base-uri"), eo2 = (0, R4.token)("construction"), fo2 = (0, R4.token)("ordering"), go2 = (0, R4.token)("ordered"), ho2 = (0, R4.token)("unordered"), io2 = (0, R4.token)("option"), jo = (0, R4.token)("context"), ko = (0, R4.token)("item"), lo2 = (0, R4.token)("xquery"), mo2 = (0, R4.token)("version"), no2 = (0, R4.token)("encoding"), oo2 = (0, R4.token)("document-node"), po2 = (0, R4.token)("namespace-node"), qo = (0, R4.token)("schema-attribute"), ro2 = (0, R4.token)("ascending"), so2 = (0, R4.token)("descending"), to2 = (0, R4.token)("empty-sequence"), uo2 = (0, R4.token)("child::"), vo2 = (0, R4.token)("descendant::"), wo2 = (0, R4.token)("attribute::"), xo2 = (0, R4.token)("self::"), yo2 = (0, R4.token)("descendant-or-self::"), zo = (0, R4.token)("following-sibling::"), Ao = (0, R4.token)("following::"), Bo = (0, R4.token)("parent::"), Co = (0, R4.token)("ancestor::"), Do = (0, R4.token)("preceding-sibling::"), Eo = (0, R4.token)("preceding::"), Fo = (0, R4.token)("ancestor-or-self::"), Go = (0, R4.token)("decimal-separator"), Ho = (0, R4.token)("grouping-separator"), Io = (0, R4.token)("infinity"), Jo = (0, R4.token)("minus-sign"), Ko = (0, R4.token)("NaN"), Lo = (0, R4.token)("per-mille"), Mo = (0, R4.token)("zero-digit"), No2 = (0, R4.token)("digit"), Oo = (0, R4.token)("pattern-separator"), Po = (0, R4.token)("exponent-separator"), Qo = (0, R4.token)("schema-attribute("), Ro = (0, R4.token)("document-node("), So = (0, R4.token)("processing-instruction("), To = (0, R4.token)("processing-instruction()"), Uo = (0, R4.token)("comment()"), Vo = (0, R4.token)("text()"), Wo = (0, R4.token)("namespace-node()"), Xo = (0, R4.token)("node()"), Yo = (0, R4.token)("item()"), Zo = (0, R4.token)("empty-sequence()");
       (0, R4.token)("`");
       var $o = (0, R4.token)("``["), ap = (0, R4.token)("]``"), bp = (0, R4.token)("`{"), cp = (0, R4.token)("}`");
-      var dp = /* @__PURE__ */ new Map(), ep = /* @__PURE__ */ new Map(), fp = (0, R4.or)([cl(/[\t\n\r -\uD7FF\uE000\uFFFD]/), cl(/[\uD800-\uDBFF][\uDC00-\uDFFF]/)]), gp = (0, R4.preceded)((0, R4.peek)((0, R4.not)((0, R4.or)([el2, fl2]), ['comment contents cannot contain "(:" or ":)"'])), fp), hp = (0, R4.map)((0, R4.delimited)(el2, (0, R4.star)((0, R4.or)([gp, function(a8, b9) {
+      var dp = /* @__PURE__ */ new Map(), ep = /* @__PURE__ */ new Map(), fp = (0, R4.or)([cl(/[\t\n\r -\uD7FF\uE000\uFFFD]/), cl(/[\uD800-\uDBFF][\uDC00-\uDFFF]/)]), gp = (0, R4.preceded)((0, R4.peek)((0, R4.not)((0, R4.or)([el3, fl2]), ['comment contents cannot contain "(:" or ":)"'])), fp), hp = (0, R4.map)((0, R4.delimited)(el3, (0, R4.star)((0, R4.or)([gp, function(a8, b9) {
         return hp(a8, b9);
       }])), fl2, true), (a8) => a8.join("")), ip = (0, R4.or)([dl, hp]), jp = (0, R4.map)((0, R4.plus)(dl), (a8) => a8.join("")), V4 = Xk((0, R4.map)((0, R4.star)(ip), (a8) => a8.join("")), dp), W3 = Xk((0, R4.map)((0, R4.plus)(ip), (a8) => a8.join("")), ep);
       const kp = (0, R4.or)([cl(/[A-Z_a-z\xC0-\xD6\xD8-\xF6\xF8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD]/), (0, R4.then)(cl(/[\uD800-\uDB7F]/), cl(/[\uDC00-\uDFFF]/), (a8, b9) => a8 + b9)]), lp = (0, R4.or)([kp, cl(/[\-\.0-9\xB7\u0300-\u036F\u203F\u2040]/)]);
@@ -42834,7 +42834,7 @@ var init_fontoxpath_esm = __esm({
           g: 3
         }], callFunction() {
           throw Error("FOCH0002: No collations are supported");
-        }, localName: "distinct-values", namespaceURI: "http://www.w3.org/2005/xpath-functions", i: { type: 46, g: 2 } }, { j: [{ type: 46, g: 2 }, { type: 46, g: 3 }], callFunction: (a8, b9, c9, d7, e12) => e12.M(([f7]) => rc(d7, b9).map((h7, k5) => ui5("eqOp", h7.type, f7.type)(h7, f7, a8) ? g5(k5 + 1, 5) : g5(-1, 5)).filter((h7) => -1 !== h7.value)), localName: "index-of", namespaceURI: "http://www.w3.org/2005/xpath-functions", i: { type: 5, g: 2 } }, { j: [{ type: 46, g: 2 }, { type: 46, g: 3 }, { type: 1, g: 3 }], callFunction() {
+        }, localName: "distinct-values", namespaceURI: "http://www.w3.org/2005/xpath-functions", i: { type: 46, g: 2 } }, { j: [{ type: 46, g: 2 }, { type: 46, g: 3 }], callFunction: (a8, b9, c9, d7, e12) => e12.M(([f7]) => rc(d7, b9).map((h7, k5) => ui6("eqOp", h7.type, f7.type)(h7, f7, a8) ? g5(k5 + 1, 5) : g5(-1, 5)).filter((h7) => -1 !== h7.value)), localName: "index-of", namespaceURI: "http://www.w3.org/2005/xpath-functions", i: { type: 5, g: 2 } }, { j: [{ type: 46, g: 2 }, { type: 46, g: 3 }, { type: 1, g: 3 }], callFunction() {
           throw Error("FOCH0002: No collations are supported");
         }, localName: "index-of", namespaceURI: "http://www.w3.org/2005/xpath-functions", i: { type: 5, g: 2 } }, { j: [{ type: 59, g: 2 }, { type: 59, g: 2 }], callFunction: (a8, b9, c9, d7, e12) => {
           let f7 = false;
@@ -58616,11 +58616,11 @@ var require_jsuites = __commonJS({
             }
             return value;
           };
-          Helpers2.focus = function(el2) {
-            if (el2.textContent.length) {
+          Helpers2.focus = function(el3) {
+            if (el3.textContent.length) {
               const range = document.createRange();
               const sel = window.getSelection();
-              let node = el2;
+              let node = el3;
               while (node.lastChild) node = node.lastChild;
               if (node.nodeType === Node.TEXT_NODE) {
                 range.setStart(node, node.length);
@@ -58630,7 +58630,7 @@ var require_jsuites = __commonJS({
               range.collapse(true);
               sel.removeAllRanges();
               sel.addRange(range);
-              el2.scrollLeft = el2.scrollWidth;
+              el3.scrollLeft = el3.scrollWidth;
             }
           };
           Helpers2.isNumeric = function(num) {
@@ -58703,16 +58703,16 @@ var require_jsuites = __commonJS({
             }
             return [x6, y7];
           };
-          Helpers2.click = function(el2) {
-            if (el2.click) {
-              el2.click();
+          Helpers2.click = function(el3) {
+            if (el3.click) {
+              el3.click();
             } else {
               var evt = new MouseEvent("click", {
                 bubbles: true,
                 cancelable: true,
                 view: window
               });
-              el2.dispatchEvent(evt);
+              el3.dispatchEvent(evt);
             }
           };
           Helpers2.findElement = function(element, condition) {
@@ -58787,7 +58787,7 @@ var require_jsuites = __commonJS({
             return true;
           }
           ;
-          function Sorting(el2, options) {
+          function Sorting(el3, options) {
             var obj2 = {};
             obj2.options = {};
             var defaults2 = {
@@ -58805,8 +58805,8 @@ var require_jsuites = __commonJS({
                 obj2.options[property] = defaults2[property];
               }
             }
-            el2.classList.add("jsorting");
-            el2.addEventListener("dragstart", function(e12) {
+            el3.classList.add("jsorting");
+            el3.addEventListener("dragstart", function(e12) {
               let target = e12.target;
               if (target.nodeType === 3) {
                 if (target.parentNode.getAttribute("draggable") === "true") {
@@ -58826,12 +58826,12 @@ var require_jsuites = __commonJS({
                 };
                 target.style.opacity = "0.25";
                 if (typeof obj2.options.ondragstart == "function") {
-                  obj2.options.ondragstart(el2, target, e12);
+                  obj2.options.ondragstart(el3, target, e12);
                 }
                 e12.dataTransfer.setDragImage(target, 0, 0);
               }
             });
-            el2.addEventListener("dragover", function(e12) {
+            el3.addEventListener("dragover", function(e12) {
               e12.preventDefault();
               if (dragElement) {
                 if (getElement2(e12.target)) {
@@ -58851,14 +58851,14 @@ var require_jsuites = __commonJS({
                 }
               }
             });
-            el2.addEventListener("dragleave", function(e12) {
+            el3.addEventListener("dragleave", function(e12) {
               e12.preventDefault();
             });
-            el2.addEventListener("dragend", function(e12) {
+            el3.addEventListener("dragend", function(e12) {
               e12.preventDefault();
               if (dragElement) {
                 if (typeof obj2.options.ondragend == "function") {
-                  obj2.options.ondragend(el2, dragElement.element, e12);
+                  obj2.options.ondragend(el3, dragElement.element, e12);
                 }
                 if (dragElement.o < dragElement.d) {
                   e12.target.parentNode.insertBefore(dragElement.element, e12.target.parentNode.children[dragElement.o]);
@@ -58869,12 +58869,12 @@ var require_jsuites = __commonJS({
                 dragElement = null;
               }
             });
-            el2.addEventListener("drop", function(e12) {
+            el3.addEventListener("drop", function(e12) {
               e12.preventDefault();
               if (dragElement) {
                 if (dragElement.o !== dragElement.d) {
                   if (typeof obj2.options.ondrop == "function") {
-                    obj2.options.ondrop(el2, dragElement.o, dragElement.d, dragElement.element, e12.target, e12);
+                    obj2.options.ondrop(el3, dragElement.o, dragElement.d, dragElement.element, e12.target, e12);
                   }
                 }
                 dragElement.element.style.opacity = "";
@@ -58896,25 +58896,25 @@ var require_jsuites = __commonJS({
               path(element);
               return sorting;
             };
-            for (var i12 = 0; i12 < el2.children.length; i12++) {
-              if (!el2.children[i12].hasAttribute("draggable")) {
-                el2.children[i12].setAttribute("draggable", "true");
+            for (var i12 = 0; i12 < el3.children.length; i12++) {
+              if (!el3.children[i12].hasAttribute("draggable")) {
+                el3.children[i12].setAttribute("draggable", "true");
               }
             }
-            el2.val = function() {
+            el3.val = function() {
               var id4 = null;
               var data = [];
-              for (var i13 = 0; i13 < el2.children.length; i13++) {
-                if (id4 = el2.children[i13].getAttribute("data-id")) {
+              for (var i13 = 0; i13 < el3.children.length; i13++) {
+                if (id4 = el3.children[i13].getAttribute("data-id")) {
                   data.push(id4);
                 }
               }
               return data;
             };
-            return el2;
+            return el3;
           }
           ;
-          function LazyLoading(el2, options) {
+          function LazyLoading(el3, options) {
             var obj2 = {};
             if (!options.loadUp || typeof options.loadUp != "function") {
               options.loadUp = function() {
@@ -58933,18 +58933,18 @@ var require_jsuites = __commonJS({
             var scrollControls2 = function(e12) {
               if (timeControlLoading == null) {
                 var event = false;
-                var scrollTop = el2.scrollTop;
-                if (el2.scrollTop + el2.clientHeight * 2 >= el2.scrollHeight) {
+                var scrollTop = el3.scrollTop;
+                if (el3.scrollTop + el3.clientHeight * 2 >= el3.scrollHeight) {
                   if (options.loadDown()) {
-                    if (scrollTop == el2.scrollTop) {
-                      el2.scrollTop = el2.scrollTop - el2.clientHeight;
+                    if (scrollTop == el3.scrollTop) {
+                      el3.scrollTop = el3.scrollTop - el3.clientHeight;
                     }
                     event = true;
                   }
-                } else if (el2.scrollTop <= el2.clientHeight) {
+                } else if (el3.scrollTop <= el3.clientHeight) {
                   if (options.loadUp()) {
-                    if (scrollTop == el2.scrollTop) {
-                      el2.scrollTop = el2.scrollTop + el2.clientHeight;
+                    if (scrollTop == el3.scrollTop) {
+                      el3.scrollTop = el3.scrollTop + el3.clientHeight;
                     }
                     event = true;
                   }
@@ -58959,10 +58959,10 @@ var require_jsuites = __commonJS({
                 }
               }
             };
-            el2.onscroll = function(e12) {
+            el3.onscroll = function(e12) {
               scrollControls2(e12);
             };
-            el2.onwheel = function(e12) {
+            el3.onwheel = function(e12) {
               scrollControls2(e12);
             };
             return obj2;
@@ -60991,9 +60991,9 @@ var require_jsuites = __commonJS({
           var mask = Mask();
           ;
           function Calendar() {
-            var Component = function(el2, options) {
-              if (el2.calendar) {
-                return el2.calendar.setOptions(options, true);
+            var Component = function(el3, options) {
+              if (el3.calendar) {
+                return el3.calendar.setOptions(options, true);
               }
               var obj2 = { type: "calendar" };
               obj2.options = {};
@@ -61061,14 +61061,14 @@ var require_jsuites = __commonJS({
                   calendarReset.style.display = "";
                 }
                 if (obj2.options.readonly) {
-                  el2.setAttribute("readonly", "readonly");
+                  el3.setAttribute("readonly", "readonly");
                 } else {
-                  el2.removeAttribute("readonly");
+                  el3.removeAttribute("readonly");
                 }
                 if (obj2.options.placeholder) {
-                  el2.setAttribute("placeholder", obj2.options.placeholder);
+                  el3.setAttribute("placeholder", obj2.options.placeholder);
                 } else {
-                  el2.removeAttribute("placeholder");
+                  el3.removeAttribute("placeholder");
                 }
                 if (helpers2.isNumeric(obj2.options.value) && obj2.options.value > 0) {
                   obj2.options.value = Component.numToDate(obj2.options.value);
@@ -61078,7 +61078,7 @@ var require_jsuites = __commonJS({
                 calendarConfirm.innerHTML = obj2.options.textDone;
                 calendarControlsUpdateButton.innerHTML = obj2.options.textUpdate;
                 if (obj2.options.format) {
-                  el2.setAttribute("data-mask", obj2.options.format.toLowerCase());
+                  el3.setAttribute("data-mask", obj2.options.format.toLowerCase());
                 }
                 if (!obj2.options.value && obj2.options.today) {
                   var value = Component.now();
@@ -61110,7 +61110,7 @@ var require_jsuites = __commonJS({
                       animation.slideBottom(calendarContent, 1);
                     } else {
                       calendar2.classList.remove("jcalendar-fullsize");
-                      var rect = el2.getBoundingClientRect();
+                      var rect = el3.getBoundingClientRect();
                       var rectContent = calendarContent.getBoundingClientRect();
                       if (obj2.options.position) {
                         calendarContainer.style.position = "fixed";
@@ -61139,7 +61139,7 @@ var require_jsuites = __commonJS({
                       }
                     }
                     if (typeof obj2.options.onopen == "function") {
-                      obj2.options.onopen(el2);
+                      obj2.options.onopen(el3);
                     }
                   }
                 }
@@ -61165,7 +61165,7 @@ var require_jsuites = __commonJS({
                     obj2.setValue(value2);
                   }
                   if (!ignoreEvents && typeof obj2.options.onclose == "function") {
-                    obj2.options.onclose(el2);
+                    obj2.options.onclose(el3);
                   }
                   calendar2.classList.remove("jcalendar-focus");
                   tracking(obj2, false);
@@ -61222,8 +61222,8 @@ var require_jsuites = __commonJS({
                   if (!newValue) {
                     obj2.date = null;
                     var val = "";
-                    el2.classList.remove("jcalendar_warning");
-                    el2.title = "";
+                    el3.classList.remove("jcalendar_warning");
+                    el3.title = "";
                   } else {
                     var value = obj2.setLabel(newValue, obj2.options);
                     var date2 = newValue.split(" ");
@@ -61252,28 +61252,28 @@ var require_jsuites = __commonJS({
                         var test2 = false;
                       }
                       if (!(test1 && test2)) {
-                        el2.classList.add("jcalendar_warning");
-                        el2.title = dictionary.translate("Date outside the valid range");
+                        el3.classList.add("jcalendar_warning");
+                        el3.title = dictionary.translate("Date outside the valid range");
                       } else {
-                        el2.classList.remove("jcalendar_warning");
-                        el2.title = "";
+                        el3.classList.remove("jcalendar_warning");
+                        el3.title = "";
                       }
                     } else {
-                      el2.classList.remove("jcalendar_warning");
-                      el2.title = "";
+                      el3.classList.remove("jcalendar_warning");
+                      el3.title = "";
                     }
                   }
                   obj2.options.value = newValue;
                   if (typeof obj2.options.onchange == "function") {
-                    obj2.options.onchange(el2, newValue, oldValue);
+                    obj2.options.onchange(el3, newValue, oldValue);
                   }
-                  if (el2.value != val) {
-                    el2.value = val;
-                    if (typeof el2.oninput == "function") {
-                      el2.oninput({
+                  if (el3.value != val) {
+                    el3.value = val;
+                    if (typeof el3.oninput == "function") {
+                      el3.oninput({
                         type: "input",
-                        target: el2,
-                        value: el2.value
+                        target: el3,
+                        value: el3.value
                       });
                     }
                   }
@@ -61554,7 +61554,7 @@ var require_jsuites = __commonJS({
                   calendarSelectMin.removeAttribute("disabled");
                 }
                 if (typeof obj2.options.onupdate == "function") {
-                  obj2.options.onupdate(el2, obj2.getValue());
+                  obj2.options.onupdate(el3, obj2.getValue());
                 }
               };
               var calendar2 = null;
@@ -61573,8 +61573,8 @@ var require_jsuites = __commonJS({
               var calendarSelectHour = null;
               var calendarSelectMin = null;
               var init = function() {
-                if (el2.tagName == "INPUT" && el2.value) {
-                  options.value = el2.value;
+                if (el3.tagName == "INPUT" && el3.value) {
+                  options.value = el3.value;
                 }
                 calendarReset = document.createElement("div");
                 calendarReset.className = "jcalendar-reset";
@@ -61590,8 +61590,8 @@ var require_jsuites = __commonJS({
                 calendarContent = document.createElement("div");
                 calendarContent.className = "jcalendar-content";
                 calendarContainer.appendChild(calendarContent);
-                if (el2.tagName == "DIV") {
-                  calendar2 = el2;
+                if (el3.tagName == "DIV") {
+                  calendar2 = el3;
                   calendar2.classList.add("jcalendar-inline");
                 } else {
                   calendarContent.appendChild(calendarControls);
@@ -61636,7 +61636,7 @@ var require_jsuites = __commonJS({
                 calendarSelectHour.onchange = function() {
                   obj2.date[3] = this.value;
                   if (typeof obj2.options.onupdate == "function") {
-                    obj2.options.onupdate(el2, obj2.getValue());
+                    obj2.options.onupdate(el3, obj2.getValue());
                   }
                 };
                 for (var i12 = 0; i12 < 24; i12++) {
@@ -61650,7 +61650,7 @@ var require_jsuites = __commonJS({
                 calendarSelectMin.onchange = function() {
                   obj2.date[4] = this.value;
                   if (typeof obj2.options.onupdate == "function") {
-                    obj2.options.onupdate(el2, obj2.getValue());
+                    obj2.options.onupdate(el3, obj2.getValue());
                   }
                 };
                 for (var i12 = 0; i12 < 60; i12++) {
@@ -61673,14 +61673,14 @@ var require_jsuites = __commonJS({
                 calendarControlsUpdate.style.flexGrow = "10";
                 calendarControlsUpdate.appendChild(calendarControlsUpdateButton);
                 calendarControlsFooter.appendChild(calendarControlsTime);
-                if (el2.tagName == "INPUT") {
+                if (el3.tagName == "INPUT") {
                   calendarControlsFooter.appendChild(calendarControlsUpdate);
                 }
                 calendarContent.appendChild(calendarControlsFooter);
                 var calendarBackdrop = document.createElement("div");
                 calendarBackdrop.className = "jcalendar-backdrop";
                 calendar2.appendChild(calendarBackdrop);
-                el2.addEventListener("keyup", keyUpControls);
+                el3.addEventListener("keyup", keyUpControls);
                 calendar2.addEventListener("swipeleft", function(e12) {
                   animation.slideLeft(calendarTable, 0, function() {
                     obj2.next();
@@ -61699,21 +61699,21 @@ var require_jsuites = __commonJS({
                 });
                 if ("ontouchend" in document.documentElement === true) {
                   calendar2.addEventListener("touchend", mouseUpControls2);
-                  el2.addEventListener("touchend", obj2.open);
+                  el3.addEventListener("touchend", obj2.open);
                 } else {
                   calendar2.addEventListener("mouseup", mouseUpControls2);
-                  el2.addEventListener("mouseup", obj2.open);
+                  el3.addEventListener("mouseup", obj2.open);
                 }
                 if (!Component.hasEvents) {
                   Component.hasEvents = true;
                   document.addEventListener("keydown", Component.keydown);
                 }
                 obj2.setOptions(options);
-                if (el2.tagName == "INPUT") {
-                  el2.parentNode.insertBefore(calendar2, el2.nextSibling);
-                  el2.setAttribute("autocomplete", "off");
-                  el2.classList.add("jcalendar-input");
-                  el2.value = obj2.setLabel(obj2.getValue(), obj2.options);
+                if (el3.tagName == "INPUT") {
+                  el3.parentNode.insertBefore(calendar2, el3.nextSibling);
+                  el3.setAttribute("autocomplete", "off");
+                  el3.classList.add("jcalendar-input");
+                  el3.value = obj2.setLabel(obj2.getValue(), obj2.options);
                 } else {
                   obj2.getDays();
                   if (obj2.options.time) {
@@ -61727,15 +61727,15 @@ var require_jsuites = __commonJS({
                 if (obj2.options.controls == false) {
                   calendarContainer.classList.add("jcalendar-hide-controls");
                 }
-                el2.change = obj2.setValue;
-                el2.val = function(val) {
+                el3.change = obj2.setValue;
+                el3.val = function(val) {
                   if (val === void 0) {
                     return obj2.getValue();
                   } else {
                     obj2.setValue(val);
                   }
                 };
-                el2.calendar = calendar2.calendar = obj2;
+                el3.calendar = calendar2.calendar = obj2;
               };
               init();
               return obj2;
@@ -61869,7 +61869,7 @@ var require_jsuites = __commonJS({
           }
           var palette = Palette();
           ;
-          function Tabs(el2, options) {
+          function Tabs(el3, options) {
             var obj2 = {};
             obj2.options = {};
             var defaults2 = {
@@ -61897,7 +61897,7 @@ var require_jsuites = __commonJS({
                 obj2.options[property] = defaults2[property];
               }
             }
-            el2.classList.add("jtabs");
+            el3.classList.add("jtabs");
             var prev = null;
             var next = null;
             var border = null;
@@ -61971,7 +61971,7 @@ var require_jsuites = __commonJS({
               }
               if (previous != index && typeof obj2.options.onchange == "function") {
                 if (obj2.content.children[index]) {
-                  obj2.options.onchange(el2, obj2, index, obj2.headers.children[index], obj2.content.children[index]);
+                  obj2.options.onchange(el3, obj2, index, obj2.headers.children[index], obj2.content.children[index]);
                 }
               }
               if (obj2.options.hideHeaders == true && (obj2.headers.children.length < 3 && obj2.options.allowCreate == false)) {
@@ -62004,7 +62004,7 @@ var require_jsuites = __commonJS({
             };
             obj2.create = function(title, url) {
               if (typeof obj2.options.onbeforecreate == "function") {
-                var ret2 = obj2.options.onbeforecreate(el2, title);
+                var ret2 = obj2.options.onbeforecreate(el3, title);
                 if (ret2 === false) {
                   return false;
                 } else {
@@ -62013,7 +62013,7 @@ var require_jsuites = __commonJS({
               }
               var div = obj2.appendElement(title);
               if (typeof obj2.options.oncreate == "function") {
-                obj2.options.oncreate(el2, div);
+                obj2.options.oncreate(el3, div);
               }
               setBorder(obj2.getActive());
               return div;
@@ -62051,7 +62051,7 @@ var require_jsuites = __commonJS({
                 setBorder(current2);
               }
               if (typeof obj2.options.ondelete == "function") {
-                obj2.options.ondelete(el2, index);
+                obj2.options.ondelete(el3, index);
               }
             };
             obj2.appendElement = function(title, cb, openTab, position) {
@@ -62145,7 +62145,7 @@ var require_jsuites = __commonJS({
             };
             obj2.setBorder = setBorder;
             obj2.init = function() {
-              el2.textContent = "";
+              el3.textContent = "";
               obj2.headers = document.createElement("div");
               obj2.content = document.createElement("div");
               obj2.headers.classList.add("jtabs-headers");
@@ -62154,9 +62154,9 @@ var require_jsuites = __commonJS({
               obj2.content.setAttribute("role", "region");
               obj2.content.setAttribute("aria-label", "Tab Panels");
               if (obj2.options.palette) {
-                el2.classList.add("jtabs-modern");
+                el3.classList.add("jtabs-modern");
               } else {
-                el2.classList.remove("jtabs-modern");
+                el3.classList.remove("jtabs-modern");
               }
               if (obj2.options.padding) {
                 obj2.content.style.padding = parseInt(obj2.options.padding) + "px";
@@ -62172,11 +62172,11 @@ var require_jsuites = __commonJS({
               controls.setAttribute("draggable", "false");
               header.appendChild(controls);
               if (obj2.options.position == "bottom") {
-                el2.appendChild(obj2.content);
-                el2.appendChild(header);
+                el3.appendChild(obj2.content);
+                el3.appendChild(header);
               } else {
-                el2.appendChild(header);
-                el2.appendChild(obj2.content);
+                el3.appendChild(header);
+                el3.appendChild(obj2.content);
               }
               if (obj2.options.allowCreate == true) {
                 var add2 = document.createElement("div");
@@ -62232,7 +62232,7 @@ var require_jsuites = __commonJS({
               border.className = "jtabs-border";
               obj2.headers.appendChild(border);
               if (obj2.options.animation) {
-                el2.classList.add("jtabs-animation");
+                el3.classList.add("jtabs-animation");
               }
               obj2.headers.addEventListener("click", function(e12) {
                 if (e12.target.parentNode.classList.contains("jtabs-headers")) {
@@ -62246,7 +62246,7 @@ var require_jsuites = __commonJS({
                 }
                 var index = obj2.selectIndex(target);
                 if (typeof obj2.options.onclick == "function") {
-                  obj2.options.onclick(el2, obj2, index, obj2.headers.children[index], obj2.content.children[index]);
+                  obj2.options.onclick(el3, obj2, index, obj2.headers.children[index], obj2.content.children[index]);
                 }
               });
               obj2.headers.addEventListener("contextmenu", function(e12) {
@@ -62265,17 +62265,17 @@ var require_jsuites = __commonJS({
                 });
               }
               if (typeof obj2.options.onload == "function") {
-                obj2.options.onload(el2, obj2);
+                obj2.options.onload(el3, obj2);
               }
             };
-            if (el2.children[0] && el2.children[0].children.length) {
-              for (var i12 = 0; i12 < el2.children[0].children.length; i12++) {
+            if (el3.children[0] && el3.children[0].children.length) {
+              for (var i12 = 0; i12 < el3.children[0].children.length; i12++) {
                 var item = obj2.options.data && obj2.options.data[i12] ? obj2.options.data[i12] : {};
-                if (el2.children[1] && el2.children[1].children[i12]) {
-                  item.titleElement = el2.children[0].children[i12];
-                  item.contentElement = el2.children[1].children[i12];
+                if (el3.children[1] && el3.children[1].children[i12]) {
+                  item.titleElement = el3.children[0].children[i12];
+                  item.contentElement = el3.children[1].children[i12];
                 } else {
-                  item.contentElement = el2.children[0].children[i12];
+                  item.contentElement = el3.children[0].children[i12];
                 }
                 obj2.options.data[i12] = item;
               }
@@ -62303,13 +62303,13 @@ var require_jsuites = __commonJS({
             if (!loadingRemoteData) {
               obj2.init();
             }
-            el2.tabs = obj2;
+            el3.tabs = obj2;
             return obj2;
           }
           ;
-          function Color(el2, options) {
-            if (el2.color) {
-              return el2.color.setOptions(options, true);
+          function Color(el3, options) {
+            if (el3.color) {
+              return el3.color.setOptions(options, true);
             }
             var obj2 = { type: "color" };
             obj2.options = {};
@@ -62360,17 +62360,17 @@ var require_jsuites = __commonJS({
                 jsuitesTabs.updateContent(0, table());
               }
               if (typeof obj2.options.value === "string") {
-                el2.value = obj2.options.value;
-                if (el2.tagName === "INPUT") {
-                  el2.style.color = el2.value;
-                  el2.style.backgroundColor = el2.value;
+                el3.value = obj2.options.value;
+                if (el3.tagName === "INPUT") {
+                  el3.style.color = el3.value;
+                  el3.style.backgroundColor = el3.value;
                 }
               }
               if (obj2.options.placeholder) {
-                el2.setAttribute("placeholder", obj2.options.placeholder);
+                el3.setAttribute("placeholder", obj2.options.placeholder);
               } else {
-                if (el2.getAttribute("placeholder")) {
-                  el2.removeAttribute("placeholder");
+                if (el3.getAttribute("placeholder")) {
+                  el3.removeAttribute("placeholder");
                 }
               }
               return obj2;
@@ -62419,7 +62419,7 @@ var require_jsuites = __commonJS({
                   }
                 }
                 if (typeof obj2.options.onopen == "function") {
-                  obj2.options.onopen(el2, obj2);
+                  obj2.options.onopen(el3, obj2);
                 }
                 jsuitesTabs.setBorder(jsuitesTabs.getActive());
                 if (obj2.options.value) {
@@ -62436,7 +62436,7 @@ var require_jsuites = __commonJS({
                 container.classList.remove("jcolor-focus");
                 backdrop.style.display = "";
                 if (!ignoreEvents && typeof obj2.options.onclose == "function") {
-                  obj2.options.onclose(el2, obj2);
+                  obj2.options.onclose(el3, obj2);
                 }
                 tracking(obj2, false);
               }
@@ -62451,19 +62451,19 @@ var require_jsuites = __commonJS({
                 slidersResult = color;
                 obj2.select(color);
                 if (typeof obj2.options.onchange == "function") {
-                  obj2.options.onchange(el2, color, obj2);
+                  obj2.options.onchange(el3, color, obj2);
                 }
-                if (el2.value != obj2.options.value) {
-                  el2.value = obj2.options.value;
-                  if (el2.tagName === "INPUT") {
-                    el2.style.color = el2.value;
-                    el2.style.backgroundColor = el2.value;
+                if (el3.value != obj2.options.value) {
+                  el3.value = obj2.options.value;
+                  if (el3.tagName === "INPUT") {
+                    el3.style.color = el3.value;
+                    el3.style.backgroundColor = el3.value;
                   }
-                  if (typeof el2.oninput == "function") {
-                    el2.oninput({
+                  if (typeof el3.oninput == "function") {
+                    el3.oninput({
                       type: "input",
-                      target: el2,
-                      value: el2.value
+                      target: el3,
+                      value: el3.value
                     });
                   }
                 }
@@ -62668,9 +62668,9 @@ var require_jsuites = __commonJS({
             };
             var init = function() {
               obj2.setOptions(options);
-              if (el2.tagName == "INPUT") {
-                el2.classList.add("jcolor-input");
-                el2.readOnly = true;
+              if (el3.tagName == "INPUT") {
+                el3.classList.add("jcolor-input");
+                el3.readOnly = true;
               }
               container = document.createElement("div");
               container.className = "jcolor";
@@ -62725,10 +62725,10 @@ var require_jsuites = __commonJS({
                 palette: "modern"
               });
               container.appendChild(content2);
-              if (el2.tagName == "INPUT") {
-                el2.parentNode.insertBefore(container, el2.nextSibling);
+              if (el3.tagName == "INPUT") {
+                el3.parentNode.insertBefore(container, el3.nextSibling);
               } else {
-                el2.appendChild(container);
+                el3.appendChild(container);
               }
               container.addEventListener("click", function(e12) {
                 if (e12.target.tagName == "TD") {
@@ -62750,7 +62750,7 @@ var require_jsuites = __commonJS({
                   obj2.open();
                 }
               });
-              el2.addEventListener("mouseup", function(e12) {
+              el3.addEventListener("mouseup", function(e12) {
                 obj2.open();
               });
               window.addEventListener("resize", function() {
@@ -62761,15 +62761,15 @@ var require_jsuites = __commonJS({
               if (obj2.options.opened == true) {
                 obj2.open();
               }
-              el2.change = obj2.setValue;
-              el2.val = function(val) {
+              el3.change = obj2.setValue;
+              el3.val = function(val) {
                 if (val === void 0) {
                   return obj2.getValue();
                 } else {
                   obj2.setValue(val);
                 }
               };
-              el2.color = obj2;
+              el3.color = obj2;
               container.color = obj2;
             };
             obj2.toHex = function(rgb) {
@@ -62794,7 +62794,7 @@ var require_jsuites = __commonJS({
           }
           ;
           function Contextmenu() {
-            var Component = function(el2, options) {
+            var Component = function(el3, options) {
               var obj2 = { type: "contextmenu" };
               obj2.options = {};
               var defaults2 = {
@@ -62808,7 +62808,7 @@ var require_jsuites = __commonJS({
                   obj2.options[property] = defaults2[property];
                 }
               }
-              el2.classList.add("jcontextmenu");
+              el3.classList.add("jcontextmenu");
               obj2.open = function(e12, items) {
                 if (items) {
                   obj2.options.items = items;
@@ -62818,9 +62818,9 @@ var require_jsuites = __commonJS({
                   Component.current.close();
                 }
                 tracking(obj2, true);
-                el2.classList.add("jcontextmenu-focus");
+                el3.classList.add("jcontextmenu-focus");
                 Component.current = obj2;
-                if (obj2.options.items && obj2.options.items.length > 0 || el2.children.length) {
+                if (obj2.options.items && obj2.options.items.length > 0 || el3.children.length) {
                   if (e12.target) {
                     if (e12.changedTouches && e12.changedTouches[0]) {
                       x6 = e12.changedTouches[0].clientX;
@@ -62833,43 +62833,43 @@ var require_jsuites = __commonJS({
                     var x6 = e12.x;
                     var y7 = e12.y;
                   }
-                  var rect = el2.getBoundingClientRect();
+                  var rect = el3.getBoundingClientRect();
                   if (window.innerHeight < y7 + rect.height) {
                     var h7 = y7 - rect.height;
                     if (h7 < 0) {
                       h7 = 0;
                     }
-                    el2.style.top = h7 + "px";
+                    el3.style.top = h7 + "px";
                   } else {
-                    el2.style.top = y7 + "px";
+                    el3.style.top = y7 + "px";
                   }
                   if (window.innerWidth < x6 + rect.width) {
                     if (x6 - rect.width > 0) {
-                      el2.style.left = x6 - rect.width + "px";
+                      el3.style.left = x6 - rect.width + "px";
                     } else {
-                      el2.style.left = "10px";
+                      el3.style.left = "10px";
                     }
                   } else {
-                    el2.style.left = x6 + "px";
+                    el3.style.left = x6 + "px";
                   }
                 }
               };
               obj2.isOpened = function() {
-                return el2.classList.contains("jcontextmenu-focus") ? true : false;
+                return el3.classList.contains("jcontextmenu-focus") ? true : false;
               };
               obj2.close = function() {
-                if (el2.classList.contains("jcontextmenu-focus")) {
-                  el2.classList.remove("jcontextmenu-focus");
+                if (el3.classList.contains("jcontextmenu-focus")) {
+                  el3.classList.remove("jcontextmenu-focus");
                 }
                 tracking(obj2, false);
               };
               obj2.create = function(items) {
-                el2.innerHTML = "";
+                el3.innerHTML = "";
                 var itemHeader = createHeader();
-                el2.appendChild(itemHeader);
+                el3.appendChild(itemHeader);
                 for (var i12 = 0; i12 < items.length; i12++) {
                   var itemContainer = createItemElement(items[i12]);
-                  el2.appendChild(itemContainer);
+                  el3.appendChild(itemContainer);
                 }
               };
               function createHeader() {
@@ -62975,7 +62975,7 @@ var require_jsuites = __commonJS({
                 return itemContainer;
               }
               if (typeof obj2.options.onclick == "function") {
-                el2.addEventListener("click", function(e12) {
+                el3.addEventListener("click", function(e12) {
                   obj2.options.onclick(obj2, e12);
                 });
               }
@@ -62985,7 +62985,7 @@ var require_jsuites = __commonJS({
               window.addEventListener("mousewheel", function() {
                 obj2.close();
               });
-              el2.contextmenu = obj2;
+              el3.contextmenu = obj2;
               return obj2;
             };
             return Component;
@@ -62993,9 +62993,9 @@ var require_jsuites = __commonJS({
           var contextmenu = Contextmenu();
           ;
           function Dropdown() {
-            var Component = function(el2, options) {
-              if (el2.dropdown) {
-                return el2.dropdown.setOptions(options, true);
+            var Component = function(el3, options) {
+              if (el3.dropdown) {
+                return el3.dropdown.setOptions(options, true);
               }
               var obj2 = { type: "dropdown" };
               obj2.options = {};
@@ -63011,7 +63011,7 @@ var require_jsuites = __commonJS({
                   obj2.setData(data);
                 }
                 if (typeof obj2.options.onload == "function") {
-                  obj2.options.onload(el2, obj2, data, val);
+                  obj2.options.onload(el3, obj2, data, val);
                 }
                 if (val) {
                   applyValue(val);
@@ -63019,7 +63019,7 @@ var require_jsuites = __commonJS({
                 if (val === void 0 || val === null) {
                   obj2.options.value = "";
                 }
-                el2.value = obj2.options.value;
+                el3.value = obj2.options.value;
                 if (obj2.options.opened == true) {
                   obj2.open();
                 }
@@ -63067,7 +63067,7 @@ var require_jsuites = __commonJS({
                   }
                 }
                 obj2.options.value = "";
-                el2.value = "";
+                el3.value = "";
               };
               var applyValue = function(values2) {
                 resetValue();
@@ -63200,33 +63200,33 @@ var require_jsuites = __commonJS({
                 } else {
                   obj2.header.removeAttribute("placeholder");
                 }
-                el2.classList.remove("jdropdown-searchbar");
-                el2.classList.remove("jdropdown-picker");
-                el2.classList.remove("jdropdown-list");
+                el3.classList.remove("jdropdown-searchbar");
+                el3.classList.remove("jdropdown-picker");
+                el3.classList.remove("jdropdown-list");
                 if (obj2.options.type == "searchbar") {
-                  el2.classList.add("jdropdown-searchbar");
+                  el3.classList.add("jdropdown-searchbar");
                 } else if (obj2.options.type == "list") {
-                  el2.classList.add("jdropdown-list");
+                  el3.classList.add("jdropdown-list");
                 } else if (obj2.options.type == "picker") {
-                  el2.classList.add("jdropdown-picker");
+                  el3.classList.add("jdropdown-picker");
                 } else {
                   if (helpers2.getWindowWidth() < 800) {
                     if (obj2.options.autocomplete) {
-                      el2.classList.add("jdropdown-searchbar");
+                      el3.classList.add("jdropdown-searchbar");
                       obj2.options.type = "searchbar";
                     } else {
-                      el2.classList.add("jdropdown-picker");
+                      el3.classList.add("jdropdown-picker");
                       obj2.options.type = "picker";
                     }
                   } else {
                     if (obj2.options.width) {
-                      el2.style.width = obj2.options.width;
-                      el2.style.minWidth = obj2.options.width;
+                      el3.style.width = obj2.options.width;
+                      el3.style.minWidth = obj2.options.width;
                     } else {
-                      el2.style.removeProperty("width");
-                      el2.style.removeProperty("min-width");
+                      el3.style.removeProperty("width");
+                      el3.style.removeProperty("min-width");
                     }
-                    el2.classList.add("jdropdown-default");
+                    el3.classList.add("jdropdown-default");
                     obj2.options.type = "default";
                   }
                 }
@@ -63262,20 +63262,20 @@ var require_jsuites = __commonJS({
                 if (!options) {
                   options = {};
                 }
-                if (el2.tagName == "SELECT") {
-                  var ret2 = Component.extractFromDom(el2, options);
-                  el2 = ret2.el;
+                if (el3.tagName == "SELECT") {
+                  var ret2 = Component.extractFromDom(el3, options);
+                  el3 = ret2.el;
                   options = ret2.options;
                 }
-                if (!options.placeholder && el2.getAttribute("placeholder")) {
-                  options.placeholder = el2.getAttribute("placeholder");
+                if (!options.placeholder && el3.getAttribute("placeholder")) {
+                  options.placeholder = el3.getAttribute("placeholder");
                 }
                 obj2.value = {};
                 obj2.items = [];
                 obj2.groups = [];
                 obj2.search = "";
                 obj2.results = null;
-                el2.classList.add("jdropdown");
+                el3.classList.add("jdropdown");
                 containerHeader = document.createElement("div");
                 containerHeader.className = "jdropdown-container-header";
                 obj2.header = document.createElement("input");
@@ -63284,12 +63284,12 @@ var require_jsuites = __commonJS({
                 obj2.header.setAttribute("autocomplete", "off");
                 obj2.header.onfocus = function() {
                   if (typeof obj2.options.onfocus == "function") {
-                    obj2.options.onfocus(el2);
+                    obj2.options.onfocus(el3);
                   }
                 };
                 obj2.header.onblur = function() {
                   if (typeof obj2.options.onblur == "function") {
-                    obj2.options.onblur(el2);
+                    obj2.options.onblur(el3);
                   }
                 };
                 obj2.header.onkeyup = function(e12) {
@@ -63300,7 +63300,7 @@ var require_jsuites = __commonJS({
                         keyTimer = null;
                       }, 400);
                     }
-                    if (!el2.classList.contains("jdropdown-focus")) {
+                    if (!el3.classList.contains("jdropdown-focus")) {
                       obj2.open();
                     }
                   } else {
@@ -63331,14 +63331,14 @@ var require_jsuites = __commonJS({
                 backdrop.className = "jdropdown-backdrop";
                 containerHeader.appendChild(obj2.header);
                 container.appendChild(content2);
-                el2.appendChild(containerHeader);
-                el2.appendChild(container);
-                el2.appendChild(backdrop);
+                el3.appendChild(containerHeader);
+                el3.appendChild(container);
+                el3.appendChild(backdrop);
                 obj2.setOptions(options);
                 if ("ontouchsend" in document.documentElement === true) {
-                  el2.addEventListener("touchsend", Component.mouseup);
+                  el3.addEventListener("touchsend", Component.mouseup);
                 } else {
-                  el2.addEventListener("mouseup", Component.mouseup);
+                  el3.addEventListener("mouseup", Component.mouseup);
                 }
                 if (obj2.options.lazyLoading == true) {
                   LazyLoading(content2, {
@@ -63349,15 +63349,15 @@ var require_jsuites = __commonJS({
                 content2.onwheel = function(e12) {
                   e12.stopPropagation();
                 };
-                el2.change = obj2.setValue;
-                el2.val = function(val) {
+                el3.change = obj2.setValue;
+                el3.val = function(val) {
                   if (val === void 0) {
                     return obj2.getValue(obj2.options.multiple ? true : false);
                   } else {
                     obj2.setValue(val);
                   }
                 };
-                el2.dropdown = obj2;
+                el3.dropdown = obj2;
               };
               obj2.getUrl = function() {
                 return obj2.options.url;
@@ -63633,18 +63633,18 @@ var require_jsuites = __commonJS({
                 }
               };
               var change = function(oldValue) {
-                if (el2.value != obj2.options.value) {
-                  el2.value = obj2.options.value;
-                  if (typeof el2.oninput == "function") {
-                    el2.oninput({
+                if (el3.value != obj2.options.value) {
+                  el3.value = obj2.options.value;
+                  if (typeof el3.oninput == "function") {
+                    el3.oninput({
                       type: "input",
-                      target: el2,
-                      value: el2.value
+                      target: el3,
+                      value: el3.value
                     });
                   }
                 }
                 if (typeof obj2.options.onchange == "function") {
-                  obj2.options.onchange(el2, obj2, oldValue, obj2.options.value);
+                  obj2.options.onchange(el3, obj2, oldValue, obj2.options.value);
                 }
               };
               obj2.setValue = function(newValue) {
@@ -63805,10 +63805,10 @@ var require_jsuites = __commonJS({
                 }
               };
               obj2.open = function() {
-                if (!el2.classList.contains("jdropdown-focus")) {
+                if (!el3.classList.contains("jdropdown-focus")) {
                   Component.current = obj2;
                   tracking(obj2, true);
-                  el2.classList.add("jdropdown-focus");
+                  el3.classList.add("jdropdown-focus");
                   if (helpers2.getWindowWidth() < 800) {
                     if (obj2.options.type == null || obj2.options.type == "picker") {
                       animation.slideBottom(container, 1);
@@ -63826,7 +63826,7 @@ var require_jsuites = __commonJS({
                     }
                   }
                   if (!obj2.options.type || obj2.options.type == "default") {
-                    var rect = el2.getBoundingClientRect();
+                    var rect = el3.getBoundingClientRect();
                     var rectContainer = container.getBoundingClientRect();
                     if (obj2.options.position) {
                       container.style.position = "fixed";
@@ -63859,20 +63859,20 @@ var require_jsuites = __commonJS({
                   }
                 }
                 if (typeof obj2.options.onopen == "function") {
-                  obj2.options.onopen(el2);
+                  obj2.options.onopen(el3);
                 }
               };
               obj2.close = function(ignoreEvents) {
-                if (el2.classList.contains("jdropdown-focus")) {
+                if (el3.classList.contains("jdropdown-focus")) {
                   obj2.header.value = obj2.getText();
                   obj2.setCursor();
                   if (!ignoreEvents && typeof obj2.options.onclose == "function") {
-                    obj2.options.onclose(el2);
+                    obj2.options.onclose(el3);
                   }
                   if (obj2.header.blur) {
                     obj2.header.blur();
                   }
-                  el2.classList.remove("jdropdown-focus");
+                  el3.classList.remove("jdropdown-focus");
                   tracking(obj2, false);
                   Component.current = null;
                 }
@@ -64243,41 +64243,41 @@ var require_jsuites = __commonJS({
                 }
               }
             };
-            Component.extractFromDom = function(el2, options) {
-              var select = el2;
+            Component.extractFromDom = function(el3, options) {
+              var select = el3;
               if (!options) {
                 options = {};
               }
-              if (el2.getAttribute("multiple") && (!options || options.multiple == void 0)) {
+              if (el3.getAttribute("multiple") && (!options || options.multiple == void 0)) {
                 options.multiple = true;
               }
-              if (el2.getAttribute("placeholder") && (!options || options.placeholder == void 0)) {
-                options.placeholder = el2.getAttribute("placeholder");
+              if (el3.getAttribute("placeholder") && (!options || options.placeholder == void 0)) {
+                options.placeholder = el3.getAttribute("placeholder");
               }
-              if (el2.getAttribute("data-autocomplete") && (!options || options.autocomplete == void 0)) {
+              if (el3.getAttribute("data-autocomplete") && (!options || options.autocomplete == void 0)) {
                 options.autocomplete = true;
               }
               if (!options || options.width == void 0) {
-                options.width = el2.offsetWidth;
+                options.width = el3.offsetWidth;
               }
-              if (el2.value && (!options || options.value == void 0)) {
-                options.value = el2.value;
+              if (el3.value && (!options || options.value == void 0)) {
+                options.value = el3.value;
               }
               if (!options || options.data == void 0) {
                 options.data = [];
-                for (var j5 = 0; j5 < el2.children.length; j5++) {
-                  if (el2.children[j5].tagName == "OPTGROUP") {
-                    for (var i12 = 0; i12 < el2.children[j5].children.length; i12++) {
+                for (var j5 = 0; j5 < el3.children.length; j5++) {
+                  if (el3.children[j5].tagName == "OPTGROUP") {
+                    for (var i12 = 0; i12 < el3.children[j5].children.length; i12++) {
                       options.data.push({
-                        value: el2.children[j5].children[i12].value,
-                        text: el2.children[j5].children[i12].textContent,
-                        group: el2.children[j5].getAttribute("label")
+                        value: el3.children[j5].children[i12].value,
+                        text: el3.children[j5].children[i12].textContent,
+                        group: el3.children[j5].getAttribute("label")
                       });
                     }
                   } else {
                     options.data.push({
-                      value: el2.children[j5].value,
-                      text: el2.children[j5].textContent
+                      value: el3.children[j5].value,
+                      text: el3.children[j5].textContent
                     });
                   }
                 }
@@ -64296,18 +64296,18 @@ var require_jsuites = __commonJS({
                 };
               }
               var div = document.createElement("div");
-              el2.parentNode.insertBefore(div, el2);
-              el2.style.display = "none";
-              el2 = div;
-              return { el: el2, options };
+              el3.parentNode.insertBefore(div, el3);
+              el3.style.display = "none";
+              el3 = div;
+              return { el: el3, options };
             };
             return Component;
           }
           var dropdown = Dropdown();
           ;
-          function Picker(el2, options) {
-            if (el2.picker) {
-              return el2.picker.setOptions(options, true);
+          function Picker(el3, options) {
+            if (el3.picker) {
+              return el3.picker.setOptions(options, true);
             }
             var obj2 = { type: "picker" };
             obj2.options = {};
@@ -64404,13 +64404,13 @@ var require_jsuites = __commonJS({
             obj2.setValue = function(k5, e12) {
               obj2.setLabel(k5);
               obj2.options.value = String(k5);
-              if (el2.value != obj2.options.value) {
-                el2.value = obj2.options.value;
-                if (typeof el2.oninput == "function") {
-                  el2.oninput({
+              if (el3.value != obj2.options.value) {
+                el3.value = obj2.options.value;
+                if (typeof el3.oninput == "function") {
+                  el3.oninput({
                     type: "input",
-                    target: el2,
-                    value: el2.value
+                    target: el3,
+                    value: el3.value
                   });
                 }
               }
@@ -64420,7 +64420,7 @@ var require_jsuites = __commonJS({
               if (e12) {
                 if (typeof obj2.options.onchange == "function") {
                   var v5 = obj2.options.data[k5];
-                  obj2.options.onchange(el2, obj2, v5, v5, k5, e12);
+                  obj2.options.onchange(el3, obj2, v5, v5, k5, e12);
                 }
               }
             };
@@ -64448,10 +64448,10 @@ var require_jsuites = __commonJS({
               }
             };
             obj2.open = function() {
-              if (!el2.classList.contains("jpicker-focus")) {
+              if (!el3.classList.contains("jpicker-focus")) {
                 tracking(obj2, true);
-                el2.classList.add("jpicker-focus");
-                el2.focus();
+                el3.classList.add("jpicker-focus");
+                el3.focus();
                 var top2 = 0;
                 var left2 = 0;
                 dropdownContent.style.marginLeft = "";
@@ -64474,29 +64474,29 @@ var require_jsuites = __commonJS({
                 dropdownContent.style.marginTop = parseInt(top2) + "px";
                 dropdownContent.style.marginLeft = parseInt(left2) + "px";
                 if (typeof obj2.options.onopen == "function") {
-                  obj2.options.onopen(el2, obj2);
+                  obj2.options.onopen(el3, obj2);
                 }
               }
             };
             obj2.close = function() {
-              if (el2.classList.contains("jpicker-focus")) {
-                el2.classList.remove("jpicker-focus");
+              if (el3.classList.contains("jpicker-focus")) {
+                el3.classList.remove("jpicker-focus");
                 tracking(obj2, false);
                 if (typeof obj2.options.onclose == "function") {
-                  obj2.options.onclose(el2, obj2);
+                  obj2.options.onclose(el3, obj2);
                 }
               }
             };
             var init = function() {
               let id4 = helpers2.guid();
-              el2.classList.add("jpicker");
-              el2.setAttribute("role", "combobox");
-              el2.setAttribute("aria-haspopup", "listbox");
-              el2.setAttribute("aria-expanded", "false");
-              el2.setAttribute("aria-controls", id4);
-              el2.setAttribute("tabindex", "0");
-              el2.onmousedown = function(e12) {
-                if (!el2.classList.contains("jpicker-focus")) {
+              el3.classList.add("jpicker");
+              el3.setAttribute("role", "combobox");
+              el3.setAttribute("aria-haspopup", "listbox");
+              el3.setAttribute("aria-expanded", "false");
+              el3.setAttribute("aria-controls", id4);
+              el3.setAttribute("tabindex", "0");
+              el3.onmousedown = function(e12) {
+                if (!el3.classList.contains("jpicker-focus")) {
                   obj2.open();
                 }
               };
@@ -64514,28 +64514,28 @@ var require_jsuites = __commonJS({
                   }
                 }
               };
-              el2.appendChild(dropdownHeader);
-              el2.appendChild(dropdownContent);
-              el2.value = options.value || 0;
+              el3.appendChild(dropdownHeader);
+              el3.appendChild(dropdownContent);
+              el3.value = options.value || 0;
               obj2.setOptions(options);
               if (typeof obj2.options.onload == "function") {
-                obj2.options.onload(el2, obj2);
+                obj2.options.onload(el3, obj2);
               }
-              el2.change = obj2.setValue;
-              el2.val = function(val) {
+              el3.change = obj2.setValue;
+              el3.val = function(val) {
                 if (val === void 0) {
                   return obj2.getValue();
                 } else {
                   obj2.setValue(val);
                 }
               };
-              el2.picker = obj2;
+              el3.picker = obj2;
             };
             init();
             return obj2;
           }
           ;
-          function Toolbar(el2, options) {
+          function Toolbar(el3, options) {
             var obj2 = { type: "toolbar" };
             obj2.options = {};
             var defaults2 = {
@@ -64555,9 +64555,9 @@ var require_jsuites = __commonJS({
                 obj2.options[property] = defaults2[property];
               }
             }
-            if (!el2 && options.app && options.app.el) {
-              el2 = document.createElement("div");
-              options.app.el.appendChild(el2);
+            if (!el3 && options.app && options.app.el) {
+              el3 = document.createElement("div");
+              options.app.el.appendChild(el3);
             }
             var toolbarArrow = document.createElement("div");
             toolbarArrow.classList.add("jtoolbar-item");
@@ -64575,35 +64575,35 @@ var require_jsuites = __commonJS({
               element.classList.add("jtoolbar-selected");
             };
             obj2.hide = function() {
-              animation.slideBottom(el2, 0, function() {
-                el2.style.display = "none";
+              animation.slideBottom(el3, 0, function() {
+                el3.style.display = "none";
               });
             };
             obj2.show = function() {
-              el2.style.display = "";
-              animation.slideBottom(el2, 1);
+              el3.style.display = "";
+              animation.slideBottom(el3, 1);
             };
             obj2.get = function() {
-              return el2;
+              return el3;
             };
             obj2.setBadge = function(index, value) {
               toolbarContent.children[index].children[1].firstChild.innerHTML = value;
             };
             obj2.destroy = function() {
               toolbar.remove();
-              el2.innerHTML = "";
+              el3.innerHTML = "";
             };
             obj2.update = function(a8, b9) {
               for (var i12 = 0; i12 < toolbarContent.children.length; i12++) {
                 var toolbarItem = toolbarContent.children[i12];
                 if (typeof toolbarItem.updateState == "function") {
-                  toolbarItem.updateState(el2, obj2, toolbarItem, a8, b9);
+                  toolbarItem.updateState(el3, obj2, toolbarItem, a8, b9);
                 }
               }
               for (var i12 = 0; i12 < toolbarFloating.children.length; i12++) {
                 var toolbarItem = toolbarFloating.children[i12];
                 if (typeof toolbarItem.updateState == "function") {
-                  toolbarItem.updateState(el2, obj2, toolbarItem, a8, b9);
+                  toolbarItem.updateState(el3, obj2, toolbarItem, a8, b9);
                 }
               }
             };
@@ -64686,7 +64686,7 @@ var require_jsuites = __commonJS({
                   }
                 }
                 if (items[i12].onclick) {
-                  toolbarItem.onclick = items[i12].onclick.bind(items[i12], el2, obj2, toolbarItem);
+                  toolbarItem.onclick = items[i12].onclick.bind(items[i12], el3, obj2, toolbarItem);
                 }
                 toolbarContent.appendChild(toolbarItem);
               }
@@ -64696,7 +64696,7 @@ var require_jsuites = __commonJS({
             };
             obj2.open = function() {
               toolbarArrow.classList.add("jtoolbar-arrow-selected");
-              var rectElement = el2.getBoundingClientRect();
+              var rectElement = el3.getBoundingClientRect();
               var rect = toolbarFloating.getBoundingClientRect();
               if (rect.bottom > window.innerHeight || obj2.options.bottom) {
                 toolbarFloating.style.bottom = "0";
@@ -64713,7 +64713,7 @@ var require_jsuites = __commonJS({
             };
             obj2.refresh = function() {
               if (obj2.options.responsive == true) {
-                var rect = el2.parentNode.getBoundingClientRect();
+                var rect = el3.parentNode.getBoundingClientRect();
                 if (!obj2.options.maxWidth) {
                   obj2.options.maxWidth = rect.width;
                 }
@@ -64737,9 +64737,9 @@ var require_jsuites = __commonJS({
             };
             obj2.setReadonly = function(state) {
               state = state ? "add" : "remove";
-              el2.classList[state]("jtoolbar-disabled");
+              el3.classList[state]("jtoolbar-disabled");
             };
-            el2.onclick = function(e12) {
+            el3.onclick = function(e12) {
               var element = helpers2.findElement(e12.target, "jtoolbar-item");
               if (element) {
                 obj2.selectItem(element);
@@ -64751,18 +64751,18 @@ var require_jsuites = __commonJS({
             window.addEventListener("resize", function() {
               obj2.refresh();
             });
-            el2.classList.add("jtoolbar");
-            el2.innerHTML = "";
+            el3.classList.add("jtoolbar");
+            el3.innerHTML = "";
             if (obj2.options.container == true) {
-              el2.classList.add("jtoolbar-container");
+              el3.classList.add("jtoolbar-container");
             }
             var toolbarContent = document.createElement("div");
-            el2.appendChild(toolbarContent);
+            el3.appendChild(toolbarContent);
             if (obj2.options.app) {
-              el2.classList.add("jtoolbar-mobile");
+              el3.classList.add("jtoolbar-mobile");
             }
             obj2.create(obj2.options.items);
-            el2.toolbar = obj2;
+            el3.toolbar = obj2;
             return obj2;
           }
           ;
@@ -64910,7 +64910,7 @@ var require_jsuites = __commonJS({
           var utils_filter = filter2;
           ;
           function Editor() {
-            var Component = function(el2, options) {
+            var Component = function(el3, options) {
               var obj2 = { type: "editor" };
               obj2.options = {};
               var defaults2 = {
@@ -64961,13 +64961,13 @@ var require_jsuites = __commonJS({
               var editorTimer = null;
               var editorAction = null;
               var files = [];
-              obj2.el = el2;
+              obj2.el = el3;
               if (typeof obj2.options.onclick == "function") {
-                el2.onclick = function(e12) {
-                  obj2.options.onclick(el2, obj2, e12);
+                el3.onclick = function(e12) {
+                  obj2.options.onclick(el3, obj2, e12);
                 };
               }
-              el2.classList.add("jeditor-container");
+              el3.classList.add("jeditor-container");
               var snippet2 = document.createElement("div");
               snippet2.className = "jsnippet";
               snippet2.setAttribute("contenteditable", false);
@@ -65002,24 +65002,24 @@ var require_jsuites = __commonJS({
                 if (obj2.options.value) {
                   obj2.editor.innerHTML = obj2.options.value;
                 } else {
-                  for (var i12 = 0; i12 < el2.children.length; i12++) {
-                    obj2.editor.appendChild(el2.children[i12]);
+                  for (var i12 = 0; i12 < el3.children.length; i12++) {
+                    obj2.editor.appendChild(el3.children[i12]);
                   }
                 }
               }
-              el2.innerHTML = "";
+              el3.innerHTML = "";
               var change = function(e12) {
                 if (typeof obj2.options.onchange == "function") {
-                  obj2.options.onchange(el2, obj2, e12);
+                  obj2.options.onchange(el3, obj2, e12);
                 }
                 obj2.options.value = obj2.getData();
-                if (el2.value != obj2.options.value) {
-                  el2.value = obj2.options.value;
-                  if (typeof el2.oninput == "function") {
-                    el2.oninput({
+                if (el3.value != obj2.options.value) {
+                  el3.value = obj2.options.value;
+                  if (typeof el3.oninput == "function") {
+                    el3.oninput({
                       type: "input",
-                      target: el2,
-                      value: el2.value
+                      target: el3,
+                      value: el3.value
                     });
                   }
                 }
@@ -65298,8 +65298,8 @@ var require_jsuites = __commonJS({
                 obj2.editor.removeEventListener("paste", editorPaste);
                 obj2.editor.removeEventListener("blur", editorBlur);
                 obj2.editor.removeEventListener("focus", editorFocus);
-                el2.editor = null;
-                el2.classList.remove("jeditor-container");
+                el3.editor = null;
+                el3.classList.remove("jeditor-container");
                 toolbar2.remove();
                 snippet2.remove();
                 obj2.editor.remove();
@@ -65363,7 +65363,7 @@ var require_jsuites = __commonJS({
               var editorDragEnter = function(e12) {
                 if (editorAction || obj2.options.dropZone == false) {
                 } else {
-                  el2.classList.add("jeditor-dragging");
+                  el3.classList.add("jeditor-dragging");
                   e12.preventDefault();
                 }
               };
@@ -65374,7 +65374,7 @@ var require_jsuites = __commonJS({
                     clearTimeout(editorTimer);
                   }
                   editorTimer = setTimeout(function() {
-                    el2.classList.remove("jeditor-dragging");
+                    el3.classList.remove("jeditor-dragging");
                   }, 100);
                   e12.preventDefault();
                 }
@@ -65401,7 +65401,7 @@ var require_jsuites = __commonJS({
                   } else if (text) {
                     extractImageFromHtml(html2);
                   }
-                  el2.classList.remove("jeditor-dragging");
+                  el3.classList.remove("jeditor-dragging");
                   e12.preventDefault();
                 }
               };
@@ -65409,12 +65409,12 @@ var require_jsuites = __commonJS({
                 processExtensions("onevent", e12);
                 change(e12);
                 if (typeof obj2.options.onblur == "function") {
-                  obj2.options.onblur(el2, obj2, e12);
+                  obj2.options.onblur(el3, obj2, e12);
                 }
               };
               var editorFocus = function(e12) {
                 if (typeof obj2.options.onfocus == "function") {
-                  obj2.options.onfocus(el2, obj2, e12);
+                  obj2.options.onfocus(el3, obj2, e12);
                 }
               };
               var editorKeyUp = function(e12) {
@@ -65422,7 +65422,7 @@ var require_jsuites = __commonJS({
                   obj2.editor.innerHTML = "<div><br></div>";
                 }
                 if (typeof obj2.options.onkeyup == "function") {
-                  obj2.options.onkeyup(el2, obj2, e12);
+                  obj2.options.onkeyup(el3, obj2, e12);
                 }
               };
               var editorKeyDown = function(e12) {
@@ -65437,7 +65437,7 @@ var require_jsuites = __commonJS({
                   }
                 }
                 if (typeof obj2.options.onkeydown == "function") {
-                  obj2.options.onkeydown(el2, obj2, e12);
+                  obj2.options.onkeydown(el3, obj2, e12);
                 }
               };
               var editorMouseUp = function(e12) {
@@ -65565,7 +65565,7 @@ var require_jsuites = __commonJS({
                   if (ext.length) {
                     for (var i13 = 0; i13 < ext.length; i13++) {
                       if (obj2.options.extensions[ext[i13]] && typeof obj2.options.extensions[ext[i13]] == "function") {
-                        obj2.options.extensions[ext[i13]] = obj2.options.extensions[ext[i13]](el2, obj2);
+                        obj2.options.extensions[ext[i13]] = obj2.options.extensions[ext[i13]](el3, obj2);
                       }
                     }
                   }
@@ -65583,7 +65583,7 @@ var require_jsuites = __commonJS({
               obj2.editor.addEventListener("paste", editorPaste);
               obj2.editor.addEventListener("focus", editorFocus);
               obj2.editor.addEventListener("blur", editorBlur);
-              el2.appendChild(obj2.editor);
+              el3.appendChild(obj2.editor);
               if (obj2.options.snippet) {
                 obj2.appendSnippet(obj2.options.snippet);
               }
@@ -65607,11 +65607,11 @@ var require_jsuites = __commonJS({
                   toolbarOptions.items = Component.getDefaultToolbar(obj2);
                 }
                 if (obj2.options.toolbarOnTop) {
-                  el2.classList.add("toolbar-on-top");
-                  el2.insertBefore(toolbar2, el2.firstChild);
+                  el3.classList.add("toolbar-on-top");
+                  el3.insertBefore(toolbar2, el3.firstChild);
                 } else {
                   obj2.editor.style.padding = "15px";
-                  el2.appendChild(toolbar2);
+                  el3.appendChild(toolbar2);
                 }
                 Toolbar(toolbar2, toolbarOptions);
                 toolbar2.addEventListener("click", function() {
@@ -65625,23 +65625,23 @@ var require_jsuites = __commonJS({
               obj2.file.onchange = function() {
                 obj2.addFile(this.files);
               };
-              el2.appendChild(obj2.file);
+              el3.appendChild(obj2.file);
               if (obj2.options.focus) {
                 Component.setCursor(obj2.editor, obj2.options.focus == "initial" ? true : false);
               }
-              el2.change = obj2.setData;
-              el2.val = function(val) {
+              el3.change = obj2.setData;
+              el3.val = function(val) {
                 if (val === void 0) {
-                  var o12 = el2.getAttribute("data-html") === "true" ? false : true;
+                  var o12 = el3.getAttribute("data-html") === "true" ? false : true;
                   return obj2.getData(o12);
                 } else {
                   obj2.setData(val);
                 }
               };
               loadExtensions();
-              el2.editor = obj2;
+              el3.editor = obj2;
               if (typeof obj2.options.onload == "function") {
-                obj2.options.onload(el2, obj2, obj2.editor);
+                obj2.options.onload(el3, obj2, obj2.editor);
               }
               return obj2;
             };
@@ -65960,7 +65960,7 @@ var require_jsuites = __commonJS({
           var editor = Editor();
           ;
           function Floating() {
-            var Component = function(el2, options) {
+            var Component = function(el3, options) {
               var obj2 = {};
               obj2.options = {};
               var defaults2 = {
@@ -65978,12 +65978,12 @@ var require_jsuites = __commonJS({
               }
               var setContent = function() {
                 var temp = document.createElement("div");
-                while (el2.children[0]) {
-                  temp.appendChild(el2.children[0]);
+                while (el3.children[0]) {
+                  temp.appendChild(el3.children[0]);
                 }
                 obj2.content = document.createElement("div");
                 obj2.content.className = "jfloating_content";
-                obj2.content.innerHTML = el2.innerHTML;
+                obj2.content.innerHTML = el3.innerHTML;
                 while (temp.children[0]) {
                   obj2.content.appendChild(temp.children[0]);
                 }
@@ -66001,8 +66001,8 @@ var require_jsuites = __commonJS({
                 if (obj2.options.height) {
                   obj2.container.style.height = parseInt(obj2.options.height) + "px";
                 }
-                el2.innerHTML = "";
-                el2.appendChild(obj2.container);
+                el3.innerHTML = "";
+                el3.appendChild(obj2.container);
               };
               var setEvents2 = function() {
                 if (obj2.container) {
@@ -66044,7 +66044,7 @@ var require_jsuites = __commonJS({
               obj2.close = function() {
                 Components.elements.splice(Component.elements.indexOf(obj2.container), 1);
                 obj2.updatePosition();
-                el2.remove();
+                el3.remove();
               };
               obj2.updatePosition = function() {
                 for (var i12 = 0; i12 < Component.elements.length; i12++) {
@@ -66059,7 +66059,7 @@ var require_jsuites = __commonJS({
                 setType();
                 Component.elements.push(obj2.container);
                 obj2.updatePosition();
-                el2.floating = obj2;
+                el3.floating = obj2;
               };
               obj2.init();
               return obj2;
@@ -66326,7 +66326,7 @@ var require_jsuites = __commonJS({
           var validations = Validations();
           ;
           function Form() {
-            var Component = function(el2, options) {
+            var Component = function(el3, options) {
               var obj2 = {};
               obj2.options = {};
               var defaults2 = {
@@ -66342,7 +66342,7 @@ var require_jsuites = __commonJS({
                 onsave: null,
                 onbeforeremove: null,
                 onremove: null,
-                onerror: function(el3, message) {
+                onerror: function(el4, message) {
                   alert(message);
                 }
               };
@@ -66357,7 +66357,7 @@ var require_jsuites = __commonJS({
                 obj2.options.validations = {};
               }
               if (!obj2.options.submitButton) {
-                obj2.options.submitButton = el2.querySelector("input[type=submit]");
+                obj2.options.submitButton = el3.querySelector("input[type=submit]");
               }
               if (obj2.options.submitButton && obj2.options.url) {
                 obj2.options.submitButton.onclick = function() {
@@ -66384,14 +66384,14 @@ var require_jsuites = __commonJS({
                   queue: true,
                   success: function(data) {
                     if (typeof obj2.options.onbeforeload == "function") {
-                      var ret2 = obj2.options.onbeforeload(el2, data);
+                      var ret2 = obj2.options.onbeforeload(el3, data);
                       if (ret2) {
                         data = ret2;
                       }
                     }
-                    Component.setElements(el2, data);
+                    Component.setElements(el3, data);
                     if (typeof obj2.options.onload == "function") {
-                      obj2.options.onload(el2, data);
+                      obj2.options.onload(el3, data);
                     }
                   }
                 });
@@ -66399,11 +66399,11 @@ var require_jsuites = __commonJS({
               obj2.save = function() {
                 var test = obj2.validate();
                 if (test) {
-                  obj2.options.onerror(el2, test);
+                  obj2.options.onerror(el3, test);
                 } else {
-                  var data = Component.getElements(el2, true);
+                  var data = Component.getElements(el3, true);
                   if (typeof obj2.options.onbeforesave == "function") {
-                    var data = obj2.options.onbeforesave(el2, data);
+                    var data = obj2.options.onbeforesave(el3, data);
                     if (data === false) {
                       return;
                     }
@@ -66415,7 +66415,7 @@ var require_jsuites = __commonJS({
                     data,
                     success: function(result) {
                       if (typeof obj2.options.onsave == "function") {
-                        obj2.options.onsave(el2, data, result);
+                        obj2.options.onsave(el3, data, result);
                       }
                     }
                   });
@@ -66423,7 +66423,7 @@ var require_jsuites = __commonJS({
               };
               obj2.remove = function() {
                 if (typeof obj2.options.onbeforeremove == "function") {
-                  var ret2 = obj2.options.onbeforeremove(el2, obj2);
+                  var ret2 = obj2.options.onbeforeremove(el3, obj2);
                   if (ret2 === false) {
                     return false;
                   }
@@ -66434,7 +66434,7 @@ var require_jsuites = __commonJS({
                   dataType: "json",
                   success: function(result) {
                     if (typeof obj2.options.onremove == "function") {
-                      obj2.options.onremove(el2, obj2, result);
+                      obj2.options.onremove(el3, obj2, result);
                     }
                     obj2.reset();
                   }
@@ -66453,7 +66453,7 @@ var require_jsuites = __commonJS({
                 var error = false;
                 element.classList.remove("error");
                 element.removeAttribute("title");
-                var elements = el2.querySelectorAll("input, select, textarea, div[name]");
+                var elements = el3.querySelectorAll("input, select, textarea, div[name]");
                 for (var i12 = 0; i12 < elements.length; i12++) {
                   if (elements[i12].getAttribute("data-validation")) {
                     if (elements[i12].classList.contains("error")) {
@@ -66484,7 +66484,7 @@ var require_jsuites = __commonJS({
               };
               obj2.reset = function() {
                 var name2 = null;
-                var elements = el2.querySelectorAll("input, select, textarea, div[name]");
+                var elements = el3.querySelectorAll("input, select, textarea, div[name]");
                 for (var i12 = 0; i12 < elements.length; i12++) {
                   if (name2 = elements[i12].getAttribute("name")) {
                     if (elements[i12].type == "checkbox" || elements[i12].type == "radio") {
@@ -66501,7 +66501,7 @@ var require_jsuites = __commonJS({
               };
               obj2.validate = function() {
                 var test = [];
-                var elements = el2.querySelectorAll("input, select, textarea, div[name]");
+                var elements = el3.querySelectorAll("input, select, textarea, div[name]");
                 for (var i12 = 0; i12 < elements.length; i12++) {
                   if (elements[i12].getAttribute("data-validation")) {
                     var res2 = obj2.validateElement(elements[i12]);
@@ -66520,7 +66520,7 @@ var require_jsuites = __commonJS({
                 return obj2.validation() ? true : false;
               };
               obj2.setHash = function() {
-                return obj2.getHash(Component.getElements(el2));
+                return obj2.getHash(Component.getElements(el3));
               };
               obj2.getHash = function(str2) {
                 var hash2 = 0, i12, chr;
@@ -66549,7 +66549,7 @@ var require_jsuites = __commonJS({
               setTimeout(function() {
                 obj2.options.currentHash = obj2.setHash();
               }, 1e3);
-              el2.addEventListener("keyup", function(e12) {
+              el3.addEventListener("keyup", function(e12) {
                 if (e12.target.getAttribute("data-validation")) {
                   obj2.validateElement(e12.target);
                 }
@@ -66573,7 +66573,7 @@ var require_jsuites = __commonJS({
                 });
                 Component.hasEvents = true;
               }
-              el2.form = obj2;
+              el3.form = obj2;
               return obj2;
             };
             Component.getValue = function(element) {
@@ -66601,10 +66601,10 @@ var require_jsuites = __commonJS({
               }
               return value;
             };
-            Component.getElements = function(el2, asArray5) {
+            Component.getElements = function(el3, asArray5) {
               var data = {};
               var name2 = null;
-              var elements = el2.querySelectorAll("input, select, textarea, div[name]");
+              var elements = el3.querySelectorAll("input, select, textarea, div[name]");
               for (var i12 = 0; i12 < elements.length; i12++) {
                 if (name2 = elements[i12].getAttribute("name")) {
                   data[name2] = Component.getValue(elements[i12]) || "";
@@ -66612,10 +66612,10 @@ var require_jsuites = __commonJS({
               }
               return asArray5 == true ? data : JSON.stringify(data);
             };
-            Component.setElements = function(el2, data) {
+            Component.setElements = function(el3, data) {
               var name2 = null;
               var value = null;
-              var elements = el2.querySelectorAll("input, select, textarea, div[name]");
+              var elements = el3.querySelectorAll("input, select, textarea, div[name]");
               for (var i12 = 0; i12 < elements.length; i12++) {
                 var type = elements[i12].getAttribute("type");
                 if (name2 = elements[i12].getAttribute("name")) {
@@ -66739,7 +66739,7 @@ var require_jsuites = __commonJS({
               document.addEventListener("mousedown", mouseDown);
               document.addEventListener("mousemove", mouseMove);
             };
-            var Component = function(el2, options) {
+            var Component = function(el3, options) {
               var obj2 = {};
               obj2.options = {};
               var defaults2 = {
@@ -66762,12 +66762,12 @@ var require_jsuites = __commonJS({
                   obj2.options[property] = defaults2[property];
                 }
               }
-              if (!obj2.options.title && el2.getAttribute("title")) {
-                obj2.options.title = el2.getAttribute("title");
+              if (!obj2.options.title && el3.getAttribute("title")) {
+                obj2.options.title = el3.getAttribute("title");
               }
               var temp = document.createElement("div");
-              while (el2.children[0]) {
-                temp.appendChild(el2.children[0]);
+              while (el3.children[0]) {
+                temp.appendChild(el3.children[0]);
               }
               obj2.title = document.createElement("div");
               obj2.title.className = "jmodal_title";
@@ -66776,7 +66776,7 @@ var require_jsuites = __commonJS({
               }
               obj2.content = document.createElement("div");
               obj2.content.className = "jmodal_content";
-              obj2.content.innerHTML = el2.innerHTML;
+              obj2.content.innerHTML = el3.innerHTML;
               while (temp.children[0]) {
                 obj2.content.appendChild(temp.children[0]);
               }
@@ -66798,19 +66798,19 @@ var require_jsuites = __commonJS({
                 title.innerText = obj2.options.title;
                 obj2.title.appendChild(title);
               }
-              el2.innerHTML = "";
-              el2.style.display = "none";
-              el2.appendChild(obj2.container);
+              el3.innerHTML = "";
+              el3.style.display = "none";
+              el3.appendChild(obj2.container);
               if (obj2.options.backdrop) {
                 var backdrop = document.createElement("div");
                 backdrop.className = "jmodal_backdrop";
                 backdrop.onclick = function() {
                   obj2.close();
                 };
-                el2.appendChild(backdrop);
+                el3.appendChild(backdrop);
               }
               obj2.open = function() {
-                el2.style.display = "block";
+                el3.style.display = "block";
                 var rect = obj2.container.getBoundingClientRect();
                 if (helpers2.getWindowWidth() < rect.width) {
                   obj2.container.style.top = "";
@@ -66823,7 +66823,7 @@ var require_jsuites = __commonJS({
                   }
                 }
                 if (typeof obj2.options.onopen == "function") {
-                  obj2.options.onopen(el2, obj2);
+                  obj2.options.onopen(el3, obj2);
                 }
               };
               obj2.resetPosition = function() {
@@ -66831,17 +66831,17 @@ var require_jsuites = __commonJS({
                 obj2.container.style.left = "";
               };
               obj2.isOpen = function() {
-                return el2.style.display != "none" ? true : false;
+                return el3.style.display != "none" ? true : false;
               };
               obj2.close = function() {
                 if (obj2.isOpen()) {
-                  el2.style.display = "none";
+                  el3.style.display = "none";
                   if (obj2.options.backdrop) {
                     backdrop.style.display = "";
                   }
                   obj2.container.classList.remove("jmodal_fullscreen");
                   if (typeof obj2.options.onclose == "function") {
-                    obj2.options.onclose(el2, obj2);
+                    obj2.options.onclose(el3, obj2);
                   }
                 }
               };
@@ -66868,7 +66868,7 @@ var require_jsuites = __commonJS({
                   obj2.options.onload(obj2);
                 }
               }
-              el2.modal = obj2;
+              el3.modal = obj2;
               Events3();
               Events3 = function() {
               };
@@ -66999,7 +66999,7 @@ var require_jsuites = __commonJS({
           }
           var notification = Notification();
           ;
-          function Progressbar(el2, options) {
+          function Progressbar(el3, options) {
             var obj2 = {};
             obj2.options = {};
             var defaults2 = {
@@ -67014,37 +67014,37 @@ var require_jsuites = __commonJS({
                 obj2.options[property] = defaults2[property];
               }
             }
-            el2.classList.add("jprogressbar");
-            el2.setAttribute("tabindex", 1);
-            el2.setAttribute("data-value", obj2.options.value);
+            el3.classList.add("jprogressbar");
+            el3.setAttribute("tabindex", 1);
+            el3.setAttribute("data-value", obj2.options.value);
             var bar = document.createElement("div");
             bar.style.width = obj2.options.value + "%";
             bar.style.color = "#fff";
-            el2.appendChild(bar);
+            el3.appendChild(bar);
             if (obj2.options.width) {
-              el2.style.width = obj2.options.width;
+              el3.style.width = obj2.options.width;
             }
             obj2.setValue = function(value) {
               value = parseInt(value);
               obj2.options.value = value;
               bar.style.width = value + "%";
-              el2.setAttribute("data-value", value + "%");
+              el3.setAttribute("data-value", value + "%");
               if (value < 6) {
-                el2.style.color = "#000";
+                el3.style.color = "#000";
               } else {
-                el2.style.color = "#fff";
+                el3.style.color = "#fff";
               }
               obj2.options.value = value;
               if (typeof obj2.options.onchange == "function") {
-                obj2.options.onchange(el2, value);
+                obj2.options.onchange(el3, value);
               }
-              if (el2.value != obj2.options.value) {
-                el2.value = obj2.options.value;
-                if (typeof el2.oninput == "function") {
-                  el2.oninput({
+              if (el3.value != obj2.options.value) {
+                el3.value = obj2.options.value;
+                if (typeof el3.oninput == "function") {
+                  el3.oninput({
                     type: "input",
-                    target: el2,
-                    value: el2.value
+                    target: el3,
+                    value: el3.value
                   });
                 }
               }
@@ -67054,7 +67054,7 @@ var require_jsuites = __commonJS({
             };
             var action = function(e12) {
               if (e12.which) {
-                var rect = el2.getBoundingClientRect();
+                var rect = el3.getBoundingClientRect();
                 if (e12.changedTouches && e12.changedTouches[0]) {
                   var x6 = e12.changedTouches[0].clientX;
                   var y7 = e12.changedTouches[0].clientY;
@@ -67066,27 +67066,27 @@ var require_jsuites = __commonJS({
               }
             };
             if ("touchstart" in document.documentElement === true) {
-              el2.addEventListener("touchstart", action);
-              el2.addEventListener("touchend", action);
+              el3.addEventListener("touchstart", action);
+              el3.addEventListener("touchend", action);
             } else {
-              el2.addEventListener("mousedown", action);
-              el2.addEventListener("mousemove", action);
+              el3.addEventListener("mousedown", action);
+              el3.addEventListener("mousemove", action);
             }
-            el2.change = obj2.setValue;
-            el2.val = function(val) {
+            el3.change = obj2.setValue;
+            el3.val = function(val) {
               if (val === void 0) {
                 return obj2.getValue();
               } else {
                 obj2.setValue(val);
               }
             };
-            el2.progressbar = obj2;
+            el3.progressbar = obj2;
             return obj2;
           }
           ;
-          function Rating(el2, options) {
-            if (el2.rating) {
-              return el2.rating.setOptions(options, true);
+          function Rating(el3, options) {
+            if (el3.rating) {
+              return el3.rating.setOptions(options, true);
             }
             var obj2 = {};
             obj2.options = {};
@@ -67106,17 +67106,17 @@ var require_jsuites = __commonJS({
                   }
                 }
               }
-              el2.innerHTML = "";
+              el3.innerHTML = "";
               for (var i12 = 0; i12 < obj2.options.number; i12++) {
                 var div = document.createElement("div");
                 div.setAttribute("data-index", i12 + 1);
                 div.setAttribute("title", obj2.options.tooltip[i12]);
-                el2.appendChild(div);
+                el3.appendChild(div);
               }
               if (obj2.options.value) {
                 for (var i12 = 0; i12 < obj2.options.number; i12++) {
                   if (i12 < obj2.options.value) {
-                    el2.children[i12].classList.add("jrating-selected");
+                    el3.children[i12].classList.add("jrating-selected");
                   }
                 }
               }
@@ -67125,23 +67125,23 @@ var require_jsuites = __commonJS({
             obj2.setValue = function(index) {
               for (var i12 = 0; i12 < obj2.options.number; i12++) {
                 if (i12 < index) {
-                  el2.children[i12].classList.add("jrating-selected");
+                  el3.children[i12].classList.add("jrating-selected");
                 } else {
-                  el2.children[i12].classList.remove("jrating-over");
-                  el2.children[i12].classList.remove("jrating-selected");
+                  el3.children[i12].classList.remove("jrating-over");
+                  el3.children[i12].classList.remove("jrating-selected");
                 }
               }
               obj2.options.value = index;
               if (typeof obj2.options.onchange == "function") {
-                obj2.options.onchange(el2, index);
+                obj2.options.onchange(el3, index);
               }
-              if (el2.value != obj2.options.value) {
-                el2.value = obj2.options.value;
-                if (typeof el2.oninput == "function") {
-                  el2.oninput({
+              if (el3.value != obj2.options.value) {
+                el3.value = obj2.options.value;
+                if (typeof el3.oninput == "function") {
+                  el3.oninput({
                     type: "input",
-                    target: el2,
-                    value: el2.value
+                    target: el3,
+                    value: el3.value
                   });
                 }
               }
@@ -67151,8 +67151,8 @@ var require_jsuites = __commonJS({
             };
             var init = function() {
               obj2.setOptions(options);
-              el2.classList.add("jrating");
-              el2.addEventListener("click", function(e12) {
+              el3.classList.add("jrating");
+              el3.addEventListener("click", function(e12) {
                 var index = e12.target.getAttribute("data-index");
                 if (index != void 0) {
                   if (index == obj2.options.value) {
@@ -67162,38 +67162,38 @@ var require_jsuites = __commonJS({
                   }
                 }
               });
-              el2.addEventListener("mouseover", function(e12) {
+              el3.addEventListener("mouseover", function(e12) {
                 var index = e12.target.getAttribute("data-index");
                 for (var i12 = 0; i12 < obj2.options.number; i12++) {
                   if (i12 < index) {
-                    el2.children[i12].classList.add("jrating-over");
+                    el3.children[i12].classList.add("jrating-over");
                   } else {
-                    el2.children[i12].classList.remove("jrating-over");
+                    el3.children[i12].classList.remove("jrating-over");
                   }
                 }
               });
-              el2.addEventListener("mouseout", function(e12) {
+              el3.addEventListener("mouseout", function(e12) {
                 for (var i12 = 0; i12 < obj2.options.number; i12++) {
-                  el2.children[i12].classList.remove("jrating-over");
+                  el3.children[i12].classList.remove("jrating-over");
                 }
               });
-              el2.change = obj2.setValue;
-              el2.val = function(val) {
+              el3.change = obj2.setValue;
+              el3.val = function(val) {
                 if (val === void 0) {
                   return obj2.getValue();
                 } else {
                   obj2.setValue(val);
                 }
               };
-              el2.rating = obj2;
+              el3.rating = obj2;
             };
             init();
             return obj2;
           }
           ;
-          function Search(el2, options) {
-            if (el2.search) {
-              return el2.search;
+          function Search(el3, options) {
+            if (el3.search) {
+              return el3.search;
             }
             var index = null;
             var select = function(e12) {
@@ -67214,9 +67214,9 @@ var require_jsuites = __commonJS({
               }
               container.innerHTML = "";
               if (!data.length) {
-                el2.style.display = "";
+                el3.style.display = "";
               } else {
-                el2.style.display = "block";
+                el3.style.display = "block";
                 var len = data.length < 11 ? data.length : 10;
                 for (var i12 = 0; i12 < len; i12++) {
                   if (typeof data[i12] == "string") {
@@ -67328,7 +67328,7 @@ var require_jsuites = __commonJS({
               obj2.close();
             };
             obj2.open = function() {
-              el2.style.display = "block";
+              el3.style.display = "block";
             };
             obj2.close = function() {
               if (timer) {
@@ -67336,10 +67336,10 @@ var require_jsuites = __commonJS({
               }
               obj2.terms = "";
               container.innerHTML = "";
-              el2.style.display = "";
+              el3.style.display = "";
             };
             obj2.isOpened = function() {
-              return el2.style.display ? true : false;
+              return el3.style.display ? true : false;
             };
             obj2.keydown = function(e12) {
               if (obj2.isOpened()) {
@@ -67411,43 +67411,43 @@ var require_jsuites = __commonJS({
             var container = document.createElement("div");
             container.classList.add("jsearch_container");
             container.onmousedown = select;
-            el2.appendChild(container);
-            el2.classList.add("jsearch");
-            el2.search = obj2;
+            el3.appendChild(container);
+            el3.classList.add("jsearch");
+            el3.search = obj2;
             return obj2;
           }
           ;
-          function Slider(el2, options) {
+          function Slider(el3, options) {
             var obj2 = {};
             obj2.options = {};
             obj2.currentImage = null;
             if (options) {
               obj2.options = options;
             }
-            el2.setAttribute("tabindex", "900");
+            el3.setAttribute("tabindex", "900");
             obj2.options.items = [];
-            if (!el2.classList.contains("jslider")) {
-              el2.classList.add("jslider");
-              el2.classList.add("unselectable");
+            if (!el3.classList.contains("jslider")) {
+              el3.classList.add("jslider");
+              el3.classList.add("unselectable");
               if (obj2.options.height) {
-                el2.style.minHeight = parseInt(obj2.options.height) + "px";
+                el3.style.minHeight = parseInt(obj2.options.height) + "px";
               }
               if (obj2.options.width) {
-                el2.style.width = parseInt(obj2.options.width) + "px";
+                el3.style.width = parseInt(obj2.options.width) + "px";
               }
               if (obj2.options.grid) {
-                el2.classList.add("jslider-grid");
-                var number2 = el2.children.length;
+                el3.classList.add("jslider-grid");
+                var number2 = el3.children.length;
                 if (number2 > 4) {
-                  el2.setAttribute("data-total", number2 - 4);
+                  el3.setAttribute("data-total", number2 - 4);
                 }
-                el2.setAttribute("data-number", number2 > 4 ? 4 : number2);
+                el3.setAttribute("data-number", number2 > 4 ? 4 : number2);
               }
               var counter = document.createElement("div");
               counter.classList.add("jslider-counter");
-              if (el2.children.length > 0) {
-                for (var i12 = 0; i12 < el2.children.length; i12++) {
-                  obj2.options.items.push(el2.children[i12]);
+              if (el3.children.length > 0) {
+                for (var i12 = 0; i12 < el3.children.length; i12++) {
+                  obj2.options.items.push(el3.children[i12]);
                   var item = document.createElement("div");
                   item.onclick = function() {
                     var index = Array.prototype.slice.call(counter.children).indexOf(this);
@@ -67479,27 +67479,27 @@ var require_jsuites = __commonJS({
             };
             obj2.show = function(target) {
               if (!target) {
-                var target = el2.children[0];
+                var target = el3.children[0];
               }
-              el2.classList.add("jslider-focus");
-              el2.classList.remove("jslider-grid");
-              el2.appendChild(controls);
-              el2.appendChild(counter);
+              el3.classList.add("jslider-focus");
+              el3.classList.remove("jslider-grid");
+              el3.appendChild(controls);
+              el3.appendChild(counter);
               var index = obj2.options.items.indexOf(target);
               obj2.updateCounter(index);
-              for (var i13 = 0; i13 < el2.children.length; i13++) {
-                el2.children[i13].style.display = "";
+              for (var i13 = 0; i13 < el3.children.length; i13++) {
+                el3.children[i13].style.display = "";
               }
               target.style.display = "block";
               if (target.previousElementSibling) {
-                el2.classList.add("jslider-left");
+                el3.classList.add("jslider-left");
               } else {
-                el2.classList.remove("jslider-left");
+                el3.classList.remove("jslider-left");
               }
               if (target.nextElementSibling && target.nextElementSibling.tagName == "IMG") {
-                el2.classList.add("jslider-right");
+                el3.classList.add("jslider-right");
               } else {
-                el2.classList.remove("jslider-right");
+                el3.classList.remove("jslider-right");
               }
               obj2.currentImage = target;
               if (obj2.currentImage.offsetHeight > obj2.currentImage.offsetWidth) {
@@ -67510,28 +67510,28 @@ var require_jsuites = __commonJS({
             obj2.open = function() {
               obj2.show();
               if (typeof obj2.options.onopen == "function") {
-                obj2.options.onopen(el2);
+                obj2.options.onopen(el3);
               }
             };
             obj2.close = function() {
-              el2.classList.remove("jslider-focus");
-              el2.classList.remove("jslider-left");
-              el2.classList.remove("jslider-right");
+              el3.classList.remove("jslider-focus");
+              el3.classList.remove("jslider-left");
+              el3.classList.remove("jslider-right");
               if (obj2.options.grid) {
-                el2.classList.add("jslider-grid");
+                el3.classList.add("jslider-grid");
               }
-              for (var i13 = 0; i13 < el2.children.length; i13++) {
-                el2.children[i13].style.display = "";
+              for (var i13 = 0; i13 < el3.children.length; i13++) {
+                el3.children[i13].style.display = "";
               }
               counter.remove();
               controls.remove();
               obj2.currentImage = null;
               if (typeof obj2.options.onclose == "function") {
-                obj2.options.onclose(el2);
+                obj2.options.onclose(el3);
               }
             };
             obj2.reset = function() {
-              el2.innerHTML = "";
+              el3.innerHTML = "";
             };
             obj2.next = function() {
               var nextImage = obj2.currentImage.nextElementSibling;
@@ -67557,37 +67557,37 @@ var require_jsuites = __commonJS({
               }
             };
             if ("ontouchend" in document.documentElement === true) {
-              el2.addEventListener("touchend", mouseUp);
+              el3.addEventListener("touchend", mouseUp);
             } else {
-              el2.addEventListener("mouseup", mouseUp);
+              el3.addEventListener("mouseup", mouseUp);
             }
-            el2.addEventListener("swipeleft", function(e12) {
+            el3.addEventListener("swipeleft", function(e12) {
               obj2.next();
               e12.preventDefault();
               e12.stopPropagation();
             });
-            el2.addEventListener("swiperight", function(e12) {
+            el3.addEventListener("swiperight", function(e12) {
               obj2.prev();
               e12.preventDefault();
               e12.stopPropagation();
             });
-            el2.addEventListener("keydown", function(e12) {
+            el3.addEventListener("keydown", function(e12) {
               if (e12.which == 27) {
                 obj2.close();
               }
             });
-            el2.slider = obj2;
+            el3.slider = obj2;
             return obj2;
           }
           ;
-          function Tags2(el2, options) {
-            if (el2.tags) {
-              return el2.tags.setOptions(options, true);
+          function Tags2(el3, options) {
+            if (el3.tags) {
+              return el3.tags.setOptions(options, true);
             }
             var obj2 = { type: "tags" };
             obj2.options = {};
             var limit = function() {
-              return obj2.options.limit && el2.children.length >= obj2.options.limit ? true : false;
+              return obj2.options.limit && el3.children.length >= obj2.options.limit ? true : false;
             };
             var search3 = null;
             var searchContainer = null;
@@ -67617,17 +67617,17 @@ var require_jsuites = __commonJS({
                 }
               }
               if (obj2.options.placeholder) {
-                el2.setAttribute("data-placeholder", obj2.options.placeholder);
+                el3.setAttribute("data-placeholder", obj2.options.placeholder);
               } else {
-                el2.removeAttribute("data-placeholder");
+                el3.removeAttribute("data-placeholder");
               }
-              el2.placeholder = obj2.options.placeholder;
+              el3.placeholder = obj2.options.placeholder;
               obj2.setValue(obj2.options.value);
               filter3();
               if (obj2.options.search) {
                 if (!searchContainer) {
                   searchContainer = document.createElement("div");
-                  el2.parentNode.insertBefore(searchContainer, el2.nextSibling);
+                  el3.parentNode.insertBefore(searchContainer, el3.nextSibling);
                   search3 = Search(searchContainer, {
                     data: obj2.options.search,
                     onselect: function(a8, b9, c9) {
@@ -67646,7 +67646,7 @@ var require_jsuites = __commonJS({
             };
             obj2.add = function(value, focus) {
               if (typeof obj2.options.onbeforechange == "function") {
-                var ret2 = obj2.options.onbeforechange(el2, obj2, obj2.options.value, value);
+                var ret2 = obj2.options.onbeforechange(el3, obj2, obj2.options.value, value);
                 if (ret2 === false) {
                   return false;
                 } else {
@@ -67669,9 +67669,9 @@ var require_jsuites = __commonJS({
                 if (node && node.parentNode && node.parentNode.classList.contains("jtags") && node.nextSibling && !(node.nextSibling.innerText && node.nextSibling.innerText.trim())) {
                   div = node.nextSibling;
                 } else {
-                  if (el2.lastChild) {
-                    if (!el2.lastChild.innerText.trim()) {
-                      el2.removeChild(el2.lastChild);
+                  if (el3.lastChild) {
+                    if (!el3.lastChild.innerText.trim()) {
+                      el3.removeChild(el3.lastChild);
                     }
                   }
                   if (!value || typeof value == "string") {
@@ -67699,27 +67699,27 @@ var require_jsuites = __commonJS({
             };
             obj2.setLimit = function(limit2) {
               obj2.options.limit = limit2;
-              var n10 = el2.children.length - limit2;
-              while (el2.children.length > limit2) {
-                el2.removeChild(el2.lastChild);
+              var n10 = el3.children.length - limit2;
+              while (el3.children.length > limit2) {
+                el3.removeChild(el3.lastChild);
               }
             };
             obj2.remove = function(node) {
               node.parentNode.removeChild(node);
-              if (!el2.children.length) {
+              if (!el3.children.length) {
                 obj2.add("", true);
               } else {
                 change();
               }
               if (typeof obj2.options.onremoveitem == "function") {
-                obj2.options.onremoveitem(el2, obj2, node);
+                obj2.options.onremoveitem(el3, obj2, node);
               }
             };
             obj2.getData = function() {
               var data = [];
-              for (var i12 = 0; i12 < el2.children.length; i12++) {
-                var text = el2.children[i12].innerText.replace("\n", "");
-                var value = el2.children[i12].getAttribute("data-value");
+              for (var i12 = 0; i12 < el3.children.length; i12++) {
+                var text = el3.children[i12].innerText.replace("\n", "");
+                var value = el3.children[i12].getAttribute("data-value");
                 if (!value) {
                   value = text;
                 }
@@ -67732,14 +67732,14 @@ var require_jsuites = __commonJS({
             obj2.getValue = function(index) {
               var value = null;
               if (index != null) {
-                value = el2.children[index].getAttribute("data-value");
+                value = el3.children[index].getAttribute("data-value");
                 if (!value) {
-                  value = el2.children[index].innerText.replace("\n", "");
+                  value = el3.children[index].innerText.replace("\n", "");
                 }
               } else {
                 var data = [];
-                for (var i12 = 0; i12 < el2.children.length; i12++) {
-                  value = el2.children[i12].innerText.replace("\n", "");
+                for (var i12 = 0; i12 < el3.children.length; i12++) {
+                  value = el3.children[i12].innerText.replace("\n", "");
                   if (value) {
                     data.push(obj2.getValue(i12));
                   }
@@ -67752,27 +67752,27 @@ var require_jsuites = __commonJS({
               if (!mixed) {
                 obj2.reset();
               } else {
-                if (el2.value != mixed) {
+                if (el3.value != mixed) {
                   if (Array.isArray(mixed)) {
                     obj2.add(mixed);
                   } else {
                     var text = ("" + mixed).trim();
                     var data = extractTags(text);
-                    el2.innerHTML = "";
+                    el3.innerHTML = "";
                     obj2.add(data);
                   }
                 }
               }
             };
             obj2.reset = function() {
-              el2.classList.add("jtags-empty");
-              el2.innerHTML = "<div></div>";
+              el3.classList.add("jtags-empty");
+              el3.innerHTML = "<div></div>";
               change();
             };
             obj2.isValid = function() {
               var test = 0;
-              for (var i12 = 0; i12 < el2.children.length; i12++) {
-                if (el2.children[i12].classList.contains("jtags_error")) {
+              for (var i12 = 0; i12 < el3.children.length; i12++) {
+                if (el3.children[i12].classList.contains("jtags_error")) {
                   test++;
                 }
               }
@@ -67795,26 +67795,26 @@ var require_jsuites = __commonJS({
               var terms = node.innerText;
             };
             obj2.destroy = function() {
-              el2.removeEventListener("mouseup", tagsMouseUp);
-              el2.removeEventListener("keydown", tagsKeyDown);
-              el2.removeEventListener("keyup", tagsKeyUp);
-              el2.removeEventListener("paste", tagsPaste);
-              el2.removeEventListener("focus", tagsFocus);
-              el2.removeEventListener("blur", tagsBlur);
-              el2.parentNode.removeChild(el2);
+              el3.removeEventListener("mouseup", tagsMouseUp);
+              el3.removeEventListener("keydown", tagsKeyDown);
+              el3.removeEventListener("keyup", tagsKeyUp);
+              el3.removeEventListener("paste", tagsPaste);
+              el3.removeEventListener("focus", tagsFocus);
+              el3.removeEventListener("blur", tagsBlur);
+              el3.parentNode.removeChild(el3);
             };
             var setFocus = function(node) {
-              if (el2.children.length) {
+              if (el3.children.length) {
                 var range = document.createRange();
                 var sel = window.getSelection();
                 if (!node) {
-                  var node = el2.childNodes[el2.childNodes.length - 1];
+                  var node = el3.childNodes[el3.childNodes.length - 1];
                 }
                 range.setStart(node, node.length);
                 range.collapse(true);
                 sel.removeAllRanges();
                 sel.addRange(range);
-                el2.scrollLeft = el2.scrollWidth;
+                el3.scrollLeft = el3.scrollWidth;
               }
             };
             var createElement = function(label, value, node) {
@@ -67824,9 +67824,9 @@ var require_jsuites = __commonJS({
                 div.setAttribute("data-value", value);
               }
               if (node && node.parentNode.classList.contains("jtags")) {
-                el2.insertBefore(div, node.nextSibling);
+                el3.insertBefore(div, node.nextSibling);
               } else {
-                el2.appendChild(div);
+                el3.appendChild(div);
               }
               return div;
             };
@@ -67835,15 +67835,15 @@ var require_jsuites = __commonJS({
               if (value != obj2.options.value) {
                 obj2.options.value = value;
                 if (typeof obj2.options.onchange == "function") {
-                  obj2.options.onchange(el2, obj2, obj2.options.value);
+                  obj2.options.onchange(el3, obj2, obj2.options.value);
                 }
-                if (el2.value != obj2.options.value) {
-                  el2.value = obj2.options.value;
-                  if (typeof el2.oninput == "function") {
-                    el2.oninput({
+                if (el3.value != obj2.options.value) {
+                  el3.value = obj2.options.value;
+                  if (typeof el3.oninput == "function") {
+                    el3.oninput({
                       type: "input",
-                      target: el2,
-                      value: el2.value
+                      target: el3,
+                      value: el3.value
                     });
                   }
                 }
@@ -67851,24 +67851,24 @@ var require_jsuites = __commonJS({
               filter3();
             };
             var filter3 = function() {
-              for (var i12 = 0; i12 < el2.children.length; i12++) {
-                if (el2.children[i12].tagName === "DIV") {
+              for (var i12 = 0; i12 < el3.children.length; i12++) {
+                if (el3.children[i12].tagName === "DIV") {
                   if (!obj2.getValue(i12)) {
-                    el2.children[i12].classList.remove("jtags_label");
+                    el3.children[i12].classList.remove("jtags_label");
                   } else {
-                    el2.children[i12].classList.add("jtags_label");
+                    el3.children[i12].classList.add("jtags_label");
                     if (typeof obj2.options.validation == "function") {
                       if (obj2.getValue(i12)) {
-                        if (!obj2.options.validation(el2.children[i12], el2.children[i12].innerText, el2.children[i12].getAttribute("data-value"))) {
-                          el2.children[i12].classList.add("jtags_error");
+                        if (!obj2.options.validation(el3.children[i12], el3.children[i12].innerText, el3.children[i12].getAttribute("data-value"))) {
+                          el3.children[i12].classList.add("jtags_error");
                         } else {
-                          el2.children[i12].classList.remove("jtags_error");
+                          el3.children[i12].classList.remove("jtags_error");
                         }
                       } else {
-                        el2.children[i12].classList.remove("jtags_error");
+                        el3.children[i12].classList.remove("jtags_error");
                       }
                     } else {
-                      el2.children[i12].classList.remove("jtags_error");
+                      el3.children[i12].classList.remove("jtags_error");
                     }
                   }
                 }
@@ -67876,13 +67876,13 @@ var require_jsuites = __commonJS({
               isEmpty();
             };
             var isEmpty = function() {
-              if (!el2.innerText.trim()) {
-                if (!el2.children.length || el2.children[0].tagName === "BR") {
-                  el2.innerHTML = "";
+              if (!el3.innerText.trim()) {
+                if (!el3.children.length || el3.children[0].tagName === "BR") {
+                  el3.innerHTML = "";
                   setFocus(createElement());
                 }
               } else {
-                el2.classList.remove("jtags-empty");
+                el3.classList.remove("jtags-empty");
               }
             };
             var extractTags = function(text) {
@@ -67933,7 +67933,7 @@ var require_jsuites = __commonJS({
                   e12.preventDefault();
                 }
               } else if (e12.key == "Backspace") {
-                if (el2.children.length == 1 && window.getSelection().anchorOffset < 1) {
+                if (el3.children.length == 1 && window.getSelection().anchorOffset < 1) {
                   e12.preventDefault();
                 }
               }
@@ -67965,7 +67965,7 @@ var require_jsuites = __commonJS({
               }
               var data = extractTags(text);
               if (typeof obj2.options.onbeforepaste == "function") {
-                var ret2 = obj2.options.onbeforepaste(el2, obj2, data);
+                var ret2 = obj2.options.onbeforepaste(el3, obj2, data);
                 if (ret2 === false) {
                   e12.preventDefault();
                   return false;
@@ -67992,72 +67992,72 @@ var require_jsuites = __commonJS({
                   }
                 }
               }
-              if (e12.target == el2) {
+              if (e12.target == el3) {
                 setFocus();
               }
             };
             var tagsFocus = function() {
-              if (!el2.classList.contains("jtags-focus")) {
-                if (!el2.children.length || obj2.getValue(el2.children.length - 1)) {
+              if (!el3.classList.contains("jtags-focus")) {
+                if (!el3.children.length || obj2.getValue(el3.children.length - 1)) {
                   if (!limit()) {
                     createElement("");
                   }
                 }
                 if (typeof obj2.options.onfocus == "function") {
-                  obj2.options.onfocus(el2, obj2, obj2.getValue());
+                  obj2.options.onfocus(el3, obj2, obj2.getValue());
                 }
-                el2.classList.add("jtags-focus");
+                el3.classList.add("jtags-focus");
               }
             };
             var tagsBlur = function() {
-              if (el2.classList.contains("jtags-focus")) {
+              if (el3.classList.contains("jtags-focus")) {
                 if (search3) {
                   search3.close();
                 }
-                for (var i12 = 0; i12 < el2.children.length - 1; i12++) {
+                for (var i12 = 0; i12 < el3.children.length - 1; i12++) {
                   if (!obj2.getValue(i12)) {
-                    el2.removeChild(el2.children[i12]);
+                    el3.removeChild(el3.children[i12]);
                   }
                 }
                 change();
-                el2.classList.remove("jtags-focus");
+                el3.classList.remove("jtags-focus");
                 if (typeof obj2.options.onblur == "function") {
-                  obj2.options.onblur(el2, obj2, obj2.getValue());
+                  obj2.options.onblur(el3, obj2, obj2.getValue());
                 }
               }
             };
             var init = function() {
               if ("touchend" in document.documentElement === true) {
-                el2.addEventListener("touchend", tagsMouseUp);
+                el3.addEventListener("touchend", tagsMouseUp);
               } else {
-                el2.addEventListener("mouseup", tagsMouseUp);
+                el3.addEventListener("mouseup", tagsMouseUp);
               }
-              el2.addEventListener("keydown", tagsKeyDown);
-              el2.addEventListener("keyup", tagsKeyUp);
-              el2.addEventListener("paste", tagsPaste);
-              el2.addEventListener("focus", tagsFocus);
-              el2.addEventListener("blur", tagsBlur);
-              el2.setAttribute("contenteditable", true);
-              el2.classList.add("jtags");
+              el3.addEventListener("keydown", tagsKeyDown);
+              el3.addEventListener("keyup", tagsKeyUp);
+              el3.addEventListener("paste", tagsPaste);
+              el3.addEventListener("focus", tagsFocus);
+              el3.addEventListener("blur", tagsBlur);
+              el3.setAttribute("contenteditable", true);
+              el3.classList.add("jtags");
               obj2.setOptions(options);
               if (typeof obj2.options.onload == "function") {
-                obj2.options.onload(el2, obj2);
+                obj2.options.onload(el3, obj2);
               }
-              el2.change = obj2.setValue;
-              el2.val = function(val) {
+              el3.change = obj2.setValue;
+              el3.val = function(val) {
                 if (val === void 0) {
                   return obj2.getValue();
                 } else {
                   obj2.setValue(val);
                 }
               };
-              el2.tags = obj2;
+              el3.tags = obj2;
             };
             init();
             return obj2;
           }
           ;
-          function Upload(el2, options) {
+          function Upload(el3, options) {
             var obj2 = {};
             obj2.options = {};
             var defaults2 = {
@@ -68081,27 +68081,27 @@ var require_jsuites = __commonJS({
               }
             }
             if (obj2.options.multiple == true) {
-              el2.setAttribute("data-multiple", true);
+              el3.setAttribute("data-multiple", true);
             }
-            el2.content = [];
-            el2.classList.add("jupload");
+            el3.content = [];
+            el3.classList.add("jupload");
             if (obj2.options.input == true) {
-              el2.classList.add("input");
+              el3.classList.add("input");
             }
             obj2.add = function(data) {
               if (obj2.options.multiple == false) {
-                el2.content = [];
-                el2.innerText = "";
+                el3.content = [];
+                el3.innerText = "";
               }
               if (obj2.options.type == "image") {
                 var img = document.createElement("img");
                 img.setAttribute("src", data.file);
                 img.setAttribute("tabindex", -1);
-                if (!el2.getAttribute("name")) {
+                if (!el3.getAttribute("name")) {
                   img.className = "jfile";
                   img.content = data;
                 }
-                el2.appendChild(img);
+                el3.appendChild(img);
               } else {
                 if (data.name) {
                   var name2 = data.name;
@@ -68112,14 +68112,14 @@ var require_jsuites = __commonJS({
                 div.innerText = name2 || obj2.options.type;
                 div.classList.add("jupload-item");
                 div.setAttribute("tabindex", -1);
-                el2.appendChild(div);
+                el3.appendChild(div);
               }
               if (data.content) {
                 data.file = helpers2.guid();
               }
-              el2.content.push(data);
+              el3.content.push(data);
               if (typeof obj2.options.onchange == "function") {
-                obj2.options.onchange(el2, data);
+                obj2.options.onchange(el3, data);
               }
             };
             obj2.addFromFile = function(file) {
@@ -68198,42 +68198,42 @@ var require_jsuites = __commonJS({
               input.setAttribute("multiple", true);
             }
             var current = null;
-            el2.addEventListener("click", function(e12) {
+            el3.addEventListener("click", function(e12) {
               current = null;
-              if (!el2.children.length || e12.target === el2) {
+              if (!el3.children.length || e12.target === el3) {
                 helpers2.click(input);
               } else {
-                if (e12.target.parentNode == el2) {
+                if (e12.target.parentNode == el3) {
                   current = e12.target;
                 }
               }
             });
-            el2.addEventListener("dblclick", function(e12) {
+            el3.addEventListener("dblclick", function(e12) {
               helpers2.click(input);
             });
-            el2.addEventListener("dragenter", function(e12) {
-              el2.style.border = "1px dashed #000";
+            el3.addEventListener("dragenter", function(e12) {
+              el3.style.border = "1px dashed #000";
             });
-            el2.addEventListener("dragleave", function(e12) {
-              el2.style.border = "1px solid #eee";
+            el3.addEventListener("dragleave", function(e12) {
+              el3.style.border = "1px solid #eee";
             });
-            el2.addEventListener("dragstop", function(e12) {
-              el2.style.border = "1px solid #eee";
+            el3.addEventListener("dragstop", function(e12) {
+              el3.style.border = "1px solid #eee";
             });
-            el2.addEventListener("dragover", function(e12) {
+            el3.addEventListener("dragover", function(e12) {
               e12.preventDefault();
             });
-            el2.addEventListener("keydown", function(e12) {
+            el3.addEventListener("keydown", function(e12) {
               if (current && e12.which == 46) {
-                var index = Array.prototype.indexOf.call(el2.children, current);
+                var index = Array.prototype.indexOf.call(el3.children, current);
                 if (index >= 0) {
-                  el2.content.splice(index, 1);
+                  el3.content.splice(index, 1);
                   current.remove();
                   current = null;
                 }
               }
             });
-            el2.addEventListener("drop", function(e12) {
+            el3.addEventListener("drop", function(e12) {
               e12.preventDefault();
               e12.stopPropagation();
               var html2 = (e12.originalEvent || e12).dataTransfer.getData("text/html");
@@ -68244,7 +68244,7 @@ var require_jsuites = __commonJS({
                 }
               } else if (html2) {
                 if (obj2.options.multiple == false) {
-                  el2.innerText = "";
+                  el3.innerText = "";
                 }
                 let img = [];
                 utils_filter(html2, img);
@@ -68254,15 +68254,15 @@ var require_jsuites = __commonJS({
                   }
                 }
               }
-              el2.style.border = "1px solid #eee";
+              el3.style.border = "1px solid #eee";
               return false;
             });
-            el2.val = function(val) {
+            el3.val = function(val) {
               if (val === void 0) {
-                return el2.content && el2.content.length ? el2.content : null;
+                return el3.content && el3.content.length ? el3.content : null;
               } else {
-                el2.innerText = "";
-                el2.content = [];
+                el3.innerText = "";
+                el3.content = [];
                 if (val) {
                   if (Array.isArray(val)) {
                     for (var i12 = 0; i12 < val.length; i12++) {
@@ -68278,7 +68278,7 @@ var require_jsuites = __commonJS({
                 }
               }
             };
-            el2.upload = el2.image = obj2;
+            el3.upload = el3.image = obj2;
             return obj2;
           }
           var sha512 = __webpack_require__2(195);
@@ -118499,15 +118499,15 @@ function instanceToSchemaTree(value, name2, path) {
   }
   return { path, name: name2, type: typeof value, value, children: [] };
 }
-function xmlNodeToSchema(el2, name2, path) {
+function xmlNodeToSchema(el3, name2, path) {
   const children = [];
   const seen = /* @__PURE__ */ new Set();
-  for (const child of el2.children) {
+  for (const child of el3.children) {
     if (seen.has(child.tagName)) continue;
     seen.add(child.tagName);
     children.push(xmlNodeToSchema(child, child.tagName, `${path}/${child.tagName}`));
   }
-  const text = el2.textContent?.trim();
+  const text = el3.textContent?.trim();
   return {
     path,
     name: name2,
@@ -118928,15 +118928,15 @@ function xmlNodeToJson(node) {
     return text2 || void 0;
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return void 0;
-  const el2 = node;
+  const el3 = node;
   const obj2 = {};
-  for (const attr of Array.from(el2.attributes)) {
+  for (const attr of Array.from(el3.attributes)) {
     obj2[`@${attr.name}`] = attr.value;
   }
-  const childElements2 = Array.from(el2.childNodes).filter(
+  const childElements2 = Array.from(el3.childNodes).filter(
     (child) => child.nodeType === Node.ELEMENT_NODE
   );
-  const text = Array.from(el2.childNodes).filter(
+  const text = Array.from(el3.childNodes).filter(
     (child) => child.nodeType === Node.TEXT_NODE || child.nodeType === Node.CDATA_SECTION_NODE
   ).map((child) => child.textContent ?? "").join("").trim();
   if (!childElements2.length) {
@@ -124426,6 +124426,16 @@ var AI_SUGGESTION_FORMAT_schema_default = {
       items: {
         $ref: "#/$defs/suggestion"
       }
+    },
+    notes: {
+      type: "array",
+      description: "Optional, sparingly: risks the user should know about (not routine confirmations).",
+      items: { type: "string" }
+    },
+    questions: {
+      type: "array",
+      description: "Optional questions for the user, ideally with suggested choices.",
+      items: { type: "string" }
     }
   },
   $defs: {
@@ -124553,7 +124563,14 @@ var AI_SUGGESTION_FORMAT_schema_default = {
           $ref: "#/$defs/valueBlock"
         },
         note: {
-          type: "string"
+          type: "string",
+          description: "Only for risks: ambiguous source, unit/coding mismatch, lossy conversion, guessed path. Not for routine confirmations."
+        },
+        confidence: {
+          type: "integer",
+          minimum: 0,
+          maximum: 100,
+          description: "Estimated probability (percent) that this mapping is correct. Include only when below ~90 or when the user asks for it on all suggestions."
         }
       }
     },
@@ -124687,6 +124704,149 @@ function locateIssueInText(source, path, message) {
   return null;
 }
 
+// src/core/ai/response_notes.ts
+var NOTES_CONVENTION = "Notes are for risks only (ambiguous source, unit/coding mismatch, lossy conversion, guessed path), never routine confirmations: per-suggestion `note`, and brief `### Notes` / `### Questions` (numbered, with suggested choices) outside the JSON fence (or top-level `notes[]` / `questions[]`); omit when empty. Per-suggestion `confidence`: integer 0\u2013100 = your estimated % chance the mapping is correct; include it only when below 90, or on every suggestion if the user asks.";
+var CONFIDENCE_BANDS = { low: 50, medium: 80 };
+function confidenceBand(pct) {
+  if (pct < CONFIDENCE_BANDS.low) return "low";
+  if (pct < CONFIDENCE_BANDS.medium) return "medium";
+  return "high";
+}
+function parseAiConfidence(value) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100) return void 0;
+  return Math.round(value);
+}
+var SECTION_LABELS = {
+  note: "notes",
+  notes: "notes",
+  anteckning: "notes",
+  anteckningar: "notes",
+  question: "questions",
+  questions: "questions",
+  "fr\xE5ga": "questions",
+  "fr\xE5gor": "questions",
+  fragor: "questions"
+};
+function sectionOf(line) {
+  const m5 = line.trim().match(
+    /^(?:#{1,6}\s*)?(?:\*\*|__)?\s*([\p{L}]+)\s*:?\s*(?:\*\*|__)?\s*:?$/u
+  );
+  if (!m5) return null;
+  const key = m5[1].toLowerCase();
+  return SECTION_LABELS[key] ?? null;
+}
+var LIST_ITEM = /^\s*(?:[-*+•]|\d+[.)])\s+(.*)$/;
+function sectionItems(lines) {
+  const items = [];
+  let open = false;
+  for (const raw of lines) {
+    if (!raw.trim()) {
+      open = false;
+      continue;
+    }
+    const item = raw.match(LIST_ITEM);
+    if (item) {
+      items.push(item[1].trim());
+      open = true;
+    } else if (open && items.length) {
+      items[items.length - 1] += ` ${raw.trim()}`;
+    } else {
+      items.push(raw.trim());
+      open = true;
+    }
+  }
+  return items.filter(Boolean);
+}
+function collectSuggestionNotes(envelope) {
+  if (!envelope || typeof envelope !== "object") return [];
+  const rec = envelope;
+  const out = [];
+  const pick = (rows, kind, idKey) => {
+    if (!Array.isArray(rows)) return;
+    for (const row of rows) {
+      if (!row || typeof row !== "object") continue;
+      const r10 = row;
+      const note = typeof r10.note === "string" ? r10.note.trim() : "";
+      const confidence = kind === "suggestion" ? parseAiConfidence(r10.confidence) : void 0;
+      if (!note && confidence === void 0) continue;
+      const id4 = typeof r10[idKey] === "string" ? String(r10[idKey]) : void 0;
+      out.push({
+        kind,
+        note,
+        ...id4 ? { slotId: id4 } : {},
+        ...confidence !== void 0 ? { confidence } : {}
+      });
+    }
+  };
+  pick(rec.loops, "loop", "attachSlotId");
+  pick(rec.suggestions, "suggestion", "slotId");
+  return out;
+}
+function balancedJsonEnd(text, start) {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i12 = start; i12 < text.length; i12++) {
+    const ch = text[i12];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return i12 + 1;
+    }
+  }
+  return -1;
+}
+function parseAiResponseNotes(text, envelope) {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  const body = [];
+  const sections = {
+    notes: [],
+    questions: []
+  };
+  let current = null;
+  let inFence = false;
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      current = null;
+      body.push(line);
+      continue;
+    }
+    if (inFence) {
+      body.push(line);
+      continue;
+    }
+    const heading2 = sectionOf(line);
+    if (heading2) {
+      current = heading2;
+      continue;
+    }
+    if (current && /^\s*#{1,6}\s/.test(line)) current = null;
+    if (current) sections[current].push(line);
+    else body.push(line);
+  }
+  const rec = envelope && typeof envelope === "object" ? envelope : {};
+  return {
+    body: body.join("\n").replace(/\n{3,}/g, "\n\n").trim(),
+    notes: mergeItems(rec.notes, sectionItems(sections.notes)),
+    questions: mergeItems(rec.questions, sectionItems(sections.questions)),
+    suggestionNotes: collectSuggestionNotes(envelope)
+  };
+}
+function mergeItems(fromJson, fromProse) {
+  const json2 = Array.isArray(fromJson) ? fromJson.filter((v5) => typeof v5 === "string").map(
+    (v5) => v5.trim()
+  ).filter(Boolean) : [];
+  return [.../* @__PURE__ */ new Set([...json2, ...fromProse])];
+}
+
 // src/core/ai/mod.ts
 var VALUE_BLOCK_TYPES = /* @__PURE__ */ new Set([
   "source_query",
@@ -124788,6 +124948,7 @@ function buildPrompt(options) {
     `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${options.formatDocUrl}`,
     'Use version `"2"` with Blockly `block` fragments (not JS-shaped xpath wrappers).',
     `The JSON must validate against: ${schemaUrlFromFormatDoc(options.formatDocUrl)}`,
+    NOTES_CONVENTION,
     ""
   );
   if (options.targetFormat === "openehr-template") {
@@ -125154,8 +125315,25 @@ function extractSuggestionsJson(text) {
     const inner = JSON.parse(jsonFence[1].trim());
     if (isRecord10(inner) && Array.isArray(inner.suggestions)) return inner;
   }
-  if (trimmed.startsWith("{")) return JSON.parse(trimmed);
+  if (trimmed.startsWith("{")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (err2) {
+      const end = balancedJsonEnd(trimmed, 0);
+      if (end > 0 && trimmed.slice(end).trim()) return JSON.parse(trimmed.slice(0, end));
+      throw err2;
+    }
+  }
   throw new Error("No suggestion JSON found (expected an object or intehrgrator-suggestions fence)");
+}
+function parseAiAnswerNotes(text) {
+  let envelope;
+  try {
+    envelope = extractSuggestionsJson(text);
+  } catch {
+    envelope = void 0;
+  }
+  return parseAiResponseNotes(text, envelope);
 }
 var SCHEMA_WRAPPERS = /* @__PURE__ */ new Set([
   "A subschema had errors.",
@@ -125179,7 +125357,8 @@ function keepSchemaError(keyword2, pointer, raw) {
 function validateSuggestionEnvelope(instance) {
   const validator2 = new Validator(SUGGESTION_FORMAT_SCHEMA, "2020-12", false);
   const result = validator2.validate(instance);
-  if (result.valid) return [];
+  const extra = confidenceIssues(instance);
+  if (result.valid) return extra;
   const issues = [];
   const seen = /* @__PURE__ */ new Set();
   for (const error of result.errors) {
@@ -125191,7 +125370,7 @@ function validateSuggestionEnvelope(instance) {
     seen.add(key);
     issues.push({ path, message, keyword: error.keyword });
   }
-  return collapseSchemaIssues(issues);
+  return [...collapseSchemaIssues(issues), ...extra];
 }
 function collapseSchemaIssues(issues) {
   const nestedParents = /* @__PURE__ */ new Set();
@@ -125295,12 +125474,16 @@ function normalizeSuggestionEnvelope(raw, fallbackTarget) {
     throw new Error("Missing target.targetId or target.format");
   }
   const { loops: loops2, suggestions } = flattenSuggestionGroups(raw);
+  const notes = stringList(raw.notes);
+  const questions = stringList(raw.questions);
   return {
     format: "intehrgrator-suggestions",
     version: "2",
     target: { format: targetFormat, targetId },
     ...loops2.length ? { loops: loops2 } : {},
-    suggestions
+    suggestions,
+    ...notes.length ? { notes } : {},
+    ...questions.length ? { questions } : {}
   };
 }
 function flattenSuggestionGroups(raw) {
@@ -125335,7 +125518,8 @@ function collectSuggestionItems(items, loops2, suggestions, inheritedLoopVar) {
         slotId: item.slotId,
         block: sanitizeBlock(item.block),
         loopVar: typeof item.loopVar === "string" ? item.loopVar : inheritedLoopVar,
-        note: optionalNote(item.note)
+        note: optionalNote(item.note),
+        ...parseAiConfidence(item.confidence) !== void 0 ? { confidence: parseAiConfidence(item.confidence) } : {}
       });
     }
   }
@@ -125369,6 +125553,31 @@ function sourceLoopBlock(varName, path) {
 }
 function optionalNote(note) {
   return typeof note === "string" ? note : void 0;
+}
+function stringList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v5) => typeof v5 === "string" && v5.trim() !== "").map((v5) => v5.trim());
+}
+function confidenceIssues(instance) {
+  if (!isRecord10(instance)) return [];
+  const issues = [];
+  const walk2 = (items, base2) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item, i12) => {
+      if (!isRecord10(item)) return;
+      const path = `${base2}[${i12}]`;
+      if (item.confidence !== void 0 && parseAiConfidence(item.confidence) === void 0) {
+        issues.push({
+          path: `${path}.confidence`,
+          keyword: "confidence",
+          message: `${path}.confidence: must be a number 0\u2013100 (percent); got ${JSON.stringify(item.confidence)}. Ignored.`
+        });
+      }
+      walk2(item.suggestions, `${path}.suggestions`);
+    });
+  };
+  walk2(instance.suggestions, "$.suggestions");
+  return issues;
 }
 function sanitizeBlock(raw) {
   const type = BLOCK_TYPE_ALIASES[String(raw.type ?? "")] ?? String(raw.type ?? "");
@@ -125527,9 +125736,56 @@ function importSuggestions(model, payload, knownSlotIds, slotMeta2) {
     }
     const meta4 = slotMeta2?.get(slotId);
     next = applyExpressionEdit(next, slotId, expression2, meta4);
+    const review = slotReviewFrom(suggestion.note, suggestion.confidence);
+    if (review) next = withSlotReview(next, slotId, review);
     report.applied++;
   }
   return { model: next, report };
+}
+var TOOL_REVIEW_PARAMS = {
+  note: {
+    type: "string",
+    description: "Only for risks (ambiguous source, unit/coding mismatch, lossy conversion, guessed path)."
+  },
+  confidence: {
+    type: "integer",
+    minimum: 0,
+    maximum: 100,
+    description: "Estimated % chance the mapping is correct (0\u2013100). Include only when below 90 or when asked."
+  }
+};
+function applySuggestionReviewDefaults(text, note, confidence) {
+  const pct = parseAiConfidence(confidence);
+  const text0 = typeof note === "string" ? note.trim() : "";
+  if (pct === void 0 && !text0) return text;
+  let envelope;
+  try {
+    envelope = extractSuggestionsJson(text);
+  } catch {
+    return text;
+  }
+  if (!isRecord10(envelope) || !Array.isArray(envelope.suggestions)) return text;
+  const suggestions = envelope.suggestions.map((item) => {
+    if (!isRecord10(item)) return item;
+    return {
+      ...item,
+      ...text0 && item.note === void 0 ? { note: text0 } : {},
+      ...pct !== void 0 && item.confidence === void 0 ? { confidence: pct } : {}
+    };
+  });
+  return "```intehrgrator-suggestions\n" + JSON.stringify({ ...envelope, suggestions }, null, 2) + "\n```";
+}
+function slotReviewFrom(note, confidence) {
+  const text = typeof note === "string" ? note.trim() : "";
+  const pct = parseAiConfidence(confidence);
+  if (!text && pct === void 0) return void 0;
+  return { ...pct !== void 0 ? { confidence: pct } : {}, ...text ? { note: text } : {} };
+}
+function withSlotReview(model, slotId, review) {
+  return {
+    ...model,
+    slots: model.slots.map((slot) => slot.slotId === slotId ? { ...slot, review } : slot)
+  };
 }
 function suggestionBlockToExpression(block, rewriteSourcePath) {
   const clean = sanitizeBlock(block);
@@ -126969,22 +127225,22 @@ var FieldRmTypeEmoji = class extends FieldLabelBase {
   layoutGlyph_() {
     const px = rmEmojiFontPx(this.rmType_);
     const abstract = this.showsAbstractPlaceholder_();
-    const el2 = this.textElement_;
-    if (!el2) return;
+    const el3 = this.textElement_;
+    if (!el3) return;
     const fontPx = abstract ? Math.max(12, Math.round(px * 0.75)) : px;
-    el2.style.setProperty("font-size", `${fontPx}px`, "important");
-    el2.style.setProperty(
+    el3.style.setProperty("font-size", `${fontPx}px`, "important");
+    el3.style.setProperty(
       "font-family",
       abstract ? '"Google Sans", "Segoe UI", sans-serif' : EMOJI_FONT,
       "important"
     );
-    el2.setAttribute("font-size", String(fontPx));
-    el2.setAttribute("dominant-baseline", "central");
-    el2.setAttribute("dy", "0");
-    el2.setAttribute("y", String(this.size_?.height ? this.size_.height / 2 : px / 2));
-    el2.setAttribute("text-anchor", "start");
+    el3.setAttribute("font-size", String(fontPx));
+    el3.setAttribute("dominant-baseline", "central");
+    el3.setAttribute("dy", "0");
+    el3.setAttribute("y", String(this.size_?.height ? this.size_.height / 2 : px / 2));
+    el3.setAttribute("text-anchor", "start");
     const left2 = this.glyphLeftBearing_();
-    el2.setAttribute("x", String(left2));
+    el3.setAttribute("x", String(left2));
   }
   glyphLeftBearing_() {
     const px = rmEmojiFontPx(this.rmType_);
@@ -127100,9 +127356,9 @@ function installRmTypeEmojiTooltips() {
     Tooltip2.HOVER_MS = 250;
   } catch {
   }
-  Tooltip2.setCustomTooltip?.((div, el2) => {
-    const host2 = el2;
-    const full = connectionPointHoverTip(host2) || Tooltip2.getTooltipOfObject?.(el2) || "";
+  Tooltip2.setCustomTooltip?.((div, el3) => {
+    const host2 = el3;
+    const full = connectionPointHoverTip(host2) || Tooltip2.getTooltipOfObject?.(el3) || "";
     const box = div;
     box.style.whiteSpace = full.includes("\n") ? "pre-line" : "";
     box.textContent = full;
@@ -137447,7 +137703,7 @@ function getClippingElementAncestors(element, cache2) {
   if (cachedResult) {
     return cachedResult;
   }
-  let result = getOverflowAncestors(element, [], false).filter((el2) => isElement(el2) && getNodeName(el2) !== "body");
+  let result = getOverflowAncestors(element, [], false).filter((el3) => isElement(el3) && getNodeName(el3) !== "body");
   let lastKeptComputedStyle = null;
   const elementIsFixed = getComputedStyle2(element).position === "fixed";
   let currentNode = elementIsFixed ? getParentNode(element) : element;
@@ -137802,7 +138058,7 @@ function virtualFromElements(elements) {
   return {
     contextElement: first2,
     getBoundingClientRect: () => {
-      const box = unionBoxes(elements.map((el2) => el2.getBoundingClientRect()));
+      const box = unionBoxes(elements.map((el3) => el3.getBoundingClientRect()));
       return {
         x: box.x,
         y: box.y,
@@ -138806,6 +139062,15 @@ var en3 = {
   dropLeafHint: "Drop a leaf onto scaffold-target chips, a subtree onto a value socket, or onto empty canvas.",
   emptyMapReady: "Empty default context map ready \u2014 pull from Target schema, then Apply.",
   pickTargetFirst: "Pick a target file or URL first.",
+  aiNotesHeading: "Notes",
+  aiQuestionsHeading: "Questions",
+  aiSuggestionNotes: "Notes on suggestions",
+  aiConfidenceTitle: "AI-estimated chance this mapping is correct: {pct}%",
+  aiMarkReviewed: "Mark as reviewed",
+  aiReviewComment: "AI suggestion \u2014 {conf}{note}\nEdit the block or right-click \u2192 Mark as reviewed to clear.",
+  aiReviewConfidence: "{pct}% confidence",
+  aiAnswerQuestion: "Answer",
+  aiAnswerInChatTitle: "Answer this question in AI chat",
   aiFetchModels: "Connect & fetch models",
   aiSelectProvider: "Select provider\u2026",
   aiSelectModel: "Select model",
@@ -141849,14 +142114,14 @@ var FieldSkeletonTitle = class extends FieldLabelBase2 {
     return null;
   }
   rebuildMeta_() {
-    const el2 = this.metaEl_;
-    if (!el2) return;
+    const el3 = this.metaEl_;
+    if (!el3) return;
     const cls = this.className_;
     const at2 = this.atCode_;
     const meta4 = this.metaText_();
-    el2.style.display = meta4 ? "" : "none";
+    el3.style.display = meta4 ? "" : "none";
     this.classTspan_ = null;
-    while (el2.firstChild) el2.removeChild(el2.firstChild);
+    while (el3.firstChild) el3.removeChild(el3.firstChild);
     if (!meta4) return;
     if (cls && typeof document !== "undefined") {
       const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
@@ -141874,11 +142139,11 @@ var FieldSkeletonTitle = class extends FieldLabelBase2 {
           this.showEditor_();
         });
       }
-      el2.appendChild(tspan);
+      el3.appendChild(tspan);
       this.classTspan_ = tspan;
-      if (at2) el2.appendChild(document.createTextNode(` ${at2}`));
+      if (at2) el3.appendChild(document.createTextNode(` ${at2}`));
     } else {
-      el2.textContent = meta4;
+      el3.textContent = meta4;
     }
   }
   syncHelpClass_() {
@@ -142325,12 +142590,12 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
     this.size_.width = metrics.width;
     this.size_.height = metrics.height;
     this.fieldGroup_?.classList.toggle("blockly-slot-label--stand", metrics.stand);
-    const el2 = this.textElement_;
-    if (!el2) return;
-    el2.setAttribute("dominant-baseline", "central");
-    el2.setAttribute("alignment-baseline", "central");
-    el2.setAttribute("dy", "0");
-    el2.style.setProperty("font-size", `${bodyPx}px`, "important");
+    const el3 = this.textElement_;
+    if (!el3) return;
+    el3.setAttribute("dominant-baseline", "central");
+    el3.setAttribute("alignment-baseline", "central");
+    el3.setAttribute("dy", "0");
+    el3.style.setProperty("font-size", `${bodyPx}px`, "important");
     if (metrics.stand) {
       const layout = stoodCaptionBodyLayout({
         fieldWidth: metrics.width,
@@ -142338,18 +142603,18 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
         bodyPx,
         statementMouth: slotLabelOnStatementMouth(this)
       });
-      el2.setAttribute("text-anchor", layout.textAnchor);
-      el2.setAttribute("x", "0");
-      el2.setAttribute("y", "0");
-      el2.setAttribute("transform", layout.transform);
+      el3.setAttribute("text-anchor", layout.textAnchor);
+      el3.setAttribute("x", "0");
+      el3.setAttribute("y", "0");
+      el3.setAttribute("transform", layout.transform);
     } else {
-      el2.removeAttribute("transform");
-      el2.setAttribute("text-anchor", "end");
-      el2.setAttribute("x", String(slotCaptionBodyEndXPx(metrics.width, glyphWidth)));
-      el2.setAttribute("y", String(this.size_.height / 2));
+      el3.removeAttribute("transform");
+      el3.setAttribute("text-anchor", "end");
+      el3.setAttribute("x", String(slotCaptionBodyEndXPx(metrics.width, glyphWidth)));
+      el3.setAttribute("y", String(this.size_.height / 2));
     }
     this.rebuildCaption_(
-      el2,
+      el3,
       card,
       rmCard,
       typeGlyph,
@@ -142359,9 +142624,9 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
       metrics.stand
     );
   }
-  rebuildCaption_(el2, card, rmCard, glyph, abstractGlyph, bodyPx, glyphPx, stand) {
+  rebuildCaption_(el3, card, rmCard, glyph, abstractGlyph, bodyPx, glyphPx, stand) {
     if (typeof document === "undefined") return;
-    while (el2.firstChild) el2.removeChild(el2.firstChild);
+    while (el3.firstChild) el3.removeChild(el3.firstChild);
     this.attrTspan_ = null;
     const attrHelp = this.hasAttrHelp_();
     if (this.attrLabel) {
@@ -142384,17 +142649,17 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
           if (help) showSpecHelpPopup(tspan, help);
         });
       }
-      el2.appendChild(tspan);
+      el3.appendChild(tspan);
       this.attrTspan_ = tspan;
     }
     if (this.hasOverlay && card) {
-      appendOverlayTspans(el2, this, card, rmCard, bodyPx);
+      appendOverlayTspans(el3, this, card, rmCard, bodyPx);
     } else if (card) {
       const cardNode = document.createTextNode(` ${card}`);
-      el2.appendChild(cardNode);
+      el3.appendChild(cardNode);
     }
     this.syncGlyphElement_(glyph, abstractGlyph, glyphPx, stand, bodyPx);
-    el2.style.setProperty("font-size", `${bodyPx}px`, "important");
+    el3.style.setProperty("font-size", `${bodyPx}px`, "important");
   }
   syncGlyphElement_(glyph, abstractGlyph, glyphPx, stand, bodyPx) {
     const group = this.fieldGroup_;
@@ -142551,33 +142816,33 @@ function cssClass(unmet, abstractSlot) {
   if (abstractSlot) parts.push("blockly-slot-label--abstract");
   return parts.join(" ");
 }
-function bindSlotElementTooltip(el2, text, attr) {
-  const bound = el2;
+function bindSlotElementTooltip(el3, text, attr) {
+  const bound = el3;
   if (bound.mouseOverWrapper_) {
     try {
-      Blockly2.Tooltip?.unbindMouseEvents?.(el2);
+      Blockly2.Tooltip?.unbindMouseEvents?.(el3);
     } catch {
     }
   }
   if (!text) {
-    el2.removeAttribute(attr);
+    el3.removeAttribute(attr);
     bound.tooltip = "";
     return;
   }
-  el2.setAttribute(attr, text);
+  el3.setAttribute(attr, text);
   bound.tooltip = text;
-  if (!el2._slotTipStop) {
-    el2._slotTipStop = true;
-    el2.addEventListener("pointerover", (event) => event.stopPropagation());
-    el2.addEventListener("pointerout", (event) => event.stopPropagation());
-    el2.addEventListener("pointermove", (event) => event.stopPropagation());
+  if (!el3._slotTipStop) {
+    el3._slotTipStop = true;
+    el3.addEventListener("pointerover", (event) => event.stopPropagation());
+    el3.addEventListener("pointerout", (event) => event.stopPropagation());
+    el3.addEventListener("pointermove", (event) => event.stopPropagation());
   }
-  Blockly2.Tooltip?.bindMouseEvents?.(el2);
+  Blockly2.Tooltip?.bindMouseEvents?.(el3);
 }
-function appendOverlayTspans(el2, field, effective, rm2, bodyPx) {
+function appendOverlayTspans(el3, field, effective, rm2, bodyPx) {
   const help = field.overlayHelp();
   const add2 = (className, text, leadingSpace) => {
-    if (leadingSpace) el2.appendChild(document.createTextNode(" "));
+    if (leadingSpace) el3.appendChild(document.createTextNode(" "));
     const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
     tspan.setAttribute("class", className);
     tspan.textContent = text;
@@ -142590,7 +142855,7 @@ function appendOverlayTspans(el2, field, effective, rm2, bodyPx) {
       bindSlotElementTooltip(tspan, help, "data-constraint-overlay-tip");
       tspan.style.cursor = "help";
     }
-    el2.appendChild(tspan);
+    el3.appendChild(tspan);
   };
   add2("blockly-slot-overlay-delta", OVERLAY_DELTA, true);
   add2("blockly-slot-overlay-effective", effective, true);
@@ -143225,14 +143490,14 @@ function schemaMutatorChoices(block) {
     return [child.label, name2];
   });
 }
-function stackMutatorItems(workspace2, names, labels) {
+function stackMutatorItems(workspace2, names, labels2) {
   const container = workspace2.newBlock(SCHEMA_MUTATOR_CONTAINER);
   container.initSvg?.();
   let connection = container.getInput("STACK")?.connection ?? null;
   for (const name2 of names) {
     const item = workspace2.newBlock(SCHEMA_MUTATOR_ITEM);
     item.initSvg?.();
-    applyMutatorItemLabel(item, name2, labels.get(name2) ?? name2);
+    applyMutatorItemLabel(item, name2, labels2.get(name2) ?? name2);
     if (connection && item.previousConnection) {
       connection.connect(item.previousConnection);
       connection = item.nextConnection;
@@ -143307,8 +143572,8 @@ function registerSchemaFieldsMutator() {
         restoreTargetStructureState(this, obj2);
       },
       decompose: function(workspace2) {
-        const labels = new Map(schemaMutatorChoices(this).map(([label, name2]) => [name2, label]));
-        return stackMutatorItems(workspace2, this.schemaExtraFields_ ?? [], labels);
+        const labels2 = new Map(schemaMutatorChoices(this).map(([label, name2]) => [name2, label]));
+        return stackMutatorItems(workspace2, this.schemaExtraFields_ ?? [], labels2);
       },
       compose: function(container) {
         const next = namesFromMutatorStack(container);
@@ -143376,11 +143641,11 @@ function composeSchemaOptionalFields(block, names) {
       item = next;
     }
     let connection = container.getInput("STACK")?.connection ?? null;
-    const labels = new Map(schemaMutatorChoices(block).map(([label, name2]) => [name2, label]));
+    const labels2 = new Map(schemaMutatorChoices(block).map(([label, name2]) => [name2, label]));
     for (const name2 of names) {
       const quark = bubble.newBlock(SCHEMA_MUTATOR_ITEM);
       quark.initSvg?.();
-      applyMutatorItemLabel(quark, name2, labels.get(name2) ?? name2);
+      applyMutatorItemLabel(quark, name2, labels2.get(name2) ?? name2);
       if (connection && quark.previousConnection) {
         connection.connect(quark.previousConnection);
         connection = quark.nextConnection;
@@ -145641,20 +145906,20 @@ function optionalRmMutatorChoices(block) {
       (name2) => Boolean(block.getInput(rmAttributeInputName(name2)))
     )
   );
-  const labels = /* @__PURE__ */ new Map();
+  const labels2 = /* @__PURE__ */ new Map();
   for (const opt of getValidAttachments(rmType, {
     presentAttributes: locked,
     templateConstrained: locked,
     prohibitedAttributes: prohibitedNameSet(block)
   })) {
-    labels.set(opt.attributeName, opt.label);
+    labels2.set(opt.attributeName, opt.label);
   }
   for (const name2 of block.extraInputs_ ?? []) {
-    if (!labels.has(name2) && !prohibitedNameSet(block).has(name2)) {
-      labels.set(name2, name2);
+    if (!labels2.has(name2) && !prohibitedNameSet(block).has(name2)) {
+      labels2.set(name2, name2);
     }
   }
-  const rows = [...labels.entries()].map(([name2, label]) => [label, name2]);
+  const rows = [...labels2.entries()].map(([name2, label]) => [label, name2]);
   return rows.length ? rows : [["(none)", ""]];
 }
 function prohibitedNameSet(block) {
@@ -145755,14 +146020,14 @@ function defineOptionalMutatorQuarks() {
   }
   defineMutatorItemBlock(DV_FIELDS_MUTATOR_ITEM, DV_COLOUR);
 }
-function stackMutatorItems2(workspace2, containerType, itemType, names, labels) {
+function stackMutatorItems2(workspace2, containerType, itemType, names, labels2) {
   const container = workspace2.newBlock(containerType);
   initSvgIfPresent(container);
   let connection = container.getInput("STACK")?.connection ?? null;
   for (const name2 of names) {
     const item = workspace2.newBlock(itemType);
     initSvgIfPresent(item);
-    if (name2) applyMutatorItemLabel(item, name2, labels.get(name2) ?? name2);
+    if (name2) applyMutatorItemLabel(item, name2, labels2.get(name2) ?? name2);
     if (connection && item.previousConnection) {
       connection.connect(item.previousConnection);
       connection = item.nextConnection;
@@ -145831,13 +146096,13 @@ function registerOptionalRmMutator() {
         restoreMutatorAttributes(this, parsed.extras, parsed.attrs, parsed.rmType);
       },
       decompose: function(workspace2) {
-        const labels = new Map(optionalRmMutatorChoices(this));
+        const labels2 = new Map(optionalRmMutatorChoices(this));
         const container = stackMutatorItems2(
           workspace2,
           OPTIONAL_RM_MUTATOR_CONTAINER,
           OPTIONAL_RM_MUTATOR_ITEM,
           this.extraInputs_ ?? [],
-          labels
+          labels2
         );
         appendProhibitedMutatorRows(container, this);
         return container;
@@ -145949,13 +146214,13 @@ function registerDvFieldsMutator() {
         this.updateDvFields_?.();
       },
       decompose: function(workspace2) {
-        const labels = new Map(optionalDvFieldChoices(this));
+        const labels2 = new Map(optionalDvFieldChoices(this));
         return stackMutatorItems2(
           workspace2,
           DV_FIELDS_MUTATOR_CONTAINER,
           DV_FIELDS_MUTATOR_ITEM,
           this.extraDvFields_ ?? [],
-          labels
+          labels2
         );
       },
       compose: function(container) {
@@ -149075,6 +149340,174 @@ function isTemplateEscapeHatch(kind, lang, text) {
   return false;
 }
 
+// src/blockly/ai_review.ts
+var AI_REVIEW_DATA_KEY = "aiReview";
+var AI_MARK_REVIEWED_MENU_ID = "intehrgrator_ai_mark_reviewed";
+var BADGE_CLASS = "ai-review-badge";
+var MARKER_CLASSES = [
+  "ai-review-marker",
+  "ai-review--low",
+  "ai-review--medium",
+  "ai-review--high"
+];
+function blockData(block) {
+  if (!block.data) return {};
+  try {
+    const parsed = JSON.parse(block.data);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+function readAiReview(block) {
+  const raw = blockData(block)[AI_REVIEW_DATA_KEY];
+  if (!raw || typeof raw !== "object") return void 0;
+  const r10 = raw;
+  const confidence = parseAiConfidence(r10.confidence);
+  const note = typeof r10.note === "string" && r10.note.trim() ? r10.note.trim() : void 0;
+  if (confidence === void 0 && !note) return void 0;
+  const outcome = r10.outcome === "reviewed" || r10.outcome === "edited" ? r10.outcome : void 0;
+  return {
+    ...confidence !== void 0 ? { confidence } : {},
+    ...note ? { note } : {},
+    ...outcome ? { outcome } : {},
+    ...outcome && typeof r10.outcomeAt === "string" ? { outcomeAt: r10.outcomeAt } : {}
+  };
+}
+function isAiReviewActive(review) {
+  if (!review || review.outcome) return false;
+  if (review.note) return true;
+  return review.confidence !== void 0 && confidenceBand(review.confidence) !== "high";
+}
+var labels = {
+  markReviewed: () => "Mark as reviewed",
+  comment: () => "AI suggestion \u2014 {conf}{note}\nEdit the block or right-click \u2192 Mark as reviewed to clear.",
+  confidence: () => "{pct}% confidence"
+};
+function commentText(review) {
+  const conf = review.confidence !== void 0 ? labels.confidence().replace("{pct}", String(review.confidence)) : "";
+  const note = review.note ? `${conf ? ": " : ""}${review.note}` : "";
+  return labels.comment().replace("{conf}", conf).replace("{note}", note);
+}
+function writeAiReview(block, review) {
+  const previous = readAiReview(block);
+  const data = blockData(block);
+  if (review) data[AI_REVIEW_DATA_KEY] = review;
+  else delete data[AI_REVIEW_DATA_KEY];
+  block.data = Object.keys(data).length ? JSON.stringify(data) : null;
+  renderAiReviewMarker(block, previous);
+}
+function setOutcome(block, outcome) {
+  const review = readAiReview(block);
+  if (!review) return;
+  writeAiReview(block, {
+    ...review,
+    outcome,
+    outcomeAt: (/* @__PURE__ */ new Date()).toISOString()
+  });
+}
+function renderAiReviewMarker(block, previous) {
+  const review = readAiReview(block);
+  const active = isAiReviewActive(review);
+  const ownComment = (r10) => r10 ? commentText(r10) : null;
+  const current = block.getCommentText?.() ?? null;
+  const ours = current !== null && (current === ownComment(previous) || current === ownComment(review) || current === ownComment(previous ? { ...previous, outcome: void 0 } : void 0));
+  Blockly2.Events.disable();
+  try {
+    if (active) {
+      if (current === null || ours) block.setCommentText(commentText(review));
+    } else if (ours) {
+      block.setCommentText(null);
+    }
+  } finally {
+    Blockly2.Events.enable();
+  }
+  const svg2 = block.getSvgRoot?.();
+  if (!svg2) return;
+  svg2.classList.remove(...MARKER_CLASSES);
+  svg2.querySelector(`:scope > .${BADGE_CLASS}`)?.remove();
+  if (!active) return;
+  const band = review.confidence !== void 0 ? confidenceBand(review.confidence) : "high";
+  svg2.classList.add("ai-review-marker", `ai-review--${band}`);
+  if (review.confidence === void 0) return;
+  const ns2 = "http://www.w3.org/2000/svg";
+  const g5 = document.createElementNS(ns2, "g");
+  g5.setAttribute("class", `${BADGE_CLASS} ${BADGE_CLASS}--${band}`);
+  g5.setAttribute("transform", "translate(-6,-11)");
+  const text = `${review.confidence}%`;
+  const rect = document.createElementNS(ns2, "rect");
+  rect.setAttribute("width", String(8 + text.length * 6));
+  rect.setAttribute("height", "14");
+  rect.setAttribute("rx", "7");
+  const label = document.createElementNS(ns2, "text");
+  label.setAttribute("x", String(4 + text.length * 3));
+  label.setAttribute("y", "10.5");
+  label.setAttribute("text-anchor", "middle");
+  label.textContent = text;
+  const title = document.createElementNS(ns2, "title");
+  title.textContent = commentText(review);
+  g5.append(rect, label, title);
+  svg2.append(g5);
+}
+function refreshAiReviewMarkers(workspace2) {
+  for (const block of workspace2.getAllBlocks(false)) {
+    if (block.data && readAiReview(block)) renderAiReviewMarker(block);
+  }
+}
+function applySlotReviews(blocks2, slots) {
+  for (const slot of slots) {
+    const block = blocks2.get(slot.slotId);
+    if (!block) continue;
+    const current = readAiReview(block);
+    if (!slot.review && !current) continue;
+    if (JSON.stringify(current) === JSON.stringify(slot.review)) {
+      renderAiReviewMarker(block);
+      continue;
+    }
+    writeAiReview(block, slot.review);
+  }
+}
+function reviewedAncestor(block) {
+  for (let b9 = block; b9; b9 = b9.getParent()) {
+    if (isAiReviewActive(readAiReview(b9))) return b9;
+  }
+  return null;
+}
+function installAiReviewMarkers(workspace2, options) {
+  if (options.labels) labels = options.labels;
+  const registry3 = Blockly2.ContextMenuRegistry?.registry;
+  if (registry3 && !registry3.getItem(AI_MARK_REVIEWED_MENU_ID)) {
+    registry3.register(
+      {
+        id: AI_MARK_REVIEWED_MENU_ID,
+        scopeType: Blockly2.ContextMenuRegistry.ScopeType.BLOCK,
+        weight: 4,
+        displayText: () => labels.markReviewed(),
+        preconditionFn: (scope) => reviewedAncestor(scope.block ?? null) ? "enabled" : "hidden",
+        callback: (scope) => {
+          const target = reviewedAncestor(scope.block ?? null);
+          if (!target) return;
+          setOutcome(target, "reviewed");
+          options.onChange();
+        }
+      }
+    );
+  }
+  workspace2.addChangeListener((event) => {
+    if (event.type === Blockly2.Events.FINISHED_LOADING || event.type === Blockly2.Events.BLOCK_CREATE) {
+      queueMicrotask(() => refreshAiReviewMarkers(workspace2));
+      return;
+    }
+    if (event.type !== Blockly2.Events.BLOCK_CHANGE) return;
+    const change = event;
+    if (change.element !== "field" || !change.blockId) return;
+    const target = reviewedAncestor(workspace2.getBlockById(change.blockId));
+    if (!target) return;
+    setOutcome(target, "edited");
+    options.onChange();
+  });
+}
+
 // src/blockly/mapping_ir.ts
 var LOOP_TYPES = /* @__PURE__ */ new Set(["for_each_list", "for_each_source"]);
 function partyIdentityExpression(block) {
@@ -149143,8 +149576,23 @@ function extractMappingIr(workspace2) {
   };
 }
 function slotsFromWorkspace(workspace2) {
+  return collectSlots(workspace2).slots;
+}
+function slotExpressionBlocks(workspace2) {
+  return collectSlots(workspace2).blocks;
+}
+function collectSlots(workspace2) {
   const slots = [];
+  const blocks2 = /* @__PURE__ */ new Map();
   const seen = /* @__PURE__ */ new Set();
+  const record = (slot, exprBlock) => {
+    if (exprBlock) {
+      blocks2.set(slot.slotId, exprBlock);
+      const review = readAiReview(exprBlock);
+      if (review) slot.review = review;
+    }
+    slots.push(slot);
+  };
   for (const block of workspace2.getAllBlocks(false)) {
     if (isTermPickBlock(block)) {
       const slotId2 = block.getFieldValue("SLOT_ID");
@@ -149152,7 +149600,7 @@ function slotsFromWorkspace(workspace2) {
       const rmType2 = block.getFieldValue("RM_TYPE") || "DV_CODED_TEXT";
       if (slotId2 && expression3 && !seen.has(slotId2)) {
         seen.add(slotId2);
-        slots.push({ slotId: slotId2, rmType: rmType2, expression: expression3 });
+        record({ slotId: slotId2, rmType: rmType2, expression: expression3 }, block);
       }
       continue;
     }
@@ -149162,7 +149610,7 @@ function slotsFromWorkspace(workspace2) {
       const rmType2 = block.getFieldValue("RM_TYPE") || "CODE_PHRASE";
       if (slotId2 && expression3 && !seen.has(slotId2)) {
         seen.add(slotId2);
-        slots.push({ slotId: slotId2, rmType: rmType2, expression: expression3 });
+        record({ slotId: slotId2, rmType: rmType2, expression: expression3 }, block);
       }
       continue;
     }
@@ -149174,11 +149622,7 @@ function slotsFromWorkspace(workspace2) {
       if (slotId2 && expression3 && !seen.has(slotId2)) {
         seen.add(slotId2);
         const hatch = hatchFromExprTree(nameBlock);
-        slots.push(hatch ? { slotId: slotId2, rmType: rmType2, expression: expression3, hatch } : {
-          slotId: slotId2,
-          rmType: rmType2,
-          expression: expression3
-        });
+        record(hatch ? { slotId: slotId2, rmType: rmType2, expression: expression3, hatch } : { slotId: slotId2, rmType: rmType2, expression: expression3 }, nameBlock);
       }
       continue;
     }
@@ -149196,11 +149640,14 @@ function slotsFromWorkspace(workspace2) {
           seen.add(fieldSlot);
           const attr = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
           const hatch = hatchFromExprTree(exprBlock2);
-          slots.push(hatch ? { slotId: fieldSlot, rmType: attr, expression: expression3, hatch } : {
-            slotId: fieldSlot,
-            rmType: attr,
-            expression: expression3
-          });
+          record(
+            hatch ? { slotId: fieldSlot, rmType: attr, expression: expression3, hatch } : {
+              slotId: fieldSlot,
+              rmType: attr,
+              expression: expression3
+            },
+            exprBlock2
+          );
         }
       }
       continue;
@@ -149213,10 +149660,10 @@ function slotsFromWorkspace(workspace2) {
     if (slotId && expression2 && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
-      slots.push(hatch ? { slotId, rmType, expression: expression2, hatch } : { slotId, rmType, expression: expression2 });
+      record(hatch ? { slotId, rmType, expression: expression2, hatch } : { slotId, rmType, expression: expression2 }, exprBlock);
     }
   }
-  return slots;
+  return { slots, blocks: blocks2 };
 }
 function optionalRmFromWorkspace(workspace2) {
   const out = [];
@@ -178520,6 +178967,7 @@ function applyModelExpressions(workspace2, model, options = {}) {
     applyModelLoops(workspace2, model);
     applyModelOptionalSchemaFields(workspace2, model);
     applyModelOptionalRmInsertions(workspace2, model);
+    if (model.slots.some((s8) => s8.review)) applySlotReviews(slotExpressionBlocks(workspace2), model.slots);
   };
   if (options.recordUndo) apply();
   else runWithoutBlocklyEvents(apply);
@@ -179629,10 +180077,10 @@ function padBeforeTrailingChrome_(row, missingSpace) {
   const chromeAt = firstTrailingChromeElementIndex_(row.elements);
   if (chromeAt < 0) return false;
   for (let i12 = chromeAt - 1; i12 >= 0; i12--) {
-    const el2 = row.elements[i12];
-    if (el2?.field) continue;
-    if (typeof el2?.width === "number") {
-      el2.width += missingSpace;
+    const el3 = row.elements[i12];
+    if (el3?.field) continue;
+    if (typeof el3?.width === "number") {
+      el3.width += missingSpace;
       return true;
     }
   }
@@ -179734,9 +180182,9 @@ function collectBlocklyCss(doc2) {
     seen.add(rewritten);
     chunks.push(rewritten);
   };
-  for (const el2 of Array.from(doc2.querySelectorAll("style"))) {
-    const text = el2.textContent ?? "";
-    if (isBlocklyGraphicCss(text, el2.id)) add2(text);
+  for (const el3 of Array.from(doc2.querySelectorAll("style"))) {
+    const text = el3.textContent ?? "";
+    if (isBlocklyGraphicCss(text, el3.id)) add2(text);
   }
   for (const sheet of Array.from(doc2.styleSheets)) {
     let rules;
@@ -179942,8 +180390,8 @@ function flushBlocklyTextAreas(workspace2, doc2) {
     roots.push(workspace2.getParentSvg());
   } catch {
   }
-  for (const el2 of Array.from(doc2.querySelectorAll(".blocklyWidgetDiv, .blocklyDropDownDiv"))) {
-    roots.push(el2);
+  for (const el3 of Array.from(doc2.querySelectorAll(".blocklyWidgetDiv, .blocklyDropDownDiv"))) {
+    roots.push(el3);
   }
   for (const root of roots) {
     for (const ta of Array.from(root.querySelectorAll("textarea"))) {
@@ -181428,8 +181876,8 @@ var FieldCollapsedPreview = class _FieldCollapsedPreview extends FieldBase3 {
     hideCollapsedTip();
   }
   clearHover_() {
-    this.host_?.querySelectorAll(".collapsed-hover").forEach((el2) => {
-      el2.classList.remove("collapsed-hover");
+    this.host_?.querySelectorAll(".collapsed-hover").forEach((el3) => {
+      el3.classList.remove("collapsed-hover");
     });
   }
 };
@@ -182011,7 +182459,8 @@ function buildRefreshMergePrompt(report) {
     "",
     "Detached Blockly that no longer fits stays on the canvas; do not delete mappings unless the user asks.",
     "Return intehrgrator-suggestions JSON (version 2) only for slots that must be rewired.",
-    "See docs/AI_SUGGESTION_FORMAT.md."
+    "See docs/AI_SUGGESTION_FORMAT.md.",
+    NOTES_CONVENTION
   ];
   if (report.previousContent) {
     body.push("", `--- previous ${report.kind} ---`, report.previousContent.slice(0, 8e4));
@@ -182792,7 +183241,7 @@ var WorkbenchController = class {
    * Bind a source tree path to a Target value slot (Click-to-Map after Listening Mode,
    * or drag-and-drop which skips Listening Mode).
    */
-  mapNodeToSlot(slotId, path, format4) {
+  mapNodeToSlot(slotId, path, format4, review) {
     const slot = collectValueSlots(this.skeleton).find((s8) => s8.slotId === slotId);
     if (!slot) return;
     let xpath = getSourceFormatHandler(format4).pathToExpression(path);
@@ -182815,6 +183264,7 @@ var WorkbenchController = class {
       label: slot.label,
       mandatory: slot.mandatory
     });
+    if (review) this.model = withSlotReview(this.model, slot.slotId, review);
     this.listeningSlotId = null;
     this.listeningSourceBlockId = null;
     this.refreshDerived();
@@ -182977,6 +183427,7 @@ var WorkbenchController = class {
           )
         };
       }
+      if (item.review) next = withSlotReview(next, item.slotId, item.review);
     }
     this.blocklyState = blocklyState;
     this.model = next;
@@ -185444,10 +185895,10 @@ function renderEditors(host2, line, onFieldEdit) {
       host2.appendChild(textInput(line, name2, onFieldEdit, "Sheet name", "spec-widget-input spec-widget-input--name"));
     }
     const punct = (text) => {
-      const el2 = document.createElement("span");
-      el2.className = "spec-widget-punct";
-      el2.textContent = text;
-      return el2;
+      const el3 = document.createElement("span");
+      el3.className = "spec-widget-punct";
+      el3.textContent = text;
+      return el3;
     };
     if (rest[0]) {
       host2.appendChild(punct("where"));
@@ -185791,15 +186242,15 @@ function highlightSearchInText(text, paint, lineAnchor) {
   if (last2 < text.length) frag.append(text.slice(last2));
   return frag;
 }
-function paintControlSubstring(el2, paint, lineAnchor) {
-  const display = el2 instanceof HTMLSelectElement ? el2.selectedOptions[0]?.text ?? el2.value : el2.value;
+function paintControlSubstring(el3, paint, lineAnchor) {
+  const display = el3 instanceof HTMLSelectElement ? el3.selectedOptions[0]?.text ?? el3.value : el3.value;
   if (!textMatchesSearch(display, paint)) return;
-  let wrap = el2.parentElement;
+  let wrap = el3.parentElement;
   if (!wrap?.classList.contains("spec-search-control-wrap")) {
     wrap = document.createElement("span");
     wrap.className = "spec-search-control-wrap";
-    el2.replaceWith(wrap);
-    wrap.appendChild(el2);
+    el3.replaceWith(wrap);
+    wrap.appendChild(el3);
   }
   let mirror = wrap.querySelector(":scope > .spec-search-control-mirror");
   if (!mirror) {
@@ -185809,15 +186260,15 @@ function paintControlSubstring(el2, paint, lineAnchor) {
     wrap.appendChild(mirror);
   }
   mirror.replaceChildren(highlightSearchInText(display, paint, lineAnchor));
-  el2.classList.add("spec-search-control-hit");
+  el3.classList.add("spec-search-control-hit");
   if (displayOwnsCurrentMatch(paint, display, lineAnchor)) {
-    el2.classList.add("spec-search-control-hit-current");
+    el3.classList.add("spec-search-control-hit-current");
   } else {
-    el2.classList.remove("spec-search-control-hit-current");
+    el3.classList.remove("spec-search-control-hit-current");
   }
 }
-function controlDisplayValue(el2) {
-  return el2 instanceof HTMLSelectElement ? el2.selectedOptions[0]?.text ?? el2.value : el2.value;
+function controlDisplayValue(el3) {
+  return el3 instanceof HTMLSelectElement ? el3.selectedOptions[0]?.text ?? el3.value : el3.value;
 }
 function applySpecSearchPaint(root, paint) {
   if (!paint?.search) return;
@@ -186591,7 +187042,7 @@ function contextMenuRegistry3() {
   }
   return null;
 }
-function registerCollapseChildrenMenus(labels) {
+function registerCollapseChildrenMenus(labels2) {
   const ctx = contextMenuRegistry3();
   if (!ctx) return;
   if (!ctx.registry.getItem(EXPAND_CHILDREN_MENU_ID)) {
@@ -186599,7 +187050,7 @@ function registerCollapseChildrenMenus(labels) {
       id: EXPAND_CHILDREN_MENU_ID,
       scopeType: ctx.ScopeType?.BLOCK ?? "block",
       weight: 5,
-      displayText: () => labels.expandChildren(),
+      displayText: () => labels2.expandChildren(),
       preconditionFn: (scope) => hasChildren(scope.block) ? "enabled" : "hidden",
       callback: (scope) => {
         if (scope.block) setChildBlocksCollapsed(scope.block, false);
@@ -186611,7 +187062,7 @@ function registerCollapseChildrenMenus(labels) {
       id: COLLAPSE_CHILDREN_MENU_ID,
       scopeType: ctx.ScopeType?.BLOCK ?? "block",
       weight: 6,
-      displayText: () => labels.collapseChildren(),
+      displayText: () => labels2.collapseChildren(),
       preconditionFn: (scope) => hasChildren(scope.block) ? "enabled" : "hidden",
       callback: (scope) => {
         if (scope.block) setChildBlocksCollapsed(scope.block, true);
@@ -186619,8 +187070,8 @@ function registerCollapseChildrenMenus(labels) {
     });
   }
 }
-function installCollapseChildrenMenu(workspace2, labels) {
-  registerCollapseChildrenMenus(labels);
+function installCollapseChildrenMenu(workspace2, labels2) {
+  registerCollapseChildrenMenus(labels2);
   const disabled = typeof Blockly2.Events.disable === "function";
   if (disabled) Blockly2.Events.disable();
   try {
@@ -186631,8 +187082,8 @@ function installCollapseChildrenMenu(workspace2, labels) {
       proto.generateContextMenu = function() {
         const menu = original.call(this) ?? [];
         if (!hasChildren(this)) return menu;
-        const expand = labels.expandChildren();
-        const collapse = labels.collapseChildren();
+        const expand = labels2.expandChildren();
+        const collapse = labels2.collapseChildren();
         if (!menu.some((item) => item.text === expand)) {
           menu.push({
             text: expand,
@@ -186677,9 +187128,9 @@ function installLongPressContextMenu(workspace2) {
     startX = event.clientX;
     startY = event.clientY;
     clear();
-    const el2 = blockEl;
+    const el3 = blockEl;
     timer = globalThis.setTimeout(() => {
-      el2.dispatchEvent(new MouseEvent("contextmenu", {
+      el3.dispatchEvent(new MouseEvent("contextmenu", {
         bubbles: true,
         cancelable: true,
         clientX: startX,
@@ -186804,7 +187255,7 @@ function installAnchoredMenu(options) {
   const isInside = (node) => {
     if (!node) return false;
     if (menu.contains(node) || trigger.contains(node)) return true;
-    return roots.some((el2) => el2.contains(node));
+    return roots.some((el3) => el3.contains(node));
   };
   const handle = {
     open,
@@ -186920,8 +187371,8 @@ function visualAxisFromFlexDirection(flexDirection, declared) {
   if (flexDirection === "row" || flexDirection === "row-reverse") return "row";
   return declared;
 }
-function axisSize(el2, axis) {
-  return axis === "row" ? el2.clientWidth : el2.clientHeight;
+function axisSize(el3, axis) {
+  return axis === "row" ? el3.clientWidth : el3.clientHeight;
 }
 function resolvedAxis(container, declared) {
   if (typeof getComputedStyle !== "function") return declared;
@@ -187089,32 +187540,32 @@ function initSplitGroup(container, axis, options = {}) {
     }
   };
 }
-function readOptions(el2) {
-  const minAttr = el2.dataset.splitMin;
+function readOptions(el3) {
+  const minAttr = el3.dataset.splitMin;
   const minSize = minAttr ? Number(minAttr) : void 0;
-  const sizesAttr = el2.dataset.splitSizes;
+  const sizesAttr = el3.dataset.splitSizes;
   let sizes;
   if (sizesAttr) {
     const parts = sizesAttr.split(",").map((s8) => Number(s8.trim())).filter((n10) => Number.isFinite(n10));
     if (parts.length) sizes = normalize3(parts);
   }
-  const preferredAttr = el2.dataset.splitPreferred;
+  const preferredAttr = el3.dataset.splitPreferred;
   const preferredIndex = preferredAttr != null && preferredAttr !== "" ? Number(preferredAttr) : void 0;
   return {
     sizes,
     minSize: Number.isFinite(minSize) ? minSize : void 0,
-    storageKey: el2.dataset.splitStorage,
+    storageKey: el3.dataset.splitStorage,
     preferredIndex: Number.isFinite(preferredIndex) ? preferredIndex : void 0
   };
 }
 function initSplitPanes(root = document, onResize) {
   const disposers = [];
   const nodes = root.querySelectorAll("[data-split]");
-  for (const el2 of nodes) {
-    const axis = el2.dataset.split === "column" ? "column" : "row";
-    const opts = readOptions(el2);
+  for (const el3 of nodes) {
+    const axis = el3.dataset.split === "column" ? "column" : "row";
+    const opts = readOptions(el3);
     if (onResize) opts.onResize = onResize;
-    disposers.push(initSplitGroup(el2, axis, opts));
+    disposers.push(initSplitGroup(el3, axis, opts));
   }
   return () => {
     for (const d7 of disposers) d7();
@@ -187635,9 +188086,9 @@ function emptyRow(text) {
   return p6;
 }
 function requireEl(root, id4) {
-  const el2 = root.querySelector(`#${id4}`);
-  if (!el2) throw new Error(`Missing #${id4}`);
-  return el2;
+  const el3 = root.querySelector(`#${id4}`);
+  if (!el3) throw new Error(`Missing #${id4}`);
+  return el3;
 }
 
 // src/ui/sheets_panel.ts
@@ -188603,8 +189054,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "6a76958" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T11:38:58.666Z" : "not built";
+var BUILD_ID = true ? "5fb5348" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T13:06:39.386Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -189657,11 +190108,11 @@ var SlResizeObserver = class extends ShoelaceElement {
     const slot = this.shadowRoot.querySelector("slot");
     if (slot !== null) {
       const elements = slot.assignedElements({ flatten: true });
-      this.observedElements.forEach((el2) => this.resizeObserver.unobserve(el2));
+      this.observedElements.forEach((el3) => this.resizeObserver.unobserve(el3));
       this.observedElements = [];
-      elements.forEach((el2) => {
-        this.resizeObserver.observe(el2);
-        this.observedElements.push(el2);
+      elements.forEach((el3) => {
+        this.resizeObserver.observe(el3);
+        this.observedElements.push(el3);
       });
     }
   }
@@ -189931,7 +190382,7 @@ function watchIcon(icon) {
   watchedIcons.push(icon);
 }
 function unwatchIcon(icon) {
-  watchedIcons = watchedIcons.filter((el2) => el2 !== icon);
+  watchedIcons = watchedIcons.filter((el3) => el3 !== icon);
 }
 function getIconLibrary(name2) {
   return registry2.find((lib2) => lib2.name === name2);
@@ -190326,9 +190777,9 @@ function update() {
     documentDirection = document.documentElement.dir || "ltr";
     documentLanguage = document.documentElement.lang || navigator.language;
   }
-  [...connectedElements.keys()].map((el2) => {
-    if (typeof el2.requestUpdate === "function") {
-      el2.requestUpdate();
+  [...connectedElements.keys()].map((el3) => {
+    if (typeof el3.requestUpdate === "function") {
+      el3.requestUpdate();
     }
   });
 }
@@ -190534,10 +190985,10 @@ var SlTabGroup = class extends ShoelaceElement {
     return slot.assignedElements();
   }
   getAllPanels() {
-    return [...this.body.assignedElements()].filter((el2) => el2.tagName.toLowerCase() === "sl-tab-panel");
+    return [...this.body.assignedElements()].filter((el3) => el3.tagName.toLowerCase() === "sl-tab-panel");
   }
   getActiveTab() {
-    return this.tabs.find((el2) => el2.active);
+    return this.tabs.find((el3) => el3.active);
   }
   handleClick(event) {
     const target = event.target;
@@ -190573,10 +191024,10 @@ var SlTabGroup = class extends ShoelaceElement {
         } else if (event.key === "End") {
           nextTab = this.focusableTabs[this.focusableTabs.length - 1];
         } else if (["top", "bottom"].includes(this.placement) && event.key === (isRtl ? "ArrowRight" : "ArrowLeft") || ["start", "end"].includes(this.placement) && event.key === "ArrowUp") {
-          const currentIndex = this.tabs.findIndex((el2) => el2 === activeEl);
+          const currentIndex = this.tabs.findIndex((el3) => el3 === activeEl);
           nextTab = this.findNextFocusableTab(currentIndex, "backward");
         } else if (["top", "bottom"].includes(this.placement) && event.key === (isRtl ? "ArrowLeft" : "ArrowRight") || ["start", "end"].includes(this.placement) && event.key === "ArrowDown") {
-          const currentIndex = this.tabs.findIndex((el2) => el2 === activeEl);
+          const currentIndex = this.tabs.findIndex((el3) => el3 === activeEl);
           nextTab = this.findNextFocusableTab(currentIndex, "forward");
         }
         if (!nextTab) {
@@ -190618,13 +191069,13 @@ var SlTabGroup = class extends ShoelaceElement {
     if (tab !== this.activeTab && !tab.disabled) {
       const previousTab = this.activeTab;
       this.activeTab = tab;
-      this.tabs.forEach((el2) => {
-        el2.active = el2 === this.activeTab;
-        el2.tabIndex = el2 === this.activeTab ? 0 : -1;
+      this.tabs.forEach((el3) => {
+        el3.active = el3 === this.activeTab;
+        el3.tabIndex = el3 === this.activeTab ? 0 : -1;
       });
-      this.panels.forEach((el2) => {
+      this.panels.forEach((el3) => {
         var _a3;
-        return el2.active = el2.name === ((_a3 = this.activeTab) == null ? void 0 : _a3.panel);
+        return el3.active = el3.name === ((_a3 = this.activeTab) == null ? void 0 : _a3.panel);
       });
       this.syncIndicator();
       if (["top", "bottom"].includes(this.placement)) {
@@ -190640,7 +191091,7 @@ var SlTabGroup = class extends ShoelaceElement {
   }
   setAriaLabels() {
     this.tabs.forEach((tab) => {
-      const panel = this.panels.find((el2) => el2.name === tab.panel);
+      const panel = this.panels.find((el3) => el3.name === tab.panel);
       if (panel) {
         tab.setAttribute("aria-controls", panel.getAttribute("id"));
         panel.setAttribute("aria-labelledby", tab.getAttribute("id"));
@@ -190682,7 +191133,7 @@ var SlTabGroup = class extends ShoelaceElement {
   // This stores tabs and panels so we can refer to a cache instead of calling querySelectorAll() multiple times.
   syncTabsAndPanels() {
     this.tabs = this.getAllTabs();
-    this.focusableTabs = this.tabs.filter((el2) => !el2.disabled);
+    this.focusableTabs = this.tabs.filter((el3) => !el3.disabled);
     this.panels = this.getAllPanels();
     this.syncIndicator();
     this.updateComplete.then(() => this.updateScrollControls());
@@ -190739,7 +191190,7 @@ var SlTabGroup = class extends ShoelaceElement {
   }
   /** Shows the specified tab panel. */
   show(panel) {
-    const tab = this.tabs.find((el2) => el2.panel === panel);
+    const tab = this.tabs.find((el3) => el3.panel === panel);
     if (tab) {
       this.setActiveTab(tab, { scrollBehavior: "smooth" });
     }
@@ -191690,8 +192141,8 @@ async function copyPatchPrompt(seq) {
 }
 function setTimelineStatus(text) {
   if (!observerWindow || observerWindow.closed) return;
-  const el2 = observerWindow.document.getElementById("timeline-status");
-  if (el2) el2.textContent = text;
+  const el3 = observerWindow.document.getElementById("timeline-status");
+  if (el3) el3.textContent = text;
 }
 function renderObserverLegend() {
   if (!observerWindow || observerWindow.closed) return;
@@ -191750,8 +192201,98 @@ function summarizeBlocklyEvent(event) {
   }
 }
 
-// src/ui/import_ai.ts
+// src/ui/ai_notes_view.ts
 function ui3() {
+  return chrome(detectLocale());
+}
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== void 0) node.textContent = text;
+  return node;
+}
+function fallbackSlotLabel(slotId) {
+  const steps = slotId.split("/").filter(
+    (s8) => s8 && s8 !== "value" && !/^DV_[A-Z_]+$/.test(s8)
+  );
+  return steps.slice(-2).join("/") || slotId;
+}
+function confidenceBadge(pct) {
+  const badge = el(
+    "span",
+    `ai-confidence-badge ai-confidence-badge--${confidenceBand(pct)}`,
+    `${pct}%`
+  );
+  badge.title = ui3().aiConfidenceTitle.replace("{pct}", String(pct));
+  return badge;
+}
+function renderAiNotes(notes, options = {}) {
+  if (!notes.notes.length && !notes.questions.length && !notes.suggestionNotes.length) return null;
+  const box = el("div", "ai-notes");
+  if (notes.notes.length || notes.suggestionNotes.length) {
+    const section = el("section", "ai-notes-notes");
+    section.append(el("h4", "ai-notes-heading", ui3().aiNotesHeading));
+    if (notes.notes.length) {
+      const list = el("ul", "ai-notes-list");
+      for (const item of notes.notes) {
+        list.append(el("li", "ai-notes-item", item));
+      }
+      section.append(list);
+    }
+    if (notes.suggestionNotes.length) {
+      const list = el("ul", "ai-notes-list ai-notes-slot-list");
+      list.setAttribute("aria-label", ui3().aiSuggestionNotes);
+      for (const row of notes.suggestionNotes) {
+        const li = el("li", "ai-notes-item ai-notes-slot-note");
+        if (row.slotId) {
+          const label = options.describeSlot?.(row.slotId) ?? fallbackSlotLabel(row.slotId);
+          const code = el("code", "ai-notes-slot", label);
+          code.title = row.slotId;
+          li.append(code);
+          if (row.confidence !== void 0) {
+            li.append(" ", confidenceBadge(row.confidence));
+          }
+          const text = `${row.kind === "loop" ? "(loop) " : ""}${row.note}`;
+          if (text) li.append(document.createTextNode(` \u2014 ${text}`));
+        } else {
+          if (row.confidence !== void 0) {
+            li.append(confidenceBadge(row.confidence), " ");
+          }
+          li.append(row.note);
+        }
+        list.append(li);
+      }
+      section.append(list);
+    }
+    box.append(section);
+  }
+  if (notes.questions.length) {
+    const section = el("section", "ai-notes-questions");
+    section.append(el("h4", "ai-notes-heading", ui3().aiQuestionsHeading));
+    const list = el("ol", "ai-notes-list");
+    notes.questions.forEach((question3, index) => {
+      const li = el("li", "ai-notes-item ai-notes-question");
+      li.append(el("span", "ai-notes-question-text", question3));
+      if (options.onAnswer) {
+        const btn = el("button", "ai-notes-answer", ui3().aiAnswerQuestion);
+        btn.type = "button";
+        btn.addEventListener("click", () => options.onAnswer(question3, index));
+        li.append(btn);
+      }
+      list.append(li);
+    });
+    section.append(list);
+    box.append(section);
+  }
+  return box;
+}
+function answerQuote(question3, index) {
+  return `> Q${index + 1}: ${question3}
+`;
+}
+
+// src/ui/import_ai.ts
+function ui4() {
   return chrome(detectLocale());
 }
 function formatImportReport(report) {
@@ -191781,6 +192322,20 @@ function installImportAiDialog(options) {
   } = options;
   const form = dialog2.querySelector("form");
   let lastReport = null;
+  const renderNotes = () => {
+    const box = options.notes;
+    if (!box) return;
+    const view = renderAiNotes(parseAiAnswerNotes(textarea.value), {
+      describeSlot: options.describeSlot,
+      onAnswer: options.onAnswer ? (question3, index) => {
+        dialog2.close();
+        options.onAnswer(question3, index);
+      } : void 0
+    });
+    box.replaceChildren(...view ? [view] : []);
+    box.hidden = !view;
+  };
+  textarea.addEventListener("input", renderNotes);
   const clearReport = () => {
     lastReport = null;
     report.hidden = true;
@@ -191831,7 +192386,7 @@ function installImportAiDialog(options) {
     copyErrors.hidden = !hasProblems;
     textarea.classList.toggle("import-ai-text--invalid", hasProblems && result.applied === 0);
     textarea.setAttribute("aria-invalid", hasProblems ? "true" : "false");
-    cancel.textContent = result.applied > 0 ? ui3().close : ui3().cancel;
+    cancel.textContent = result.applied > 0 ? ui4().close : ui4().cancel;
   };
   const highlightIssue = (item) => {
     const span = locateIssueInText(textarea.value, item.path, item.message);
@@ -191849,15 +192404,18 @@ function installImportAiDialog(options) {
   };
   const open = async (prefill) => {
     clearReport();
-    cancel.textContent = ui3().cancel;
+    cancel.textContent = ui4().cancel;
     textarea.value = "";
+    renderNotes();
     if (!dialog2.open) dialog2.showModal();
     if (prefill !== void 0) {
       textarea.value = prefill;
+      renderNotes();
       textarea.focus();
       return;
     }
     const filled = await fillFromClipboard();
+    renderNotes();
     if (!filled) {
       textarea.placeholder = '{"format":"intehrgrator-suggestions","version":"2","suggestions":[\u2026]}';
     }
@@ -191870,7 +192428,7 @@ function installImportAiDialog(options) {
       showReport({
         applied: 0,
         skipped: 0,
-        errors: [ui3().pasteJsonFirst],
+        errors: [ui4().pasteJsonFirst],
         loopsAccepted: 0,
         schemaIssues: []
       });
@@ -191888,12 +192446,12 @@ function installImportAiDialog(options) {
       errors: lastReport.errors
     });
     await copyToClipboard(text);
-    copyErrors.textContent = ui3().copied;
+    copyErrors.textContent = ui4().copied;
     copyErrors.dataset.copied = "1";
     globalThis.setTimeout(() => {
       if (copyErrors.dataset.copied === "1") {
         delete copyErrors.dataset.copied;
-        copyErrors.textContent = ui3().copyErrorsForAi;
+        copyErrors.textContent = ui4().copyErrorsForAi;
       }
     }, 2e3);
   };
@@ -191905,7 +192463,7 @@ function installImportAiDialog(options) {
         showReport({
           applied: 0,
           skipped: 0,
-          errors: [ui3().clipboardEmpty],
+          errors: [ui4().clipboardEmpty],
           loopsAccepted: 0,
           schemaIssues: []
         });
@@ -191913,6 +192471,7 @@ function installImportAiDialog(options) {
       }
       textarea.value = text;
       clearReport();
+      renderNotes();
     })();
   });
   copyErrors.addEventListener("click", () => void copyFollowUp());
@@ -192233,7 +192792,7 @@ function exportUserPrompts(storage) {
 }
 
 // src/ui/ai_chat_panel.ts
-function ui4() {
+function ui5() {
   return chrome(detectLocale());
 }
 var AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
@@ -192247,7 +192806,7 @@ var AI_CHAT_COPY_MENU = [
   { delivery: "attach", labelKey: "menuAttachFiles" },
   { delivery: "uri", labelKey: "menuBrowseUris" }
 ];
-function el(tag, props = {}) {
+function el2(tag, props = {}) {
   const node = document.createElement(tag);
   if (props.className) node.className = props.className;
   if (props.text !== void 0) node.textContent = props.text;
@@ -192304,110 +192863,110 @@ function installAiChatPanel(options) {
   let credsDismissed = false;
   panel.replaceChildren();
   panel.classList.add("ai-chat-panel");
-  const header = el("div", { className: "ai-chat-header" });
-  const title = el("h3", { className: "ai-chat-title", text: ui4().aiChat });
+  const header = el2("div", { className: "ai-chat-header" });
+  const title = el2("h3", { className: "ai-chat-title", text: ui5().aiChat });
   title.id = "ai-chat-title";
-  const promptsWrap = el("div", { className: "ai-chat-prompts" });
-  const promptsBtn = el("button", {
+  const promptsWrap = el2("div", { className: "ai-chat-prompts" });
+  const promptsBtn = el2("button", {
     className: "pane-btn ai-chat-prompts-btn",
-    text: `${ui4().aiChatStoredPrompts} \u25BE`,
+    text: `${ui5().aiChatStoredPrompts} \u25BE`,
     type: "button"
   });
   promptsBtn.id = "ai-chat-prompts-btn";
   promptsBtn.setAttribute("aria-haspopup", "menu");
-  const promptsMenu = el("div", { className: "split-btn-menu ai-chat-prompts-menu" });
+  const promptsMenu = el2("div", { className: "split-btn-menu ai-chat-prompts-menu" });
   promptsMenu.id = "ai-chat-prompts-menu";
   promptsMenu.setAttribute("role", "menu");
   promptsMenu.hidden = true;
   promptsWrap.append(promptsBtn, promptsMenu);
-  const modeLabel = el("label", { className: "ai-chat-mode" });
-  const modeSelect = el("select");
+  const modeLabel = el2("label", { className: "ai-chat-mode" });
+  const modeSelect = el2("select");
   modeSelect.id = "ai-chat-mode";
   for (const [value, text, tip] of [
-    ["apply", ui4().aiChatModeApply, ui4().aiChatModeApplyTitle],
-    ["approve", ui4().aiChatModeApprove, ui4().aiChatModeApproveTitle]
+    ["apply", ui5().aiChatModeApply, ui5().aiChatModeApplyTitle],
+    ["approve", ui5().aiChatModeApprove, ui5().aiChatModeApproveTitle]
   ]) {
-    const option = el("option", { text, title: tip });
+    const option = el2("option", { text, title: tip });
     option.value = value;
     modeSelect.append(option);
   }
   modeSelect.value = storage.getItem(AI_CHAT_MODE_KEY) === "approve" ? "approve" : "apply";
-  modeSelect.title = modeSelect.value === "approve" ? ui4().aiChatModeApproveTitle : ui4().aiChatModeApplyTitle;
+  modeSelect.title = modeSelect.value === "approve" ? ui5().aiChatModeApproveTitle : ui5().aiChatModeApplyTitle;
   modeSelect.addEventListener("change", () => {
     storage.setItem(AI_CHAT_MODE_KEY, modeSelect.value);
-    modeSelect.title = modeSelect.value === "approve" ? ui4().aiChatModeApproveTitle : ui4().aiChatModeApplyTitle;
+    modeSelect.title = modeSelect.value === "approve" ? ui5().aiChatModeApproveTitle : ui5().aiChatModeApplyTitle;
   });
-  modeLabel.append(el("span", { text: ui4().aiChatModeLabel }), modeSelect);
-  const spacer = el("span", { className: "ai-chat-spacer" });
-  const clearBtn = el("button", {
+  modeLabel.append(el2("span", { text: ui5().aiChatModeLabel }), modeSelect);
+  const spacer = el2("span", { className: "ai-chat-spacer" });
+  const clearBtn = el2("button", {
     className: "pane-btn ai-chat-clear",
-    text: ui4().aiChatClear,
-    title: ui4().aiChatClearTitle,
+    text: ui5().aiChatClear,
+    title: ui5().aiChatClearTitle,
     type: "button"
   });
   clearBtn.id = "ai-chat-clear";
-  const toggleBtn = el("button", { className: "pane-btn pane-slide-btn ai-chat-toggle", type: "button" });
+  const toggleBtn = el2("button", { className: "pane-btn pane-slide-btn ai-chat-toggle", type: "button" });
   toggleBtn.id = "ai-chat-toggle";
   toggleBtn.setAttribute("aria-controls", panel.id || "ai-chat-panel");
   toggleBtn.innerHTML = '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect><rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
-  const tools = el("div", { className: "ai-chat-header-tools" });
+  const tools = el2("div", { className: "ai-chat-header-tools" });
   tools.append(promptsWrap, modeLabel, spacer, clearBtn);
   header.append(title, tools, toggleBtn);
-  const body = el("div", { className: "ai-chat-body" });
-  const credsNotice = el("div", { className: "ai-chat-creds" });
+  const body = el2("div", { className: "ai-chat-body" });
+  const credsNotice = el2("div", { className: "ai-chat-creds" });
   credsNotice.id = "ai-chat-creds";
-  const credsText = el("p", { text: ui4().aiChatNoCredentials });
-  const credsBtn = el("button", { className: "pane-btn", text: ui4().aiChatConfigure, type: "button" });
+  const credsText = el2("p", { text: ui5().aiChatNoCredentials });
+  const credsBtn = el2("button", { className: "pane-btn", text: ui5().aiChatConfigure, type: "button" });
   credsBtn.id = "ai-chat-configure";
-  const credsDismiss = el("button", {
+  const credsDismiss = el2("button", {
     className: "ai-chat-creds-dismiss",
     text: "\xD7",
-    title: ui4().aiChatDismissNotice,
+    title: ui5().aiChatDismissNotice,
     type: "button"
   });
   credsDismiss.id = "ai-chat-creds-dismiss";
-  credsDismiss.setAttribute("aria-label", ui4().aiChatDismissNotice);
+  credsDismiss.setAttribute("aria-label", ui5().aiChatDismissNotice);
   credsNotice.append(credsText, credsBtn, credsDismiss);
-  const log = el("div", { className: "ai-chat-log" });
+  const log = el2("div", { className: "ai-chat-log" });
   log.id = "ai-chat-log";
   log.setAttribute("role", "log");
   log.setAttribute("aria-live", "polite");
-  const composer = el("div", { className: "ai-chat-composer" });
-  const input = el("div", { className: "ai-chat-input" });
+  const composer = el2("div", { className: "ai-chat-composer" });
+  const input = el2("div", { className: "ai-chat-input" });
   input.id = "ai-chat-input";
   input.contentEditable = "true";
   input.setAttribute("role", "textbox");
   input.setAttribute("aria-multiline", "true");
-  input.dataset.placeholder = ui4().aiChatPlaceholder;
-  const actions = el("div", { className: "ai-chat-actions" });
+  input.dataset.placeholder = ui5().aiChatPlaceholder;
+  const actions = el2("div", { className: "ai-chat-actions" });
   const iconLabel = (btn, icon, text) => {
-    const glyph = el("span", { className: "material-symbols-outlined split-btn-menu-icon", text: icon });
+    const glyph = el2("span", { className: "material-symbols-outlined split-btn-menu-icon", text: icon });
     glyph.setAttribute("aria-hidden", "true");
-    btn.replaceChildren(glyph, el("span", { text }));
+    btn.replaceChildren(glyph, el2("span", { text }));
   };
-  const copySplit = el("div", { className: "split-btn ai-chat-copy-split" });
-  const copyBtn = el("button", {
+  const copySplit = el2("div", { className: "split-btn ai-chat-copy-split" });
+  const copyBtn = el2("button", {
     className: "pane-btn split-btn-main",
-    title: ui4().aiChatCopyPromptTitle,
+    title: ui5().aiChatCopyPromptTitle,
     type: "button"
   });
   copyBtn.id = "ai-chat-copy-prompt";
-  iconLabel(copyBtn, "content_copy", ui4().aiChatCopyPrompt);
-  const copyChevron = el("button", { className: "pane-btn split-btn-chevron", text: "\u25BE", type: "button" });
+  iconLabel(copyBtn, "content_copy", ui5().aiChatCopyPrompt);
+  const copyChevron = el2("button", { className: "pane-btn split-btn-chevron", text: "\u25BE", type: "button" });
   copyChevron.id = "ai-chat-copy-menu-btn";
   copyChevron.setAttribute("aria-haspopup", "menu");
   copyChevron.setAttribute("aria-expanded", "false");
-  copyChevron.setAttribute("aria-label", ui4().aiChatCopyMenuAria);
-  copyChevron.title = ui4().aiChatCopyMenuAria;
-  const copyMenu = el("div", { className: "split-btn-menu ai-chat-copy-menu" });
+  copyChevron.setAttribute("aria-label", ui5().aiChatCopyMenuAria);
+  copyChevron.title = ui5().aiChatCopyMenuAria;
+  const copyMenu = el2("div", { className: "split-btn-menu ai-chat-copy-menu" });
   copyMenu.id = "ai-chat-copy-menu";
   copyMenu.setAttribute("role", "menu");
   copyMenu.hidden = true;
   for (const { delivery, labelKey } of AI_CHAT_COPY_MENU) {
-    const item = el("button", { className: "split-btn-menu-item split-btn-menu-item--icon", type: "button" });
+    const item = el2("button", { className: "split-btn-menu-item split-btn-menu-item--icon", type: "button" });
     item.setAttribute("role", "menuitem");
     item.dataset.aiChatDelivery = delivery;
-    iconLabel(item, "content_copy", ui4()[labelKey]);
+    iconLabel(item, "content_copy", ui5()[labelKey]);
     item.addEventListener("click", () => {
       closeCopyMenu();
       options.setDelivery?.(delivery);
@@ -192416,30 +192975,30 @@ function installAiChatPanel(options) {
     copyMenu.append(item);
   }
   copySplit.append(copyBtn, copyChevron, copyMenu);
-  const importBtn = el("button", { className: "pane-btn", type: "button" });
+  const importBtn = el2("button", { className: "pane-btn", type: "button" });
   importBtn.id = "ai-chat-import-answer";
-  iconLabel(importBtn, "content_paste", ui4().aiChatImportAnswer);
-  const sendBtn = el("button", { className: "pane-btn pane-btn-primary", text: ui4().aiChatSend, type: "button" });
+  iconLabel(importBtn, "content_paste", ui5().aiChatImportAnswer);
+  const sendBtn = el2("button", { className: "pane-btn pane-btn-primary", text: ui5().aiChatSend, type: "button" });
   sendBtn.id = "ai-chat-send";
-  actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), sendBtn);
+  actions.append(copySplit, importBtn, el2("span", { className: "ai-chat-spacer" }), sendBtn);
   composer.append(input, actions);
-  const grip = el("div", { className: "split-handle split-handle--row ai-chat-grip", title: ui4().aiChatResizeInput });
+  const grip = el2("div", { className: "split-handle split-handle--row ai-chat-grip", title: ui5().aiChatResizeInput });
   grip.id = "ai-chat-grip";
   grip.tabIndex = 0;
   grip.setAttribute("role", "separator");
   grip.setAttribute("aria-orientation", "horizontal");
-  grip.setAttribute("aria-label", ui4().aiChatResizeInput);
+  grip.setAttribute("aria-label", ui5().aiChatResizeInput);
   body.append(credsNotice, log, grip, composer);
-  const popover = el("div", { className: "ai-chip-popover" });
+  const popover = el2("div", { className: "ai-chip-popover" });
   popover.hidden = true;
   popover.setAttribute("role", "tooltip");
   panel.append(header, body);
   document.body.append(popover);
   const showPopover = (chip, anchor) => {
-    popover.replaceChildren(el("div", { className: "ai-chip-popover-header", text: chipHeader(chip) }));
-    const dl = el("dl");
+    popover.replaceChildren(el2("div", { className: "ai-chip-popover-header", text: chipHeader(chip) }));
+    const dl = el2("dl");
     for (const [key, value] of chipDetails(chip)) {
-      dl.append(el("dt", { text: key }), el("dd", { text: value }));
+      dl.append(el2("dt", { text: key }), el2("dd", { text: value }));
     }
     popover.append(dl);
     popover.hidden = false;
@@ -192459,15 +193018,15 @@ function installAiChatPanel(options) {
     popover.hidden = true;
   };
   const chipElement = (chip) => {
-    const span = el("span", { className: `ai-chip ai-chip--${chip.kind}` });
+    const span = el2("span", { className: `ai-chip ai-chip--${chip.kind}` });
     span.contentEditable = "false";
     span.dataset.chip = JSON.stringify(chip);
     span.dataset.chipKey = chipKey(chip);
     const icon = chip.kind === "block" ? "\u25A3" : chip.kind === "target" ? "\u25CE" : "\u25C7";
-    span.append(el("span", { className: "ai-chip-icon", text: icon }), el("span", { text: chip.label }));
-    const remove2 = el("button", { className: "ai-chip-remove", text: "\xD7", type: "button" });
+    span.append(el2("span", { className: "ai-chip-icon", text: icon }), el2("span", { text: chip.label }));
+    const remove2 = el2("button", { className: "ai-chip-remove", text: "\xD7", type: "button" });
     remove2.tabIndex = -1;
-    remove2.setAttribute("aria-label", ui4().aiChatChipRemove);
+    remove2.setAttribute("aria-label", ui5().aiChatChipRemove);
     remove2.addEventListener("mousedown", (ev) => ev.preventDefault());
     remove2.addEventListener("click", () => {
       span.remove();
@@ -192491,6 +193050,19 @@ function installAiChatPanel(options) {
         input.append(document.createTextNode("\xA0"));
       }
     });
+  };
+  const answerQuestion = (question3, index) => {
+    expand();
+    setInputParts([{ text: answerQuote(question3, index) }]);
+    input.focus();
+    const sel = globalThis.getSelection?.();
+    if (sel) {
+      const range = document.createRange();
+      range.selectNodeContents(input);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
   };
   const rememberRange = () => {
     const sel = globalThis.getSelection?.();
@@ -192532,28 +193104,39 @@ function installAiChatPanel(options) {
   const renderLog = () => {
     log.replaceChildren();
     if (!session.display.length) {
-      log.append(el("p", { className: "ai-chat-empty", text: ui4().aiChatEmpty }));
+      log.append(el2("p", { className: "ai-chat-empty", text: ui5().aiChatEmpty }));
     }
     session.display.forEach((entry, index) => {
-      const row = el("div", { className: `ai-chat-msg ai-chat-msg--${entry.role}` });
+      const row = el2("div", { className: `ai-chat-msg ai-chat-msg--${entry.role}` });
       if (entry.toolCalls?.length) {
-        const details = el("details", { className: "ai-chat-tools" });
+        const details = el2("details", { className: "ai-chat-tools" });
         details.append(
-          el("summary", { text: formatMessage(ui4().aiChatToolCalls, { count: entry.toolCalls.length }) })
+          el2("summary", { text: formatMessage(ui5().aiChatToolCalls, { count: entry.toolCalls.length }) })
         );
         for (const name2 of entry.toolCalls) {
-          details.append(el("div", { className: "ai-chat-tool", text: formatMessage(ui4().aiChatToolCall, { name: name2 }) }));
+          details.append(el2("div", { className: "ai-chat-tool", text: formatMessage(ui5().aiChatToolCall, { name: name2 }) }));
         }
         row.append(details);
       }
-      if (entry.text) row.append(el("div", { className: "ai-chat-text", text: entry.text }));
+      if (entry.role === "assistant" && entry.text) {
+        const parsed = parseAiAnswerNotes(entry.text);
+        if (entry.suggestionNotes?.length) parsed.suggestionNotes.push(...entry.suggestionNotes);
+        if (parsed.body) row.append(el2("div", { className: "ai-chat-text", text: parsed.body }));
+        const box = renderAiNotes(parsed, {
+          describeSlot: options.describeSlot,
+          onAnswer: (question3, i12) => answerQuestion(question3, i12)
+        });
+        if (box) row.append(box);
+      } else if (entry.text) {
+        row.append(el2("div", { className: "ai-chat-text", text: entry.text }));
+      }
       if (index === session.display.length - 1 && entry.role === "assistant" && lastTurnRevertible) {
-        const revert = el("button", { className: "pane-btn ai-chat-revert", text: ui4().aiChatRevert, type: "button" });
+        const revert = el2("button", { className: "pane-btn ai-chat-revert", text: ui5().aiChatRevert, type: "button" });
         revert.id = "ai-chat-revert";
         revert.addEventListener("click", () => {
           if (options.revertLastTurn()) {
             lastTurnRevertible = false;
-            session.display.push({ role: "note", text: ui4().aiChatReverted });
+            session.display.push({ role: "note", text: ui5().aiChatReverted });
             persist();
             renderLog();
           }
@@ -192562,7 +193145,7 @@ function installAiChatPanel(options) {
       }
       log.append(row);
     });
-    if (sending) log.append(el("p", { className: "ai-chat-pending", text: ui4().aiChatSending }));
+    if (sending) log.append(el2("p", { className: "ai-chat-pending", text: ui5().aiChatSending }));
     log.scrollTop = log.scrollHeight;
   };
   const persist = () => {
@@ -192588,7 +193171,7 @@ function installAiChatPanel(options) {
     clearBtn.hidden = collapsed;
     if (collapsed) modeLabel.hidden = true;
     panel.classList.toggle("ai-chat-panel--collapsed", collapsed);
-    toggleBtn.title = collapsed ? ui4().aiChatExpand : ui4().aiChatCollapse;
+    toggleBtn.title = collapsed ? ui5().aiChatExpand : ui5().aiChatCollapse;
     toggleBtn.setAttribute("aria-label", toggleBtn.title);
     toggleBtn.setAttribute("aria-expanded", String(!collapsed));
   };
@@ -192631,7 +193214,12 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
     try {
       const result = await options.runTurn({ mode, prompt: c9.prompt, history: history2 });
       session.messages = result.messages;
-      session.display.push({ role: "assistant", text: result.text, toolCalls: result.toolCalls });
+      session.display.push({
+        role: "assistant",
+        text: result.text,
+        toolCalls: result.toolCalls,
+        ...result.suggestionNotes?.length ? { suggestionNotes: result.suggestionNotes } : {}
+      });
       if (result.note) session.display.push({ role: "note", text: result.note });
       if (result.note && result.revertible) session.display.push(session.display.splice(-2, 1)[0]);
       lastTurnRevertible = result.revertible;
@@ -192652,10 +193240,10 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
     await options.copyToClipboard(c9.prompt);
     commitUserTurn(c9);
     session.messages = [...session.messages, { role: "user", content: c9.prompt }];
-    session.display.push({ role: "note", text: ui4().aiChatPromptCopied });
+    session.display.push({ role: "note", text: ui5().aiChatPromptCopied });
     persist();
     renderLog();
-    options.setStatus(ui4().aiChatPromptCopied);
+    options.setStatus(ui5().aiChatPromptCopied);
   };
   const placeMenu = (menu, trigger) => {
     const rect = trigger.getBoundingClientRect();
@@ -192699,9 +193287,9 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
   const addPromptsFrom = (filename, text) => {
     try {
       const added = addUserPrompts(storage, parsePromptFile(filename, text));
-      options.setStatus(formatMessage(ui4().aiChatPromptsAdded, { count: added.length }));
+      options.setStatus(formatMessage(ui5().aiChatPromptsAdded, { count: added.length }));
     } catch (err2) {
-      const message = formatMessage(ui4().aiChatPromptLoadFailed, { detail: formatError(err2) });
+      const message = formatMessage(ui5().aiChatPromptLoadFailed, { detail: formatError(err2) });
       options.setStatus(message);
       globalThis.alert?.(message);
     }
@@ -192709,8 +193297,8 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
   const renderPromptsMenu = () => {
     promptsMenu.replaceChildren();
     for (const prompt2 of listStoredPrompts(storage)) {
-      const row = el("div", { className: "ai-chat-prompt-row" });
-      const pick = el("button", {
+      const row = el2("div", { className: "ai-chat-prompt-row" });
+      const pick = el2("button", {
         className: "split-btn-menu-item ai-chat-prompt-pick",
         text: prompt2.name,
         title: prompt2.dynamic ? prompt2.name : prompt2.text,
@@ -192721,17 +193309,17 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
       pick.addEventListener("click", () => applyStoredPrompt(prompt2));
       row.append(pick);
       if (!prompt2.builtIn) {
-        const remove2 = el("button", {
+        const remove2 = el2("button", {
           className: "ai-chat-prompt-remove",
           text: "\xD7",
-          title: ui4().aiChatRemovePrompt,
+          title: ui5().aiChatRemovePrompt,
           type: "button"
         });
-        remove2.setAttribute("aria-label", `${ui4().aiChatRemovePrompt}: ${prompt2.name}`);
+        remove2.setAttribute("aria-label", `${ui5().aiChatRemovePrompt}: ${prompt2.name}`);
         remove2.dataset.promptId = prompt2.id;
         remove2.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          if (!confirmFn(formatMessage(ui4().aiChatRemovePromptConfirm, { name: prompt2.name }))) return;
+          if (!confirmFn(formatMessage(ui5().aiChatRemovePromptConfirm, { name: prompt2.name }))) return;
           removeUserPrompt(storage, prompt2.id);
           renderPromptsMenu();
         });
@@ -192739,9 +193327,9 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
       }
       promptsMenu.append(row);
     }
-    promptsMenu.append(el("div", { className: "split-btn-menu-separator" }));
+    promptsMenu.append(el2("div", { className: "split-btn-menu-separator" }));
     const action = (text, id4, fn2) => {
-      const btn = el("button", { className: "split-btn-menu-item", text, type: "button" });
+      const btn = el2("button", { className: "split-btn-menu-item", text, type: "button" });
       btn.id = id4;
       btn.setAttribute("role", "menuitem");
       btn.addEventListener("click", () => {
@@ -192750,24 +193338,24 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
       });
       promptsMenu.append(btn);
     };
-    action(ui4().aiChatAddPromptFile, "ai-chat-add-prompt-file", () => {
+    action(ui5().aiChatAddPromptFile, "ai-chat-add-prompt-file", () => {
       void options.pickTextFile().then((file) => {
         if (file) addPromptsFrom(file.name, file.text);
       });
     });
-    action(ui4().aiChatAddPromptUrl, "ai-chat-add-prompt-url", () => {
-      const url = promptFn(ui4().aiChatPromptUrlAsk)?.trim();
+    action(ui5().aiChatAddPromptUrl, "ai-chat-add-prompt-url", () => {
+      const url = promptFn(ui5().aiChatPromptUrlAsk)?.trim();
       if (!url) return;
       void options.fetchText(url).then(
         (text) => addPromptsFrom(url, text),
         (err2) => {
-          const message = formatMessage(ui4().aiChatPromptLoadFailed, { detail: formatError(err2) });
+          const message = formatMessage(ui5().aiChatPromptLoadFailed, { detail: formatError(err2) });
           options.setStatus(message);
           globalThis.alert?.(message);
         }
       );
     });
-    action(ui4().aiChatExportPrompts, "ai-chat-export-prompts", () => {
+    action(ui5().aiChatExportPrompts, "ai-chat-export-prompts", () => {
       options.downloadText("intehrgrator-stored-prompts.json", exportUserPrompts(storage));
     });
   };
@@ -192827,7 +193415,7 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
     if (collapsed && !toggleBtn.contains(ev.target)) expand();
   });
   clearBtn.addEventListener("click", () => {
-    if (!confirmFn(ui4().aiChatClearConfirm)) return;
+    if (!confirmFn(ui5().aiChatClearConfirm)) return;
     syncProject();
     clearChatSession(storage, sessionProject);
     session = loadChatSession(storage, sessionProject);
@@ -192888,6 +193476,7 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
       expand();
       insertChip(chip);
     },
+    answerQuestion: (question3, index) => answerQuestion(question3, index),
     prefill(text) {
       expand();
       setInputParts([{ text }]);
@@ -192964,11 +193553,11 @@ var CALL_AI_OPENAI_TOOLS = [
     type: "function",
     function: {
       name: "import_suggestions",
-      description: "Apply intehrgrator-suggestions JSON envelope.",
+      description: "Apply intehrgrator-suggestions JSON envelope. Per-suggestion note/confidence are honoured; call-level note/confidence apply to suggestions without their own.",
       parameters: {
         type: "object",
         required: ["text"],
-        properties: { text: { type: "string" }, revision: { type: "string" } }
+        properties: { text: { type: "string" }, revision: { type: "string" }, ...TOOL_REVIEW_PARAMS }
       }
     }
   },
@@ -192983,7 +193572,8 @@ var CALL_AI_OPENAI_TOOLS = [
         properties: {
           slotId: { type: "string" },
           path: { type: "string" },
-          format: { type: "string" }
+          format: { type: "string" },
+          ...TOOL_REVIEW_PARAMS
         }
       }
     }
@@ -193118,7 +193708,7 @@ function executeMappingAgentTool(controller2, name2, args) {
         })
       };
     case "import_suggestions": {
-      const text = suggestionTextFromArgs(args);
+      const text = applySuggestionReviewDefaults(suggestionTextFromArgs(args), args.note, args.confidence);
       const report = controller2.importAiSuggestions(text);
       return { report, revision: "ui" };
     }
@@ -193130,8 +193720,14 @@ function executeMappingAgentTool(controller2, name2, args) {
       const format4 = isSourceFormatId(formatRaw) ? formatRaw : "json";
       const before = listSlotsInspect(s8.skeleton, s8.model).find((row) => row.slotId === slotId);
       if (!before) throw new Error(`Unknown slotId: ${slotId}`);
-      controller2.mapNodeToSlot(slotId, path, format4);
-      return { revision: "ui", slotId, mapped: true };
+      controller2.mapNodeToSlot(slotId, path, format4, slotReviewFrom(args.note, args.confidence));
+      const ignored = args.confidence !== void 0 && parseAiConfidence(args.confidence) === void 0;
+      return {
+        revision: "ui",
+        slotId,
+        mapped: true,
+        ...ignored ? { warning: "confidence must be a number 0\u2013100 (percent); ignored" } : {}
+      };
     }
     case "optional_rm_add": {
       controller2.addOptionalRm(
@@ -193230,7 +193826,7 @@ function saveAiCredentials(storage, credentials) {
 function hasAiCredentials(storage) {
   return loadAiCredentials(storage) != null;
 }
-var SUGGESTIONS_SYSTEM = "You are an intEHRgrator mapping assistant. Reply with intehrgrator-suggestions JSON version 2 only, in a fenced json block or as raw JSON.";
+var SUGGESTIONS_SYSTEM = "You are an intEHRgrator mapping assistant. Reply with one intehrgrator-suggestions JSON version 2 block (fenced). Outside it, add only brief `### Notes` / `### Questions` sections when needed.";
 async function postChatCompletions(credentials, messages, options) {
   const parsed = parseAiCredentials(credentials);
   if (!parsed) throw new Error("AI credentials are incomplete");
@@ -193312,7 +193908,7 @@ function providerAuthHeaders(endpoint, apiKey) {
   }
   return headers;
 }
-var MAPPING_TOOLS_SYSTEM = "You are an intEHRgrator mapping assistant. Use the provided tools \u2014 they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, \u2026). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2 only.";
+var MAPPING_TOOLS_SYSTEM = "You are an intEHRgrator mapping assistant. Use the provided tools \u2014 they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, \u2026). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0\u2013100 % chance it is correct; only when below 90). Finish with a 1\u20133 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (numbered, with suggested choices).";
 
 // src/core/ai/providers.ts
 var AI_PROVIDER_PRESETS = [
@@ -193687,6 +194283,7 @@ ${options.prompt}`
   const maxSteps = options.maxSteps ?? 16;
   let lastText = "";
   let imported;
+  const suggestionNotes = [];
   for (let step = 1; step <= maxSteps; step++) {
     const completion = await postChatCompletions(options.credentials, messages, {
       fetch: options.fetch,
@@ -193701,7 +194298,7 @@ ${options.prompt}`
         imported = options.importText(completion.text);
       }
       messages.push(completion.assistantMessage ?? { role: "assistant", content: completion.text });
-      return { text: completion.text, toolNames, imported, steps: step, messages: conversation() };
+      return { text: completion.text, toolNames, imported, steps: step, messages: conversation(), suggestionNotes };
     }
     messages.push(assistantMessageForLoop(completion.assistantMessage, calls));
     let mutated = false;
@@ -193710,6 +194307,9 @@ ${options.prompt}`
       const args = parseToolArgs(call.arguments);
       let payload;
       try {
+        if (call.name === "import_suggestions" || call.name === "map_slot") {
+          suggestionNotes.push(...notesFromToolArgs(call.name, args));
+        }
         payload = await options.executeTool(call.name, args);
         if (isMutatingCallAiTool(call.name)) mutated = true;
         if (call.name === "import_suggestions" && payload && typeof payload === "object" && "report" in payload) {
@@ -193730,7 +194330,22 @@ ${options.prompt}`
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
     imported = options.importText(lastText);
   }
-  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation() };
+  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation(), suggestionNotes };
+}
+function notesFromToolArgs(name2, args) {
+  try {
+    if (name2 === "map_slot") {
+      return collectSuggestionNotes({ suggestions: [{ slotId: args.slotId, note: args.note, confidence: args.confidence }] });
+    }
+    if (typeof args.text === "string") {
+      return collectSuggestionNotes(
+        extractSuggestionsJson(applySuggestionReviewDefaults(args.text, args.note, args.confidence))
+      );
+    }
+    return collectSuggestionNotes(args.envelope ?? args);
+  } catch {
+    return [];
+  }
 }
 async function runSuggestionsChatTurn(options) {
   const history2 = options.history ?? [];
@@ -194209,6 +194824,14 @@ async function bootBlockly() {
   installCollapseChildrenMenu(workspace, {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren
+  });
+  installAiReviewMarkers(workspace, {
+    labels: {
+      markReviewed: () => uiChrome().aiMarkReviewed,
+      comment: () => uiChrome().aiReviewComment,
+      confidence: () => uiChrome().aiReviewConfidence
+    },
+    onChange: () => persistBlocklyCanvas({ summary: "Mark AI suggestion reviewed" })
   });
   installFunctionLibraryMenus(workspace, {
     save: (name2) => functionLibraryUi?.saveNamed(name2),
@@ -194787,6 +195410,7 @@ function syncBlocklyWorkspace(s8) {
         relabelWorkspaceFromSkeleton(workspace, s8.skeleton);
       });
       lockWorkspaceRootsExpanded(workspace);
+      refreshAiReviewMarkers(workspace);
       blocklySkeletonKey = skeletonKey;
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
@@ -194857,6 +195481,7 @@ function syncBlocklyWorkspace(s8) {
       replaceCanvasUndoable(workspace, () => {
         applyModelExpressions(workspace, s8.model);
       });
+      refreshAiReviewMarkers(workspace);
     }
     blocklySlotSignature = slotSignature;
     controller.syncCanvasSnapshot(serialization.workspaces.save(workspace));
@@ -194869,9 +195494,9 @@ function bind2(id4, handler) {
   document.getElementById(id4)?.addEventListener("click", () => void handler());
 }
 function requireEl2(id4) {
-  const el2 = document.getElementById(id4);
-  if (!el2) throw new Error(`Missing #${id4}`);
-  return el2;
+  const el3 = document.getElementById(id4);
+  if (!el3) throw new Error(`Missing #${id4}`);
+  return el3;
 }
 installInfoTips();
 installUrlLoadUi({
@@ -195012,9 +195637,19 @@ var importAiDialog = installImportAiDialog({
   formatDocUrl: host.resolveAppUrl("docs/AI_SUGGESTION_FORMAT.md"),
   readClipboard: () => controller.readClipboardText(),
   copyToClipboard: (text) => host.copyToClipboard(text),
-  importText: (text) => controller.importAiSuggestions(text)
+  importText: (text) => controller.importAiSuggestions(text),
+  notes: requireEl2("import-ai-notes"),
+  describeSlot: (slotId) => describeSlotForNotes(slotId),
+  onAnswer: (question3, index) => aiChat?.answerQuestion(question3, index)
 });
 var aiChat = null;
+function describeSlotForNotes(slotId) {
+  const state = controller.getState();
+  const norm = (id4) => id4.replace(/\/{2,}/g, "/");
+  const row = listSlotsInspect(state.skeleton, state.model).find((r10) => r10.slotId === slotId || norm(r10.slotId) === norm(slotId));
+  const label = row?.pathLabel ? row.pathLabel.split(" \u203A ").slice(-2).join(" \u203A ") : row?.label;
+  return label || void 0;
+}
 var lastAiChatSnapshot = null;
 aiChat = installAiChatPanel({
   panel: requireEl2("ai-chat-panel"),
@@ -195036,6 +195671,7 @@ aiChat = installAiChatPanel({
   revertLastTurn: () => revertLastAiChatTurn(),
   setStatus: (message) => controller.setStatusMessage(message),
   formatError: (err2) => formatCallAiError(err2),
+  describeSlot: (slotId) => describeSlotForNotes(slotId),
   onLayout: () => {
     if (workspace) svgResize(workspace);
   }
@@ -195557,23 +196193,23 @@ async function readDroppedTextFiles(files) {
     text: await file.text()
   })));
 }
-function initFileDrop(el2, options) {
-  el2.classList.add("tree-pane--drop-target");
-  el2.addEventListener("dragenter", (event) => {
+function initFileDrop(el3, options) {
+  el3.classList.add("tree-pane--drop-target");
+  el3.addEventListener("dragenter", (event) => {
     event.preventDefault();
   });
-  el2.addEventListener("dragover", (event) => {
+  el3.addEventListener("dragover", (event) => {
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
-    el2.classList.add("tree-pane--dragover");
+    el3.classList.add("tree-pane--dragover");
   });
-  el2.addEventListener("dragleave", (event) => {
-    if (event.relatedTarget instanceof Node && el2.contains(event.relatedTarget)) return;
-    el2.classList.remove("tree-pane--dragover");
+  el3.addEventListener("dragleave", (event) => {
+    if (event.relatedTarget instanceof Node && el3.contains(event.relatedTarget)) return;
+    el3.classList.remove("tree-pane--dragover");
   });
-  el2.addEventListener("drop", (event) => {
+  el3.addEventListener("drop", (event) => {
     event.preventDefault();
-    el2.classList.remove("tree-pane--dragover");
+    el3.classList.remove("tree-pane--dragover");
     const dropped = [...event.dataTransfer?.files ?? []];
     const files = dropped.filter(options.accept);
     if (!files.length) {
@@ -196358,7 +196994,8 @@ ${result.imported?.errors.slice(0, 8).join("\n")}` : "";
       text: `${result.text || summary}${errorText}`,
       messages: result.messages,
       toolCalls: result.toolNames,
-      revertible
+      revertible,
+      suggestionNotes: result.suggestionNotes
     };
   } catch (err2) {
     if (!isToolsUnsupportedError(err2)) {
@@ -196987,6 +197624,9 @@ function installWorkbenchTestApi() {
     },
     getMappingSpecDocument() {
       return mappingSpecDocumentText(specEditor);
+    },
+    getBlocklyStateJson() {
+      return JSON.stringify(serialization.workspaces.save(workspace));
     },
     loadBlocklyJson(filename, content2) {
       controller.loadBlocklyDefinition(filename, content2);
