@@ -125125,6 +125125,7 @@ function buildPrompt(options) {
     "```",
     "",
     '**Repeating container** \u2014 put `for_each_list` in top-level `loops[]` (`source_query_node` in LIST for source nodes, or a list value for a computed collection); child slots use `loopVar` + relative `EXPRESSION` (see Repeatable containers list). Loop body reporters `logic_loop_index` / `logic_loop_length` serialize as `var("<item>_index")` / `var("<item>_length")` (0-based; length fixed at loop entry). Grammatical list join (Swedish *och* / Oxford comma) is a 1-arg Blockly Function that loops, appends a FIRST Decision-table snippet, and is called from the slot \u2014 not a `join_list` builtin. Optional RM Insertion uses `optional_rm_add` / `optional_rm_remove` tools, not this envelope.',
+    'Loop fragment (merge into the envelope; ids from the lists above): `{"loops":[{"attachSlotId":"<container slotId>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<slot under that container>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
     "",
     "## Instruction",
     'Return exactly one `intehrgrator-suggestions` fenced JSON block. Copy each `slotId` from the slot manifest. Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: "decision-table"` sheet) when several independent inputs, don\'t-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points \u2014 omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.'
@@ -139231,6 +139232,9 @@ var en3 = {
   aiChatImportAnswer: "Import AI answer\u2026",
   aiChatPromptCopied: "Prompt copied. Paste it into your AI chat, then Import AI answer.",
   aiChatApproveHint: "Review the suggestions in Import Suggestions.",
+  aiChatTruncated: `The answer was cut off at the model's output-token limit, so nothing could be imported. Ask again for fewer slots at a time (for example one loop), or send "continue".`,
+  aiChatStepLimit: 'Stopped after {steps} tool steps; the model was not finished. Send "continue" to let it go on.',
+  aiChatToolsFallback: "The provider rejected the mapping tools, so this answer was requested as suggestions JSON instead.",
   aiChatEmpty: "No messages yet.",
   addToAiChat: "Add to AI chat",
   aiChatChipRemove: "Remove",
@@ -189060,8 +189064,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "302d094" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T13:19:46.739Z" : "not built";
+var BUILD_ID = true ? "732bc70" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T20:30:25.193Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -193841,6 +193845,14 @@ function redactSecret(text, secret) {
 
 // src/core/ai/credentials.ts
 var AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
+var DEFAULT_MAX_OUTPUT_TOKENS = 8192;
+var GEMINI_MAX_OUTPUT_TOKENS = 32768;
+function defaultMaxOutputTokens(endpoint) {
+  return /generativelanguage\.googleapis\.com|aiplatform\.googleapis\.com/i.test(endpoint) ? GEMINI_MAX_OUTPUT_TOKENS : DEFAULT_MAX_OUTPUT_TOKENS;
+}
+function isLengthFinish(reason) {
+  return typeof reason === "string" && /^(length|max_tokens|max_output_tokens)$/i.test(reason);
+}
 function parseAiCredentials(raw) {
   if (!raw || typeof raw !== "object") return null;
   const rec = raw;
@@ -193889,7 +193901,7 @@ async function postChatCompletions(credentials, messages, options) {
   const body = {
     model: parsed.model,
     temperature: options?.temperature ?? 0,
-    max_tokens: options?.maxTokens ?? 8192,
+    max_tokens: options?.maxTokens ?? defaultMaxOutputTokens(parsed.endpoint),
     messages,
     ...options?.tools?.length ? { tools: options.tools, tool_choice: "auto" } : {}
   };
@@ -193928,10 +193940,17 @@ async function postChatCompletions(credentials, messages, options) {
     return {
       id: String(row.id ?? name2),
       name: name2,
-      arguments: typeof args === "string" ? args : JSON.stringify(args ?? {})
+      arguments: typeof args === "string" ? args : JSON.stringify(args ?? {}),
+      ...row.extra_content !== void 0 ? { extraContent: row.extra_content } : {}
     };
   }).filter((row) => row != null);
-  if (!text.trim() && toolCalls.length === 0) throw new Error("AI response had no text");
+  const choice = raw?.choices?.[0];
+  const truncated = isLengthFinish(choice?.finish_reason ?? choice?.stop_reason);
+  if (!text.trim() && toolCalls.length === 0) {
+    throw new Error(
+      truncated ? "AI response hit the output-token limit before any text (the model spent it thinking). Try again, or ask for a smaller part." : "AI response had no text"
+    );
+  }
   const assistantMessage = {
     role: "assistant",
     content: text || null,
@@ -193939,13 +193958,15 @@ async function postChatCompletions(credentials, messages, options) {
       tool_calls: toolCalls.map((row) => ({
         id: row.id,
         type: "function",
-        function: { name: row.name, arguments: row.arguments }
+        function: { name: row.name, arguments: row.arguments },
+        ...row.extraContent !== void 0 ? { extra_content: row.extraContent } : {}
       }))
     } : {}
   };
   return {
     text,
     raw,
+    ...truncated ? { truncated } : {},
     ...toolCalls.length ? { toolCalls } : {},
     assistantMessage
   };
@@ -193964,6 +193985,11 @@ function providerAuthHeaders(endpoint, apiKey) {
   return headers;
 }
 var MAPPING_TOOLS_SYSTEM = "You are an intEHRgrator mapping assistant. Use the provided tools \u2014 they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, \u2026). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0\u2013100 % chance it is correct; only when below 90). Finish with a 1\u20133 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (numbered, with suggested choices).";
+function isToolsUnsupportedError(err2) {
+  const message = err2 instanceof Error ? err2.message : String(err2);
+  if (/thought_signature/i.test(message)) return false;
+  return /400/.test(message) && /tool/i.test(message);
+}
 
 // src/core/ai/providers.ts
 var AI_PROVIDER_PRESETS = [
@@ -194315,7 +194341,8 @@ function assistantMessageForLoop(message, toolCalls) {
     tool_calls: toolCalls.map((row) => ({
       id: row.id,
       type: "function",
-      function: { name: row.name, arguments: row.arguments }
+      function: { name: row.name, arguments: row.arguments },
+      ...row.extraContent !== void 0 ? { extra_content: row.extraContent } : {}
     }))
   };
 }
@@ -194337,6 +194364,8 @@ ${options.prompt}`
   const toolNames = [];
   const maxSteps = options.maxSteps ?? 16;
   let lastText = "";
+  const texts2 = [];
+  const answer = () => texts2.join("\n\n");
   let imported;
   const suggestionNotes = [];
   for (let step = 1; step <= maxSteps; step++) {
@@ -194347,13 +194376,22 @@ ${options.prompt}`
       tools
     });
     lastText = completion.text;
+    if (completion.text.trim()) texts2.push(completion.text.trim());
     const calls = completion.toolCalls ?? [];
     if (!calls.length) {
       if (options.importText && looksLikeSuggestionsPayload(completion.text)) {
         imported = options.importText(completion.text);
       }
       messages.push(completion.assistantMessage ?? { role: "assistant", content: completion.text });
-      return { text: completion.text, toolNames, imported, steps: step, messages: conversation(), suggestionNotes };
+      return {
+        text: answer(),
+        toolNames,
+        imported,
+        steps: step,
+        messages: conversation(),
+        suggestionNotes,
+        ...completion.truncated ? { truncated: true } : {}
+      };
     }
     messages.push(assistantMessageForLoop(completion.assistantMessage, calls));
     let mutated = false;
@@ -194385,7 +194423,15 @@ ${options.prompt}`
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
     imported = options.importText(lastText);
   }
-  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation(), suggestionNotes };
+  return {
+    text: answer(),
+    toolNames,
+    imported,
+    steps: maxSteps,
+    messages: conversation(),
+    suggestionNotes,
+    stepLimitReached: true
+  };
 }
 function notesFromToolArgs(name2, args) {
   try {
@@ -194415,7 +194461,11 @@ async function runSuggestionsChatTurn(options) {
     proxyUrl: options.proxyUrl
   });
   messages.push({ role: "assistant", content: completion.text });
-  return { text: completion.text, messages: messages.slice(1) };
+  return {
+    text: completion.text,
+    messages: messages.slice(1),
+    ...completion.truncated ? { truncated: true } : {}
+  };
 }
 async function runMappingAgentOnController(controller2, options) {
   return await runMappingAgent({
@@ -196782,10 +196832,6 @@ function formatCallAiError(err2) {
   }
   return message;
 }
-function isToolsUnsupportedError(err2) {
-  const message = err2 instanceof Error ? err2.message : String(err2);
-  return /400/.test(message) && /tool/i.test(message);
-}
 function selectedMappingMode() {
   const suggestions = document.getElementById("ai-mapping-mode-suggestions");
   return suggestions?.checked ? "suggestions" : "tools";
@@ -196999,7 +197045,7 @@ function openAiCredentialsDialog() {
   setSelectedMappingMode(creds?.mappingMode === "suggestions" ? "suggestions" : "tools");
   dialog2.showModal();
 }
-async function runApproveFirstTurn(request, creds, proxyUrl, signal) {
+async function runApproveFirstTurn(request, creds, proxyUrl, signal, fallbackNote) {
   const result = await runSuggestionsChatTurn({
     credentials: creds,
     prompt: request.prompt,
@@ -197007,12 +197053,20 @@ async function runApproveFirstTurn(request, creds, proxyUrl, signal) {
     proxyUrl,
     signal
   });
-  let note;
-  if (looksLikeSuggestionsPayload(result.text)) {
+  const notes = fallbackNote ? [fallbackNote] : [];
+  if (result.truncated) {
+    notes.push(uiChrome().aiChatTruncated);
+  } else if (looksLikeSuggestionsPayload(result.text)) {
     void importAiDialog.open(result.text);
-    note = uiChrome().aiChatApproveHint;
+    notes.push(uiChrome().aiChatApproveHint);
   }
-  return { text: result.text, messages: result.messages, toolCalls: [], revertible: false, note };
+  return {
+    text: result.text,
+    messages: result.messages,
+    toolCalls: [],
+    revertible: false,
+    note: notes.join(" ") || void 0
+  };
 }
 async function runAiChatTurn(request) {
   const creds = loadAiCredentials(localStorage);
@@ -197050,7 +197104,8 @@ ${result.imported?.errors.slice(0, 8).join("\n")}` : "";
       messages: result.messages,
       toolCalls: result.toolNames,
       revertible,
-      suggestionNotes: result.suggestionNotes
+      suggestionNotes: result.suggestionNotes,
+      note: result.truncated ? uiChrome().aiChatTruncated : result.stepLimitReached ? formatMessage(uiChrome().aiChatStepLimit, { steps: result.steps }) : void 0
     };
   } catch (err2) {
     if (!isToolsUnsupportedError(err2)) {
@@ -197058,7 +197113,7 @@ ${result.imported?.errors.slice(0, 8).join("\n")}` : "";
       throw err2;
     }
     controller.setStatusMessage("Provider rejected mapping tools; asking for suggestions JSON\u2026");
-    return await runApproveFirstTurn(request, creds, proxyUrl, signal);
+    return await runApproveFirstTurn(request, creds, proxyUrl, signal, uiChrome().aiChatToolsFallback);
   }
 }
 function revertLastAiChatTurn() {
