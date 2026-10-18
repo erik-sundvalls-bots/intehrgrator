@@ -138949,7 +138949,8 @@ var en3 = {
   addToAiChat: "Add to AI chat",
   aiChatChipRemove: "Remove",
   aiChatDismissNotice: "Hide this notice until AI chat is opened again",
-  aiChatCopyMenuAria: "More copy/paste options"
+  aiChatCopyMenuAria: "More copy/paste options",
+  aiChatResizeInput: "Drag to resize the message box (\u2191/\u2193 keys also work)"
 };
 
 // src/ui/chrome_ca.ts
@@ -188588,8 +188589,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "aa46c8a" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T07:30:02.793Z" : "not built";
+var BUILD_ID = true ? "e1931e4" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T07:42:10.120Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -192225,7 +192226,7 @@ var AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
 var AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 var AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 var PROJECT_CONTEXT_HEADING = "## Project context";
-var RESIZE_GRIP_PX = 18;
+var MIN_LOG_PX = 32;
 var AI_CHAT_COPY_MENU = [
   { delivery: "inline", labelKey: "menuEmbedFiles" },
   { delivery: "attach", labelKey: "menuAttachFiles" },
@@ -192403,7 +192404,13 @@ function installAiChatPanel(options) {
   sendBtn.id = "ai-chat-send";
   actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), sendBtn);
   composer.append(input, actions);
-  body.append(credsNotice, log, composer);
+  const grip = el("div", { className: "split-handle split-handle--row ai-chat-grip", title: ui4().aiChatResizeInput });
+  grip.id = "ai-chat-grip";
+  grip.tabIndex = 0;
+  grip.setAttribute("role", "separator");
+  grip.setAttribute("aria-orientation", "horizontal");
+  grip.setAttribute("aria-label", ui4().aiChatResizeInput);
+  body.append(credsNotice, log, grip, composer);
   const popover = el("div", { className: "ai-chip-popover" });
   popover.hidden = true;
   popover.setAttribute("role", "tooltip");
@@ -192783,6 +192790,7 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
     unsplit();
     panel.hidden = true;
     credsDismissed = false;
+    grip.removeAttribute("aria-valuenow");
     input.style.height = "";
     input.style.maxHeight = "";
     closeCopyMenu();
@@ -192814,12 +192822,41 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
     credsDismissed = true;
     refreshChrome();
   });
-  input.addEventListener("pointerdown", (ev) => {
-    const rect = input.getBoundingClientRect();
-    if (ev.clientX >= rect.right - RESIZE_GRIP_PX && ev.clientY >= rect.bottom - RESIZE_GRIP_PX) {
-      input.style.height = `${rect.height}px`;
-      input.style.maxHeight = "none";
-    }
+  const inputMinPx = () => parseFloat(getComputedStyle(input).minHeight) || 34;
+  const inputMaxPx = () => {
+    const notice = credsNotice.hidden ? 0 : parseFloat(getComputedStyle(credsNotice).minHeight) || 0;
+    const room = body.clientHeight - notice - (composer.offsetHeight - input.offsetHeight) - grip.offsetHeight - MIN_LOG_PX;
+    return Math.max(inputMinPx(), room);
+  };
+  const setInputHeight = (px, keepMax = 0) => {
+    const clamped = Math.round(Math.min(Math.max(inputMaxPx(), keepMax), Math.max(inputMinPx(), px)));
+    input.style.height = `${clamped}px`;
+    input.style.maxHeight = "none";
+    grip.setAttribute("aria-valuenow", String(clamped));
+  };
+  grip.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0) return;
+    ev.preventDefault();
+    grip.setPointerCapture(ev.pointerId);
+    grip.classList.add("split-handle--active");
+    const startY = ev.clientY;
+    const startH = input.getBoundingClientRect().height;
+    const onMove = (move) => setInputHeight(startH + (startY - move.clientY), startH);
+    const onUp = () => {
+      grip.classList.remove("split-handle--active");
+      grip.removeEventListener("pointermove", onMove);
+      grip.removeEventListener("pointerup", onUp);
+      grip.removeEventListener("pointercancel", onUp);
+    };
+    grip.addEventListener("pointermove", onMove);
+    grip.addEventListener("pointerup", onUp);
+    grip.addEventListener("pointercancel", onUp);
+  });
+  grip.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
+    ev.preventDefault();
+    const step = ev.shiftKey ? 64 : 16;
+    setInputHeight(input.getBoundingClientRect().height + (ev.key === "ArrowUp" ? step : -step));
   });
   sendBtn.addEventListener("click", () => void send());
   copyBtn.addEventListener("click", () => void copyPrompt());

@@ -84,16 +84,32 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 .split-pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .split-group.split-group--row { flex-direction: row; }
 .split-group.split-group--column { flex-direction: column; }
+/* One divider design everywhere: 6px bar with a centred 3-dot grip (a column on
+   vertical dividers, a row on horizontal ones). The bar turns primary on
+   hover/drag/focus and the dots turn light so they stay visible. */
 .split-handle {
-  flex: 0 0 6px; background: var(--border); touch-action: none; z-index: 2;
-  transition: background 0.12s;
+  --grip-dot: #7d8b88;
+  --grip-dot-img: radial-gradient(circle, var(--grip-dot) 0 1px, transparent 1.4px);
+  flex: 0 0 6px; background-color: var(--border); touch-action: none; z-index: 2;
+  background-image: var(--grip-dot-img), var(--grip-dot-img), var(--grip-dot-img);
+  background-repeat: no-repeat;
+  transition: background-color 0.12s;
 }
-.split-handle--col { cursor: col-resize; margin: 0 -1px; }
-.split-handle--row { cursor: row-resize; margin: -1px 0; }
+.split-handle--col {
+  cursor: col-resize; margin: 0 -1px;
+  background-size: 6px 4px;
+  background-position: center calc(50% - 4px), center 50%, center calc(50% + 4px);
+}
+.split-handle--row {
+  cursor: row-resize; margin: -1px 0;
+  background-size: 4px 6px;
+  background-position: calc(50% - 4px) center, 50% center, calc(50% + 4px) center;
+}
 .split-handle:hover,
 .split-handle--active,
 .split-handle:focus-visible {
-  background: var(--primary);
+  --grip-dot: rgba(255, 255, 255, 0.92);
+  background-color: var(--primary);
   outline: none;
 }
 
@@ -1917,7 +1933,7 @@ body.sheets-fullscreen::before {
 .ai-chat-composer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
 .ai-chat-input {
   min-height: 2.6em; max-height: 9em; overflow-y: auto; padding: 4px 6px;
-  resize: vertical; /* drag taller; the 9em cap lifts on grab (ai_chat_panel.ts) */
+  resize: none; /* height comes from the divider grip above the composer */
   border: 1px solid var(--border); border-radius: 4px; background: #fff;
   font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; outline: none;
 }
@@ -1961,3 +1977,5 @@ body.sheets-fullscreen::before {
 .ai-chat-body > .ai-chat-composer { flex-shrink: 0; }
 /* In a short split the notice scrolls itself rather than pushing the header out. */
 .ai-chat-body > .ai-chat-creds { flex-shrink: 1; min-height: 2.2em; overflow-y: auto; align-items: flex-start; }
+.ai-chat-body > .ai-chat-grip { margin: 0; }
+.ai-chat-body > .ai-chat-grip + .ai-chat-composer { border-top: none; }
