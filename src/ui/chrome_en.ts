@@ -511,9 +511,33 @@ export const en = {
   aiChatCollapse: "Collapse AI chat",
   aiChatExpand: "Expand AI chat",
   aiChatClear: "Clear history",
-  aiChatClearTitle: "Clear this project's chat history (shrinks the context sent to the AI)",
+  aiChatClearTitle: "Clear chat history",
+  aiChatClearedApi: "History cleared. A fresh context starts: your next message sends the full project context again.",
+  aiChatClearedPaste:
+    "History cleared. Also start a new chat in your external AI: the next copied prompt contains the full project context again — paste it there.",
+  aiChatHelpAria: "About the AI chat controls",
+  aiChatHelpPasteHtml:
+    "<strong>AI chat — copy &amp; paste mode</strong> (no AI credentials)<br>" +
+    "Write a message and use <strong>Copy prompt</strong>, paste it into your external AI, then <strong>Import AI answer…</strong>.<br>" +
+    "<strong>Prompts ▾</strong> stored prompts: insert, save or remove reusable texts.<br>" +
+    "<strong>Trash</strong> clears this project's chat history. Then also start a new chat in your external AI and paste the full prompt again: the next copied prompt automatically includes the full project context.<br>" +
+    "<strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br>" +
+    "<strong>Context chips</strong>: right-click source nodes, target nodes or blocks → <em>Add to AI chat</em>.<br>" +
+    "<strong>Notes / Questions</strong> from the AI show in a yellow box; <em>Answer</em> quotes a question into the input. A <strong>NN%</strong> badge and dashed outline mark low-confidence suggestions on blocks; edit or right-click → <em>Mark as reviewed</em> to clear.<br>" +
+    "<strong>AI credentials</strong> (menu <em>AI → Configure AI credentials…</em>) connect an API so the chat can send directly.",
+  aiChatHelpApiHtml:
+    "<strong>AI chat — API mode</strong><br>" +
+    "<strong>Send</strong> talks to your configured AI. The first message carries the full project context; later ones only your text and new context chips.<br>" +
+    "<strong>Prompts ▾</strong> stored prompts: insert, save or remove reusable texts.<br>" +
+    "<strong>Apply directly / Approve first</strong>: let the AI change the canvas through tools (each turn can be reverted), or review its suggestions in Import AI suggestions first.<br>" +
+    "<strong>Trash</strong> clears this project's chat history and starts a fresh context: the next message resends the full project context.<br>" +
+    "<strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br>" +
+    "<strong>Context chips</strong>: right-click source nodes, target nodes or blocks → <em>Add to AI chat</em>.<br>" +
+    "<strong>Notes / Questions</strong> from the AI show in a yellow box; <em>Answer</em> quotes a question into the input. A <strong>NN%</strong> badge and dashed outline mark low-confidence suggestions on blocks; edit or right-click → <em>Mark as reviewed</em> to clear.<br>" +
+    "<strong>AI credentials</strong> (menu <em>AI → Configure AI credentials…</em>) change provider, key or model.",
   aiChatClearConfirm: "Clear the AI chat history for this project?",
   aiChatStoredPrompts: "Stored prompts",
+  aiChatStoredPromptsShort: "Prompts",
   aiChatAddPromptFile: "Add stored prompt from file…",
   aiChatAddPromptUrl: "Add stored prompt from URL…",
   aiChatExportPrompts: "Export stored prompts",

@@ -6,6 +6,7 @@
  * offers copy & paste prompting: copy the composed prompt, then import the
  * answer through the Import Suggestions dialog.
  */
+import { attachInfoTip } from "./info_tip.ts";
 import {
   type ChatInputPart,
   chipDetails,
@@ -206,10 +207,12 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   const promptsWrap = el("div", { className: "ai-chat-prompts" });
   const promptsBtn = el("button", {
     className: "pane-btn ai-chat-prompts-btn",
-    text: `${ui().aiChatStoredPrompts} ▾`,
+    text: `${ui().aiChatStoredPromptsShort} ▾`,
+    title: ui().aiChatStoredPrompts,
     type: "button",
   });
   promptsBtn.id = "ai-chat-prompts-btn";
+  promptsBtn.setAttribute("aria-label", ui().aiChatStoredPrompts);
   promptsBtn.setAttribute("aria-haspopup", "menu");
   const promptsMenu = el("div", { className: "split-btn-menu ai-chat-prompts-menu" });
   promptsMenu.id = "ai-chat-prompts-menu";
@@ -234,16 +237,39 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     storage.setItem(AI_CHAT_MODE_KEY, modeSelect.value);
     modeSelect.title = modeSelect.value === "approve" ? ui().aiChatModeApproveTitle : ui().aiChatModeApplyTitle;
   });
-  modeLabel.append(el("span", { text: ui().aiChatModeLabel }), modeSelect);
+  // Visible label dropped so the header fits one row; the select keeps it as its name.
+  modeSelect.setAttribute("aria-label", ui().aiChatModeLabel);
+  modeLabel.append(modeSelect);
 
   const spacer = el("span", { className: "ai-chat-spacer" });
   const clearBtn = el("button", {
-    className: "pane-btn ai-chat-clear",
-    text: ui().aiChatClear,
+    className: "pane-btn pane-btn-icon ai-chat-icon-btn ai-chat-clear",
     title: ui().aiChatClearTitle,
     type: "button",
   });
   clearBtn.id = "ai-chat-clear";
+  clearBtn.setAttribute("aria-label", ui().aiChatClearTitle);
+  // MUI DeleteOutline.
+  clearBtn.innerHTML = '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">' +
+    '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5-1-1h-5l-1 1H5v2h14V4h-3.5z"></path></svg>';
+
+  // (i): explains every control; text depends on cut & paste vs API mode.
+  const infoTip = el("span", { className: "info-tip info-tip--end ai-chat-info" });
+  const infoBtn = el("button", { className: "info-tip-btn", text: "i", type: "button" });
+  infoBtn.id = "ai-chat-info-btn";
+  infoBtn.setAttribute("aria-expanded", "false");
+  infoBtn.setAttribute("aria-label", ui().aiChatHelpAria);
+  infoBtn.setAttribute("aria-describedby", "ai-chat-info-balloon");
+  const infoBalloon = el("span", { className: "info-tip-balloon ai-chat-info-balloon" });
+  infoBalloon.id = "ai-chat-info-balloon";
+  infoBalloon.setAttribute("role", "tooltip");
+  infoTip.append(infoBtn, infoBalloon);
+  let infoMode: boolean | null = null;
+  const renderInfo = (hasCreds: boolean) => {
+    if (infoMode === hasCreds) return;
+    infoMode = hasCreds;
+    infoBalloon.innerHTML = hasCreds ? ui().aiChatHelpApiHtml : ui().aiChatHelpPasteHtml;
+  };
   // Same square toggle as the Source / Target & Previews slide buttons, with a
   // bottom-half glyph: the chat is never closed, only collapsed to this header.
   const toggleBtn = el("button", { className: "pane-btn pane-slide-btn ai-chat-toggle", type: "button" });
@@ -256,7 +282,8 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   // Tools wrap inside their own group so the toggle stays on the first row.
   const tools = el("div", { className: "ai-chat-header-tools" });
   tools.append(promptsWrap, modeLabel, spacer, clearBtn);
-  header.append(title, tools, toggleBtn);
+  header.append(title, infoTip, tools, toggleBtn);
+  attachInfoTip(infoTip);
 
   // ── body ──────────────────────────────────────────────────────────────────
   const body = el("div", { className: "ai-chat-body" });
@@ -529,6 +556,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
 
   const refreshChrome = () => {
     const hasCreds = options.hasCredentials();
+    renderInfo(hasCreds);
     credsNotice.hidden = hasCreds || credsDismissed;
     sendBtn.hidden = !hasCreds;
     sendBtn.disabled = sending;
@@ -810,6 +838,13 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     syncProject();
     clearChatSession(storage, sessionProject);
     session = loadChatSession(storage, sessionProject);
+    // contextSent is false again (persisted), so the next prompt carries the full project context.
+    forceContext = false;
+    session.display.push({
+      role: "note",
+      text: options.hasCredentials() ? ui().aiChatClearedApi : ui().aiChatClearedPaste,
+    });
+    persist();
     lastTurnRevertible = false;
     renderLog();
   });

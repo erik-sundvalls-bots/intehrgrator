@@ -2043,3 +2043,13 @@ body.sheets-fullscreen::before {
 .ai-confidence-badge--medium { background: #d48806; }
 .ai-notes-questions .ai-notes-list { counter-reset: ai-q; list-style: none; padding-left: 2px; }
 .ai-notes-question::before { counter-increment: ai-q; content: counter(ai-q) "."; font-weight: 600; min-width: 1.3em; }
+
+/* AI chat header on one row (#249 review): icon buttons, no wrapping. */
+.ai-chat-header .ai-chat-header-tools { flex-wrap: nowrap; }
+.ai-chat-header .pane-btn { white-space: nowrap; }
+.ai-chat-header .pane-btn.ai-chat-icon-btn { width: 28px; height: 24px; min-width: 28px; padding: 0; justify-content: center; }
+.ai-chat-header .pane-btn.ai-chat-icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.ai-chat-mode select { min-width: 0; max-width: 120px; }
+.ai-chat-title { white-space: nowrap; }
+.ai-chat-panel--collapsed .ai-chat-info { display: none; }
+.ai-chat-info-balloon { max-width: min(360px, calc(100vw - 16px)) !important; line-height: 1.45; }
