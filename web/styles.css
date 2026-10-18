@@ -1954,7 +1954,7 @@ body.sheets-fullscreen::before {
 }
 .ai-chat-copy-split { display: inline-flex; }
 .ai-chat-actions .split-btn-chevron { padding: 3px 6px; }
-.ai-chat-actions .pane-btn .split-btn-menu-icon { font-size: 15px; vertical-align: -3px; margin-right: 4px; }
+.ai-chat-actions .pane-btn .split-btn-menu-icon { font-size: 15px; vertical-align: -3px; margin-right: 4px; color: currentColor; }
 .ai-chat-actions .pane-btn { display: inline-flex; align-items: center; }
 /* Keep a short chat split from pushing Target & Previews into a scroll. */
 .ai-chat-panel { overflow: hidden; }

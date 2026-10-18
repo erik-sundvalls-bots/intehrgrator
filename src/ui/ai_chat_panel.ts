@@ -298,15 +298,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     });
     copyMenu.append(item);
   }
-  const importItem = el("button", { className: "split-btn-menu-item split-btn-menu-item--icon", type: "button" });
-  importItem.id = "ai-chat-copy-menu-import";
-  importItem.setAttribute("role", "menuitem");
-  iconLabel(importItem, "content_paste", ui().importAi);
-  importItem.addEventListener("click", () => {
-    closeCopyMenu();
-    options.openImportDialog();
-  });
-  copyMenu.append(importItem);
   copySplit.append(copyBtn, copyChevron, copyMenu);
   const importBtn = el("button", { className: "pane-btn", type: "button" });
   importBtn.id = "ai-chat-import-answer";

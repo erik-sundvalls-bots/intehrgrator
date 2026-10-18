@@ -63,11 +63,18 @@ Deno.test({
       const items = await menu.locator(".split-btn-menu-item").evaluateAll((els) =>
         els.map((el) => [el.querySelector(".material-symbols-outlined")?.textContent, el.textContent?.trim()])
       );
-      assertEquals(items.map(([icon]) => icon), ["content_copy", "content_copy", "content_copy", "content_paste"]);
+      assertEquals(items.map(([icon]) => icon), ["content_copy", "content_copy", "content_copy"]);
       assertStringIncludes(String(items[0]![1]), "Embed files in prompt");
       assertStringIncludes(String(items[1]![1]), "Attach files in chat");
       assertStringIncludes(String(items[2]![1]), "Browse URIs");
-      assertStringIncludes(String(items[3]![1]), "Import AI suggestions");
+      // Menu icons stay dark on white; button icons follow the light button text.
+      const menuIconColor = await menu.locator(".split-btn-menu-icon").first().evaluate((el) => getComputedStyle(el).color);
+      const btnIcon = await page.locator("#ai-chat-copy-prompt .split-btn-menu-icon").evaluate((el) => [
+        getComputedStyle(el).color,
+        getComputedStyle(el.closest("button")!).color,
+      ]);
+      assertEquals(btnIcon[0], btnIcon[1]);
+      assert(menuIconColor !== btnIcon[0], `menu icon ${menuIconColor} should differ from button text ${btnIcon[0]}`);
       assertEquals(
         await page.locator("#ai-chat-import-answer .material-symbols-outlined").textContent(),
         "content_paste",
@@ -78,8 +85,7 @@ Deno.test({
       assertStringIncludes(copied, "Still typing");
       assertStringIncludes(copied, "## Project context");
       assertEquals(await page.evaluate(() => localStorage.getItem("intehrgrator.aiDelivery")), "attach");
-      await page.click("#ai-chat-copy-menu-btn");
-      await page.click("#ai-chat-copy-menu-import");
+      await page.click("#ai-chat-import-answer");
       await page.waitForSelector("#dialog-import-ai[open]", { timeout: 5_000 });
       await page.click("#import-ai-cancel");
 
