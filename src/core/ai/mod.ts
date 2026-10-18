@@ -4,6 +4,7 @@
  */
 
 import type {
+  AiQuestionEntry,
   ImportSuggestionsReport,
   MappingLoop,
   MappingModel,
@@ -22,8 +23,10 @@ import { SUGGESTION_FORMAT_SCHEMA } from "./suggestion_schema.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { jsonPointerToDotPath } from "./json_locate.ts";
 import {
+  type AiQuestion,
   type AiResponseNotes,
   balancedJsonEnd,
+  normalizeAiQuestion,
   NOTES_CONVENTION,
   parseAiConfidence,
   parseAiResponseNotes,
@@ -824,7 +827,7 @@ function normalizeSuggestionEnvelope(
 
   const { loops, suggestions } = flattenSuggestionGroups(raw);
   const notes = stringList(raw.notes);
-  const questions = stringList(raw.questions);
+  const questions = questionList(raw.questions);
   return {
     format: "intehrgrator-suggestions",
     version: "2",
@@ -936,6 +939,16 @@ function optionalNote(note: unknown): string | undefined {
   return typeof note === "string" ? note : undefined;
 }
 
+
+/** Valid `questions[]` entries (string or `{ text, options? }`), normalized; others dropped. */
+function questionList(value: unknown): AiQuestionEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeAiQuestion).filter((q): q is AiQuestion => !!q).map((q) =>
+    q.options.length
+      ? { text: q.text, options: q.options.map((o) => o.recommended ? { text: o.text, recommended: true } : o.text) }
+      : q.text
+  );
+}
 
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];

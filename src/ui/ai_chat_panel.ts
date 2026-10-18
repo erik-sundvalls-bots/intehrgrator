@@ -122,7 +122,8 @@ export interface AiChatPanelHandle {
   /** Replace the input with this text and open the panel. */
   prefill(text: string): void;
   /** Quote an AI question into the input so the user can answer it. */
-  answerQuestion(question: string, index: number): void;
+  /** Prefill the input with the quoted question (and the chosen option), caret at the end. */
+  answerQuestion(question: string, index: number, option?: string): void;
   /** Re-read credentials state and the current project's history. */
   refresh(): void;
   inputParts(): ChatInputPart[];
@@ -436,9 +437,9 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   };
 
   /** Quote a question from the AI into the input, caret after it. */
-  const answerQuestion = (question: string, index: number) => {
+  const answerQuestion = (question: string, index: number, option?: string) => {
     expand();
-    setInputParts([{ text: answerQuote(question, index) }]);
+    setInputParts([{ text: answerQuote(question, index, option) }]);
     input.focus();
     const sel = globalThis.getSelection?.();
     if (sel) {
@@ -515,7 +516,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         if (parsed.body) row.append(el("div", { className: "ai-chat-text", text: parsed.body }));
         const box = renderAiNotes(parsed, {
           describeSlot: options.describeSlot,
-          onAnswer: (question, i) => answerQuestion(question, i),
+          onAnswer: (question, i, option) => answerQuestion(question, i, option),
         });
         if (box) row.append(box);
       } else if (entry.text) {
@@ -909,7 +910,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       expand();
       insertChip(chip);
     },
-    answerQuestion: (question, index) => answerQuestion(question, index),
+    answerQuestion: (question, index, option) => answerQuestion(question, index, option),
     prefill(text) {
       expand();
       setInputParts([{ text }]);

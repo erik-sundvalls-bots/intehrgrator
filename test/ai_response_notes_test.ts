@@ -80,8 +80,8 @@ Deno.test("Notes and Questions outside the fence are extracted, body keeps the r
     "Skipped `device/name`: no source field (the device block is empty in all examples).",
   ]);
   assertEquals(parsed.questions, [
-    "Should missing diastolic fall back to the default? (yes / no)",
-    "Which example is canonical? Options: instance-1, instance-2",
+    { text: "Should missing diastolic fall back to the default?", options: [{ text: "yes" }, { text: "no" }] },
+    { text: "Which example is canonical? Options: instance-1, instance-2", options: [] },
   ]);
   assertStringIncludes(parsed.body, "Mapped the vitals.");
   assertStringIncludes(parsed.body, "```intehrgrator-suggestions");
@@ -93,7 +93,7 @@ Deno.test("headings are tolerant: level, case, bold, colon, Swedish", () => {
     "## NOTES:\nplain line note\n\n**Frågor**\n- Vilken enhet?\n\n#### anteckningar\n* extra\n\n# Summary\nDone.";
   const parsed = parseAiResponseNotes(text);
   assertEquals(parsed.notes, ["plain line note", "extra"]);
-  assertEquals(parsed.questions, ["Vilken enhet?"]);
+  assertEquals(parsed.questions, [{ text: "Vilken enhet?", options: [] }]);
   assertStringIncludes(parsed.body, "# Summary\nDone.");
 });
 
@@ -115,7 +115,7 @@ Deno.test("per-suggestion and loop note fields are surfaced", () => {
   ]);
   const parsed = parseAiAnswerNotes(`${FENCE}\n\n### Questions\n1. OK?`);
   assertEquals(parsed.suggestionNotes.length, 2);
-  assertEquals(parsed.questions, ["OK?"]);
+  assertEquals(parsed.questions, [{ text: "OK?", options: [] }]);
 });
 
 Deno.test("raw JSON followed by Notes prose still parses as suggestions", () => {
@@ -249,7 +249,7 @@ Deno.test("envelope: top-level notes/questions and confidence validate, bad conf
     JSON.stringify(env) + "\n\n### Questions\n1. mmHg or kPa?\n2. Keep b?",
   );
   assertEquals(view.notes, ["Source unit unclear"]);
-  assertEquals(view.questions, ["mmHg or kPa?", "Keep b?"]);
+  assertEquals(view.questions.map((q) => q.text), ["mmHg or kPa?", "Keep b?"]);
   assertEquals(view.suggestionNotes, [{
     kind: "suggestion",
     note: "",
@@ -304,4 +304,95 @@ Deno.test("import_suggestions call-level note/confidence are defaults only", () 
     60,
   ], ["Check", 60]]);
   assertEquals(applySuggestionReviewDefaults(FENCE, undefined, "x"), FENCE);
+});
+
+// ── Questions with options (#249 review: options rendered as separate questions) ──
+
+const q = (text: string) => parseAiResponseNotes(`### Questions\n${text}`).questions;
+
+Deno.test("questions: flat numbered list — non-question items after a question become its options", () => {
+  assertEquals(
+    q([
+      "1. How should missing `bodyPosition` values be handled during blood pressure event creation?",
+      "2. Default to `at1001` (Sitting)",
+      "3. Do not map `Position` and rely on null flavor / schema-level omission if allowed by downstream validator",
+    ].join("\n")),
+    [{
+      text: "How should missing `bodyPosition` values be handled during blood pressure event creation?",
+      options: [
+        { text: "Default to `at1001` (Sitting)" },
+        { text: "Do not map `Position` and rely on null flavor / schema-level omission if allowed by downstream validator" },
+      ],
+    }],
+  );
+});
+
+Deno.test("questions: nested '- ' sub-bullets with (recommended), then a second question", () => {
+  assertEquals(
+    q("1. Which unit?\n   - mmHg (recommended)\n   - kPa\n2. Keep the device block?\n   - yes\n   - no"),
+    [
+      { text: "Which unit?", options: [{ text: "mmHg", recommended: true }, { text: "kPa" }] },
+      { text: "Keep the device block?", options: [{ text: "yes" }, { text: "no" }] },
+    ],
+  );
+});
+
+Deno.test("questions: lettered a) / A. options, and unindented '- ' under a numbered question", () => {
+  assertEquals(q("1. Position default?\na) Sitting [recommended]\nb) Leave empty."), [
+    { text: "Position default?", options: [{ text: "Sitting", recommended: true }, { text: "Leave empty" }] },
+  ]);
+  assertEquals(q("1. Position default?\n  A. Sitting\n  B. Lying\n2. Cuff size?\n- Adult\n- Child"), [
+    { text: "Position default?", options: [{ text: "Sitting" }, { text: "Lying" }] },
+    { text: "Cuff size?", options: [{ text: "Adult" }, { text: "Child" }] },
+  ]);
+});
+
+Deno.test("questions: Swedish heading and (rekommenderas)", () => {
+  const parsed = parseAiResponseNotes(
+    "**Frågor**\n1. Hur ska saknad kroppsställning hanteras?\n   - Sittande (rekommenderas)\n   - Lämna tomt",
+  );
+  assertEquals(parsed.questions, [{
+    text: "Hur ska saknad kroppsställning hanteras?",
+    options: [{ text: "Sittande", recommended: true }, { text: "Lämna tomt" }],
+  }]);
+});
+
+Deno.test("questions: several real questions, no options, and a non-question item stay separate", () => {
+  assertEquals(q("1. mmHg or kPa?\n2. Keep b?").map((x) => x.options.length), [0, 0]);
+  // The previous item is not a question, so the heuristic does not apply.
+  assertEquals(q("1. Confirm the unit mapping\n2. Leave device empty").length, 2);
+  assertEquals(q("- Only one?"), [{ text: "Only one?", options: [] }]);
+});
+
+Deno.test("questions in the envelope: string or {text, options}; validate and merge with prose", () => {
+  const env = {
+    format: "intehrgrator-suggestions",
+    version: "2",
+    target: { format: "openehr-template", targetId: "t" },
+    questions: [
+      "Which cuff?",
+      { text: "Default position?", options: ["Sitting (recommended)", { text: "Lying" }] },
+    ],
+    suggestions: [],
+  };
+  assertEquals(validateSuggestionEnvelope(env), []);
+  assertEquals(parseSuggestionsPayload(JSON.stringify(env)).questions, [
+    "Which cuff?",
+    { text: "Default position?", options: [{ text: "Sitting", recommended: true }, "Lying"] },
+  ]);
+  const view = parseAiAnswerNotes(`${JSON.stringify(env)}\n\n### Questions\n1. Default position?\n2. New one?`);
+  assertEquals(view.questions, [
+    { text: "Which cuff?", options: [] },
+    { text: "Default position?", options: [{ text: "Sitting", recommended: true }, { text: "Lying" }] },
+    { text: "New one?", options: [] },
+  ]);
+  const bad = validateSuggestionEnvelope({ ...env, questions: [{ options: ["x"] }] });
+  assertEquals(bad.length > 0, true, "a question object needs text");
+});
+
+Deno.test("prompt texts state the fixed Questions syntax", () => {
+  for (const text of [NOTES_CONVENTION, MAPPING_TOOLS_SYSTEM]) {
+    assertStringIncludes(text, "sub-bullets");
+    assertStringIncludes(text, "(recommended)");
+  }
 });

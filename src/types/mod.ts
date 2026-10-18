@@ -451,6 +451,11 @@ export interface SuggestionBlock {
   extraState?: unknown;
 }
 
+/** `questions[]` item: a string, or `{ text, options? }` (option: string or `{ text, recommended? }`). */
+export type AiQuestionEntry =
+  | string
+  | { text: string; options?: Array<string | { text: string; recommended?: boolean }> };
+
 export interface SuggestionEnvelope {
   format: "intehrgrator-suggestions";
   version: "2";
@@ -475,8 +480,8 @@ export interface SuggestionEnvelope {
   }>;
   /** Top-level risks for the user (sparingly). */
   notes?: string[];
-  /** Questions for the user. */
-  questions?: string[];
+  /** Questions for the user: plain text, or text plus suggested answers. */
+  questions?: AiQuestionEntry[];
 }
 
 export interface SchemaIssue {

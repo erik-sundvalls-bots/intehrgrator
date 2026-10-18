@@ -35,7 +35,7 @@ export interface ImportAiDialogOptions {
   notes?: HTMLElement;
   describeSlot?: (slotId: string) => string | undefined;
   /** **Answer** on a question (e.g. close and quote it into AI chat). */
-  onAnswer?: (question: string, index: number) => void;
+  onAnswer?: (question: string, index: number, option?: string) => void;
 }
 
 function count(n: number, one: string, many: string): string {
@@ -107,9 +107,9 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
     const view = renderAiNotes(parseAiAnswerNotes(textarea.value), {
       describeSlot: options.describeSlot,
       onAnswer: options.onAnswer
-        ? (question, index) => {
+        ? (question, index, option) => {
           dialog.close();
-          options.onAnswer!(question, index);
+          options.onAnswer!(question, index, option);
         }
         : undefined,
     });

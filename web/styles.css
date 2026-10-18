@@ -2014,13 +2014,23 @@ body.sheets-fullscreen::before {
 .ai-notes-list { margin: 0; padding-left: 18px; }
 .ai-notes-item { margin: 2px 0; }
 .ai-notes-slot { font-size: 11px; background: rgba(0, 0, 0, 0.06); padding: 0 3px; border-radius: 3px; }
-.ai-notes-question { display: flex; align-items: baseline; gap: 8px; }
+.ai-notes-question { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .ai-notes-question-text { flex: 1; }
 .ai-notes-answer {
   flex-shrink: 0; font-size: 11px; padding: 1px 8px; border-radius: 10px; cursor: pointer;
   border: 1px solid var(--primary); background: #fff; color: var(--primary);
 }
 .ai-notes-answer:hover { background: var(--primary); color: #fff; }
+/* Suggested answers: small choice chips on their own line under the question. */
+.ai-notes-options { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; padding-left: calc(1.3em + 8px); }
+.ai-notes-option {
+  font-size: 11px; line-height: 1.35; padding: 1px 8px; border-radius: 10px; text-align: left;
+  border: 1px solid #c9d6d4; background: #fff; color: var(--text); cursor: pointer; max-width: 100%;
+}
+.ai-notes-option:hover, .ai-notes-option:focus-visible { border-color: var(--primary); background: #e6f2f0; }
+.ai-notes-option--recommended { border-color: var(--primary); font-weight: 600; }
+.ai-notes-option--recommended::before { content: "★ "; color: var(--primary); }
+span.ai-notes-option { cursor: default; }
 .import-ai-notes { margin: 0 0 8px; }
 .import-ai-notes[hidden] { display: none; }
 .import-ai-notes .ai-notes { margin-top: 0; }

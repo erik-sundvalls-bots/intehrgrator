@@ -1538,7 +1538,7 @@ const importAiDialog = installImportAiDialog({
   importText: (text) => controller.importAiSuggestions(text),
   notes: requireEl("import-ai-notes"),
   describeSlot: (slotId) => describeSlotForNotes(slotId),
-  onAnswer: (question, index) => aiChat?.answerQuestion(question, index),
+  onAnswer: (question, index, option) => aiChat?.answerQuestion(question, index, option),
 });
 let aiChat: AiChatPanelHandle | null = null;
 
