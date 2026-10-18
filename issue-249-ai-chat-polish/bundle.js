@@ -138806,6 +138806,24 @@ var en3 = {
   dropLeafHint: "Drop a leaf onto scaffold-target chips, a subtree onto a value socket, or onto empty canvas.",
   emptyMapReady: "Empty default context map ready \u2014 pull from Target schema, then Apply.",
   pickTargetFirst: "Pick a target file or URL first.",
+  aiFetchModels: "Connect & fetch models",
+  aiSelectProvider: "Select provider\u2026",
+  aiSelectModel: "Select model",
+  aiModelOther: "Other\u2026 (type the model id below)",
+  aiModelsNotListedHint: "This provider may not list models; type the model id instead.",
+  aiForgetKey: "Forget key for this provider",
+  aiForgetKeyTitle: "Remove this provider's API key from this browser (endpoint and model are kept)",
+  aiKeyForgotten: "API key for {provider} removed from this browser",
+  aiClearAllProviders: "Clear all",
+  aiForgetKeyConfirm: "Remove the saved API key for {provider} from this browser? Chat history and stored prompts are kept.",
+  aiClearAllProvidersConfirm: "Forget the saved AI settings for all providers in this browser?",
+  aiFetchingModels: "Connecting\u2026",
+  aiModelPickerLabel: "Fetched models",
+  aiModelPickerPlaceholder: "Pick one of {count} models\u2026",
+  aiModelsFound: "Connected \u2014 {count} models. Pick one or keep typing your own.",
+  aiModelsDesktopHint: "The desktop app forwards this call (no CORS); check the endpoint and that the server is running.",
+  aiModelsCorsHint: "If the endpoint and network are fine, the browser likely blocked the call (CORS). Use the desktop app, which forwards it, or enable CORS on a local server (Ollama: OLLAMA_ORIGINS; LM Studio: Enable CORS).",
+  aiModelsAuthHint: "Check the API key (and that it is allowed to list models).",
   corsCallAiHint: "Browser CORS often blocks cloud providers from GitHub Pages. Use the desktop app (it forwards AI chat), enable CORS on a local server (Ollama / LM Studio), or use Copy prompt.",
   savedAs: 'Saved as "{name}"',
   loadedSchema: "Loaded schema {name}",
@@ -188585,8 +188603,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "6c105f3" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T07:54:53.001Z" : "not built";
+var BUILD_ID = true ? "6a76958" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T11:38:58.666Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -192332,7 +192350,9 @@ function installAiChatPanel(options) {
   toggleBtn.id = "ai-chat-toggle";
   toggleBtn.setAttribute("aria-controls", panel.id || "ai-chat-panel");
   toggleBtn.innerHTML = '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect><rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
-  header.append(title, promptsWrap, modeLabel, spacer, clearBtn, toggleBtn);
+  const tools = el("div", { className: "ai-chat-header-tools" });
+  tools.append(promptsWrap, modeLabel, spacer, clearBtn);
+  header.append(title, tools, toggleBtn);
   const body = el("div", { className: "ai-chat-body" });
   const credsNotice = el("div", { className: "ai-chat-creds" });
   credsNotice.id = "ai-chat-creds";
@@ -193159,6 +193179,15 @@ function isMutatingCallAiTool(name2) {
   return name2 === "import_suggestions" || name2 === "map_slot" || name2 === "optional_rm_add" || name2 === "optional_rm_remove" || name2 === "replace_sheets" || name2 === "set_active_example";
 }
 
+// src/core/ai/redact.ts
+var REDACTED_KEY = "[redacted API key]";
+var MIN_REDACT_LENGTH = 8;
+function redactSecret(text, secret) {
+  const key = secret?.trim();
+  if (!key || key.length < MIN_REDACT_LENGTH) return text;
+  return text.split(key).join(REDACTED_KEY);
+}
+
 // src/core/ai/credentials.ts
 var AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
 function parseAiCredentials(raw) {
@@ -193198,9 +193227,6 @@ function saveAiCredentials(storage, credentials) {
   if (!parsed) throw new Error("AI credentials need an HTTP(S) endpoint, API key, and model");
   storage.setItem(AI_CREDENTIALS_STORAGE_KEY, JSON.stringify(parsed));
 }
-function clearAiCredentials(storage) {
-  storage.removeItem(AI_CREDENTIALS_STORAGE_KEY);
-}
 function hasAiCredentials(storage) {
   return loadAiCredentials(storage) != null;
 }
@@ -193235,7 +193261,7 @@ async function postChatCompletions(credentials, messages, options) {
     signal: options?.signal
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+    const detail = redactSecret(await response.text().catch(() => ""), parsed.apiKey);
     throw new Error(
       `AI call failed (${response.status} ${response.statusText})${detail ? `: ${detail.slice(0, 400)}` : ""}`
     );
@@ -193398,6 +193424,225 @@ function applyAiProviderPreset(id4) {
     model: preset.model,
     apiKey: preset.apiKeyPlaceholder ?? ""
   };
+}
+
+// src/core/ai/models.ts
+var ModelListError = class extends Error {
+  constructor(kind, message, status) {
+    super(message);
+    this.kind = kind;
+    this.status = status;
+    this.name = "ModelListError";
+  }
+};
+function modelsUrlFromEndpoint(endpoint) {
+  let url;
+  try {
+    url = new URL(endpoint.trim());
+  } catch {
+    throw new ModelListError("endpoint", "Endpoint must be a full http(s) URL");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new ModelListError("endpoint", "Endpoint must be http(s)");
+  }
+  let path = url.pathname.replace(/\/+$/, "");
+  path = path.replace(/\/chat\/completions$/i, "").replace(
+    /\/completions$/i,
+    ""
+  ).replace(/\/models$/i, "");
+  url.pathname = `${path}/models`;
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+function modelsRequestHeaders(modelsUrl, apiKey) {
+  const headers = { accept: "application/json" };
+  if (!apiKey.trim()) return headers;
+  Object.assign(headers, providerAuthHeaders(modelsUrl, apiKey.trim()));
+  if ("x-api-key" in headers) headers["anthropic-version"] = "2023-06-01";
+  return headers;
+}
+function parseModelsResponse(raw) {
+  const rec = raw && typeof raw === "object" ? raw : {};
+  const rows = Array.isArray(raw) ? raw : Array.isArray(rec.data) ? rec.data : Array.isArray(rec.models) ? rec.models : [];
+  const ids = /* @__PURE__ */ new Set();
+  for (const row of rows) {
+    let id4 = "";
+    if (typeof row === "string") id4 = row;
+    else if (row && typeof row === "object") {
+      const r10 = row;
+      id4 = String(r10.id ?? r10.name ?? r10.model ?? "");
+    }
+    id4 = id4.trim().replace(/^models\//, "");
+    if (id4) ids.add(id4);
+  }
+  return [...ids].sort((a8, b9) => a8.localeCompare(b9));
+}
+async function fetchModelList(endpoint, apiKey, options = {}) {
+  const modelsUrl = modelsUrlFromEndpoint(endpoint);
+  const fetchImpl = options.fetch ?? globalThis.fetch;
+  let response;
+  try {
+    response = options.proxyUrl ? await fetchImpl(options.proxyUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ endpoint: modelsUrl, apiKey }),
+      signal: options.signal
+    }) : await fetchImpl(modelsUrl, {
+      method: "GET",
+      headers: modelsRequestHeaders(modelsUrl, apiKey),
+      signal: options.signal
+    });
+  } catch (err2) {
+    const message = err2 instanceof Error ? err2.message : String(err2);
+    throw new ModelListError(
+      "network",
+      redactSecret(`Could not reach ${modelsUrl} (${message})`, apiKey)
+    );
+  }
+  if (!response.ok) {
+    const detail = redactSecret(
+      (await response.text().catch(() => "")).slice(0, 300),
+      apiKey
+    );
+    const status = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
+    if (response.status === 401 || response.status === 403) {
+      throw new ModelListError(
+        "auth",
+        `${status}: the provider rejected the API key${detail ? ` \u2014 ${detail}` : ""}`,
+        response.status
+      );
+    }
+    throw new ModelListError(
+      "http",
+      `${status} from ${modelsUrl}${detail ? ` \u2014 ${detail}` : ""}`,
+      response.status
+    );
+  }
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    throw new ModelListError("parse", `${modelsUrl} did not return JSON`);
+  }
+  const ids = parseModelsResponse(body);
+  if (!ids.length) {
+    throw new ModelListError("empty", `${modelsUrl} listed no models`);
+  }
+  return ids;
+}
+function modelAfterProviderChange(currentModel, newProviderId, fetchedForNewProvider) {
+  const model = currentModel.trim();
+  const preset = findAiProviderPreset(newProviderId);
+  const fallback2 = preset?.model ?? "";
+  if (!model) return fallback2;
+  if (model === fallback2) return model;
+  if (fetchedForNewProvider?.includes(model)) return model;
+  return fallback2;
+}
+
+// src/core/ai/provider_configs.ts
+var AI_PROVIDER_CONFIGS_KEY = "intehrgrator.ai.providerConfigs";
+var MAX_STORED_MODELS = 1e3;
+function parseConfig(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const r10 = raw;
+  const config2 = {
+    endpoint: String(r10.endpoint ?? "").trim(),
+    apiKey: String(r10.apiKey ?? ""),
+    model: String(r10.model ?? "").trim()
+  };
+  if (typeof r10.testedAt === "string") config2.testedAt = r10.testedAt;
+  if (typeof r10.testOk === "boolean") config2.testOk = r10.testOk;
+  if (typeof r10.testMessage === "string") config2.testMessage = r10.testMessage;
+  if (Array.isArray(r10.models)) {
+    config2.models = r10.models.filter((m5) => typeof m5 === "string").slice(0, MAX_STORED_MODELS);
+  }
+  return config2;
+}
+function loadProviderConfigs(storage) {
+  let raw = null;
+  try {
+    raw = storage.getItem(AI_PROVIDER_CONFIGS_KEY);
+  } catch {
+    return {};
+  }
+  if (raw === null) {
+    const active = loadAiCredentials(storage);
+    if (!active) return {};
+    const seeded = {
+      [active.providerId || "custom"]: {
+        endpoint: active.endpoint,
+        apiKey: active.apiKey,
+        model: active.model
+      }
+    };
+    saveProviderConfigs(storage, seeded);
+    return seeded;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    const out = {};
+    for (const [id4, value] of Object.entries(parsed)) {
+      const config2 = parseConfig(value);
+      if (id4 && config2) out[id4] = config2;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+function saveProviderConfigs(storage, configs) {
+  try {
+    storage.setItem(AI_PROVIDER_CONFIGS_KEY, JSON.stringify(configs));
+  } catch {
+  }
+}
+function upsertProviderConfig(storage, providerId, config2) {
+  const configs = loadProviderConfigs(storage);
+  const clean = parseConfig(config2);
+  if (clean) configs[providerId] = clean;
+  saveProviderConfigs(storage, configs);
+  return configs;
+}
+function forgetProviderKey(storage, providerId, alsoForget = []) {
+  const configs = loadProviderConfigs(storage);
+  const secrets = /* @__PURE__ */ new Set();
+  const own = configs[providerId]?.apiKey.trim();
+  if (own) secrets.add(own);
+  for (const extra of alsoForget) if (extra.trim()) secrets.add(extra.trim());
+  const active = loadAiCredentials(storage);
+  if (active && ((active.providerId || "custom") === providerId || secrets.has(active.apiKey.trim()))) {
+    secrets.add(active.apiKey.trim());
+  }
+  try {
+    const raw = storage.getItem(AI_CREDENTIALS_STORAGE_KEY) ?? "";
+    if (active && (active.providerId || "custom") === providerId || [...secrets].some((k5) => raw.includes(k5))) {
+      storage.removeItem(AI_CREDENTIALS_STORAGE_KEY);
+    }
+  } catch {
+  }
+  for (const [id4, config2] of Object.entries(configs)) {
+    if (id4 !== providerId && !secrets.has(config2.apiKey.trim())) continue;
+    configs[id4] = {
+      endpoint: config2.endpoint,
+      apiKey: "",
+      model: config2.model,
+      ...config2.models ? { models: config2.models } : {}
+    };
+  }
+  saveProviderConfigs(storage, configs);
+  return [...secrets];
+}
+function clearAllProviderConfigs(storage) {
+  storage.removeItem(AI_CREDENTIALS_STORAGE_KEY);
+  saveProviderConfigs(storage, {});
+}
+function providerOptionLabel(label, config2) {
+  return config2?.testOk ? `\u2713 ${label}` : label;
 }
 
 // src/core/ai/mapping_agent.ts
@@ -195876,6 +196121,144 @@ function showAiProviderHelp(providerId) {
     docsLink.href = preset?.docsUrl ?? "https://platform.openai.com/docs/api-reference/chat";
   }
 }
+var aiCredDrafts = {};
+var aiCredProvider = "";
+var MODEL_OTHER = "__other__";
+function aiCredEls() {
+  return {
+    select: document.getElementById("ai-provider"),
+    endpoint: document.getElementById("ai-endpoint"),
+    apiKey: document.getElementById("ai-api-key"),
+    model: document.getElementById("ai-model"),
+    picker: document.getElementById("ai-model-picker"),
+    fetchBtn: document.getElementById("ai-fetch-models"),
+    status: document.getElementById("ai-models-status")
+  };
+}
+function aiCredFormConfig(prev) {
+  const { endpoint, apiKey, model } = aiCredEls();
+  return {
+    ...prev,
+    endpoint: endpoint?.value.trim() ?? "",
+    apiKey: apiKey?.value ?? "",
+    model: model?.value.trim() ?? ""
+  };
+}
+function refreshProviderLabels() {
+  const { select } = aiCredEls();
+  if (!select) return;
+  for (const option of Array.from(select.options)) {
+    if (!option.value) continue;
+    const base2 = option.dataset.baseLabel ?? option.textContent ?? option.value;
+    option.dataset.baseLabel = base2;
+    option.textContent = providerOptionLabel(base2, aiCredDrafts[option.value]);
+  }
+}
+function setModelsStatus(kind, text = "") {
+  const { status } = aiCredEls();
+  if (!status) return;
+  status.hidden = kind === "none";
+  status.textContent = text;
+  status.className = `ai-models-status ai-models-status--${kind}`;
+}
+function showSavedTestStatus(config2) {
+  if (!config2?.testedAt) return setModelsStatus("none");
+  const when = new Date(config2.testedAt).toLocaleString();
+  setModelsStatus(config2.testOk ? "ok" : "error", `${config2.testMessage ?? ""} (${when})`.trim());
+}
+function renderModelPicker(models) {
+  const { select, picker, model, fetchBtn } = aiCredEls();
+  if (!picker) return;
+  const messages = uiChrome();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = models?.length ? messages.aiModelPickerPlaceholder.replace("{count}", String(models.length)) : messages.aiSelectModel;
+  picker.replaceChildren(placeholder);
+  for (const id4 of models ?? []) {
+    const option = document.createElement("option");
+    option.value = id4;
+    option.textContent = id4;
+    picker.append(option);
+  }
+  if (models?.length) {
+    const other = document.createElement("option");
+    other.value = MODEL_OTHER;
+    other.textContent = messages.aiModelOther;
+    picker.append(other);
+  }
+  const chosen = Boolean(select?.value);
+  picker.disabled = !chosen || !models?.length;
+  if (fetchBtn) fetchBtn.disabled = !chosen;
+  picker.value = models?.includes(model?.value.trim() ?? "") ? model.value.trim() : "";
+}
+function applyAiProviderToForm(id4) {
+  const { endpoint, apiKey, model } = aiCredEls();
+  if (aiCredProvider) aiCredDrafts[aiCredProvider] = aiCredFormConfig(aiCredDrafts[aiCredProvider]);
+  const previousModel = model?.value ?? "";
+  aiCredProvider = id4;
+  showAiProviderHelp(id4 || "custom");
+  const saved = id4 ? aiCredDrafts[id4] : void 0;
+  if (saved) {
+    if (endpoint) endpoint.value = saved.endpoint;
+    if (apiKey) apiKey.value = saved.apiKey;
+    if (model) model.value = saved.model;
+    renderModelPicker(saved.models);
+    showSavedTestStatus(saved);
+    return;
+  }
+  if (id4 && id4 !== "custom") {
+    const applied = applyAiProviderPreset(id4);
+    if (endpoint) endpoint.value = applied.endpoint;
+    if (apiKey) apiKey.value = applied.apiKey;
+  }
+  if (model) model.value = modelAfterProviderChange(previousModel, id4, void 0);
+  renderModelPicker(void 0);
+  setModelsStatus("none");
+}
+function modelListErrorText(err2, viaDesktop) {
+  const messages = uiChrome();
+  const message = err2 instanceof Error ? err2.message : String(err2);
+  if (err2 instanceof ModelListError) {
+    if (err2.kind === "network") return `${message}. ${viaDesktop ? messages.aiModelsDesktopHint : messages.aiModelsCorsHint}`;
+    if (err2.kind === "auth") return `${message}. ${messages.aiModelsAuthHint}`;
+    if (err2.kind === "http" && (err2.status === 404 || err2.status === 405)) return `${message}. ${messages.aiModelsNotListedHint}`;
+  }
+  return message;
+}
+async function fetchModelsForDialog() {
+  const { select, endpoint, apiKey, model, fetchBtn } = aiCredEls();
+  const id4 = select?.value ?? "";
+  if (!id4 || !fetchBtn) return;
+  const messages = uiChrome();
+  fetchBtn.disabled = true;
+  fetchBtn.setAttribute("aria-busy", "true");
+  fetchBtn.textContent = messages.aiFetchingModels;
+  setModelsStatus("loading", messages.aiFetchingModels);
+  const chatProxy = await desktopAiProxyUrl();
+  const proxyUrl = chatProxy?.replace(/ai-chat-completions$/, "ai-models");
+  const testedAt = (/* @__PURE__ */ new Date()).toISOString();
+  try {
+    const models = await fetchModelList(endpoint?.value ?? "", apiKey?.value ?? "", {
+      proxyUrl,
+      signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(3e4) : void 0
+    });
+    const text = messages.aiModelsFound.replace("{count}", String(models.length));
+    aiCredDrafts[id4] = { ...aiCredFormConfig(aiCredDrafts[id4]), testOk: true, testedAt, testMessage: text, models };
+    renderModelPicker(models);
+    if (model && !model.value.trim() && models.length === 1) model.value = models[0];
+    setModelsStatus("ok", text);
+  } catch (err2) {
+    const text = modelListErrorText(err2, Boolean(proxyUrl));
+    aiCredDrafts[id4] = { ...aiCredFormConfig(aiCredDrafts[id4]), testOk: false, testedAt, testMessage: text };
+    renderModelPicker(aiCredDrafts[id4]?.models);
+    setModelsStatus("error", text);
+  } finally {
+    fetchBtn.textContent = messages.aiFetchModels;
+    fetchBtn.removeAttribute("aria-busy");
+    fetchBtn.disabled = !select?.value;
+    refreshProviderLabels();
+  }
+}
 function fillProviderSelect() {
   const select = document.getElementById("ai-provider");
   if (!select || select.dataset.filled === "1") return;
@@ -195886,37 +196269,42 @@ function fillProviderSelect() {
     select.append(option);
   }
   select.dataset.filled = "1";
-  select.addEventListener("change", () => {
-    const id4 = select.value;
-    showAiProviderHelp(id4);
-    if (id4 === "custom") return;
-    const applied = applyAiProviderPreset(id4);
-    const endpoint = document.getElementById("ai-endpoint");
-    const apiKey = document.getElementById("ai-api-key");
-    const model = document.getElementById("ai-model");
-    if (!applied.endpoint) return;
-    if (endpoint) endpoint.value = applied.endpoint;
-    if (model) model.value = applied.model;
-    if (apiKey) {
-      if (applied.apiKey) apiKey.value = applied.apiKey;
-      else if (apiKey.value === "ollama" || apiKey.value === "lm-studio") apiKey.value = "";
+  select.addEventListener("change", () => applyAiProviderToForm(select.value));
+  const { picker, model, fetchBtn } = aiCredEls();
+  picker?.addEventListener("change", () => {
+    if (!model) return;
+    if (picker.value === MODEL_OTHER) {
+      picker.value = "";
+      model.focus();
+      model.select();
+    } else if (picker.value) {
+      model.value = picker.value;
     }
   });
+  model?.addEventListener("input", () => {
+    if (!picker) return;
+    const v5 = model.value.trim();
+    picker.value = Array.from(picker.options).some((o12) => o12.value === v5 && v5 !== MODEL_OTHER) ? v5 : "";
+  });
+  fetchBtn?.addEventListener("click", () => void fetchModelsForDialog());
 }
 function openAiCredentialsDialog() {
   const dialog2 = document.getElementById("dialog-ai-credentials");
   if (!dialog2) return;
   fillProviderSelect();
+  aiCredDrafts = loadProviderConfigs(localStorage);
   const creds = loadAiCredentials(localStorage);
-  const select = document.getElementById("ai-provider");
-  const endpoint = document.getElementById("ai-endpoint");
-  const apiKey = document.getElementById("ai-api-key");
-  const model = document.getElementById("ai-model");
-  if (select) select.value = creds?.providerId && findAiProviderPreset(creds.providerId) ? creds.providerId : "custom";
-  showAiProviderHelp(select?.value ?? "custom");
+  const { select, endpoint, apiKey, model } = aiCredEls();
+  const providerId = creds ? creds.providerId && findAiProviderPreset(creds.providerId) ? creds.providerId : "custom" : "";
+  if (select) select.value = providerId;
+  aiCredProvider = providerId;
+  showAiProviderHelp(providerId || "custom");
   if (endpoint) endpoint.value = creds?.endpoint ?? "";
   if (apiKey) apiKey.value = creds?.apiKey ?? "";
   if (model) model.value = creds?.model ?? "";
+  renderModelPicker(aiCredDrafts[providerId]?.models);
+  showSavedTestStatus(aiCredDrafts[providerId]);
+  refreshProviderLabels();
   setSelectedMappingMode(creds?.mappingMode === "suggestions" ? "suggestions" : "tools");
   dialog2.showModal();
 }
@@ -196135,7 +196523,26 @@ document.getElementById("ai-credentials-cancel")?.addEventListener("click", () =
   document.getElementById("dialog-ai-credentials")?.close();
 });
 document.getElementById("ai-credentials-clear")?.addEventListener("click", () => {
-  clearAiCredentials(localStorage);
+  const { select, apiKey } = aiCredEls();
+  const id4 = select?.value || "custom";
+  const label = findAiProviderPreset(id4)?.label ?? uiChrome().customEndpoint;
+  if (!confirm(uiChrome().aiForgetKeyConfirm.replace("{provider}", label))) return;
+  const forgotten = forgetProviderKey(localStorage, id4, apiKey?.value ? [apiKey.value] : []);
+  for (const [pid, draft] of Object.entries(aiCredDrafts)) {
+    if (pid === id4 || forgotten.includes(draft.apiKey.trim())) {
+      aiCredDrafts[pid] = { endpoint: draft.endpoint, apiKey: "", model: draft.model, ...draft.models ? { models: draft.models } : {} };
+    }
+  }
+  if (apiKey) apiKey.value = "";
+  setModelsStatus("none");
+  refreshProviderLabels();
+  updateCopyAiButtonLabel();
+  controller.setStatusMessage(uiChrome().aiKeyForgotten.replace("{provider}", label));
+});
+document.getElementById("ai-credentials-clear-all")?.addEventListener("click", () => {
+  if (!confirm(uiChrome().aiClearAllProvidersConfirm)) return;
+  clearAllProviderConfigs(localStorage);
+  aiCredDrafts = {};
   updateCopyAiButtonLabel();
   document.getElementById("dialog-ai-credentials")?.close();
   controller.setStatusMessage("AI credentials cleared");
@@ -196145,7 +196552,7 @@ document.getElementById("dialog-ai-credentials")?.querySelector("form")?.addEven
   const endpoint = document.getElementById("ai-endpoint")?.value ?? "";
   const apiKey = document.getElementById("ai-api-key")?.value ?? "";
   const model = document.getElementById("ai-model")?.value ?? "";
-  const providerId = document.getElementById("ai-provider")?.value ?? "custom";
+  const providerId = document.getElementById("ai-provider")?.value || "custom";
   try {
     saveAiCredentials(localStorage, {
       endpoint,
@@ -196154,6 +196561,7 @@ document.getElementById("dialog-ai-credentials")?.querySelector("form")?.addEven
       providerId,
       mappingMode: selectedMappingMode()
     });
+    upsertProviderConfig(localStorage, providerId, aiCredFormConfig(aiCredDrafts[providerId]));
     updateCopyAiButtonLabel();
     document.getElementById("dialog-ai-credentials")?.close();
     controller.setStatusMessage("AI credentials saved in this browser");

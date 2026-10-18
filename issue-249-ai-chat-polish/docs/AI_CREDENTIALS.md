@@ -16,6 +16,13 @@ GitHub Pages browsers often hit **CORS** on cloud APIs. The **desktop app** forw
 
 The credentials dialog links each vendor’s key page and API docs. This file is the longer walkthrough.
 
+**In the dialog:**
+
+- **Several providers are remembered** (`intehrgrator.ai.providerConfigs`): switching **Provider** restores that provider's endpoint, key, model and last connection test; a ✓ marks providers whose test succeeded. The provider selected on **Save** becomes the active one (`intehrgrator.ai.credentials`). An older single saved credential migrates automatically.
+- **Connect & fetch models** calls `GET <base>/models` (the chat completions URL without `/chat/completions`, e.g. Gemini `…/v1beta/openai/models`, OpenRouter `…/api/v1/models`, Ollama / LM Studio `…:port/v1/models`) with the key, then fills the **Select model** dropdown. Typing a model id by hand still works (**Other…**), e.g. for providers that do not list models. Errors (HTTP status, rejected key, CORS / network) show inline; the desktop app forwards this call too (`POST /api/v1/ai-models`).
+- Switching provider never keeps a model that the new provider is not known to offer: it falls back to that provider's default (or empty).
+- **Forget key for this provider** removes that API key from credential storage (its saved settings, copies under other providers, and the active credential); endpoint and model stay. **Clear all** forgets every provider. The key is only ever sent in request headers: it is not written into chat history, stored prompts, Copy prompt text, exports or Project Bundles, and provider error messages that echo it are redacted.
+
 ## Google Gemini
 
 1. Open [Google AI Studio API keys](https://aistudio.google.com/app/apikey) ([key docs](https://ai.google.dev/gemini-api/docs/api-key)).

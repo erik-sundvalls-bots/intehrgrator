@@ -1,10 +1,10 @@
 {
   "issue-249-ai-chat-polish": {
-    "built": "2026-10-18T07:54:54Z",
+    "built": "2026-10-18T11:39:00Z",
     "dir": "issue-249-ai-chat-polish",
     "mode": "merged",
     "pr": "250\thttps://github.com/regionstockholm/intehrgrator/pull/250\tOPEN\tAI chat polish: dismissible notice, resizable entry, copy/paste menu, divider, drop Refresh merge (#249)",
-    "sha": "6c105f354cb3489c09a7dcd2a39bd3ea45b1f47c",
+    "sha": "6a76958b04ab889e3f09b1764280340b65cd7ba1",
     "upstream": "c86e168b923b09a7c729cb6e4dc9910eb40a9f19"
   }
 }
