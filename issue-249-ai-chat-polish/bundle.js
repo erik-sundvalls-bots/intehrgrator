@@ -138907,13 +138907,10 @@ var en3 = {
   noAgentsYet: "No agents connected yet.",
   optionalAttributes: "Optional attributes\u2026",
   openViewerMenu: "Open viewer window\u2026",
-  menuStartAiChat: "Start AI chat",
-  menuStartAiChatTitle: "Chat with your own AI about this mapping",
   openInAiChat: "Open in AI chat",
   aiChat: "AI chat",
-  aiChatMinimize: "Minimize AI chat",
-  aiChatRestore: "Restore AI chat",
-  aiChatClose: "Close AI chat",
+  aiChatCollapse: "Collapse AI chat",
+  aiChatExpand: "Expand AI chat",
   aiChatClear: "Clear history",
   aiChatClearTitle: "Clear this project's chat history (shrinks the context sent to the AI)",
   aiChatClearConfirm: "Clear the AI chat history for this project?",
@@ -140808,7 +140805,6 @@ var fr3 = {
 // src/ui/chrome_sv.ts
 var sv2 = {
   ...en3,
-  menuStartAiChat: "Starta AI-chatt",
   openInAiChat: "\xD6ppna i AI-chatt",
   aiChat: "AI-chatt",
   addToAiChat: "L\xE4gg till i AI-chatt",
@@ -188589,8 +188585,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "e1931e4" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T07:42:10.120Z" : "not built";
+var BUILD_ID = true ? "6c105f3" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T07:54:53.001Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -192223,7 +192219,8 @@ function ui4() {
   return chrome(detectLocale());
 }
 var AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
-var AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
+var AI_CHAT_COLLAPSED_KEY = "intehrgrator.ai.chatCollapsed";
+var LEGACY_AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 var AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 var PROJECT_CONTEXT_HEADING = "## Project context";
 var MIN_LOG_PX = 32;
@@ -192266,6 +192263,13 @@ function readInputParts(root) {
   walk2(root, true);
   return normalizeParts(parts);
 }
+function readCollapsed(storage) {
+  const stored = storage.getItem(AI_CHAT_COLLAPSED_KEY);
+  if (stored !== null) return stored !== "0";
+  const legacyOpen = storage.getItem(LEGACY_AI_CHAT_OPEN_KEY) === "1";
+  storage.removeItem(LEGACY_AI_CHAT_OPEN_KEY);
+  return !legacyOpen;
+}
 function installAiChatPanel(options) {
   const { panel, stack, tabs, storage } = options;
   const confirmFn = options.confirm ?? ((m5) => globalThis.confirm(m5));
@@ -192274,7 +192278,7 @@ function installAiChatPanel(options) {
   let session = loadChatSession(storage, options.projectId());
   let sessionProject = options.projectId();
   let disposeSplit = null;
-  let minimized = false;
+  let collapsed = readCollapsed(storage);
   let sending = false;
   let lastTurnRevertible = false;
   let forceContext = false;
@@ -192284,6 +192288,7 @@ function installAiChatPanel(options) {
   panel.classList.add("ai-chat-panel");
   const header = el("div", { className: "ai-chat-header" });
   const title = el("h3", { className: "ai-chat-title", text: ui4().aiChat });
+  title.id = "ai-chat-title";
   const promptsWrap = el("div", { className: "ai-chat-prompts" });
   const promptsBtn = el("button", {
     className: "pane-btn ai-chat-prompts-btn",
@@ -192323,17 +192328,11 @@ function installAiChatPanel(options) {
     type: "button"
   });
   clearBtn.id = "ai-chat-clear";
-  const minBtn = el("button", { className: "pane-btn pane-btn-icon ai-chat-min", text: "\u2581", type: "button" });
-  minBtn.id = "ai-chat-minimize";
-  const closeBtn = el("button", {
-    className: "pane-btn pane-btn-icon ai-chat-close",
-    text: "\u2715",
-    title: ui4().aiChatClose,
-    type: "button"
-  });
-  closeBtn.id = "ai-chat-close";
-  closeBtn.setAttribute("aria-label", ui4().aiChatClose);
-  header.append(title, promptsWrap, modeLabel, spacer, clearBtn, minBtn, closeBtn);
+  const toggleBtn = el("button", { className: "pane-btn pane-slide-btn ai-chat-toggle", type: "button" });
+  toggleBtn.id = "ai-chat-toggle";
+  toggleBtn.setAttribute("aria-controls", panel.id || "ai-chat-panel");
+  toggleBtn.innerHTML = '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect><rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
+  header.append(title, promptsWrap, modeLabel, spacer, clearBtn, toggleBtn);
   const body = el("div", { className: "ai-chat-body" });
   const credsNotice = el("div", { className: "ai-chat-creds" });
   credsNotice.id = "ai-chat-creds";
@@ -192565,9 +192564,13 @@ function installAiChatPanel(options) {
     modeLabel.hidden = !hasCreds;
     copyBtn.classList.toggle("pane-btn-primary", !hasCreds);
     copyChevron.classList.toggle("pane-btn-primary", !hasCreds);
-    minBtn.title = minimized ? ui4().aiChatRestore : ui4().aiChatMinimize;
-    minBtn.setAttribute("aria-label", minBtn.title);
-    minBtn.textContent = minimized ? "\u2594" : "\u2581";
+    promptsWrap.hidden = collapsed;
+    clearBtn.hidden = collapsed;
+    if (collapsed) modeLabel.hidden = true;
+    panel.classList.toggle("ai-chat-panel--collapsed", collapsed);
+    toggleBtn.title = collapsed ? ui4().aiChatExpand : ui4().aiChatCollapse;
+    toggleBtn.setAttribute("aria-label", toggleBtn.title);
+    toggleBtn.setAttribute("aria-expanded", String(!collapsed));
   };
   const composePrompt = (delivery) => {
     const parts = readInputParts(input);
@@ -192775,40 +192778,34 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
       onResize: options.onLayout
     });
   };
-  const open = () => {
+  const setCollapsed = (next, focus = false) => {
     syncProject();
-    if (panel.hidden) credsDismissed = false;
-    panel.hidden = false;
-    storage.setItem(AI_CHAT_OPEN_KEY, "1");
-    if (!minimized) split();
+    collapsed = next;
+    storage.setItem(AI_CHAT_COLLAPSED_KEY, collapsed ? "1" : "0");
+    if (collapsed) {
+      unsplit();
+      closeCopyMenu();
+      closePromptsMenu();
+      hidePopover();
+    } else {
+      split();
+    }
     refreshChrome();
-    renderLog();
+    if (!collapsed) renderLog();
     options.onLayout?.();
-    if (!minimized) input.focus();
+    if (!collapsed && focus) input.focus();
   };
-  const close = () => {
-    unsplit();
-    panel.hidden = true;
-    credsDismissed = false;
-    grip.removeAttribute("aria-valuenow");
-    input.style.height = "";
-    input.style.maxHeight = "";
-    closeCopyMenu();
-    hidePopover();
-    storage.removeItem(AI_CHAT_OPEN_KEY);
-    options.onLayout?.();
+  const expand = () => {
+    if (collapsed) setCollapsed(false, true);
   };
-  const toggleMinimize = () => {
-    minimized = !minimized;
-    panel.classList.toggle("ai-chat-panel--minimized", minimized);
-    if (minimized) unsplit();
-    else split();
-    refreshChrome();
-    options.onLayout?.();
+  const collapse = () => {
+    if (!collapsed) setCollapsed(true);
   };
-  minBtn.addEventListener("click", toggleMinimize);
-  title.addEventListener("dblclick", toggleMinimize);
-  closeBtn.addEventListener("click", close);
+  toggleBtn.addEventListener("click", () => setCollapsed(!collapsed, true));
+  title.addEventListener("dblclick", () => setCollapsed(!collapsed, true));
+  header.addEventListener("click", (ev) => {
+    if (collapsed && !toggleBtn.contains(ev.target)) expand();
+  });
   clearBtn.addEventListener("click", () => {
     if (!confirmFn(ui4().aiChatClearConfirm)) return;
     syncProject();
@@ -192861,28 +192858,25 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
   sendBtn.addEventListener("click", () => void send());
   copyBtn.addEventListener("click", () => void copyPrompt());
   importBtn.addEventListener("click", () => options.openImportDialog());
-  refreshChrome();
-  renderLog();
-  if (storage.getItem(AI_CHAT_OPEN_KEY) === "1") open();
+  panel.hidden = false;
+  setCollapsed(collapsed);
   return {
-    open,
-    close,
-    isOpen: () => !panel.hidden,
+    expand,
+    collapse,
+    isExpanded: () => !collapsed,
     addChip(chip) {
-      if (panel.hidden) open();
-      if (minimized) toggleMinimize();
+      expand();
       insertChip(chip);
     },
     prefill(text) {
-      if (panel.hidden) open();
-      if (minimized) toggleMinimize();
+      expand();
       setInputParts([{ text }]);
       input.focus();
     },
     refresh() {
       const changed = syncProject();
       refreshChrome();
-      if (changed && !panel.hidden) renderLog();
+      if (changed && !collapsed) renderLog();
     },
     inputParts: () => readInputParts(input)
   };
@@ -194884,9 +194878,7 @@ function installCopyAiMenu() {
     btn.addEventListener("click", () => {
       const action = btn.dataset.aiAction;
       handle.close();
-      if (action === "chat") {
-        aiChat?.open();
-      } else if (action === "credentials") {
+      if (action === "credentials") {
         openAiCredentialsDialog();
       } else if (action === "local-mcp") {
         openLocalMcpDialog();
