@@ -79,7 +79,7 @@ Deno.test({
       await page.click("#import-ai-confirm");
       await page.waitForFunction(() => {
         const report = document.querySelector("#import-ai-report");
-        return Boolean(report && !report.hasAttribute("hidden") && /1 applied/i.test(report.textContent ?? ""));
+        return Boolean(report && !report.hasAttribute("hidden") && /Imported: 1 mapping applied/.test(report.textContent ?? ""));
       }, { timeout: 5_000 });
       await page.click("#import-ai-cancel");
       await page.waitForSelector("#dialog-import-ai[open]", { state: "detached", timeout: 5_000 }).catch(async () => {

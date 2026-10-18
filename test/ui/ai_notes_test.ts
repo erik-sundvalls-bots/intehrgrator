@@ -90,11 +90,14 @@ Deno.test({
         !(await slotNote.locator("code").innerText()).includes("/"),
         "slot shown by its path label",
       );
+      // Nothing is counted before Import runs.
+      assertEquals(await page.locator("#import-ai-report").isHidden(), true);
       // Import still applies the suggestion despite the surrounding prose.
       await page.click("#import-ai-confirm");
-      await page.locator("#import-ai-report", { hasText: "1 applied" }).waitFor(
+      await page.locator("#import-ai-report", { hasText: "Imported: 1 mapping applied" }).waitFor(
         { timeout: 5_000 },
       );
+      assertEquals(await page.locator("#import-ai-confirm").isDisabled(), true, "same text is not imported twice");
       // Answer → dialog closes, chat expands with the question quoted.
       await box.locator(".ai-notes-answer").first().click();
       await page.waitForSelector("#dialog-import-ai:not([open])", {

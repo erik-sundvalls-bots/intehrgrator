@@ -11,11 +11,11 @@ Deno.test("formatImportReport marks clean apply as ok", () => {
     schemaIssues: [],
   });
   assertEquals(kind, "ok");
-  assertEquals(summary.includes("2 applied"), true);
+  assertEquals(summary.includes("Imported: 2 mappings applied · 1 loop added"), true);
 });
 
 Deno.test("formatImportReport marks parse failure as error", () => {
-  const { kind } = formatImportReport({
+  const { kind, summary } = formatImportReport({
     applied: 0,
     skipped: 0,
     errors: ["Invalid format field"],
@@ -23,6 +23,7 @@ Deno.test("formatImportReport marks parse failure as error", () => {
     schemaIssues: [],
   });
   assertEquals(kind, "error");
+  assertEquals(summary, "Nothing imported: 0 mappings applied · 0 loops added · 0 skipped · 1 error · 0 schema issues");
 });
 
 Deno.test("formatImportReport is partial when mappings applied with schema issues", () => {
@@ -34,7 +35,7 @@ Deno.test("formatImportReport is partial when mappings applied with schema issue
     schemaIssues: [{ path: "$.format", message: "missing" }],
   });
   assertEquals(kind, "partial");
-  assertEquals(summary.includes("1 schema"), true);
+  assertEquals(summary.includes("1 schema issue"), true);
   assertEquals(summary.includes("valid entries only"), true);
 });
 

@@ -61,7 +61,7 @@ Deno.test({
       await badge.waitFor();
       assertEquals(await badge.innerText(), "30%");
       await page.click("#import-ai-confirm");
-      await page.locator("#import-ai-report", { hasText: "1 applied" }).waitFor(
+      await page.locator("#import-ai-report", { hasText: "Imported: 1 mapping applied" }).waitFor(
         { timeout: 5_000 },
       );
       await page.click("#import-ai-cancel").catch(() =>

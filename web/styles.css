@@ -2053,3 +2053,4 @@ body.sheets-fullscreen::before {
 .ai-chat-title { white-space: nowrap; }
 .ai-chat-panel--collapsed .ai-chat-info { display: none; }
 .ai-chat-info-balloon { max-width: min(360px, calc(100vw - 16px)) !important; line-height: 1.45; }
+.dialog-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
