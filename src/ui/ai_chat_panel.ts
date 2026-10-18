@@ -244,7 +244,10 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     '<svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">' +
     '<rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect>' +
     '<rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
-  header.append(title, promptsWrap, modeLabel, spacer, clearBtn, toggleBtn);
+  // Tools wrap inside their own group so the toggle stays on the first row.
+  const tools = el("div", { className: "ai-chat-header-tools" });
+  tools.append(promptsWrap, modeLabel, spacer, clearBtn);
+  header.append(title, tools, toggleBtn);
 
   // ── body ──────────────────────────────────────────────────────────────────
   const body = el("div", { className: "ai-chat-body" });
