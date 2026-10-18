@@ -29,6 +29,9 @@ The credentials dialog links each vendor’s key page and API docs. This file is
 2. Create a key. New keys are **auth keys**. As of September 2026 the Gemini API rejects unrestricted **standard** keys — migrate if an old key fails.
 3. Preset fills `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` and a current Flash model (`gemini-3.8-flash`).
 4. OpenAI-compat + tools: [Gemini OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai).
+5. Gemini 3.x returns a [thought signature](https://ai.google.dev/gemini-api/docs/thought-signatures) on each tool call (`tool_calls[].extra_content.google.thought_signature`). AI chat sends it back unchanged on the next step; without it Gemini answers 400. Gemini counts thinking tokens against `max_tokens`, so AI chat asks Gemini endpoints for up to 32768 output tokens (8192 elsewhere).
+
+**Long answers:** when the provider stops at its output-token limit (`finish_reason` `length` / `MAX_TOKENS`), AI chat shows a note saying the answer was cut off (a cut-off suggestions block cannot be imported). It also says so when a tools turn stops after 16 tool steps. Ask for fewer slots at a time (for example one loop) or send "continue".
 
 ## OpenAI
 

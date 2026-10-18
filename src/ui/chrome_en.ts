@@ -565,6 +565,11 @@ export const en = {
   aiChatImportAnswer: "Import AI answer…",
   aiChatPromptCopied: "Prompt copied. Paste it into your AI chat, then Import AI answer.",
   aiChatApproveHint: "Review the suggestions in Import Suggestions.",
+  aiChatTruncated:
+    "The answer was cut off at the model's output-token limit, so nothing could be imported. Ask again for fewer slots at a time (for example one loop), or send \"continue\".",
+  aiChatStepLimit: "Stopped after {steps} tool steps; the model was not finished. Send \"continue\" to let it go on.",
+  aiChatToolsFallback:
+    "The provider rejected the mapping tools, so this answer was requested as suggestions JSON instead.",
   aiChatEmpty: "No messages yet.",
   addToAiChat: "Add to AI chat",
   aiChatChipRemove: "Remove",

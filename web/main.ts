@@ -205,6 +205,7 @@ import { listSlotsInspect } from "../src/agent/inspect.ts";
 import { looksLikeSuggestionsPayload } from "../src/core/ai/mod.ts";
 import {
   hasAiCredentials,
+  isToolsUnsupportedError,
   loadAiCredentials,
   saveAiCredentials,
 } from "../src/core/ai/credentials.ts";
@@ -2787,11 +2788,6 @@ function formatCallAiError(err: unknown): string {
   return message;
 }
 
-function isToolsUnsupportedError(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err);
-  return /400/.test(message) && /tool/i.test(message);
-}
-
 function selectedMappingMode(): "tools" | "suggestions" {
   const suggestions = document.getElementById("ai-mapping-mode-suggestions") as HTMLInputElement | null;
   return suggestions?.checked ? "suggestions" : "tools";
@@ -3034,6 +3030,7 @@ async function runApproveFirstTurn(
   creds: NonNullable<ReturnType<typeof loadAiCredentials>>,
   proxyUrl: string | undefined,
   signal: AbortSignal | undefined,
+  fallbackNote?: string,
 ): Promise<AiChatTurnResult> {
   const result = await runSuggestionsChatTurn({
     credentials: creds,
@@ -3042,12 +3039,20 @@ async function runApproveFirstTurn(
     proxyUrl,
     signal,
   });
-  let note: string | undefined;
-  if (looksLikeSuggestionsPayload(result.text)) {
+  const notes: string[] = fallbackNote ? [fallbackNote] : [];
+  if (result.truncated) {
+    notes.push(uiChrome().aiChatTruncated);
+  } else if (looksLikeSuggestionsPayload(result.text)) {
     void importAiDialog.open(result.text);
-    note = uiChrome().aiChatApproveHint;
+    notes.push(uiChrome().aiChatApproveHint);
   }
-  return { text: result.text, messages: result.messages, toolCalls: [], revertible: false, note };
+  return {
+    text: result.text,
+    messages: result.messages,
+    toolCalls: [],
+    revertible: false,
+    note: notes.join(" ") || undefined,
+  };
 }
 
 async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
@@ -3088,6 +3093,11 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
       toolCalls: result.toolNames,
       revertible,
       suggestionNotes: result.suggestionNotes,
+      note: result.truncated
+        ? uiChrome().aiChatTruncated
+        : result.stepLimitReached
+        ? formatMessage(uiChrome().aiChatStepLimit, { steps: result.steps })
+        : undefined,
     };
   } catch (err) {
     if (!isToolsUnsupportedError(err)) {
@@ -3095,7 +3105,7 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
       throw err;
     }
     controller.setStatusMessage("Provider rejected mapping tools; asking for suggestions JSON…");
-    return await runApproveFirstTurn(request, creds, proxyUrl, signal);
+    return await runApproveFirstTurn(request, creds, proxyUrl, signal, uiChrome().aiChatToolsFallback);
   }
 }
 

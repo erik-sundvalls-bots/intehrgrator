@@ -27,6 +27,10 @@ export interface MappingAgentResult {
   messages: ChatMessage[];
   /** Per-suggestion `note` fields from envelopes sent to import_suggestions this turn. */
   suggestionNotes: SuggestionNote[];
+  /** The last answer stopped at the output-token limit (finish_reason length). */
+  truncated?: boolean;
+  /** The loop ran out of steps while the model still wanted to call tools. */
+  stepLimitReached?: boolean;
 }
 
 export interface RunMappingAgentOptions {
@@ -60,7 +64,7 @@ function parseToolArgs(raw: string): Record<string, unknown> {
 
 function assistantMessageForLoop(
   message: ChatMessage | undefined,
-  toolCalls: Array<{ id: string; name: string; arguments: string }>,
+  toolCalls: Array<{ id: string; name: string; arguments: string; extraContent?: unknown }>,
 ): ChatMessage {
   if (message?.tool_calls?.length) return message;
   return {
@@ -70,6 +74,7 @@ function assistantMessageForLoop(
       id: row.id,
       type: "function",
       function: { name: row.name, arguments: row.arguments },
+      ...(row.extraContent !== undefined ? { extra_content: row.extraContent } : {}),
     })),
   };
 }
@@ -92,6 +97,10 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   const toolNames: string[] = [];
   const maxSteps = options.maxSteps ?? 16;
   let lastText = "";
+  // Text the model writes next to tool calls is part of the answer (models
+  // continue a sentence across steps): keep every step's text, not only the last.
+  const texts: string[] = [];
+  const answer = () => texts.join("\n\n");
   let imported: ImportSuggestionsReport | undefined;
   const suggestionNotes: SuggestionNote[] = [];
 
@@ -103,13 +112,22 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
       tools,
     });
     lastText = completion.text;
+    if (completion.text.trim()) texts.push(completion.text.trim());
     const calls = completion.toolCalls ?? [];
     if (!calls.length) {
       if (options.importText && looksLikeSuggestionsPayload(completion.text)) {
         imported = options.importText(completion.text);
       }
       messages.push(completion.assistantMessage ?? { role: "assistant", content: completion.text });
-      return { text: completion.text, toolNames, imported, steps: step, messages: conversation(), suggestionNotes };
+      return {
+        text: answer(),
+        toolNames,
+        imported,
+        steps: step,
+        messages: conversation(),
+        suggestionNotes,
+        ...(completion.truncated ? { truncated: true } : {}),
+      };
     }
 
     messages.push(assistantMessageForLoop(completion.assistantMessage, calls));
@@ -143,7 +161,15 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
     imported = options.importText(lastText);
   }
-  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation(), suggestionNotes };
+  return {
+    text: answer(),
+    toolNames,
+    imported,
+    steps: maxSteps,
+    messages: conversation(),
+    suggestionNotes,
+    stepLimitReached: true,
+  };
 }
 
 function notesFromToolArgs(name: string, args: Record<string, unknown>): SuggestionNote[] {
@@ -174,7 +200,7 @@ export async function runSuggestionsChatTurn(options: {
   fetch?: typeof fetch;
   signal?: AbortSignal;
   proxyUrl?: string;
-}): Promise<{ text: string; messages: ChatMessage[] }> {
+}): Promise<{ text: string; messages: ChatMessage[]; truncated?: boolean }> {
   const history = options.history ?? [];
   const messages: ChatMessage[] = [
     { role: "system", content: SUGGESTIONS_SYSTEM },
@@ -187,7 +213,11 @@ export async function runSuggestionsChatTurn(options: {
     proxyUrl: options.proxyUrl,
   });
   messages.push({ role: "assistant", content: completion.text });
-  return { text: completion.text, messages: messages.slice(1) };
+  return {
+    text: completion.text,
+    messages: messages.slice(1),
+    ...(completion.truncated ? { truncated: true } : {}),
+  };
 }
 
 export async function runMappingAgentOnController(
