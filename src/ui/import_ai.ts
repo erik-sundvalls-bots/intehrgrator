@@ -10,6 +10,8 @@ import {
   schemaUrlFromFormatDoc,
 } from "../core/ai/mod.ts";
 import { locateIssueInText } from "../core/ai/json_locate.ts";
+import { parseAiAnswerNotes } from "../core/ai/mod.ts";
+import { renderAiNotes } from "./ai_notes_view.ts";
 import { detectLocale } from "../blockly/i18n/locale.ts";
 import { chrome } from "./chrome_i18n.ts";
 
@@ -29,6 +31,11 @@ export interface ImportAiDialogOptions {
   readClipboard: () => Promise<string>;
   copyToClipboard: (text: string) => Promise<void>;
   importText: (text: string) => ImportSuggestionsReport;
+  /** Box above the textarea for the answer's Notes / Questions (Option C). */
+  notes?: HTMLElement;
+  describeSlot?: (slotId: string) => string | undefined;
+  /** **Answer** on a question (e.g. close and quote it into AI chat). */
+  onAnswer?: (question: string, index: number) => void;
 }
 
 export function formatImportReport(report: ImportSuggestionsReport): {
@@ -73,6 +80,24 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
   } = options;
   const form = dialog.querySelector("form");
   let lastReport: ImportSuggestionsReport | null = null;
+
+  /** Notes / Questions outside the fence and per-suggestion `note` fields. */
+  const renderNotes = () => {
+    const box = options.notes;
+    if (!box) return;
+    const view = renderAiNotes(parseAiAnswerNotes(textarea.value), {
+      describeSlot: options.describeSlot,
+      onAnswer: options.onAnswer
+        ? (question, index) => {
+          dialog.close();
+          options.onAnswer!(question, index);
+        }
+        : undefined,
+    });
+    box.replaceChildren(...(view ? [view] : []));
+    box.hidden = !view;
+  };
+  textarea.addEventListener("input", renderNotes);
 
   const clearReport = () => {
     lastReport = null;
@@ -152,13 +177,16 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
     clearReport();
     cancel.textContent = ui().cancel;
     textarea.value = "";
+    renderNotes();
     if (!dialog.open) dialog.showModal();
     if (prefill !== undefined) {
       textarea.value = prefill;
+      renderNotes();
       textarea.focus();
       return;
     }
     const filled = await fillFromClipboard();
+    renderNotes();
     if (!filled) {
       textarea.placeholder = '{"format":"intehrgrator-suggestions","version":"2","suggestions":[…]}';
     }
@@ -217,6 +245,7 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
       }
       textarea.value = text;
       clearReport();
+      renderNotes();
     })();
   });
   copyErrors.addEventListener("click", () => void copyFollowUp());

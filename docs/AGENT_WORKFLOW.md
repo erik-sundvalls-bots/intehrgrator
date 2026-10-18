@@ -65,7 +65,7 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/import-suggestions` | `import_suggestions` | Apply `intehrgrator-suggestions` JSON (body = text) |
 | POST | `/build-prompt` | `build_prompt` | Copy AI Prompt markdown |
 | POST | `/patch-prompt` | `build_patch_prompt` | `{ targetSeq }` → patch-undo prompt |
-| POST | `/map-slot` | `map_slot` | `{ slotId, path, format? }` |
+| POST | `/map-slot` | `map_slot` | `{ slotId, path, format?, note?, confidence? }` (`confidence`: integer 0–100) |
 | PUT | `/blockly` | `put_blockly` | Replace workspace JSON (escape hatch) |
 | POST | `/optional-rm/add` | `optional_rm_add` | `{ parentSlotId, rmType, attributeName }` |
 | POST | `/optional-rm/remove` | `optional_rm_remove` | `{ parentSlotId, attributeName }` |

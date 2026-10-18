@@ -105,7 +105,7 @@ export function hasAiCredentials(storage: Storage): boolean {
 }
 
 export const SUGGESTIONS_SYSTEM =
-  "You are an intEHRgrator mapping assistant. Reply with intehrgrator-suggestions JSON version 2 only, in a fenced json block or as raw JSON.";
+  "You are an intEHRgrator mapping assistant. Reply with one intehrgrator-suggestions JSON version 2 block (fenced). Outside it, add only brief `### Notes` / `### Questions` sections when needed.";
 
 export interface PostChatCompletionsOptions {
   fetch?: typeof fetch;
@@ -253,7 +253,7 @@ export function providerAuthHeaders(endpoint: string, apiKey: string): Record<st
 }
 
 export const MAPPING_TOOLS_SYSTEM =
-  "You are an intEHRgrator mapping assistant. Use the provided tools — they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, …). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2 only.";
+  "You are an intEHRgrator mapping assistant. Use the provided tools — they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, …). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0–100 % chance it is correct; only when below 90). Finish with a 1–3 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (numbered, with suggested choices).";
 
 export async function forwardChatCompletionsProxy(
   payload: unknown,

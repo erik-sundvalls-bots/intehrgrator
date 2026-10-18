@@ -10,6 +10,7 @@ import {
   productStackInspect,
   sheetSummaries,
 } from "../../agent/inspect.ts";
+import { applySuggestionReviewDefaults, parseAiConfidence, slotReviewFrom, TOOL_REVIEW_PARAMS } from "./mod.ts";
 import type { WorkbenchController } from "../../workbench/controller.ts";
 import type { OpenAiTool } from "./credentials.ts";
 import type { SheetDocument } from "../sheets/mod.ts";
@@ -97,11 +98,12 @@ const CALL_AI_OPENAI_TOOLS: OpenAiTool[] = [
     type: "function",
     function: {
       name: "import_suggestions",
-      description: "Apply intehrgrator-suggestions JSON envelope.",
+      description:
+        "Apply intehrgrator-suggestions JSON envelope. Per-suggestion note/confidence are honoured; call-level note/confidence apply to suggestions without their own.",
       parameters: {
         type: "object",
         required: ["text"],
-        properties: { text: { type: "string" }, revision: { type: "string" } },
+        properties: { text: { type: "string" }, revision: { type: "string" }, ...TOOL_REVIEW_PARAMS },
       },
     },
   },
@@ -117,6 +119,7 @@ const CALL_AI_OPENAI_TOOLS: OpenAiTool[] = [
           slotId: { type: "string" },
           path: { type: "string" },
           format: { type: "string" },
+          ...TOOL_REVIEW_PARAMS,
         },
       },
     },
@@ -258,7 +261,7 @@ export function executeMappingAgentTool(
         }),
       };
     case "import_suggestions": {
-      const text = suggestionTextFromArgs(args);
+      const text = applySuggestionReviewDefaults(suggestionTextFromArgs(args), args.note, args.confidence);
       const report = controller.importAiSuggestions(text);
       return { report, revision: "ui" };
     }
@@ -270,8 +273,14 @@ export function executeMappingAgentTool(
       const format = isSourceFormatId(formatRaw) ? formatRaw : "json";
       const before = listSlotsInspect(s.skeleton, s.model).find((row) => row.slotId === slotId);
       if (!before) throw new Error(`Unknown slotId: ${slotId}`);
-      controller.mapNodeToSlot(slotId, path, format);
-      return { revision: "ui", slotId, mapped: true };
+      controller.mapNodeToSlot(slotId, path, format, slotReviewFrom(args.note, args.confidence));
+      const ignored = args.confidence !== undefined && parseAiConfidence(args.confidence) === undefined;
+      return {
+        revision: "ui",
+        slotId,
+        mapped: true,
+        ...(ignored ? { warning: "confidence must be a number 0–100 (percent); ignored" } : {}),
+      };
     }
     case "optional_rm_add": {
       controller.addOptionalRm(

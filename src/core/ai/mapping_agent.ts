@@ -1,7 +1,8 @@
 /**
  * Call AI mapping loop: OpenAI-compatible tools named like MCP / Agent API.
  */
-import { looksLikeSuggestionsPayload } from "./mod.ts";
+import { applySuggestionReviewDefaults, extractSuggestionsJson, looksLikeSuggestionsPayload } from "./mod.ts";
+import { collectSuggestionNotes, type SuggestionNote } from "./response_notes.ts";
 import {
   MAPPING_TOOLS_SYSTEM,
   SUGGESTIONS_SYSTEM,
@@ -24,6 +25,8 @@ export interface MappingAgentResult {
   steps: number;
   /** Conversation after this turn, without the system prompt (for multi-turn chat). */
   messages: ChatMessage[];
+  /** Per-suggestion `note` fields from envelopes sent to import_suggestions this turn. */
+  suggestionNotes: SuggestionNote[];
 }
 
 export interface RunMappingAgentOptions {
@@ -90,6 +93,7 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   const maxSteps = options.maxSteps ?? 16;
   let lastText = "";
   let imported: ImportSuggestionsReport | undefined;
+  const suggestionNotes: SuggestionNote[] = [];
 
   for (let step = 1; step <= maxSteps; step++) {
     const completion = await postChatCompletions(options.credentials, messages, {
@@ -105,7 +109,7 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
         imported = options.importText(completion.text);
       }
       messages.push(completion.assistantMessage ?? { role: "assistant", content: completion.text });
-      return { text: completion.text, toolNames, imported, steps: step, messages: conversation() };
+      return { text: completion.text, toolNames, imported, steps: step, messages: conversation(), suggestionNotes };
     }
 
     messages.push(assistantMessageForLoop(completion.assistantMessage, calls));
@@ -115,6 +119,9 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
       const args = parseToolArgs(call.arguments);
       let payload: unknown;
       try {
+        if (call.name === "import_suggestions" || call.name === "map_slot") {
+          suggestionNotes.push(...notesFromToolArgs(call.name, args));
+        }
         payload = await options.executeTool(call.name, args);
         if (isMutatingCallAiTool(call.name)) mutated = true;
         if (call.name === "import_suggestions" && payload && typeof payload === "object" && "report" in payload) {
@@ -136,7 +143,23 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
     imported = options.importText(lastText);
   }
-  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation() };
+  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation(), suggestionNotes };
+}
+
+function notesFromToolArgs(name: string, args: Record<string, unknown>): SuggestionNote[] {
+  try {
+    if (name === "map_slot") {
+      return collectSuggestionNotes({ suggestions: [{ slotId: args.slotId, note: args.note, confidence: args.confidence }] });
+    }
+    if (typeof args.text === "string") {
+      return collectSuggestionNotes(
+        extractSuggestionsJson(applySuggestionReviewDefaults(args.text, args.note, args.confidence)),
+      );
+    }
+    return collectSuggestionNotes(args.envelope ?? args);
+  } catch {
+    return [];
+  }
 }
 
 /**

@@ -69,6 +69,8 @@ export interface IntehrgratorTestApi {
   findSlotIdBySuffix(suffix: string): string | null;
   /** Compact Mapping Spec projection currently shown in CodeMirror. */
   getMappingSpecDocument(): string;
+  /** Raw Blockly workspace JSON (what project save / Mapping Spec download writes). */
+  getBlocklyStateJson(): string;
   /** Load a Blockly workspace JSON file (same path as Mapping Spec Upload). */
   loadBlocklyJson(filename: string, content: string): void;
   /** Client rect of a Blockly block SVG, for real UI clicks / drops. */

@@ -126,6 +126,26 @@ export interface MappingSlot {
   label?: string;
   mandatory?: boolean;
   hatch?: MappingSlotHatch;
+  /** Unreviewed AI suggestion marker (note / confidence); cleared on edit or *Mark as reviewed*. */
+  review?: MappingSlotReview;
+}
+
+/**
+ * AI-estimated probability (integer percent 0–100) that a suggested mapping is
+ * correct. Kept raw so it can feed later calibration against user outcomes.
+ */
+export type AiConfidence = number;
+
+/** What the user later did with an AI-marked mapping (calibration signal). */
+export type AiReviewOutcome = "reviewed" | "edited";
+
+export interface MappingSlotReview {
+  confidence?: AiConfidence;
+  note?: string;
+  /** Set when the user marks it reviewed or edits it; the canvas marker hides then. */
+  outcome?: AiReviewOutcome;
+  /** ISO timestamp of `outcome`. */
+  outcomeAt?: string;
 }
 
 export interface OptionalRmInsertion {
@@ -450,7 +470,13 @@ export interface SuggestionEnvelope {
     /** When set, `block` EXPRESSION is relative to that loop VAR's PATH. */
     loopVar?: string;
     note?: string;
+    /** Integer percent 0–100; omitted when the model is confident (≥ ~90). */
+    confidence?: AiConfidence;
   }>;
+  /** Top-level risks for the user (sparingly). */
+  notes?: string[];
+  /** Questions for the user. */
+  questions?: string[];
 }
 
 export interface SchemaIssue {

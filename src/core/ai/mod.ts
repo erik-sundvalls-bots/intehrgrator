@@ -7,6 +7,7 @@ import type {
   ImportSuggestionsReport,
   MappingLoop,
   MappingModel,
+  MappingSlotReview,
   SchemaIssue,
   SkeletonNode,
   SuggestionBlock,
@@ -20,6 +21,14 @@ import { Validator, type Schema } from "@cfworker/json-schema";
 import { SUGGESTION_FORMAT_SCHEMA } from "./suggestion_schema.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { jsonPointerToDotPath } from "./json_locate.ts";
+import {
+  type AiResponseNotes,
+  balancedJsonEnd,
+  NOTES_CONVENTION,
+  parseAiConfidence,
+  parseAiResponseNotes,
+} from "./response_notes.ts";
+export { parseAiConfidence };
 import type { SheetDocument } from "../sheets/mod.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
@@ -199,6 +208,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${options.formatDocUrl}`,
     "Use version `\"2\"` with Blockly `block` fragments (not JS-shaped xpath wrappers).",
     `The JSON must validate against: ${schemaUrlFromFormatDoc(options.formatDocUrl)}`,
+    NOTES_CONVENTION,
     "",
   );
 
@@ -607,9 +617,32 @@ export function extractSuggestionsJson(text: string): unknown {
     if (isRecord(inner) && Array.isArray(inner.suggestions)) return inner;
   }
 
-  if (trimmed.startsWith("{")) return JSON.parse(trimmed);
+  if (trimmed.startsWith("{")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (err) {
+      // Raw JSON followed by `### Notes` / `### Questions` prose.
+      const end = balancedJsonEnd(trimmed, 0);
+      if (end > 0 && trimmed.slice(end).trim()) return JSON.parse(trimmed.slice(0, end));
+      throw err;
+    }
+  }
 
   throw new Error("No suggestion JSON found (expected an object or intehrgrator-suggestions fence)");
+}
+
+/**
+ * Notes / Questions prose and per-suggestion `note` fields of an AI answer
+ * (pasted, approve-first, or the final apply-directly text).
+ */
+export function parseAiAnswerNotes(text: string): AiResponseNotes {
+  let envelope: unknown;
+  try {
+    envelope = extractSuggestionsJson(text);
+  } catch {
+    envelope = undefined;
+  }
+  return parseAiResponseNotes(text, envelope);
 }
 
 const SCHEMA_WRAPPERS = new Set([
@@ -640,7 +673,8 @@ function keepSchemaError(keyword: string | undefined, pointer: string, raw: stri
 export function validateSuggestionEnvelope(instance: unknown): SchemaIssue[] {
   const validator = new Validator(SUGGESTION_FORMAT_SCHEMA as Schema, "2020-12", false);
   const result = validator.validate(instance);
-  if (result.valid) return [];
+  const extra = confidenceIssues(instance);
+  if (result.valid) return extra;
 
   const issues: SchemaIssue[] = [];
   const seen = new Set<string>();
@@ -653,7 +687,7 @@ export function validateSuggestionEnvelope(instance: unknown): SchemaIssue[] {
     seen.add(key);
     issues.push({ path, message, keyword: error.keyword });
   }
-  return collapseSchemaIssues(issues);
+  return [...collapseSchemaIssues(issues), ...extra];
 }
 
 function collapseSchemaIssues(issues: SchemaIssue[]): SchemaIssue[] {
@@ -788,12 +822,16 @@ function normalizeSuggestionEnvelope(
   }
 
   const { loops, suggestions } = flattenSuggestionGroups(raw);
+  const notes = stringList(raw.notes);
+  const questions = stringList(raw.questions);
   return {
     format: "intehrgrator-suggestions",
     version: "2",
     target: { format: targetFormat, targetId },
     ...(loops.length ? { loops } : {}),
     suggestions,
+    ...(notes.length ? { notes } : {}),
+    ...(questions.length ? { questions } : {}),
   };
 }
 
@@ -848,6 +886,9 @@ function collectSuggestionItems(
         block: sanitizeBlock(item.block) as SuggestionBlock,
         loopVar: typeof item.loopVar === "string" ? item.loopVar : inheritedLoopVar,
         note: optionalNote(item.note),
+        ...(parseAiConfidence(item.confidence) !== undefined
+          ? { confidence: parseAiConfidence(item.confidence) }
+          : {}),
       });
     }
   }
@@ -892,6 +933,37 @@ function sourceLoopBlock(varName: string, path: string): SuggestionBlock {
 
 function optionalNote(note: unknown): string | undefined {
   return typeof note === "string" ? note : undefined;
+}
+
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string => typeof v === "string" && v.trim() !== "").map((v) => v.trim());
+}
+
+/** Warnings for `confidence` values that are present but not a 0..100 number (they are ignored on import). */
+function confidenceIssues(instance: unknown): SchemaIssue[] {
+  if (!isRecord(instance)) return [];
+  const issues: SchemaIssue[] = [];
+  const walk = (items: unknown, base: string) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item, i) => {
+      if (!isRecord(item)) return;
+      const path = `${base}[${i}]`;
+      if (item.confidence !== undefined && parseAiConfidence(item.confidence) === undefined) {
+        issues.push({
+          path: `${path}.confidence`,
+          keyword: "confidence",
+          message: `${path}.confidence: must be a number 0–100 (percent); got ${
+            JSON.stringify(item.confidence)
+          }. Ignored.`,
+        });
+      }
+      walk(item.suggestions, `${path}.suggestions`);
+    });
+  };
+  walk(instance.suggestions, "$.suggestions");
+  return issues;
 }
 
 function sanitizeBlock(raw: Record<string, unknown>): Record<string, unknown> {
@@ -1068,10 +1140,67 @@ export function importSuggestions(
     }
     const meta = slotMeta?.get(slotId);
     next = applyExpressionEdit(next, slotId, expression, meta);
+    const review = slotReviewFrom(suggestion.note, suggestion.confidence);
+    if (review) next = withSlotReview(next, slotId, review);
     report.applied++;
   }
 
   return { model: next, report };
+}
+
+/** JSON-Schema fragments for the tools-mode `note` / `confidence` parameters (map_slot, import_suggestions). */
+export const TOOL_REVIEW_PARAMS = {
+  note: {
+    type: "string",
+    description: "Only for risks (ambiguous source, unit/coding mismatch, lossy conversion, guessed path).",
+  },
+  confidence: {
+    type: "integer",
+    minimum: 0,
+    maximum: 100,
+    description: "Estimated % chance the mapping is correct (0–100). Include only when below 90 or when asked.",
+  },
+} as const;
+
+/**
+ * Tools mode `import_suggestions { text, note?, confidence? }`: the call-level
+ * `note` / `confidence` become defaults for suggestions that carry none.
+ */
+export function applySuggestionReviewDefaults(text: string, note: unknown, confidence: unknown): string {
+  const pct = parseAiConfidence(confidence);
+  const text0 = typeof note === "string" ? note.trim() : "";
+  if (pct === undefined && !text0) return text;
+  let envelope: unknown;
+  try {
+    envelope = extractSuggestionsJson(text);
+  } catch {
+    return text;
+  }
+  if (!isRecord(envelope) || !Array.isArray(envelope.suggestions)) return text;
+  const suggestions = envelope.suggestions.map((item) => {
+    if (!isRecord(item)) return item;
+    return {
+      ...item,
+      ...(text0 && item.note === undefined ? { note: text0 } : {}),
+      ...(pct !== undefined && item.confidence === undefined ? { confidence: pct } : {}),
+    };
+  });
+  return "```intehrgrator-suggestions\n" + JSON.stringify({ ...envelope, suggestions }, null, 2) + "\n```";
+}
+
+/** AI review marker for a mapped slot: only when there is a note or a confidence value. */
+export function slotReviewFrom(note: unknown, confidence: unknown): MappingSlotReview | undefined {
+  const text = typeof note === "string" ? note.trim() : "";
+  const pct = parseAiConfidence(confidence);
+  if (!text && pct === undefined) return undefined;
+  return { ...(pct !== undefined ? { confidence: pct } : {}), ...(text ? { note: text } : {}) };
+}
+
+export function withSlotReview(model: MappingModel, slotId: string, review: MappingSlotReview): MappingModel {
+  return {
+    ...model,
+    slots: model.slots.map((slot) => slot.slotId === slotId ? { ...slot, review } : slot),
+  };
 }
 
 /** Convert a v2 Blockly suggestion fragment into a Mapping Model expression string. */

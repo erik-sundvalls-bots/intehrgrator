@@ -324,7 +324,10 @@ Reusable AI chat prompt from the **Stored prompts** ▾ menu. Built-ins are read
 _Avoid_: prompt template (clashes with openEHR templates), storing prompts in the Project Bundle
 
 **Mapping Suggestion Import**:
-Applying parsed suggestions from an external AI response in `intehrgrator-suggestions` JSON version 2 (slot-keyed Blockly block subset). See `docs/AI_SUGGESTION_FORMAT.md`.
+Applying parsed suggestions from an external AI response in `intehrgrator-suggestions` JSON version 2 (slot-keyed Blockly block subset). The dialog also shows the answer's Notes / Questions and per-suggestion notes and confidence. See `docs/AI_SUGGESTION_FORMAT.md`.
+
+**AI review marker**:
+An imported suggestion's `note` and `confidence` (integer percent the model estimates the mapping is correct) kept on the mapped value block. It shows as a dashed outline, an `NN%` badge and a comment until the user edits the block or chooses **Mark as reviewed**. The raw value and that outcome stay in block data for later calibration.
 _Avoid_: AI paste, bulk map
 
 **Host Abstraction**:

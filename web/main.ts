@@ -109,6 +109,7 @@ import {
   installFunctionLibraryMenus,
 } from "../src/blockly/mod.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
+import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
 import { APP_VERSION } from "../src/core/persistence/mod.ts";
 import {
   blockOwnClientRect,
@@ -200,6 +201,7 @@ import {
 } from "../src/ui/ai_chat_panel.ts";
 import type { ContextChip, ContextChipKind } from "../src/core/ai/chat_context.ts";
 import { isMutatingCallAiTool } from "../src/core/ai/controller_tools.ts";
+import { listSlotsInspect } from "../src/agent/inspect.ts";
 import { looksLikeSuggestionsPayload } from "../src/core/ai/mod.ts";
 import {
   hasAiCredentials,
@@ -622,6 +624,14 @@ async function bootBlockly(): Promise<void> {
   installCollapseChildrenMenu(workspace, {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren,
+  });
+  installAiReviewMarkers(workspace, {
+    labels: {
+      markReviewed: () => uiChrome().aiMarkReviewed,
+      comment: () => uiChrome().aiReviewComment,
+      confidence: () => uiChrome().aiReviewConfidence,
+    },
+    onChange: () => persistBlocklyCanvas({ summary: "Mark AI suggestion reviewed" }),
   });
   installFunctionLibraryMenus(workspace, {
     save: (name) => functionLibraryUi?.saveNamed(name),
@@ -1284,6 +1294,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
         relabelWorkspaceFromSkeleton(workspace, s.skeleton);
       });
       lockWorkspaceRootsExpanded(workspace);
+      refreshAiReviewMarkers(workspace);
       blocklySkeletonKey = skeletonKey;
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
@@ -1356,6 +1367,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       replaceCanvasUndoable(workspace, () => {
         applyModelExpressions(workspace, s.model);
       });
+      refreshAiReviewMarkers(workspace);
     }
     blocklySlotSignature = slotSignature;
     controller.syncCanvasSnapshot(Blockly.serialization.workspaces.save(workspace));
@@ -1523,8 +1535,20 @@ const importAiDialog = installImportAiDialog({
   readClipboard: () => controller.readClipboardText(),
   copyToClipboard: (text) => host.copyToClipboard(text),
   importText: (text) => controller.importAiSuggestions(text),
+  notes: requireEl("import-ai-notes"),
+  describeSlot: (slotId) => describeSlotForNotes(slotId),
+  onAnswer: (question, index) => aiChat?.answerQuestion(question, index),
 });
 let aiChat: AiChatPanelHandle | null = null;
+
+/** "Device details › Name" for a slot id in AI Notes (falls back to the id tail). */
+function describeSlotForNotes(slotId: string): string | undefined {
+  const state = controller.getState();
+  const norm = (id: string) => id.replace(/\/{2,}/g, "/");
+  const row = listSlotsInspect(state.skeleton, state.model).find((r) => r.slotId === slotId || norm(r.slotId) === norm(slotId));
+  const label = row?.pathLabel ? row.pathLabel.split(" › ").slice(-2).join(" › ") : row?.label;
+  return label || undefined;
+}
 /** Document before the last applied AI chat turn, for "Revert last AI turn". */
 let lastAiChatSnapshot: ReturnType<typeof controller.exportDocumentSnapshot> | null = null;
 
@@ -1548,6 +1572,7 @@ aiChat = installAiChatPanel({
   revertLastTurn: () => revertLastAiChatTurn(),
   setStatus: (message) => controller.setStatusMessage(message),
   formatError: (err) => formatCallAiError(err),
+  describeSlot: (slotId) => describeSlotForNotes(slotId),
   onLayout: () => {
     if (workspace) Blockly.svgResize(workspace);
   },
@@ -3062,6 +3087,7 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
       messages: result.messages,
       toolCalls: result.toolNames,
       revertible,
+      suggestionNotes: result.suggestionNotes,
     };
   } catch (err) {
     if (!isToolsUnsupportedError(err)) {
@@ -3784,6 +3810,9 @@ function installWorkbenchTestApi(): void {
     },
     getMappingSpecDocument() {
       return mappingSpecDocumentText(specEditor);
+    },
+    getBlocklyStateJson() {
+      return JSON.stringify(Blockly.serialization.workspaces.save(workspace));
     },
     loadBlocklyJson(filename, content) {
       controller.loadBlocklyDefinition(filename, content);

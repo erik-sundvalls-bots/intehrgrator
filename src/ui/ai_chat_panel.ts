@@ -37,6 +37,9 @@ import { initSplitGroup } from "./split_pane.ts";
 import { detectLocale } from "../blockly/i18n/locale.ts";
 import { chrome, formatMessage } from "./chrome_i18n.ts";
 
+import { parseAiAnswerNotes } from "../core/ai/mod.ts";
+import type { SuggestionNote } from "../core/ai/response_notes.ts";
+import { answerQuote, renderAiNotes } from "./ai_notes_view.ts";
 function ui() {
   return chrome(detectLocale());
 }
@@ -75,6 +78,8 @@ export interface AiChatTurnResult {
   revertible: boolean;
   /** Note shown under the answer (e.g. "review in Import Suggestions"). */
   note?: string;
+  /** Per-suggestion notes from envelopes applied with tools (not in `text`). */
+  suggestionNotes?: SuggestionNote[];
 }
 
 export interface AiChatPanelOptions {
@@ -102,6 +107,8 @@ export interface AiChatPanelOptions {
   formatError?: (err: unknown) => string;
   onLayout?: () => void;
   confirm?: (message: string) => boolean;
+  /** Short label for a slot id in Notes (path label tail). */
+  describeSlot?: (slotId: string) => string | undefined;
   prompt?: (message: string) => string | null;
 }
 
@@ -113,6 +120,8 @@ export interface AiChatPanelHandle {
   addChip(chip: ContextChip): void;
   /** Replace the input with this text and open the panel. */
   prefill(text: string): void;
+  /** Quote an AI question into the input so the user can answer it. */
+  answerQuestion(question: string, index: number): void;
   /** Re-read credentials state and the current project's history. */
   refresh(): void;
   inputParts(): ChatInputPart[];
@@ -399,6 +408,21 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     });
   };
 
+  /** Quote a question from the AI into the input, caret after it. */
+  const answerQuestion = (question: string, index: number) => {
+    expand();
+    setInputParts([{ text: answerQuote(question, index) }]);
+    input.focus();
+    const sel = globalThis.getSelection?.();
+    if (sel) {
+      const range = document.createRange();
+      range.selectNodeContents(input);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  };
+
   const rememberRange = () => {
     const sel = globalThis.getSelection?.();
     if (sel && sel.rangeCount && input.contains(sel.getRangeAt(0).commonAncestorContainer)) {
@@ -457,7 +481,19 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         }
         row.append(details);
       }
-      if (entry.text) row.append(el("div", { className: "ai-chat-text", text: entry.text }));
+      if (entry.role === "assistant" && entry.text) {
+        // Option C: Notes / Questions outside the suggestions fence get their own box.
+        const parsed = parseAiAnswerNotes(entry.text);
+        if (entry.suggestionNotes?.length) parsed.suggestionNotes.push(...entry.suggestionNotes);
+        if (parsed.body) row.append(el("div", { className: "ai-chat-text", text: parsed.body }));
+        const box = renderAiNotes(parsed, {
+          describeSlot: options.describeSlot,
+          onAnswer: (question, i) => answerQuestion(question, i),
+        });
+        if (box) row.append(box);
+      } else if (entry.text) {
+        row.append(el("div", { className: "ai-chat-text", text: entry.text }));
+      }
       if (index === session.display.length - 1 && entry.role === "assistant" && lastTurnRevertible) {
         const revert = el("button", { className: "pane-btn ai-chat-revert", text: ui().aiChatRevert, type: "button" });
         revert.id = "ai-chat-revert";
@@ -549,7 +585,12 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     try {
       const result = await options.runTurn({ mode, prompt: c.prompt, history });
       session.messages = result.messages;
-      session.display.push({ role: "assistant", text: result.text, toolCalls: result.toolCalls });
+      session.display.push({
+        role: "assistant",
+        text: result.text,
+        toolCalls: result.toolCalls,
+        ...(result.suggestionNotes?.length ? { suggestionNotes: result.suggestionNotes } : {}),
+      });
       if (result.note) session.display.push({ role: "note", text: result.note });
       // Revert sits on the last assistant entry; keep the note before it.
       if (result.note && result.revertible) session.display.push(session.display.splice(-2, 1)[0]!);
@@ -833,6 +874,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       expand();
       insertChip(chip);
     },
+    answerQuestion: (question, index) => answerQuestion(question, index),
     prefill(text) {
       expand();
       setInputParts([{ text }]);

@@ -2,6 +2,7 @@
  * Shared Agent API / MCP tool dispatch. HTTP routes and stdio MCP call the same names.
  */
 
+import { applySuggestionReviewDefaults, slotReviewFrom, TOOL_REVIEW_PARAMS } from "../core/ai/mod.ts";
 import { basename, dirname, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
 import type { MutationContext, WorkbenchService } from "../workbench/service.ts";
@@ -235,12 +236,12 @@ export const AGENT_TOOLS: AgentToolDef[] = [
     inputSchema: {
       type: "object",
       required: ["text"],
-      properties: { text: { type: "string" }, revision: { type: "string" } },
+      properties: { text: { type: "string" }, revision: { type: "string" }, ...TOOL_REVIEW_PARAMS },
     },
   },
   {
     name: "map_slot",
-    description: "Map a source path to a target value slotId.",
+    description: "Map a source path to a target value slotId. Optional note (risks only) and confidence (0–100 %).",
     inputSchema: {
       type: "object",
       required: ["slotId", "path"],
@@ -249,6 +250,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
         path: { type: "string" },
         format: { type: "string" },
         revision: { type: "string" },
+        ...TOOL_REVIEW_PARAMS,
       },
     },
   },
@@ -572,7 +574,11 @@ export async function callAgentTool(
       };
     case "import_suggestions":
       return {
-        report: service.importSuggestions(String(args.text ?? ""), revision, ctx),
+        report: service.importSuggestions(
+          applySuggestionReviewDefaults(String(args.text ?? ""), args.note, args.confidence),
+          revision,
+          ctx,
+        ),
         revision: service.getRevision(),
       };
     case "map_slot":
@@ -582,6 +588,7 @@ export async function callAgentTool(
         (args.format as SourceFormatId) ?? "json",
         revision,
         ctx,
+        slotReviewFrom(args.note, args.confidence),
       );
       return { revision: service.getRevision() };
     case "optional_rm_add":
