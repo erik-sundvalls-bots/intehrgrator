@@ -45,8 +45,8 @@ export const AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
 export const AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 export const AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 export const PROJECT_CONTEXT_HEADING = "## Project context";
-/** Native resize corner hit area on the entry box (px). */
-const RESIZE_GRIP_PX = 18;
+/** Smallest message list kept visible while growing the entry box (px). */
+const MIN_LOG_PX = 32;
 
 /** Copy/paste delivery modes, same as the header **AI** menu. */
 export type AiPromptDelivery = "inline" | "attach" | "uri";
@@ -306,7 +306,14 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   sendBtn.id = "ai-chat-send";
   actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), sendBtn);
   composer.append(input, actions);
-  body.append(credsNotice, log, composer);
+  // Same look as every split_pane.ts divider (6px bar, centred 3-dot grip).
+  const grip = el("div", { className: "split-handle split-handle--row ai-chat-grip", title: ui().aiChatResizeInput });
+  grip.id = "ai-chat-grip";
+  grip.tabIndex = 0;
+  grip.setAttribute("role", "separator");
+  grip.setAttribute("aria-orientation", "horizontal");
+  grip.setAttribute("aria-label", ui().aiChatResizeInput);
+  body.append(credsNotice, log, grip, composer);
 
   const popover = el("div", { className: "ai-chip-popover" });
   popover.hidden = true;
@@ -722,6 +729,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     panel.hidden = true;
     credsDismissed = false;
     // A dragged entry-box height lasts while the panel is open.
+    grip.removeAttribute("aria-valuenow");
     input.style.height = "";
     input.style.maxHeight = "";
     closeCopyMenu();
@@ -754,14 +762,46 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     credsDismissed = true;
     refreshChrome();
   });
-  // Entry box resize: lift the 9em auto-grow cap once the user grabs the
-  // native resize corner, so a deliberate drag can make it taller.
-  input.addEventListener("pointerdown", (ev) => {
-    const rect = input.getBoundingClientRect();
-    if (ev.clientX >= rect.right - RESIZE_GRIP_PX && ev.clientY >= rect.bottom - RESIZE_GRIP_PX) {
-      input.style.height = `${rect.height}px`;
-      input.style.maxHeight = "none";
-    }
+  // Entry box resize: drag the grip on the divider above the composer. Up makes
+  // the entry box taller (message list shorter), down makes it shorter.
+  const inputMinPx = () => parseFloat(getComputedStyle(input).minHeight) || 34;
+  const inputMaxPx = () => {
+    // The credentials notice shrinks (and scrolls) down to its min-height.
+    const notice = credsNotice.hidden ? 0 : parseFloat(getComputedStyle(credsNotice).minHeight) || 0;
+    const room = body.clientHeight - notice -
+      (composer.offsetHeight - input.offsetHeight) - grip.offsetHeight - MIN_LOG_PX;
+    return Math.max(inputMinPx(), room);
+  };
+  /** `keepMax` stops a drag from shrinking a box that is already past the room limit. */
+  const setInputHeight = (px: number, keepMax = 0) => {
+    const clamped = Math.round(Math.min(Math.max(inputMaxPx(), keepMax), Math.max(inputMinPx(), px)));
+    input.style.height = `${clamped}px`;
+    input.style.maxHeight = "none";
+    grip.setAttribute("aria-valuenow", String(clamped));
+  };
+  grip.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0) return;
+    ev.preventDefault();
+    grip.setPointerCapture(ev.pointerId);
+    grip.classList.add("split-handle--active");
+    const startY = ev.clientY;
+    const startH = input.getBoundingClientRect().height;
+    const onMove = (move: PointerEvent) => setInputHeight(startH + (startY - move.clientY), startH);
+    const onUp = () => {
+      grip.classList.remove("split-handle--active");
+      grip.removeEventListener("pointermove", onMove);
+      grip.removeEventListener("pointerup", onUp);
+      grip.removeEventListener("pointercancel", onUp);
+    };
+    grip.addEventListener("pointermove", onMove);
+    grip.addEventListener("pointerup", onUp);
+    grip.addEventListener("pointercancel", onUp);
+  });
+  grip.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
+    ev.preventDefault();
+    const step = ev.shiftKey ? 64 : 16;
+    setInputHeight(input.getBoundingClientRect().height + (ev.key === "ArrowUp" ? step : -step));
   });
   sendBtn.addEventListener("click", () => void send());
   copyBtn.addEventListener("click", () => void copyPrompt());

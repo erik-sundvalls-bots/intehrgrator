@@ -42,16 +42,44 @@ Deno.test({
       await openChat();
       await notice.waitFor({ state: "visible" });
 
-      // 2. Drag the entry box taller than the old 9em cap.
+      // 2. (Notice dismissed so the short chat split has room.) Drag the divider grip up: entry box taller (past the old 9em cap), list shorter.
+      await page.click("#ai-chat-creds-dismiss");
       const input = page.locator("#ai-chat-input");
+      assertEquals(await input.evaluate((el) => getComputedStyle(el).resize), "none");
+      const grip = page.locator("#ai-chat-grip");
+      assertEquals(await grip.evaluate((el) => getComputedStyle(el).cursor), "row-resize");
       const before = (await input.boundingBox())!;
-      await page.mouse.move(before.x + before.width - 3, before.y + before.height - 3);
+      assert(before.height > 0);
+      const logBefore = (await page.locator("#ai-chat-log").boundingBox())!;
+      const g = (await grip.boundingBox())!;
+      await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
       await page.mouse.down();
-      await page.mouse.move(before.x + before.width - 3, before.y + before.height + 220, { steps: 8 });
+      await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2 - 400, { steps: 8 });
       await page.mouse.up();
       const after = (await input.boundingBox())!;
+      const logAfter = (await page.locator("#ai-chat-log").boundingBox())!;
       const fontPx = await input.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
       assert(after.height > fontPx * 9 + 10, `height ${after.height} should pass 9em (${fontPx * 9})`);
+      assert(after.height > before.height, "drag up grows the entry box");
+      assert(logAfter.height < logBefore.height, "drag up shrinks the message list");
+      assert(logAfter.height >= 30, `message list keeps a minimum (${logAfter.height})`);
+      // Drag down shrinks it again, never below the minimum height.
+      const g2 = (await grip.boundingBox())!;
+      await page.mouse.move(g2.x + g2.width / 2, g2.y + g2.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(g2.x + g2.width / 2, g2.y + 600, { steps: 8 });
+      await page.mouse.up();
+      const shrunk = (await input.boundingBox())!;
+      const minPx = await input.evaluate((el) => parseFloat(getComputedStyle(el).minHeight));
+      assert(shrunk.height < after.height && shrunk.height >= minPx - 1, `shrunk ${shrunk.height} (min ${minPx})`);
+      // Keyboard on the grip also resizes.
+      await grip.focus();
+      await page.keyboard.press("ArrowUp");
+      assert((await input.boundingBox())!.height > shrunk.height, "ArrowUp grows the entry box");
+      await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(g.x + g.width / 2, g.y - 400, { steps: 8 });
+      await page.mouse.up();
       await input.click();
       await page.keyboard.type("Still typing");
       assertStringIncludes(await input.innerText(), "Still typing");

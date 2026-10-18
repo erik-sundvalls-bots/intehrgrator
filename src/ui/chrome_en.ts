@@ -522,6 +522,7 @@ export const en = {
   aiChatChipRemove: "Remove",
   aiChatDismissNotice: "Hide this notice until AI chat is opened again",
   aiChatCopyMenuAria: "More copy/paste options",
+  aiChatResizeInput: "Drag to resize the message box (↑/↓ keys also work)",
 } as const;
 
 export type ChromeMessages = { [K in keyof typeof en]: string };
