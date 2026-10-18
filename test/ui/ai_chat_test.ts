@@ -169,6 +169,16 @@ Deno.test({
         Object.keys(localStorage).filter((k) => k.startsWith("intehrgrator.ai.chat.")).length
       );
       assertEquals(stored, 1);
+      // The API key travels only in request headers: never in history, prompts or the clipboard.
+      const leaks = await page.evaluate(async () => {
+        const values = Object.keys(localStorage)
+          .filter((k) => k.startsWith("intehrgrator.ai.chat.") || k === "intehrgrator.ai.storedPrompts")
+          .map((k) => localStorage.getItem(k) ?? "");
+        values.push(await navigator.clipboard.readText().catch(() => ""));
+        return values.filter((v) => v.includes("test-key")).length;
+      });
+      assertEquals(leaks, 0);
+      assertEquals(JSON.stringify(bodies).includes("test-key"), false, "key not in request bodies");
 
     } finally {
       await browser.close();

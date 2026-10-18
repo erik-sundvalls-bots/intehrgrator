@@ -202,12 +202,21 @@ import type { ContextChip, ContextChipKind } from "../src/core/ai/chat_context.t
 import { isMutatingCallAiTool } from "../src/core/ai/controller_tools.ts";
 import { looksLikeSuggestionsPayload } from "../src/core/ai/mod.ts";
 import {
-  clearAiCredentials,
   hasAiCredentials,
   loadAiCredentials,
   saveAiCredentials,
 } from "../src/core/ai/credentials.ts";
 import { AI_PROVIDER_PRESETS, applyAiProviderPreset, findAiProviderPreset } from "../src/core/ai/providers.ts";
+import { fetchModelList, ModelListError, modelAfterProviderChange } from "../src/core/ai/models.ts";
+import {
+  type AiProviderConfig,
+  type AiProviderConfigs,
+  clearAllProviderConfigs,
+  loadProviderConfigs,
+  providerOptionLabel,
+  forgetProviderKey,
+  upsertProviderConfig,
+} from "../src/core/ai/provider_configs.ts";
 import { runMappingAgentOnController, runSuggestionsChatTurn } from "../src/core/ai/mapping_agent.ts";
 import { DEFAULT_GITHUB_TEMPLATE_URL } from "../src/core/clinical_model/github_template.ts";
 import { DEFAULT_GITHUB_EXAMPLES_URL } from "../src/core/source/github_examples.ts";
@@ -2790,6 +2799,160 @@ function showAiProviderHelp(providerId: string): void {
   }
 }
 
+// ── AI credentials dialog: per-provider configs + Connect & fetch models ────
+/** This dialog session's per-provider values; written to storage only on Save. */
+let aiCredDrafts: AiProviderConfigs = {};
+let aiCredProvider = "";
+const MODEL_OTHER = "__other__";
+
+function aiCredEls() {
+  return {
+    select: document.getElementById("ai-provider") as HTMLSelectElement | null,
+    endpoint: document.getElementById("ai-endpoint") as HTMLInputElement | null,
+    apiKey: document.getElementById("ai-api-key") as HTMLInputElement | null,
+    model: document.getElementById("ai-model") as HTMLInputElement | null,
+    picker: document.getElementById("ai-model-picker") as HTMLSelectElement | null,
+    fetchBtn: document.getElementById("ai-fetch-models") as HTMLButtonElement | null,
+    status: document.getElementById("ai-models-status"),
+  };
+}
+
+function aiCredFormConfig(prev?: AiProviderConfig): AiProviderConfig {
+  const { endpoint, apiKey, model } = aiCredEls();
+  return {
+    ...prev,
+    endpoint: endpoint?.value.trim() ?? "",
+    apiKey: apiKey?.value ?? "",
+    model: model?.value.trim() ?? "",
+  };
+}
+
+function refreshProviderLabels(): void {
+  const { select } = aiCredEls();
+  if (!select) return;
+  for (const option of Array.from(select.options)) {
+    if (!option.value) continue;
+    const base = option.dataset.baseLabel ?? option.textContent ?? option.value;
+    option.dataset.baseLabel = base;
+    option.textContent = providerOptionLabel(base, aiCredDrafts[option.value]);
+  }
+}
+
+function setModelsStatus(kind: "none" | "loading" | "ok" | "error", text = ""): void {
+  const { status } = aiCredEls();
+  if (!status) return;
+  status.hidden = kind === "none";
+  status.textContent = text;
+  status.className = `ai-models-status ai-models-status--${kind}`;
+}
+
+function showSavedTestStatus(config: AiProviderConfig | undefined): void {
+  if (!config?.testedAt) return setModelsStatus("none");
+  const when = new Date(config.testedAt).toLocaleString();
+  setModelsStatus(config.testOk ? "ok" : "error", `${config.testMessage ?? ""} (${when})`.trim());
+}
+
+/** Dropdown with a "Select model" placeholder; disabled until a provider is chosen and models fetched. */
+function renderModelPicker(models: readonly string[] | undefined): void {
+  const { select, picker, model, fetchBtn } = aiCredEls();
+  if (!picker) return;
+  const messages = uiChrome();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = models?.length
+    ? messages.aiModelPickerPlaceholder.replace("{count}", String(models.length))
+    : messages.aiSelectModel;
+  picker.replaceChildren(placeholder);
+  for (const id of models ?? []) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = id;
+    picker.append(option);
+  }
+  if (models?.length) {
+    const other = document.createElement("option");
+    other.value = MODEL_OTHER;
+    other.textContent = messages.aiModelOther;
+    picker.append(other);
+  }
+  const chosen = Boolean(select?.value);
+  picker.disabled = !chosen || !models?.length;
+  if (fetchBtn) fetchBtn.disabled = !chosen;
+  picker.value = models?.includes(model?.value.trim() ?? "") ? model!.value.trim() : "";
+}
+
+function applyAiProviderToForm(id: string): void {
+  const { endpoint, apiKey, model } = aiCredEls();
+  if (aiCredProvider) aiCredDrafts[aiCredProvider] = aiCredFormConfig(aiCredDrafts[aiCredProvider]);
+  const previousModel = model?.value ?? "";
+  aiCredProvider = id;
+  showAiProviderHelp(id || "custom");
+  const saved = id ? aiCredDrafts[id] : undefined;
+  if (saved) {
+    if (endpoint) endpoint.value = saved.endpoint;
+    if (apiKey) apiKey.value = saved.apiKey;
+    if (model) model.value = saved.model;
+    renderModelPicker(saved.models);
+    showSavedTestStatus(saved);
+    return;
+  }
+  if (id && id !== "custom") {
+    const applied = applyAiProviderPreset(id);
+    if (endpoint) endpoint.value = applied.endpoint;
+    // Never carry one vendor's key over to another.
+    if (apiKey) apiKey.value = applied.apiKey;
+  }
+  if (model) model.value = modelAfterProviderChange(previousModel, id, undefined);
+  renderModelPicker(undefined);
+  setModelsStatus("none");
+}
+
+function modelListErrorText(err: unknown, viaDesktop: boolean): string {
+  const messages = uiChrome();
+  const message = err instanceof Error ? err.message : String(err);
+  if (err instanceof ModelListError) {
+    if (err.kind === "network") return `${message}. ${viaDesktop ? messages.aiModelsDesktopHint : messages.aiModelsCorsHint}`;
+    if (err.kind === "auth") return `${message}. ${messages.aiModelsAuthHint}`;
+    if (err.kind === "http" && (err.status === 404 || err.status === 405)) return `${message}. ${messages.aiModelsNotListedHint}`;
+  }
+  return message;
+}
+
+async function fetchModelsForDialog(): Promise<void> {
+  const { select, endpoint, apiKey, model, fetchBtn } = aiCredEls();
+  const id = select?.value ?? "";
+  if (!id || !fetchBtn) return;
+  const messages = uiChrome();
+  fetchBtn.disabled = true;
+  fetchBtn.setAttribute("aria-busy", "true");
+  fetchBtn.textContent = messages.aiFetchingModels;
+  setModelsStatus("loading", messages.aiFetchingModels);
+  const chatProxy = await desktopAiProxyUrl();
+  const proxyUrl = chatProxy?.replace(/ai-chat-completions$/, "ai-models");
+  const testedAt = new Date().toISOString();
+  try {
+    const models = await fetchModelList(endpoint?.value ?? "", apiKey?.value ?? "", {
+      proxyUrl,
+      signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(30_000) : undefined,
+    });
+    const text = messages.aiModelsFound.replace("{count}", String(models.length));
+    aiCredDrafts[id] = { ...aiCredFormConfig(aiCredDrafts[id]), testOk: true, testedAt, testMessage: text, models };
+    renderModelPicker(models);
+    if (model && !model.value.trim() && models.length === 1) model.value = models[0]!;
+    setModelsStatus("ok", text);
+  } catch (err) {
+    const text = modelListErrorText(err, Boolean(proxyUrl));
+    aiCredDrafts[id] = { ...aiCredFormConfig(aiCredDrafts[id]), testOk: false, testedAt, testMessage: text };
+    renderModelPicker(aiCredDrafts[id]?.models);
+    setModelsStatus("error", text);
+  } finally {
+    fetchBtn.textContent = messages.aiFetchModels;
+    fetchBtn.removeAttribute("aria-busy");
+    fetchBtn.disabled = !select?.value;
+    refreshProviderLabels();
+  }
+}
+
 function fillProviderSelect(): void {
   const select = document.getElementById("ai-provider") as HTMLSelectElement | null;
   if (!select || select.dataset.filled === "1") return;
@@ -2800,40 +2963,43 @@ function fillProviderSelect(): void {
     select.append(option);
   }
   select.dataset.filled = "1";
-  select.addEventListener("change", () => {
-    const id = select.value;
-    showAiProviderHelp(id);
-    if (id === "custom") return;
-    const applied = applyAiProviderPreset(id);
-    const endpoint = document.getElementById("ai-endpoint") as HTMLInputElement | null;
-    const apiKey = document.getElementById("ai-api-key") as HTMLInputElement | null;
-    const model = document.getElementById("ai-model") as HTMLInputElement | null;
-    if (!applied.endpoint) return;
-    if (endpoint) endpoint.value = applied.endpoint;
-    if (model) model.value = applied.model;
-    if (apiKey) {
-      if (applied.apiKey) apiKey.value = applied.apiKey;
-      else if (apiKey.value === "ollama" || apiKey.value === "lm-studio") apiKey.value = "";
+  select.addEventListener("change", () => applyAiProviderToForm(select.value));
+  const { picker, model, fetchBtn } = aiCredEls();
+  picker?.addEventListener("change", () => {
+    if (!model) return;
+    if (picker.value === MODEL_OTHER) {
+      picker.value = "";
+      model.focus();
+      model.select();
+    } else if (picker.value) {
+      model.value = picker.value;
     }
   });
+  model?.addEventListener("input", () => {
+    if (!picker) return;
+    const v = model.value.trim();
+    picker.value = Array.from(picker.options).some((o) => o.value === v && v !== MODEL_OTHER) ? v : "";
+  });
+  fetchBtn?.addEventListener("click", () => void fetchModelsForDialog());
 }
 
 function openAiCredentialsDialog(): void {
   const dialog = document.getElementById("dialog-ai-credentials") as HTMLDialogElement | null;
   if (!dialog) return;
   fillProviderSelect();
+  aiCredDrafts = loadProviderConfigs(localStorage);
   const creds = loadAiCredentials(localStorage);
-  const select = document.getElementById("ai-provider") as HTMLSelectElement | null;
-  const endpoint = document.getElementById("ai-endpoint") as HTMLInputElement | null;
-  const apiKey = document.getElementById("ai-api-key") as HTMLInputElement | null;
-  const model = document.getElementById("ai-model") as HTMLInputElement | null;
-  if (select) select.value = creds?.providerId && findAiProviderPreset(creds.providerId)
-    ? creds.providerId
-    : "custom";
-  showAiProviderHelp(select?.value ?? "custom");
+  const { select, endpoint, apiKey, model } = aiCredEls();
+  const providerId = creds ? (creds.providerId && findAiProviderPreset(creds.providerId) ? creds.providerId : "custom") : "";
+  if (select) select.value = providerId;
+  aiCredProvider = providerId;
+  showAiProviderHelp(providerId || "custom");
   if (endpoint) endpoint.value = creds?.endpoint ?? "";
   if (apiKey) apiKey.value = creds?.apiKey ?? "";
   if (model) model.value = creds?.model ?? "";
+  renderModelPicker(aiCredDrafts[providerId]?.models);
+  showSavedTestStatus(aiCredDrafts[providerId]);
+  refreshProviderLabels();
   setSelectedMappingMode(creds?.mappingMode === "suggestions" ? "suggestions" : "tools");
   dialog.showModal();
 }
@@ -3072,7 +3238,27 @@ document.getElementById("ai-credentials-cancel")?.addEventListener("click", () =
   (document.getElementById("dialog-ai-credentials") as HTMLDialogElement | null)?.close();
 });
 document.getElementById("ai-credentials-clear")?.addEventListener("click", () => {
-  clearAiCredentials(localStorage);
+  const { select, apiKey } = aiCredEls();
+  const id = select?.value || "custom";
+  const label = findAiProviderPreset(id)?.label ?? uiChrome().customEndpoint;
+  if (!confirm(uiChrome().aiForgetKeyConfirm.replace("{provider}", label))) return;
+  // Credential storage only; chat history and stored prompts never hold the key.
+  const forgotten = forgetProviderKey(localStorage, id, apiKey?.value ? [apiKey.value] : []);
+  for (const [pid, draft] of Object.entries(aiCredDrafts)) {
+    if (pid === id || forgotten.includes(draft.apiKey.trim())) {
+      aiCredDrafts[pid] = { endpoint: draft.endpoint, apiKey: "", model: draft.model, ...(draft.models ? { models: draft.models } : {}) };
+    }
+  }
+  if (apiKey) apiKey.value = "";
+  setModelsStatus("none");
+  refreshProviderLabels();
+  updateCopyAiButtonLabel();
+  controller.setStatusMessage(uiChrome().aiKeyForgotten.replace("{provider}", label));
+});
+document.getElementById("ai-credentials-clear-all")?.addEventListener("click", () => {
+  if (!confirm(uiChrome().aiClearAllProvidersConfirm)) return;
+  clearAllProviderConfigs(localStorage);
+  aiCredDrafts = {};
   updateCopyAiButtonLabel();
   (document.getElementById("dialog-ai-credentials") as HTMLDialogElement | null)?.close();
   controller.setStatusMessage("AI credentials cleared");
@@ -3082,7 +3268,8 @@ document.getElementById("dialog-ai-credentials")?.querySelector("form")?.addEven
   const endpoint = (document.getElementById("ai-endpoint") as HTMLInputElement | null)?.value ?? "";
   const apiKey = (document.getElementById("ai-api-key") as HTMLInputElement | null)?.value ?? "";
   const model = (document.getElementById("ai-model") as HTMLInputElement | null)?.value ?? "";
-  const providerId = (document.getElementById("ai-provider") as HTMLSelectElement | null)?.value ?? "custom";
+  // The provider selected on Save becomes the active one.
+  const providerId = (document.getElementById("ai-provider") as HTMLSelectElement | null)?.value || "custom";
   try {
     saveAiCredentials(localStorage, {
       endpoint,
@@ -3091,6 +3278,7 @@ document.getElementById("dialog-ai-credentials")?.querySelector("form")?.addEven
       providerId,
       mappingMode: selectedMappingMode(),
     });
+    upsertProviderConfig(localStorage, providerId, aiCredFormConfig(aiCredDrafts[providerId]));
     updateCopyAiButtonLabel();
     (document.getElementById("dialog-ai-credentials") as HTMLDialogElement | null)?.close();
     controller.setStatusMessage("AI credentials saved in this browser");

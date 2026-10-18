@@ -3,6 +3,7 @@
  * Stored in Host localStorage — never in the Project Bundle.
  */
 import type { AiMappingMode } from "./providers.ts";
+import { redactSecret } from "./redact.ts";
 
 export const AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
 
@@ -160,7 +161,8 @@ export async function postChatCompletions(
     signal: options?.signal,
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+    // Some providers echo (part of) the key; never let it reach chat history.
+    const detail = redactSecret(await response.text().catch(() => ""), parsed.apiKey);
     throw new Error(
       `AI call failed (${response.status} ${response.statusText})${detail ? `: ${detail.slice(0, 400)}` : ""}`,
     );
