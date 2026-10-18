@@ -124434,8 +124434,37 @@ var AI_SUGGESTION_FORMAT_schema_default = {
     },
     questions: {
       type: "array",
-      description: "Optional questions for the user, ideally with suggested choices.",
-      items: { type: "string" }
+      description: "Optional questions for the user: a string, or { text, options } with up to ~4 suggested answers (one may be recommended).",
+      items: {
+        oneOf: [
+          { type: "string" },
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["text"],
+            properties: {
+              text: { type: "string" },
+              options: {
+                type: "array",
+                items: {
+                  oneOf: [
+                    { type: "string", description: 'May end with " (recommended)".' },
+                    {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["text"],
+                      properties: {
+                        text: { type: "string" },
+                        recommended: { type: "boolean" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   },
   $defs: {
@@ -124705,7 +124734,8 @@ function locateIssueInText(source, path, message) {
 }
 
 // src/core/ai/response_notes.ts
-var NOTES_CONVENTION = "Notes are for risks only (ambiguous source, unit/coding mismatch, lossy conversion, guessed path), never routine confirmations: per-suggestion `note`, and brief `### Notes` / `### Questions` (numbered, with suggested choices) outside the JSON fence (or top-level `notes[]` / `questions[]`); omit when empty. Per-suggestion `confidence`: integer 0\u2013100 = your estimated % chance the mapping is correct; include it only when below 90, or on every suggestion if the user asks.";
+var QUESTIONS_SYNTAX = 'In `### Questions` write each question as `1. \u2026?` with its options as indented `- ` sub-bullets (max 4; append ` (recommended)` to at most one); in JSON `questions[]` items are a string or `{"text","options":[\u2026]}`.';
+var NOTES_CONVENTION = "Notes are for risks only (ambiguous source, unit/coding mismatch, lossy conversion, guessed path), never routine confirmations: per-suggestion `note`, and brief `### Notes` / `### Questions` outside the JSON fence (or top-level `notes[]` / `questions[]`); omit when empty. " + QUESTIONS_SYNTAX + " Per-suggestion `confidence`: integer 0\u2013100 = your estimated % chance the mapping is correct; include it only when below 90, or on every suggestion if the user asks.";
 var CONFIDENCE_BANDS = { low: 50, medium: 80 };
 function confidenceBand(pct) {
   if (pct < CONFIDENCE_BANDS.low) return "low";
@@ -124756,6 +124786,93 @@ function sectionItems(lines) {
     }
   }
   return items.filter(Boolean);
+}
+var MAX_OPTIONS = 6;
+var RECOMMENDED = /\s*[([]\s*(?:recommended|rekommender(?:as|ad|at))\s*[)\]]\s*$/i;
+function parseQuestionOption(raw) {
+  let text = raw.trim();
+  let recommended = false;
+  if (RECOMMENDED.test(text)) {
+    recommended = true;
+    text = text.replace(RECOMMENDED, "").trim();
+  }
+  text = text.replace(/[.;,]$/, "").trim();
+  if (!text) return null;
+  return recommended ? { text, recommended } : { text };
+}
+function isQuestionText(text) {
+  return /[?:]\s*(?:\([^()]*\))?\s*[*_`"')\]]*\s*$/.test(text);
+}
+function splitInlineChoices(question3) {
+  if (question3.options.length) return question3;
+  const m5 = question3.text.match(/^(.*\?)\s*\(([^()]*\/[^()]*)\)\s*$/);
+  if (!m5) return question3;
+  const options = m5[2].split("/").map(parseQuestionOption).filter((o12) => !!o12);
+  return options.length >= 2 ? { text: m5[1].trim(), options: options.slice(0, MAX_OPTIONS) } : question3;
+}
+function normalizeAiQuestion(value) {
+  if (typeof value === "string") {
+    const text2 = value.trim();
+    return text2 ? splitInlineChoices({ text: text2, options: [] }) : null;
+  }
+  if (!value || typeof value !== "object") return null;
+  const rec = value;
+  const text = typeof rec.text === "string" ? rec.text.trim() : "";
+  if (!text) return null;
+  const options = [];
+  if (Array.isArray(rec.options)) {
+    for (const o12 of rec.options) {
+      if (typeof o12 === "string") {
+        const opt = parseQuestionOption(o12);
+        if (opt) options.push(opt);
+      } else if (o12 && typeof o12 === "object" && typeof o12.text === "string") {
+        const opt = parseQuestionOption(String(o12.text));
+        if (opt) {
+          if (o12.recommended === true) opt.recommended = true;
+          options.push(opt);
+        }
+      }
+    }
+  }
+  return splitInlineChoices({ text, options: options.slice(0, MAX_OPTIONS) });
+}
+var NUMBERED = /^(\s*)\d+[.)]\s+(.*)$/;
+var BULLET = /^(\s*)[-*+•]\s+(.*)$/;
+var LETTERED = /^(\s*)\(?[a-zA-Z][.)]\s+(.*)$/;
+function questionItems(lines) {
+  const items = [];
+  for (const raw of lines) {
+    if (!raw.trim()) continue;
+    const num = raw.match(NUMBERED);
+    const letter = num ? null : raw.match(LETTERED);
+    const bullet = num || letter ? null : raw.match(BULLET);
+    const m5 = num ?? letter ?? bullet;
+    if (m5) {
+      items.push({
+        indent: m5[1].replace(/\t/g, "    ").length,
+        kind: num ? "num" : letter ? "letter" : "bullet",
+        text: m5[2].trim()
+      });
+    } else if (items.length) {
+      items[items.length - 1].text += ` ${raw.trim()}`;
+    } else {
+      items.push({ indent: raw.length - raw.trimStart().length, kind: "bullet", text: raw.trim() });
+    }
+  }
+  const hasNumbered = items.some((i12) => i12.kind === "num");
+  const questions = [];
+  for (const item of items) {
+    const current = questions[questions.length - 1];
+    const nested = current && (item.indent > current.indent || item.kind === "letter" || hasNumbered && item.kind === "bullet");
+    const flatOption = current && !nested && current.asked && !item.text.includes("?");
+    if (current && (nested || flatOption)) {
+      const opt = parseQuestionOption(item.text);
+      if (opt && current.options.length < MAX_OPTIONS) current.options.push(opt);
+      continue;
+    }
+    questions.push({ text: item.text, options: [], indent: item.indent, asked: isQuestionText(item.text) });
+  }
+  return questions.map(({ text, options }) => splitInlineChoices({ text, options }));
 }
 function collectSuggestionNotes(envelope) {
   if (!envelope || typeof envelope !== "object") return [];
@@ -124836,7 +124953,7 @@ function parseAiResponseNotes(text, envelope) {
   return {
     body: body.join("\n").replace(/\n{3,}/g, "\n\n").trim(),
     notes: mergeItems(rec.notes, sectionItems(sections.notes)),
-    questions: mergeItems(rec.questions, sectionItems(sections.questions)),
+    questions: mergeQuestions(rec.questions, questionItems(sections.questions)),
     suggestionNotes: collectSuggestionNotes(envelope)
   };
 }
@@ -124845,6 +124962,16 @@ function mergeItems(fromJson, fromProse) {
     (v5) => v5.trim()
   ).filter(Boolean) : [];
   return [.../* @__PURE__ */ new Set([...json2, ...fromProse])];
+}
+function mergeQuestions(fromJson, fromProse) {
+  const json2 = Array.isArray(fromJson) ? fromJson.map(normalizeAiQuestion).filter((q4) => !!q4) : [];
+  const out = [];
+  for (const q4 of [...json2, ...fromProse]) {
+    const same = out.find((o12) => o12.text === q4.text);
+    if (!same) out.push(q4);
+    else if (!same.options.length) same.options = q4.options;
+  }
+  return out;
 }
 
 // src/core/ai/mod.ts
@@ -125476,7 +125603,7 @@ function normalizeSuggestionEnvelope(raw, fallbackTarget) {
   }
   const { loops: loops2, suggestions } = flattenSuggestionGroups(raw);
   const notes = stringList(raw.notes);
-  const questions = stringList(raw.questions);
+  const questions = questionList(raw.questions);
   return {
     format: "intehrgrator-suggestions",
     version: "2",
@@ -125554,6 +125681,12 @@ function sourceLoopBlock(varName, path) {
 }
 function optionalNote(note) {
   return typeof note === "string" ? note : void 0;
+}
+function questionList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeAiQuestion).filter((q4) => !!q4).map(
+    (q4) => q4.options.length ? { text: q4.text, options: q4.options.map((o12) => o12.recommended ? { text: o12.text, recommended: true } : o12.text) } : q4.text
+  );
 }
 function stringList(value) {
   if (!Array.isArray(value)) return [];
@@ -139071,6 +139204,10 @@ var en3 = {
   aiReviewComment: "AI suggestion \u2014 {conf}{note}\nEdit the block or right-click \u2192 Mark as reviewed to clear.",
   aiReviewConfidence: "{pct}% confidence",
   aiAnswerQuestion: "Answer",
+  aiAnswerQuestionTitle: "Quote this question in the chat input and type your own answer",
+  aiAnswerWithOption: "Quote this question with this answer in the chat input (edit before sending)",
+  aiQuestionOptions: "Suggested answers",
+  aiOptionRecommended: "recommended",
   aiAnswerInChatTitle: "Answer this question in AI chat",
   aiFetchModels: "Connect & fetch models",
   aiSelectProvider: "Select provider\u2026",
@@ -189064,8 +189201,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "732bc70" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T20:30:25.193Z" : "not built";
+var BUILD_ID = true ? "f0ca5b9" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-18T21:05:59.624Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
@@ -192281,24 +192418,49 @@ function renderAiNotes(notes, options = {}) {
     section.append(el("h4", "ai-notes-heading", ui3().aiQuestionsHeading));
     const list = el("ol", "ai-notes-list");
     notes.questions.forEach((question3, index) => {
-      const li = el("li", "ai-notes-item ai-notes-question");
-      li.append(el("span", "ai-notes-question-text", question3));
-      if (options.onAnswer) {
-        const btn = el("button", "ai-notes-answer", ui3().aiAnswerQuestion);
-        btn.type = "button";
-        btn.addEventListener("click", () => options.onAnswer(question3, index));
-        li.append(btn);
-      }
-      list.append(li);
+      list.append(renderQuestion(question3, index, options));
     });
     section.append(list);
     box.append(section);
   }
   return box;
 }
-function answerQuote(question3, index) {
-  return `> Q${index + 1}: ${question3}
+function renderQuestion(question3, index, options) {
+  const li = el("li", "ai-notes-item ai-notes-question");
+  li.append(el("span", "ai-notes-question-text", question3.text));
+  if (options.onAnswer) {
+    const btn = el("button", "ai-notes-answer", ui3().aiAnswerQuestion);
+    btn.type = "button";
+    btn.title = ui3().aiAnswerQuestionTitle;
+    btn.addEventListener("click", () => options.onAnswer(question3.text, index));
+    li.append(btn);
+  }
+  if (question3.options.length) {
+    const choices = el("div", "ai-notes-options");
+    choices.setAttribute("role", "group");
+    choices.setAttribute("aria-label", ui3().aiQuestionOptions);
+    for (const option of question3.options) {
+      const label = option.recommended ? `${option.text} \xB7 ${ui3().aiOptionRecommended}` : option.text;
+      const chip = el(
+        options.onAnswer ? "button" : "span",
+        `ai-notes-option${option.recommended ? " ai-notes-option--recommended" : ""}`,
+        label
+      );
+      if (chip instanceof HTMLButtonElement) {
+        chip.type = "button";
+        chip.title = ui3().aiAnswerWithOption;
+        chip.addEventListener("click", () => options.onAnswer(question3.text, index, option.text));
+      }
+      choices.append(chip);
+    }
+    li.append(choices);
+  }
+  return li;
+}
+function answerQuote(question3, index, option) {
+  const quote = `> Q${index + 1}: ${question3}
 `;
+  return option ? `${quote}Answer: ${option}` : quote;
 }
 
 // src/ui/import_ai.ts
@@ -192351,9 +192513,9 @@ function installImportAiDialog(options) {
     if (!box) return;
     const view = renderAiNotes(parseAiAnswerNotes(textarea.value), {
       describeSlot: options.describeSlot,
-      onAnswer: options.onAnswer ? (question3, index) => {
+      onAnswer: options.onAnswer ? (question3, index, option) => {
         dialog2.close();
-        options.onAnswer(question3, index);
+        options.onAnswer(question3, index, option);
       } : void 0
     });
     box.replaceChildren(...view ? [view] : []);
@@ -193103,9 +193265,9 @@ function installAiChatPanel(options) {
       }
     });
   };
-  const answerQuestion = (question3, index) => {
+  const answerQuestion = (question3, index, option) => {
     expand();
-    setInputParts([{ text: answerQuote(question3, index) }]);
+    setInputParts([{ text: answerQuote(question3, index, option) }]);
     input.focus();
     const sel = globalThis.getSelection?.();
     if (sel) {
@@ -193176,7 +193338,7 @@ function installAiChatPanel(options) {
         if (parsed.body) row.append(el2("div", { className: "ai-chat-text", text: parsed.body }));
         const box = renderAiNotes(parsed, {
           describeSlot: options.describeSlot,
-          onAnswer: (question3, i12) => answerQuestion(question3, i12)
+          onAnswer: (question3, i12, option) => answerQuestion(question3, i12, option)
         });
         if (box) row.append(box);
       } else if (entry.text) {
@@ -193535,7 +193697,7 @@ ${options.buildProjectContext(delivery ?? options.getDelivery?.())}` : composed.
       expand();
       insertChip(chip);
     },
-    answerQuestion: (question3, index) => answerQuestion(question3, index),
+    answerQuestion: (question3, index, option) => answerQuestion(question3, index, option),
     prefill(text) {
       expand();
       setInputParts([{ text }]);
@@ -193984,7 +194146,7 @@ function providerAuthHeaders(endpoint, apiKey) {
   }
   return headers;
 }
-var MAPPING_TOOLS_SYSTEM = "You are an intEHRgrator mapping assistant. Use the provided tools \u2014 they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, \u2026). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0\u2013100 % chance it is correct; only when below 90). Finish with a 1\u20133 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (numbered, with suggested choices).";
+var MAPPING_TOOLS_SYSTEM = "You are an intEHRgrator mapping assistant. Use the provided tools \u2014 they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, \u2026). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0\u2013100 % chance it is correct; only when below 90). Finish with a 1\u20133 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (`1. \u2026?` each, options as indented `- ` sub-bullets, max 4, at most one ending ` (recommended)`).";
 function isToolsUnsupportedError(err2) {
   const message = err2 instanceof Error ? err2.message : String(err2);
   if (/thought_signature/i.test(message)) return false;
@@ -195745,7 +195907,7 @@ var importAiDialog = installImportAiDialog({
   importText: (text) => controller.importAiSuggestions(text),
   notes: requireEl2("import-ai-notes"),
   describeSlot: (slotId) => describeSlotForNotes(slotId),
-  onAnswer: (question3, index) => aiChat?.answerQuestion(question3, index)
+  onAnswer: (question3, index, option) => aiChat?.answerQuestion(question3, index, option)
 });
 var aiChat = null;
 function describeSlotForNotes(slotId) {

@@ -39,8 +39,37 @@
     },
     "questions": {
       "type": "array",
-      "description": "Optional questions for the user, ideally with suggested choices.",
-      "items": { "type": "string" }
+      "description": "Optional questions for the user: a string, or { text, options } with up to ~4 suggested answers (one may be recommended).",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text"],
+            "properties": {
+              "text": { "type": "string" },
+              "options": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    { "type": "string", "description": "May end with \" (recommended)\"." },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["text"],
+                      "properties": {
+                        "text": { "type": "string" },
+                        "recommended": { "type": "boolean" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   },
   "$defs": {

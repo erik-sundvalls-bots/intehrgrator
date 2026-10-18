@@ -62,7 +62,7 @@ One fence tagged `intehrgrator-suggestions`. Outside the fence the answer may ad
     }
   ],
   "notes": ["optional — risks the user should know"],
-  "questions": ["optional — e.g. 1. mmHg or kPa? (mmHg / kPa)"]
+  "questions": [{ "text": "optional — e.g. mmHg or kPa?", "options": ["mmHg (recommended)", "kPa"] }]
 }
 ```
 
@@ -80,11 +80,22 @@ Use these **sparingly**, only for risks: ambiguous source, unit / coding mismatc
 | per suggestion | `note` (string) | Import dialog row, AI chat, block comment on the mapped block |
 | per suggestion | `confidence` (integer 0–100) | `NN%` badge in the dialog row and on the mapped block |
 | per loop | `note` | Import dialog, AI chat |
-| top level | `notes[]`, `questions[]` (strings) | Notes / Questions box above the suggestions |
+| top level | `notes[]` (strings), `questions[]` (string or `{ "text", "options": [...] }`) | Notes / Questions box above the suggestions |
 | outside the fence | `### Notes`, `### Questions` | same box (merged with the top-level arrays) |
 
 - **`confidence`** is the model's estimated probability, in percent, that the mapping is correct. Integer `0`–`100`; non-integers are rounded. Any other value (string, `"high"`, out of range) is reported as a validation warning and ignored. Include it only when below about 90, or on every suggestion when the user asks for it.
-- Sections outside the fence: heading level and case do not matter (`## notes:`, `**Questions**`, `Notes:` on its own line); Swedish `Anteckningar` / `Frågor` also work. Items are list lines (`-`, `*`, `1.`, `1)`); questions ideally numbered with suggested choices. Omit empty sections.
+- Sections outside the fence: heading level and case do not matter (`## notes:`, `**Questions**`, `Notes:` on its own line); Swedish `Anteckningar` / `Frågor` also work. Items are list lines (`-`, `*`, `1.`, `1)`). Omit empty sections.
+- **Questions syntax** (the prompt asks for exactly this): each question is a numbered item ending in `?`, with its options as indented `- ` sub-bullets (max 4). At most one option ends with ` (recommended)`:
+
+  ```markdown
+  ### Questions
+  1. How should missing body position be handled?
+     - Default to at1001 Sitting (recommended)
+     - Leave it unmapped
+  ```
+
+  The parser also accepts lettered options (`a)`, `A.`), `- ` bullets under a numbered question, a trailing `? (a / b)` choice list, `[recommended]` / `(rekommenderas)`, and a flat numbered list in which items that do not contain `?` follow a question (they become its options). In JSON, `questions[]` items are a string or `{ "text": "…?", "options": ["… (recommended)", { "text": "…", "recommended": true }] }`.
+- Options render as choice buttons under the question: a click puts `> Q1: <question>` and `Answer: <option>` in the AI chat input for editing before sending. **Answer** quotes only the question.
 - In tools mode, `map_slot` and `import_suggestions` take the same optional `note` and `confidence` parameters (for `import_suggestions` they are defaults for suggestions without their own). The agent ends with a 1–3 line summary plus optional Notes / Questions.
 
 **On the canvas.** An imported `note` and `confidence` stay on the mapped value block (Blockly `data.aiReview`, so they survive save, load and export). While unreviewed, a note or a confidence below 80 shows a dashed outline, a `NN%` badge and a block comment. Bands (`CONFIDENCE_BANDS` in `src/core/ai/response_notes.ts`): below 50 red, 50–79 amber, 80+ no marker unless there is a note. Editing a field in the block records `outcome: "edited"`; right-click → **Mark as reviewed** records `outcome: "reviewed"`. Both hide the marker but keep the raw confidence plus outcome and timestamp, for later calibration of AI confidence against what users did.
