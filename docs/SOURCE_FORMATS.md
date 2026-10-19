@@ -64,7 +64,7 @@ kintegrate’s “Frame this node as context root” is **not** planned as a Sou
 ## Schema-only authoring
 
 - Informatician can map against the **schema tree** without any example loaded.
-- **Test Run** and **Autoplay** require at least one **example instance tab**; toggle stays disabled until then.
+- **Test Run** and **Auto-run** need at least one **example instance tab** to have something to run (Auto-run is on by default).
 - Adding the first example via **+ Add Example** enables Test Run.
 
 ## Test Run output

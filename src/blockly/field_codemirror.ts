@@ -9,6 +9,8 @@ import {
   type EditorLanguage,
 } from "../workbench/codemirror_setup.ts";
 import type { EditorView } from "@codemirror/view";
+import { createEditorActionOverlay } from "../ui/editor_action_toolbar.ts";
+import { chrome } from "../ui/chrome_i18n.ts";
 
 export const FIELD_CODEMIRROR_TYPE = "field_codemirror";
 export const DEFAULT_EDITOR_COLS = 40;
@@ -202,6 +204,14 @@ export class FieldCodeMirror extends FieldBase {
       this.language_,
       (text) => this.onEditorInput_(text),
     );
+    const t = chrome(document.documentElement.lang || "en");
+    createEditorActionOverlay({
+      view: this.view_,
+      ariaLabel: t.codeFieldActionsAria,
+      searchLabel: t.searchCodeFieldTitle,
+      copyLabel: t.copyCodeFieldTitle,
+      copiedLabel: t.copied,
+    });
     if (typeof ResizeObserver === "function") {
       this.resizeObserver_ = new ResizeObserver(() => this.onHostResize_());
       this.resizeObserver_.observe(this.host_);

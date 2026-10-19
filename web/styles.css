@@ -447,7 +447,6 @@ body { display: flex; flex-direction: column; min-height: 100%; }
   padding: 8px 10px;
 }
 .pane-section--tab .pane-select-label { color: var(--text-secondary); }
-.tree-pane.target-schema-tree { border-left: 3px solid var(--accent); }
 
 /* Shoelace Karolinska tokens (new chrome). */
 :root {
@@ -510,7 +509,9 @@ body { display: flex; flex-direction: column; min-height: 100%; }
   flex: 0 0 auto;
   white-space: nowrap;
 }
-.example-tab.active { border-color: var(--accent); background: #fff4ea; }
+/* #246: selected test-file tab is neutral blue; red tint only when it has an error. */
+.example-tab.active { border-color: #4a6fa5; background: #eaf1fb; color: #1f3b63; }
+.example-tab.active.example-tab--error { border-color: var(--error); background: #fdecec; color: #8e1c1c; }
 .example-tab--with-close {
   display: inline-flex; align-items: center; gap: 2px; padding: 0; cursor: default;
 }
@@ -557,12 +558,29 @@ body { display: flex; flex-direction: column; min-height: 100%; }
   min-width: 28px;
   justify-content: center;
 }
-/* Leave room for the floating Search/Copy/Download cluster when find is open at top. */
-.export-editor-host .cm-panels-top,
-.test-output-host .cm-panels-top,
-.spec-editor-host .cm-panels-top {
-  padding-right: 108px;
+/*
+ * #246: Search / Copy / Download sit inside every CodeMirror editor as an
+ * upper-right overlay (below an open find panel, left of the scrollbar; the
+ * inline offsets come from mountEditorActionOverlay). Mostly transparent so
+ * code stays readable; opaque on hover or keyboard focus.
+ */
+.cm-editor > .editor-action-toolbar--overlay {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 5;
+  opacity: 0.35;
+  transition: opacity 120ms ease-in-out;
 }
+.cm-editor:hover > .editor-action-toolbar--overlay { opacity: 0.6; }
+.cm-editor > .editor-action-toolbar--overlay:hover,
+.cm-editor > .editor-action-toolbar--overlay:focus-within { opacity: 1; }
+.editor-action-toolbar--compact { gap: 1px; padding: 1px; }
+.editor-action-toolbar--compact .editor-action-btn {
+  min-width: 20px;
+  padding: 1px 3px;
+}
+.editor-action-toolbar--compact .editor-action-btn svg { width: 12px; height: 12px; }
 
 .mapping-pane { display: flex; flex-direction: column; }
 .mapping-bottom { min-height: 0; display: flex; flex-direction: column; padding: 8px; }
@@ -1344,8 +1362,6 @@ body.sheets-fullscreen::before {
   font-size: 11px;
 }
 .tree-label-instance { font-family: ui-monospace, monospace; }
-.tree-pane.schema-tree { border-left: 3px solid var(--primary); }
-.tree-pane.instance-tree { border-left: 3px solid var(--accent); }
 .tree-row.highlighted {
   background: #e8f5f3;
   border-radius: 3px;

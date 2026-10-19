@@ -45,6 +45,7 @@ export function mountMappingSpecChrome(
   refresh: () => void;
   getLayout: () => SpecRootLayout;
   getActiveRootId: () => string | null;
+  setActiveRootId: (rootId: string) => boolean;
   setLayout: (layout: SpecRootLayout) => void;
 } {
   let layout = loadSpecRootLayout();
@@ -86,6 +87,15 @@ export function mountMappingSpecChrome(
     refresh,
     getLayout: () => layout,
     getActiveRootId: () => activeRootId,
+    /** Show this canvas root's tab (tabbed layout). Returns whether it changed. */
+    setActiveRootId: (rootId) => {
+      if (layout !== "tabs" || activeRootId === rootId) return false;
+      const tabs = specRootTabsFromBlockly(options.getBlocklyState());
+      if (!tabs.some((t) => t.id === rootId)) return false;
+      activeRootId = rootId;
+      refresh();
+      return true;
+    },
     setLayout: (next) => {
       layout = next;
       saveSpecRootLayout(next);

@@ -87,6 +87,7 @@ export class MappingSpecWidget extends WidgetType {
       JSON.stringify(this.line.attributeEdit) === JSON.stringify(other.line.attributeEdit) &&
       JSON.stringify(this.line.aliasIds) === JSON.stringify(other.line.aliasIds) &&
       JSON.stringify(this.line.info) === JSON.stringify(other.line.info) &&
+      JSON.stringify(this.line.inline) === JSON.stringify(other.line.inline) &&
       this.warning === other.warning &&
       this.selected === other.selected &&
       this.checked === other.checked &&
@@ -120,6 +121,7 @@ export class MappingSpecWidget extends WidgetType {
     const row = document.createElement("span");
     row.className = `spec-widget spec-widget--${this.line.kind}`;
     if (this.line.editKind === "code") row.classList.add("spec-widget--multiline");
+    if (this.line.inline) row.classList.add("spec-widget--has-inline");
     if (this.selected) row.classList.add("spec-widget--selected");
     if (this.checked) row.classList.add("spec-widget--checked");
     if (this.searchHit) row.classList.add("spec-widget--search-hit");
@@ -193,6 +195,8 @@ export class MappingSpecWidget extends WidgetType {
     renderEditors(editors, this.line, this.onFieldEdit);
     row.appendChild(editors);
 
+    if (this.line.inline) row.appendChild(inlineLeaf(this.line.inline, this.onFieldEdit));
+
     const tip = document.createElement("span");
     tip.className = "info-tip info-tip--end";
     const infoBtn = document.createElement("button");
@@ -235,6 +239,30 @@ export class MappingSpecWidget extends WidgetType {
   override ignoreEvent(): boolean {
     return true;
   }
+}
+
+/** #246: the ELEMENT's single data value, drawn on the ELEMENT's own row. */
+function inlineLeaf(leaf: SpecLine, onFieldEdit?: SpecFieldEditHandler): HTMLElement {
+  const host = document.createElement("span");
+  host.className = `spec-widget-inline spec-widget-inline--${leaf.kind}`;
+  if (leaf.blockId) host.dataset.blockId = leaf.blockId;
+  if (leaf.attribute) {
+    const attr = document.createElement("span");
+    attr.className = "spec-widget-attr spec-widget-attr--inline";
+    attr.textContent = leaf.attribute;
+    attr.title = leaf.attribute;
+    host.appendChild(attr);
+  }
+  const badge = document.createElement("span");
+  badge.className = "spec-widget-badge";
+  badge.textContent = badgeLabel(leaf);
+  if (leaf.shell) badge.title = leaf.shell;
+  host.appendChild(badge);
+  const editors = document.createElement("span");
+  editors.className = "spec-widget-editors";
+  renderEditors(editors, leaf, onFieldEdit);
+  host.appendChild(editors);
+  return host;
 }
 
 function renderEditors(
@@ -545,6 +573,11 @@ function sourceReturnTypeFromSummary(summary: string): SourceReturnType {
   return "string";
 }
 
+/** Short type badge shown on a Spec row. */
+export function specBadgeLabel(line: SpecLine): string {
+  return badgeLabel(line);
+}
+
 function badgeLabel(line: SpecLine): string {
   if (line.shell) {
     return line.shell.replace(/^dv_/i, "DV_").toUpperCase();
@@ -557,7 +590,8 @@ function badgeLabel(line: SpecLine): string {
     case "dv":
       return line.type.replace(/^dv_/i, "DV_").toUpperCase();
     case "value":
-      return "slot";
+      // #246: openEHR ELEMENT blocks are ELEMENTs (the value slot is in the summary).
+      return line.type === "element" ? "ELEMENT" : "slot";
     case "map_lookup":
       return "map";
     case "term_pick":

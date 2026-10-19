@@ -49,8 +49,8 @@ The left pane has two stacked sections: **schema** (upper) and **example instanc
 - **Pane action:** **+ Add Example** button in the Examples section header
 - **UI:** Horizontal **example tabs** — one tab per loaded instance file, plus **+** to add another
 - **Active tab:** Drives (1) the instance tree shown below the tabs, (2) **Test Run** input, (3) lower **Conversion Test Run(s)** label (`Running: patient-a.json`)
-- **Switching tabs:** Instantly switches instance tree; re-runs Test Run if Autoplay is on, otherwise waits for **Run Test**
-- **Close tab:** `×` on tab; if last tab closed, Autoplay disables and Test Run is unavailable
+- **Switching tabs:** Instantly switches instance tree and shows that tab's cached Test Run (Auto-run fills it if it has none yet)
+- **Close tab:** `×` on tab; if the last tab closes, Test Run has nothing to run (Auto-run stays on and resumes with the next example)
 
 ```
 ┌─ SCHEMA ────────────────────────────────┐
@@ -89,7 +89,7 @@ The left pane has two stacked sections: **schema** (upper) and **example instanc
 - **Tabs** (Shoelace `sl-tab-group`; usually not needed at the same time):
   1. **Target schema** — tree of the loaded target. Pull a leaf or subtree onto empty canvas → corresponding Blockly, scaffolded from the current **default context map**. Leaf → **scaffold target** chips; subtree → map value socket.
   2. **Generated conversion script(s)** — executable TypeScript / Java / Handlebars / XQuery from the Mapping Model (read-only CodeMirror)
-  3. **Conversion Test Run(s)** — runs mapping against the **active example tab**; displays the produced instance. Section header includes **Run Test** and **Autoplay / Pause**.
+  3. **Conversion Test Run(s)** — runs mapping against the **active example tab**; displays the produced instance. Section header includes **Run Test** and **Pause / ▶ Auto-run**. The selected test-file tab is neutral blue; it turns red-tinted only when that file's output has an error (⚠). There is no "Validate as" picker: output is validated with ehrtslib's lenient (hybrid) JSON preset (#246).
 - Unmapped mandatory slots and unmet cardinality show as **Constraint warning** triangles on Blockly and on the matching Mapping Spec Widgets. Click a spec widget or Blockly block to **Select** (yellow border + pan); placeholder Source query blocks also enter **Listening Mode**.
 
 ### Web components (Shoelace)
@@ -121,8 +121,8 @@ Actions are split between the **header toolbar** (project-wide) and **pane heade
 | Load target & default context map | Target & Previews header | Split control: main click opens the joint target + default context map dialog; chevron offers file, URL, GitHub, and non-destructive refresh | ✓ |
 | Slide-away | Source / Target & Previews headers | Hide the pane so the Mapping Editor takes the width; rail tabs restore it | ✓ |
 | Export TS | Target & Previews pane header | Download the generated TypeScript mapping script | ✓ |
-| Run Test | Output → Conversion Test Run(s) | Execute mapping once against active example (when Autoplay is paused) | ✓ |
-| Autoplay / Pause | Output → Conversion Test Run(s) | Toggle debounced auto Test Run on mapping edits (ehrtslib demo pattern) | ✓ |
+| Run Test | Output → Conversion Test Run(s) | Run every test file once (active first); marks all tabs | ✓ |
+| Pause / ▶ Auto-run | Output → Conversion Test Run(s) | Auto-run is **on by default**: debounced (~500 ms) run of all test files after edits. Pause is remembered per browser (slow computers) | ✓ |
 
 ### Deferred (not in current web app UI)
 
@@ -138,22 +138,22 @@ The test runner is a core informatician workflow, not a nice-to-have.
 1. User loads template + source schema (optional) + one or more **example instance tabs**
 2. User authors mappings in Mapping Editor (schema and/or active example tree for click-to-map)
 3. Test execution uses the **active example tab** as input:
-   - **Autoplay / Pause toggle** — ehrtslib demo pattern
-   - **Autoplay on:** debounced Test Run (~500ms) after **mapping edits only**
-   - **Paused:** user clicks **Run Test** for a single execution against active tab
+   - **Auto-run (default on) / Pause** — one switch shared by all test-file tabs
+   - **Auto-run on:** debounced run (~500 ms) of **all** test files after mapping, sheet, output-mode and example edits; every tab's ⚠ / ✅ mark updates
+   - **Paused:** user clicks **Run Test** (runs all test files once). Pausing is remembered in localStorage, not in the Project Bundle
 4. Lower **Conversion Test Run(s)** section shows converted output for active source example; **tab switch** shows the **cached last result** for that tab (no automatic re-run on switch)
 
-**Per-tab result cache:** Each example tab remembers its last Test Run output. Switching tabs is instant. **Run Test** refreshes the active tab; Autoplay refreshes all tabs on mapping edits.
+**Per-tab result cache:** Each example tab remembers its last Test Run output. Switching tabs is instant. **Run Test** and Auto-run refresh all tabs.
 
-### Autoplay toggle rules
+### Auto-run rules
 
-| Condition | Toggle state |
-|-----------|--------------|
-| At least one example instance tab open | Enabled |
-| No example tabs (schema-only) | **Disabled** (tooltip: add an example instance to run tests) |
-| Autoplay on + mapping edit | Debounced Test Run against active tab |
-| Tab switch (any Autoplay state) | Show cached result only; no automatic re-run |
-| Paused + **Run Test** | Runs once against active tab |
+| Condition | Behaviour |
+|-----------|-----------|
+| Default (new session, any project) | Auto-run **on** |
+| No example tabs (schema-only) | Nothing runs; the toggle still works |
+| Auto-run on + edit | Debounced run of all test files |
+| Tab switch | Cached result; runs only if that tab has none yet |
+| Paused + **Run Test** | Runs all test files once |
 
 **Runtime:** Bundled `ehrtslib` in the web app; generated mapping code is executed client-side (no server).
 

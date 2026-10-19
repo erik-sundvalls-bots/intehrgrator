@@ -55,7 +55,8 @@ Deno.test("projectBlocklyState compresses nested blocks and omits x/y from text"
   assertEquals(projection.text.includes('"x"'), false);
   assertEquals(projection.text.includes("40"), false);
 
-  const source = projection.lines.find((line) => line.kind === "source_query");
+  // #246: a single leaf value folds onto the ELEMENT row.
+  const source = projection.lines.find((line) => line.inline?.kind === "source_query")?.inline;
   assertEquals(source?.blockId, "sq1");
   assertEquals(source?.attribute, "magnitude");
   assertEquals(source?.shell, "dv_quantity");

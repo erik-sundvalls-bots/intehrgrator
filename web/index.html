@@ -521,19 +521,9 @@
             <div class="section-header">
               <h3 data-i18n="testRuns">Conversion Test Run(s)</h3>
               <div class="section-header-actions">
-                <label class="pane-select-label validation-mode-label" id="validation-mode-wrap" hidden for="validation-deserialize-mode">
-                  <span data-i18n="validateAs">Validate as</span>
-                  <select id="validation-deserialize-mode" title="ehrtslib JSON deserializer preset for template validation" data-i18n-title="validateTitle">
-                    <option value="hybrid" data-i18n="hybrid">Hybrid (lenient)</option>
-                    <option value="default" data-i18n="defaultMode">Default</option>
-                    <option value="compact" data-i18n="compact">Compact</option>
-                    <option value="canonical-strict" data-i18n="canonicalStrict">Canonical strict</option>
-                    <option value="terse" data-i18n="terse">Terse</option>
-                  </select>
-                </label>
                 <div class="pane-btn-group">
                   <button id="btn-run-test" class="pane-btn" type="button" data-i18n="runTest">Run Test</button>
-                  <button id="btn-autoplay" class="pane-btn" type="button" disabled data-i18n="autoplay">▶ Autoplay</button>
+                  <button id="btn-autoplay" class="pane-btn" type="button" data-i18n="pause" title="Auto-run is on: all test files re-run shortly after each change. Pause it on slow computers.">⏸ Pause</button>
                 </div>
               </div>
             </div>

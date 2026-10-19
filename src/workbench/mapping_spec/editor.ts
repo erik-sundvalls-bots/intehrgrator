@@ -520,6 +520,24 @@ const specTheme = EditorView.theme({
     flex: "1 1 auto",
     minWidth: "0",
   },
+  /* #246: ELEMENT + leaf value on one row — the ELEMENT summary yields room. */
+  ".spec-widget--has-inline > .spec-widget-editors": {
+    flex: "0 1 auto",
+    maxWidth: "45%",
+  },
+  ".spec-widget-inline": {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    flex: "1 1 50%",
+    minWidth: "0",
+    paddingLeft: "4px",
+    borderLeft: "1px solid #d0d7d6",
+  },
+  ".spec-widget-inline--source_query .spec-widget-badge": {
+    color: "#9a4b00",
+    background: "#fff4ea",
+  },
   ".spec-widget-editors--stack": {
     flexDirection: "column",
     alignItems: "stretch",
