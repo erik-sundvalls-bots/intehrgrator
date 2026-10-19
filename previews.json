@@ -1,4 +1,12 @@
 {
+  "issue-246-ui-fixes": {
+    "built": "2026-10-19T19:30:26Z",
+    "dir": "issue-246-ui-fixes",
+    "mode": "merged",
+    "pr": "254\thttps://github.com/regionstockholm/intehrgrator/pull/254\tOPEN\tUI fixes: validation default, Spec ELEMENT rows/selection/tabs, test-file tabs, auto-run, editor overlays (#246)",
+    "sha": "d900761b0191a7994fd1993a6dbe270e96c54ec0",
+    "upstream": "2caa391267818a029ca88a48a5a0533d3d96ce9f"
+  },
   "issue-249-ai-chat-polish": {
     "built": "2026-10-19T03:15:12Z",
     "dir": "issue-249-ai-chat-polish",
