@@ -582,6 +582,93 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 }
 .editor-action-toolbar--compact .editor-action-btn svg { width: 12px; height: 12px; }
 
+/*
+ * #218: find-in-pane for the trees and the Mapping canvas. Same Search
+ * overlay as the CodeMirror editors (#246) and a find panel docked at the top
+ * of the pane, styled like the CodeMirror find panel.
+ */
+.pane-find-host { position: relative; }
+.pane-find-host--tree {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pane-find-host > .pane-find-overlay {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 5;
+  opacity: 0.35;
+  transition: opacity 120ms ease-in-out;
+}
+.pane-find-host:hover > .pane-find-overlay { opacity: 0.6; }
+.pane-find-host > .pane-find-overlay:hover,
+.pane-find-host > .pane-find-overlay:focus-within { opacity: 1; }
+.pane-find-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 3px 6px;
+  font-size: 12px;
+  background: #f5f5f5;
+  border: 1px solid var(--border);
+  border-bottom: 1px solid #ddd;
+  border-radius: 4px 4px 0 0;
+  color: #222;
+}
+.pane-find-panel[hidden] { display: none; }
+.pane-find-host--tree.pane-find-host--open > .tree-pane { border-top-left-radius: 0; border-top-right-radius: 0; border-top: none; }
+.pane-find-panel--floating {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 6;
+  border-radius: 0 0 0 4px;
+  border-top: none;
+  border-right: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.pane-find-input {
+  font: inherit;
+  font-size: 12px;
+  padding: 1px 4px;
+  min-width: 10em;
+  border: 1px solid #c0c0c0;
+  border-radius: 3px;
+  background: #fff;
+}
+.pane-find-panel--none .pane-find-input { background: #fdecec; border-color: var(--error, #c62828); }
+.pane-find-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 1px 6px;
+  border: 1px solid #c0c0c0;
+  border-radius: 3px;
+  background: linear-gradient(#fff, #eee);
+  cursor: pointer;
+}
+.pane-find-option { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.pane-find-option input { margin: 0; }
+.pane-find-count { color: var(--muted, #666); white-space: nowrap; }
+.pane-find-close {
+  margin-left: auto;
+  border: none;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  color: #555;
+}
+.tree-row.pane-find-row-hit > .tree-label,
+.tree-row.pane-find-row-current > .tree-label { border-radius: 2px; }
+.tree-row.pane-find-row-current { box-shadow: inset 2px 0 0 #e65100; }
+.blocklySvg .pane-find-svg-hit { fill: #ffe200; pointer-events: none; }
+.blocklySvg .pane-find-svg-hit--current { stroke: #e65100; stroke-width: 2px; }
+.blocklySvg .blocklyText.pane-find-text-hit { fill: #111 !important; }
+
 .mapping-pane { display: flex; flex-direction: column; }
 .mapping-bottom { min-height: 0; display: flex; flex-direction: column; padding: 8px; }
 .mapping-editor-tabs { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
@@ -2080,3 +2167,5 @@ span.ai-notes-option { cursor: default; }
 .ai-chat-panel--collapsed .ai-chat-info { display: none; }
 .ai-chat-info-balloon { max-width: min(360px, calc(100vw - 16px)) !important; line-height: 1.45; }
 .dialog-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+/* #218: keep the canvas Search overlay clear of Blockly's vertical scrollbar. */
+.blockly-mount > .pane-find-overlay { margin-right: 12px; }
