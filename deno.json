@@ -48,11 +48,11 @@
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.4.2/"
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@70e28d690f50a0ece8833a6c455b1bb736b5eb54/"
   },
   "scopes": {
-    "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.4.2/": {
-      "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.4.2/validation/template_validator.ts": "./vendor/ehrtslib-overrides/validation/template_validator.ts"
+    "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@70e28d690f50a0ece8833a6c455b1bb736b5eb54/": {
+      "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@70e28d690f50a0ece8833a6c455b1bb736b5eb54/validation/template_validator.ts": "./vendor/ehrtslib-overrides/validation/template_validator.ts"
     }
   },
   "tasks": {

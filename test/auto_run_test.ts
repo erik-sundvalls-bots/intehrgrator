@@ -5,6 +5,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { WorkbenchController } from "@intehrgrator/workbench/controller.ts";
+import { DEFAULT_SETTINGS } from "@intehrgrator/types/mod.ts";
 import type { HostAdapter } from "@intehrgrator/host/mod.ts";
 
 function stubHost(): HostAdapter {
@@ -17,6 +18,7 @@ const fixture = (...p: string[]) => Deno.readTextFile(join(import.meta.dirname!,
 
 Deno.test("Auto-run is on by default and marks every test file after an edit", async () => {
   const controller = new WorkbenchController(stubHost());
+  assertEquals(DEFAULT_SETTINGS.openEhrJsonDeserializeMode, "canonical-strict");
   assertEquals(controller.getState().settings.autoplay, true);
   controller.loadTemplateContent("blood_pressure.opt", await fixture("blood_pressure.opt"));
   controller.addExampleContent("a.json", await fixture("legacy-simulated-json", "instances", "bp-inst.json"));
@@ -33,8 +35,8 @@ Deno.test("Pause survives a project load; old bundles cannot force a hidden vali
   controller.toggleAutoplay();
   assertEquals(controller.getState().settings.autoplay, false);
   const bundle = controller.exportDocumentSnapshot();
-  bundle.settings = { ...bundle.settings, autoplay: true, openEhrJsonDeserializeMode: "canonical-strict" };
+  bundle.settings = { ...bundle.settings, autoplay: true, openEhrJsonDeserializeMode: "hybrid" };
   controller.restoreDocumentSnapshot(bundle);
   assertEquals(controller.getState().settings.autoplay, false);
-  assertEquals(controller.getState().settings.openEhrJsonDeserializeMode, "hybrid");
+  assertEquals(controller.getState().settings.openEhrJsonDeserializeMode, "canonical-strict");
 });

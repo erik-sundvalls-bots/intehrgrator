@@ -8,6 +8,9 @@ import { generateSkeleton } from "@intehrgrator/core/skeleton/generate_skeleton.
 import { WorkbenchController } from "@intehrgrator/workbench/controller.ts";
 import type { HostAdapter } from "@intehrgrator/host/mod.ts";
 import type { LoadableProjectEntry, StoredProjectRecord } from "@intehrgrator/core/persistence/mod.ts";
+import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
+import { callAgentTool } from "@intehrgrator/agent/tools.ts";
+import { DEFAULT_SETTINGS, type TestResult } from "@intehrgrator/types/mod.ts";
 
 function stubHost(overrides: Partial<HostAdapter> = {}): HostAdapter {
   return {
@@ -90,6 +93,63 @@ Deno.test("canonical strict mode differs from hybrid for preview JSON", async ()
   assert(hybrid.messages.length > 0, "hybrid should reach template validator");
 });
 
+Deno.test("DEFAULT_SETTINGS use canonical-strict for openEHR JSON validation", () => {
+  assertEquals(DEFAULT_SETTINGS.openEhrJsonDeserializeMode, "canonical-strict");
+});
+
+Deno.test("Simple-vitals BP preview and TypeScript pass strict output validation with 0 messages", async () => {
+  const service = new WorkbenchService();
+  await callAgentTool(service, "register_agent", {
+    agentId: "strict-bp-validation",
+    displayName: "strict-bp-validation",
+  });
+  const catalogPath = join(import.meta.dirname!, "..", "examples", "example-sets.json");
+  await callAgentTool(service, "load_example_set", {
+    catalogPath,
+    setId: "Simple-vitals",
+    includeMapping: true,
+  });
+  const tree = await callAgentTool(service, "get_source_tree", {}) as {
+    examples: Array<{ id: string; filename: string }>;
+  };
+  const bp = tree.examples.find((ex) => ex.filename === "bp-inst.json");
+  assert(bp, "expected bp-inst.json in Simple-vitals");
+  await callAgentTool(service, "set_active_example", { id: bp.id });
+  for (const outputMode of ["preview", "typescript"] as const) {
+    const tested = await callAgentTool(service, "run_test", { outputMode }) as {
+      testResult: TestResult;
+    };
+    const validation = tested.testResult.outputValidation;
+    assertEquals(validation?.applicable, true, outputMode);
+    assertEquals(
+      validation?.valid,
+      true,
+      `${outputMode}: ${(validation?.messages ?? []).map((m) => m.message).join("; ")}`,
+    );
+    assertEquals(validation?.messages.length ?? 0, 0);
+  }
+});
+
+Deno.test("validateConvertedOutput defaults to canonical-strict deserialization", async () => {
+  const opt = await Deno.readTextFile(bpOptPath);
+  const { skeleton } = generateSkeleton(opt);
+  const target = {
+    format: "openehr-template" as const,
+    filename: "blood_pressure.opt",
+    targetId: "openEHR-EHR-COMPOSITION.sample_encounter.v1",
+    content: opt,
+    skeleton,
+  };
+  const example = await Deno.readTextFile(
+    join(import.meta.dirname!, "fixtures", "legacy-simulated-json", "instances", "bp-inst.json"),
+  );
+  const model = createEmptyModel("openEHR-EHR-COMPOSITION.sample_encounter.v1");
+  const result = runTest(model, example, "json", { target, outputMode: "preview" });
+  assert(result.outputValidation?.applicable);
+  assertEquals(result.outputValidation?.valid, true, (result.outputValidation?.messages ?? []).map((m) => m.message).join("; "));
+  assertEquals(result.outputValidation?.messages.length ?? 0, 0);
+});
+
 Deno.test("runTest preview on BP target with legacy JSON instance collects output validation", async () => {
   const opt = await Deno.readTextFile(bpOptPath);
   const example = await Deno.readTextFile(
@@ -107,7 +167,6 @@ Deno.test("runTest preview on BP target with legacy JSON instance collects outpu
   const result = runTest(model, example, "json", {
     target,
     outputMode: "preview",
-    openEhrJsonDeserializeMode: "hybrid",
   });
   assert(result.outputValidation?.applicable);
   assertEquals(

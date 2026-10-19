@@ -1993,8 +1993,8 @@ export class WorkbenchController {
       ...bundle.settings,
       // Auto-run is a user/session preference, not part of the project.
       autoplay,
-      // #246: no "Validate as" picker any more — older bundles that stored
-      // another ehrtslib preset fall back to the lenient default.
+      // #246: no "Validate as" picker — older bundles that stored another preset
+      // normalize to the current default (canonical-strict).
       openEhrJsonDeserializeMode: DEFAULT_SETTINGS.openEhrJsonDeserializeMode,
       ...(options?.preserveRuntimeSettings
         ? {}

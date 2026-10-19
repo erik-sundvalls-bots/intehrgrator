@@ -32,7 +32,7 @@ deno task build  # build web app into /dist
 deno task dev`  # start and serve on `http://localhost:5173`
 ```
 
-NOTE: ehrtslib is not cloned. `deno.json` imports it from the jsDelivr URL for release [v0.4.2](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.4.2) (`ehrtslib-0.4.2.import-map.json`). `deno task vendor` still clones example archetypes, and it rewrites one local file, `vendor/ehrtslib-overrides/validation/template_validator.ts`, because sibling constraint matching is not in that release yet (`scripts/patch-ehrtslib-validator.ts`). Re-run vendor after pull if openEHR validation tests fail oddly.
+NOTE: ehrtslib is not cloned. `deno.json` imports it from the jsDelivr URL pinned to commit `70e28d69` (includes [ehrtslib #132](https://github.com/ErikSundvall/ehrtslib/pull/132) canonical-strict type registration on top of the v0.5 line). `deno task vendor` still clones example archetypes, and it rewrites one local file, `vendor/ehrtslib-overrides/validation/template_validator.ts`, when upstream `TemplateValidator` still needs sibling constraint matching patches (`scripts/patch-ehrtslib-validator.ts`). Re-run vendor after pull if openEHR validation tests fail oddly.
 
 ## Tests
 
@@ -73,7 +73,7 @@ Every push to `main` deploys the bleeding-edge web app. `deno task release` also
 
 `versions.json` also carries a `recommended` field naming the tag (e.g. `"v0.7.5"`) the web app suggests end users stick to. It defaults to the newest published release tag on every deploy, but a still-published previous recommendation is preserved across deploys unless overridden. To pin an older release as recommended (e.g. while a new one is still shaking out), commit a `RECOMMENDED_VERSION` file at the repo root containing just the tag; `scripts/assemble-pages.ts` reads it (or the `RECOMMENDED_VERSION` env var) on the next Pages deploy. Visiting any non-recommended version of the deployed site (including the bleeding-edge root) shows a popup linking to the recommended version, the tutorial, and the README.
 
-CI runs **`deno task vendor`** (example archetypes, plus the local TemplateValidator override). ehrtslib itself stays on the `v0.4.2` jsDelivr pin in `deno.json`.
+CI runs **`deno task vendor`** (example archetypes, plus the local TemplateValidator override). ehrtslib itself stays on the jsDelivr pin in `deno.json`.
 
 ## Releases
 
@@ -209,7 +209,7 @@ GitHub Issues via `gh`. Conventions: [docs/agents/issue-tracker.md](docs/agents/
 
 ## Libraries
 
-- [ehrtslib](https://github.com/ErikSundvall/ehrtslib) — openEHR TypeScript, imported from the jsDelivr pin for [v0.4.2](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.4.2)
+- [ehrtslib](https://github.com/ErikSundvall/ehrtslib) — openEHR TypeScript, imported from the jsDelivr pin in `deno.json`
 - [openEHR-model-examples](https://github.com/Ehrlibs/openEHR-model-examples) — demo templates
 - [fontoxpath](https://github.com/FontoXML/fontoxpath) — source XPath evaluation
 - [Blockly 11](https://developers.google.com/blockly) + [CodeMirror 6](https://codemirror.net/)
