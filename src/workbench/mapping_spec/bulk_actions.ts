@@ -9,16 +9,22 @@ import {
 import { replaceCanvasUndoable } from "../../blockly/blockly_events.ts";
 import type { BlocklyJsonDocument, SpecLine } from "./project.ts";
 
+/** Wrapper aliases that belong to the row itself (not a folded ELEMENT value). */
+function ownAliasIds(line: SpecLine): string[] {
+  const folded = new Set(line.foldedIds ?? []);
+  return (line.aliasIds ?? []).filter((id) => !folded.has(id));
+}
+
 function lineWarning(line: SpecLine, warnings: Record<string, string>): string | null {
   if (line.blockId && warnings[line.blockId]) return warnings[line.blockId] ?? null;
-  for (const id of line.aliasIds ?? []) {
+  for (const id of ownAliasIds(line)) {
     if (warnings[id]) return warnings[id] ?? null;
   }
   return null;
 }
 
 function lineAssociatedBlockIds(line: SpecLine): string[] {
-  return [line.blockId, ...(line.aliasIds ?? [])].filter((id): id is string => Boolean(id));
+  return [line.blockId, ...ownAliasIds(line)].filter((id): id is string => Boolean(id));
 }
 
 /** Optional unmapped scaffold tree eligible for bulk mark/delete. */
@@ -94,6 +100,14 @@ export function specRowBlockIdsEligibleForBulkMark(
   for (const widget of doc.widgets) {
     const line = widget.line;
     if (line.kind === "header" || !line.blockId) continue;
+    // A folded ELEMENT value (DV block) can be optional scaffold on its own:
+    // mark that block, not the ELEMENT that shares its row.
+    for (const id of line.foldedIds ?? []) {
+      if (!warnings[id] || seen.has(id)) continue;
+      if (!isWithinOptionalUnmappedScaffold(workspace, id, roots)) continue;
+      seen.add(id);
+      ids.push(id);
+    }
     if (!lineWarning(line, warnings)) continue;
     const inSubtree = lineAssociatedBlockIds(line).some((id) =>
       isWithinOptionalUnmappedScaffold(workspace, id, roots)

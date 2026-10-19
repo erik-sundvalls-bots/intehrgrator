@@ -266,6 +266,10 @@ export function createInlineEditor(
         bracketMatching(),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         keymap.of([...defaultKeymap, ...historyKeymap]),
+        search({ top: true }),
+        highlightSelectionMatches(),
+        selectFirstSearchMatchOnQuery,
+        keymap.of(searchKeymap),
         languageConf.of(languageSupport(language)),
         lintConf.of(vmsTemplateLintExtensions(language)),
         EditorView.theme({

@@ -98,7 +98,27 @@ export interface SpecLine {
   attributeEdit?: SpecEditableField;
   /** Hidden details for the info balloon (x/y, raw fields, etc.). */
   info: Record<string, unknown>;
+  /**
+   * #246: the single leaf data value under an ELEMENT, shown on the ELEMENT's
+   * own row (attribute, badge and editors) instead of a row of its own.
+   */
+  inline?: SpecLine;
+  /**
+   * Alias ids that came from folding the ELEMENT's value subtree into this row
+   * (selection / scroll only — bulk mark/delete ignores them).
+   */
+  foldedIds?: string[];
 }
+
+/** Leaf kinds small enough to share the ELEMENT row. */
+const INLINE_LEAF_KINDS: ReadonlySet<SpecLineKind> = new Set([
+  "source_query",
+  "literal",
+  "map_lookup",
+  "term_pick",
+  "sheet_lookup",
+  "text_gen",
+]);
 
 export interface SpecProjection {
   text: string;
@@ -205,6 +225,23 @@ function rootLabel(block: BlocklyBlockJson): string {
   }
   const name = stringField(block, "NAME") || stringField(block, "RM_TYPE");
   return name ? `${type} · ${name}` : type;
+}
+
+/**
+ * First of `blockIds` (a canvas block, then its ancestors) that owns a Spec row,
+ * with that row's canvas root. Blocks without a row of their own (wrappers,
+ * folded values) resolve to the nearest ancestor row.
+ */
+export function specAnchorForBlocks(
+  state: unknown,
+  blockIds: readonly string[],
+): { blockId: string; rootId: string | null } | null {
+  const lines = projectBlocklyState(state).lines;
+  for (const id of blockIds) {
+    const line = lines.find((l) => l.blockId === id || (l.aliasIds ?? []).includes(id));
+    if (line) return { blockId: id, rootId: line.rootId ?? null };
+  }
+  return null;
 }
 
 /** Lines grouped by top-level canvas root (for tabbed Mapping Spec view). */
@@ -395,9 +432,62 @@ function walkBlock(
     return;
   }
 
+  if (type === "element") {
+    emitElement(block, indent, lines, attribute, extraAliases, shell, attributeEdit);
+    if (block.next?.block) walkBlock(block.next.block, indent, lines, attribute, extraAliases, shell);
+    return;
+  }
+
   emit(lines, genericLine(block, indent, attribute, extraAliases, shell), attributeEdit);
   walkInputs(block, indent + 1, lines);
   if (block.next?.block) walkBlock(block.next.block, indent, lines, attribute, extraAliases, shell);
+}
+
+/**
+ * ELEMENT + its data value on one row unless the value is a bigger subtree
+ * (list widget, conditionals, several DV attributes) that needs rows of its own.
+ * Every elided descendant id becomes an alias, so a canvas click on the DV
+ * block or the leaf highlights and scrolls to this row.
+ */
+function emitElement(
+  block: BlocklyBlockJson,
+  indent: number,
+  lines: SpecLine[],
+  attribute: string | undefined,
+  extraAliases: string[],
+  shell: string | undefined,
+  attributeEdit: SpecEditableField | undefined,
+): void {
+  const line = genericLine(block, indent, attribute, extraAliases, shell);
+  const children: SpecLine[] = [];
+  walkInputs(block, indent + 1, children);
+  const leaf = children.length === 1 ? children[0]! : null;
+  const mergeable = children.length === 0 ||
+    (leaf !== null && INLINE_LEAF_KINDS.has(leaf.kind) && leaf.editKind !== "code" && !leaf.inline);
+  if (!mergeable) {
+    emit(lines, line, attributeEdit);
+    for (const child of children) lines.push(child);
+    return;
+  }
+  const aliases = new Set(line.aliasIds ?? []);
+  const folded = descendantIds(block).filter((id) => !aliases.has(id));
+  for (const id of folded) aliases.add(id);
+  if (aliases.size) line.aliasIds = [...aliases];
+  if (folded.length) line.foldedIds = folded;
+  if (leaf) line.inline = { ...leaf, indent };
+  emit(lines, line, attributeEdit);
+}
+
+function descendantIds(block: BlocklyBlockJson): string[] {
+  const ids: string[] = [];
+  const visit = (node: BlocklyBlockJson | undefined) => {
+    if (!node) return;
+    if (node.id) ids.push(node.id);
+    for (const input of Object.values(node.inputs ?? {})) visit(input?.block ?? input?.shadow);
+    visit(node.next?.block);
+  };
+  for (const input of Object.values(block.inputs ?? {})) visit(input?.block ?? input?.shadow);
+  return ids;
 }
 
 function walkInputs(
@@ -1086,16 +1176,24 @@ export function blocklyJsonDocumentForRoot(
   return toBlocklyJsonDocument(lines);
 }
 
+/** One projected row; an inlined ELEMENT leaf follows on the same row. */
+function specRowText(line: SpecLine): string {
+  const pad = "  ".repeat(line.indent);
+  const row = `${pad}${rowBody(line)}`;
+  return line.inline ? `${row}  ${rowBody(line.inline)}` : row;
+}
+
+function rowBody(line: SpecLine): string {
+  const parts = [line.type];
+  if (line.summary) parts.push(line.summary);
+  else if (line.label && line.label !== line.type) parts.push(line.label);
+  const body = parts.join(" · ");
+  return line.attribute ? `${line.attribute}  ${body}` : body;
+}
+
 function toBlocklyJsonDocument(lines: SpecLine[]): BlocklyJsonDocument {
   const text = lines
-    .map((line) => {
-      const pad = "  ".repeat(line.indent);
-      const parts = [line.type];
-      if (line.summary) parts.push(line.summary);
-      else if (line.label && line.label !== line.type) parts.push(line.label);
-      const body = parts.join(" · ");
-      return line.attribute ? `${pad}${line.attribute}  ${body}` : `${pad}${body}`;
-    })
+    .map((line) => specRowText(line))
     .join("\n");
   const widgets: BlocklyJsonDocument["widgets"] = [];
   let offset = 0;
@@ -1119,14 +1217,7 @@ export function blocklyJsonDocument(state: unknown): BlocklyJsonDocument {
 
 function toProjection(lines: SpecLine[]): SpecProjection {
   const text = lines
-    .map((line) => {
-      const pad = "  ".repeat(line.indent);
-      const parts = [line.type];
-      if (line.summary) parts.push(line.summary);
-      else if (line.label && line.label !== line.type) parts.push(line.label);
-      const body = parts.join(" · ");
-      return line.attribute ? `${pad}${line.attribute}  ${body}` : `${pad}${body}`;
-    })
+    .map((line) => specRowText(line))
     .join("\n");
   return { text, lines };
 }

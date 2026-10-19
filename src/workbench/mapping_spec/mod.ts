@@ -3,6 +3,7 @@ export {
   blocklyJsonDocumentForRoot,
   projectBlocklyState,
   slotAttributeFromInputName,
+  specAnchorForBlocks,
   type BlocklyJsonDocument,
   type SpecEditFieldName,
   type SpecEditKind,

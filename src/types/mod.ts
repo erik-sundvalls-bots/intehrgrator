@@ -506,5 +506,6 @@ export const DEFAULT_SETTINGS: ProjectSettings = {
   openEhrJsonDeserializeMode: "hybrid",
   openEhrInstanceShape: "json",
   autoscroll: true,
-  autoplay: false,
+  /** Auto-run Conversion Test Run(s) for all test files after edits (#246). Pause is opt-in. */
+  autoplay: true,
 };

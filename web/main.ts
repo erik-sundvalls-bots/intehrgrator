@@ -38,6 +38,7 @@ import {
   mappingSpecDocumentText,
   setMappingSpecFromBlockly,
   scrollMappingSpecToBlock,
+  specAnchorForBlocks,
   blocklyJsonDocument,
   blocklyJsonDocumentForRoot,
   deleteMarkedSpecBlocks,
@@ -274,10 +275,6 @@ const taskProgressOverlay = document.getElementById(TASK_PROGRESS_OVERLAY_ID)!;
 const exportTargetSelect = document.getElementById("export-target") as HTMLSelectElement;
 const instanceShapeSelect = document.getElementById("openehr-instance-shape") as HTMLSelectElement;
 const instanceShapeWrap = document.getElementById("openehr-instance-shape-wrap") as HTMLLabelElement;
-const validationDeserializeSelect = document.getElementById(
-  "validation-deserialize-mode",
-) as HTMLSelectElement;
-const validationModeWrap = document.getElementById("validation-mode-wrap")!;
 const mappingJsonTab = document.getElementById("tab-mapping-json") as HTMLButtonElement;
 const sheetsTab = document.getElementById("tab-sheets") as HTMLButtonElement;
 const uploadSpecBtn = document.getElementById("btn-upload-spec") as HTMLButtonElement;
@@ -360,6 +357,7 @@ function deleteMarkedSpecBlocksFromCanvas(): void {
   specCheckedBlockIds = new Set();
   if (selectedBlockId && deleted.includes(selectedBlockId)) {
     selectedBlockId = null;
+    specSelectionAnchorId = null;
   }
   refreshWorkspaceConstraints(workspace);
   persistBlocklyCanvas({ summary: "Delete marked mapping spec nodes" });
@@ -504,11 +502,6 @@ exportTargetSelect.addEventListener("change", () => {
     | "xquery"
     | "go-template";
   controller.setExportTarget(target);
-});
-validationDeserializeSelect.addEventListener("change", () => {
-  controller.setOpenEhrJsonDeserializeMode(
-    validationDeserializeSelect.value as import("@intehrgrator/types/mod.ts").OpenEhrJsonDeserializeMode,
-  );
 });
 instanceShapeSelect?.addEventListener("change", () => {
   controller.setOpenEhrInstanceShape(
@@ -1086,10 +1079,13 @@ function collectConstraintWarnings(): Record<string, string> {
   return warnings;
 }
 
+/** Spec row that stands for the selected block (itself or its nearest ancestor with a row). */
+let specSelectionAnchorId: string | null = null;
+
 function specChrome(): SpecChrome {
   return {
     warnings: collectConstraintWarnings(),
-    selectedBlockId,
+    selectedBlockId: specSelectionAnchorId ?? selectedBlockId,
     checkedBlockIds: specCheckedBlockIds,
   };
 }
@@ -1119,23 +1115,48 @@ function panToBlock(block: BlockSvg): void {
   );
 }
 
+function blockAndAncestorIds(block: Blockly.Block): string[] {
+  const ids: string[] = [];
+  for (let b: Blockly.Block | null = block; b; b = b.getParent()) ids.push(b.id);
+  return ids;
+}
+
 function applyBlockSelection(blockId: string | null, origin: "blockly" | "spec"): void {
   if (applyingSelection) return;
   applyingSelection = true;
   try {
     selectedBlockId = blockId;
+    specSelectionAnchorId = null;
     const block = blockId ? workspace.getBlockById(blockId) : null;
     syncHandlebarsClickHint();
     if (origin === "spec" && block) {
-      if (typeof (block as BlockSvg).select === "function") {
+      // #246: go through Blockly's selection state, not BlockSvg.select() —
+      // the latter only paints the outline, so the previous selection was
+      // never cleared and a later canvas click left two blocks outlined.
+      const common = (Blockly as unknown as {
+        common?: { setSelected?: (b: unknown) => void };
+      }).common;
+      if (typeof common?.setSelected === "function") {
+        common.setSelected(block);
+      } else if (typeof (block as BlockSvg).select === "function") {
         (block as BlockSvg).select();
       }
       panToBlock(block as BlockSvg);
     }
-    if (origin === "blockly" && blockId) {
-      scrollMappingSpecToBlock(specEditor, blockId);
+    let specAnchorId: string | null = null;
+    if (origin === "blockly" && block) {
+      // #246: resolve the block (or its nearest ancestor) to a Spec row and,
+      // in tabbed layout, show the tab of the canvas root that owns it.
+      const anchor = specAnchorForBlocks(
+        Blockly.serialization.workspaces.save(workspace),
+        blockAndAncestorIds(block),
+      );
+      specAnchorId = anchor?.blockId ?? null;
+      specSelectionAnchorId = specAnchorId;
+      if (anchor?.rootId) specChromeUi?.setActiveRootId(anchor.rootId);
     }
     refreshMappingSpecView();
+    if (specAnchorId) scrollMappingSpecToBlock(specEditor, specAnchorId);
     if (block) {
       const target = listeningTargetFromBlock(block);
       if (target?.kind === "slot") controller.armSlot(target.slotId);
@@ -1503,13 +1524,33 @@ function openCanvasSnapshot(): void {
   }
 }
 bind("btn-run-test", () => {
-  controller.runTestNow();
+  // Run every test file so all tabs get a fresh warning / ok mark (#246).
+  controller.runAllTests();
   const result = controller.getState().testResult;
   if (result?.ok && result.output !== undefined) {
     betterFormBridge?.pushComposition(result.output);
   }
 });
-bind("btn-autoplay", () => controller.toggleAutoplay());
+/** Machine preference: users on slow computers pause auto-run once and it stays paused. */
+const AUTO_RUN_PAUSED_KEY = "intehrgrator.autoRunPaused";
+try {
+  if (globalThis.localStorage?.getItem(AUTO_RUN_PAUSED_KEY) === "1" && controller.getState().settings.autoplay) {
+    controller.toggleAutoplay();
+  }
+} catch {
+  // Storage unavailable (private mode / sandbox): keep the default (on).
+}
+bind("btn-autoplay", () => {
+  controller.toggleAutoplay();
+  try {
+    globalThis.localStorage?.setItem(
+      AUTO_RUN_PAUSED_KEY,
+      controller.getState().settings.autoplay ? "0" : "1",
+    );
+  } catch {
+    // ignore
+  }
+});
 bind("btn-better-form", () => {
   const opened = betterFormBridge?.openViewer() ?? null;
   if (!opened) {
@@ -3509,8 +3550,6 @@ function render(): void {
   setEditorDoc(testOutputEditor, testOutputText, detectEditorLanguage(testOutputText));
 
   exportTargetSelect.value = s.settings.exportTarget;
-  validationDeserializeSelect.value = s.settings.openEhrJsonDeserializeMode;
-  validationModeWrap.hidden = s.target?.format !== "openehr-template";
   if (instanceShapeSelect) {
     instanceShapeSelect.value = s.settings.openEhrInstanceShape ?? "json";
   }
@@ -3525,8 +3564,10 @@ function render(): void {
       !afterCanvas.testResult?.error;
   }
   const autoplayBtn = document.getElementById("btn-autoplay") as HTMLButtonElement;
-  autoplayBtn.disabled = !s.examples.length;
+  autoplayBtn.disabled = false;
   autoplayBtn.textContent = s.settings.autoplay ? uiChrome().pause : uiChrome().autoplay;
+  autoplayBtn.title = s.settings.autoplay ? uiChrome().pauseAutoRunTitle : uiChrome().resumeAutoRunTitle;
+  autoplayBtn.setAttribute("aria-pressed", s.settings.autoplay ? "false" : "true");
   refreshUndoButtons();
 }
 
@@ -3540,7 +3581,8 @@ function renderExampleTabs(s: ReturnType<WorkbenchController["getState"]>): void
     const hasIssues = (s.exampleValidations[ex.id]?.length ?? 0) > 0;
     const tab = document.createElement("div");
     tab.className = "example-tab example-tab--with-close" +
-      (s.activeExample?.id === ex.id ? " active" : "");
+      (s.activeExample?.id === ex.id ? " active" : "") +
+      (hasIssues ? " example-tab--error" : "");
     tab.setAttribute("role", "tab");
 
     const label = document.createElement("button");
@@ -3580,20 +3622,25 @@ function renderTestOutputTabs(s: ReturnType<WorkbenchController["getState"]>): v
     const hasIssues = Boolean(
       validation?.applicable && !validation.valid && validation.messages.length,
     );
+    const testError = s.exampleTestErrors[ex.id];
+    const testFailed = Boolean(testError);
     const tab = document.createElement("button");
     tab.type = "button";
-    tab.className = "example-tab" + (s.activeExample?.id === ex.id ? " active" : "");
+    tab.className = "example-tab" + (s.activeExample?.id === ex.id ? " active" : "") +
+      (hasIssues || testFailed ? " example-tab--error" : "");
     if (validation?.applicable && validation.valid) {
       const mark = document.createElement("span");
       mark.className = "output-tab-mark";
       mark.textContent = "✅";
       mark.title = "Passes openEHR template validation";
       tab.append(mark);
-    } else if (hasIssues) {
+    } else if (hasIssues || testFailed) {
       const warn = document.createElement("span");
       warn.className = "example-tab-warn";
       warn.textContent = "⚠";
-      warn.title = "Conversion output does not match target template";
+      warn.title = hasIssues
+        ? "Conversion output does not match target template"
+        : `Conversion Test Run failed: ${testError}`;
       tab.append(warn);
     }
     tab.append(ex.filename);

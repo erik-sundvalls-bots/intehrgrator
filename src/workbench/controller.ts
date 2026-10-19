@@ -250,6 +250,7 @@ export class WorkbenchController {
     }
     this.refreshDerived();
     this.markDirty();
+    if (this.settings.autoplay) this.scheduleTestRun();
   }
 
   markDirty(): void {
@@ -293,6 +294,12 @@ export class WorkbenchController {
       generatedCode: this.generatedCode,
       testResult: this.testResult,
       outputValidations: Object.fromEntries(this.outputValidations),
+      /** Conversion Test Run errors per example id (marks every test-file tab). */
+      exampleTestErrors: Object.fromEntries(
+        [...this.exampleTestResults]
+          .filter(([, result]) => Boolean(result.error))
+          .map(([id, result]) => [id, result.error as string]),
+      ),
       listeningSlotId: this.listeningSlotId,
       listeningSourceBlockId: this.listeningSourceBlockId,
       treeHighlight: this.treeHighlight,
@@ -825,6 +832,7 @@ export class WorkbenchController {
     this.clearTreeHighlight();
     this.testResult = this.exampleTestResults.get(id) ?? null;
     this.markDirty();
+    if (!this.testResult && this.settings.autoplay) this.scheduleTestRun();
   }
 
   removeExample(id: string): void {
@@ -832,7 +840,6 @@ export class WorkbenchController {
     this.exampleTestResults.delete(id);
     this.outputValidations.delete(id);
     if (!this.examples.hasExamples()) {
-      this.settings.autoplay = false;
       this.testResult = null;
     } else {
       const active = this.examples.getActive();
@@ -1080,6 +1087,7 @@ export class WorkbenchController {
       this.dirty = true;
       this.scheduleAutosave();
       if (options?.notify !== false) this.notifyChange();
+      if (this.settings.autoplay) this.scheduleTestRun();
       return;
     }
     let next = createEmptyModel(this.templateId);
@@ -1152,8 +1160,11 @@ export class WorkbenchController {
     this.notifyChange();
   }
 
+  /**
+   * Auto-run is one switch for all test files: on by default, paused only by
+   * the user (slow computers). Not taken from loaded Project Bundles.
+   */
   toggleAutoplay(): void {
-    if (!this.examples.hasExamples()) return;
     this.settings.autoplay = !this.settings.autoplay;
     if (this.settings.autoplay) this.scheduleTestRun();
     this.markDirty();
@@ -1519,7 +1530,10 @@ export class WorkbenchController {
         });
       return;
     }
-    if (this.examples.hasExamples() || (isConversionScriptLanguage(target) && target !== "typescript")) {
+    if (this.examples.hasExamples()) {
+      // Every test-file tab gets a fresh mark, not only the active one.
+      this.runAllTests();
+    } else if (isConversionScriptLanguage(target) && target !== "typescript") {
       this.runTestNow();
     } else {
       this.notifyChange();
@@ -1846,7 +1860,7 @@ export class WorkbenchController {
     this.exampleOriginUrls = new Map();
     this.target = null;
     this.model = createEmptyModel("");
-    this.settings = { ...DEFAULT_SETTINGS };
+    this.settings = { ...DEFAULT_SETTINGS, autoplay: this.settings.autoplay };
     this.examples = new ExampleInstanceManager();
     this.specText = "";
     this.handlebarsTemplate = "";
@@ -1875,9 +1889,15 @@ export class WorkbenchController {
 
   private scheduleTestRun(): void {
     if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => {
-      this.runAllTests();
+    // Auto-run needs a test file; without one there is nothing to mark.
+    if (!this.examples.hasExamples()) {
       this.debounceTimer = null;
+      return;
+    }
+    this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = null;
+      if (!this.examples.hasExamples()) return;
+      this.runAllTests();
     }, 500) as unknown as number;
   }
 
@@ -1967,9 +1987,15 @@ export class WorkbenchController {
     options?: { preserveRuntimeSettings?: boolean },
   ): void {
     this.projectId = bundle.projectId;
+    const autoplay = this.settings.autoplay;
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...bundle.settings,
+      // Auto-run is a user/session preference, not part of the project.
+      autoplay,
+      // #246: no "Validate as" picker any more — older bundles that stored
+      // another ehrtslib preset fall back to the lenient default.
+      openEhrJsonDeserializeMode: DEFAULT_SETTINGS.openEhrJsonDeserializeMode,
       ...(options?.preserveRuntimeSettings
         ? {}
         : {
