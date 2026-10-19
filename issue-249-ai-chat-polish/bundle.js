@@ -189201,8 +189201,8 @@ function wireEditorActionToolbar(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "f0ca5b9" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-18T21:05:59.624Z" : "not built";
+var BUILD_ID = true ? "0cef5a1" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-19T03:15:10.567Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t6 = globalThis;
