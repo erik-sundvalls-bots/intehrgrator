@@ -1,0 +1,46 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "json-schema",
+    "targetId": "https://example.invalid/sheets/icd10-snomed-target.schema.json"
+  },
+  "suggestions": [
+    {
+      "slotId": "https://example.invalid/sheets/icd10-snomed-target.schema.json:$.snomed",
+      "block": {
+        "type": "sheet_lookup",
+        "fields": {
+          "NAME": "icd10_snomed"
+        },
+        "inputs": {
+          "MATCH_COL": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "code"
+              }
+            }
+          },
+          "MATCH_VAL": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.diagnosis.icd10"
+              }
+            }
+          },
+          "RETURN_COL": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "snomed"
+              }
+            }
+          }
+        }
+      },
+      "note": "AI-created: 1-key terminology Sheet (not a Decision table)"
+    }
+  ]
+}

@@ -1,4 +1,12 @@
 {
+  "issue-218-pane-search": {
+    "built": "2026-10-19T19:59:13Z",
+    "dir": "issue-218-pane-search",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "5ec2b9ffbcbedfcb7980acc4d05f8cdf832d52c6",
+    "upstream": "2caa391267818a029ca88a48a5a0533d3d96ce9f"
+  },
   "issue-246-ui-fixes": {
     "built": "2026-10-19T19:30:26Z",
     "dir": "issue-246-ui-fixes",

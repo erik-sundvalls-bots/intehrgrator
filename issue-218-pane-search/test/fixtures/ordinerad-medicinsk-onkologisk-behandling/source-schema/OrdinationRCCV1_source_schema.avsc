@@ -1,0 +1,240 @@
+{
+  "connect.name": "se.karolinska.schemas.karda.cytodos.OrdinationRCCV1",
+  "fields": [
+    {
+      "name": "CytodosOrdinationKey",
+      "type": "int"
+    },
+    {
+      "default": null,
+      "name": "Personnummer",
+      "type": ["null", "string"]
+    },
+    {
+      "name": "RekvisisjonId",
+      "type": "int"
+    },
+    {
+      "name": "PasientenDeltarIStudie",
+      "type": {
+        "connect.type": "int8",
+        "type": "int"
+      }
+    },
+    {
+      "default": null,
+      "name": "StudieId",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "KurdefinisjonNavn",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "KurStartDato",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "PasientKurnummer",
+      "type": ["null", "int"]
+    },
+    {
+      "default": null,
+      "name": "SignatureUser_UserName",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "SignatureUser_Fullname",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "SignatureDate",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "RekvisisjonVersjon",
+      "type": ["null", "int"]
+    },
+    {
+      "default": null,
+      "name": "RekvisisjonStatus",
+      "type": ["null", "string"]
+    },
+    {
+      "name": "PDL_enhet_Namn",
+      "type": "string"
+    },
+    {
+      "name": "PDL_enhet_HSAID",
+      "type": "string"
+    },
+    {
+      "default": null,
+      "name": "PDL_vardgivare_Namn",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "PDL_vardgivare_HSAID",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Vardenhet_id",
+      "type": [
+        "null",
+        {
+          "connect.type": "int16",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "default": null,
+      "name": "Vardenhet_namn",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Vardenhet_HSAID",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "SenastUppdaterad",
+      "type": [
+        "null",
+        {
+          "connect.name": "org.apache.kafka.connect.data.Timestamp",
+          "connect.version": 1,
+          "logicalType": "timestamp-millis",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "default": null,
+      "name": "SenastUppdaterad_orig",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "KurDagar",
+      "type": [
+        "null",
+        {
+          "items": [
+            "null",
+            {
+              "connect.name": "se.karolinska.schemas.karda.cytodos.OrdinationRCCV1KurDagar2",
+              "fields": [
+                {
+                  "default": null,
+                  "name": "KurdagLopenummer",
+                  "type": ["null", "int"]
+                },
+                {
+                  "default": null,
+                  "name": "Dognnummer",
+                  "type": ["null", "int"]
+                },
+                {
+                  "default": null,
+                  "name": "StartTid",
+                  "type": ["null", "string"]
+                },
+                {
+                  "default": null,
+                  "name": "SenastUppdaterad",
+                  "type": ["null", "string"]
+                },
+                {
+                  "default": null,
+                  "name": "Substanser",
+                  "type": [
+                    "null",
+                    {
+                      "items": [
+                        "null",
+                        {
+                          "connect.name": "se.karolinska.schemas.karda.cytodos.OrdinationRCCV1KurDagar",
+                          "fields": [
+                            {
+                              "default": null,
+                              "name": "Lopenummer",
+                              "type": ["null", "int"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Doseberegnet",
+                              "type": ["null", "double"]
+                            },
+                            {
+                              "default": null,
+                              "name": "UnitCode",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Innholdstoff_Navn",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Innholdstoff_ATC",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Form",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Form_CodeValue",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Route_LongDescription",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "Route_CodeValue",
+                              "type": ["null", "string"]
+                            },
+                            {
+                              "default": null,
+                              "name": "SenastUppdaterad",
+                              "type": ["null", "string"]
+                            }
+                          ],
+                          "name": "OrdinationRCCV1KurDagar",
+                          "type": "record"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                }
+              ],
+              "name": "OrdinationRCCV1KurDagar2",
+              "type": "record"
+            }
+          ],
+          "type": "array"
+        }
+      ]
+    }
+  ],
+  "name": "OrdinationRCCV1",
+  "namespace": "se.karolinska.schemas.karda.cytodos",
+  "type": "record"
+}
