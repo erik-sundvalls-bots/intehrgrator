@@ -170,6 +170,8 @@ import {
   localizeTaskProgress,
 } from "../src/ui/chrome_i18n.ts";
 import { wireEditorActionToolbar } from "../src/ui/editor_action_toolbar.ts";
+import { createPaneFind, installTreePaneFind, type PaneFind } from "../src/ui/pane_find.ts";
+import { canvasFindAdapter, type CanvasWorkspaceLike } from "../src/blockly/canvas_find.ts";
 import { BUILD_ID, BUILD_TIMESTAMP } from "./build_info.ts";
 import { initSplitPanes } from "../src/ui/split_pane.ts";
 import "../src/ui/shoelace.ts";
@@ -267,6 +269,27 @@ const exampleValidationEl = document.getElementById("example-validation")!;
 const testOutputTabsEl = document.getElementById("test-output-tabs")!;
 const testOutputValidationEl = document.getElementById("test-output-validation")!;
 const exampleTreeEl = document.getElementById("example-tree")!;
+// #218: find-in-pane for the three trees (the canvas one is added in bootBlockly).
+const paneFinds: Record<string, PaneFind> = {
+  "source-schema": installTreePaneFind(
+    schemaTreeEl,
+    "source-schema",
+    "searchSchemaTreeTitle",
+    detectLocale,
+  ),
+  "source-example": installTreePaneFind(
+    exampleTreeEl,
+    "source-example",
+    "searchExampleTreeTitle",
+    detectLocale,
+  ),
+  "target-schema": installTreePaneFind(
+    targetSchemaTreeEl,
+    "target-schema",
+    "searchTargetSchemaTreeTitle",
+    detectLocale,
+  ),
+};
 const blocklyMount = document.getElementById("blockly-mount")!;
 const statusMain = document.getElementById("status-main")!;
 const statusSave = document.getElementById("status-save")!;
@@ -715,6 +738,7 @@ async function bootBlockly(): Promise<void> {
 
   attachWorkspaceMinimap(workspace, blocklyMount);
   installToolboxSearchInputFix(blocklyMount, () => workspace);
+  installCanvasPaneFind();
 
   setAfterCanvasSwapRun(() => {
     persistBlocklyCanvas();
@@ -1088,6 +1112,41 @@ function specChrome(): SpecChrome {
     selectedBlockId: specSelectionAnchorId ?? selectedBlockId,
     checkedBlockIds: specCheckedBlockIds,
   };
+}
+
+/** #218: Search overlay + docked find panel inside the Mapping canvas. */
+function installCanvasPaneFind(): void {
+  const toolboxWidth = () =>
+    blocklyMount.querySelector<HTMLElement>(".blocklyToolboxDiv")?.offsetWidth ?? 0;
+  let find: PaneFind | null = null;
+  find = createPaneFind({
+    host: blocklyMount,
+    id: "mapping-canvas",
+    titleKey: "searchMappingCanvasTitle",
+    locale: detectLocale,
+    panelLeft: toolboxWidth,
+    adapter: canvasFindAdapter({
+      workspace: () => workspace as unknown as CanvasWorkspaceLike,
+      selectBlock: (blockId) => {
+        const block = workspace.getBlockById(blockId);
+        if (!block) return;
+        const common = (Blockly as unknown as {
+          common?: { setSelected?: (b: unknown) => void };
+        }).common;
+        common?.setSelected?.(block);
+        applyBlockSelection(blockId, "blockly");
+      },
+      visibleRect: () => {
+        const svg = (workspace as Blockly.WorkspaceSvg).getParentSvg?.();
+        if (!svg) return null;
+        const box = svg.getBoundingClientRect();
+        const left = box.left + toolboxWidth();
+        const top = box.top + (find?.isOpen() ? find.panel.offsetHeight : 0);
+        return new DOMRect(left, top, Math.max(0, box.right - left), Math.max(0, box.bottom - top));
+      },
+    }),
+  });
+  paneFinds["mapping-canvas"] = find;
 }
 
 function panToBlock(block: BlockSvg): void {

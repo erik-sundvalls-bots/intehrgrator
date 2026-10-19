@@ -123,6 +123,17 @@ Actions are split between the **header toolbar** (project-wide) and **pane heade
 | Export TS | Target & Previews pane header | Download the generated TypeScript mapping script | ✓ |
 | Run Test | Output → Conversion Test Run(s) | Run every test file once (active first); marks all tabs | ✓ |
 | Pause / ▶ Auto-run | Output → Conversion Test Run(s) | Auto-run is **on by default**: debounced (~500 ms) run of all test files after edits. Pause is remembered per browser (slow computers) | ✓ |
+| Search (find in pane) | Upper-right overlay inside Source Schema, Example Instances, Target Schema and the Mapping canvas (same faded overlay as the CodeMirror editors) | Opens a find panel docked at the top of that pane; see *Find in pane* below | ✓ |
+
+### Find in pane (#218)
+
+The trees and the Mapping canvas have the same find as the CodeMirror text views (#208/#215):
+
+- **Open:** the Search overlay button in the pane's upper-right corner, or **Ctrl/Cmd+F** after clicking in the pane. Inside a CodeMirror editor (or any text input) Ctrl/Cmd+F stays that editor's own find.
+- **Panel:** docked at the top of the pane: query, **next** / **previous**, **match case**, **regexp**, **by word**, a "*n* of *m*" count, close. Enter / Shift+Enter (or F3 / Shift+F3) step and wrap; Escape closes and clears the marks.
+- **Matching:** every hit is highlighted as a substring (yellow; current hit orange). The first hit is selected while typing; Next then goes to the second. When the query changes, the current hit is kept while a hit still starts there, otherwise the first hit is selected.
+- **Trees:** names, RM types / occurrences and instance values are searched. The current hit's row is scrolled into view (inside the pane only). Marks follow tree re-renders (Auto-run, new examples).
+- **Mapping canvas:** visible field text of every block (titles, labels, dropdowns, text inputs) in reading order. The current hit's block is selected (the Mapping Spec follows, as on a click) and panned into view only when it is off screen. Keys typed in the find panel never reach Blockly shortcuts.
 
 ### Deferred (not in current web app UI)
 
