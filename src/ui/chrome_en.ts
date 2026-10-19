@@ -378,6 +378,37 @@ export const en = {
   dropLeafHint: "Drop a leaf onto scaffold-target chips, a subtree onto a value socket, or onto empty canvas.",
   emptyMapReady: "Empty default context map ready — pull from Target schema, then Apply.",
   pickTargetFirst: "Pick a target file or URL first.",
+  aiNotesHeading: "Notes",
+  aiQuestionsHeading: "Questions",
+  aiSuggestionNotes: "Notes on suggestions",
+  aiConfidenceTitle: "AI-estimated chance this mapping is correct: {pct}%",
+  aiMarkReviewed: "Mark as reviewed",
+  aiReviewComment: "AI suggestion — {conf}{note}\nEdit the block or right-click → Mark as reviewed to clear.",
+  aiReviewConfidence: "{pct}% confidence",
+  aiAnswerQuestion: "Answer",
+  aiAnswerQuestionTitle: "Quote this question in the chat input and type your own answer",
+  aiAnswerWithOption: "Quote this question with this answer in the chat input (edit before sending)",
+  aiQuestionOptions: "Suggested answers",
+  aiOptionRecommended: "recommended",
+  aiAnswerInChatTitle: "Answer this question in AI chat",
+  aiFetchModels: "Connect & fetch models",
+  aiSelectProvider: "Select provider…",
+  aiSelectModel: "Select model",
+  aiModelOther: "Other… (type the model id below)",
+  aiModelsNotListedHint: "This provider may not list models; type the model id instead.",
+  aiForgetKey: "Forget key for this provider",
+  aiForgetKeyTitle: "Remove this provider's API key from this browser (endpoint and model are kept)",
+  aiKeyForgotten: "API key for {provider} removed from this browser",
+  aiClearAllProviders: "Clear all",
+  aiForgetKeyConfirm: "Remove the saved API key for {provider} from this browser? Chat history and stored prompts are kept.",
+  aiClearAllProvidersConfirm: "Forget the saved AI settings for all providers in this browser?",
+  aiFetchingModels: "Connecting…",
+  aiModelPickerLabel: "Fetched models",
+  aiModelPickerPlaceholder: "Pick one of {count} models…",
+  aiModelsFound: "Connected — {count} models. Pick one or keep typing your own.",
+  aiModelsDesktopHint: "The desktop app forwards this call (no CORS); check the endpoint and that the server is running.",
+  aiModelsCorsHint: "If the endpoint and network are fine, the browser likely blocked the call (CORS). Use the desktop app, which forwards it, or enable CORS on a local server (Ollama: OLLAMA_ORIGINS; LM Studio: Enable CORS).",
+  aiModelsAuthHint: "Check the API key (and that it is allowed to list models).",
   corsCallAiHint: "Browser CORS often blocks cloud providers from GitHub Pages. Use the desktop app (it forwards AI chat), enable CORS on a local server (Ollama / LM Studio), or use Copy prompt.",
   savedAs: 'Saved as "{name}"',
   loadedSchema: "Loaded schema {name}",
@@ -479,17 +510,38 @@ export const en = {
   noAgentsYet: "No agents connected yet.",
   optionalAttributes: "Optional attributes…",
   openViewerMenu: "Open viewer window…",
-  menuStartAiChat: "Start AI chat",
-  menuStartAiChatTitle: "Chat with your own AI about this mapping",
   openInAiChat: "Open in AI chat",
   aiChat: "AI chat",
-  aiChatMinimize: "Minimize AI chat",
-  aiChatRestore: "Restore AI chat",
-  aiChatClose: "Close AI chat",
+  aiChatCollapse: "Collapse AI chat",
+  aiChatExpand: "Expand AI chat",
   aiChatClear: "Clear history",
-  aiChatClearTitle: "Clear this project's chat history (shrinks the context sent to the AI)",
+  aiChatClearTitle: "Clear chat history",
+  aiChatClearedApi: "History cleared. A fresh context starts: your next message sends the full project context again.",
+  aiChatClearedPaste:
+    "History cleared. Also start a new chat in your external AI: the next copied prompt contains the full project context again — paste it there.",
+  aiChatHelpAria: "About the AI chat controls",
+  aiChatHelpPasteHtml:
+    "<strong>AI chat — copy &amp; paste mode</strong> (no AI credentials)<br>" +
+    "Write a message and use <strong>Copy prompt</strong>, paste it into your external AI, then <strong>Import AI answer…</strong>.<br>" +
+    "<strong>Prompts ▾</strong> stored prompts: insert, save or remove reusable texts.<br>" +
+    "<strong>Trash</strong> clears this project's chat history. Then also start a new chat in your external AI and paste the full prompt again: the next copied prompt automatically includes the full project context.<br>" +
+    "<strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br>" +
+    "<strong>Context chips</strong>: right-click source nodes, target nodes or blocks → <em>Add to AI chat</em>.<br>" +
+    "<strong>Notes / Questions</strong> from the AI show in a yellow box; <em>Answer</em> quotes a question into the input. A <strong>NN%</strong> badge and dashed outline mark low-confidence suggestions on blocks; edit or right-click → <em>Mark as reviewed</em> to clear.<br>" +
+    "<strong>AI credentials</strong> (menu <em>AI → Configure AI credentials…</em>) connect an API so the chat can send directly.",
+  aiChatHelpApiHtml:
+    "<strong>AI chat — API mode</strong><br>" +
+    "<strong>Send</strong> talks to your configured AI. The first message carries the full project context; later ones only your text and new context chips.<br>" +
+    "<strong>Prompts ▾</strong> stored prompts: insert, save or remove reusable texts.<br>" +
+    "<strong>Apply directly / Approve first</strong>: let the AI change the canvas through tools (each turn can be reverted), or review its suggestions in Import AI suggestions first.<br>" +
+    "<strong>Trash</strong> clears this project's chat history and starts a fresh context: the next message resends the full project context.<br>" +
+    "<strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br>" +
+    "<strong>Context chips</strong>: right-click source nodes, target nodes or blocks → <em>Add to AI chat</em>.<br>" +
+    "<strong>Notes / Questions</strong> from the AI show in a yellow box; <em>Answer</em> quotes a question into the input. A <strong>NN%</strong> badge and dashed outline mark low-confidence suggestions on blocks; edit or right-click → <em>Mark as reviewed</em> to clear.<br>" +
+    "<strong>AI credentials</strong> (menu <em>AI → Configure AI credentials…</em>) change provider, key or model.",
   aiChatClearConfirm: "Clear the AI chat history for this project?",
   aiChatStoredPrompts: "Stored prompts",
+  aiChatStoredPromptsShort: "Prompts",
   aiChatAddPromptFile: "Add stored prompt from file…",
   aiChatAddPromptUrl: "Add stored prompt from URL…",
   aiChatExportPrompts: "Export stored prompts",
@@ -517,9 +569,17 @@ export const en = {
   aiChatImportAnswer: "Import AI answer…",
   aiChatPromptCopied: "Prompt copied. Paste it into your AI chat, then Import AI answer.",
   aiChatApproveHint: "Review the suggestions in Import Suggestions.",
+  aiChatTruncated:
+    "The answer was cut off at the model's output-token limit, so nothing could be imported. Ask again for fewer slots at a time (for example one loop), or send \"continue\".",
+  aiChatStepLimit: "Stopped after {steps} tool steps; the model was not finished. Send \"continue\" to let it go on.",
+  aiChatToolsFallback:
+    "The provider rejected the mapping tools, so this answer was requested as suggestions JSON instead.",
   aiChatEmpty: "No messages yet.",
   addToAiChat: "Add to AI chat",
   aiChatChipRemove: "Remove",
+  aiChatDismissNotice: "Hide this notice until AI chat is opened again",
+  aiChatCopyMenuAria: "More copy/paste options",
+  aiChatResizeInput: "Drag to resize the message box (↑/↓ keys also work)",
 } as const;
 
 export type ChromeMessages = { [K in keyof typeof en]: string };

@@ -52,9 +52,6 @@
           <span data-i18n="importAi">Import AI suggestions</span>
         </button>
         <div class="split-btn-menu-heading" data-ai-section="own" data-i18n="menuAiOwnHeading">Your own AI</div>
-        <button type="button" id="btn-start-ai-chat" class="split-btn-menu-item" role="menuitem" data-ai-action="chat" data-i18n="menuStartAiChat" title="Chat with your own AI about this mapping" data-i18n-title="menuStartAiChatTitle">
-          Start AI chat
-        </button>
         <button type="button" class="split-btn-menu-item" role="menuitem" data-ai-action="credentials" data-i18n="menuAiCredentials">
           Configure AI credentials…
         </button>
@@ -798,6 +795,7 @@
       <label class="dialog-label">
         <span data-i18n="provider">Provider</span>
         <select id="ai-provider">
+          <option value="" data-i18n="aiSelectProvider">Select provider…</option>
           <option value="custom" data-i18n="customEndpoint">Custom OpenAI-compatible endpoint</option>
         </select>
       </label>
@@ -819,6 +817,11 @@
         <span data-i18n="model">Model</span>
         <input id="ai-model" type="text" placeholder="gpt-4.1" />
       </label>
+      <div class="ai-models-row">
+        <button type="button" id="ai-fetch-models" data-i18n="aiFetchModels">Connect &amp; fetch models</button>
+        <select id="ai-model-picker" disabled aria-label="Fetched models" data-i18n-aria="aiModelPickerLabel"></select>
+      </div>
+      <p id="ai-models-status" class="ai-models-status" role="status" aria-live="polite" hidden></p>
       <fieldset class="ai-mapping-mode">
         <legend data-i18n="howCallAiMaps">How AI chat maps</legend>
         <label class="dialog-label dialog-label--checkbox">
@@ -831,7 +834,8 @@
         </label>
       </fieldset>
       <div class="dialog-actions">
-        <button type="button" id="ai-credentials-clear" data-i18n="clear">Clear</button>
+        <button type="button" id="ai-credentials-clear" data-i18n="aiForgetKey" title="Remove this provider's API key from this browser (endpoint and model are kept)" data-i18n-title="aiForgetKeyTitle">Forget key for this provider</button>
+        <button type="button" id="ai-credentials-clear-all" data-i18n="aiClearAllProviders">Clear all</button>
         <span class="dialog-actions-spacer"></span>
         <button type="button" id="ai-credentials-cancel" value="cancel" data-i18n="cancel">Cancel</button>
         <button type="submit" id="ai-credentials-save" value="confirm" data-i18n="save">Save</button>
@@ -921,6 +925,7 @@
         <code>intehrgrator-suggestions</code> fence). Import validates against the
         suggestion JSON Schema; errors stay visible here and can be copied back to the AI.
       </p>
+      <div id="import-ai-notes" class="import-ai-notes" hidden aria-live="polite"></div>
       <label class="dialog-label">
         <span data-i18n="suggestions">Suggestions</span>
         <textarea

@@ -29,7 +29,7 @@ export function mcpClientCommand(execPath: string): McpLaunch {
 
 export function localMcpStaysUp(method: string, path: string): boolean {
   if (method === "GET" && path === "/health") return true;
-  if (method === "POST" && (path === "/ui-commit" || path === "/ai-chat-completions")) return true;
+  if (method === "POST" && (path === "/ui-commit" || path === "/ai-chat-completions" || path === "/ai-models")) return true;
   if (path === "/local-mcp") return true;
   return false;
 }

@@ -14,9 +14,9 @@ export interface StoredPrompt {
   builtIn?: boolean;
   /**
    * Built-ins whose text is resolved at use time from the workbench:
-   * `project` = full project prompt (the Copy prompt text), `refresh` = refresh merge.
+   * `project` = full project prompt (the Copy prompt text).
    */
-  dynamic?: "project" | "refresh";
+  dynamic?: "project";
 }
 
 export const FOR_EACH_PROMPT_TEXT =
@@ -29,13 +29,6 @@ export const BUILT_IN_PROMPTS: readonly StoredPrompt[] = [
     text: "Map as many target slots as possible using the full project context attached below.",
     builtIn: true,
     dynamic: "project",
-  },
-  {
-    id: "builtin:refresh-merge",
-    name: "Refresh merge",
-    text: "",
-    builtIn: true,
-    dynamic: "refresh",
   },
   {
     id: "builtin:for-each",

@@ -10,6 +10,8 @@ import {
   schemaUrlFromFormatDoc,
 } from "../core/ai/mod.ts";
 import { locateIssueInText } from "../core/ai/json_locate.ts";
+import { parseAiAnswerNotes } from "../core/ai/mod.ts";
+import { renderAiNotes } from "./ai_notes_view.ts";
 import { detectLocale } from "../blockly/i18n/locale.ts";
 import { chrome } from "./chrome_i18n.ts";
 
@@ -29,23 +31,42 @@ export interface ImportAiDialogOptions {
   readClipboard: () => Promise<string>;
   copyToClipboard: (text: string) => Promise<void>;
   importText: (text: string) => ImportSuggestionsReport;
+  /** Box above the textarea for the answer's Notes / Questions (Option C). */
+  notes?: HTMLElement;
+  describeSlot?: (slotId: string) => string | undefined;
+  /** **Answer** on a question (e.g. close and quote it into AI chat). */
+  onAnswer?: (question: string, index: number, option?: string) => void;
 }
 
+function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/**
+ * Summary after **Import** ran (the report comes from the real import, so
+ * "applied" is past tense on purpose). Nothing is counted before Import.
+ */
 export function formatImportReport(report: ImportSuggestionsReport): {
   summary: string;
   kind: "ok" | "partial" | "error";
 } {
   const schemaCount = report.schemaIssues?.length ?? 0;
-  const validNote = schemaCount > 0 && report.applied + report.loopsAccepted > 0
-    ? " · valid entries only"
-    : "";
-  const summary =
-    `${report.applied} applied · ${report.loopsAccepted} loops · ${report.skipped} skipped · ${report.errors.length} errors · ${schemaCount} schema${validNote}`;
+  const imported = report.applied + report.loopsAccepted > 0;
+  const validNote = schemaCount > 0 && imported ? " · valid entries only" : "";
+  const summary = `${imported ? "Imported" : "Nothing imported"}: ${
+    [
+      count(report.applied, "mapping applied", "mappings applied"),
+      count(report.loopsAccepted, "loop added", "loops added"),
+      `${report.skipped} skipped`,
+      count(report.errors.length, "error", "errors"),
+      count(schemaCount, "schema issue", "schema issues"),
+    ].join(" · ")
+  }${validNote}`;
   const hasProblems = report.errors.length > 0 || schemaCount > 0;
-  if (!hasProblems && report.applied + report.loopsAccepted > 0) {
+  if (!hasProblems && imported) {
     return { summary, kind: "ok" };
   }
-  if (report.applied + report.loopsAccepted > 0) return { summary, kind: "partial" };
+  if (imported) return { summary, kind: "partial" };
   return { summary, kind: "error" };
 }
 
@@ -72,10 +93,39 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
     importText,
   } = options;
   const form = dialog.querySelector("form");
+  const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]') ?? null;
+  /** After a successful Import the same text is not imported twice; editing it re-enables Import. */
+  const setImportDone = (done: boolean) => {
+    if (submit) submit.disabled = done;
+  };
   let lastReport: ImportSuggestionsReport | null = null;
+
+  /** Notes / Questions outside the fence and per-suggestion `note` fields. */
+  const renderNotes = () => {
+    const box = options.notes;
+    if (!box) return;
+    const view = renderAiNotes(parseAiAnswerNotes(textarea.value), {
+      describeSlot: options.describeSlot,
+      onAnswer: options.onAnswer
+        ? (question, index, option) => {
+          dialog.close();
+          options.onAnswer!(question, index, option);
+        }
+        : undefined,
+    });
+    box.replaceChildren(...(view ? [view] : []));
+    box.hidden = !view;
+  };
+  textarea.addEventListener("input", renderNotes);
+  textarea.addEventListener("input", () => {
+    // A clean import's summary is about the old text; reports with errors stay to guide the fix.
+    if (lastReport && formatImportReport(lastReport).kind === "ok") clearReport();
+    setImportDone(false);
+  });
 
   const clearReport = () => {
     lastReport = null;
+    setImportDone(false);
     report.hidden = true;
     report.classList.remove("import-ai-report--ok", "import-ai-report--partial", "import-ai-report--error");
     report.replaceChildren();
@@ -129,7 +179,9 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
     copyErrors.hidden = !hasProblems;
     textarea.classList.toggle("import-ai-text--invalid", hasProblems && result.applied === 0);
     textarea.setAttribute("aria-invalid", hasProblems ? "true" : "false");
-    cancel.textContent = result.applied > 0 ? ui().close : ui().cancel;
+    const imported = result.applied + result.loopsAccepted > 0;
+    cancel.textContent = imported ? ui().close : ui().cancel;
+    setImportDone(imported);
   };
 
   const highlightIssue = (item: { path: string; message: string }) => {
@@ -152,13 +204,16 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
     clearReport();
     cancel.textContent = ui().cancel;
     textarea.value = "";
+    renderNotes();
     if (!dialog.open) dialog.showModal();
     if (prefill !== undefined) {
       textarea.value = prefill;
+      renderNotes();
       textarea.focus();
       return;
     }
     const filled = await fillFromClipboard();
+    renderNotes();
     if (!filled) {
       textarea.placeholder = '{"format":"intehrgrator-suggestions","version":"2","suggestions":[…]}';
     }
@@ -217,6 +272,7 @@ export function installImportAiDialog(options: ImportAiDialogOptions): ImportAiD
       }
       textarea.value = text;
       clearReport();
+      renderNotes();
     })();
   });
   copyErrors.addEventListener("click", () => void copyFollowUp());

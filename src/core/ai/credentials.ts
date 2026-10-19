@@ -3,6 +3,7 @@
  * Stored in Host localStorage — never in the Project Bundle.
  */
 import type { AiMappingMode } from "./providers.ts";
+import { redactSecret } from "./redact.ts";
 
 export const AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
 
@@ -30,6 +31,12 @@ export interface ChatMessage {
     id: string;
     type?: "function";
     function?: { name: string; arguments: string };
+    /**
+     * Provider extension kept verbatim, e.g. Gemini 3's
+     * `{ google: { thought_signature } }`, which must come back on the next
+     * step or Gemini answers 400.
+     */
+    extra_content?: unknown;
   }>;
 }
 
@@ -37,6 +44,8 @@ export interface ChatToolCall {
   id: string;
   name: string;
   arguments: string;
+  /** Opaque provider extension (Gemini thought signature) to send back unchanged. */
+  extraContent?: unknown;
 }
 
 export interface OpenAiTool {
@@ -53,6 +62,27 @@ export interface ChatCompletionResult {
   raw: unknown;
   toolCalls?: ChatToolCall[];
   assistantMessage?: ChatMessage;
+  /** The provider stopped at the output-token limit (finish_reason length / MAX_TOKENS). */
+  truncated?: boolean;
+}
+
+/** Output-token ceiling when the caller does not pass one. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
+/**
+ * Gemini counts thinking tokens against `max_tokens` (Gemini thinking docs),
+ * so 8192 can end the answer mid-JSON; Gemini 3.x allows far more per call.
+ */
+export const GEMINI_MAX_OUTPUT_TOKENS = 32768;
+
+export function defaultMaxOutputTokens(endpoint: string): number {
+  return /generativelanguage\.googleapis\.com|aiplatform\.googleapis\.com/i.test(endpoint)
+    ? GEMINI_MAX_OUTPUT_TOKENS
+    : DEFAULT_MAX_OUTPUT_TOKENS;
+}
+
+/** OpenAI `length`, Gemini `MAX_TOKENS`, Anthropic `max_tokens`. */
+export function isLengthFinish(reason: unknown): boolean {
+  return typeof reason === "string" && /^(length|max_tokens|max_output_tokens)$/i.test(reason);
 }
 
 export function parseAiCredentials(raw: unknown): AiProviderCredentials | null {
@@ -104,7 +134,7 @@ export function hasAiCredentials(storage: Storage): boolean {
 }
 
 export const SUGGESTIONS_SYSTEM =
-  "You are an intEHRgrator mapping assistant. Reply with intehrgrator-suggestions JSON version 2 only, in a fenced json block or as raw JSON.";
+  "You are an intEHRgrator mapping assistant. Reply with one intehrgrator-suggestions JSON version 2 block (fenced). Outside it, add only brief `### Notes` / `### Questions` sections when needed.";
 
 export interface PostChatCompletionsOptions {
   fetch?: typeof fetch;
@@ -135,7 +165,7 @@ export async function postChatCompletions(
   const body = {
     model: parsed.model,
     temperature: options?.temperature ?? 0,
-    max_tokens: options?.maxTokens ?? 8192,
+    max_tokens: options?.maxTokens ?? defaultMaxOutputTokens(parsed.endpoint),
     messages,
     ...(options?.tools?.length ? { tools: options.tools, tool_choice: "auto" } : {}),
   };
@@ -160,13 +190,16 @@ export async function postChatCompletions(
     signal: options?.signal,
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+    // Some providers echo (part of) the key; never let it reach chat history.
+    const detail = redactSecret(await response.text().catch(() => ""), parsed.apiKey);
     throw new Error(
       `AI call failed (${response.status} ${response.statusText})${detail ? `: ${detail.slice(0, 400)}` : ""}`,
     );
   }
   const raw = await response.json() as {
     choices?: Array<{
+      finish_reason?: unknown;
+      stop_reason?: unknown;
       message?: {
         role?: string;
         content?: unknown;
@@ -174,6 +207,7 @@ export async function postChatCompletions(
           id?: string;
           type?: string;
           function?: { name?: string; arguments?: unknown };
+          extra_content?: unknown;
         }>;
       };
     }>;
@@ -194,10 +228,19 @@ export async function postChatCompletions(
         id: String(row.id ?? name),
         name,
         arguments: typeof args === "string" ? args : JSON.stringify(args ?? {}),
+        ...(row.extra_content !== undefined ? { extraContent: row.extra_content } : {}),
       };
     })
     .filter((row): row is ChatToolCall => row != null);
-  if (!text.trim() && toolCalls.length === 0) throw new Error("AI response had no text");
+  const choice = raw?.choices?.[0];
+  const truncated = isLengthFinish(choice?.finish_reason ?? choice?.stop_reason);
+  if (!text.trim() && toolCalls.length === 0) {
+    throw new Error(
+      truncated
+        ? "AI response hit the output-token limit before any text (the model spent it thinking). Try again, or ask for a smaller part."
+        : "AI response had no text",
+    );
+  }
   const assistantMessage: ChatMessage = {
     role: "assistant",
     content: text || null,
@@ -207,6 +250,7 @@ export async function postChatCompletions(
           id: row.id,
           type: "function",
           function: { name: row.name, arguments: row.arguments },
+          ...(row.extraContent !== undefined ? { extra_content: row.extraContent } : {}),
         })),
       }
       : {}),
@@ -214,6 +258,7 @@ export async function postChatCompletions(
   return {
     text,
     raw,
+    ...(truncated ? { truncated } : {}),
     ...(toolCalls.length ? { toolCalls } : {}),
     assistantMessage,
   };
@@ -251,7 +296,7 @@ export function providerAuthHeaders(endpoint: string, apiKey: string): Record<st
 }
 
 export const MAPPING_TOOLS_SYSTEM =
-  "You are an intEHRgrator mapping assistant. Use the provided tools — they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, …). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2 only.";
+  "You are an intEHRgrator mapping assistant. Use the provided tools — they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, …). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0–100 % chance it is correct; only when below 90). Finish with a 1–3 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (`1. …?` each, options as indented `- ` sub-bullets, max 4, at most one ending ` (recommended)`).";
 
 export async function forwardChatCompletionsProxy(
   payload: unknown,
@@ -305,4 +350,13 @@ export async function forwardChatCompletionsProxy(
       "cache-control": "no-store",
     },
   });
+}
+
+/** The provider rejected `tools` (400 mentioning tools): fall back to suggestions JSON. */
+export function isToolsUnsupportedError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  // Gemini 3's "missing a thought_signature … required for tools" is a 400
+  // about OUR request, not a provider without tools: do not fall back on it.
+  if (/thought_signature/i.test(message)) return false;
+  return /400/.test(message) && /tool/i.test(message);
 }

@@ -4,9 +4,11 @@
  */
 
 import type {
+  AiQuestionEntry,
   ImportSuggestionsReport,
   MappingLoop,
   MappingModel,
+  MappingSlotReview,
   SchemaIssue,
   SkeletonNode,
   SuggestionBlock,
@@ -20,6 +22,16 @@ import { Validator, type Schema } from "@cfworker/json-schema";
 import { SUGGESTION_FORMAT_SCHEMA } from "./suggestion_schema.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { jsonPointerToDotPath } from "./json_locate.ts";
+import {
+  type AiQuestion,
+  type AiResponseNotes,
+  balancedJsonEnd,
+  normalizeAiQuestion,
+  NOTES_CONVENTION,
+  parseAiConfidence,
+  parseAiResponseNotes,
+} from "./response_notes.ts";
+export { parseAiConfidence };
 import type { SheetDocument } from "../sheets/mod.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
@@ -199,6 +211,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${options.formatDocUrl}`,
     "Use version `\"2\"` with Blockly `block` fragments (not JS-shaped xpath wrappers).",
     `The JSON must validate against: ${schemaUrlFromFormatDoc(options.formatDocUrl)}`,
+    NOTES_CONVENTION,
     "",
   );
 
@@ -383,6 +396,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     "```",
     "",
     "**Repeating container** — put `for_each_list` in top-level `loops[]` (`source_query_node` in LIST for source nodes, or a list value for a computed collection); child slots use `loopVar` + relative `EXPRESSION` (see Repeatable containers list). Loop body reporters `logic_loop_index` / `logic_loop_length` serialize as `var(\"<item>_index\")` / `var(\"<item>_length\")` (0-based; length fixed at loop entry). Grammatical list join (Swedish *och* / Oxford comma) is a 1-arg Blockly Function that loops, appends a FIRST Decision-table snippet, and is called from the slot — not a `join_list` builtin. Optional RM Insertion uses `optional_rm_add` / `optional_rm_remove` tools, not this envelope.",
+    'Loop fragment (merge into the envelope; ids from the lists above): `{"loops":[{"attachSlotId":"<container slotId>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<slot under that container>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
     "",
     "## Instruction",
     "Return exactly one `intehrgrator-suggestions` fenced JSON block. Copy each `slotId` from the slot manifest. Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
@@ -607,9 +621,32 @@ export function extractSuggestionsJson(text: string): unknown {
     if (isRecord(inner) && Array.isArray(inner.suggestions)) return inner;
   }
 
-  if (trimmed.startsWith("{")) return JSON.parse(trimmed);
+  if (trimmed.startsWith("{")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (err) {
+      // Raw JSON followed by `### Notes` / `### Questions` prose.
+      const end = balancedJsonEnd(trimmed, 0);
+      if (end > 0 && trimmed.slice(end).trim()) return JSON.parse(trimmed.slice(0, end));
+      throw err;
+    }
+  }
 
   throw new Error("No suggestion JSON found (expected an object or intehrgrator-suggestions fence)");
+}
+
+/**
+ * Notes / Questions prose and per-suggestion `note` fields of an AI answer
+ * (pasted, approve-first, or the final apply-directly text).
+ */
+export function parseAiAnswerNotes(text: string): AiResponseNotes {
+  let envelope: unknown;
+  try {
+    envelope = extractSuggestionsJson(text);
+  } catch {
+    envelope = undefined;
+  }
+  return parseAiResponseNotes(text, envelope);
 }
 
 const SCHEMA_WRAPPERS = new Set([
@@ -640,7 +677,8 @@ function keepSchemaError(keyword: string | undefined, pointer: string, raw: stri
 export function validateSuggestionEnvelope(instance: unknown): SchemaIssue[] {
   const validator = new Validator(SUGGESTION_FORMAT_SCHEMA as Schema, "2020-12", false);
   const result = validator.validate(instance);
-  if (result.valid) return [];
+  const extra = confidenceIssues(instance);
+  if (result.valid) return extra;
 
   const issues: SchemaIssue[] = [];
   const seen = new Set<string>();
@@ -653,7 +691,7 @@ export function validateSuggestionEnvelope(instance: unknown): SchemaIssue[] {
     seen.add(key);
     issues.push({ path, message, keyword: error.keyword });
   }
-  return collapseSchemaIssues(issues);
+  return [...collapseSchemaIssues(issues), ...extra];
 }
 
 function collapseSchemaIssues(issues: SchemaIssue[]): SchemaIssue[] {
@@ -788,12 +826,16 @@ function normalizeSuggestionEnvelope(
   }
 
   const { loops, suggestions } = flattenSuggestionGroups(raw);
+  const notes = stringList(raw.notes);
+  const questions = questionList(raw.questions);
   return {
     format: "intehrgrator-suggestions",
     version: "2",
     target: { format: targetFormat, targetId },
     ...(loops.length ? { loops } : {}),
     suggestions,
+    ...(notes.length ? { notes } : {}),
+    ...(questions.length ? { questions } : {}),
   };
 }
 
@@ -848,6 +890,9 @@ function collectSuggestionItems(
         block: sanitizeBlock(item.block) as SuggestionBlock,
         loopVar: typeof item.loopVar === "string" ? item.loopVar : inheritedLoopVar,
         note: optionalNote(item.note),
+        ...(parseAiConfidence(item.confidence) !== undefined
+          ? { confidence: parseAiConfidence(item.confidence) }
+          : {}),
       });
     }
   }
@@ -892,6 +937,47 @@ function sourceLoopBlock(varName: string, path: string): SuggestionBlock {
 
 function optionalNote(note: unknown): string | undefined {
   return typeof note === "string" ? note : undefined;
+}
+
+
+/** Valid `questions[]` entries (string or `{ text, options? }`), normalized; others dropped. */
+function questionList(value: unknown): AiQuestionEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeAiQuestion).filter((q): q is AiQuestion => !!q).map((q) =>
+    q.options.length
+      ? { text: q.text, options: q.options.map((o) => o.recommended ? { text: o.text, recommended: true } : o.text) }
+      : q.text
+  );
+}
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string => typeof v === "string" && v.trim() !== "").map((v) => v.trim());
+}
+
+/** Warnings for `confidence` values that are present but not a 0..100 number (they are ignored on import). */
+function confidenceIssues(instance: unknown): SchemaIssue[] {
+  if (!isRecord(instance)) return [];
+  const issues: SchemaIssue[] = [];
+  const walk = (items: unknown, base: string) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item, i) => {
+      if (!isRecord(item)) return;
+      const path = `${base}[${i}]`;
+      if (item.confidence !== undefined && parseAiConfidence(item.confidence) === undefined) {
+        issues.push({
+          path: `${path}.confidence`,
+          keyword: "confidence",
+          message: `${path}.confidence: must be a number 0–100 (percent); got ${
+            JSON.stringify(item.confidence)
+          }. Ignored.`,
+        });
+      }
+      walk(item.suggestions, `${path}.suggestions`);
+    });
+  };
+  walk(instance.suggestions, "$.suggestions");
+  return issues;
 }
 
 function sanitizeBlock(raw: Record<string, unknown>): Record<string, unknown> {
@@ -1068,10 +1154,67 @@ export function importSuggestions(
     }
     const meta = slotMeta?.get(slotId);
     next = applyExpressionEdit(next, slotId, expression, meta);
+    const review = slotReviewFrom(suggestion.note, suggestion.confidence);
+    if (review) next = withSlotReview(next, slotId, review);
     report.applied++;
   }
 
   return { model: next, report };
+}
+
+/** JSON-Schema fragments for the tools-mode `note` / `confidence` parameters (map_slot, import_suggestions). */
+export const TOOL_REVIEW_PARAMS = {
+  note: {
+    type: "string",
+    description: "Only for risks (ambiguous source, unit/coding mismatch, lossy conversion, guessed path).",
+  },
+  confidence: {
+    type: "integer",
+    minimum: 0,
+    maximum: 100,
+    description: "Estimated % chance the mapping is correct (0–100). Include only when below 90 or when asked.",
+  },
+} as const;
+
+/**
+ * Tools mode `import_suggestions { text, note?, confidence? }`: the call-level
+ * `note` / `confidence` become defaults for suggestions that carry none.
+ */
+export function applySuggestionReviewDefaults(text: string, note: unknown, confidence: unknown): string {
+  const pct = parseAiConfidence(confidence);
+  const text0 = typeof note === "string" ? note.trim() : "";
+  if (pct === undefined && !text0) return text;
+  let envelope: unknown;
+  try {
+    envelope = extractSuggestionsJson(text);
+  } catch {
+    return text;
+  }
+  if (!isRecord(envelope) || !Array.isArray(envelope.suggestions)) return text;
+  const suggestions = envelope.suggestions.map((item) => {
+    if (!isRecord(item)) return item;
+    return {
+      ...item,
+      ...(text0 && item.note === undefined ? { note: text0 } : {}),
+      ...(pct !== undefined && item.confidence === undefined ? { confidence: pct } : {}),
+    };
+  });
+  return "```intehrgrator-suggestions\n" + JSON.stringify({ ...envelope, suggestions }, null, 2) + "\n```";
+}
+
+/** AI review marker for a mapped slot: only when there is a note or a confidence value. */
+export function slotReviewFrom(note: unknown, confidence: unknown): MappingSlotReview | undefined {
+  const text = typeof note === "string" ? note.trim() : "";
+  const pct = parseAiConfidence(confidence);
+  if (!text && pct === undefined) return undefined;
+  return { ...(pct !== undefined ? { confidence: pct } : {}), ...(text ? { note: text } : {}) };
+}
+
+export function withSlotReview(model: MappingModel, slotId: string, review: MappingSlotReview): MappingModel {
+  return {
+    ...model,
+    slots: model.slots.map((slot) => slot.slotId === slotId ? { ...slot, review } : slot),
+  };
 }
 
 /** Convert a v2 Blockly suggestion fragment into a Mapping Model expression string. */

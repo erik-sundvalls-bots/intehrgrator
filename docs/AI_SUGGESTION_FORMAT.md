@@ -12,7 +12,7 @@ Canonical mapping structure is Blockly JSON. AI returns a **slot-keyed subset** 
 
 ## Response
 
-One fence tagged `intehrgrator-suggestions`. Prose outside the fence is ignored.
+One fence tagged `intehrgrator-suggestions`. Outside the fence the answer may add brief `### Notes` and `### Questions` sections (see [Notes, questions and confidence](#notes-questions-and-confidence)); other prose is shown in AI chat but never imported.
 
 ````markdown
 ```intehrgrator-suggestions
@@ -57,9 +57,12 @@ One fence tagged `intehrgrator-suggestions`. Prose outside the fence is ignored.
         "type": "source_query_number",
         "fields": { "EXPRESSION": "systolic" }
       },
-      "note": "optional"
+      "note": "optional — risks only",
+      "confidence": 75
     }
-  ]
+  ],
+  "notes": ["optional — risks the user should know"],
+  "questions": [{ "text": "optional — e.g. mmHg or kPa?", "options": ["mmHg (recommended)", "kPa"] }]
 }
 ```
 
@@ -67,6 +70,35 @@ One fence tagged `intehrgrator-suggestions`. Prose outside the fence is ignored.
 - Copy every `slotId` / `attachSlotId` **verbatim** from the prompt manifest.
 - `loops` optional. Omit when all mappings are single-valued.
 - `loopVar` optional on a suggestion; when set, must equal some `loops[].block.fields.VAR`. `EXPRESSION` is then **relative to that loop’s `PATH`** (no leading `$` / `/`). Absolute `EXPRESSION` ignores `loopVar`.
+
+### Notes, questions and confidence
+
+Use these **sparingly**, only for risks: ambiguous source, unit / coding mismatch, lossy conversion, guessed path. Never for routine confirmations ("mapped X to Y").
+
+| Where | Field | Shown |
+|---|---|---|
+| per suggestion | `note` (string) | Import dialog row, AI chat, block comment on the mapped block |
+| per suggestion | `confidence` (integer 0–100) | `NN%` badge in the dialog row and on the mapped block |
+| per loop | `note` | Import dialog, AI chat |
+| top level | `notes[]` (strings), `questions[]` (string or `{ "text", "options": [...] }`) | Notes / Questions box above the suggestions |
+| outside the fence | `### Notes`, `### Questions` | same box (merged with the top-level arrays) |
+
+- **`confidence`** is the model's estimated probability, in percent, that the mapping is correct. Integer `0`–`100`; non-integers are rounded. Any other value (string, `"high"`, out of range) is reported as a validation warning and ignored. Include it only when below about 90, or on every suggestion when the user asks for it.
+- Sections outside the fence: heading level and case do not matter (`## notes:`, `**Questions**`, `Notes:` on its own line); Swedish `Anteckningar` / `Frågor` also work. Items are list lines (`-`, `*`, `1.`, `1)`). Omit empty sections.
+- **Questions syntax** (the prompt asks for exactly this): each question is a numbered item ending in `?`, with its options as indented `- ` sub-bullets (max 4). At most one option ends with ` (recommended)`:
+
+  ```markdown
+  ### Questions
+  1. How should missing body position be handled?
+     - Default to at1001 Sitting (recommended)
+     - Leave it unmapped
+  ```
+
+  The parser also accepts lettered options (`a)`, `A.`), `- ` bullets under a numbered question, a trailing `? (a / b)` choice list, `[recommended]` / `(rekommenderas)`, and a flat numbered list in which items that do not contain `?` follow a question (they become its options). In JSON, `questions[]` items are a string or `{ "text": "…?", "options": ["… (recommended)", { "text": "…", "recommended": true }] }`.
+- Options render as choice buttons under the question: a click puts `> Q1: <question>` and `Answer: <option>` in the AI chat input for editing before sending. **Answer** quotes only the question.
+- In tools mode, `map_slot` and `import_suggestions` take the same optional `note` and `confidence` parameters (for `import_suggestions` they are defaults for suggestions without their own). The agent ends with a 1–3 line summary plus optional Notes / Questions.
+
+**On the canvas.** An imported `note` and `confidence` stay on the mapped value block (Blockly `data.aiReview`, so they survive save, load and export). While unreviewed, a note or a confidence below 80 shows a dashed outline, a `NN%` badge and a block comment. Bands (`CONFIDENCE_BANDS` in `src/core/ai/response_notes.ts`): below 50 red, 50–79 amber, 80+ no marker unless there is a note. Editing a field in the block records `outcome: "edited"`; right-click → **Mark as reviewed** records `outcome: "reviewed"`. Both hide the marker but keep the raw confidence plus outcome and timestamp, for later calibration of AI confidence against what users did.
 
 ### `slotId` shapes (read-only; do not invent)
 
@@ -158,7 +190,7 @@ GitHub `.t.json` closures: `uri` → root URL; `inline` → each fileset file.
 1. Extract fence (or raw JSON). `format` and `target` may be omitted; the loaded target is used.
 2. Require `version` `"2"`; match `target` when present
 3. Nested `attachSlotId` / `for_each_list` groups inside `suggestions[]` are flattened into `loops[]`. Validate loop blocks; keep `loopVar` + relative `EXPRESSION` as-is; wrap the repeating container on the canvas
-4. Apply each valid suggestion `block` → value slot; skip invalid entries; report applied / skipped / errors. Slots leased by another agent are skipped (S-15).
+4. Apply each valid suggestion `block` → value slot; skip invalid entries; report applied / skipped / errors. Slots leased by another agent are skipped (S-15). `note` / `confidence` become the block's AI review marker.
 5. User **Test Run**
 
 ## Examples

@@ -36,6 +36,8 @@ import { walkProductStack } from "./instance_root.ts";
 import { INSTANCE_ENCODING_FIELD, parseInstanceEncoding } from "../core/output/instance_encoding.ts";
 import type { InstanceEncoding } from "../types/mod.ts";
 import { isLoopBlockType, sourcePathFromLoopList } from "./loop_block.ts";
+import { readAiReview } from "./ai_review.ts";
+import type { MappingSlotReview } from "../types/mod.ts";
 
 export interface MappingModelExtract {
   slots: Array<{
@@ -43,6 +45,7 @@ export interface MappingModelExtract {
     rmType: string;
     expression: string;
     hatch?: MappingSlotHatch;
+    review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
   optionalRm: OptionalRmInsertion[];
@@ -127,8 +130,29 @@ export function extractMappingIr(workspace: Workspace): MappingModelExtract {
 }
 
 function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] {
+  return collectSlots(workspace).slots;
+}
+
+/** The value (expression root) block that fills each mapped slot on the canvas. */
+export function slotExpressionBlocks(workspace: Workspace): Map<string, Block> {
+  return collectSlots(workspace).blocks;
+}
+
+function collectSlots(workspace: Workspace): {
+  slots: MappingModelExtract["slots"];
+  blocks: Map<string, Block>;
+} {
   const slots: MappingModelExtract["slots"] = [];
+  const blocks = new Map<string, Block>();
   const seen = new Set<string>();
+  const record = (slot: MappingModelExtract["slots"][number], exprBlock: Block | null | undefined) => {
+    if (exprBlock) {
+      blocks.set(slot.slotId, exprBlock);
+      const review = readAiReview(exprBlock);
+      if (review) slot.review = review;
+    }
+    slots.push(slot);
+  };
   for (const block of workspace.getAllBlocks(false)) {
     if (isTermPickBlock(block)) {
       const slotId = block.getFieldValue("SLOT_ID");
@@ -136,7 +160,7 @@ function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] 
       const rmType = block.getFieldValue("RM_TYPE") || "DV_CODED_TEXT";
       if (slotId && expression && !seen.has(slotId)) {
         seen.add(slotId);
-        slots.push({ slotId, rmType, expression });
+        record({ slotId, rmType, expression }, block);
       }
       continue;
     }
@@ -146,7 +170,7 @@ function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] 
       const rmType = block.getFieldValue("RM_TYPE") || "CODE_PHRASE";
       if (slotId && expression && !seen.has(slotId)) {
         seen.add(slotId);
-        slots.push({ slotId, rmType, expression });
+        record({ slotId, rmType, expression }, block);
       }
       continue;
     }
@@ -158,11 +182,7 @@ function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] 
       if (slotId && expression && !seen.has(slotId)) {
         seen.add(slotId);
         const hatch = hatchFromExprTree(nameBlock);
-        slots.push(hatch ? { slotId, rmType, expression, hatch } : {
-          slotId,
-          rmType,
-          expression,
-        });
+        record(hatch ? { slotId, rmType, expression, hatch } : { slotId, rmType, expression }, nameBlock);
       }
       continue;
     }
@@ -183,11 +203,14 @@ function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] 
           seen.add(fieldSlot);
           const attr = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
           const hatch = hatchFromExprTree(exprBlock);
-          slots.push(hatch ? { slotId: fieldSlot, rmType: attr, expression, hatch } : {
-            slotId: fieldSlot,
-            rmType: attr,
-            expression,
-          });
+          record(
+            hatch ? { slotId: fieldSlot, rmType: attr, expression, hatch } : {
+              slotId: fieldSlot,
+              rmType: attr,
+              expression,
+            },
+            exprBlock,
+          );
         }
       }
       continue;
@@ -206,10 +229,10 @@ function slotsFromWorkspace(workspace: Workspace): MappingModelExtract["slots"] 
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
-      slots.push(hatch ? { slotId, rmType, expression, hatch } : { slotId, rmType, expression });
+      record(hatch ? { slotId, rmType, expression, hatch } : { slotId, rmType, expression }, exprBlock);
     }
   }
-  return slots;
+  return { slots, blocks };
 }
 
 function optionalRmFromWorkspace(workspace: Workspace): OptionalRmInsertion[] {

@@ -3,6 +3,7 @@
  * Project Bundle). Users clear it to cut the context sent to the model.
  */
 import type { ChatMessage } from "./credentials.ts";
+import type { SuggestionNote } from "./response_notes.ts";
 
 export const CHAT_HISTORY_KEY_PREFIX = "intehrgrator.ai.chat.";
 /** Rough cap so one long chat cannot exhaust localStorage. */
@@ -15,6 +16,8 @@ export interface ChatDisplayEntry {
   text: string;
   /** Tool names called during an assistant turn (collapsed lines). */
   toolCalls?: string[];
+  /** Per-suggestion notes from envelopes the AI applied with tools this turn. */
+  suggestionNotes?: SuggestionNote[];
 }
 
 export interface ChatSession {

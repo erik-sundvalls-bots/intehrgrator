@@ -84,16 +84,32 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 .split-pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .split-group.split-group--row { flex-direction: row; }
 .split-group.split-group--column { flex-direction: column; }
+/* One divider design everywhere: 6px bar with a centred 3-dot grip (a column on
+   vertical dividers, a row on horizontal ones). The bar turns primary on
+   hover/drag/focus and the dots turn light so they stay visible. */
 .split-handle {
-  flex: 0 0 6px; background: var(--border); touch-action: none; z-index: 2;
-  transition: background 0.12s;
+  --grip-dot: #7d8b88;
+  --grip-dot-img: radial-gradient(circle, var(--grip-dot) 0 1px, transparent 1.4px);
+  flex: 0 0 6px; background-color: var(--border); touch-action: none; z-index: 2;
+  background-image: var(--grip-dot-img), var(--grip-dot-img), var(--grip-dot-img);
+  background-repeat: no-repeat;
+  transition: background-color 0.12s;
 }
-.split-handle--col { cursor: col-resize; margin: 0 -1px; }
-.split-handle--row { cursor: row-resize; margin: -1px 0; }
+.split-handle--col {
+  cursor: col-resize; margin: 0 -1px;
+  background-size: 6px 4px;
+  background-position: center calc(50% - 4px), center 50%, center calc(50% + 4px);
+}
+.split-handle--row {
+  cursor: row-resize; margin: -1px 0;
+  background-size: 4px 6px;
+  background-position: calc(50% - 4px) center, 50% center, calc(50% + 4px) center;
+}
 .split-handle:hover,
 .split-handle--active,
 .split-handle:focus-visible {
-  background: var(--primary);
+  --grip-dot: rgba(255, 255, 255, 0.92);
+  background-color: var(--primary);
   outline: none;
 }
 
@@ -1576,6 +1592,15 @@ body.sheets-fullscreen::before {
   font-size: 12px;
 }
 .ai-provider-links a { color: var(--primary-dark); }
+.ai-models-row { display: flex; align-items: center; gap: 8px; margin: -2px 0 6px; flex-wrap: wrap; }
+.ai-models-row select { flex: 1; min-width: 12em; max-width: 100%; }
+.ai-models-row select:disabled { opacity: 0.6; }
+#ai-fetch-models[aria-busy="true"] { cursor: progress; }
+.ai-models-status { margin: 0 0 8px; padding: 6px 8px; border-radius: 4px; font-size: 12px; line-height: 1.4; }
+.ai-models-status[hidden] { display: none; }
+.ai-models-status--loading { background: #eef3f2; color: #33413f; }
+.ai-models-status--ok { background: #e6f4ea; color: #1e5631; }
+.ai-models-status--error { background: #fdecea; color: #8a1c1c; border: 1px solid #f3b9b3; }
 .ai-mapping-mode {
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1874,14 +1899,26 @@ body.sheets-fullscreen::before {
   background: var(--surface); border-top: 1px solid var(--border);
 }
 .ai-chat-panel[hidden] { display: none; }
-.ai-chat-panel--minimized { flex: 0 0 auto !important; }
-.ai-chat-panel--minimized .ai-chat-body { display: none; }
+/* Always present: collapsed = slim header bar (label + toggle) only. */
+.ai-chat-panel--collapsed { flex: 0 0 auto !important; }
+.ai-chat-panel--collapsed .ai-chat-body { display: none; }
+.ai-chat-panel--collapsed .ai-chat-header { border-bottom: none; cursor: pointer; }
+.ai-chat-header-tools > [hidden] { display: none !important; }
+.ai-chat-header-tools { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ai-chat-header {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
   padding: 4px 8px; background: var(--surface-alt); border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
-.ai-chat-title { margin: 0; font-size: 13px; cursor: default; user-select: none; }
+.ai-chat-title {
+  margin: 0; font-size: 12px; font-weight: 600; cursor: default; user-select: none;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.ai-chat-panel--collapsed .ai-chat-title { cursor: pointer; }
+/* Same square toggle as #btn-slide-source / #btn-slide-output, in the bar's flow. */
+.ai-chat-header .pane-btn.ai-chat-toggle {
+  position: static; width: 28px; height: 24px; min-width: 28px; padding: 0;
+}
 .ai-chat-spacer { flex: 1; }
 .ai-chat-mode { display: inline-flex; align-items: center; gap: 4px; }
 .ai-chat-mode[hidden] { display: none; }
@@ -1917,6 +1954,7 @@ body.sheets-fullscreen::before {
 .ai-chat-composer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
 .ai-chat-input {
   min-height: 2.6em; max-height: 9em; overflow-y: auto; padding: 4px 6px;
+  resize: none; /* height comes from the divider grip above the composer */
   border: 1px solid var(--border); border-radius: 4px; background: #fff;
   font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; outline: none;
 }
@@ -1946,3 +1984,83 @@ body.sheets-fullscreen::before {
 .ai-chip-popover dd { margin: 0; font-family: var(--mono, monospace); overflow-wrap: anywhere; }
 .tree-context-menu { min-width: 160px; }
 .tree-context-menu[hidden] { display: none; }
+.split-btn-menu-separator { height: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+.ai-chat-creds-dismiss {
+  margin-left: auto; border: none; background: transparent; cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 0 4px; color: inherit;
+}
+.ai-chat-copy-split { display: inline-flex; }
+.ai-chat-actions .split-btn-chevron { padding: 3px 6px; }
+.ai-chat-actions .pane-btn .split-btn-menu-icon { font-size: 15px; vertical-align: -3px; margin-right: 4px; color: currentColor; }
+.ai-chat-actions .pane-btn { display: inline-flex; align-items: center; }
+/* Keep a short chat split from pushing Target & Previews into a scroll. */
+.ai-chat-panel { overflow: hidden; }
+.ai-chat-body > .ai-chat-composer { flex-shrink: 0; }
+/* In a short split the notice scrolls itself rather than pushing the header out. */
+.ai-chat-body > .ai-chat-creds { flex-shrink: 1; min-height: 2.2em; overflow-y: auto; align-items: flex-start; }
+.ai-chat-body > .ai-chat-grip { margin: 0; }
+.ai-chat-body > .ai-chat-grip + .ai-chat-composer { border-top: none; }
+
+/* ── AI answer Notes / Questions (Option C) ───────────────────────────────── */
+.ai-notes {
+  margin-top: 6px; border: 1px solid #e0c97a; border-left: 4px solid #d4a72c; border-radius: 4px;
+  background: #fff8e1; padding: 6px 10px; font-size: 12px; line-height: 1.45; color: var(--text);
+}
+.ai-notes section + section { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e0c97a; }
+.ai-notes-heading {
+  margin: 0 0 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #7a5a00;
+}
+.ai-notes-questions .ai-notes-heading { color: var(--primary-dark, #004d45); }
+.ai-notes-list { margin: 0; padding-left: 18px; }
+.ai-notes-item { margin: 2px 0; }
+.ai-notes-slot { font-size: 11px; background: rgba(0, 0, 0, 0.06); padding: 0 3px; border-radius: 3px; }
+.ai-notes-question { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.ai-notes-question-text { flex: 1; }
+.ai-notes-answer {
+  flex-shrink: 0; font-size: 11px; padding: 1px 8px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--primary); background: #fff; color: var(--primary);
+}
+.ai-notes-answer:hover { background: var(--primary); color: #fff; }
+/* Suggested answers: small choice chips on their own line under the question. */
+.ai-notes-options { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; padding-left: calc(1.3em + 8px); }
+.ai-notes-option {
+  font-size: 11px; line-height: 1.35; padding: 1px 8px; border-radius: 10px; text-align: left;
+  border: 1px solid #c9d6d4; background: #fff; color: var(--text); cursor: pointer; max-width: 100%;
+}
+.ai-notes-option:hover, .ai-notes-option:focus-visible { border-color: var(--primary); background: #e6f2f0; }
+.ai-notes-option--recommended { border-color: var(--primary); font-weight: 600; }
+.ai-notes-option--recommended::before { content: "★ "; color: var(--primary); }
+span.ai-notes-option { cursor: default; }
+.import-ai-notes { margin: 0 0 8px; }
+.import-ai-notes[hidden] { display: none; }
+.import-ai-notes .ai-notes { margin-top: 0; }
+
+/* ── AI review marker / confidence badge (Option B) ─────────────────────────
+   Bands come from CONFIDENCE_BANDS in src/core/ai/response_notes.ts. */
+.ai-review-marker > .blocklyPath { stroke-width: 2.5px; stroke-dasharray: 6 3; }
+.ai-review--low > .blocklyPath { stroke: #c62828 !important; }
+.ai-review--medium > .blocklyPath { stroke: #d48806 !important; }
+.ai-review--high > .blocklyPath { stroke: #607d8b !important; }
+.ai-review-badge rect { fill: #607d8b; }
+.ai-review-badge--low rect { fill: #c62828; }
+.ai-review-badge--medium rect { fill: #d48806; }
+.ai-review-badge text { fill: #fff; font: 700 9px/1 system-ui, sans-serif; pointer-events: none; }
+.ai-confidence-badge {
+  display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 10px; font-weight: 700; line-height: 16px;
+  color: #fff; background: #607d8b; vertical-align: 1px;
+}
+.ai-confidence-badge--low { background: #c62828; }
+.ai-confidence-badge--medium { background: #d48806; }
+.ai-notes-questions .ai-notes-list { counter-reset: ai-q; list-style: none; padding-left: 2px; }
+.ai-notes-question::before { counter-increment: ai-q; content: counter(ai-q) "."; font-weight: 600; min-width: 1.3em; }
+
+/* AI chat header on one row (#249 review): icon buttons, no wrapping. */
+.ai-chat-header .ai-chat-header-tools { flex-wrap: nowrap; }
+.ai-chat-header .pane-btn { white-space: nowrap; }
+.ai-chat-header .pane-btn.ai-chat-icon-btn { width: 28px; height: 24px; min-width: 28px; padding: 0; justify-content: center; }
+.ai-chat-header .pane-btn.ai-chat-icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.ai-chat-mode select { min-width: 0; max-width: 120px; }
+.ai-chat-title { white-space: nowrap; }
+.ai-chat-panel--collapsed .ai-chat-info { display: none; }
+.ai-chat-info-balloon { max-width: min(360px, calc(100vw - 16px)) !important; line-height: 1.45; }
+.dialog-actions button:disabled { opacity: 0.45; cursor: not-allowed; }

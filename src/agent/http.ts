@@ -25,6 +25,7 @@ import {
   AGENT_TOOL_HTTP,
 } from "./tools.ts";
 import { forwardChatCompletionsProxy } from "../core/ai/credentials.ts";
+import { forwardModelsProxy } from "../core/ai/models.ts";
 
 export function createAgentApiHandler(
   service: WorkbenchService,
@@ -79,6 +80,11 @@ export function createAgentApiHandler(
       if (req.method === "POST" && path === "/ai-chat-completions") {
         const body = await req.json().catch(() => null);
         return await forwardChatCompletionsProxy(body);
+      }
+
+      if (req.method === "POST" && path === "/ai-models") {
+        const body = await req.json().catch(() => null);
+        return await forwardModelsProxy(body);
       }
 
       if (req.method === "POST" && path === "/ui-commit") {

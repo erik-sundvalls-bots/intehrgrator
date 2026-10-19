@@ -4,6 +4,7 @@ import type {
   MappingModel,
   MappingFunction,
   MappingSlotHatch,
+  MappingSlotReview,
   MappingUnsupportedBlock,
   TargetSignatureNode,
   OpenEhrInstanceShape,
@@ -72,6 +73,7 @@ import {
   parseSuggestionsPayload,
   extractSuggestionsJson,
   validateSuggestionEnvelope,
+  withSlotReview,
 } from "../core/ai/mod.ts";
 import type { HostAdapter, PickedTextFile } from "../host/mod.ts";
 import { constraintWarningsInspect, productStackInspect } from "../agent/inspect.ts";
@@ -879,7 +881,12 @@ export class WorkbenchController {
    * Bind a source tree path to a Target value slot (Click-to-Map after Listening Mode,
    * or drag-and-drop which skips Listening Mode).
    */
-  mapNodeToSlot(slotId: string, path: string, format: SourceFormatId): void {
+  mapNodeToSlot(
+    slotId: string,
+    path: string,
+    format: SourceFormatId,
+    review?: MappingSlotReview,
+  ): void {
     const slot = collectValueSlots(this.skeleton).find((s) => s.slotId === slotId);
     if (!slot) return;
     let xpath = getSourceFormatHandler(format).pathToExpression(path);
@@ -902,6 +909,7 @@ export class WorkbenchController {
       label: slot.label,
       mandatory: slot.mandatory,
     });
+    if (review) this.model = withSlotReview(this.model, slot.slotId, review);
     this.listeningSlotId = null;
     this.listeningSourceBlockId = null;
     this.refreshDerived();
@@ -1046,7 +1054,13 @@ export class WorkbenchController {
   /** Replace the derived Mapping Model from the canonical Blockly workspace JSON. */
   syncFromBlockly(
     blocklyState: unknown,
-    slots: Array<{ slotId: string; rmType: string; expression: string; hatch?: MappingSlotHatch }>,
+    slots: Array<{
+      slotId: string;
+      rmType: string;
+      expression: string;
+      hatch?: MappingSlotHatch;
+      review?: MappingSlotReview;
+    }>,
     loops: MappingLoop[] = [],
     optionalRm?: MappingModel["optionalRm"],
     options?: {
@@ -1099,6 +1113,7 @@ export class WorkbenchController {
           ),
         };
       }
+      if (item.review) next = withSlotReview(next, item.slotId, item.review);
     }
     this.blocklyState = blocklyState;
     this.model = next;

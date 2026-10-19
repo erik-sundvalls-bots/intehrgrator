@@ -3,6 +3,7 @@
  * and warn about mappings that may no longer fit (#140).
  */
 import type { SchemaTreeNode, SkeletonNode } from "../../types/mod.ts";
+import { NOTES_CONVENTION } from "../ai/response_notes.ts";
 
 export interface RefreshWarning {
   kind: "removed-slot" | "type-change" | "new-slot" | "removed-path" | "new-path";
@@ -200,6 +201,7 @@ export function buildRefreshMergePrompt(report: RefreshDiffReport): string {
     "Detached Blockly that no longer fits stays on the canvas; do not delete mappings unless the user asks.",
     "Return intehrgrator-suggestions JSON (version 2) only for slots that must be rewired.",
     "See docs/AI_SUGGESTION_FORMAT.md.",
+    NOTES_CONVENTION,
   ];
   if (report.previousContent) {
     body.push("", `--- previous ${report.kind} ---`, report.previousContent.slice(0, 80_000));

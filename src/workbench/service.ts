@@ -3,6 +3,7 @@
  * not DOM. Wraps WorkbenchController with a filesystem-capable host, attributed history, and revision.
  */
 
+import type { MappingSlotReview } from "../types/mod.ts";
 import type { AiArtifactDelivery } from "../core/ai/mod.ts";
 import { parseSuggestionsPayload } from "../core/ai/mod.ts";
 import type { HostAdapter } from "../host/mod.ts";
@@ -249,13 +250,14 @@ export class WorkbenchService {
     format: SourceFormatId = "json",
     expectedRevision?: string,
     ctx?: MutationContext,
+    review?: MappingSlotReview,
   ): void {
     this.assertRevision(expectedRevision);
     const actorId = ctx?.actor?.kind === "agent" ? ctx.actor.id : this.agentIdForLeases();
     const held = this.leases.foreignHeld([slotId], actorId);
     if (held[0]) throw new AgentSlotLeasedError(held[0]);
     this.mutate(() => {
-      this.controller.mapNodeToSlot(slotId, path, format);
+      this.controller.mapNodeToSlot(slotId, path, format, review);
       this.syncBlocklyFromModel();
     }, {
       ...ctx,

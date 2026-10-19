@@ -58,7 +58,12 @@ Deno.test({
         return Boolean(report && !report.hasAttribute("hidden") && /applied/i.test(report.textContent ?? ""));
       }, { timeout: 5_000 });
       const reportText = await errorBox.innerText();
-      assert(reportText.includes("1 applied"), reportText);
+      assert(reportText.includes("Imported: 1 mapping applied"), reportText);
+      // The same text is not imported twice; editing re-enables Import.
+      assertEquals(await page.locator("#import-ai-confirm").isDisabled(), true);
+      await page.locator("#import-ai-text").press("End");
+      await page.locator("#import-ai-text").type(" ");
+      assertEquals(await page.locator("#import-ai-confirm").isDisabled(), false);
       assert(
         reportText.toLowerCase().includes("schema") ||
           reportText.includes("source_query") ||

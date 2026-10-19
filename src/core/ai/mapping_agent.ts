@@ -1,7 +1,8 @@
 /**
  * Call AI mapping loop: OpenAI-compatible tools named like MCP / Agent API.
  */
-import { looksLikeSuggestionsPayload } from "./mod.ts";
+import { applySuggestionReviewDefaults, extractSuggestionsJson, looksLikeSuggestionsPayload } from "./mod.ts";
+import { collectSuggestionNotes, type SuggestionNote } from "./response_notes.ts";
 import {
   MAPPING_TOOLS_SYSTEM,
   SUGGESTIONS_SYSTEM,
@@ -24,6 +25,12 @@ export interface MappingAgentResult {
   steps: number;
   /** Conversation after this turn, without the system prompt (for multi-turn chat). */
   messages: ChatMessage[];
+  /** Per-suggestion `note` fields from envelopes sent to import_suggestions this turn. */
+  suggestionNotes: SuggestionNote[];
+  /** The last answer stopped at the output-token limit (finish_reason length). */
+  truncated?: boolean;
+  /** The loop ran out of steps while the model still wanted to call tools. */
+  stepLimitReached?: boolean;
 }
 
 export interface RunMappingAgentOptions {
@@ -57,7 +64,7 @@ function parseToolArgs(raw: string): Record<string, unknown> {
 
 function assistantMessageForLoop(
   message: ChatMessage | undefined,
-  toolCalls: Array<{ id: string; name: string; arguments: string }>,
+  toolCalls: Array<{ id: string; name: string; arguments: string; extraContent?: unknown }>,
 ): ChatMessage {
   if (message?.tool_calls?.length) return message;
   return {
@@ -67,6 +74,7 @@ function assistantMessageForLoop(
       id: row.id,
       type: "function",
       function: { name: row.name, arguments: row.arguments },
+      ...(row.extraContent !== undefined ? { extra_content: row.extraContent } : {}),
     })),
   };
 }
@@ -89,7 +97,12 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   const toolNames: string[] = [];
   const maxSteps = options.maxSteps ?? 16;
   let lastText = "";
+  // Text the model writes next to tool calls is part of the answer (models
+  // continue a sentence across steps): keep every step's text, not only the last.
+  const texts: string[] = [];
+  const answer = () => texts.join("\n\n");
   let imported: ImportSuggestionsReport | undefined;
+  const suggestionNotes: SuggestionNote[] = [];
 
   for (let step = 1; step <= maxSteps; step++) {
     const completion = await postChatCompletions(options.credentials, messages, {
@@ -99,13 +112,22 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
       tools,
     });
     lastText = completion.text;
+    if (completion.text.trim()) texts.push(completion.text.trim());
     const calls = completion.toolCalls ?? [];
     if (!calls.length) {
       if (options.importText && looksLikeSuggestionsPayload(completion.text)) {
         imported = options.importText(completion.text);
       }
       messages.push(completion.assistantMessage ?? { role: "assistant", content: completion.text });
-      return { text: completion.text, toolNames, imported, steps: step, messages: conversation() };
+      return {
+        text: answer(),
+        toolNames,
+        imported,
+        steps: step,
+        messages: conversation(),
+        suggestionNotes,
+        ...(completion.truncated ? { truncated: true } : {}),
+      };
     }
 
     messages.push(assistantMessageForLoop(completion.assistantMessage, calls));
@@ -115,6 +137,9 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
       const args = parseToolArgs(call.arguments);
       let payload: unknown;
       try {
+        if (call.name === "import_suggestions" || call.name === "map_slot") {
+          suggestionNotes.push(...notesFromToolArgs(call.name, args));
+        }
         payload = await options.executeTool(call.name, args);
         if (isMutatingCallAiTool(call.name)) mutated = true;
         if (call.name === "import_suggestions" && payload && typeof payload === "object" && "report" in payload) {
@@ -136,7 +161,31 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
     imported = options.importText(lastText);
   }
-  return { text: lastText, toolNames, imported, steps: maxSteps, messages: conversation() };
+  return {
+    text: answer(),
+    toolNames,
+    imported,
+    steps: maxSteps,
+    messages: conversation(),
+    suggestionNotes,
+    stepLimitReached: true,
+  };
+}
+
+function notesFromToolArgs(name: string, args: Record<string, unknown>): SuggestionNote[] {
+  try {
+    if (name === "map_slot") {
+      return collectSuggestionNotes({ suggestions: [{ slotId: args.slotId, note: args.note, confidence: args.confidence }] });
+    }
+    if (typeof args.text === "string") {
+      return collectSuggestionNotes(
+        extractSuggestionsJson(applySuggestionReviewDefaults(args.text, args.note, args.confidence)),
+      );
+    }
+    return collectSuggestionNotes(args.envelope ?? args);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -151,7 +200,7 @@ export async function runSuggestionsChatTurn(options: {
   fetch?: typeof fetch;
   signal?: AbortSignal;
   proxyUrl?: string;
-}): Promise<{ text: string; messages: ChatMessage[] }> {
+}): Promise<{ text: string; messages: ChatMessage[]; truncated?: boolean }> {
   const history = options.history ?? [];
   const messages: ChatMessage[] = [
     { role: "system", content: SUGGESTIONS_SYSTEM },
@@ -164,7 +213,11 @@ export async function runSuggestionsChatTurn(options: {
     proxyUrl: options.proxyUrl,
   });
   messages.push({ role: "assistant", content: completion.text });
-  return { text: completion.text, messages: messages.slice(1) };
+  return {
+    text: completion.text,
+    messages: messages.slice(1),
+    ...(completion.truncated ? { truncated: true } : {}),
+  };
 }
 
 export async function runMappingAgentOnController(

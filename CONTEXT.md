@@ -308,11 +308,11 @@ Second Host adapter (`VsCodeWebviewHostAdapter` + `extension/`) packaging the sa
 _Avoid_: Separate fork of the workbench
 
 **AI Assist**:
-**Copy prompt** builds a markdown prompt (target/source origins as file or URI; delivery mode: inline multipart, chat attach, or URI browse; slot manifest; link to response format spec). **AI chat** (AI → **Start AI chat**) sends prompts to an optional OpenAI-compatible chat endpoint whose credentials live in Host localStorage — never in the Project Bundle. It loops MCP / Agent API tool names (`map_slot`, `import_suggestions`, `run_test`, …) on the live workbench, or asks for suggestions JSON for review; **Suggestions JSON only** in AI credentials forces the review path. IDE/MCP mapping and a remote HTTP Agent API remain valid without in-app credentials. Provider keys: `docs/AI_CREDENTIALS.md`. Architecture: `docs/MCP_ARCHITECTURE.md`.
+**Copy prompt** builds a markdown prompt (target/source origins as file or URI; delivery mode: inline multipart, chat attach, or URI browse; slot manifest; link to response format spec). **AI chat** (always-present, collapsible panel under **Target & Previews**) sends prompts to an optional OpenAI-compatible chat endpoint whose credentials live in Host localStorage — never in the Project Bundle. It loops MCP / Agent API tool names (`map_slot`, `import_suggestions`, `run_test`, …) on the live workbench, or asks for suggestions JSON for review; **Suggestions JSON only** in AI credentials forces the review path. IDE/MCP mapping and a remote HTTP Agent API remain valid without in-app credentials. Provider keys: `docs/AI_CREDENTIALS.md`. Architecture: `docs/MCP_ARCHITECTURE.md`.
 _Avoid_: AI Suggest button as the only path, baking API keys into the Project Bundle, **Call AI** (former one-shot action, replaced by **AI chat**)
 
 **AI chat**:
-Multi-turn chat panel in the lower split of **Target & Previews** (draggable, minimize/close, height remembered, visible on every tab). Always openable: without credentials it offers copy & paste prompting (compose the prompt from the chat input, then **Import AI answer…** into **Mapping Suggestion Import**). With credentials the user picks **Apply directly** (tool calls change the canvas; each shown as a collapsed line; **Revert last AI turn**) or **Approve first** (the answer opens in Import Suggestions before anything is applied). The first message carries the full project context (the **Copy prompt** text); later messages carry only the user text and newly added **Context chip** details. History is kept per project in browser localStorage, never in the Project Bundle; **Clear history** shrinks the context. See ADR 0013.
+Multi-turn chat panel in the lower split of **Target & Previews** (draggable, collapses to a slim bar via its toggle, collapsed state and height remembered, visible on every tab). Never closed: without credentials it offers copy & paste prompting (compose the prompt from the chat input, then **Import AI answer…** into **Mapping Suggestion Import**). With credentials the user picks **Apply directly** (tool calls change the canvas; each shown as a collapsed line; **Revert last AI turn**) or **Approve first** (the answer opens in Import Suggestions before anything is applied). The first message carries the full project context (the **Copy prompt** text); later messages carry only the user text and newly added **Context chip** details. History is kept per project in browser localStorage, never in the Project Bundle; The trash button (**Clear chat history**) shrinks the context: the next message (or copied prompt) carries the full project context again, so in copy & paste mode the user also starts a new chat in the external AI. An (i) in the header explains every control for the current mode. See ADR 0013.
 _Avoid_: Call AI, copilot, saving chat history in the Project Bundle
 
 **Context chip**:
@@ -320,11 +320,14 @@ Inline reference in the AI chat input to a source schema node, Example Instance 
 _Avoid_: canvas declaration chip, **scaffold target** chips (different concepts), pasting paths by hand
 
 **Stored prompt**:
-Reusable AI chat prompt from the **Stored prompts** ▾ menu. Built-ins are read-only (**Map the whole project** = the Copy prompt text, **Refresh merge**, **Loop with a for each block**); user prompts live in browser localStorage, are added from a `.md` / `.txt` (one prompt) or `.json` (list of `{name, text}`) file or URL, removed with ×, and exported as JSON. `{source_node}` / `{target_node}` placeholders are filled from **Context chips** in the input and stay visible when no chip matches.
+Reusable AI chat prompt from the **Prompts** ▾ (stored prompts) menu. Built-ins are read-only (**Map the whole project** = the Copy prompt text, **Loop with a for each block**); user prompts live in browser localStorage, are added from a `.md` / `.txt` (one prompt) or `.json` (list of `{name, text}`) file or URL, removed with ×, and exported as JSON. `{source_node}` / `{target_node}` placeholders are filled from **Context chips** in the input and stay visible when no chip matches.
 _Avoid_: prompt template (clashes with openEHR templates), storing prompts in the Project Bundle
 
 **Mapping Suggestion Import**:
-Applying parsed suggestions from an external AI response in `intehrgrator-suggestions` JSON version 2 (slot-keyed Blockly block subset). See `docs/AI_SUGGESTION_FORMAT.md`.
+Applying parsed suggestions from an external AI response in `intehrgrator-suggestions` JSON version 2 (slot-keyed Blockly block subset). The dialog also shows the answer's Notes / Questions and per-suggestion notes and confidence. See `docs/AI_SUGGESTION_FORMAT.md`.
+
+**AI review marker**:
+An imported suggestion's `note` and `confidence` (integer percent the model estimates the mapping is correct) kept on the mapped value block. It shows as a dashed outline, an `NN%` badge and a comment until the user edits the block or chooses **Mark as reviewed**. The raw value and that outcome stay in block data for later calibration.
 _Avoid_: AI paste, bulk map
 
 **Host Abstraction**:
@@ -395,7 +398,7 @@ _Avoid_: Mapping file, saved state
 >
 > **Informatician:** Can AI help me map the boring fields?
 >
-> **Developer:** Click **Copy prompt**, or open **AI chat** (AI → Start AI chat) and right-click nodes → **Add to AI chat** to point at them. ▾ also chooses embed files, chat attach, URI browse, or **AI credentials**. Paste a chat reply into **Import Suggestions**, or let AI chat apply it. Run Test to verify before exporting.
+> **Developer:** Click **Copy prompt**, or expand **AI chat** below Target & Previews and right-click nodes → **Add to AI chat** to point at them. ▾ also chooses embed files, chat attach, URI browse, or **AI credentials**. Paste a chat reply into **Import Suggestions**, or let AI chat apply it. Run Test to verify before exporting.
 >
 > **Informatician:** I want every composition to say St. Dummy Demo Hospital and Swedish.
 >

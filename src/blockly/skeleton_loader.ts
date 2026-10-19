@@ -1,4 +1,6 @@
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
+import { applySlotReviews } from "./ai_review.ts";
+import { slotExpressionBlocks } from "./mapping_ir.ts";
 import type { AllowedOrdinal, AllowedValue, MappingLoop, MappingModel, SkeletonNode } from "../types/mod.ts";
 import { AUTO_FIXED_LOCATABLE_ATTRS } from "../core/rm_mandatory.ts";
 import {
@@ -273,6 +275,7 @@ export function applyModelExpressions(
     applyModelLoops(workspace, model);
     applyModelOptionalSchemaFields(workspace as WorkspaceSvg, model);
     applyModelOptionalRmInsertions(workspace as WorkspaceSvg, model);
+    if (model.slots.some((s) => s.review)) applySlotReviews(slotExpressionBlocks(workspace), model.slots);
   };
   if (options.recordUndo) apply();
   else runWithoutBlocklyEvents(apply);
