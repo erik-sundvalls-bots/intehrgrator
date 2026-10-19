@@ -6,5 +6,13 @@
     "pr": "250\thttps://github.com/regionstockholm/intehrgrator/pull/250\tOPEN\tAI chat polish: dismissible notice, resizable entry, copy/paste menu, divider, drop Refresh merge (#249)",
     "sha": "0cef5a162d4c87084b0b12ba2042afa10143bb09",
     "upstream": "c86e168b923b09a7c729cb6e4dc9910eb40a9f19"
+  },
+  "release-0.9.2": {
+    "built": "2026-10-19T18:57:56Z",
+    "dir": "release-0.9.2",
+    "mode": "merged",
+    "pr": "253\thttps://github.com/regionstockholm/intehrgrator/pull/253\tOPEN\tchore: release 0.9.2",
+    "sha": "d729bed78df127569f87dfd8e3be7809cae898c2",
+    "upstream": "2caa391267818a029ca88a48a5a0533d3d96ce9f"
   }
 }

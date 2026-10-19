@@ -1,0 +1,50 @@
+{
+  "CytodosAdministrationKey": 632,
+  "Personnummer": "AWn+PyD1A4m/V7pQYlajypwM1q1OFzk6AD8hV4+nYCsn3s275Z7PVJ8VA2I1",
+  "RekvisisjonId": 73821234,
+  "ExternalEncounterId": 453234,
+  "EncounterId": 1569024,
+  "EncounterDate": "2024-05-21T00:00:00",
+  "EncounterStatus": 3,
+  "EncounterStatus_LongDescription": "Stoppad",
+  "SignatureUser_FullName": "TakeCare_Test",
+  "SignatureUser_UserName": "A1D8",
+  "PDL_enhet_Namn": "OO Cancer TC",
+  "PDL_enhet_HSAID": "BW01",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Sparrgrupp": "K Cancer",
+  "Inskrivningstidpunkt": "2024-05-21T12:35:17",
+  "Utskrivningstidpunkt": "2024-05-21T12:35:17",
+  "Diagnoskod_ICD10": "C509",
+  "Diagnosnamn_ICD10": "Icke specificerad lokalisation av malign tumör i bröstkörtel",
+  "Vardenhet_id": 4494,
+  "Vardenhet_namn": "S MBA B8",
+  "Vardenhet_HSAID": "CCJ3",
+  "SenastUppdaterad": 1716459023706,
+  "SenastUppdaterad_orig": "2024-05-23T10:10:23.7066667+00:00",
+  "Substanser": [
+    {
+      "ContentID": 1292559,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456456,
+      "Dose": 181.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "Epirubicin",
+      "Innholdstoff_ATC": "L01DB03"
+    },
+    {
+      "ContentID": 1292560,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456457,
+      "Dose": 1086.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "Cyklofosfamid iv",
+      "Innholdstoff_ATC": "L01AA01"
+    }
+  ]
+}
