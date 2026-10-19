@@ -91,15 +91,6 @@ Deno.test({
       assertStringIncludes(await chatQ.locator(".ai-notes-question-text").innerText(), "bodyPosition");
       const choice = chatQ.locator(".ai-notes-option").nth(1);
       assertStringIncludes(await choice.innerText(), "Do not map");
-      // Screenshot only: lift the panel out of the layout at a readable size.
-      await page.evaluate(() => {
-        const panel = document.getElementById("ai-chat-panel")!;
-        panel.style.cssText =
-          "position:fixed;left:20px;top:20px;width:420px;height:560px;z-index:9999;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.3);display:flex;flex-direction:column";
-        const log = document.getElementById("ai-chat-log");
-        if (log) log.scrollTop = log.scrollHeight;
-      });
-      await page.locator("#ai-chat-panel").screenshot({ path: "/workspace/pr250-questions.png" });
 
       await choice.click();
       const input = await page.locator("#ai-chat-input").innerText();
