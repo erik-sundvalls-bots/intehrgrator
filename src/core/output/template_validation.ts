@@ -3,13 +3,12 @@
  */
 
 import { parseTemplateInput } from "ehrtslib/parser/mod.ts";
-import * as rm from "ehrtslib/openehr_rm.ts";
 import {
   deserializeFromFlatJson,
   parseWebTemplate,
   webTemplateToOpt,
 } from "ehrtslib/serialization/simplified/mod.ts";
-import { TypeRegistry } from "ehrtslib/serialization/common/type_registry.ts";
+import { registerOpenEhrModelTypes } from "ehrtslib/serialization/common/openehr_model_registry.ts";
 import { JsonConfigurableDeserializer } from "ehrtslib/serialization/json/mod.ts";
 import { XmlDeserializer } from "ehrtslib/serialization/xml/mod.ts";
 import { TemplateValidator } from "ehrtslib/validation/mod.ts";
@@ -26,7 +25,7 @@ let rmTypeRegistryReady = false;
 /** JsonConfigurableDeserializer requires RM classes registered on TypeRegistry first. */
 function ensureRmTypeRegistry(): void {
   if (rmTypeRegistryReady) return;
-  TypeRegistry.registerModule(rm as Record<string, unknown>);
+  registerOpenEhrModelTypes();
   rmTypeRegistryReady = true;
 }
 
@@ -96,7 +95,7 @@ export function validateConvertedOutput(
     };
   }
   const jsonText = JSON.stringify(output, null, 2);
-  const deserializeMode = options.deserializeMode ?? "hybrid";
+  const deserializeMode = options.deserializeMode ?? "canonical-strict";
   try {
     const opt = operationalTemplateFromTarget(target);
     if (!opt) {

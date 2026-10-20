@@ -503,7 +503,7 @@ export interface ImportSuggestionsReport {
 export const DEFAULT_SETTINGS: ProjectSettings = {
   exportTarget: "preview",
   theme: "karolinska",
-  openEhrJsonDeserializeMode: "hybrid",
+  openEhrJsonDeserializeMode: "canonical-strict",
   openEhrInstanceShape: "json",
   autoscroll: true,
   /** Auto-run Conversion Test Run(s) for all test files after edits (#246). Pause is opt-in. */

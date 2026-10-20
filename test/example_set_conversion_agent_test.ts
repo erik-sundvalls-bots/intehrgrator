@@ -463,6 +463,9 @@ function kardaValidationLimit(message: string): string | null {
   if (text.includes("non-empty string") || text.includes("is_empty")) return "empty-value";
   if (text.includes("does not match template archetype")) return "archetype-sibling";
   if (text.includes("type mismatch")) return "type-mismatch";
+  if (text.includes("type not found in registry") || text.includes("failed to deserialize")) {
+    return "deserialize-shape";
+  }
   return null;
 }
 
