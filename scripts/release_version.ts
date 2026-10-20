@@ -23,6 +23,16 @@ export function releaseTagForVersion(version: string): string {
   return `v${major}.${minor}.${patch}`;
 }
 
+/** Tag-pinned CHANGELOG.md link used in the tag message and the GitHub Release body. */
+export function changelogUrlForTag(tag: string): string {
+  return `https://github.com/regionstockholm/intehrgrator/blob/${tag}/CHANGELOG.md`;
+}
+
+/** Annotated tag message: the given (or default) title plus the changelog link. */
+export function releaseTagMessage(version: string, tag: string, message?: string): string {
+  return `${message ?? `intEHRgrator desktop ${version}`}\n\nChangelog: ${changelogUrlForTag(tag)}`;
+}
+
 export function readVersionFromDenoJson(text: string): string {
   const parsed = JSON.parse(text) as { version?: string };
   if (!parsed.version) throw new Error("deno.json is missing version");
