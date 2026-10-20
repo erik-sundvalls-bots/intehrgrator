@@ -86,6 +86,8 @@ Maintainers cut releases with **`deno task release`** (not GitHub **Releases →
 3. Locally the script may bump `deno.json`, `package.json`, `scripts/desktop.compile.json`, and `APP_VERSION`; run `deno task vendor` (unless skipped), unit tests (unless `--no-test`), and `deno task build`; then commit, tag, and push.
 4. The tag push triggers `release.yml` (unit + UI must pass before publish).
 
+**Release notes** live in [`CHANGELOG.md`](CHANGELOG.md). Feature and fix PRs add a line under **Unreleased**; the release PR (version bump) renames that section to the new version and date. The GitHub Release description and the annotated tag message link to `CHANGELOG.md` at the tag.
+
 Example: package version `0.8.8` → tag **`v0.8.8`**. Patch segment `0` is special: `0.8.0` → tag **`v0.8`** (see `releaseTagForVersion` in `scripts/release_version.ts`).
 
 ### Flags
@@ -94,7 +96,7 @@ Example: package version `0.8.8` → tag **`v0.8.8`**. Patch segment `0` is spec
 |------|--------|
 | `--dry-run` | Validate and build; no commit, tag, or push. Version files may still be rewritten locally — revert before committing if you only wanted a smoke run. |
 | `--no-test` / `deno task release:no-test` | Skips **local** unit tests only; CI still runs unit + UI on the tag. |
-| `--message` | Annotated tag message (default: `intEHRgrator desktop <version>`). |
+| `--message` | Annotated tag title (default: `intEHRgrator desktop <version>`); a tag-pinned `CHANGELOG.md` link is always appended. |
 
 ### Immutable published tags vs recovery
 
@@ -112,7 +114,7 @@ Frozen Pages builds for a tag are **immutable**: `assembleReleasePagesSite` erro
 | Tests, frozen `/v…/` Pages, desktop via CI | On tag push | Only if a new `v*` tag is created/pushed; no version bump |
 | Creates GitHub Release assets | Via Actions after tag | Yes (primary UI purpose) |
 
-Use the GitHub Release UI for release notes or extra attachments, not as a substitute for the guided release path. A future Actions “make new release” UI is tracked in [#220](https://github.com/regionstockholm/intehrgrator/issues/220).
+Release notes go in `CHANGELOG.md` (in the release PR), not in the GitHub Release UI; use that UI only for extra attachments, not as a substitute for the guided release path. A future Actions “make new release” UI is tracked in [#220](https://github.com/regionstockholm/intehrgrator/issues/220).
 
 ### Recommended end-user version
 

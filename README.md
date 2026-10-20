@@ -42,6 +42,7 @@ We welcome bug reports and feature requests:
 
 | Topic | Document |
 |-------|----------|
+| What changed per release | [CHANGELOG.md](CHANGELOG.md) |
 | Tutorial series | [docs/TUTORIAL.md](docs/TUTORIAL.md) |
 | Terminology glossary | [CONTEXT.md](CONTEXT.md) |
 | openEHR primer | [docs/OPENEHR_PRIMER.md](docs/OPENEHR_PRIMER.md) |

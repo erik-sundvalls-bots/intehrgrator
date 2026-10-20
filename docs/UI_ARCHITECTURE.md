@@ -89,7 +89,7 @@ The left pane has two stacked sections: **schema** (upper) and **example instanc
 - **Tabs** (Shoelace `sl-tab-group`; usually not needed at the same time):
   1. **Target schema** — tree of the loaded target. Pull a leaf or subtree onto empty canvas → corresponding Blockly, scaffolded from the current **default context map**. Leaf → **scaffold target** chips; subtree → map value socket.
   2. **Generated conversion script(s)** — executable TypeScript / Java / Handlebars / XQuery from the Mapping Model (read-only CodeMirror)
-  3. **Conversion Test Run(s)** — runs mapping against the **active example tab**; displays the produced instance. Section header includes **Run Test** and **Pause / ▶ Auto-run**. The selected test-file tab is neutral blue; it turns red-tinted only when that file's output has an error (⚠). There is no "Validate as" picker: output is validated with ehrtslib's lenient (hybrid) JSON preset (#246).
+  3. **Conversion Test Run(s)** — runs mapping against the **active example tab**; displays the produced instance. Section header includes **Run Test** and **Pause / ▶ Auto-run**. The selected test-file tab is neutral blue; it turns red-tinted only when that file's output has an error (⚠). There is no "Validate as" picker: openEHR JSON output is validated with ehrtslib's canonical-strict preset (#246, #256).
 - Unmapped mandatory slots and unmet cardinality show as **Constraint warning** triangles on Blockly and on the matching Mapping Spec Widgets. Click a spec widget or Blockly block to **Select** (yellow border + pan); placeholder Source query blocks also enter **Listening Mode**.
 
 ### Web components (Shoelace)
