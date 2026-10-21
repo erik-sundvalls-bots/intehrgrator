@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="ProfdocHISMessage">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="PatId" type="xs:string"/>
+				<xs:element name="UserId" type="xs:string"/>
+				<xs:element name="EventTime" type="xs:unsignedLong"/>
+				<xs:element name="Signed" minOccurs="0">
+					<!-- Moved Signed before Signer to match the XML -->
+					<xs:simpleType>
+						<xs:restriction base="xs:integer">
+							<xs:minInclusive value="0"/>
+							<xs:maxInclusive value="1"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Signer" type="xs:string"/>
+				<xs:element name="TemplateId" type="xs:integer"/>
+				<xs:element name="TemplateType" type="xs:integer"/>
+				<xs:element name="UUID" type="xs:string" minOccurs="0" maxOccurs="1"/>
+				<xs:element name="Keywords">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TextKeywords" minOccurs="0" maxOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="TextKeyWord" minOccurs="1" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="TermId" type="xs:int"/>
+													<xs:element name="Note" type="xs:string"/>
+													<!-- Sample includes Note; keeping it required here -->
+													<xs:element name="ValueTerms" minOccurs="0" maxOccurs="1">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ValueTermId" type="xs:unsignedInt" minOccurs="1" maxOccurs="unbounded"/>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="NumericKeywords" minOccurs="0" maxOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="NumericKeyword" minOccurs="1" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="TermId" type="xs:int"/>
+													<xs:element name="Note" type="xs:string" minOccurs="0"/>
+													<xs:element name="Value" type="xs:decimal"/>
+													<!-- Added Value to match the XML -->
+													<xs:element name="ValueTerms" minOccurs="0" maxOccurs="1">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ValueTermId" type="xs:unsignedInt" minOccurs="1" maxOccurs="unbounded"/>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="DatetimeKeywords" minOccurs="0" maxOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="DatetimeKeyword" minOccurs="1" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="TermId" type="xs:int"/>
+													<xs:element name="Note" type="xs:string" minOccurs="0"/>
+													<xs:element name="Value" type="xs:unsignedLong"/>
+													<!-- Added Value to match the XML -->
+													<xs:element name="ValueTerms" minOccurs="0" maxOccurs="1">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ValueTermId" type="xs:unsignedInt" minOccurs="1" maxOccurs="unbounded"/>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="UserKeywords" minOccurs="0" maxOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="UserKeyword" minOccurs="1" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="TermId" type="xs:int"/>
+													<xs:element name="Note" type="xs:string" minOccurs="0"/>
+													<xs:element name="Value" type="xs:string"/>
+													<!-- Added Value to match the XML -->
+													<xs:element name="ValueTerms" minOccurs="0" maxOccurs="1">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ValueTermId" type="xs:unsignedInt" minOccurs="1" maxOccurs="unbounded"/>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute fixed="Request" name="MsgType" type="xs:string"/>
+			<xs:attribute name="Time" type="xs:unsignedLong" use="required"/>
+			<xs:attribute name="InvokingSystem" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
