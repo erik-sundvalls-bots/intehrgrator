@@ -187,27 +187,38 @@ export function formatRefreshReport(report: RefreshDiffReport): string {
   return lines.join("\n");
 }
 
+/** Raw files ride along only when both fit; otherwise the structured warnings are the diff (#252). */
+export const REFRESH_MERGE_RAW_LIMIT_CHARS = 12_000;
+/** At most this many warnings are listed; the rest are counted. */
+export const REFRESH_MERGE_MAX_WARNINGS = 200;
+
 export function buildRefreshMergePrompt(report: RefreshDiffReport): string {
+  const listed = report.warnings.slice(0, REFRESH_MERGE_MAX_WARNINGS);
+  const more = report.warnings.length - listed.length;
   const body = [
     `The informatician refreshed a ${report.kind} in intEHRgrator and needs help merging.`,
     `Previous file: ${report.previousFilename}`,
     `New file: ${report.nextFilename}`,
     "",
-    "Warnings:",
-    ...(report.warnings.length
-      ? report.warnings.map((warning) => `- ${warning.message}`)
-      : ["- none"]),
+    "Warnings (structured diff):",
+    ...(listed.length ? listed.map((warning) => `- ${warning.message}`) : ["- none"]),
+    ...(more > 0 ? [`- … ${more} more warnings not listed`] : []),
     "",
     "Detached Blockly that no longer fits stays on the canvas; do not delete mappings unless the user asks.",
     "Return intehrgrator-suggestions JSON (version 2) only for slots that must be rewired.",
     "See docs/AI_SUGGESTION_FORMAT.md.",
     NOTES_CONVENTION,
   ];
-  if (report.previousContent) {
-    body.push("", `--- previous ${report.kind} ---`, report.previousContent.slice(0, 80_000));
-  }
-  if (report.nextContent) {
-    body.push("", `--- new ${report.kind} ---`, report.nextContent.slice(0, 80_000));
+  const prev = report.previousContent ?? "";
+  const next = report.nextContent ?? "";
+  if (prev.length <= REFRESH_MERGE_RAW_LIMIT_CHARS && next.length <= REFRESH_MERGE_RAW_LIMIT_CHARS) {
+    if (prev) body.push("", `--- previous ${report.kind} ---`, prev);
+    if (next) body.push("", `--- new ${report.kind} ---`, next);
+  } else {
+    body.push(
+      "",
+      `Raw files omitted (${prev.length} and ${next.length} characters; limit ${REFRESH_MERGE_RAW_LIMIT_CHARS} each). The warnings above are the diff; ask for a specific part if you need it.`,
+    );
   }
   return body.join("\n");
 }

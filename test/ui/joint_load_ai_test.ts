@@ -78,7 +78,8 @@ Deno.test({
         await page.locator("#ai-key-docs").getAttribute("href"),
         "https://aistudio.google.com/app/apikey",
       );
-      assertEquals(await page.locator("#ai-mapping-mode-tools").isChecked(), true);
+      // #252: no "How AI chat maps" choice; Send always uses the mapping tools.
+      assertEquals(await page.locator("#ai-mapping-mode-tools, #ai-mapping-mode-suggestions").count(), 0);
       assert(
         (await page.locator("#ai-credentials-guide").getAttribute("href"))?.includes("AI_CREDENTIALS.md"),
       );

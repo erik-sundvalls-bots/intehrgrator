@@ -54,7 +54,7 @@ const creds = {
   model: "test-model",
 };
 
-Deno.test("parseAiCredentials keeps providerId and mappingMode", () => {
+Deno.test("parseAiCredentials keeps providerId and drops the retired mappingMode (#252)", () => {
   assertEquals(
     parseAiCredentials({
       endpoint: "https://api.openai.com/v1/chat/completions",
@@ -68,16 +68,7 @@ Deno.test("parseAiCredentials keeps providerId and mappingMode", () => {
       apiKey: "sk",
       model: "gpt-4.1",
       providerId: "openai",
-      mappingMode: "suggestions",
     },
-  );
-  assertEquals(
-    parseAiCredentials({
-      endpoint: "https://api.example/v1/chat/completions",
-      apiKey: "x",
-      model: "m",
-    })?.mappingMode,
-    "tools",
   );
 });
 
@@ -169,7 +160,7 @@ Deno.test("runMappingAgent loops tool calls then imports leftover suggestions JS
       const body = JSON.parse(String(init?.body));
       if (calls === 1) {
         assertEquals(Array.isArray(body.tools), true);
-        assertStringIncludes(body.messages[1].content, "Prefer the provided function tools");
+        assertStringIncludes(body.messages[1].content, "Map with the function tools");
         return new Response(
           JSON.stringify({
             choices: [{

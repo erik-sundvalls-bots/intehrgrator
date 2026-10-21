@@ -1,10 +1,17 @@
 /**
  * Execute Call AI mapping tools against the live WorkbenchController.
- * Tool names match MCP / Agent API (`AGENT_TOOLS`).
+ * Tool names, argument shapes and the read helpers in `src/agent/inspect.ts`
+ * are shared with MCP / Agent API (`AGENT_TOOLS`), so the in-app chat and an
+ * IDE on the MCP server see the same mapping tools.
  */
 import {
   compactSourceTree,
   constraintWarningsInspect,
+  filterSlotRows,
+  GET_EXAMPLE_DEFAULT_CHARS,
+  GET_EXAMPLE_MAX_CHARS,
+  getExampleInspect,
+  listExamplesInspect,
   listRepeatableInspect,
   listSlotsInspect,
   productStackInspect,
@@ -31,7 +38,10 @@ export const CALL_AI_TOOL_NAMES = [
   "replace_sheets",
   "set_active_example",
   "run_test",
+  "list_examples",
+  "get_example",
 ] as const;
+export { GET_EXAMPLE_DEFAULT_CHARS, GET_EXAMPLE_MAX_CHARS };
 
 export type CallAiToolName = typeof CALL_AI_TOOL_NAMES[number];
 
@@ -50,8 +60,11 @@ const CALL_AI_OPENAI_TOOLS: OpenAiTool[] = [
     function: {
       name: "list_slots",
       description:
-        "Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, units/codes, expression) plus repeatable containers.",
-      parameters: { type: "object", properties: {} },
+        "Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, units/codes, expression) plus repeatable containers. Filter with unmappedOnly and/or query (substring of slotId, label or pathLabel).",
+      parameters: {
+        type: "object",
+        properties: { unmappedOnly: { type: "boolean" }, query: { type: "string" } },
+      },
     },
   },
   {
@@ -182,6 +195,26 @@ const CALL_AI_OPENAI_TOOLS: OpenAiTool[] = [
   {
     type: "function",
     function: {
+      name: "list_examples",
+      description: "Example instances (id, filename, format, size, active) without bodies.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_example",
+      description:
+        `Read an example instance: id (default: Active Example), optional path (source path; returns that subtree with values, Active Example only), maxChars (default ${GET_EXAMPLE_DEFAULT_CHARS}, max ${GET_EXAMPLE_MAX_CHARS}).`,
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" }, path: { type: "string" }, maxChars: { type: "number" } },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "run_test",
       description: "Run Test against the Active Example. Returns full TestResult.",
       parameters: { type: "object", properties: {} },
@@ -226,9 +259,13 @@ export function executeMappingAgentTool(
     case "list_slots":
       return {
         revision: "ui",
-        slots: listSlotsInspect(s.skeleton, s.model),
+        slots: filterSlotRows(listSlotsInspect(s.skeleton, s.model), args),
         repeatable: listRepeatableInspect(s.skeleton),
       };
+    case "list_examples":
+      return { revision: "ui", examples: listExamplesInspect(s) };
+    case "get_example":
+      return { revision: "ui", ...getExampleInspect(s, args) };
     case "get_source_tree":
       return {
         revision: "ui",
@@ -278,6 +315,7 @@ export function executeMappingAgentTool(
       return {
         revision: "ui",
         slotId,
+        ...(before.label ? { label: before.label } : {}),
         mapped: true,
         ...(ignored ? { warning: "confidence must be a number 0–100 (percent); ignored" } : {}),
       };

@@ -27,7 +27,7 @@ Usage (commands, flags, `mcp.json`) is in [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md)
 | `src/web/agent_bridge.ts`, `agent_observer.ts` | Browser side of the desktop: polls `/api/v1/snapshot`, reloads the bundle when the revision changes, pushes UI edits via `/ui-commit`, and shows agent activity / history. |
 | `src/desktop/main.ts` | Desktop entry: serves the web app and the Agent API, handles `--headless`, `--bind`, `--token`, `--load`, `--mcp`; `INTEHR_AGENT_API=0` turns the API off. |
 | `src/core/ai/controller_tools.ts` | The same tool names for the browser: `mappingAgentOpenAiTools()` (OpenAI `tools` schema), `executeMappingAgentTool(controller, name, args)` on the live `WorkbenchController`, `isMutatingCallAiTool()`. |
-| `src/core/ai/mapping_agent.ts` | AI chat tool loop: `runMappingAgent` (multi-turn via `history`), `runSuggestionsChatTurn` (Approve first, no tools). |
+| `src/core/ai/mapping_agent.ts` | AI chat tool loop: `runMappingAgent` (multi-turn via `history`; streams with `onEvent`, stops on `signal`, stubs older snapshot tool results with `compactToolHistory`), `runSuggestionsChatTurn` (fallback when a provider rejects tools, no tools). `list_examples` / `get_example` and the `list_slots` filters share their helpers in `src/agent/inspect.ts` with the MCP tools. |
 
 ## stdio vs HTTP
 
@@ -51,6 +51,6 @@ AI chat does not go through MCP or HTTP. It calls `executeMappingAgentTool` dire
 
 1. Change `AGENT_TOOLS` / `callAgentTool` / `AGENT_TOOL_HTTP` in `src/agent/tools.ts`.
 2. If the browser chat should have it, add it to `CALL_AI_TOOL_NAMES`, `CALL_AI_OPENAI_TOOLS` and `executeMappingAgentTool` in `src/core/ai/controller_tools.ts` (and to `isMutatingCallAiTool` when it changes the mapping, so **Revert last AI turn** is offered).
-3. Cover it with an Agent/MCP test in `test/` (see [TESTING.md](TESTING.md)).
+3. Cover it with an Agent/MCP test in `test/` (see [TESTING.md](TESTING.md)). `test/ai_streaming_252_test.ts` checks that every chat tool exists in `AGENT_TOOLS` with the same parameter names; put shared read logic in `src/agent/inspect.ts` rather than in either caller.
 
 On the desktop the chat posts its completions through `POST /api/v1/ai-chat-completions` (found with `GET /api/v1/health`) to avoid browser CORS. That forwarder is not an MCP tool.

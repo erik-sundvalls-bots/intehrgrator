@@ -69,7 +69,7 @@ Deno.test("runMappingAgent continues a chat from history", async () => {
     fetch: fetchStub,
   });
   assertEquals(first.messages.map((m) => m.role), ["user", "assistant"]);
-  assertStringIncludes(String(first.messages[0]!.content), "Prefer the provided function tools");
+  assertStringIncludes(String(first.messages[0]!.content), "Map with the function tools");
   const second = await runMappingAgent({
     credentials: creds,
     prompt: "second",

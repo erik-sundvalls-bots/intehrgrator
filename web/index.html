@@ -812,17 +812,6 @@
         <select id="ai-model-picker" disabled aria-label="Fetched models" data-i18n-aria="aiModelPickerLabel"></select>
       </div>
       <p id="ai-models-status" class="ai-models-status" role="status" aria-live="polite" hidden></p>
-      <fieldset class="ai-mapping-mode">
-        <legend data-i18n="howCallAiMaps">How AI chat maps</legend>
-        <label class="dialog-label dialog-label--checkbox">
-          <input type="radio" name="ai-mapping-mode" id="ai-mapping-mode-tools" value="tools" checked />
-          <span data-i18n="mappingTools">Mapping tools (MCP / Agent API names on the live workbench)</span>
-        </label>
-        <label class="dialog-label dialog-label--checkbox">
-          <input type="radio" name="ai-mapping-mode" id="ai-mapping-mode-suggestions" value="suggestions" />
-          <span data-i18n="suggestionsOnly">Suggestions JSON only (one-shot import)</span>
-        </label>
-      </fieldset>
       <div class="dialog-actions">
         <button type="button" id="ai-credentials-clear" data-i18n="aiForgetKey" title="Remove this provider's API key from this browser (endpoint and model are kept)" data-i18n-title="aiForgetKeyTitle">Forget key for this provider</button>
         <button type="button" id="ai-credentials-clear-all" data-i18n="aiClearAllProviders">Clear all</button>

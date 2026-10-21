@@ -35,6 +35,20 @@ export { parseAiConfidence };
 import type { SheetDocument } from "../sheets/mod.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
+/**
+ * Prompt flavour: the three copy & paste deliveries, or `api` for in-app AI
+ * chat (Send), where the model has the mapping tools and needs no file bodies.
+ */
+export type AiPromptDelivery = AiArtifactDelivery | "api";
+
+/** One example in the `api` context's example manifest (bodies via `get_example`). */
+export interface AiExampleManifestRow {
+  id: string;
+  filename: string;
+  format: string;
+  chars: number;
+  active?: boolean;
+}
 
 export type AiArtifactRole = "target" | "source-schema" | "example" | "target-fileset";
 
@@ -56,8 +70,12 @@ export interface BuildPromptOptions {
   skeleton: SkeletonNode[];
   model: MappingModel;
   formatDocUrl: string;
-  delivery: AiArtifactDelivery;
+  delivery: AiPromptDelivery;
   artifacts: AiPromptArtifact[];
+  /** `api` only: indented source path outline (`sourceTreeOutline`), instead of file bodies. */
+  sourceOutline?: string;
+  /** `api` only: examples the model can read with `get_example`. */
+  exampleManifest?: AiExampleManifestRow[];
   sourceFormat?: string;
   activeExampleFilename?: string;
   /** Named Sheets and Decision tables already on the project (headers + sample rows). */
@@ -161,7 +179,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
       ...(s.multiplicity ? { multiplicity: s.multiplicity } : {}),
       ...(repeating ? { attachSlotId: repeating.slotId } : {}),
       ...(parent ? { parentRmType: parent.rmType } : {}),
-      ...(s.archetypeNodeId ? { archetypeNodeId: s.archetypeNodeId } : {}),
+      ...(s.archetypeNodeId && s.archetypeNodeId !== s.label ? { archetypeNodeId: s.archetypeNodeId } : {}),
       ...(s.fixedFields?.units ? { unitsFixed: s.fixedFields.units } : {}),
       ...(s.fixedFields?.code_string || s.fixedFields?.defining_code
         ? { codeFixed: String(s.fixedFields.code_string ?? s.fixedFields.defining_code) }
@@ -181,6 +199,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     };
   });
 
+  const api = options.delivery === "api";
   const targetLabel = formatTargetTask(options.targetFormat);
   const sections: string[] = [
     "# intEHRgrator mapping assist",
@@ -205,15 +224,25 @@ export function buildPrompt(options: BuildPromptOptions): string {
   ];
   if (options.slotId) sections.push(`- slotId: \`${options.slotId}\``);
 
-  sections.push(
-    "",
-    "## Response format",
-    `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${options.formatDocUrl}`,
-    "Use version `\"2\"` with Blockly `block` fragments (not JS-shaped xpath wrappers).",
-    `The JSON must validate against: ${schemaUrlFromFormatDoc(options.formatDocUrl)}`,
-    NOTES_CONVENTION,
-    "",
-  );
+  if (api) {
+    sections.push(
+      "",
+      "## Response format",
+      `Apply mappings with the function tools. \`import_suggestions\` takes an \`intehrgrator-suggestions\` version \`"2"\` envelope with Blockly \`block\` fragments per ${options.formatDocUrl}.`,
+      NOTES_CONVENTION,
+      "",
+    );
+  } else {
+    sections.push(
+      "",
+      "## Response format",
+      `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${options.formatDocUrl}`,
+      "Use version `\"2\"` with Blockly `block` fragments (not JS-shaped xpath wrappers).",
+      `The JSON must validate against: ${schemaUrlFromFormatDoc(options.formatDocUrl)}`,
+      NOTES_CONVENTION,
+      "",
+    );
+  }
 
   if (options.targetFormat === "openehr-template") {
     sections.push(...openEhrReferenceSections(options.formatDocUrl));
@@ -222,7 +251,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
   sections.push(
     "## Slot manifest",
     "```json",
-    JSON.stringify(manifest, null, 2),
+    compactJsonRows(manifest),
     "```",
     "",
   );
@@ -238,7 +267,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
       "## Repeatable containers",
       "Copy `attachSlotId` from this list. One loop per repeating container: `for_each_list` with a `source_query_node` in LIST when iterating source nodes, or `for_each_list` with a list value when iterating a computed list.",
       "```json",
-      JSON.stringify(repeatable, null, 2),
+      compactJsonRows(repeatable),
       "```",
       "",
     );
@@ -252,36 +281,53 @@ export function buildPrompt(options: BuildPromptOptions): string {
       "## Product stack",
       "Conversion start chain (Instance roots, Instance encoding, product-grain loops). Change encoding with the `set_instance_encoding` Agent API/MCP tool — not this envelope.",
       "```json",
-      JSON.stringify(options.productStack, null, 2),
+      compactJsonRows(options.productStack),
       "```",
       "",
     );
   }
 
-  if (options.optionalRm?.length) {
+  if (options.optionalRm?.length && api) {
+    const attachments = options.optionalRm.reduce((n, row) => n + row.attachments.length, 0);
+    sections.push(
+      "## Optional RM Insertion",
+      `${attachments} RM-optional attributes on ${options.optionalRm.length} parent slots are not in the envelope. Call \`list_optional_rm\` (optionally with \`parentSlotId\`) for the catalog, then \`optional_rm_add\`.`,
+      "",
+    );
+  } else if (options.optionalRm?.length) {
     sections.push(
       "## Optional RM Insertion",
       "These RM-optional attributes are not in the envelope. Call `optional_rm_add` with `parentSlotId`, `rmType`, and `attributeName` copied from this list (then map any new value slots).",
       "```json",
-      JSON.stringify(options.optionalRm, null, 2),
+      compactJsonRows(options.optionalRm),
       "```",
       "",
     );
   }
 
-  if (options.constraintWarnings?.length) {
+  if (options.constraintWarnings?.length && api) {
+    sections.push(
+      "## Constraint warnings",
+      `${options.constraintWarnings.length} open (unmapped mandatory slots, Decision table lint, abstract EVENT / ITEM_STRUCTURE). Call \`list_constraint_warnings\` for the list and re-check after mapping.`,
+      "",
+    );
+  } else if (options.constraintWarnings?.length) {
     const sample = options.constraintWarnings.slice(0, 24);
     sections.push(
       "## Constraint warnings",
       "Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with `import_suggestions` / `replace_sheets` / `optional_rm_add`, then re-check `list_constraint_warnings`.",
       "```json",
-      JSON.stringify(sample, null, 2),
+      compactJsonRows(sample),
       "```",
       "",
     );
   }
 
-  sections.push(...deliverySections(options.delivery, options.artifacts));
+  sections.push(
+    ...(api
+      ? apiSourceSections(options.sourceOutline, options.exampleManifest)
+      : deliverySections(options.delivery as AiArtifactDelivery, options.artifacts)),
+  );
   sections.push(
     "",
     "## Block examples",
@@ -399,7 +445,10 @@ export function buildPrompt(options: BuildPromptOptions): string {
     'Loop fragment (merge into the envelope; ids from the lists above): `{"loops":[{"attachSlotId":"<container slotId>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<slot under that container>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
     "",
     "## Instruction",
-    "Return exactly one `intehrgrator-suggestions` fenced JSON block. Copy each `slotId` from the slot manifest. Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
+    (api
+      ? "Map with the tools (`map_slot`, `import_suggestions`, `optional_rm_add`, `replace_sheets`), then `run_test`. "
+      : "Return exactly one `intehrgrator-suggestions` fenced JSON block. ") +
+      "Copy each `slotId` from the slot manifest. Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
   );
 
   if (options.delivery === "inline") {
@@ -410,6 +459,42 @@ export function buildPrompt(options: BuildPromptOptions): string {
   }
 
   return sections.filter((line, i, arr) => !(line === "" && arr[i - 1] === "")).join("\n");
+}
+
+/** JSON array with one compact row per line: readable, without pretty-print indentation tokens. */
+export function compactJsonRows(rows: unknown[]): string {
+  if (!rows.length) return "[]";
+  return `[\n${rows.map((row) => JSON.stringify(row)).join(",\n")}\n]`;
+}
+
+/** `api` context: source path outline and example manifest instead of file bodies (#252). */
+function apiSourceSections(
+  outline: string | undefined,
+  examples: AiExampleManifestRow[] | undefined,
+): string[] {
+  const out: string[] = [];
+  if (outline?.trim()) {
+    out.push(
+      "## Source tree",
+      "One node per line: `path type [multiplicity]`, indented by depth. Use these paths in `map_slot` / `source_query` (`get_source_tree` returns the same with example values).",
+      "```text",
+      outline,
+      "```",
+      "",
+    );
+  } else {
+    out.push("## Source tree", "No source schema or example is loaded yet.", "");
+  }
+  if (examples?.length) {
+    out.push(
+      "## Examples",
+      "Bodies are not included. Read values with `get_example` (`id`, optional `path`); `set_active_example` switches the Test example.",
+      "```json",
+      compactJsonRows(examples),
+      "```",
+    );
+  }
+  return out;
 }
 
 function compactSheetSection(sheets: SheetDocument[] | undefined): string[] | null {
@@ -425,7 +510,7 @@ function compactSheetSection(sheets: SheetDocument[] | undefined): string[] | nu
     "## Sheets and Decision tables",
     "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; inputs Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope.",
     "```json",
-    JSON.stringify(compact, null, 2),
+    compactJsonRows(compact),
     "```",
     "",
   ];

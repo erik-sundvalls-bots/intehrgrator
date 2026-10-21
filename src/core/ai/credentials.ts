@@ -2,7 +2,6 @@
  * Optional in-app AI credentials for Call AI (OpenAI-compatible chat completions).
  * Stored in Host localStorage — never in the Project Bundle.
  */
-import type { AiMappingMode } from "./providers.ts";
 import { redactSecret } from "./redact.ts";
 
 export const AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
@@ -14,11 +13,6 @@ export interface AiProviderCredentials {
   model: string;
   /** Preset id from `AI_PROVIDER_PRESETS`, or `custom`. */
   providerId?: string;
-  /**
-   * `tools` (default): OpenAI function tools named like MCP / Agent API.
-   * `suggestions`: one-shot intehrgrator-suggestions JSON.
-   */
-  mappingMode?: AiMappingMode;
 }
 
 export interface ChatMessage {
@@ -99,13 +93,13 @@ export function parseAiCredentials(raw: unknown): AiProviderCredentials | null {
     return null;
   }
   const providerId = typeof rec.providerId === "string" ? rec.providerId.trim() : "";
-  const mappingMode = rec.mappingMode === "suggestions" ? "suggestions" : "tools";
+  // Before #252 a `mappingMode` ("tools" | "suggestions") chose how AI chat
+  // mapped. Send now always runs the streaming tool loop, so the field is dropped.
   return {
     endpoint,
     apiKey,
     model,
     ...(providerId ? { providerId } : {}),
-    mappingMode,
   };
 }
 
@@ -113,7 +107,17 @@ export function loadAiCredentials(storage: Storage): AiProviderCredentials | nul
   try {
     const raw = storage.getItem(AI_CREDENTIALS_STORAGE_KEY);
     if (!raw) return null;
-    return parseAiCredentials(JSON.parse(raw));
+    const stored = JSON.parse(raw) as Record<string, unknown> | null;
+    const parsed = parseAiCredentials(stored);
+    // Migrate: rewrite once without the retired `mappingMode` field.
+    if (parsed && stored && typeof stored === "object" && "mappingMode" in stored) {
+      try {
+        storage.setItem(AI_CREDENTIALS_STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // quota / private mode: parse already ignores the field
+      }
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -147,6 +151,148 @@ export interface PostChatCompletionsOptions {
    * does not block cloud providers.
    */
   proxyUrl?: string;
+  /**
+   * Ask for server-sent events (`stream: true`) and report deltas as they
+   * arrive. Providers that ignore the flag and answer JSON still work; a 400
+   * that names `stream` retries once without it.
+   */
+  onDelta?: (delta: ChatStreamDelta) => void;
+}
+
+/** One streamed piece of an assistant step. */
+export type ChatStreamDelta =
+  | { kind: "text"; text: string }
+  | { kind: "reasoning"; text: string }
+  | { kind: "tool"; index: number; name: string };
+
+interface RawToolCallRow {
+  id?: string;
+  type?: string;
+  function?: { name?: string; arguments?: unknown };
+  extra_content?: unknown;
+}
+
+interface RawChoice {
+  finish_reason?: unknown;
+  stop_reason?: unknown;
+  message?: { role?: string; content?: unknown; tool_calls?: RawToolCallRow[] };
+}
+
+function isEventStream(response: Response): boolean {
+  return /text\/event-stream/i.test(response.headers.get("content-type") ?? "");
+}
+
+/**
+ * Read an OpenAI-compatible SSE chat stream (`data: {choices:[{delta}]}` …
+ * `data: [DONE]`) into the same shape as a non-streamed `choices[0]`.
+ * Tool-call deltas are merged by `index`; any `extra_content` (Gemini's
+ * thought signature) is kept on its call. `reasoning_content` / `reasoning`
+ * deltas (DeepSeek, OpenRouter, Ollama, LM Studio) are reported, not stored.
+ */
+export async function readChatCompletionStream(
+  response: Response,
+  onDelta?: (delta: ChatStreamDelta) => void,
+): Promise<{ choice: RawChoice; reasoning: string }> {
+  const reader = response.body?.getReader();
+  let content = "";
+  let reasoning = "";
+  let finish: unknown;
+  const calls: Array<{ id?: string; name: string; args: string; extra?: unknown }> = [];
+  if (!reader) return { choice: { message: { role: "assistant", content: "" } }, reasoning };
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let done = false;
+  const handle = (data: string) => {
+    if (data === "[DONE]") {
+      done = true;
+      return;
+    }
+    let chunk: Record<string, unknown>;
+    try {
+      chunk = JSON.parse(data) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    if (chunk.error) {
+      const err = chunk.error as { message?: unknown };
+      throw new Error(`AI stream error: ${String(err?.message ?? JSON.stringify(chunk.error)).slice(0, 400)}`);
+    }
+    const choice = (chunk.choices as Array<Record<string, unknown>> | undefined)?.[0];
+    if (!choice) return;
+    if (choice.finish_reason != null) finish = choice.finish_reason;
+    const delta = (choice.delta ?? choice.message) as Record<string, unknown> | undefined;
+    if (!delta) return;
+    const piece = typeof delta.content === "string" ? delta.content : "";
+    if (piece) {
+      content += piece;
+      onDelta?.({ kind: "text", text: piece });
+    }
+    const thought = typeof delta.reasoning_content === "string"
+      ? delta.reasoning_content
+      : typeof delta.reasoning === "string"
+      ? delta.reasoning
+      : "";
+    if (thought) {
+      reasoning += thought;
+      onDelta?.({ kind: "reasoning", text: thought });
+    }
+    const rows = Array.isArray(delta.tool_calls) ? delta.tool_calls as Array<Record<string, unknown>> : [];
+    for (const row of rows) {
+      const index = typeof row.index === "number" ? row.index : calls.length;
+      const fn = (row.function ?? {}) as { name?: unknown; arguments?: unknown };
+      let call = calls[index];
+      if (!call) {
+        call = { name: "", args: "" };
+        calls[index] = call;
+      }
+      if (typeof row.id === "string" && row.id) call.id = row.id;
+      if (typeof fn.name === "string" && fn.name && !call.name) {
+        call.name = fn.name;
+        onDelta?.({ kind: "tool", index, name: fn.name });
+      }
+      if (typeof fn.arguments === "string") call.args += fn.arguments;
+      else if (fn.arguments && typeof fn.arguments === "object") call.args = JSON.stringify(fn.arguments);
+      if (row.extra_content !== undefined) call.extra = row.extra_content;
+    }
+  };
+  while (!done) {
+    const { value, done: eof } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: true });
+    let cut: number;
+    while ((cut = buffer.search(/\r?\n\r?\n/)) >= 0) {
+      const event = buffer.slice(0, cut);
+      buffer = buffer.slice(cut).replace(/^\r?\n\r?\n/, "");
+      const data = event.split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).replace(/^ /, ""))
+        .join("\n");
+      if (data) handle(data);
+      if (done) break;
+    }
+    if (eof) {
+      const tail = buffer.split(/\r?\n/).filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim()).join("\n");
+      if (tail && !done) handle(tail);
+      break;
+    }
+  }
+  if (done) await reader.cancel().catch(() => {});
+  return {
+    choice: {
+      finish_reason: finish,
+      message: {
+        role: "assistant",
+        content: content,
+        tool_calls: calls.filter(Boolean).map((call, i) => ({
+          id: call.id ?? `call_${i}`,
+          type: "function",
+          function: { name: call.name, arguments: call.args || "{}" },
+          ...(call.extra !== undefined ? { extra_content: call.extra } : {}),
+        })),
+      },
+    },
+    reasoning,
+  };
 }
 
 /**
@@ -162,56 +308,63 @@ export async function postChatCompletions(
   const parsed = parseAiCredentials(credentials);
   if (!parsed) throw new Error("AI credentials are incomplete");
   const fetchImpl = options?.fetch ?? globalThis.fetch;
-  const body = {
-    model: parsed.model,
-    temperature: options?.temperature ?? 0,
-    max_tokens: options?.maxTokens ?? defaultMaxOutputTokens(parsed.endpoint),
-    messages,
-    ...(options?.tools?.length ? { tools: options.tools, tool_choice: "auto" } : {}),
+  const send = async (stream: boolean): Promise<Response> => {
+    const body = {
+      model: parsed.model,
+      temperature: options?.temperature ?? 0,
+      max_tokens: options?.maxTokens ?? defaultMaxOutputTokens(parsed.endpoint),
+      messages,
+      ...(options?.tools?.length ? { tools: options.tools, tool_choice: "auto" } : {}),
+      ...(stream ? { stream: true } : {}),
+    };
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+    if (!options?.proxyUrl) {
+      Object.assign(headers, providerAuthHeaders(parsed.endpoint, parsed.apiKey));
+    }
+    const requestUrl = options?.proxyUrl?.trim() || parsed.endpoint;
+    const requestBody = options?.proxyUrl
+      ? JSON.stringify({
+        endpoint: parsed.endpoint,
+        apiKey: parsed.apiKey,
+        body,
+      })
+      : JSON.stringify(body);
+    return await fetchImpl(requestUrl, {
+      method: "POST",
+      headers,
+      body: requestBody,
+      signal: options?.signal,
+    });
   };
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-  };
-  if (!options?.proxyUrl) {
-    Object.assign(headers, providerAuthHeaders(parsed.endpoint, parsed.apiKey));
-  }
-  const requestUrl = options?.proxyUrl?.trim() || parsed.endpoint;
-  const requestBody = options?.proxyUrl
-    ? JSON.stringify({
-      endpoint: parsed.endpoint,
-      apiKey: parsed.apiKey,
-      body,
-    })
-    : JSON.stringify(body);
-  const response = await fetchImpl(requestUrl, {
-    method: "POST",
-    headers,
-    body: requestBody,
-    signal: options?.signal,
-  });
-  if (!response.ok) {
+  const failure = async (response: Response): Promise<Error> => {
     // Some providers echo (part of) the key; never let it reach chat history.
     const detail = redactSecret(await response.text().catch(() => ""), parsed.apiKey);
-    throw new Error(
+    return new Error(
       `AI call failed (${response.status} ${response.statusText})${detail ? `: ${detail.slice(0, 400)}` : ""}`,
     );
-  }
-  const raw = await response.json() as {
-    choices?: Array<{
-      finish_reason?: unknown;
-      stop_reason?: unknown;
-      message?: {
-        role?: string;
-        content?: unknown;
-        tool_calls?: Array<{
-          id?: string;
-          type?: string;
-          function?: { name?: string; arguments?: unknown };
-          extra_content?: unknown;
-        }>;
-      };
-    }>;
   };
+  let streaming = Boolean(options?.onDelta);
+  let response = await send(streaming);
+  if (!response.ok && streaming && response.status === 400) {
+    const err = await failure(response);
+    // A provider without streaming: ask again for one JSON answer.
+    if (!/stream/i.test(err.message)) throw err;
+    streaming = false;
+    response = await send(false);
+  }
+  if (!response.ok) throw await failure(response);
+  let raw: { choices?: RawChoice[] };
+  if (streaming && isEventStream(response)) {
+    const read = await readChatCompletionStream(response, options?.onDelta);
+    raw = { choices: [read.choice] };
+  } else {
+    raw = await response.json() as { choices?: RawChoice[] };
+    // Non-streaming fallback: still show the answer in one piece.
+    const content = raw?.choices?.[0]?.message?.content;
+    if (streaming && typeof content === "string" && content) options?.onDelta?.({ kind: "text", text: content });
+  }
   const message = raw?.choices?.[0]?.message;
   const content = message?.content;
   const text = typeof content === "string"
@@ -296,7 +449,7 @@ export function providerAuthHeaders(endpoint: string, apiKey: string): Record<st
 }
 
 export const MAPPING_TOOLS_SYSTEM =
-  "You are an intEHRgrator mapping assistant. Use the provided tools — they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, …). Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0–100 % chance it is correct; only when below 90). Finish with a 1–3 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (`1. …?` each, options as indented `- ` sub-bullets, max 4, at most one ending ` (recommended)`).";
+  "You are an intEHRgrator mapping assistant. Use the provided tools — they are the same names as MCP and the HTTP Agent API (`map_slot`, `import_suggestions`, `list_slots`, `run_test`, …). The first message carries the slot manifest and source tree, so call list_slots / get_source_tree only when you need fresh state or a filtered view, and get_example for example values. Prefer map_slot for Click-to-Map source paths and import_suggestions for loops, Decision tables, and bulk envelopes. After mapping, call run_test. If you cannot use tools, reply with intehrgrator-suggestions JSON version 2. map_slot / import_suggestions take optional `note` (risks only: ambiguous source, unit/coding mismatch, lossy conversion, guessed path) and `confidence` (integer 0–100 % chance it is correct; only when below 90). Finish with a 1–3 line summary plus optional `### Notes` (risks, skipped slots + reason) and `### Questions` (`1. …?` each, options as indented `- ` sub-bullets, max 4, at most one ending ` (recommended)`).";
 
 export async function forwardChatCompletionsProxy(
   payload: unknown,
@@ -342,8 +495,9 @@ export async function forwardChatCompletionsProxy(
     body: JSON.stringify(rec.body ?? {}),
     signal: options?.signal,
   });
-  const text = await response.text();
-  return new Response(text, {
+  // Pass the body through unread so a streamed (SSE) answer reaches the
+  // browser chunk by chunk.
+  return new Response(response.body, {
     status: response.status,
     headers: {
       "content-type": response.headers.get("content-type") ?? "application/json; charset=utf-8",

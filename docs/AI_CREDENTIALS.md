@@ -2,7 +2,7 @@
 
 How to get an API key (or dummy local token) so **AI chat** can map from the web app. Credentials stay in this browser’s localStorage — never in the Project Bundle.
 
-AI chat speaks **OpenAI-compatible chat completions** (`POST …/v1/chat/completions` with `Authorization: Bearer <key>`). Default mapping mode sends the same **function tool names as MCP / the HTTP Agent API** (`list_slots`, `map_slot`, `import_suggestions`, `run_test`, …) and runs them on the open workbench. **Suggestions JSON only** is the one-shot import.
+AI chat speaks **OpenAI-compatible chat completions** (`POST …/v1/chat/completions` with `Authorization: Bearer <key>`). **Send** streams (`stream: true`, server-sent events) and sends the same **function tool names as MCP / the HTTP Agent API** (`list_slots`, `map_slot`, `import_suggestions`, `run_test`, …), running them on the open workbench; **Stop** ends a run. A provider that ignores `stream` still works (one JSON answer per step), and one that rejects tools gets a single suggestions-JSON turn that is applied directly (revertible). The former **How AI chat maps** choice was removed (#252): stored credentials drop the old `mappingMode` field on load.
 
 Three mapping-assist paths (pick one; they are not exclusive):
 

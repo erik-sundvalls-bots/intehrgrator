@@ -169,15 +169,16 @@ Deno.test({
       await page.click("#btn-copy-ai");
       await page.click('[data-ai-action="credentials"]');
       await page.click("#ai-credentials-save");
-      await page.locator("#ai-chat-mode").waitFor({ state: "visible" });
+      await page.locator("#ai-chat-send").waitFor({ state: "visible" });
+      assertEquals(await page.locator("#ai-chat-mode").count(), 0, "no Apply / Approve select (#252)");
       await setPanelWidth(page, 360);
-      await assertOneRow(page, [...HEADER_IDS, "#ai-chat-mode"], "API mode");
+      await assertOneRow(page, HEADER_IDS, "API mode");
       await page.hover("#ai-chat-info-btn");
       await balloon.waitFor({ state: "visible" });
       assertStringIncludes(await balloon.innerText(), "starts a fresh context");
       assertStringIncludes(
         await balloon.innerText(),
-        "Apply directly / Approve first",
+        "Stop",
       );
     } finally {
       await browser.close();
