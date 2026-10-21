@@ -3,6 +3,9 @@
  * Tool names, argument shapes and the read helpers in `src/agent/inspect.ts`
  * are shared with MCP / Agent API (`AGENT_TOOLS`), so the in-app chat and an
  * IDE on the MCP server see the same mapping tools.
+ *
+ * Interim executor: ADR 0014 replaces it with `callAgentTool` on a
+ * `WorkbenchService` (one write path and attributed history with MCP).
  */
 import {
   compactSourceTree,

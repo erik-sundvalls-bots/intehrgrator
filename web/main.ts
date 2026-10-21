@@ -1655,7 +1655,7 @@ function describeSlotForNotes(slotId: string): string | undefined {
   const label = row?.pathLabel ? row.pathLabel.split(" › ").slice(-2).join(" › ") : row?.label;
   return label || undefined;
 }
-/** Document before the last applied AI chat turn, for "Revert last AI turn". */
+/** Document before the last applied AI chat turn, for "Revert last AI turn" (interim; ADR 0014 makes it an undo of the turn's history entries). */
 let lastAiChatSnapshot: ReturnType<typeof controller.exportDocumentSnapshot> | null = null;
 
 aiChat = installAiChatPanel({
