@@ -24,11 +24,11 @@
     "upstream": "c86e168b923b09a7c729cb6e4dc9910eb40a9f19"
   },
   "issue-252-ai-tokens-streaming": {
-    "built": "2026-10-21T19:55:46Z",
+    "built": "2026-10-21T19:58:46Z",
     "dir": "issue-252-ai-tokens-streaming",
     "mode": "merged",
     "pr": "260\thttps://github.com/regionstockholm/intehrgrator/pull/260\tOPEN\tAI chat: streaming tool loop with Stop, compact API context (#252, part of #251)",
-    "sha": "d00f648ec3163256f7da1f87c9edfa12710df54e",
+    "sha": "8375d5613cb13b65ad8141122a090d65581627be",
     "upstream": "a5760adedccd91ec0f77df418d94ab462d6eee62"
   },
   "release-0.9.2": {
