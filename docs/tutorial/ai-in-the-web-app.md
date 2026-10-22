@@ -36,7 +36,7 @@ Use this when intEHRgrator should call the model itself.
 
    <img src="../assets/tutorial/ai-chat-streaming.png" alt="AI chat while streaming: reasoning, a ✓ Mapped Systolic line, and the Stop button" />
 
-3. When the turn ends, the whole turn is one **Undo** step (↶ or Ctrl+Z); the status line says it was a change by the AI chat. You can keep chatting; later messages send only your new text.
+3. When the turn ends, the whole turn is one **Undo** step (↶ or Ctrl+Z); the status line says it was a change by the AI chat. The **History** button (clock, next to Undo / Redo) lists every change with who made it; **Revert** on the AI turn takes back only that turn and keeps what you changed later. Blocks the AI wrote carry a small purple **AI** badge until you change them. You can keep chatting; later messages send only your new text.
 
    <img src="../assets/tutorial/ai-chat-done.png" alt="Finished AI chat turn with the ✓ line, one tool call and the answer" />
 

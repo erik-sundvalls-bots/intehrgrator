@@ -187,7 +187,18 @@ import {
 } from "../src/ui/slide_away.ts";
 import { installInfoTips, openInfoTipAt } from "../src/ui/info_tip.ts";
 import { installUrlLoadUi } from "../src/ui/url_load.ts";
+import { type HistoryPanelHandle, type HistoryPanelRow, installHistoryPanel } from "../src/ui/history_panel.ts";
 import {
+  type AiAuthorMark,
+  changedSlots,
+  installAiAuthorMarkers,
+  readAiAuthor,
+  slotFingerprints,
+  writeAiAuthor,
+} from "../src/blockly/ai_author.ts";
+import { slotExpressionBlocks } from "../src/blockly/mapping_ir.ts";
+import {
+  commitsSettled,
   commitUiChange,
   installAgentBridge,
   isAgentBridgeSynced,
@@ -506,6 +517,190 @@ let pendingCommitKind: "undo" | "redo" | "revert" | null = null;
  * Ungrouped canvas events are the person's own edits.
  */
 const undoGroupAuthors = new Map<string, string>();
+/** Set once the start-up project is in place; earlier changes are not history. */
+let historyReady = false;
+let historyPanel: HistoryPanelHandle | null = null;
+/** Desktop: author of the next pulled change when you started it from the history panel. */
+let nextPullAuthor: string | null = null;
+/** Slot fingerprints at the last commit / sync, to see which slots a change touched. */
+let committedSlots = new Map<string, string>();
+/** Slot id → AI author mark, until a person changes that slot. */
+const aiAuthorMarks = new Map<string, AiAuthorMark>();
+
+const aiAuthorTitle = (by: string) => formatMessage(uiChrome().aiAuthorTitle, { author: by });
+
+/**
+ * AI author marker (ADR 0014): slots an AI write (or a pulled MCP change)
+ * changed get the mark on their expression block; slots a person changed
+ * lose it. Undo, redo and revert only move existing marks with the blocks.
+ */
+function updateAiAuthorMarks(
+  author: { by: string; origin: AiAuthorMark["origin"]; slots?: Set<string> } | "human" | "keep",
+): void {
+  const next = slotFingerprints(controller.getState().model.slots);
+  const changed = changedSlots(committedSlots, next);
+  committedSlots = next;
+  if (!workspace) return;
+  const blocks = slotExpressionBlocks(workspace);
+  const at = new Date().toISOString();
+  for (const slotId of changed) {
+    if (author === "human") aiAuthorMarks.delete(slotId);
+    else if (author !== "keep") {
+      if (!author.slots) aiAuthorMarks.set(slotId, { by: author.by, origin: author.origin, at });
+    }
+    else {
+      // Undo, redo, revert: the mark follows the blocks that came back.
+      const block = blocks.get(slotId);
+      const mark = block ? readAiAuthor(block) : undefined;
+      if (mark) aiAuthorMarks.set(slotId, mark);
+      else aiAuthorMarks.delete(slotId);
+    }
+  }
+  // The chat's tool calls name their slots: mark those, not side effects of a re-render.
+  if (typeof author === "object" && author.slots) {
+    for (const slotId of author.slots) {
+      if (aiAuthorMarks.get(slotId)?.by !== author.by) aiAuthorMarks.set(slotId, { by: author.by, origin: author.origin, at });
+    }
+  }
+  applyAiAuthorMarks(blocks);
+}
+
+/** Put the marks on the canvas again (a re-render rebuilds blocks from the model). */
+function applyAiAuthorMarks(blocks = workspace ? slotExpressionBlocks(workspace) : new Map()): void {
+  let touched = false;
+  const marked = new Set<unknown>();
+  for (const [slotId, block] of blocks) {
+    const want = aiAuthorMarks.get(slotId);
+    if (want) marked.add(block);
+    const have = readAiAuthor(block);
+    if (want?.by === have?.by && want?.at === have?.at) continue;
+    writeAiAuthor(block, want, aiAuthorTitle);
+    touched = true;
+  }
+  // A mark left on a block that no longer holds its slot's expression goes too.
+  for (const block of workspace?.getAllBlocks(false) ?? []) {
+    if (marked.has(block) || !block.data || !readAiAuthor(block)) continue;
+    writeAiAuthor(block, undefined, aiAuthorTitle);
+    touched = true;
+  }
+  if (!touched) return;
+  // Keep the marks in the saved Blockly JSON (save and export carry them)
+  // without making the mark itself a change in the history.
+  persistBlocklyCanvas({ notify: false });
+  committedDocSignature = documentCommitSignature();
+  chatServiceInstance?.acceptLiveState();
+}
+
+/** After a project load: take the marks saved in its blocks. */
+function adoptAiAuthorMarks(): void {
+  aiAuthorMarks.clear();
+  if (!workspace) return;
+  for (const [slotId, block] of slotExpressionBlocks(workspace)) {
+    const mark = readAiAuthor(block);
+    if (mark) aiAuthorMarks.set(slotId, mark);
+  }
+}
+
+/** Slots the chat service recorded for one AI turn (its tool calls' targets). */
+function turnSlots(origin: UiCommitOrigin): Set<string> | undefined {
+  const turnId = origin.turnId;
+  // A pasted answer is applied without the service: mark what changed.
+  if (!turnId || !chatServiceInstance || origin.provider === "copy-paste") return undefined;
+  const entries = chatServiceInstance.listHistory().filter((e) => e.actor.turnId === turnId);
+  return new Set(entries.flatMap((e) => e.affectedSlotIds ?? []));
+}
+
+/** Start the one history once the start-up project is loaded (web app: in the browser). */
+function startHistory(): void {
+  committedDocSignature = documentCommitSignature();
+  committedSlots = slotFingerprints(controller.getState().model.slots);
+  adoptAiAuthorMarks();
+  if (!isDesktopEnvironment()) chatService();
+  historyReady = true;
+}
+
+async function loadHistoryRows(): Promise<HistoryPanelRow[]> {
+  if (!isDesktopEnvironment()) return chatService().listHistory();
+  const res = await fetch("/api/v1/history");
+  const json = await res.json() as { entries?: HistoryPanelRow[] } | HistoryPanelRow[];
+  return Array.isArray(json) ? json : json.entries ?? [];
+}
+
+async function postAgentApi<T>(path: string, body: unknown): Promise<T> {
+  await commitPendingUiChange();
+  await commitsSettled();
+  const res = await fetch(`/api/v1${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(String((json as { error?: string }).error ?? res.status));
+  return json as T;
+}
+
+/** History panel: Undo to here (take back every later change, whoever made it). */
+async function historyUndoTo(row: HistoryPanelRow): Promise<void> {
+  type Undone = { author?: string };
+  let result: Undone | null;
+  if (isDesktopEnvironment()) {
+    nextPullAuthor = USER_ACTOR.displayName;
+    result = await postAgentApi<Undone>("/undo", { toSeq: row.seq });
+  } else {
+    await commitPendingUiChange();
+    const group = `history:${crypto.randomUUID()}`;
+    undoGroupAuthors.set(group, USER_ACTOR.displayName);
+    absorbTrailingRender();
+    result = await withUndoableDocumentReplace(() => chatService().undoTo(row.seq, { actor: USER_ACTOR }), group);
+    absorbTrailingRender();
+    committedDocSignature = documentCommitSignature();
+    updateAiAuthorMarks("keep");
+    render();
+  }
+  if (result?.author) controller.setStatusMessage(formatMessage(uiChrome().undoneBy, { author: result.author }));
+}
+
+/** History panel: Revert one change as a new change at the end; report skipped slots. */
+async function historyRevert(row: HistoryPanelRow): Promise<void> {
+  type Reverted = {
+    ok: boolean;
+    revertedSeq: number;
+    author: string;
+    reverted: string[];
+    sheetsReverted: boolean;
+    skipped: Array<{ slotId: string; label?: string }>;
+    notReverted: string[];
+  };
+  let result: Reverted;
+  if (isDesktopEnvironment()) {
+    nextPullAuthor = USER_ACTOR.displayName;
+    result = await postAgentApi<Reverted>("/revert", { seq: row.seq });
+  } else {
+    await commitPendingUiChange();
+    const group = `history:${crypto.randomUUID()}`;
+    undoGroupAuthors.set(group, USER_ACTOR.displayName);
+    absorbTrailingRender();
+    result = await withUndoableDocumentReplace(() => chatService().revert(row.seq, { actor: USER_ACTOR }), group);
+    absorbTrailingRender();
+    committedDocSignature = documentCommitSignature();
+    updateAiAuthorMarks("keep");
+    render();
+  }
+  const m = uiChrome();
+  const count = result.reverted.length + (result.sheetsReverted ? 1 : 0);
+  const parts = [
+    count
+      ? formatMessage(m.historyRevertDone, { seq: result.revertedSeq, author: result.author, count })
+      : formatMessage(m.historyRevertNothing, { seq: result.revertedSeq }),
+  ];
+  const skipped = result.skipped.filter((s) => s.slotId !== "sheets" || count);
+  if (count && skipped.length) {
+    const names = skipped.map((s) => s.slotId === "sheets" ? "Sheets" : describeSlotForNotes(s.slotId) ?? s.label ?? s.slotId);
+    parts.push(formatMessage(m.historyRevertSkipped, { slots: names.join(", ") }));
+  }
+  if (result.notReverted.length) parts.push(formatMessage(m.historyRevertNotReverted, { parts: result.notReverted.join(", ") }));
+  controller.setStatusMessage(parts.join(" "));
+}
 
 function undoAuthor(redo: boolean): string | null {
   const stack = redo ? workspace.getRedoStack() : workspace.getUndoStack();
@@ -549,7 +744,22 @@ function asAiWriteSync<T>(fn: () => T): T {
     return fn();
   } finally {
     aiWriteDepth--;
+    absorbTrailingRender();
   }
+}
+
+/**
+ * Web app: Blockly fires the change events of a re-render in the next task,
+ * after the service recorded the write. Those only normalize the canvas, so
+ * they belong to the recorded change, not to a new entry by you.
+ */
+let absorbingRender = false;
+function absorbTrailingRender(): void {
+  if (isDesktopEnvironment()) return;
+  absorbingRender = true;
+  globalThis.setTimeout(() => {
+    absorbingRender = false;
+  }, 0);
 }
 
 /**
@@ -562,6 +772,7 @@ async function asAiWrite<T>(fn: () => Promise<T>): Promise<T> {
     return await fn();
   } finally {
     aiWriteDepth--;
+    absorbTrailingRender();
   }
 }
 let documentReplaceDepth = 0;
@@ -718,6 +929,7 @@ async function bootBlockly(): Promise<void> {
   });
   installExtractToFunctionOnWorkspace(workspace);
   installUndoAuthorStatus(workspace);
+  installAiAuthorMarkers(workspace, aiAuthorTitle);
   installCollapseChildrenMenu(workspace, {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren,
@@ -1103,12 +1315,18 @@ function commitPendingUiChange(
   summary?: string,
   options: { ai?: { origin: UiCommitOrigin; notices: string[] }; force?: boolean } = {},
 ): Promise<void> {
-  if (!isDesktopEnvironment() || !isAgentBridgeSynced() || applyingAgentBundle || !workspace) {
+  const desktop = isDesktopEnvironment();
+  if ((desktop && !isAgentBridgeSynced()) || applyingAgentBundle || !workspace || !historyReady) {
     return Promise.resolve();
   }
   const signature = documentCommitSignature();
   if (signature === committedDocSignature && !options.force) return Promise.resolve();
   committedDocSignature = signature;
+  if (absorbingRender && !options.ai && !options.force && aiWriteDepth === 0) {
+    updateAiAuthorMarks("keep");
+    chatServiceInstance?.acceptLiveState();
+    return Promise.resolve();
+  }
   const ai = options.ai ?? aiWriteInProgress();
   const origin = ai?.origin;
   const text = ai
@@ -1117,6 +1335,23 @@ function commitPendingUiChange(
   const kind = ai ? undefined : pendingCommitKind ?? undefined;
   pendingCommitSummary = null;
   pendingCommitKind = null;
+  const marks = () =>
+    updateAiAuthorMarks(
+      ai ? { by: aiChatActor(ai.origin).displayName, origin: "ai-chat", slots: turnSlots(ai.origin) } : kind ? "keep" : "human",
+    );
+  if (!desktop) {
+    // Web app: the browser's own service keeps the one history (ADR 0014).
+    const service = chatService();
+    const actor = ai ? aiChatActor(ai.origin) : USER_ACTOR;
+    if (!service.recordLiveChange(text.slice(0, 400), kind ?? "expression", actor) && ai?.origin.turnId) {
+      service.history.updateTailSummary(ai.origin.turnId, text.slice(0, 400));
+    }
+    marks();
+    historyPanel?.refresh();
+    return Promise.resolve();
+  }
+  marks();
+  queueMicrotask(() => historyPanel?.refresh());
   return commitUiChange(controller.exportDocumentSnapshot(), text.slice(0, 400), { origin, kind }).then((result) => {
     const hit = result?.overwritten[0];
     if (!hit) return;
@@ -1141,13 +1376,22 @@ async function applyAgentBundle(bundle: DocumentSnapshot, initial: boolean): Pro
       controller.restoreDocumentSnapshot(bundle);
     } else {
       const group = `agent:${crypto.randomUUID()}`;
-      undoGroupAuthors.set(group, lastAgentAuthor ?? uiChrome().anAgent);
+      const author = nextPullAuthor ?? lastAgentAuthor ?? uiChrome().anAgent;
+      undoGroupAuthors.set(group, author);
       await withUndoableDocumentReplace(() => controller.restoreDocumentSnapshot(bundle), group);
+      // A change you started from the history panel moves marks; an agent's change marks its slots.
+      updateAiAuthorMarks(nextPullAuthor ? "keep" : { by: author, origin: "mcp" });
+      nextPullAuthor = null;
+      historyPanel?.refresh();
     }
   } finally {
     applyingAgentBundle = false;
   }
   committedDocSignature = documentCommitSignature();
+  if (initial) {
+    committedSlots = slotFingerprints(controller.getState().model.slots);
+    adoptAiAuthorMarks();
+  }
   return true;
 }
 
@@ -3803,6 +4047,7 @@ function render(): void {
     suppressBlocklyModelSync = false;
   }
   void commitPendingUiChange();
+  if (historyReady && !applyingAgentBundle) applyAiAuthorMarks();
   // Blockly apply may have refreshed generatedCode without a re-render.
   const afterCanvas = controller.getState();
 
@@ -4292,6 +4537,18 @@ async function main(): Promise<void> {
   await bootBlockly();
   await wasmReady;
   render();
+  startHistory();
+  historyPanel = installHistoryPanel({
+    panel: requireEl("history-panel"),
+    load: loadHistoryRows,
+    undoTo: historyUndoTo,
+    revert: historyRevert,
+  });
+  const historyButton = document.getElementById("btn-history");
+  historyButton?.addEventListener("click", () => {
+    historyPanel?.toggle();
+    historyButton.setAttribute("aria-expanded", String(historyPanel?.isOpen() ?? false));
+  });
   workbenchReadyResolve();
 }
 

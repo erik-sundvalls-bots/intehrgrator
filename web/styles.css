@@ -2170,3 +2170,32 @@ span.ai-notes-option { cursor: default; }
 .dialog-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
 /* #218: keep the canvas Search overlay clear of Blockly's vertical scrollbar. */
 .blockly-mount > .pane-find-overlay { margin-right: 12px; }
+
+/* ── AI author marker (ADR 0014): blocks the AI chat or an MCP agent wrote ── */
+.ai-author-badge rect { fill: #6a1b9a; }
+.ai-author-badge text { fill: #fff; font: 700 8px/1 system-ui, sans-serif; pointer-events: none; }
+
+/* ── History panel (ADR 0014) ── */
+.history-panel {
+  position: fixed; top: 44px; right: 12px; width: 380px; max-height: calc(100vh - 100px); overflow: auto; z-index: 50;
+  background: #fff; border: 1px solid #c8d0d4; border-radius: 6px; box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
+  padding: 8px 10px; font-size: 12px;
+}
+.history-panel[hidden] { display: none; }
+.history-panel-header { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 13px; }
+.history-panel-close { padding: 0 8px; font-size: 16px; line-height: 20px; }
+.history-panel-intro { color: #555; margin: 4px 0 8px; }
+.history-list { list-style: none; margin: 0; padding: 0; }
+.history-row { border-top: 1px solid #e6eaec; padding: 6px 0; }
+.history-row--undone .history-summary { text-decoration: line-through; color: #888; }
+.history-meta { display: flex; gap: 6px; align-items: center; color: #666; }
+.history-badge { border-radius: 8px; padding: 0 6px; font-weight: 700; color: #fff; line-height: 16px; }
+.history-badge small { font-weight: 400; opacity: .9; }
+.history-badge--human { background: #00695c; }
+.history-badge--ai-chat { background: #6a1b9a; }
+.history-badge--mcp { background: #1565c0; }
+.history-undone { font-style: italic; }
+.history-summary { margin: 2px 0 4px; overflow-wrap: anywhere; }
+.history-actions { display: flex; gap: 6px; }
+.history-actions .pane-btn { font-size: 11px; padding: 1px 8px; }
+.history-empty { color: #666; padding: 6px 0; }

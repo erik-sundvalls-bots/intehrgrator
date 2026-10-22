@@ -110,6 +110,10 @@ export class WorkbenchService {
 
   /** True when `controller` drives a live Blockly canvas (the browser UI). */
   private readonly liveCanvas: boolean;
+  /** Live canvas: the project as last recorded, to record a person's edits made meanwhile. */
+  private liveBaseline: ProjectBundle | null = null;
+  /** Inside `mutate()`: canvas re-renders then are this service's own change, recorded by it. */
+  private mutating = false;
 
   /**
    * Headless by default (Agent API, stdio MCP). The browser passes its live
@@ -126,8 +130,31 @@ export class WorkbenchService {
 
   getRevision(): string {
     // A live canvas also changes without this service (a person's edits).
-    if (this.liveCanvas) this.bumpRevision();
+    if (this.liveCanvas) this.revision = bundleRevision(this.exportBundle());
     return this.revision;
+  }
+
+  /**
+   * Live canvas (web app): record what changed on the canvas since the last
+   * recorded state as one entry by `actor`. The web app calls this for every
+   * UI change, so the browser keeps one chronological history (ADR 0014).
+   */
+  recordLiveChange(summary: string, kind: HistoryKind = "expression", actor: HistoryActor = USER_ACTOR): HistoryEntry | null {
+    if (!this.liveCanvas || this.mutating) return null;
+    const after = this.exportBundle();
+    // Only what the revision covers (mapping, canvas, sheets) is a change.
+    const changed = this.liveBaseline && bundleRevision(this.liveBaseline) !== bundleRevision(after);
+    const entry = changed ? this.history.record(this.liveBaseline!, after, actor, kind, summary) : null;
+    this.liveBaseline = after;
+    this.revision = bundleRevision(after);
+    return entry;
+  }
+
+  /** Live canvas: take the canvas as it is now as recorded (a marker update, not a change). */
+  acceptLiveState(): void {
+    if (!this.liveCanvas || this.mutating) return;
+    this.liveBaseline = this.exportBundle();
+    this.revision = bundleRevision(this.liveBaseline);
   }
 
   exportBundle(): ProjectBundle {
@@ -813,12 +840,21 @@ export class WorkbenchService {
   }
 
   private bumpRevision(): void {
-    this.revision = bundleRevision(this.exportBundle());
+    const bundle = this.exportBundle();
+    this.revision = bundleRevision(bundle);
+    if (this.liveCanvas) this.liveBaseline = bundle;
   }
 
   private mutate(fn: () => void, ctx: MutationContext = {}): void {
+    // A person's canvas edits not recorded yet are their own entry first.
+    if (this.liveCanvas) this.recordLiveChange("Edit mapping");
     const before = this.exportBundle();
-    fn();
+    this.mutating = true;
+    try {
+      fn();
+    } finally {
+      this.mutating = false;
+    }
     this.recordMutation(before, ctx);
   }
 
