@@ -7,7 +7,7 @@ Everything the AI changes, also through the in-app chat, must end up in undo his
 
 Decisions:
 
-- **One tool surface, one write path.** The in-app chat calls the same `callAgentTool` on a `WorkbenchService` as MCP, through an `AgentClient`: in the web app a service running in the browser around the live controller; on the desktop the backend service over HTTP (the chat registers as an agent, like an IDE). `controller_tools.ts` as a separate executor goes away; a parity test keeps the chat's OpenAI tool list a subset of `AGENT_TOOLS`.
+- **One tool surface, one write path.** The in-app chat calls the same `callAgentTool` on a `WorkbenchService` as MCP, through an `AgentClient`: in the web app a service running in the browser around the live controller; on the desktop the backend service over HTTP (the chat registers as an agent, like an IDE). *Implemented (A2):* the in-browser service on the desktop too; its AI entries reach the backend through the attributed `/ui-commit` from A1, so there is one sync path and no race between a chat write and the canvas. `controller_tools.ts` as a separate executor goes away; a parity test keeps the chat's OpenAI tool list a subset of `AGENT_TOOLS`.
 - **Origin on every history entry.** `HistoryActor` carries `origin`: `human`, `ai-chat` (with provider and model) or `mcp` (with the MCP client name). Older entries read as `human` (user) or `mcp` (agent).
 - **One undo step per AI turn or MCP change.** A chat turn is one grouped entry (shared `turnId`) and one canvas undo step; a change synced from MCP is one undo step too, so canvas undo never silently rolls it back. **Revert last AI turn** becomes "undo that turn's entries", keeping later human edits where they do not touch the same slots.
 - **Ctrl+Z** undoes the latest semantic change regardless of author (open question for Erik); per-author undo lives in the history panel.
@@ -15,6 +15,6 @@ Decisions:
 
 **Considered:** keeping the browser executor and copying history recording into it; labelling only the canvas undo events. Rejected: a second write path that drifts from MCP, and labels without a shared record cannot drive per-author undo or show MCP and chat changes in one timeline.
 
-**Progress:** A1 (desktop sync, origin field, one entry and one undo step per AI turn and per synced MCP change) is in; the chat still writes through the controller (A2 next).
+**Progress:** A1 (desktop sync, origin field, one entry and one undo step per AI turn and per synced MCP change) and A2 (chat through `AgentClient` / `callAgentTool`, `controller_tools.ts` removed, tool list derived from `AGENT_TOOLS`) are in; A3 (Revert last AI turn as undo of that turn) is next.
 
 **Consequences:** stacked PRs after #260: (A) origin field, browser-safe `WorkbenchService`, chat via `AgentClient`, `controller_tools.ts` removed, one undo step per turn / MCP change, UI commit fix; (B) history panel, per-author undo and AI author marker. Until A lands, the chat still runs `executeMappingAgentTool` on the controller and **Revert last AI turn** restores the pre-turn snapshot. See [MCP_ARCHITECTURE.md](../MCP_ARCHITECTURE.md).

@@ -5,7 +5,7 @@ import {
   parseAiCredentials,
   postChatCompletions,
 } from "@intehrgrator/core/ai/credentials.ts";
-import { executeMappingAgentTool } from "@intehrgrator/core/ai/controller_tools.ts";
+import { runChatTool as executeMappingAgentTool } from "./support/chat_tools.ts";
 import { runMappingAgent } from "@intehrgrator/core/ai/mapping_agent.ts";
 import { looksLikeSuggestionsPayload } from "@intehrgrator/core/ai/mod.ts";
 import { WorkbenchController } from "@intehrgrator/workbench/controller.ts";
@@ -110,7 +110,7 @@ Deno.test("postChatCompletions sends OpenAI tools and reads tool_calls", async (
   assertEquals(result.text, "");
 });
 
-Deno.test("executeMappingAgentTool list_slots then map_slot then run_test on dummy vitals", async () => {
+Deno.test("chat tools list_slots then map_slot then run_test on dummy vitals", async () => {
   const controller = await loadVitalsController();
   const listed = await executeMappingAgentTool(controller, "list_slots", {}) as {
     slots: Array<{ slotId: string; mapped: boolean }>;

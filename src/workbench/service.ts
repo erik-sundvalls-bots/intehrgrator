@@ -82,12 +82,25 @@ export class WorkbenchService {
   private revision = "r0";
   private currentActor: HistoryActor = USER_ACTOR;
 
-  constructor(options?: { historyPath?: string; host?: HostAdapter }) {
-    this.controller = new WorkbenchController(options?.host ?? createFsHostAdapter());
+  /** True when `controller` drives a live Blockly canvas (the browser UI). */
+  private readonly liveCanvas: boolean;
+
+  /**
+   * Headless by default (Agent API, stdio MCP). The browser passes its live
+   * `controller` so the in-app AI chat writes through the same tools and
+   * history as MCP (ADR 0014); the UI then keeps the Blockly JSON in sync from
+   * the canvas, so the headless Blockly sync is skipped.
+   */
+  constructor(options?: { historyPath?: string; host?: HostAdapter; controller?: WorkbenchController }) {
+    this.controller = options?.controller ?? new WorkbenchController(options?.host ?? createFsHostAdapter());
+    this.liveCanvas = Boolean(options?.controller);
     this.history = new HistoryLog({ persistPath: options?.historyPath });
+    if (this.liveCanvas) this.bumpRevision();
   }
 
   getRevision(): string {
+    // A live canvas also changes without this service (a person's edits).
+    if (this.liveCanvas) this.bumpRevision();
     return this.revision;
   }
 
@@ -692,6 +705,7 @@ export class WorkbenchService {
   }
 
   private syncBlocklyFromModel(): void {
+    if (this.liveCanvas) return;
     const s = this.controller.getState();
     if (!s.blocklyState) return;
     const next = syncModelToBlocklyState(s.blocklyState, s.model, s.skeleton);

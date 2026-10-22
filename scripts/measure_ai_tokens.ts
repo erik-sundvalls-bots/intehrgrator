@@ -12,7 +12,11 @@
 import { join } from "@std/path";
 import { WorkbenchController } from "../src/workbench/controller.ts";
 import type { HostAdapter } from "../src/host/mod.ts";
-import { executeMappingAgentTool } from "../src/core/ai/controller_tools.ts";
+import { LocalAgentClient } from "../src/agent/client.ts";
+import { WorkbenchService } from "../src/workbench/service.ts";
+
+const executeMappingAgentTool = (c: WorkbenchController, name: string, args: Record<string, unknown>) =>
+  new LocalAgentClient(new WorkbenchService({ controller: c })).callTool(name, args);
 import { runMappingAgent } from "../src/core/ai/mapping_agent.ts";
 import { PROJECT_CONTEXT_HEADING } from "../src/ui/ai_chat_panel.ts";
 
@@ -104,7 +108,7 @@ async function scriptedTurn(
     credentials: creds,
     prompt,
     history,
-    executeTool: (name, args) => Promise.resolve(executeMappingAgentTool(c, name, args)),
+    executeTool: (name, args) => executeMappingAgentTool(c, name, args),
     fetch: fetchStub,
   });
   return { bodies, result };
@@ -131,7 +135,7 @@ if (import.meta.main) {
 
     // Growth: list_slots + get_source_tree, three map_slot, run_test, list_slots again, answer.
     const c2 = await load(sc);
-    const slots = (executeMappingAgentTool(c2, "list_slots", { unmappedOnly: true }) as {
+    const slots = ((await executeMappingAgentTool(c2, "list_slots", { unmappedOnly: true })) as {
       slots: Array<{ slotId: string }>;
     }).slots.slice(0, 3);
     const turn1 = await scriptedTurn(

@@ -6,7 +6,7 @@ intEHRgrator exposes one set of mapping tools (`list_slots`, `get_source_tree`, 
 |------|--------------------|-----------|-------------|
 | IDE / desktop MCP client (Cursor, Claude Desktop, …) | the IDE | MCP over **stdio** | `src/agent/mcp_stdio.ts` (`deno task mcp`, or the release binary with `--mcp`) |
 | Remote or local HTTP agent | that agent | JSON over **HTTP** `/api/v1/*` | `src/agent/http.ts` (served by the desktop app) |
-| **AI chat** in the web app | the user's own provider | OpenAI-compatible `tools` in the browser | `src/core/ai/mapping_agent.ts` (tools run by `src/core/ai/controller_tools.ts` for now; ADR 0014 moves them onto `callAgentTool`) |
+| **AI chat** in the web app | the user's own provider | OpenAI-compatible `tools` in the browser | `src/core/ai/mapping_agent.ts` (`runMappingAgentOnClient`: the same `callAgentTool` as MCP, on a `WorkbenchService` around the live controller) |
 
 Usage (commands, flags, `mcp.json`) is in [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md). This page is about where the code is and how the parts fit.
 
@@ -26,7 +26,8 @@ Usage (commands, flags, `mcp.json`) is in [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md)
 | `src/workbench/service.ts` | `WorkbenchService`: the headless workbench the Agent API and stdio MCP drive (history, undo, revisions). |
 | `src/web/agent_bridge.ts`, `agent_observer.ts` | Browser side of the desktop: commits every semantic UI change via `/ui-commit` (as the person, or `ai-chat` during an AI write) before it polls, then pulls the bundle when an agent changed the revision and applies it as one undo step (`applyAgentBundle` in `web/main.ts`); shows agent activity / history. |
 | `src/desktop/main.ts` | Desktop entry: serves the web app and the Agent API, handles `--headless`, `--bind`, `--token`, `--load`, `--mcp`; `INTEHR_AGENT_API=0` turns the API off. |
-| `src/core/ai/controller_tools.ts` | The same tool names for the browser: `mappingAgentOpenAiTools()` (OpenAI `tools` schema), `executeMappingAgentTool(controller, name, args)` on the live `WorkbenchController`, `isMutatingCallAiTool()`. Interim: removed by ADR 0014 in favour of `callAgentTool`. |
+| `src/agent/client.ts` | `AgentClient` (`LocalAgentClient` on a `WorkbenchService`, `HttpAgentClient` on the Agent API), browser-safe; used by stdio MCP and the AI chat. `setActor` attributes the chat's calls to `ai-chat`. |
+| `src/core/ai/chat_tools.ts` | The chat's tool list: `CALL_AI_TOOL_NAMES`, `mappingAgentOpenAiTools()` (OpenAI `tools`, derived from `AGENT_TOOLS` without `revision`), `isMutatingCallAiTool()`. |
 | `src/core/ai/mapping_agent.ts` | AI chat tool loop: `runMappingAgent` (multi-turn via `history`; streams with `onEvent`, stops on `signal`, stubs older snapshot tool results with `compactToolHistory`), `runSuggestionsChatTurn` (fallback when a provider rejects tools, no tools). `list_examples` / `get_example` and the `list_slots` filters share their helpers in `src/agent/inspect.ts` with the MCP tools. |
 
 ## stdio vs HTTP
@@ -47,12 +48,10 @@ Desktop UI ◀──agent_bridge.ts polls /snapshot, posts /ui-commit──▶ h
 
 ## Shared tool names with AI chat
 
-**Target ([ADR 0014](adr/0014-one-write-path-attributed-undo.md)):** the chat calls `callAgentTool` on a `WorkbenchService` through an `AgentClient` (in-browser service on the web, the desktop backend over HTTP), so chat and MCP share one write path and one attributed history. The steps below describe the interim state until that lands.
-
-Today AI chat does not go through MCP or HTTP. It calls `executeMappingAgentTool` directly on the browser's `WorkbenchController`, but it uses the **same tool names and argument shapes** as `src/agent/tools.ts`, so prompts, skills and docs written for MCP work in the chat. When you add or change a tool:
+AI chat uses the same tools as MCP ([ADR 0014](adr/0014-one-write-path-attributed-undo.md)): `runMappingAgentOnClient` calls `callAgentTool` through a `LocalAgentClient` on a `WorkbenchService` that wraps the browser's live `WorkbenchController` (`new WorkbenchService({ controller })`; the service then leaves the Blockly JSON to the canvas). Tool results, validation and history are the MCP ones; the chat's entries carry the `ai-chat` origin with the model and a turn id. On the desktop the browser commits those changes to the backend through the attributed `/ui-commit` (A1), so the backend history shows them as AI chat. When you add or change a tool:
 
 1. Change `AGENT_TOOLS` / `callAgentTool` / `AGENT_TOOL_HTTP` in `src/agent/tools.ts`.
-2. If the browser chat should have it, add it to `CALL_AI_TOOL_NAMES`, `CALL_AI_OPENAI_TOOLS` and `executeMappingAgentTool` in `src/core/ai/controller_tools.ts` (and to `isMutatingCallAiTool` when it changes the mapping, so **Revert last AI turn** is offered).
-3. Cover it with an Agent/MCP test in `test/` (see [TESTING.md](TESTING.md)). `test/ai_streaming_252_test.ts` checks that every chat tool exists in `AGENT_TOOLS` with the same parameter names; put shared read logic in `src/agent/inspect.ts` rather than in either caller.
+2. If the browser chat should have it, add its name to `CALL_AI_TOOL_NAMES` in `src/core/ai/chat_tools.ts` (and to `isMutatingCallAiTool` when it changes the mapping, so it is attributed to the AI and **Revert last AI turn** is offered). The schema and description come from `AGENT_TOOLS`.
+3. Cover it with an Agent/MCP test in `test/` (see [TESTING.md](TESTING.md)). `test/ai_chat_service_a2_test.ts` checks that the chat tools are the `AGENT_TOOLS` entries; put shared read logic in `src/agent/inspect.ts` rather than in either caller.
 
 On the desktop the chat posts its completions through `POST /api/v1/ai-chat-completions` (found with `GET /api/v1/health`) to avoid browser CORS. That forwarder is not an MCP tool.
