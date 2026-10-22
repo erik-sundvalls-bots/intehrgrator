@@ -1,0 +1,47 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "source_query",
+        "id": "hbs_path_0",
+        "x": 20,
+        "y": 20,
+        "fields": {
+          "EXPRESSION": "$.starter_tips",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_1",
+        "x": 20,
+        "y": 68,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_1_src",
+              "fields": {
+                "EXPRESSION": "$.tip_array"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_2",
+        "x": 20,
+        "y": 116,
+        "fields": {
+          "EXPRESSION": "$.starter_tips.tip_object.Right_click_explanations[\"⤡\"]",
+          "RETURN_TYPE": "string"
+        }
+      }
+    ]
+  }
+}
