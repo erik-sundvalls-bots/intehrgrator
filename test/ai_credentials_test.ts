@@ -47,7 +47,6 @@ Deno.test("parseAiCredentials requires endpoint, key, and model", () => {
       endpoint: "https://api.example/v1/chat/completions",
       apiKey: "sk-test",
       model: "gpt-4.1",
-      mappingMode: "tools",
     },
   );
 });

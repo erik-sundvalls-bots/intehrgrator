@@ -165,6 +165,115 @@ export function compactSourceTree(
   return row;
 }
 
+/** Default and maximum characters `get_example` returns (bodies stay out of the first prompt, #252). */
+export const GET_EXAMPLE_DEFAULT_CHARS = 8_000;
+export const GET_EXAMPLE_MAX_CHARS = 40_000;
+
+const truthy = (v: unknown) => v === true || v === "true" || v === "1";
+
+/** `list_slots` filters (shared by AI chat and MCP): `unmappedOnly`, `query` (substring of slotId / label / pathLabel). */
+export function filterSlotRows(rows: SlotInspectRow[], args: Record<string, unknown>): SlotInspectRow[] {
+  const query = typeof args.query === "string" ? args.query.trim().toLowerCase() : "";
+  const unmappedOnly = truthy(args.unmappedOnly);
+  if (!query && !unmappedOnly) return rows;
+  return rows.filter((row) =>
+    (!unmappedOnly || !row.mapped) &&
+    (!query || [row.slotId, row.label ?? "", row.pathLabel ?? ""].some((v) => v.toLowerCase().includes(query)))
+  );
+}
+
+interface ExampleState {
+  examples: Array<{ id: string; filename: string; format: string; content: string }>;
+  activeExample?: { id: string } | null;
+  exampleTree?: SchemaTreeNode | null;
+}
+
+/** `list_examples`: example manifest without bodies. */
+export function listExamplesInspect(s: ExampleState) {
+  return s.examples.map((ex) => ({
+    id: ex.id,
+    filename: ex.filename,
+    format: ex.format,
+    chars: ex.content.length,
+    ...(ex.id === s.activeExample?.id ? { active: true } : {}),
+  }));
+}
+
+/**
+ * `get_example`: one example body (default Active Example) capped at
+ * `maxChars`, or with `path` the subtree (with values) of the Active Example.
+ */
+export function getExampleInspect(s: ExampleState, args: Record<string, unknown>): Record<string, unknown> {
+  const id = typeof args.id === "string" && args.id ? args.id : s.activeExample?.id;
+  const example = s.examples.find((ex) => ex.id === id || ex.filename === id);
+  if (!example) throw new Error(id ? `Unknown example id: ${id}` : "No example is loaded");
+  const requested = Number(args.maxChars ?? args.maxBytes);
+  const maxChars = Math.min(
+    GET_EXAMPLE_MAX_CHARS,
+    Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : GET_EXAMPLE_DEFAULT_CHARS,
+  );
+  const path = typeof args.path === "string" ? args.path.trim() : "";
+  if (path) {
+    if (example.id !== s.activeExample?.id) {
+      throw new Error("path works on the Active Example; call set_active_example first or omit path");
+    }
+    const node = findCompactNode(compactSourceTree(s.exampleTree ?? null, 0, 64), path);
+    if (!node) throw new Error(`No node at ${path} in ${example.filename}`);
+    const text = JSON.stringify(node);
+    return {
+      id: example.id,
+      path,
+      ...(text.length > maxChars ? { truncated: true, chars: text.length, subtree: text.slice(0, maxChars) } : { subtree: node }),
+    };
+  }
+  const truncated = example.content.length > maxChars;
+  return {
+    id: example.id,
+    filename: example.filename,
+    format: example.format,
+    chars: example.content.length,
+    ...(truncated ? { truncated: true } : {}),
+    content: truncated ? example.content.slice(0, maxChars) : example.content,
+  };
+}
+
+function findCompactNode(node: SourceTreeNode | null, path: string): SourceTreeNode | null {
+  if (!node) return null;
+  const norm = (p: string) => p.replace(/\[\*\]|\[\d+\]/g, "").replace(/\/+$/, "");
+  if (node.path === path || norm(node.path) === norm(path)) return node;
+  for (const child of node.children ?? []) {
+    const hit = findCompactNode(child, path);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * Indented one-line-per-node outline of a source tree (`path type [mult]`),
+ * without example values: the `api` AI chat context sends this instead of
+ * the source schema body (#252). Stops at `maxLines` with a pointer line.
+ */
+export function sourceTreeOutline(
+  node: SchemaTreeNode | null | undefined,
+  maxLines = 1500,
+): string {
+  if (!node) return "";
+  const lines: string[] = [];
+  let omitted = 0;
+  const walk = (n: SchemaTreeNode, depth: number) => {
+    if (lines.length >= maxLines) {
+      omitted++;
+    } else {
+      const mult = n.multiplicity ? ` [${n.multiplicity}]` : "";
+      lines.push(`${"  ".repeat(depth)}${n.path} ${n.type}${mult}`);
+    }
+    for (const child of n.children) walk(child, depth + 1);
+  };
+  walk(node, 0);
+  if (omitted) lines.push(`… ${omitted} more nodes; call get_source_tree for the full tree`);
+  return lines.join("\n");
+}
+
 export function productStackInspect(blocklyState: unknown): ProductStackRow[] {
   const tops = topBlocks(blocklyState);
   const start = tops.find((block) => block.type === "conversion_start");

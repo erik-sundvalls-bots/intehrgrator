@@ -2,9 +2,11 @@
  * AI chat panel in the lower split of **Target & Previews**.
  *
  * Multi-turn chat with the user's own AI (credentials in this browser only).
- * History is stored per project in localStorage. Without credentials the panel
- * offers copy & paste prompting: copy the composed prompt, then import the
- * answer through the Import Suggestions dialog.
+ * History is stored per project in localStorage. With credentials, Send runs
+ * the streaming tool loop (`runMappingAgent`): text and reasoning stream into a
+ * live bubble, each applied mapping gets a short line, and Stop aborts the run.
+ * Without credentials the panel offers copy & paste prompting: copy the
+ * composed prompt, then import the answer through the Import Suggestions dialog.
  */
 import { attachInfoTip } from "./info_tip.ts";
 import {
@@ -19,12 +21,13 @@ import {
   partsChips,
 } from "../core/ai/chat_context.ts";
 import {
-  type ChatApplyMode,
   type ChatSession,
   clearChatSession,
   loadChatSession,
   saveChatSession,
+  trimChatSessionToTokens,
 } from "../core/ai/chat_history.ts";
+import type { MappingAgentEvent } from "../core/ai/mapping_agent.ts";
 import type { ChatMessage } from "../core/ai/credentials.ts";
 import {
   addUserPrompts,
@@ -45,7 +48,14 @@ function ui() {
   return chrome(detectLocale());
 }
 
-export const AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
+/**
+ * Retired "Apply directly / Approve first" select (before #252). Removed on
+ * load: Send always applies (revertible); the import approval modal is only
+ * for pasted answers.
+ */
+export const LEGACY_AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
+/** Reasoning tail shown in the live bubble (characters). */
+const REASONING_TAIL_CHARS = 240;
 /** "0" = expanded, anything else = collapsed (the default). */
 export const AI_CHAT_COLLAPSED_KEY = "intehrgrator.ai.chatCollapsed";
 /** Pre-collapse key: "1" meant the panel was open. Read once to migrate. */
@@ -65,10 +75,13 @@ export const AI_CHAT_COPY_MENU: ReadonlyArray<{ delivery: AiPromptDelivery; labe
 ];
 
 export interface AiChatTurnRequest {
-  mode: ChatApplyMode;
   /** Full user message (text, attachments, maybe project context). */
   prompt: string;
   history: ChatMessage[];
+  /** Aborted by the Stop button. */
+  signal: AbortSignal;
+  /** Live progress for the streaming bubble. */
+  onEvent: (event: MappingAgentEvent) => void;
 }
 
 export interface AiChatTurnResult {
@@ -81,6 +94,10 @@ export interface AiChatTurnResult {
   note?: string;
   /** Per-suggestion notes from envelopes applied with tools (not in `text`). */
   suggestionNotes?: SuggestionNote[];
+  /** Short lines for mappings applied this turn. */
+  mappings?: string[];
+  /** The run was stopped; `text` is what arrived before Stop. */
+  stopped?: boolean;
 }
 
 export interface AiChatPanelOptions {
@@ -92,8 +109,11 @@ export interface AiChatPanelOptions {
   projectId: () => string;
   hasCredentials: () => boolean;
   openCredentials: () => void;
-  /** Full project prompt (the Copy prompt text) in a delivery mode. */
-  buildProjectContext: (delivery?: AiPromptDelivery) => string;
+  /**
+   * Full project prompt in a delivery mode: the copy & paste text, or `api`
+   * (compact context for Send, where the model has the mapping tools).
+   */
+  buildProjectContext: (delivery?: AiPromptDelivery | "api") => string;
   /** Last copy/paste delivery mode, shared with the header AI menu. */
   getDelivery?: () => AiPromptDelivery;
   setDelivery?: (delivery: AiPromptDelivery) => void;
@@ -191,6 +211,12 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   let disposeSplit: (() => void) | null = null;
   let collapsed = readCollapsed(storage);
   let sending = false;
+  /** Stop button target while a turn runs. */
+  let running: AbortController | null = null;
+  /** Live streaming bubble content for the running turn. */
+  let live: { text: string; reasoning: string; tool: string; mappings: string[]; errors: number } | null = null;
+  let liveRow: HTMLElement | null = null;
+  let liveFrame = 0;
   let lastTurnRevertible = false;
   let forceContext = false;
   let savedRange: Range | null = null;
@@ -221,26 +247,12 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   promptsMenu.hidden = true;
   promptsWrap.append(promptsBtn, promptsMenu);
 
-  const modeLabel = el("label", { className: "ai-chat-mode" });
-  const modeSelect = el("select");
-  modeSelect.id = "ai-chat-mode";
-  for (const [value, text, tip] of [
-    ["apply", ui().aiChatModeApply, ui().aiChatModeApplyTitle],
-    ["approve", ui().aiChatModeApprove, ui().aiChatModeApproveTitle],
-  ] as const) {
-    const option = el("option", { text, title: tip });
-    option.value = value;
-    modeSelect.append(option);
+  // Retired mode select: drop its stored value (Send always applies, revertible).
+  try {
+    storage.removeItem(LEGACY_AI_CHAT_MODE_KEY);
+  } catch {
+    // private mode
   }
-  modeSelect.value = storage.getItem(AI_CHAT_MODE_KEY) === "approve" ? "approve" : "apply";
-  modeSelect.title = modeSelect.value === "approve" ? ui().aiChatModeApproveTitle : ui().aiChatModeApplyTitle;
-  modeSelect.addEventListener("change", () => {
-    storage.setItem(AI_CHAT_MODE_KEY, modeSelect.value);
-    modeSelect.title = modeSelect.value === "approve" ? ui().aiChatModeApproveTitle : ui().aiChatModeApplyTitle;
-  });
-  // Visible label dropped so the header fits one row; the select keeps it as its name.
-  modeSelect.setAttribute("aria-label", ui().aiChatModeLabel);
-  modeLabel.append(modeSelect);
 
   const spacer = el("span", { className: "ai-chat-spacer" });
   const clearBtn = el("button", {
@@ -282,7 +294,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     '<rect x="3.7" y="13.4" width="16.6" height="5.9" rx="1" fill="currentColor"></rect></svg>';
   // Tools wrap inside their own group so the toggle stays on the first row.
   const tools = el("div", { className: "ai-chat-header-tools" });
-  tools.append(promptsWrap, modeLabel, spacer, clearBtn);
+  tools.append(promptsWrap, spacer, clearBtn);
   header.append(title, infoTip, tools, toggleBtn);
   attachInfoTip(infoTip);
 
@@ -357,7 +369,15 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   iconLabel(importBtn, "content_paste", ui().aiChatImportAnswer);
   const sendBtn = el("button", { className: "pane-btn pane-btn-primary", text: ui().aiChatSend, type: "button" });
   sendBtn.id = "ai-chat-send";
-  actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), sendBtn);
+  const stopBtn = el("button", {
+    className: "pane-btn ai-chat-stop",
+    title: ui().aiChatStopTitle,
+    type: "button",
+  });
+  stopBtn.id = "ai-chat-stop";
+  iconLabel(stopBtn, "stop_circle", ui().aiChatStop);
+  stopBtn.hidden = true;
+  actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), stopBtn, sendBtn);
   composer.append(input, actions);
   // Same look as every split_pane.ts divider (6px bar, centred 3-dot grip).
   const grip = el("div", { className: "split-handle split-handle--row ai-chat-grip", title: ui().aiChatResizeInput });
@@ -485,6 +505,11 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     document.execCommand("insertText", false, text);
   });
   input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && running) {
+      ev.preventDefault();
+      stop();
+      return;
+    }
     if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {
       ev.preventDefault();
       void send();
@@ -492,13 +517,94 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   });
 
   // ── log ───────────────────────────────────────────────────────────────────
+  const mappingLines = (lines: string[]) => {
+    const box = el("div", { className: "ai-chat-mappings" });
+    for (const line of lines) box.append(el("div", { className: "ai-chat-mapping", text: `✓ ${line}` }));
+    return box;
+  };
+
+  /** The live bubble: reasoning tail, current tool, mapping lines, streamed text. */
+  const renderLive = () => {
+    liveFrame = 0;
+    if (!live) return;
+    const row = liveRow ?? el("div", { className: "ai-chat-msg ai-chat-msg--assistant ai-chat-msg--streaming" });
+    row.id = "ai-chat-live";
+    liveRow = row;
+    row.replaceChildren();
+    if (live.reasoning.trim()) {
+      const tail = live.reasoning.trim().replace(/\s+/g, " ");
+      const reasoning = el("div", {
+        className: "ai-chat-reasoning",
+        text: tail.length > REASONING_TAIL_CHARS ? `…${tail.slice(-REASONING_TAIL_CHARS)}` : tail,
+        title: ui().aiChatReasoning,
+      });
+      row.append(reasoning);
+    }
+    if (live.mappings.length) row.append(mappingLines(live.mappings));
+    if (live.text) row.append(el("div", { className: "ai-chat-text", text: live.text }));
+    const status = live.tool
+      ? formatMessage(ui().aiChatRunningTool, { name: live.tool })
+      : live.text || live.mappings.length
+      ? ui().aiChatStreaming
+      : ui().aiChatSending;
+    row.append(el("p", { className: "ai-chat-pending", text: status }));
+    if (!row.isConnected) log.append(row);
+    const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+    if (nearBottom || !live.text) log.scrollTop = log.scrollHeight;
+  };
+  const scheduleLive = () => {
+    if (liveFrame) return;
+    liveFrame = typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame(renderLive)
+      : setTimeout(renderLive, 16) as unknown as number;
+  };
+  const onTurnEvent = (event: MappingAgentEvent) => {
+    if (!live) return;
+    switch (event.type) {
+      case "text":
+        live.text += event.text;
+        live.tool = "";
+        break;
+      case "reasoning":
+        live.reasoning += event.text;
+        break;
+      case "tool":
+        live.tool = event.name;
+        break;
+      case "mapping":
+        live.mappings.push(event.text);
+        break;
+      case "tool-error":
+        live.errors++;
+        break;
+      case "step":
+        // A new step starts a new paragraph of streamed text.
+        if (live.text && !live.text.endsWith("\n\n")) live.text += "\n\n";
+        live.tool = "";
+        break;
+    }
+    scheduleLive();
+  };
+
+  const stop = () => {
+    if (!running || running.signal.aborted) return;
+    running.abort();
+    stopBtn.disabled = true;
+    if (live) {
+      live.tool = "";
+      scheduleLive();
+    }
+  };
+
   const renderLog = () => {
     log.replaceChildren();
     if (!session.display.length) {
       log.append(el("p", { className: "ai-chat-empty", text: ui().aiChatEmpty }));
     }
+    liveRow = null;
     session.display.forEach((entry, index) => {
       const row = el("div", { className: `ai-chat-msg ai-chat-msg--${entry.role}` });
+      if (entry.mappings?.length) row.append(mappingLines(entry.mappings));
       if (entry.toolCalls?.length) {
         const details = el("details", { className: "ai-chat-tools" });
         details.append(
@@ -537,7 +643,8 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       }
       log.append(row);
     });
-    if (sending) log.append(el("p", { className: "ai-chat-pending", text: ui().aiChatSending }));
+    if (sending && live) renderLive();
+    else if (sending) log.append(el("p", { className: "ai-chat-pending", text: ui().aiChatSending }));
     log.scrollTop = log.scrollHeight;
   };
 
@@ -559,15 +666,18 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     const hasCreds = options.hasCredentials();
     renderInfo(hasCreds);
     credsNotice.hidden = hasCreds || credsDismissed;
-    sendBtn.hidden = !hasCreds;
+    sendBtn.hidden = !hasCreds || Boolean(running);
     sendBtn.disabled = sending;
-    modeLabel.hidden = !hasCreds;
+    stopBtn.hidden = !running;
+    stopBtn.disabled = Boolean(running?.signal.aborted);
+    // While a run streams, the row holds only Stop (copy / import make no sense then).
+    copySplit.hidden = Boolean(running);
+    importBtn.hidden = Boolean(running);
     copyBtn.classList.toggle("pane-btn-primary", !hasCreds);
     copyChevron.classList.toggle("pane-btn-primary", !hasCreds);
-    // Stored prompts, mode and Clear history live only in the expanded panel.
+    // Stored prompts and Clear history live only in the expanded panel.
     promptsWrap.hidden = collapsed;
     clearBtn.hidden = collapsed;
-    if (collapsed) modeLabel.hidden = true;
     panel.classList.toggle("ai-chat-panel--collapsed", collapsed);
     toggleBtn.title = collapsed ? ui().aiChatExpand : ui().aiChatCollapse;
     toggleBtn.setAttribute("aria-label", toggleBtn.title);
@@ -575,7 +685,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   };
 
   // ── compose / send ────────────────────────────────────────────────────────
-  const composePrompt = (delivery?: AiPromptDelivery) => {
+  const composePrompt = (delivery?: AiPromptDelivery | "api") => {
     const parts = readInputParts(input);
     const composed = composeUserMessage(parts, session.attachedChipKeys);
     const withContext = forceContext || !session.contextSent;
@@ -601,35 +711,66 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       await copyPrompt();
       return;
     }
-    const c = composePrompt();
+    if (!readInputParts(input).some((part) => "chip" in part || part.text.trim())) return;
+    // Keep the history sent with this message under the token budget (#252).
+    // Dropping the first turn also drops the project context, so it is re-attached.
+    const fitted = trimChatSessionToTokens(session);
+    if (fitted.trimmed) {
+      session = fitted.session;
+      session.display.push({ role: "note", text: ui().aiChatHistoryTrimmed });
+    }
+    const c = composePrompt("api");
     if (!c.composed.displayText) return;
     const history = session.messages;
-    const mode: ChatApplyMode = modeSelect.value === "approve" ? "approve" : "apply";
     commitUserTurn(c);
     sending = true;
     lastTurnRevertible = false;
+    const controller = new AbortController();
+    running = controller;
+    live = { text: "", reasoning: "", tool: "", mappings: [], errors: 0 };
     persist();
     renderLog();
     refreshChrome();
     try {
-      const result = await options.runTurn({ mode, prompt: c.prompt, history });
+      const result = await options.runTurn({
+        prompt: c.prompt,
+        history,
+        signal: controller.signal,
+        onEvent: onTurnEvent,
+      });
       session.messages = result.messages;
+      const mappings = result.mappings ?? live?.mappings ?? [];
       session.display.push({
         role: "assistant",
         text: result.text,
         toolCalls: result.toolCalls,
+        ...(mappings.length ? { mappings } : {}),
+        ...(result.stopped ? { stopped: true } : {}),
         ...(result.suggestionNotes?.length ? { suggestionNotes: result.suggestionNotes } : {}),
       });
-      if (result.note) session.display.push({ role: "note", text: result.note });
+      const note = result.stopped
+        ? [ui().aiChatStopped, result.note].filter(Boolean).join(" ")
+        : result.note;
+      if (note) session.display.push({ role: "note", text: note });
       // Revert sits on the last assistant entry; keep the note before it.
-      if (result.note && result.revertible) session.display.push(session.display.splice(-2, 1)[0]!);
+      if (note && result.revertible) session.display.push(session.display.splice(-2, 1)[0]!);
       lastTurnRevertible = result.revertible;
     } catch (err) {
-      session.display.push({ role: "error", text: formatError(err) });
+      if (controller.signal.aborted) {
+        // Stopped before the first step finished: nothing reached the canvas.
+        if (live?.text.trim()) session.display.push({ role: "assistant", text: live.text.trim(), stopped: true });
+        session.display.push({ role: "note", text: ui().aiChatStopped });
+      } else {
+        session.display.push({ role: "error", text: formatError(err) });
+      }
       // Keep the user message in the wire history so a retry has context.
       session.messages = [...history, { role: "user", content: c.prompt }];
     } finally {
       sending = false;
+      running = null;
+      live = null;
+      if (liveFrame && typeof cancelAnimationFrame === "function") cancelAnimationFrame(liveFrame);
+      liveFrame = 0;
       persist();
       renderLog();
       refreshChrome();
@@ -896,6 +1037,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     setInputHeight(input.getBoundingClientRect().height + (ev.key === "ArrowUp" ? step : -step));
   });
   sendBtn.addEventListener("click", () => void send());
+  stopBtn.addEventListener("click", () => stop());
   copyBtn.addEventListener("click", () => void copyPrompt());
   importBtn.addEventListener("click", () => options.openImportDialog());
 

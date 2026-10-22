@@ -23,7 +23,7 @@ The toolbar **AI** menu is three sections. The third is desktop-only.
 
 **Your own AI**
 
-- **Call AI** — POST that prompt. Default mapping mode uses OpenAI function tools named like MCP (`list_slots`, `map_slot`, `import_suggestions`, `run_test`, …) against the open project. **Suggestions JSON only** is the one-shot import used before tools existed.
+- **Call AI** — POST that prompt. Default mapping mode uses OpenAI function tools named like MCP (`list_slots`, `map_slot`, `import_suggestions`, `run_test`, …) against the open project. Since #252 the in-app chat always uses the tools (streaming, with Stop); the one-shot JSON import is the copy & paste path.
 - **Configure AI credentials…** — provider preset (Gemini, OpenAI, Anthropic, Ollama local/cloud, LM Studio local/cloud, Hugging Face, OpenCode Zen / cloud runner), endpoint, API key, model, mapping mode. Never stored in the Project Bundle. GitHub Pages browsers often hit CORS on cloud APIs; the **desktop app** forwards Call AI through `POST /api/v1/ai-chat-completions`. Key walkthrough: [AI_CREDENTIALS.md](../AI_CREDENTIALS.md).
 
 **Desktop**

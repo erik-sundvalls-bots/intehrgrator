@@ -254,9 +254,6 @@ export const en = {
   endpoint: "Endpoint",
   apiKey: "API key",
   model: "Model",
-  howCallAiMaps: "How AI chat maps",
-  mappingTools: "Mapping tools (MCP / Agent API names on the live workbench)",
-  suggestionsOnly: "Suggestions JSON only (one-shot import)",
   clear: "Clear",
   defaultsTitle: "Default context map",
   defaultsIntro: "Load a saved map, browse a file or URL, download the unique default context map, or save the current canvas map under a name.",
@@ -550,9 +547,10 @@ export const en = {
     "<strong>AI credentials</strong> (menu <em>AI → Configure AI credentials…</em>) connect an API so the chat can send directly.",
   aiChatHelpApiHtml:
     "<strong>AI chat — API mode</strong><br>" +
-    "<strong>Send</strong> talks to your configured AI. The first message carries the full project context; later ones only your text and new context chips.<br>" +
+    "<strong>Send</strong> talks to your configured AI. The first message carries a compact project context (slot manifest, source paths, example list; the AI fetches more with its tools); later ones only your text and new context chips.<br>" +
     "<strong>Prompts ▾</strong> stored prompts: insert, save or remove reusable texts.<br>" +
-    "<strong>Apply directly / Approve first</strong>: let the AI change the canvas through tools (each turn can be reverted), or review its suggestions in Import AI suggestions first.<br>" +
+    "<strong>Streaming</strong>: the answer and any model reasoning stream in as they arrive; each mapping the AI applies through its mapping tools shows as a short ✓ line. Changes land on the canvas right away; <em>Revert last AI turn</em> undoes the whole turn.<br>" +
+    "<strong>Stop</strong> (or Esc in the input) ends a run that seems to go wrong; mappings made before Stop stay and can be reverted.<br>" +
     "<strong>Trash</strong> clears this project's chat history and starts a fresh context: the next message resends the full project context.<br>" +
     "<strong>Toggle</strong> (right) collapses or expands the chat; the state is remembered.<br>" +
     "<strong>Context chips</strong>: right-click source nodes, target nodes or blocks → <em>Add to AI chat</em>.<br>" +
@@ -569,14 +567,17 @@ export const en = {
   aiChatRemovePromptConfirm: "Remove stored prompt \"{name}\"?",
   aiChatPromptsAdded: "{count} stored prompt(s) added",
   aiChatPromptLoadFailed: "Could not add stored prompt: {detail}",
-  aiChatModeLabel: "AI changes",
-  aiChatModeApply: "Apply directly",
-  aiChatModeApplyTitle: "Tool calls change the canvas right away; use Revert last AI turn to undo",
-  aiChatModeApprove: "Approve first",
-  aiChatModeApproveTitle: "The AI answers with suggestions you review in the Import Suggestions dialog",
   aiChatPlaceholder: "Ask about the mapping. Right-click source nodes, target nodes or blocks → Add to AI chat to reference them.",
   aiChatSend: "Send",
   aiChatSending: "Waiting for AI…",
+  aiChatStreaming: "AI is answering…",
+  aiChatRunningTool: "Running {name}…",
+  aiChatReasoning: "Model reasoning (latest part)",
+  aiChatStop: "Stop",
+  aiChatStopTitle: "Stop the AI run (Esc). Mappings made so far stay and can be reverted.",
+  aiChatStopped: "Stopped. Mappings made before Stop stay on the canvas; Revert last AI turn undoes them.",
+  aiChatHistoryTrimmed:
+    "Older chat turns were dropped to keep the request small; this message re-attaches the project context.",
   aiChatRevert: "Revert last AI turn",
   aiChatReverted: "Reverted the last AI turn",
   aiChatToolCall: "Tool: {name}",
@@ -587,12 +588,11 @@ export const en = {
   aiChatCopyPromptTitle: "Copy the full prompt (project context, your text and chips) for an external AI chat",
   aiChatImportAnswer: "Import AI answer…",
   aiChatPromptCopied: "Prompt copied. Paste it into your AI chat, then Import AI answer.",
-  aiChatApproveHint: "Review the suggestions in Import Suggestions.",
   aiChatTruncated:
     "The answer was cut off at the model's output-token limit, so nothing could be imported. Ask again for fewer slots at a time (for example one loop), or send \"continue\".",
   aiChatStepLimit: "Stopped after {steps} tool steps; the model was not finished. Send \"continue\" to let it go on.",
   aiChatToolsFallback:
-    "The provider rejected the mapping tools, so this answer was requested as suggestions JSON instead.",
+    "The provider rejected the mapping tools, so this answer was requested as suggestions JSON and applied directly (Revert last AI turn undoes it).",
   aiChatEmpty: "No messages yet.",
   addToAiChat: "Add to AI chat",
   aiChatChipRemove: "Remove",

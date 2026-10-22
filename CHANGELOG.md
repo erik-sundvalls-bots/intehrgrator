@@ -6,6 +6,9 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **AI chat streams and can be stopped** (issues [#252](https://github.com/regionstockholm/intehrgrator/issues/252), [#251](https://github.com/regionstockholm/intehrgrator/issues/251)): with AI credentials, Send streams the answer and model reasoning, always uses the mapping tools, shows a short ✓ line for each mapping applied, and turns into **Stop** while it runs (also Esc). The "Apply directly / Approve first" select and the "How AI chat maps" credential option are removed (old settings are dropped on load); the Import Suggestions modal is only for pasted answers. A provider that rejects tools gets one suggestions-JSON turn applied directly (revertible). Architecture decision for the next step: chat and MCP will share one write path with one attributed undo step per AI turn ([ADR 0014](docs/adr/0014-one-write-path-attributed-undo.md)).
+- **Much smaller AI chat requests** ([#252](https://github.com/regionstockholm/intehrgrator/issues/252)): Send attaches a compact context (slot manifest, source path outline, example list; no raw OPT, schema or example bodies) and the new `list_examples` / `get_example` tools fetch examples on demand. The first obx request drops from about 166k to 24k tokens (bp 36k → 8k). Older large tool results are stubbed in the history, the history is trimmed by a token estimate with a note, and the refresh-merge prompt omits raw files over 12,000 characters instead of cutting them silently. Measure with `deno run -A scripts/measure_ai_tokens.ts`.
+
 ## [0.9.2] - 2026-10-20
 
 - **AI chat replaces "Call AI"** ([#248](https://github.com/regionstockholm/intehrgrator/pull/248), issue [#234](https://github.com/regionstockholm/intehrgrator/issues/234)): chat panel, context chips, stored prompts, tools-mode turns with approve-first and copy-prompt fallbacks.

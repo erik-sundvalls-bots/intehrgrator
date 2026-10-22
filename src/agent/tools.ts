@@ -3,6 +3,7 @@
  */
 
 import { applySuggestionReviewDefaults, slotReviewFrom, TOOL_REVIEW_PARAMS } from "../core/ai/mod.ts";
+import { filterSlotRows, getExampleInspect, listExamplesInspect } from "./inspect.ts";
 import { basename, dirname, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
 import type { MutationContext, WorkbenchService } from "../workbench/service.ts";
@@ -51,8 +52,25 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "list_slots",
     description:
-      "Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId for loops, parentRmType of the nearest COMPOSITION/SECTION/ENTRY, unitsFixed/allowedUnits, codeFixed/allowedValues, expression) plus repeatable containers.",
+      "Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId for loops, parentRmType of the nearest COMPOSITION/SECTION/ENTRY, unitsFixed/allowedUnits, codeFixed/allowedValues, expression) plus repeatable containers. Filter with unmappedOnly and/or query (substring of slotId, label or pathLabel).",
+    inputSchema: {
+      type: "object",
+      properties: { unmappedOnly: { type: "boolean" }, query: { type: "string" } },
+    },
+  },
+  {
+    name: "list_examples",
+    description: "Example instances (id, filename, format, size, active) without bodies.",
     inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_example",
+    description:
+      "Read an example instance: id (default: Active Example), optional path (source path; returns that subtree with values, Active Example only), maxChars (default 8000, max 40000).",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" }, path: { type: "string" }, maxChars: { type: "number" } },
+    },
   },
   {
     name: "get_source_tree",
@@ -398,6 +416,8 @@ export const AGENT_TOOL_HTTP: Record<string, AgentToolHttp> = {
   register_agent: { method: "POST", path: "/register-agent", body: "json" },
   get_snapshot: { method: "GET", path: "/snapshot", body: "none" },
   list_slots: { method: "GET", path: "/slots", body: "none" },
+  list_examples: { method: "GET", path: "/examples", body: "none" },
+  get_example: { method: "GET", path: "/example", body: "none" },
   get_source_tree: { method: "GET", path: "/source-tree", body: "none" },
   get_sheets: { method: "GET", path: "/sheets", body: "none" },
   get_product_stack: { method: "GET", path: "/product-stack", body: "none" },
@@ -467,9 +487,13 @@ export async function callAgentTool(
     case "list_slots":
       return {
         revision: service.getRevision(),
-        slots: service.listSlots(),
+        slots: filterSlotRows(service.listSlots(), args),
         repeatable: service.listRepeatable(),
       };
+    case "list_examples":
+      return { revision: service.getRevision(), examples: listExamplesInspect(service.getExampleState()) };
+    case "get_example":
+      return { revision: service.getRevision(), ...getExampleInspect(service.getExampleState(), args) };
     case "get_source_tree":
       return { revision: service.getRevision(), ...service.getSourceTree() };
     case "get_sheets":

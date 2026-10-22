@@ -9,13 +9,27 @@ export const CHAT_HISTORY_KEY_PREFIX = "intehrgrator.ai.chat.";
 /** Rough cap so one long chat cannot exhaust localStorage. */
 export const CHAT_HISTORY_MAX_CHARS = 400_000;
 
-export type ChatApplyMode = "apply" | "approve";
+/**
+ * Rough budget for the history sent with a new message (#252). Older whole
+ * turns are dropped before Send when the estimate is above it, so a long chat
+ * cannot grow every request without bound.
+ */
+export const CHAT_HISTORY_MAX_TOKENS = 64_000;
+
+/** Token estimate for wire messages: about 3 characters per token for this JSON-heavy chat (o200k_base). */
+export function estimateChatTokens(messages: readonly ChatMessage[]): number {
+  return Math.ceil(JSON.stringify(messages).length / 3);
+}
 
 export interface ChatDisplayEntry {
   role: "user" | "assistant" | "note" | "error";
   text: string;
   /** Tool names called during an assistant turn (collapsed lines). */
   toolCalls?: string[];
+  /** Short lines for mappings tools applied this turn ("Mapped Systolic ← $.systolic"). */
+  mappings?: string[];
+  /** The user pressed Stop during this turn. */
+  stopped?: boolean;
   /** Per-suggestion notes from envelopes the AI applied with tools this turn. */
   suggestionNotes?: SuggestionNote[];
 }
@@ -78,6 +92,26 @@ export function trimChatSession(session: ChatSession, maxChars = CHAT_HISTORY_MA
     next.attachedChipKeys = [];
   }
   return next;
+}
+
+/**
+ * Drop the oldest whole turns until the history estimate fits `maxTokens`.
+ * Returns whether anything was dropped, so the chat can say so.
+ */
+export function trimChatSessionToTokens(
+  session: ChatSession,
+  maxTokens = CHAT_HISTORY_MAX_TOKENS,
+): { session: ChatSession; trimmed: boolean; tokens: number } {
+  const next: ChatSession = { ...session, messages: [...session.messages] };
+  let trimmed = false;
+  while (next.messages.length && estimateChatTokens(next.messages) > maxTokens) {
+    const nextUser = next.messages.findIndex((m, i) => i > 0 && m.role === "user");
+    next.messages = nextUser > 0 ? next.messages.slice(nextUser) : [];
+    next.contextSent = false;
+    next.attachedChipKeys = [];
+    trimmed = true;
+  }
+  return { session: next, trimmed, tokens: estimateChatTokens(next.messages) };
 }
 
 export function saveChatSession(storage: StorageLike, projectId: string, session: ChatSession): ChatSession {

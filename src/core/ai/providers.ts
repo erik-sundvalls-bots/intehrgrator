@@ -2,8 +2,6 @@
  * OpenAI-compatible presets for Call AI credentials.
  * Endpoints and key URLs are from each vendor's current docs.
  */
-export type AiMappingMode = "suggestions" | "tools";
-
 export interface AiProviderPreset {
   id: string;
   label: string;
