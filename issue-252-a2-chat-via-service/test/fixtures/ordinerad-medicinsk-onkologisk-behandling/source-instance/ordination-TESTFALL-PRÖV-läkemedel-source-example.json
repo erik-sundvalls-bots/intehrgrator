@@ -1,0 +1,70 @@
+{
+  "CytodosOrdinationKey": 17,
+  "RekvisisjonId": 314196635,
+  "Personnummer": "AWn+PyB/tOhO2QxDCTEUJJ89J4PDUdcOXReHhriraWdqFpgxXNkGhtt/4N4P",
+  "PasientenDeltarIStudie": 1,
+  "StudieId": "EU CT 2023-504308-27-00",
+  "KurdefinisjonNavn": "Beamion Lung 2 Pembro+Pem+Kar",
+  "KurStartDato": "2026-02-23T00:00:00",
+  "PasientKurnummer": null,
+  "SignatureUser_UserName": "A1D8",
+  "SignatureUser_Fullname": "TakeCare_Test",
+  "SignatureDate": "2025-07-30T07:31:51.183",
+  "RekvisisjonVersjon": 3,
+  "RekvisisjonStatus": "Väntar",
+  "PDL_enhet_Namn": "OO Cancer TC TEST",
+  "PDL_enhet_HSAID": "ADNF",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Vardenhet_id": null,
+  "Vardenhet_namn": null,
+  "Vardenhet_HSAID": null,
+  "SenastUppdaterad": 1713427030140,
+  "SenastUppdaterad_orig": "2026-04-07 08:46:10.2967402 +02:00",
+  "KurDagar": [
+    {
+      "KurdagLopenummer": 3348408,
+      "Dognnummer": 1,
+      "StartTid": "2026-01-09T10:00:00",
+      "SenastUppdaterad": "2026-04-07T08:46:10.0623682+02:00",
+      "Substanser": [
+        {
+          "Lopenummer": 7585893,
+          "Doseberegnet": 625.00,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "PRÖV-Karboplatin",
+          "Innholdstoff_ATC": "L01XA02",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Intravenöst",
+          "Route_CodeValue": "3.0000",
+          "SenastUppdaterad": "2026-04-07T08:46:10.2967402+02:00"
+        },
+	{
+          "Lopenummer": 7585894,
+          "Doseberegnet": 885.00,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "PRÖV-Pemetrexed",
+          "Innholdstoff_ATC": "L01BA04",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Intravenöst",
+          "Route_CodeValue": "3.0000",
+          "SenastUppdaterad": "2026-04-07T08:46:10.2967402+02:00"
+        },
+	{
+          "Lopenummer": 7585895,
+          "Doseberegnet": 205.00,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "PRÖV-Pembrolizumab",
+          "Innholdstoff_ATC": "L01FF02",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Intravenöst",
+          "Route_CodeValue": "3.0000",
+          "SenastUppdaterad": "2026-04-07T08:46:10.2967402+02:00"
+        }
+      ]
+    }
+  ]
+}
