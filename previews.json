@@ -24,11 +24,11 @@
     "upstream": "c86e168b923b09a7c729cb6e4dc9910eb40a9f19"
   },
   "issue-252-a1-desktop-sync": {
-    "built": "2026-10-22T06:29:58Z",
+    "built": "2026-10-22T06:39:21Z",
     "dir": "issue-252-a1-desktop-sync",
     "mode": "merged",
     "pr": "262\thttps://github.com/regionstockholm/intehrgrator/pull/262\tOPEN\tDesktop: commit UI changes before MCP syncs, origin on history entries (ADR 0014, A1)",
-    "sha": "0f196bea605b664321dd2611d7d1ed678290efab",
+    "sha": "071030b769797b151d16846090874ec3ba606230",
     "upstream": "c5af42ca53ad619621883e035abff258330d67c1"
   },
   "issue-252-a2-chat-via-service": {
