@@ -2056,7 +2056,6 @@ body.sheets-fullscreen::before {
 .pane-btn.ai-chat-stop[hidden] { display: none; }
 .ai-chat-tools summary { cursor: pointer; color: var(--text-muted, #555); }
 .ai-chat-tool { font-family: var(--mono, monospace); padding-left: 14px; }
-.ai-chat-revert { margin-top: 6px; font-size: 12px; padding: 2px 8px; }
 .ai-chat-composer { border-top: 1px solid var(--border); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
 .ai-chat-input {
   min-height: 2.6em; max-height: 9em; overflow-y: auto; padding: 4px 6px;

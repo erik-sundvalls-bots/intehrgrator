@@ -1,6 +1,6 @@
 # Agent workflow (IDE + desktop)
 
-Golden path: **IDE + intEHRgrator desktop side-by-side**. An AI agent calls the **localhost Agent API** while you watch the Blockly canvas update. **Node-by-node `map_slot` is first-class** — it is OK, and it is the transparent default when a human is watching: each slot write pulses the canvas and lands as its own attributed history entry. Batch `import_suggestions` is for Copy AI Prompt, loops, Decision tables, and other envelope blocks `map_slot` cannot express. Open **Open observer** (formerly Open canvas) for the live agent legend and **attributed history timeline** (scrub, destructive rollback, patch-undo prompts).
+Golden path: **IDE + intEHRgrator desktop side-by-side**. An AI agent calls the **localhost Agent API** while you watch the Blockly canvas update. **Node-by-node `map_slot` is first-class** — it is OK, and it is the transparent default when a human is watching: each slot write pulses the canvas and lands as its own attributed history entry. Batch `import_suggestions` is for Copy AI Prompt, loops, Decision tables, and other envelope blocks `map_slot` cannot express. Open **Open observer** (formerly Open canvas) for the live agent legend and **attributed history timeline** (scrub, go back to an entry, patch-undo prompts).
 
 **Headless:** the same API/MCP tools complete **load → inspect → map → Test Run → export** with no UI (`--headless`, or `deno task mcp` without `INTEHR_AGENT_URL`).
 
@@ -77,9 +77,10 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/run-test` | `run_test` | Conversion Test Run (full `TestResult`) |
 | POST | `/generate-script` | `generate_script` | `{ language, path? }` Conversion Script |
 | POST | `/export-bundle` | `export_bundle` | `{ format: json\|zip, path? }` |
-| POST | `/undo` | `undo` | `{ scope?: global \| user \| agent }` |
+| POST | `/undo` | `undo` | `{ toSeq? }` take back the newest change (or all after `toSeq`), whoever made it; appends an `undo` entry and returns `author` |
+| POST | `/revert` | `revert` | `{ seq }` take back one entry as a new change; slots changed later are skipped and listed (`skipped`) |
 | POST | `/redo` | `redo` | Redo service history |
-| POST | `/restore-at` | `restore_at` | `{ seq, mode?: view \| destructive }` |
+| POST | `/restore-at` | `restore_at` | `{ seq, mode?: view \| destructive }` (destructive = Undo to here, appended) |
 | POST | `/export-discarded` | — | `{ entries: [{ afterBundle }] }` → `.intehrgrator` zip |
 
 Mutating requests accept **`If-Match: <revision>`** from the last snapshot. On conflict the API returns **409** with current revision. Foreign slot leases also return **409** (`holder`). `replace_sheets` / PUT `/sheets` changes `revision` (the hash includes Sheets). Use the new snapshot revision on the next write.

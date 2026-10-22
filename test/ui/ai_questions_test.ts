@@ -90,7 +90,6 @@ Deno.test({
       assertEquals(await chatChoices.count(), 2);
       assertEquals(await chatChoices.first().getAttribute("class"), "ai-notes-option ai-notes-option--recommended");
       await page.locator(".ai-chat-mapping", { hasText: "Imported 1 suggestion" }).waitFor({ timeout: 5_000 });
-      await page.locator("#ai-chat-revert").waitFor({ state: "visible" });
       assertStringIncludes(await chatQ.locator(".ai-notes-question-text").innerText(), "bodyPosition");
       const choice = chatQ.locator(".ai-notes-option").nth(1);
       assertStringIncludes(await choice.innerText(), "Do not map");

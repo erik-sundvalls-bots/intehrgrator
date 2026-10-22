@@ -36,11 +36,11 @@ Use this when intEHRgrator should call the model itself.
 
    <img src="../assets/tutorial/ai-chat-streaming.png" alt="AI chat while streaming: reasoning, a ✓ Mapped Systolic line, and the Stop button" />
 
-3. When the turn ends, **Revert last AI turn** puts the canvas back as it was before that turn. You can keep chatting; later messages send only your new text.
+3. When the turn ends, the whole turn is one **Undo** step (↶ or Ctrl+Z); the status line says it was a change by the AI chat. You can keep chatting; later messages send only your new text.
 
-   <img src="../assets/tutorial/ai-chat-done.png" alt="Finished AI chat turn with the ✓ line, one tool call, the answer and Revert last AI turn" />
+   <img src="../assets/tutorial/ai-chat-done.png" alt="Finished AI chat turn with the ✓ line, one tool call and the answer" />
 
-If a provider does not support function tools, the chat asks once for suggestions JSON and applies it directly; Revert works the same way.
+If a provider does not support function tools, the chat asks once for suggestions JSON and applies it directly, also as one Undo step.
 
 On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop app forwards AI chat requests through its own server, so Gemini, OpenAI, Anthropic, Hugging Face, and OpenCode Zen work there. Key pages: [AI chat credentials](../AI_CREDENTIALS.md).
 

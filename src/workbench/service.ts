@@ -53,6 +53,7 @@ import { INSTANCE_ENCODING_FIELD } from "../core/output/instance_encoding.ts";
 import { productStackBlocks } from "../blockly/instance_root.ts";
 import type { SheetDocument } from "../core/sheets/mod.ts";
 import { WorkbenchController } from "./controller.ts";
+import { planRevert, type RevertSkip } from "./revert.ts";
 import {
   adoptBlocklyState,
   ensureSchemaBlocksForSkeleton,
@@ -72,6 +73,31 @@ export interface MutationContext {
   kind?: HistoryKind;
   affectedSlotIds?: string[];
   recordHistory?: boolean;
+  /** Undo / revert: the entries acted on. */
+  targetSeqs?: number[];
+}
+
+export interface UndoResult {
+  /** The appended `undo` entry. */
+  seq: number;
+  undoneSeqs: number[];
+  /** Who made the undone change(s), for the status line. */
+  author: string;
+  summary: string;
+}
+
+export interface RevertResult {
+  /** False when nothing could be reverted (all skipped or nothing to do). */
+  ok: boolean;
+  /** The appended `revert` entry. */
+  seq?: number;
+  revertedSeq: number;
+  author: string;
+  reverted: string[];
+  sheetsReverted: boolean;
+  skipped: RevertSkip[];
+  notReverted: string[];
+  revision: string;
 }
 
 export class WorkbenchService {
@@ -389,43 +415,117 @@ export class WorkbenchService {
     return this.history.getActivity();
   }
 
-  undo(scope: "global" | "user" | "agent" = "global"): boolean {
-    const current = this.exportBundle();
-    const prev = scope === "user"
-      ? this.history.undoByFilter(current, (e) => e.actor.kind === "user")
-      : scope === "agent"
-      ? this.history.undoByFilter(current, (e) => e.actor.kind === "agent")
-      : this.history.undoGlobal(current);
-    if (!prev) return false;
-    this.controller.restoreDocumentSnapshot(prev);
+  /**
+   * Undo (sv: Ångra): rewind the newest change in effect, whoever made it
+   * (ADR 0014). Appends an `undo` entry; the history is never rewritten.
+   */
+  undo(ctx?: MutationContext): UndoResult | null {
+    const result = this.history.undo(this.exportBundle(), ctx?.actor ?? this.currentActor);
+    if (!result) return null;
+    this.controller.restoreDocumentSnapshot(result.bundle);
     this.bumpRevision();
-    return true;
+    return { seq: result.entry.seq, undoneSeqs: [result.undone.seq], author: result.undone.actor.displayName, summary: result.undone.summary };
   }
 
-  redo(): boolean {
-    const next = this.history.redo();
-    if (!next) return false;
-    this.controller.restoreDocumentSnapshot(next);
+  /** Go back to just after history entry `seq` ("Undo to here"), as one appended entry. */
+  undoTo(seq: number, ctx?: MutationContext): UndoResult | null {
+    const result = this.history.undoTo(seq, this.exportBundle(), ctx?.actor ?? this.currentActor);
+    if (!result) return null;
+    this.controller.restoreDocumentSnapshot(result.bundle);
+    this.bumpRevision();
+    return {
+      seq: result.entry.seq,
+      undoneSeqs: result.undone.map((e) => e.seq),
+      author: [...new Set(result.undone.map((e) => e.actor.displayName))].join(", "),
+      summary: result.entry.summary,
+    };
+  }
+
+  redo(ctx?: MutationContext): boolean {
+    const result = this.history.redo(this.exportBundle(), ctx?.actor ?? this.currentActor);
+    if (!result) return false;
+    this.controller.restoreDocumentSnapshot(result.bundle);
     this.bumpRevision();
     return true;
   }
 
   canUndo(): boolean {
-    return this.history.length > 0;
+    return this.history.canUndo();
   }
 
   canRedo(): boolean {
     return this.history.canRedo();
   }
 
-  restoreAt(seq: number, mode: "view" | "destructive"): RestoreAtResult & { preview?: ProjectBundle } {
-    const result = this.history.restoreAt(seq, mode);
-    if (result.ok && mode === "destructive" && result.preview) {
-      this.controller.restoreDocumentSnapshot(result.preview);
-      this.bumpRevision();
-      result.revision = this.revision;
+  /** Who made the change Undo would rewind next (for the status line). */
+  undoTarget(): { seq: number; author: string; summary: string } | null {
+    const e = this.history.undoTarget();
+    return e ? { seq: e.seq, author: e.actor.displayName, summary: e.summary } : null;
+  }
+
+  /**
+   * Revert (sv: Häv) history entry `seq` as a new change at the end (ADR
+   * 0014): its slots (and sheets) go back to how they were before it, except
+   * those changed again later, which are skipped and reported. Other parts
+   * of the entry (optional RM, loops, files) are reported, not reverted.
+   */
+  revert(seq: number, ctx?: MutationContext & { expectedRevision?: string }): RevertResult {
+    this.assertRevision(ctx?.expectedRevision);
+    const entry = this.history.get(seq);
+    if (!entry) throw new Error(`No history entry #${seq}`);
+    const plan = planRevert(entry, this.exportBundle());
+    let newSeq: number | undefined;
+    if (plan.changed) {
+      const next = plan.bundle;
+      const s = this.controller.getState();
+      const { extract, blocklyState } = adoptBlocklyState(next.mapping.blocklyState, s.skeleton, {
+        uiLanguage: s.modelLanguage ?? s.settings.modelLanguage ?? "en",
+        targetFormat: s.target?.format,
+      });
+      next.mapping.blocklyState = blocklyState;
+      this.mutate(() => {
+        this.controller.restoreDocumentSnapshot(next);
+        // The model follows the reverted canvas (as when a canvas is adopted).
+        this.controller.syncFromBlockly(blocklyState, extract.slots, extract.loops, extract.optionalRm, {
+          notify: this.liveCanvas,
+          targetSignature: extract.targetSignature,
+          unsupported: extract.unsupported,
+          sheetNames: extract.sheetNames,
+          instanceEncodings: extract.instanceEncodings,
+          functions: extract.functions,
+        });
+      }, {
+        ...ctx,
+        kind: "revert",
+        summary: ctx?.summary ?? `Revert #${seq}: ${entry.summary}`,
+        affectedSlotIds: plan.reverted,
+        targetSeqs: [seq],
+      });
+      newSeq = this.history.tail()?.seq;
     }
-    return result;
+    return {
+      ok: plan.changed,
+      seq: newSeq,
+      revertedSeq: seq,
+      author: entry.actor.displayName,
+      reverted: plan.reverted,
+      sheetsReverted: plan.sheetsReverted,
+      skipped: plan.skipped,
+      notReverted: plan.notReverted,
+      revision: this.revision,
+    };
+  }
+
+  restoreAt(seq: number, mode: "view" | "destructive"): RestoreAtResult & { preview?: ProjectBundle } {
+    if (mode === "destructive") {
+      // "Rollback here" goes back by appending an Undo entry (the history is never rewritten).
+      const target = this.history.get(seq);
+      if (!target) return { ok: false, revision: "", discarded: [], mode };
+      const undone = this.undoTo(seq);
+      const discarded = (undone?.undoneSeqs ?? []).map((s) => this.history.get(s)!).filter(Boolean);
+      return { ok: true, revision: this.revision, discarded, mode };
+    }
+    return this.history.restoreAt(seq);
   }
 
   buildPatchPrompt(targetSeq: number): string {
@@ -732,6 +832,7 @@ export class WorkbenchService {
         ctx.kind ?? "expression",
         ctx.summary ?? "Edit mapping",
         ctx.affectedSlotIds ?? [],
+        ctx.targetSeqs,
       );
     }
     this.bumpRevision();

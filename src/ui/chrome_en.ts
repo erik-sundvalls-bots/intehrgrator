@@ -574,12 +574,13 @@ export const en = {
   aiChatRunningTool: "Running {name}…",
   aiChatReasoning: "Model reasoning (latest part)",
   aiChatStop: "Stop",
-  aiChatStopTitle: "Stop the AI run (Esc). Mappings made so far stay and can be reverted.",
-  aiChatStopped: "Stopped. Mappings made before Stop stay on the canvas; Revert last AI turn undoes them.",
+  aiChatStopTitle: "Stop the AI run (Esc). Mappings made so far stay; Undo takes them back.",
+  aiChatStopped: "Stopped. Mappings made before Stop stay on the canvas; one Undo takes back the whole turn.",
   aiChatHistoryTrimmed:
     "Older chat turns were dropped to keep the request small; this message re-attaches the project context.",
-  aiChatRevert: "Revert last AI turn",
-  aiChatReverted: "Reverted the last AI turn",
+  undoneBy: "Undo: took back a change by {author}",
+  anAgent: "an agent",
+  redoneBy: "Redo: restored a change by {author}",
   agentChangeOverwritten:
     "Your change replaced an agent change made at the same moment ({agent}: {summary}). It is still in the history.",
   aiChatToolCall: "Tool: {name}",
