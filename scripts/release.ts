@@ -18,6 +18,7 @@ import {
   assertReleasePrerequisites,
   bumpVersionFiles,
   readCurrentVersion,
+  releaseTagMessage,
   releaseTagForVersion,
   run,
 } from "./release_version.ts";
@@ -31,7 +32,7 @@ function usage(): void {
 Options:
   --version   New package version to write before releasing
   --current   Release the version already in deno.json (no bump)
-  --message   Annotated tag message (default: intEHRgrator desktop <version>)
+  --message   Annotated tag title (default: intEHRgrator desktop <version>); a CHANGELOG.md link is appended
   --dry-run   Validate and build, but do not commit, tag, or push
   --no-test   Skip local unit tests (vendor + build still run; CI still tests the tag)
 `);
@@ -97,7 +98,7 @@ if (args.useCurrent) {
 if (!releaseVersion) throw new Error("Release version is required");
 
 const releaseTag = releaseTagForVersion(releaseVersion);
-const tagMessage = args.message ?? `intEHRgrator desktop ${releaseVersion}`;
+const tagMessage = releaseTagMessage(releaseVersion, releaseTag, args.message);
 
 console.log(`Preparing release ${releaseVersion} (${releaseTag})`);
 

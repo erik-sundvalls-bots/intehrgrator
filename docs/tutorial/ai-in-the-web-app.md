@@ -25,7 +25,7 @@ Paste the model’s reply with **Import AI suggestions** (paste icon in the menu
 Use this when intEHRgrator should call the model itself.
 
 1. **Configure AI credentials…** — pick a provider, endpoint, API key, and model. Credentials stay in this browser. They are never stored in the Project Bundle.
-2. **Call AI** — sends the current prompt. The default mode uses mapping tools with the same names as MCP (`map_slot`, `import_suggestions`, `run_test`, …) and applies them on the open canvas. **Suggestions JSON only** is the older one-shot import.
+2. **Call AI** — sends the current prompt. It streams the answer and uses mapping tools with the same names as MCP (`map_slot`, `import_suggestions`, `run_test`, …) on the open canvas, with a short line per applied mapping and a **Stop** button. Copy & paste with **Import AI answer…** is the one-shot import.
 
 On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop app forwards Call AI through its own server, so Gemini, OpenAI, Anthropic, Hugging Face, and OpenCode Zen work there. Key pages: [Call AI credentials](../AI_CREDENTIALS.md).
 

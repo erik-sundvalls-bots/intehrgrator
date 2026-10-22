@@ -403,6 +403,12 @@ export class WorkbenchService {
     return listRepeatableInspect(s.skeleton);
   }
 
+  /** Examples + Active Example tree for `list_examples` / `get_example` (shared with AI chat). */
+  getExampleState() {
+    const s = this.controller.getState();
+    return { examples: s.examples, activeExample: s.activeExample, exampleTree: s.exampleTree };
+  }
+
   getSourceTree() {
     const s = this.controller.getState();
     return {

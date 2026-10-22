@@ -62,6 +62,8 @@ compatibility with other common OS/browser combinations as well. Desktop builds
 target Windows, Linux, and macOS (no Deno required on the user’s machine). See
 [docs/UI_ARCHITECTURE.md](docs/UI_ARCHITECTURE.md).
 
+**Changelog.** PRs that change user-visible behaviour add a concise line (with PR link) under **Unreleased** in [CHANGELOG.md](CHANGELOG.md); release PRs move it to the new version (see README_DEVELOPERS.md § Releases).
+
 For specs and design documents, use `docs/prd/` and `docs/design/`.
 Planning lives in **GitHub Issues** ([docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)).
 Archived roadmaps and superseded drafts live in `docs/historical-archive/`.

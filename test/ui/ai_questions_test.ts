@@ -1,5 +1,5 @@
 /**
- * Browser UI test (#249 review): an approve-first answer whose Questions are a
+ * Browser UI test (#249 review): an AI chat answer whose Questions are a
  * flat numbered list (question, then two answer options) renders ONE question
  * with two choice buttons. Clicking a choice quotes question + answer into the
  * AI chat input (editable, not sent); Answer quotes only the question.
@@ -45,6 +45,7 @@ Deno.test({
         for (const key of Object.keys(localStorage)) {
           if (key.startsWith("intehrgrator.ai.")) localStorage.removeItem(key);
         }
+        // Retired "Approve first" select (#252): removed on load, Send applies directly.
         localStorage.setItem("intehrgrator.ai.chatMode", "approve");
         localStorage.setItem(
           "intehrgrator.ai.credentials",
@@ -70,24 +71,26 @@ Deno.test({
       if (await page.locator("#ai-chat-toggle").getAttribute("aria-expanded") !== "true") {
         await page.click("#ai-chat-toggle");
       }
-      await page.selectOption("#ai-chat-mode", "approve");
+      assertEquals(await page.locator("#ai-chat-mode").count(), 0, "no Apply / Approve select");
+      assertEquals(
+        await page.evaluate(() => localStorage.getItem("intehrgrator.ai.chatMode")),
+        null,
+        "retired chat mode setting migrated away",
+      );
       await page.locator("#ai-chat-input").click();
       await page.keyboard.type("Map position");
       await page.click("#ai-chat-send");
 
-      // Approve first: the import dialog opens with ONE question and two choices.
-      await page.waitForSelector("#dialog-import-ai[open]", { timeout: 10_000 });
-      const dialogQs = page.locator("#import-ai-notes .ai-notes-question");
-      await dialogQs.first().waitFor({ state: "visible" });
-      assertEquals(await dialogQs.count(), 1);
-      const dialogChoices = dialogQs.first().locator(".ai-notes-option");
-      assertEquals(await dialogChoices.count(), 2);
-      assertEquals(await dialogChoices.first().getAttribute("class"), "ai-notes-option ai-notes-option--recommended");
-      await page.click("#import-ai-cancel");
-
-      // The chat shows the same question with choice buttons.
+      // Send applies the JSON directly (revertible); the import modal is only for pasted answers.
       const chatQ = page.locator(".ai-chat-msg--assistant .ai-notes-question").last();
-      await chatQ.waitFor({ state: "visible" });
+      await chatQ.waitFor({ state: "visible", timeout: 10_000 });
+      assertEquals(await page.locator("#dialog-import-ai[open]").count(), 0, "no import modal on Send");
+      assertEquals(await page.locator(".ai-chat-msg--assistant .ai-notes-question").count(), 1);
+      const chatChoices = chatQ.locator(".ai-notes-option");
+      assertEquals(await chatChoices.count(), 2);
+      assertEquals(await chatChoices.first().getAttribute("class"), "ai-notes-option ai-notes-option--recommended");
+      await page.locator(".ai-chat-mapping", { hasText: "Imported 1 suggestion" }).waitFor({ timeout: 5_000 });
+      await page.locator("#ai-chat-revert").waitFor({ state: "visible" });
       assertStringIncludes(await chatQ.locator(".ai-notes-question-text").innerText(), "bodyPosition");
       const choice = chatQ.locator(".ai-notes-option").nth(1);
       assertStringIncludes(await choice.innerText(), "Do not map");

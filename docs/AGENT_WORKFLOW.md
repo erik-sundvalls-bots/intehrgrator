@@ -40,7 +40,9 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | GET | `/health` | — | Liveness (unauthenticated) |
 | POST | `/ai-chat-completions` | — | Desktop AI chat forwarder (provider URL + key in JSON body; not MCP) |
 | GET | `/snapshot` | `get_snapshot` | Revision, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status |
-| GET | `/slots` | `list_slots` | Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers for `loops[]` |
+| GET | `/slots` | `list_slots` | Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers for `loops[]`; query `?unmappedOnly=true&query=…` filters |
+| GET | `/examples` | `list_examples` | Example instances (id, filename, format, chars, active) without bodies |
+| GET | `/example` | `get_example` | One example body capped at `maxChars` (default 8,000, max 40,000), or `?path=` for a subtree of the Active Example with values |
 | GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees |
 | GET | `/sheets` | `get_sheets` | Sheet / Decision table summaries + documents |
 | GET | `/product-stack` | `get_product_stack` | Conversion start chain (Instance roots, encodings, loops) |

@@ -67,6 +67,7 @@ import { buildSourceQueryExpression } from "../core/expression/mod.ts";
 import { returnTypeForDv } from "../core/rm_mandatory.ts";
 import {
   type AiArtifactDelivery,
+  type AiPromptDelivery,
   type AiPromptArtifact,
   buildPrompt,
   importSuggestions,
@@ -76,7 +77,7 @@ import {
   withSlotReview,
 } from "../core/ai/mod.ts";
 import type { HostAdapter, PickedTextFile } from "../host/mod.ts";
-import { constraintWarningsInspect, productStackInspect } from "../agent/inspect.ts";
+import { constraintWarningsInspect, productStackInspect, sourceTreeOutline } from "../agent/inspect.ts";
 import { getValidAttachments } from "../core/rm_attachment_catalog.ts";
 import {
   detectTargetFormat,
@@ -1362,7 +1363,7 @@ export class WorkbenchController {
   }
 
   buildAiPromptText(
-    delivery: AiArtifactDelivery = "inline",
+    delivery: AiPromptDelivery = "inline",
     scope: "full" | "slot" = "full",
     slotId?: string,
   ): string {
@@ -1382,6 +1383,18 @@ export class WorkbenchController {
       formatDocUrl: this.host.resolveAppUrl("docs/AI_SUGGESTION_FORMAT.md"),
       delivery,
       artifacts: this.collectAiArtifacts(),
+      ...(delivery === "api"
+        ? {
+          sourceOutline: sourceTreeOutline(this.schemaTree ?? this.buildExampleTree()),
+          exampleManifest: this.examples.list().map((ex) => ({
+            id: ex.id,
+            filename: ex.filename,
+            format: ex.format,
+            chars: ex.content.length,
+            ...(ex.id === this.examples.getActive()?.id ? { active: true } : {}),
+          })),
+        }
+        : {}),
       sheets: this.sheets,
       productStack: productStackInspect(this.getBlocklyState?.() ?? this.blocklyState),
       optionalRm: this.collectOptionalRmCatalog(),

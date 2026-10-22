@@ -223,7 +223,12 @@ import {
   forgetProviderKey,
   upsertProviderConfig,
 } from "../src/core/ai/provider_configs.ts";
-import { runMappingAgentOnController, runSuggestionsChatTurn } from "../src/core/ai/mapping_agent.ts";
+import {
+  mappingNoticeFor,
+  runMappingAgentOnController,
+  runSuggestionsChatTurn,
+  SUGGESTIONS_FALLBACK_INSTRUCTION,
+} from "../src/core/ai/mapping_agent.ts";
 import { DEFAULT_GITHUB_TEMPLATE_URL } from "../src/core/clinical_model/github_template.ts";
 import { DEFAULT_GITHUB_EXAMPLES_URL } from "../src/core/source/github_examples.ts";
 import {
@@ -1650,7 +1655,7 @@ function describeSlotForNotes(slotId: string): string | undefined {
   const label = row?.pathLabel ? row.pathLabel.split(" › ").slice(-2).join(" › ") : row?.label;
   return label || undefined;
 }
-/** Document before the last applied AI chat turn, for "Revert last AI turn". */
+/** Document before the last applied AI chat turn, for "Revert last AI turn" (interim; ADR 0014 makes it an undo of the turn's history entries). */
 let lastAiChatSnapshot: ReturnType<typeof controller.exportDocumentSnapshot> | null = null;
 
 aiChat = installAiChatPanel({
@@ -2863,12 +2868,6 @@ function updateCopyAiButtonLabel(): void {
   aiChat?.refresh();
 }
 
-function callAiAbortSignal(): AbortSignal | undefined {
-  return typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
-    ? AbortSignal.timeout(180_000)
-    : undefined;
-}
-
 async function desktopAiProxyUrl(): Promise<string | undefined> {
   try {
     const res = await fetch("/api/v1/health");
@@ -2886,18 +2885,6 @@ function formatCallAiError(err: unknown): string {
     return `${message} ${uiChrome().corsCallAiHint}`;
   }
   return message;
-}
-
-function selectedMappingMode(): "tools" | "suggestions" {
-  const suggestions = document.getElementById("ai-mapping-mode-suggestions") as HTMLInputElement | null;
-  return suggestions?.checked ? "suggestions" : "tools";
-}
-
-function setSelectedMappingMode(mode: "tools" | "suggestions"): void {
-  const tools = document.getElementById("ai-mapping-mode-tools") as HTMLInputElement | null;
-  const suggestions = document.getElementById("ai-mapping-mode-suggestions") as HTMLInputElement | null;
-  if (tools) tools.checked = mode !== "suggestions";
-  if (suggestions) suggestions.checked = mode === "suggestions";
 }
 
 function showAiProviderHelp(providerId: string): void {
@@ -3121,37 +3108,59 @@ function openAiCredentialsDialog(): void {
   renderModelPicker(aiCredDrafts[providerId]?.models);
   showSavedTestStatus(aiCredDrafts[providerId]);
   refreshProviderLabels();
-  setSelectedMappingMode(creds?.mappingMode === "suggestions" ? "suggestions" : "tools");
   dialog.showModal();
 }
 
-async function runApproveFirstTurn(
+/** Active Example excerpt for the suggestions fallback (no get_example tool there). */
+const FALLBACK_EXAMPLE_CHARS = 6_000;
+
+/**
+ * Provider rejected function tools: ask once for suggestions JSON (same chat
+ * history) and apply it directly, revertible like a tool turn. The import
+ * approval modal is only for pasted answers (#252).
+ */
+async function runSuggestionsFallbackTurn(
   request: AiChatTurnRequest,
   creds: NonNullable<ReturnType<typeof loadAiCredentials>>,
   proxyUrl: string | undefined,
-  signal: AbortSignal | undefined,
-  fallbackNote?: string,
 ): Promise<AiChatTurnResult> {
+  const before = controller.exportDocumentSnapshot();
+  const active = controller.getState().activeExample;
+  const excerpt = active
+    ? `\n\n## Active Example excerpt (\`${active.filename}\`, first ${FALLBACK_EXAMPLE_CHARS} characters)\n\n\`\`\`\n${active.content.slice(0, FALLBACK_EXAMPLE_CHARS)}\n\`\`\``
+    : "";
   const result = await runSuggestionsChatTurn({
     credentials: creds,
-    prompt: request.prompt,
+    prompt: `${request.prompt}\n\n${SUGGESTIONS_FALLBACK_INSTRUCTION}${excerpt}`,
     history: request.history,
     proxyUrl,
-    signal,
+    signal: request.signal,
+    onEvent: request.onEvent,
   });
-  const notes: string[] = fallbackNote ? [fallbackNote] : [];
+  const notes: string[] = [uiChrome().aiChatToolsFallback];
+  const mappings: string[] = [];
+  let revertible = false;
   if (result.truncated) {
     notes.push(uiChrome().aiChatTruncated);
   } else if (looksLikeSuggestionsPayload(result.text)) {
-    void importAiDialog.open(result.text);
-    notes.push(uiChrome().aiChatApproveHint);
+    const report = controller.importAiSuggestions(result.text);
+    const notice = mappingNoticeFor("import_suggestions", {}, { report });
+    if (notice) {
+      mappings.push(notice);
+      request.onEvent({ type: "mapping", text: notice });
+    }
+    persistBlocklyCanvas({ summary: "AI chat" });
+    render();
+    revertible = report.applied > 0 || report.loopsAccepted > 0;
+    lastAiChatSnapshot = revertible ? before : null;
   }
   return {
     text: result.text,
     messages: result.messages,
     toolCalls: [],
-    revertible: false,
-    note: notes.join(" ") || undefined,
+    revertible,
+    mappings,
+    note: notes.join(" "),
   };
 }
 
@@ -3160,21 +3169,20 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
   if (!creds) throw new Error(uiChrome().saveAiOrCopy);
   controller.setStatusMessage("Calling AI…");
   const proxyUrl = await desktopAiProxyUrl();
-  const signal = callAiAbortSignal();
-  // "Suggestions JSON only" in AI credentials means the provider cannot use
-  // tools, so review the JSON before it touches the canvas.
-  if (request.mode === "approve" || creds.mappingMode === "suggestions") {
-    return await runApproveFirstTurn(request, creds, proxyUrl, signal);
-  }
   const before = controller.exportDocumentSnapshot();
   try {
+    // With credentials Send always streams the tool loop; Stop aborts `request.signal`.
     const result = await runMappingAgentOnController(controller, {
       credentials: creds,
       prompt: request.prompt,
       history: request.history,
       proxyUrl,
-      signal,
-      onAfterMutation: () => persistBlocklyCanvas({ summary: "AI chat" }),
+      signal: request.signal,
+      onEvent: request.onEvent,
+      onAfterMutation: () => {
+        persistBlocklyCanvas({ summary: "AI chat" });
+        render();
+      },
     });
     persistBlocklyCanvas({ summary: "AI chat" });
     render();
@@ -3183,16 +3191,18 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
     const errors = result.imported?.errors.length ?? 0;
     const summary =
       `AI chat: ${mapped} map_slot · ${applied} suggestions · ${result.toolNames.length} tools · ${errors} errors`;
-    controller.setStatusMessage(summary);
+    controller.setStatusMessage(result.stopped ? `${summary} (stopped)` : summary);
     const revertible = applied > 0 || result.toolNames.some((name) => isMutatingCallAiTool(name));
     lastAiChatSnapshot = revertible ? before : null;
     const errorText = errors ? `\n\n${result.imported?.errors.slice(0, 8).join("\n")}` : "";
     return {
-      text: `${result.text || summary}${errorText}`,
+      text: `${result.text || (result.stopped ? "" : summary)}${errorText}`,
       messages: result.messages,
       toolCalls: result.toolNames,
       revertible,
       suggestionNotes: result.suggestionNotes,
+      mappings: result.mappingNotices,
+      ...(result.stopped ? { stopped: true } : {}),
       note: result.truncated
         ? uiChrome().aiChatTruncated
         : result.stepLimitReached
@@ -3205,7 +3215,7 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
       throw err;
     }
     controller.setStatusMessage("Provider rejected mapping tools; asking for suggestions JSON…");
-    return await runApproveFirstTurn(request, creds, proxyUrl, signal, uiChrome().aiChatToolsFallback);
+    return await runSuggestionsFallbackTurn(request, creds, proxyUrl);
   }
 }
 
@@ -3412,7 +3422,6 @@ document.getElementById("dialog-ai-credentials")?.querySelector("form")?.addEven
       apiKey,
       model,
       providerId,
-      mappingMode: selectedMappingMode(),
     });
     upsertProviderConfig(localStorage, providerId, aiCredFormConfig(aiCredDrafts[providerId]));
     updateCopyAiButtonLabel();

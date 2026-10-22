@@ -35,7 +35,7 @@ Deno.test({
       assertEquals(await page.locator("#ai-chat-close").count(), 0);
       assertEquals(await toggle.getAttribute("aria-expanded"), "false");
       assertEquals((await page.locator("#ai-chat-title").innerText()).trim(), "AI CHAT");
-      for (const id of ["#ai-chat-prompts-btn", "#ai-chat-clear", "#ai-chat-mode", "#ai-chat-input"]) {
+      for (const id of ["#ai-chat-prompts-btn", "#ai-chat-clear", "#ai-chat-input"]) {
         assertEquals(await page.locator(id).isVisible(), false, `${id} hidden while collapsed`);
       }
       const barH = (await panel.boundingBox())!.height;

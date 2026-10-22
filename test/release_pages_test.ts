@@ -15,9 +15,24 @@ import {
   writeRecommendedRedirect,
 } from "../scripts/pages_site.ts";
 import {
+  changelogUrlForTag,
   readVersionFromDenoJson,
   releaseTagForVersion,
+  releaseTagMessage,
 } from "../scripts/release_version.ts";
+
+Deno.test("CHANGELOG.md has a section for the current version", async () => {
+  const version = readVersionFromDenoJson(await Deno.readTextFile("deno.json"));
+  const changelog = await Deno.readTextFile("CHANGELOG.md");
+  assertEquals(changelog.includes(`## [${version}]`), true, `CHANGELOG.md needs "## [${version}]"`);
+});
+
+Deno.test("release tag message links the tag-pinned CHANGELOG.md", () => {
+  const url = "https://github.com/regionstockholm/intehrgrator/blob/v0.9.2/CHANGELOG.md";
+  assertEquals(changelogUrlForTag("v0.9.2"), url);
+  assertEquals(releaseTagMessage("0.9.2", "v0.9.2"), `intEHRgrator desktop 0.9.2\n\nChangelog: ${url}`);
+  assertEquals(releaseTagMessage("0.9.2", "v0.9.2", "Hotfix"), `Hotfix\n\nChangelog: ${url}`);
+});
 
 Deno.test("releaseTagForVersion matches existing tag scheme", () => {
   assertEquals(releaseTagForVersion("0.5.0"), "v0.5");
