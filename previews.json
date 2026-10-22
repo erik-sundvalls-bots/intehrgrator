@@ -40,12 +40,12 @@
     "upstream": "ffcf9d4d796bba79967eef9ebef657f2faf30b67"
   },
   "issue-252-a3-revert": {
-    "built": "2026-10-22T07:58:37Z",
+    "built": "2026-10-22T10:26:58Z",
     "dir": "issue-252-a3-revert",
     "mode": "merged",
-    "pr": "\t\t\t",
-    "sha": "a4fe8cb16f7289426064d3703af1c37f172b68a5",
-    "upstream": "ffcf9d4d796bba79967eef9ebef657f2faf30b67"
+    "pr": "264\thttps://github.com/regionstockholm/intehrgrator/pull/264\tOPEN\tUndo names the author, Revert takes back one change; append-only history (ADR 0014, A3)",
+    "sha": "ce981e13ea276e5f8e286fd559016f0f8375f188",
+    "upstream": "190d092b3bd93f77a82727658f27fdd2f9901fb4"
   },
   "issue-252-ai-tokens-streaming": {
     "built": "2026-10-21T19:58:46Z",
