@@ -204,7 +204,10 @@ import {
   installAiChatPanel,
 } from "../src/ui/ai_chat_panel.ts";
 import type { ContextChip, ContextChipKind } from "../src/core/ai/chat_context.ts";
-import { isMutatingCallAiTool } from "../src/core/ai/controller_tools.ts";
+import { isMutatingCallAiTool } from "../src/core/ai/chat_tools.ts";
+import { LocalAgentClient } from "../src/agent/client.ts";
+import { aiChatActor } from "../src/agent/actor.ts";
+import { WorkbenchService } from "../src/workbench/service.ts";
 import { listSlotsInspect } from "../src/agent/inspect.ts";
 import { looksLikeSuggestionsPayload } from "../src/core/ai/mod.ts";
 import {
@@ -226,7 +229,7 @@ import {
 } from "../src/core/ai/provider_configs.ts";
 import {
   mappingNoticeFor,
-  runMappingAgentOnController,
+  runMappingAgentOnClient,
   runSuggestionsChatTurn,
   SUGGESTIONS_FALLBACK_INSTRUCTION,
 } from "../src/core/ai/mapping_agent.ts";
@@ -516,6 +519,19 @@ function asAiWriteSync<T>(fn: () => T): T {
   aiWriteDepth++;
   try {
     return fn();
+  } finally {
+    aiWriteDepth--;
+  }
+}
+
+/**
+ * Run an AI tool call. The chat tools write synchronously and only wait on
+ * microtasks, so no person's event can land while the depth is raised.
+ */
+async function asAiWrite<T>(fn: () => Promise<T>): Promise<T> {
+  aiWriteDepth++;
+  try {
+    return await fn();
   } finally {
     aiWriteDepth--;
   }
@@ -1746,7 +1762,9 @@ const importAiDialog = installImportAiDialog({
   importText: (text) => {
     let report!: ReturnType<typeof controller.importAiSuggestions>;
     void withAiCommit({ provider: "copy-paste" }, () => {
-      report = asAiWriteSync(() => controller.importAiSuggestions(text));
+      report = asAiWriteSync(() =>
+        chatService().importSuggestions(text, undefined, { actor: aiChatActor({ provider: "copy-paste" }) })
+      );
     });
     return report;
   },
@@ -3252,7 +3270,11 @@ async function runSuggestionsFallbackTurn(
   if (result.truncated) {
     notes.push(uiChrome().aiChatTruncated);
   } else if (looksLikeSuggestionsPayload(result.text)) {
-    const report = asAiWriteSync(() => controller.importAiSuggestions(result.text));
+    const report = asAiWriteSync(() =>
+      chatService().importSuggestions(result.text, undefined, {
+        actor: aiChatActor({ provider: creds.providerId, model: creds.model, turnId: activeAiCommit?.origin.turnId }),
+      })
+    );
     const notice = mappingNoticeFor("import_suggestions", {}, { report });
     if (notice) {
       mappings.push(notice);
@@ -3304,6 +3326,20 @@ function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
     }));
 }
 
+let chatServiceInstance: WorkbenchService | null = null;
+let chatClientInstance: LocalAgentClient | null = null;
+
+/** The chat's WorkbenchService on the live controller (ADR 0014: one write path). */
+function chatService(): WorkbenchService {
+  chatServiceInstance ??= new WorkbenchService({ controller });
+  return chatServiceInstance;
+}
+
+function chatClient(): LocalAgentClient {
+  chatClientInstance ??= new LocalAgentClient(chatService());
+  return chatClientInstance;
+}
+
 async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
   const creds = loadAiCredentials(localStorage);
   if (!creds) throw new Error(uiChrome().saveAiOrCopy);
@@ -3312,8 +3348,11 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
   const before = controller.exportDocumentSnapshot();
   try {
     // With credentials Send always streams the tool loop; Stop aborts `request.signal`.
-    const result = await runMappingAgentOnController(controller, {
-      asAiWrite: asAiWriteSync,
+    // The chat writes through the same tools and service as MCP (ADR 0014).
+    const client = chatClient();
+    client.setActor(aiChatActor({ provider: creds.providerId, model: creds.model, turnId: activeAiCommit?.origin.turnId }));
+    const result = await runMappingAgentOnClient(client, {
+      asAiWrite,
       credentials: creds,
       prompt: request.prompt,
       history: request.history,
@@ -3357,6 +3396,8 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
     }
     controller.setStatusMessage("Provider rejected mapping tools; asking for suggestions JSON…");
     return await runSuggestionsFallbackTurn(request, creds, proxyUrl);
+  } finally {
+    chatClient().setActor(null);
   }
 }
 

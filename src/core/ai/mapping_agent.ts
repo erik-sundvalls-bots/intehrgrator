@@ -12,13 +12,9 @@ import {
   type ChatMessage,
   type ChatStreamDelta,
 } from "./credentials.ts";
-import {
-  executeMappingAgentTool,
-  isMutatingCallAiTool,
-  mappingAgentOpenAiTools,
-} from "./controller_tools.ts";
+import { isCallAiToolName, isMutatingCallAiTool, mappingAgentOpenAiTools } from "./chat_tools.ts";
 import type { ImportSuggestionsReport } from "../../types/mod.ts";
-import type { WorkbenchController } from "../../workbench/controller.ts";
+import type { AgentClient } from "../../agent/client.ts";
 
 export interface MappingAgentResult {
   text: string;
@@ -61,7 +57,7 @@ export interface RunMappingAgentOptions {
   proxyUrl?: string;
   maxSteps?: number;
   onAfterMutation?: () => void;
-  importText?: (text: string) => ImportSuggestionsReport;
+  importText?: (text: string) => ImportSuggestionsReport | Promise<ImportSuggestionsReport>;
   /**
    * Earlier chat turns (no system prompt). When non-empty, `prompt` is sent as
    * a follow-up user message without the tools prefix.
@@ -263,7 +259,7 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
     const calls = completion.toolCalls ?? [];
     if (!calls.length) {
       if (options.importText && looksLikeSuggestionsPayload(completion.text)) {
-        imported = options.importText(completion.text);
+        imported = await options.importText(completion.text);
         const notice = mappingNoticeFor("import_suggestions", {}, { report: imported });
         if (notice) {
           mappingNotices.push(notice);
@@ -321,7 +317,7 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   }
 
   if (options.importText && looksLikeSuggestionsPayload(lastText)) {
-    imported = options.importText(lastText);
+    imported = await options.importText(lastText);
   }
   return result(maxSteps, { stepLimitReached: true });
 }
@@ -388,26 +384,32 @@ export async function runSuggestionsChatTurn(options: {
   };
 }
 
-export async function runMappingAgentOnController(
-  controller: WorkbenchController,
+/**
+ * Run the chat's tool loop through an `AgentClient` (ADR 0014): the same
+ * `callAgentTool` on a `WorkbenchService` as MCP. Only the chat tools
+ * (`CALL_AI_TOOL_NAMES`) run; anything else is answered with an error.
+ */
+export async function runMappingAgentOnClient(
+  client: AgentClient,
   options: Omit<RunMappingAgentOptions, "executeTool" | "importText"> & {
     /**
      * Wraps each write the AI makes (a mutating tool, an answer applied as
      * suggestions JSON), e.g. to attribute it to the AI (ADR 0014).
      */
-    asAiWrite?: <T>(fn: () => T) => T;
+    asAiWrite?: <T>(fn: () => Promise<T>) => Promise<T>;
   },
 ): Promise<MappingAgentResult> {
   const { asAiWrite, ...rest } = options;
-  const write = <T>(fn: () => T): T => asAiWrite ? asAiWrite(fn) : fn();
+  const write = <T>(fn: () => Promise<T>): Promise<T> => asAiWrite ? asAiWrite(fn) : fn();
   return await runMappingAgent({
     ...rest,
-    executeTool: (name, args) =>
-      Promise.resolve(
-        isMutatingCallAiTool(name)
-          ? write(() => executeMappingAgentTool(controller, name, args))
-          : executeMappingAgentTool(controller, name, args),
-      ),
-    importText: (text) => write(() => controller.importAiSuggestions(text)),
+    executeTool: (name, args) => {
+      if (!isCallAiToolName(name)) {
+        return Promise.reject(new Error(`AI chat cannot run ${name}; use MCP / Agent API for that tool`));
+      }
+      return isMutatingCallAiTool(name) ? write(() => client.callTool(name, args)) : client.callTool(name, args);
+    },
+    importText: (text) =>
+      write(async () => ((await client.callTool("import_suggestions", { text })) as { report: ImportSuggestionsReport }).report),
   });
 }

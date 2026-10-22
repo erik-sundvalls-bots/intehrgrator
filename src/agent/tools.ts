@@ -2,7 +2,8 @@
  * Shared Agent API / MCP tool dispatch. HTTP routes and stdio MCP call the same names.
  */
 
-import { applySuggestionReviewDefaults, slotReviewFrom, TOOL_REVIEW_PARAMS } from "../core/ai/mod.ts";
+import { applySuggestionReviewDefaults, parseAiConfidence, slotReviewFrom, TOOL_REVIEW_PARAMS } from "../core/ai/mod.ts";
+import { isSourceFormatId } from "../core/source/format_handler.ts";
 import { filterSlotRows, getExampleInspect, listExamplesInspect } from "./inspect.ts";
 import { basename, dirname, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
@@ -251,7 +252,8 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "import_suggestions",
-    description: "Apply intehrgrator-suggestions JSON envelope.",
+    description:
+      "Apply intehrgrator-suggestions JSON envelope. Per-suggestion note/confidence are honoured; call-level note/confidence apply to suggestions without their own.",
     inputSchema: {
       type: "object",
       required: ["text"],
@@ -578,7 +580,8 @@ export async function callAgentTool(
       service.setActiveExample(String(args.id));
       return { revision: service.getRevision() };
     case "replace_sheets":
-      service.replaceSheets((args.sheets ?? []) as SheetDocument[], {
+      if (!Array.isArray(args.sheets)) throw new Error("replace_sheets requires sheets[]");
+      service.replaceSheets(args.sheets as SheetDocument[], {
         ...ctx,
         expectedRevision: revision,
       });
@@ -600,22 +603,30 @@ export async function callAgentTool(
     case "import_suggestions":
       return {
         report: service.importSuggestions(
-          applySuggestionReviewDefaults(String(args.text ?? ""), args.note, args.confidence),
+          applySuggestionReviewDefaults(suggestionTextFromArgs(args), args.note, args.confidence),
           revision,
           ctx,
         ),
         revision: service.getRevision(),
       };
-    case "map_slot":
-      service.mapNodeToSlot(
-        String(args.slotId),
-        String(args.path),
-        (args.format as SourceFormatId) ?? "json",
-        revision,
-        ctx,
-        slotReviewFrom(args.note, args.confidence),
-      );
-      return { revision: service.getRevision() };
+    case "map_slot": {
+      const slotId = String(args.slotId ?? "");
+      const path = String(args.path ?? "");
+      if (!slotId || !path) throw new Error("map_slot requires slotId and path");
+      const formatRaw = String(args.format ?? "json");
+      const format: SourceFormatId = isSourceFormatId(formatRaw) ? formatRaw : "json";
+      const row = service.listSlots().find((r) => r.slotId === slotId);
+      if (!row) throw new Error(`Unknown slotId: ${slotId}`);
+      service.mapNodeToSlot(slotId, path, format, revision, ctx, slotReviewFrom(args.note, args.confidence));
+      const ignored = args.confidence !== undefined && parseAiConfidence(args.confidence) === undefined;
+      return {
+        revision: service.getRevision(),
+        slotId,
+        ...(row.label ? { label: row.label } : {}),
+        mapped: true,
+        ...(ignored ? { warning: "confidence must be a number 0–100 (percent); ignored" } : {}),
+      };
+    }
     case "optional_rm_add":
       service.addOptionalRm(
         String(args.parentSlotId),
@@ -707,6 +718,14 @@ export async function callAgentTool(
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
+}
+
+/** `import_suggestions` text: a JSON string, an inline envelope, or `envelope`. */
+export function suggestionTextFromArgs(args: Record<string, unknown>): string {
+  if (typeof args.text === "string" && args.text.trim()) return args.text;
+  if (args.format === "intehrgrator-suggestions") return JSON.stringify(args);
+  if (args.envelope && typeof args.envelope === "object") return JSON.stringify(args.envelope);
+  throw new Error("import_suggestions requires text (intehrgrator-suggestions JSON)");
 }
 
 function mutationContextFromArgs(args: Record<string, unknown>): MutationContext | undefined {

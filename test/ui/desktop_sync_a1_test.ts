@@ -210,6 +210,24 @@ Deno.test({
       assertEquals(ai.actor.displayName, "AI chat (stub-model)");
       assert(ai.actor.turnId, "turn id recorded");
       assertEquals(await undoCount(page) - undoBeforeTurn, 2, "two canvas swaps, grouped");
+      // A2 (ADR 0014): the chat writes through callAgentTool on a service around
+      // the live controller; the canvas is not reloaded and the committed bundle
+      // is what the canvas shows.
+      const live = JSON.parse(await page.evaluate(() =>
+        (globalThis as unknown as { intehrgratorTestApi: { getBlocklyStateJson(): string } }).intehrgratorTestApi
+          .getBlocklyStateJson()
+      )) as unknown;
+      const backend = await api("GET", "/bundle") as { bundle: { mapping: { blocklyState: unknown } } };
+      assertEquals(backend.bundle.mapping.blocklyState, live, "the service's bundle is the live canvas");
+      assertEquals(
+        (await page.evaluate(() =>
+          (globalThis as unknown as { intehrgratorTestApi: { undoEventTypes(): string[] } }).intehrgratorTestApi
+            .undoEventTypes()
+        )).slice(-2).every((t) => t === "intehr_canvas_swap"),
+        true,
+        "chat writes are canvas swaps, not reloads",
+      );
+      assert(JSON.stringify(live).includes("$.diastolic"), "live canvas shows the AI mapping");
       await page.click("#btn-undo");
       await waitFor(async () => (await expr(page, sys)).includes("systolic"), "one Undo reverts the whole turn");
       assert(!(await expr(page, dia)).includes("diastolic"), "both AI mappings undone by one Undo");
