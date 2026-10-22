@@ -204,9 +204,8 @@ import {
   installAiChatPanel,
 } from "../src/ui/ai_chat_panel.ts";
 import type { ContextChip, ContextChipKind } from "../src/core/ai/chat_context.ts";
-import { isMutatingCallAiTool } from "../src/core/ai/chat_tools.ts";
 import { LocalAgentClient } from "../src/agent/client.ts";
-import { aiChatActor } from "../src/agent/actor.ts";
+import { aiChatActor, USER_ACTOR } from "../src/agent/actor.ts";
 import { WorkbenchService } from "../src/workbench/service.ts";
 import { listSlotsInspect } from "../src/agent/inspect.ts";
 import { looksLikeSuggestionsPayload } from "../src/core/ai/mod.ts";
@@ -500,6 +499,35 @@ let committedDocSignature = "";
 let applyingAgentBundle = false;
 /** Summary for the next commit of a controller-originated change. */
 let pendingCommitSummary: string | null = null;
+let pendingCommitKind: "undo" | "redo" | "revert" | null = null;
+/**
+ * Who made the change behind a Blockly undo group (ADR 0014): Undo rewinds
+ * from the top whoever made the change, and the status line names them.
+ * Ungrouped canvas events are the person's own edits.
+ */
+const undoGroupAuthors = new Map<string, string>();
+
+function undoAuthor(redo: boolean): string | null {
+  const stack = redo ? workspace.getRedoStack() : workspace.getUndoStack();
+  const top = stack.at(-1);
+  if (!top) return null;
+  return (top.group && undoGroupAuthors.get(top.group)) || USER_ACTOR.displayName;
+}
+
+/** Wrap Blockly's undo (button, Ctrl+Z, Ctrl+Shift+Z) to name the author in the status line. */
+function installUndoAuthorStatus(ws: Blockly.WorkspaceSvg): void {
+  const blocklyUndo = ws.undo.bind(ws);
+  ws.undo = (redo: boolean) => {
+    const author = undoAuthor(redo);
+    if (!author) return blocklyUndo(redo);
+    const message = formatMessage(redo ? uiChrome().redoneBy : uiChrome().undoneBy, { author });
+    // Set before undoing: a document swap restores (and commits) synchronously.
+    pendingCommitSummary = message;
+    pendingCommitKind = redo ? "redo" : "undo";
+    blocklyUndo(redo);
+    controller.setStatusMessage(message);
+  };
+}
 /** Set for the duration of an AI chat turn: commit origin, Blockly undo group, ✓ notices. */
 let activeAiCommit: { origin: UiCommitOrigin; notices: string[] } | null = null;
 /**
@@ -689,6 +717,7 @@ async function bootBlockly(): Promise<void> {
     renderer: registerCompactThrasosRenderer(),
   });
   installExtractToFunctionOnWorkspace(workspace);
+  installUndoAuthorStatus(workspace);
   installCollapseChildrenMenu(workspace, {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren,
@@ -934,6 +963,7 @@ async function bootBlockly(): Promise<void> {
       committedDocSignature = documentCommitSignature();
     },
     onActivity: (activity) => {
+      if (activity?.displayName) lastAgentAuthor = activity.displayName;
       if (!activity) return;
       updateAgentObserverActivity(activity);
       pulseAgentActivity(activity);
@@ -1084,8 +1114,10 @@ function commitPendingUiChange(
   const text = ai
     ? `AI chat: ${ai.notices.slice(-6).join("; ") || "edit"}`
     : summary ?? pendingCommitSummary ?? controller.getState().statusMessage ?? "Edit mapping";
+  const kind = ai ? undefined : pendingCommitKind ?? undefined;
   pendingCommitSummary = null;
-  return commitUiChange(controller.exportDocumentSnapshot(), text.slice(0, 400), { origin }).then((result) => {
+  pendingCommitKind = null;
+  return commitUiChange(controller.exportDocumentSnapshot(), text.slice(0, 400), { origin, kind }).then((result) => {
     const hit = result?.overwritten[0];
     if (!hit) return;
     controller.setStatusMessage(
@@ -1098,6 +1130,9 @@ function commitPendingUiChange(
  * Desktop: apply a bundle an agent wrote as one undo step (ADR 0014), after
  * local changes were committed. Skipped when a local edit is still pending.
  */
+/** Display name of the agent behind the latest pulled change (from `/api/v1/activity`). */
+let lastAgentAuthor: string | null = null;
+
 async function applyAgentBundle(bundle: DocumentSnapshot, initial: boolean): Promise<boolean> {
   if (!initial && documentCommitSignature() !== committedDocSignature) return false;
   applyingAgentBundle = true;
@@ -1105,7 +1140,9 @@ async function applyAgentBundle(bundle: DocumentSnapshot, initial: boolean): Pro
     if (initial) {
       controller.restoreDocumentSnapshot(bundle);
     } else {
-      await withUndoableDocumentReplace(() => controller.restoreDocumentSnapshot(bundle));
+      const group = `agent:${crypto.randomUUID()}`;
+      undoGroupAuthors.set(group, lastAgentAuthor ?? uiChrome().anAgent);
+      await withUndoableDocumentReplace(() => controller.restoreDocumentSnapshot(bundle), group);
     }
   } finally {
     applyingAgentBundle = false;
@@ -1166,7 +1203,7 @@ function restoreDocumentFromUndo(snapshot: DocumentSnapshot): void {
   }
 }
 
-function withUndoableDocumentReplace<T>(fn: () => T | Promise<T>): Promise<T> {
+function withUndoableDocumentReplace<T>(fn: () => T | Promise<T>, group?: string): Promise<T> {
   const run = (): T | Promise<T> => fn();
   if (applyingDocumentUndo || !workspace) {
     try {
@@ -1186,6 +1223,7 @@ function withUndoableDocumentReplace<T>(fn: () => T | Promise<T>): Promise<T> {
         before,
         controller.exportDocumentSnapshot(),
         restoreDocumentFromUndo,
+        group,
       );
       refreshUndoButtons();
     }
@@ -1782,8 +1820,6 @@ function describeSlotForNotes(slotId: string): string | undefined {
   const label = row?.pathLabel ? row.pathLabel.split(" › ").slice(-2).join(" › ") : row?.label;
   return label || undefined;
 }
-/** Document before the last applied AI chat turn, for "Revert last AI turn" (interim; ADR 0014 makes it an undo of the turn's history entries). */
-let lastAiChatSnapshot: ReturnType<typeof controller.exportDocumentSnapshot> | null = null;
 
 aiChat = installAiChatPanel({
   panel: requireEl("ai-chat-panel"),
@@ -1802,7 +1838,6 @@ aiChat = installAiChatPanel({
   downloadText: (filename, text) => void host.downloadText(filename, text, "application/json"),
   openImportDialog: (text) => void importAiDialog.open(text),
   runTurn: (request) => runAiChatTurn(request),
-  revertLastTurn: () => revertLastAiChatTurn(),
   setStatus: (message) => controller.setStatusMessage(message),
   formatError: (err) => formatCallAiError(err),
   describeSlot: (slotId) => describeSlotForNotes(slotId),
@@ -3243,7 +3278,7 @@ const FALLBACK_EXAMPLE_CHARS = 6_000;
 
 /**
  * Provider rejected function tools: ask once for suggestions JSON (same chat
- * history) and apply it directly, revertible like a tool turn. The import
+ * history) and apply it directly, one Undo step like a tool turn. The import
  * approval modal is only for pasted answers (#252).
  */
 async function runSuggestionsFallbackTurn(
@@ -3251,7 +3286,6 @@ async function runSuggestionsFallbackTurn(
   creds: NonNullable<ReturnType<typeof loadAiCredentials>>,
   proxyUrl: string | undefined,
 ): Promise<AiChatTurnResult> {
-  const before = controller.exportDocumentSnapshot();
   const active = controller.getState().activeExample;
   const excerpt = active
     ? `\n\n## Active Example excerpt (\`${active.filename}\`, first ${FALLBACK_EXAMPLE_CHARS} characters)\n\n\`\`\`\n${active.content.slice(0, FALLBACK_EXAMPLE_CHARS)}\n\`\`\``
@@ -3266,7 +3300,6 @@ async function runSuggestionsFallbackTurn(
   });
   const notes: string[] = [uiChrome().aiChatToolsFallback];
   const mappings: string[] = [];
-  let revertible = false;
   if (result.truncated) {
     notes.push(uiChrome().aiChatTruncated);
   } else if (looksLikeSuggestionsPayload(result.text)) {
@@ -3282,14 +3315,11 @@ async function runSuggestionsFallbackTurn(
     }
     persistBlocklyCanvas({ summary: "AI chat" });
     render();
-    revertible = report.applied > 0 || report.loopsAccepted > 0;
-    lastAiChatSnapshot = revertible ? before : null;
   }
   return {
     text: result.text,
     messages: result.messages,
     toolCalls: [],
-    revertible,
     mappings,
     note: notes.join(" "),
   };
@@ -3303,6 +3333,7 @@ async function withAiCommit<T>(origin: Omit<UiCommitOrigin, "origin" | "turnId">
   const outer = activeAiCommit;
   const turn = { origin: { origin: "ai-chat" as const, ...origin, turnId: crypto.randomUUID() }, notices: [] as string[] };
   activeAiCommit = turn;
+  undoGroupAuthors.set(turn.origin.turnId, aiChatActor(origin).displayName);
   try {
     return await fn();
   } finally {
@@ -3345,7 +3376,6 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
   if (!creds) throw new Error(uiChrome().saveAiOrCopy);
   controller.setStatusMessage("Calling AI…");
   const proxyUrl = await desktopAiProxyUrl();
-  const before = controller.exportDocumentSnapshot();
   try {
     // With credentials Send always streams the tool loop; Stop aborts `request.signal`.
     // The chat writes through the same tools and service as MCP (ADR 0014).
@@ -3372,14 +3402,11 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
     const summary =
       `AI chat: ${mapped} map_slot · ${applied} suggestions · ${result.toolNames.length} tools · ${errors} errors`;
     controller.setStatusMessage(result.stopped ? `${summary} (stopped)` : summary);
-    const revertible = applied > 0 || result.toolNames.some((name) => isMutatingCallAiTool(name));
-    lastAiChatSnapshot = revertible ? before : null;
     const errorText = errors ? `\n\n${result.imported?.errors.slice(0, 8).join("\n")}` : "";
     return {
       text: `${result.text || (result.stopped ? "" : summary)}${errorText}`,
       messages: result.messages,
       toolCalls: result.toolNames,
-      revertible,
       suggestionNotes: result.suggestionNotes,
       mappings: result.mappingNotices,
       ...(result.stopped ? { stopped: true } : {}),
@@ -3399,17 +3426,6 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
   } finally {
     chatClient().setActor(null);
   }
-}
-
-function revertLastAiChatTurn(): boolean {
-  const snapshot = lastAiChatSnapshot;
-  if (!snapshot) return false;
-  lastAiChatSnapshot = null;
-  void withUndoableDocumentReplace(() => restoreDocumentFromUndo(snapshot)).then(() => {
-    render();
-    controller.setStatusMessage(uiChrome().aiChatReverted);
-  });
-  return true;
 }
 
 function findTreeNode(node: SchemaTreeNode | null | undefined, path: string): SchemaTreeNode | null {

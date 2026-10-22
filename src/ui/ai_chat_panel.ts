@@ -50,7 +50,7 @@ function ui() {
 
 /**
  * Retired "Apply directly / Approve first" select (before #252). Removed on
- * load: Send always applies (revertible); the import approval modal is only
+ * load: Send always applies (one Undo step); the import approval modal is only
  * for pasted answers.
  */
 export const LEGACY_AI_CHAT_MODE_KEY = "intehrgrator.ai.chatMode";
@@ -88,8 +88,6 @@ export interface AiChatTurnResult {
   text: string;
   messages: ChatMessage[];
   toolCalls: string[];
-  /** True when the turn changed the canvas and can be reverted. */
-  revertible: boolean;
   /** Note shown under the answer (e.g. "review in Import Suggestions"). */
   note?: string;
   /** Per-suggestion notes from envelopes applied with tools (not in `text`). */
@@ -123,7 +121,6 @@ export interface AiChatPanelOptions {
   downloadText: (filename: string, text: string) => void;
   openImportDialog: (text?: string) => void;
   runTurn: (request: AiChatTurnRequest) => Promise<AiChatTurnResult>;
-  revertLastTurn: () => boolean;
   setStatus: (message: string) => void;
   formatError?: (err: unknown) => string;
   onLayout?: () => void;
@@ -217,7 +214,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   let live: { text: string; reasoning: string; tool: string; mappings: string[]; errors: number } | null = null;
   let liveRow: HTMLElement | null = null;
   let liveFrame = 0;
-  let lastTurnRevertible = false;
   let forceContext = false;
   let savedRange: Range | null = null;
   /** × on the credentials notice; in memory only, so a reload shows it again. */
@@ -247,7 +243,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   promptsMenu.hidden = true;
   promptsWrap.append(promptsBtn, promptsMenu);
 
-  // Retired mode select: drop its stored value (Send always applies, revertible).
+  // Retired mode select: drop its stored value (Send always applies).
   try {
     storage.removeItem(LEGACY_AI_CHAT_MODE_KEY);
   } catch {
@@ -628,19 +624,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       } else if (entry.text) {
         row.append(el("div", { className: "ai-chat-text", text: entry.text }));
       }
-      if (index === session.display.length - 1 && entry.role === "assistant" && lastTurnRevertible) {
-        const revert = el("button", { className: "pane-btn ai-chat-revert", text: ui().aiChatRevert, type: "button" });
-        revert.id = "ai-chat-revert";
-        revert.addEventListener("click", () => {
-          if (options.revertLastTurn()) {
-            lastTurnRevertible = false;
-            session.display.push({ role: "note", text: ui().aiChatReverted });
-            persist();
-            renderLog();
-          }
-        });
-        row.append(revert);
-      }
       log.append(row);
     });
     if (sending && live) renderLive();
@@ -658,7 +641,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     if (current === sessionProject) return false;
     sessionProject = current;
     session = loadChatSession(storage, current);
-    lastTurnRevertible = false;
     return true;
   };
 
@@ -724,7 +706,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     const history = session.messages;
     commitUserTurn(c);
     sending = true;
-    lastTurnRevertible = false;
     const controller = new AbortController();
     running = controller;
     live = { text: "", reasoning: "", tool: "", mappings: [], errors: 0 };
@@ -752,9 +733,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         ? [ui().aiChatStopped, result.note].filter(Boolean).join(" ")
         : result.note;
       if (note) session.display.push({ role: "note", text: note });
-      // Revert sits on the last assistant entry; keep the note before it.
-      if (note && result.revertible) session.display.push(session.display.splice(-2, 1)[0]!);
-      lastTurnRevertible = result.revertible;
     } catch (err) {
       if (controller.signal.aborted) {
         // Stopped before the first step finished: nothing reached the canvas.
@@ -987,7 +965,6 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       text: options.hasCredentials() ? ui().aiChatClearedApi : ui().aiChatClearedPaste,
     });
     persist();
-    lastTurnRevertible = false;
     renderLog();
   });
   credsBtn.addEventListener("click", () => options.openCredentials());

@@ -10,7 +10,12 @@ export type HistoryKind =
   | "block_graph"
   | "expression"
   | "restore"
-  | "patch";
+  | "patch"
+  /** Undo (sv: Ångra) / redo, appended like any change (ADR 0014). */
+  | "undo"
+  | "redo"
+  /** Revert (sv: Häv): compensating change for one earlier entry. */
+  | "revert";
 
 export interface HistoryEntry {
   seq: number;
@@ -22,6 +27,10 @@ export interface HistoryEntry {
   afterBundle: ProjectBundle;
   affectedSlotIds: string[];
   timestamp: string;
+  /** For undo / redo / revert entries: the entries they act on. */
+  targetSeqs?: number[];
+  /** Rewound by a later Undo (and not redone). */
+  undone?: boolean;
 }
 
 export interface AgentActivity {
@@ -41,9 +50,18 @@ export interface RestoreAtResult {
   mode: "view" | "destructive";
 }
 
+/**
+ * One chronological history per project (ADR 0014). Entries are only ever
+ * appended: Undo, Redo and Revert are new entries too, so the log is never
+ * rewritten. `applied` is the stack Undo rewinds from the top, regardless of
+ * author.
+ */
 export class HistoryLog {
   private entries: HistoryEntry[] = [];
-  private redoStack: Array<{ entry: HistoryEntry; afterBundle: ProjectBundle }> = [];
+  /** Seqs of changes in effect, oldest first (Undo pops from the end). */
+  private applied: number[] = [];
+  /** Seqs rewound by Undo, newest last (Redo pops from the end). */
+  private redoStack: number[] = [];
   private headSeq = 0;
   private lastActivity: AgentActivity | null = null;
   private readonly persistPath?: string;
@@ -63,6 +81,10 @@ export class HistoryLog {
     }));
   }
 
+  get(seq: number): HistoryEntry | undefined {
+    return this.entries.find((e) => e.seq === seq);
+  }
+
   tail(): HistoryEntry | undefined {
     const e = this.entries.at(-1);
     return e ? { ...e, beforeBundle: structuredClone(e.beforeBundle) } : undefined;
@@ -79,11 +101,15 @@ export class HistoryLog {
     kind: HistoryKind,
     summary: string,
     affectedSlotIds: string[] = [],
+    targetSeqs?: number[],
   ): HistoryEntry | null {
     if (JSON.stringify(beforeBundle) === JSON.stringify(afterBundle)) return null;
     const revisionAfter = bundleRevision(afterBundle);
     const tail = this.entries.at(-1);
-    if (tail && actor.turnId && tail.actor.turnId === actor.turnId && tail.actor.id === actor.id) {
+    if (
+      tail && actor.turnId && tail.actor.turnId === actor.turnId && tail.actor.id === actor.id &&
+      this.applied.at(-1) === tail.seq
+    ) {
       // One AI chat turn is one entry (ADR 0014): later commits of the same
       // turn extend it, unless another actor wrote in between.
       tail.afterBundle = structuredClone(afterBundle);
@@ -92,7 +118,7 @@ export class HistoryLog {
       tail.kind = kind;
       tail.affectedSlotIds = [...new Set([...tail.affectedSlotIds, ...affectedSlotIds])];
       tail.timestamp = new Date().toISOString();
-      this.redoStack = [];
+      this.clearRedo();
       this.noteActivity(tail);
       void this.appendPersist(tail);
       return tail;
@@ -107,12 +133,37 @@ export class HistoryLog {
       afterBundle: structuredClone(afterBundle),
       affectedSlotIds: [...affectedSlotIds],
       timestamp: new Date().toISOString(),
+      ...(targetSeqs ? { targetSeqs: [...targetSeqs] } : {}),
     };
     this.entries.push(entry);
-    this.redoStack = [];
+    this.applied.push(entry.seq);
+    this.clearRedo();
     this.noteActivity(entry);
     void this.appendPersist(entry);
     return entry;
+  }
+
+  private clearRedo(): void {
+    this.redoStack = [];
+  }
+
+  private append(entry: Omit<HistoryEntry, "seq" | "revisionAfter" | "timestamp">): HistoryEntry {
+    const full: HistoryEntry = {
+      ...entry,
+      seq: ++this.headSeq,
+      revisionAfter: bundleRevision(entry.afterBundle),
+      timestamp: new Date().toISOString(),
+    };
+    this.entries.push(full);
+    this.noteActivity(full);
+    void this.appendPersist(full);
+    return full;
+  }
+
+  /** The change Undo would rewind next (the newest change in effect). */
+  undoTarget(): HistoryEntry | undefined {
+    const seq = this.applied.at(-1);
+    return seq === undefined ? undefined : this.get(seq);
   }
 
   private noteActivity(entry: HistoryEntry): void {
@@ -143,35 +194,73 @@ export class HistoryLog {
     return idx < 0 ? [] : this.entries.slice(idx + 1);
   }
 
-  undoGlobal(currentAfter: ProjectBundle): ProjectBundle | null {
-    const entry = this.entries.pop();
-    if (!entry) return null;
-    this.redoStack.push({ entry, afterBundle: structuredClone(currentAfter) });
-    return structuredClone(entry.beforeBundle);
+  /**
+   * Undo (sv: Ångra): rewind the newest change in effect, whoever made it.
+   * Appends an `undo` entry by `actor`; returns the project to load.
+   */
+  undo(current: ProjectBundle, actor: HistoryActor): { bundle: ProjectBundle; entry: HistoryEntry; undone: HistoryEntry } | null {
+    const target = this.undoTarget();
+    if (!target) return null;
+    return this.rewind([target], target.beforeBundle, current, actor, `Undo: ${target.summary}`);
   }
 
-  undoByFilter(
-    currentAfter: ProjectBundle,
-    filter: (entry: HistoryEntry) => boolean,
-  ): ProjectBundle | null {
-    for (let i = this.entries.length - 1; i >= 0; i--) {
-      const entry = this.entries[i]!;
-      if (!filter(entry)) continue;
-      const tail = this.entries.splice(i);
-      const target = tail[0]!;
-      for (const e of [...tail].reverse()) {
-        this.redoStack.push({ entry: e, afterBundle: structuredClone(currentAfter) });
-      }
-      return structuredClone(target.beforeBundle);
+  /** Go back to just after `seq`: Undo every later change in effect, as one entry. */
+  undoTo(seq: number, current: ProjectBundle, actor: HistoryActor):
+    | { bundle: ProjectBundle; entry: HistoryEntry; undone: HistoryEntry[] }
+    | null {
+    const target = this.get(seq);
+    if (!target) return null;
+    const later = this.applied.filter((s) => s > seq).map((s) => this.get(s)!).reverse();
+    if (!later.length) return null;
+    const result = this.rewind(later, target.afterBundle, current, actor, `Back to #${seq}: ${target.summary}`);
+    return { bundle: result.bundle, entry: result.entry, undone: later };
+  }
+
+  private rewind(
+    targets: HistoryEntry[],
+    bundle: ProjectBundle,
+    current: ProjectBundle,
+    actor: HistoryActor,
+    summary: string,
+  ): { bundle: ProjectBundle; entry: HistoryEntry; undone: HistoryEntry } {
+    for (const t of targets) {
+      this.applied.splice(this.applied.lastIndexOf(t.seq), 1);
+      this.redoStack.push(t.seq);
+      t.undone = true;
     }
-    return null;
+    const entry = this.append({
+      actor: { ...actor },
+      kind: "undo",
+      summary,
+      beforeBundle: structuredClone(current),
+      afterBundle: structuredClone(bundle),
+      affectedSlotIds: [...new Set(targets.flatMap((t) => t.affectedSlotIds))],
+      targetSeqs: targets.map((t) => t.seq),
+    });
+    return { bundle: structuredClone(bundle), entry, undone: targets[0]! };
   }
 
-  redo(): ProjectBundle | null {
-    const item = this.redoStack.pop();
-    if (!item) return null;
-    this.entries.push(item.entry);
-    return structuredClone(item.afterBundle);
+  /** Redo the change the last Undo rewound; appends a `redo` entry. */
+  redo(current: ProjectBundle, actor: HistoryActor): { bundle: ProjectBundle; entry: HistoryEntry } | null {
+    const seq = this.redoStack.pop();
+    if (seq === undefined) return null;
+    const target = this.get(seq)!;
+    target.undone = false;
+    this.applied.push(seq);
+    const entry = this.append({
+      actor: { ...actor },
+      kind: "redo",
+      summary: `Redo: ${target.summary}`,
+      beforeBundle: structuredClone(current),
+      afterBundle: structuredClone(target.afterBundle),
+      affectedSlotIds: [...target.affectedSlotIds],
+      targetSeqs: [seq],
+    });
+    return { bundle: structuredClone(target.afterBundle), entry };
+  }
+
+  canUndo(): boolean {
+    return this.applied.length > 0;
   }
 
   canRedo(): boolean {
@@ -183,24 +272,16 @@ export class HistoryLog {
     return entry ? structuredClone(entry.afterBundle) : null;
   }
 
-  restoreAt(seq: number, mode: "view" | "destructive"): RestoreAtResult & { preview?: ProjectBundle } {
-    const idx = this.entries.findIndex((e) => e.seq === seq);
-    if (idx < 0) {
-      return { ok: false, revision: "", discarded: [], mode };
-    }
-    const target = this.entries[idx]!;
-    const preview = structuredClone(target.afterBundle);
-    const discarded = mode === "destructive" ? this.entries.slice(idx + 1) : [];
-    if (mode === "destructive") {
-      this.entries = this.entries.slice(0, idx + 1);
-      this.redoStack = [];
-    }
+  /** The project as it was right after `seq` (view only; see `undoTo` to go back). */
+  restoreAt(seq: number): RestoreAtResult & { preview?: ProjectBundle } {
+    const target = this.get(seq);
+    if (!target) return { ok: false, revision: "", discarded: [], mode: "view" };
     return {
       ok: true,
       revision: target.revisionAfter,
-      discarded: discarded.map((e) => ({ ...e, beforeBundle: structuredClone(e.beforeBundle), afterBundle: structuredClone(e.afterBundle) })),
-      mode,
-      preview,
+      discarded: [],
+      mode: "view",
+      preview: structuredClone(target.afterBundle),
     };
   }
 
@@ -239,6 +320,7 @@ export class HistoryLog {
         summary: entry.summary,
         affectedSlotIds: entry.affectedSlotIds,
         timestamp: entry.timestamp,
+        ...(entry.targetSeqs ? { targetSeqs: entry.targetSeqs } : {}),
       });
       await Deno.writeTextFile(this.persistPath, line + "\n", { append: true });
     } catch {

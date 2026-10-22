@@ -49,9 +49,11 @@ export function fireDocumentSwap(
   before: DocumentSnapshot,
   after: DocumentSnapshot,
   restore: (snapshot: DocumentSnapshot) => void,
+  group?: string,
 ): void {
   const event = new DocumentSwapEvent(workspace, before, after, restore);
   if (event.isNull()) return;
+  if (group) event.group = group;
   Blockly.Events.fire(event as AbstractEvent);
 }
 

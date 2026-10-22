@@ -375,7 +375,8 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "restore_at",
-    description: "View or destructive rollback to history seq.",
+    description:
+      "View the project at history seq (mode view), or go back to it (mode destructive: appends an Undo entry; the history is never rewritten).",
     inputSchema: {
       type: "object",
       required: ["seq"],
@@ -384,8 +385,19 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "undo",
-    description: "Undo (scope: global|user|agent).",
-    inputSchema: { type: "object", properties: { scope: { type: "string" } } },
+    description:
+      "Undo the newest change in effect, whoever made it (or every change after toSeq). Appends an undo entry; returns who made the undone change.",
+    inputSchema: { type: "object", properties: { toSeq: { type: "number" } } },
+  },
+  {
+    name: "revert",
+    description:
+      "Revert one history entry (seq) as a new change at the end: its slots go back to how they were before it; slots changed again later are skipped and listed.",
+    inputSchema: {
+      type: "object",
+      required: ["seq"],
+      properties: { seq: { type: "number" }, revision: { type: "string" } },
+    },
   },
   {
     name: "redo",
@@ -453,6 +465,7 @@ export const AGENT_TOOL_HTTP: Record<string, AgentToolHttp> = {
   export_bundle: { method: "POST", path: "/export-bundle", body: "json" },
   restore_at: { method: "POST", path: "/restore-at", body: "json" },
   undo: { method: "POST", path: "/undo", body: "json" },
+  revert: { method: "POST", path: "/revert", body: "json" },
   redo: { method: "POST", path: "/redo", body: "json" },
   put_blockly: { method: "PUT", path: "/blockly", body: "json" },
 };
@@ -706,10 +719,19 @@ export async function callAgentTool(
     case "put_blockly":
       service.loadBlocklyState(args.blocklyState, revision, ctx);
       return { revision: service.getRevision() };
-    case "undo":
-      return { ok: service.undo((args.scope as "global") ?? "global"), revision: service.getRevision() };
+    case "undo": {
+      if (args.scope !== undefined && args.scope !== "global") {
+        throw new Error("undo always rewinds the newest change; use revert {seq} for one author's change");
+      }
+      const undone = typeof args.toSeq === "number" || typeof args.toSeq === "string"
+        ? service.undoTo(Number(args.toSeq), ctx)
+        : service.undo(ctx);
+      return { ok: Boolean(undone), ...(undone ?? {}), revision: service.getRevision() };
+    }
     case "redo":
-      return { ok: service.redo(), revision: service.getRevision() };
+      return { ok: service.redo(ctx), revision: service.getRevision() };
+    case "revert":
+      return service.revert(Number(args.seq), { ...ctx, expectedRevision: revision });
     case "restore_at":
       return {
         ...service.restoreAt(Number(args.seq), (args.mode as "view") ?? "view"),

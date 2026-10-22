@@ -9,7 +9,6 @@ export const sv: ChromeMessages = {
   aiChatStoredPrompts: "Sparade promptar",
   aiChatSend: "Skicka",
   aiChatClear: "Rensa historik",
-  aiChatRevert: "Ångra senaste AI-tur",
   appTitle: "intEHRgrator — Integrationsverktyg",
   copyPrompt: "Kopiera prompt",
   copyPromptTitle: "Kopiera AI-prompt med inbäddade filer",

@@ -123,10 +123,10 @@ Deno.test({
       assertEquals(await page.locator("#ai-chat-live").count(), 0);
       assertEquals(await page.locator("#ai-chat-stop").isVisible(), false);
       assertEquals(await page.locator("#ai-chat-send").isVisible(), true);
-      // The mapping made before Stop stays, with its line and a Revert.
+      // The mapping made before Stop stays, with its line (Undo takes it back).
       const last = page.locator(".ai-chat-msg--assistant").last();
       assertStringIncludes(await last.locator(".ai-chat-mapping").innerText(), "← $.systolic");
-      await page.locator("#ai-chat-revert").waitFor({ state: "visible" });
+      assertEquals(await page.locator("#ai-chat-revert").count(), 0);
       if (SHOTS) await page.screenshot({ path: "/workspace/pr252-stopped.png" });
       assertEquals(bodies.length, 2, "nothing is sent after Stop");
 

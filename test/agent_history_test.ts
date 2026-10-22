@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
 import { createAgentApiHandler } from "@intehrgrator/agent/http.ts";
 import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
@@ -77,7 +77,7 @@ Deno.test("import records agent attribution in history", async () => {
   assertEquals(importEntry.kind, "import");
 });
 
-Deno.test("undoByFilter removes the latest matching agent entry", async () => {
+Deno.test("undo rewinds the newest change whoever made it and appends an undo entry", async () => {
   const service = new WorkbenchService();
   const slotId = await loadBpFixture(service);
   const targetId = service.exportBundle().target?.targetId ?? "";
@@ -96,12 +96,23 @@ Deno.test("undoByFilter removes the latest matching agent entry", async () => {
   });
 
   const agentSeq = service.listHistory().at(-1)!.seq;
-  assertEquals(service.listHistory().at(-1)!.actor.kind, "agent");
-  assertEquals(service.undo("agent"), true);
-  assertEquals(service.listHistory().some((e) => e.seq === agentSeq), false);
+  const length = service.listHistory().length;
+  assertEquals(service.undoTarget()?.author, "Agent One");
+  const undone = service.undo();
+  assertEquals(undone?.undoneSeqs, [agentSeq]);
+  assertEquals(undone?.author, "Agent One");
+  // Never rewritten: the agent entry stays, marked undone, and the undo is appended.
+  const history = service.listHistory();
+  assertEquals(history.length, length + 1);
+  assertEquals(history.find((e) => e.seq === agentSeq)?.undone, true);
+  assertEquals(history.at(-1)!.kind, "undo");
+  assertEquals(history.at(-1)!.targetSeqs, [agentSeq]);
+  assertEquals(service.redo(), true);
+  assertEquals(service.listHistory().at(-1)!.kind, "redo");
+  assertEquals(service.listHistory().find((e) => e.seq === agentSeq)?.undone, false);
 });
 
-Deno.test("restoreAt destructive truncates later history", async () => {
+Deno.test("restoreAt destructive goes back by appending one undo entry", async () => {
   const service = new WorkbenchService();
   const slotId = await loadBpFixture(service);
   const baseLen = service.listHistory().length;
@@ -113,7 +124,10 @@ Deno.test("restoreAt destructive truncates later history", async () => {
   const result = service.restoreAt(firstMapSeq, "destructive");
   assertEquals(result.ok, true);
   assertEquals(result.discarded.length, 1);
-  assertEquals(service.listHistory().length, baseLen + 1);
+  assertEquals(service.listHistory().length, baseLen + 3);
+  assertEquals(service.listHistory().at(-1)!.kind, "undo");
+  const slot = service.exportBundle().mapping.model.slots.find((s) => s.slotId === slotId);
+  assert(slot?.expression.includes("systolic"));
 });
 
 Deno.test("buildPatchPrompt references intehrgrator-suggestions v2", async () => {

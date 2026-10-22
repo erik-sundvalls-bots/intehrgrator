@@ -128,7 +128,7 @@ try {
       clip: { x: right.x - 8, y: right.y - 8, width: right.width + 16, height: right.height + 16 },
     });
     release();
-    await page.locator("#ai-chat-revert").waitFor({ state: "visible", timeout: 10_000 });
+    await page.locator(".ai-chat-msg--assistant", { hasText: "Systolic is mapped" }).waitFor({ timeout: 10_000 });
     await page.waitForTimeout(300);
     await page.locator("#ai-chat-panel").screenshot({ path: `${out}ai-chat-done.png` });
     await page.close();

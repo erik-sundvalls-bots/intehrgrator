@@ -9,7 +9,7 @@
  * MCP change. Also checks the history origins: human, mcp with client, and
  * ai-chat (one entry and one undo step per turn).
  */
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { chromium, type Page } from "npm:playwright@1.51.0";
 import { diastolicSuffix, findSlotIdEndingWith, findSystolicSlotId, waitForTestApi } from "./helpers.ts";
 import { patchEhrtslibValidator } from "../../scripts/patch-ehrtslib-validator.ts";
@@ -165,7 +165,12 @@ Deno.test({
       await waitFor(async () => !(await expr(page, dia)).includes("diastolic"), "undo of the MCP change");
       assert((await expr(page, sys)).includes("systolic"), "undo keeps the earlier UI mapping");
       await waitFor(async () => (await history()).length > count, "undo committed");
-      assertEquals((await history()).at(-1)!.actor.origin, "human");
+      const undoEntry = (await history()).at(-1)!;
+      assertEquals(undoEntry.actor.origin, "human");
+      // A3: the status line names whose change Undo took back; the entry is an appended undo.
+      assertStringIncludes(await page.locator("#status-main").innerText(), "Undo: took back a change by Probe");
+      assertEquals(undoEntry.kind, "undo");
+      assertEquals(undoEntry.summary, "Undo: took back a change by Probe");
 
       // 4. An AI chat turn with two map_slot calls: one ai-chat entry, one undo step.
       await page.evaluate(() => {
@@ -198,7 +203,7 @@ Deno.test({
       const undoBeforeTurn = await undoCount(page);
       const countBeforeTurn = (await history()).length;
       await page.click("#ai-chat-send");
-      await page.locator("#ai-chat-revert").waitFor({ state: "visible", timeout: 20_000 });
+      await page.locator(".ai-chat-msg--assistant", { hasText: "Done." }).waitFor({ timeout: 20_000 });
       await waitFor(async () => {
         const last = (await history()).at(-1)!;
         return last.actor.origin === "ai-chat" && last.summary.split(";").length >= 2;
@@ -230,6 +235,10 @@ Deno.test({
       assert(JSON.stringify(live).includes("$.diastolic"), "live canvas shows the AI mapping");
       await page.click("#btn-undo");
       await waitFor(async () => (await expr(page, sys)).includes("systolic"), "one Undo reverts the whole turn");
+      assertStringIncludes(
+        await page.locator("#status-main").innerText(),
+        "Undo: took back a change by AI chat (stub-model)",
+      );
       assert(!(await expr(page, dia)).includes("diastolic"), "both AI mappings undone by one Undo");
     } finally {
       await browser.close();

@@ -18,7 +18,7 @@ import {
 const ENDPOINT = "https://ai.test.invalid/v1/chat/completions";
 
 Deno.test({
-  name: "UI: AI chat — chips, stored prompts, copy prompt, tool turn and revert",
+  name: "UI: AI chat — chips, stored prompts, copy prompt, tool turn and undo",
   sanitizeResources: false,
   sanitizeOps: false,
   async fn() {
@@ -139,9 +139,11 @@ Deno.test({
       assertStringIncludes(await page.locator("#ai-chat-log").innerText(), "Mapped systolic.");
       assertStringIncludes(bodies[0]!.messages[1]!.content ?? "", "## Project context");
 
-      // Revert last AI turn restores the canvas from before the tool turn.
-      await page.locator("#ai-chat-revert").waitFor({ timeout: 10_000 });
-      await page.click("#ai-chat-revert");
+      // No "Revert last AI turn" button (ADR 0014): one Undo takes back the turn
+      // and the status line names its author.
+      assertEquals(await page.locator("#ai-chat-revert").count(), 0);
+      await page.click("#btn-undo");
+      await page.locator("#status-main", { hasText: "Undo: took back a change by AI chat" }).waitFor({ timeout: 10_000 });
       await page.waitForFunction(
         (id) => {
           const api = (globalThis as unknown as {
