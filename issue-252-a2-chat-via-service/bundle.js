@@ -192756,8 +192756,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "a6d11a9" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-22T06:30:26.902Z" : "not built";
+var BUILD_ID = true ? "982418f" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-22T06:39:45.400Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
