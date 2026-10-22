@@ -20,10 +20,17 @@ export interface JsonRpcRequest {
 export interface AgentClient {
   callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
   registerAgent?(args: Record<string, unknown>): Promise<{ agentId: string; displayName: string; color: string }>;
+  /** MCP `initialize` `clientInfo.name` (e.g. "cursor"), recorded as the history origin client. */
+  setClientName?(name: string): void;
 }
 
 export class LocalAgentClient implements AgentClient {
   private session: { agentId: string; displayName: string; color: string } | null = null;
+  private clientName = "";
+
+  setClientName(name: string): void {
+    this.clientName = name.trim().slice(0, 80);
+  }
 
   constructor(private readonly service: WorkbenchService = getSharedWorkbenchService()) {}
 
@@ -34,41 +41,47 @@ export class LocalAgentClient implements AgentClient {
       color: string;
     };
     this.session = reg;
-    this.service.setActor({
-      kind: "agent",
-      id: reg.agentId,
-      displayName: reg.displayName,
-      color: reg.color,
-    });
+    this.service.setActor(this.sessionActor(reg));
     return reg;
   }
 
+  private sessionActor(reg: { agentId: string; displayName: string; color: string }) {
+    return {
+      kind: "agent" as const,
+      id: reg.agentId,
+      displayName: reg.displayName,
+      color: reg.color,
+      origin: "mcp" as const,
+      ...(this.clientName ? { client: this.clientName } : {}),
+    };
+  }
+
   private actorArgs(args: Record<string, unknown>): Record<string, unknown> {
-    if (!this.session) return args;
+    const client = this.clientName ? { _agentClient: this.clientName } : {};
+    if (!this.session) return { ...args, ...client };
     return {
       ...args,
       _agentId: this.session.agentId,
       _agentName: this.session.displayName,
       _agentColor: this.session.color,
+      ...client,
     };
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
     if (name === "register_agent") return await this.registerAgent(args);
-    if (this.session) {
-      this.service.setActor({
-        kind: "agent",
-        id: this.session.agentId,
-        displayName: this.session.displayName,
-        color: this.session.color,
-      });
-    }
+    if (this.session) this.service.setActor(this.sessionActor(this.session));
     return await callAgentTool(this.service, name, this.actorArgs(args));
   }
 }
 
 export class HttpAgentClient implements AgentClient {
   private session: { agentId: string; displayName: string; color: string } | null = null;
+  private clientName = "";
+
+  setClientName(name: string): void {
+    this.clientName = name.trim().slice(0, 80);
+  }
 
   constructor(
     private readonly baseUrl: string,
@@ -101,6 +114,7 @@ export class HttpAgentClient implements AgentClient {
       headers["X-Agent-Name"] = this.session.displayName;
       headers["X-Agent-Color"] = this.session.color;
     }
+    if (this.clientName) headers["X-Agent-Client"] = this.clientName;
     if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
@@ -166,6 +180,8 @@ function writeMessage(msg: unknown): void {
 
 export async function handleMcpRequest(req: JsonRpcRequest, client: AgentClient): Promise<unknown> {
   if (req.method === "initialize") {
+    const clientName = (req.params as { clientInfo?: { name?: unknown } } | undefined)?.clientInfo?.name;
+    if (typeof clientName === "string" && clientName.trim()) client.setClientName?.(clientName);
     return {
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
