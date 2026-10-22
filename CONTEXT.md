@@ -358,6 +358,14 @@ _Avoid_: per-author undo (that is **Revert**), rollback, deleting history entrie
 Take back one earlier history entry, for example one AI chat turn, by a new change at the end of the history. Changes made after that entry stay: slots that were changed again later are left as they are and listed, so nothing newer is lost.
 _Avoid_: Revert last AI turn (retired button), undo (Undo always takes back the newest change first)
 
+**History panel**:
+The list of every change to the mapping, newest first, opened with the clock button next to Undo / Redo. Each row says who made the change (you, AI chat with its model, or MCP with the client) and offers **Undo to here** and **Revert**. Undone rows stay in the list, struck through.
+_Avoid_: timeline (the observer's scrubber), audit log
+
+**AI author marker**:
+A small "AI" badge on a mapping block that the AI chat or an MCP agent wrote, naming the author on hover. It stays until you change that slot yourself; it is separate from the review marker, which says how sure the AI was.
+_Avoid_: review marker, confidence badge
+
 **Session revision**:
 FNV-style hash of Mapping Model + Blockly workspace JSON returned as `revision` / `r<hex>` on Agent API reads and after each mutation. Agents pass **`If-Match: <revision>`** (or MCP `revision`) for optimistic concurrency; **`undo` / `redo`** walk a joint **attributed semantic history** (user + registered agents) from the top, whoever made the change, and **`revert`** takes back one entry as a new change (ADR 0014); the history is only appended to. Blockly canvas undo remains for direct block edits; service history merges UI semantic commits via `/ui-commit`. On the desktop every semantic UI change (Blockly edits and controller changes such as Click-to-Map, AI chat tools and Import Suggestions) is committed before an agent change is synced in, and each synced agent change is one canvas undo step (ADR 0014). Open **observer** for timeline scrub, going back to an entry (an appended Undo), and patch-undo prompts.
 _Avoid_: wall-clock timestamps, assuming revision survives a full browser reload without re-fetching snapshot

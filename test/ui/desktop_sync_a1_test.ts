@@ -223,7 +223,14 @@ Deno.test({
           .getBlocklyStateJson()
       )) as unknown;
       const backend = await api("GET", "/bundle") as { bundle: { mapping: { blocklyState: unknown } } };
-      assertEquals(backend.bundle.mapping.blocklyState, live, "the service's bundle is the live canvas");
+      // The AI author marker (B) is display state kept by the browser, outside the revision.
+      const noMarks = (state: unknown) =>
+        JSON.parse(JSON.stringify(state), (key, value) => {
+          if (key !== "data" || typeof value !== "string" || !value.includes('"aiAuthor"')) return value;
+          const { aiAuthor: _mark, ...rest } = JSON.parse(value);
+          return Object.keys(rest).length ? JSON.stringify(rest) : undefined;
+        });
+      assertEquals(noMarks(backend.bundle.mapping.blocklyState), noMarks(live), "the service's bundle is the live canvas");
       assertEquals(
         (await page.evaluate(() =>
           (globalThis as unknown as { intehrgratorTestApi: { undoEventTypes(): string[] } }).intehrgratorTestApi
@@ -240,6 +247,20 @@ Deno.test({
         "Undo: took back a change by AI chat (stub-model)",
       );
       assert(!(await expr(page, dia)).includes("diastolic"), "both AI mappings undone by one Undo");
+
+      // B: the history panel reads the backend history (the source of truth on the desktop).
+      await page.click("#btn-history");
+      const panel = page.locator("#history-panel");
+      await panel.locator(".history-badge--ai-chat").first().waitFor({ timeout: 10_000 });
+      assert(await panel.locator(".history-badge--mcp").count() >= 1, "MCP change has an MCP badge");
+      assert(await panel.locator(".history-badge--human").count() >= 1, "your change has a You badge");
+      const entriesBefore = (await history()).length;
+      const mcpRow = panel.locator(".history-row", { has: page.locator(".history-badge--mcp") }).first();
+      await mcpRow.locator(".history-undo-to").click();
+      await page.locator("#status-main", { hasText: "Undo: took back a change by" }).waitFor({ timeout: 10_000 });
+      await waitFor(async () => (await history()).length === entriesBefore + 1, "Undo to here appends one entry");
+      assertEquals((await history()).at(-1)!.kind, "undo");
+      assertEquals((await history()).at(-1)!.actor.displayName, "You");
     } finally {
       await browser.close();
       try {
