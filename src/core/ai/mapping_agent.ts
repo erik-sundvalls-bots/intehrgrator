@@ -390,11 +390,24 @@ export async function runSuggestionsChatTurn(options: {
 
 export async function runMappingAgentOnController(
   controller: WorkbenchController,
-  options: Omit<RunMappingAgentOptions, "executeTool" | "importText">,
+  options: Omit<RunMappingAgentOptions, "executeTool" | "importText"> & {
+    /**
+     * Wraps each write the AI makes (a mutating tool, an answer applied as
+     * suggestions JSON), e.g. to attribute it to the AI (ADR 0014).
+     */
+    asAiWrite?: <T>(fn: () => T) => T;
+  },
 ): Promise<MappingAgentResult> {
+  const { asAiWrite, ...rest } = options;
+  const write = <T>(fn: () => T): T => asAiWrite ? asAiWrite(fn) : fn();
   return await runMappingAgent({
-    ...options,
-    executeTool: (name, args) => executeMappingAgentTool(controller, name, args),
-    importText: (text) => controller.importAiSuggestions(text),
+    ...rest,
+    executeTool: (name, args) =>
+      Promise.resolve(
+        isMutatingCallAiTool(name)
+          ? write(() => executeMappingAgentTool(controller, name, args))
+          : executeMappingAgentTool(controller, name, args),
+      ),
+    importText: (text) => write(() => controller.importAiSuggestions(text)),
   });
 }

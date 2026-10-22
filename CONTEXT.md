@@ -351,11 +351,11 @@ Advisory lock on one Target value slot so parallel Agent API / MCP writers do no
 _Avoid_: CRDT, treating a lease as a mutex over the whole Project Bundle
 
 **Session revision**:
-FNV-style hash of Mapping Model + Blockly workspace JSON returned as `revision` / `r<hex>` on Agent API reads and after each mutation. Agents pass **`If-Match: <revision>`** (or MCP `revision`) for optimistic concurrency; **`undo` / `redo`** walk a joint **attributed semantic history** (user + registered agents). Blockly canvas undo remains for direct block edits; service history merges UI semantic commits via `/ui-commit`. Open **observer** for timeline scrub, destructive rollback, and patch-undo prompts.
+FNV-style hash of Mapping Model + Blockly workspace JSON returned as `revision` / `r<hex>` on Agent API reads and after each mutation. Agents pass **`If-Match: <revision>`** (or MCP `revision`) for optimistic concurrency; **`undo` / `redo`** walk a joint **attributed semantic history** (user + registered agents). Blockly canvas undo remains for direct block edits; service history merges UI semantic commits via `/ui-commit`. On the desktop every semantic UI change (Blockly edits and controller changes such as Click-to-Map, AI chat tools and Import Suggestions) is committed before an agent change is synced in, and each synced agent change is one canvas undo step (ADR 0014). Open **observer** for timeline scrub, destructive rollback, and patch-undo prompts.
 _Avoid_: wall-clock timestamps, assuming revision survives a full browser reload without re-fetching snapshot
 
 **Agent actor**:
-Registered MCP session identity `{ agentId, displayName, color }` returned from **`register_agent`**. Mutations carry **`X-Agent-Id` / `X-Agent-Name`** headers; history entries record actor + summary. Target (ADR 0014): each entry also carries an origin (`human`, `ai-chat` with model, `mcp` with client), the in-app chat included. Desktop assigns colour from id hash when omitted.
+Registered MCP session identity `{ agentId, displayName, color }` returned from **`register_agent`**. Mutations carry **`X-Agent-Id` / `X-Agent-Name`** headers; history entries record actor + summary and an **origin** (ADR 0014): `human`, `ai-chat` (provider, model and a turn id; one entry per AI chat turn, a pasted AI answer included) or `mcp` (the MCP client from `initialize` `clientInfo.name`, sent as **`X-Agent-Client`**; an unregistered client shows as `MCP: <client>`, not as the user). Desktop assigns colour from id hash when omitted.
 _Avoid_: anonymous agent rows when registration is available
 
 **Agent observer**:

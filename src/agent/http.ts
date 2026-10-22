@@ -6,6 +6,7 @@
 import { exportBundle } from "../core/persistence/mod.ts";
 import type { ProjectBundle } from "../types/mod.ts";
 import type { HistoryKind } from "../workbench/history.ts";
+import { aiChatActor, type HistoryActor, USER_ACTOR } from "./actor.ts";
 import {
   AgentRevisionConflictError,
   AgentSlotLeasedError,
@@ -88,13 +89,12 @@ export function createAgentApiHandler(
       }
 
       if (req.method === "POST" && path === "/ui-commit") {
-        const body = await req.json() as {
-          bundle: ProjectBundle;
-          summary: string;
-          kind?: HistoryKind;
-        };
-        const revision = service.commitFromUi(body.bundle, body.summary, body.kind ?? "expression");
-        return json({ revision });
+        const body = await req.json() as UiCommitBody;
+        const result = service.commitFromUi(body.bundle, body.summary, body.kind ?? "expression", {
+          actor: uiCommitActor(body.origin),
+          baseRevision: typeof body.baseRevision === "string" ? body.baseRevision : undefined,
+        });
+        return json(result);
       }
 
       if (req.method === "POST" && path === "/export-discarded") {
@@ -193,4 +193,22 @@ export function composeWorkbenchHandler(
     }
     return await staticHandler(req);
   };
+}
+
+/** Body of `POST /ui-commit` (the open UI, never an MCP client). */
+export interface UiCommitBody {
+  bundle: ProjectBundle;
+  summary: string;
+  kind?: HistoryKind;
+  /** Revision the UI last synced; see `WorkbenchService.commitFromUi`. */
+  baseRevision?: string;
+  /** Set for an AI chat turn; omitted for a person's edit. */
+  origin?: { origin: "ai-chat"; provider?: string; model?: string; turnId?: string };
+}
+
+/** The UI can commit as the person or as its own AI chat, not as an MCP agent. */
+export function uiCommitActor(origin: UiCommitBody["origin"]): HistoryActor {
+  if (origin?.origin !== "ai-chat") return USER_ACTOR;
+  const str = (v: unknown) => typeof v === "string" && v.trim() ? v.trim().slice(0, 120) : undefined;
+  return aiChatActor({ provider: str(origin.provider), model: str(origin.model), turnId: str(origin.turnId) });
 }

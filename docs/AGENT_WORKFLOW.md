@@ -63,7 +63,7 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/load-function` | `load_function` | Merge a Function (`functionId` / `path` / `bundle`) onto the canvas; `clash` `rename` (default) or `replace` |
 | POST | `/set-active-example` | `set_active_example` | `{ id }` |
 | PUT | `/sheets` | `replace_sheets` | Replace Sheet / Decision table documents (revision includes sheets) |
-| POST | `/ui-commit` | — | UI semantic commit `{ bundle, summary, kind? }` |
+| POST | `/ui-commit` | — | UI semantic commit `{ bundle, summary, kind?, baseRevision?, origin? }`; `origin` is `{ origin: "ai-chat", provider?, model?, turnId? }` for an AI chat turn (commits with one `turnId` fold into one entry). Returns `{ revision, overwritten }`: agent entries after `baseRevision` that this commit replaced |
 | POST | `/import-suggestions` | `import_suggestions` | Apply `intehrgrator-suggestions` JSON (body = text) |
 | POST | `/build-prompt` | `build_prompt` | Copy AI Prompt markdown |
 | POST | `/patch-prompt` | `build_patch_prompt` | `{ targetSeq }` → patch-undo prompt |
@@ -100,7 +100,7 @@ Output modes that execute for catalogued families:
 
 Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. AI chat runs these tool names in-process and does not need stdio MCP.
 
-Pass agent identity on mutations: headers **`X-Agent-Id`**, **`X-Agent-Name`**, optional **`X-Agent-Color`** (after `register-agent`).
+Pass agent identity on mutations: headers **`X-Agent-Id`**, **`X-Agent-Name`**, optional **`X-Agent-Color`** (after `register-agent`), and **`X-Agent-Client`** (the MCP client name; stdio MCP sends `clientInfo.name` from `initialize`). History entries carry `actor.origin` (`human`, `ai-chat`, `mcp`).
 
 The UI polls `/api/v1/snapshot` and reloads the bundle when revision changes (live canvas sync). Pure block **x/y** drags do not append history; structural / expression changes do.
 

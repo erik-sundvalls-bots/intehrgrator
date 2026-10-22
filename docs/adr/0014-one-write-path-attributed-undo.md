@@ -15,4 +15,6 @@ Decisions:
 
 **Considered:** keeping the browser executor and copying history recording into it; labelling only the canvas undo events. Rejected: a second write path that drifts from MCP, and labels without a shared record cannot drive per-author undo or show MCP and chat changes in one timeline.
 
+**Progress:** A1 (desktop sync, origin field, one entry and one undo step per AI turn and per synced MCP change) is in; the chat still writes through the controller (A2 next).
+
 **Consequences:** stacked PRs after #260: (A) origin field, browser-safe `WorkbenchService`, chat via `AgentClient`, `controller_tools.ts` removed, one undo step per turn / MCP change, UI commit fix; (B) history panel, per-author undo and AI author marker. Until A lands, the chat still runs `executeMappingAgentTool` on the controller and **Revert last AI turn** restores the pre-turn snapshot. See [MCP_ARCHITECTURE.md](../MCP_ARCHITECTURE.md).

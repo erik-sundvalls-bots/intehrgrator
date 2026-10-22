@@ -134,6 +134,8 @@ export class WorkbenchService {
           id: reg.agentId,
           displayName: reg.displayName,
           color: reg.color,
+          origin: "mcp",
+          ...(raw.client ? { client: raw.client } : {}),
         };
         return this.currentActor;
       }
@@ -147,17 +149,41 @@ export class WorkbenchService {
     return actor;
   }
 
-  /** UI pushes a semantic canvas commit into the shared session. */
-  commitFromUi(bundle: ProjectBundle, summary: string, kind: HistoryKind = "expression"): string {
+  /**
+   * UI pushes a semantic canvas commit into the shared session: a person's
+   * edit, or an in-app AI chat turn (`actor` from `aiChatActor`).
+   *
+   * `baseRevision` is the revision the UI last synced. When an agent wrote
+   * after it, the UI document still wins (the person sees it on screen), and
+   * the overwritten entries are returned so the UI can say so; they stay in
+   * history and can be restored.
+   */
+  commitFromUi(
+    bundle: ProjectBundle,
+    summary: string,
+    kind: HistoryKind = "expression",
+    options: { actor?: HistoryActor; baseRevision?: string } = {},
+  ): { revision: string; overwritten: Array<{ seq: number; actor: string; summary: string }> } {
+    const overwritten = options.baseRevision && options.baseRevision !== this.revision
+      ? this.history.entriesAfterRevision(options.baseRevision)
+        .filter((e) => e.actor.kind === "agent" && e.actor.id !== options.actor?.id)
+        .map((e) => ({ seq: e.seq, actor: e.actor.displayName, summary: e.summary }))
+      : [];
+    const turnId = options.actor?.turnId;
+    if (turnId && bundleRevision(bundle) === this.revision) {
+      // Same document, later summary of the same AI turn (its ✓ notices).
+      this.history.updateTailSummary(turnId, summary);
+      return { revision: this.revision, overwritten };
+    }
     const before = this.exportBundle();
     this.controller.restoreDocumentSnapshot(structuredClone(bundle));
     this.recordMutation(before, {
-      actor: USER_ACTOR,
+      actor: options.actor ?? USER_ACTOR,
       summary,
       kind,
       recordHistory: true,
     });
-    return this.revision;
+    return { revision: this.revision, overwritten };
   }
 
   loadBundle(bundle: ProjectBundle, ctx?: MutationContext & { expectedRevision?: string }): void {

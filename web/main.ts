@@ -188,10 +188,11 @@ import {
 import { installInfoTips, openInfoTipAt } from "../src/ui/info_tip.ts";
 import { installUrlLoadUi } from "../src/ui/url_load.ts";
 import {
-  commitUiSemanticChange,
+  commitUiChange,
   installAgentBridge,
+  isAgentBridgeSynced,
   isDesktopEnvironment,
-  resetCommittedSignature,
+  type UiCommitOrigin,
 } from "../src/web/agent_bridge.ts";
 import { openAgentObserver, updateAgentObserverActivity } from "../src/web/agent_observer.ts";
 import { isSemanticBlocklyEvent, summarizeBlocklyEvent } from "../src/workbench/semantic_events.ts";
@@ -490,6 +491,35 @@ let ephemeralTreeHighlight: TreeHighlightState | null = null;
 let lastActiveExampleId: string | null = null;
 let suppressBlocklyModelSync = false;
 let applyingDocumentUndo = false;
+/** Desktop: fingerprint of the document last committed to / synced from the Agent API. */
+let committedDocSignature = "";
+/** True while a bundle written by an agent is being applied (not a local change). */
+let applyingAgentBundle = false;
+/** Summary for the next commit of a controller-originated change. */
+let pendingCommitSummary: string | null = null;
+/** Set for the duration of an AI chat turn: commit origin, Blockly undo group, ✓ notices. */
+let activeAiCommit: { origin: UiCommitOrigin; notices: string[] } | null = null;
+/**
+ * > 0 while the AI itself writes (a mutating tool, an applied suggestions
+ * answer). Only those changes are attributed to the AI; a person editing the
+ * canvas during a turn stays the person.
+ */
+let aiWriteDepth = 0;
+
+/** The AI turn whose write is running right now, if any. */
+function aiWriteInProgress(): { origin: UiCommitOrigin; notices: string[] } | null {
+  return aiWriteDepth > 0 ? activeAiCommit : null;
+}
+
+/** Run a synchronous AI write (it renders, and so commits, before returning). */
+function asAiWriteSync<T>(fn: () => T): T {
+  aiWriteDepth++;
+  try {
+    return fn();
+  } finally {
+    aiWriteDepth--;
+  }
+}
 let documentReplaceDepth = 0;
 
 function flashSheetsChrome(): void {
@@ -882,15 +912,17 @@ async function bootBlockly(): Promise<void> {
 
   installAgentBridge({
     controller,
-    exportBundle: () => controller.exportDocumentSnapshot(),
-    slotSignature: () => blocklySlotSignature,
+    flushLocal: () => commitPendingUiChange(),
+    applyRemote: applyAgentBundle,
+    onBaseline: () => {
+      committedDocSignature = documentCommitSignature();
+    },
     onActivity: (activity) => {
       if (!activity) return;
       updateAgentObserverActivity(activity);
       pulseAgentActivity(activity);
     },
   });
-  resetCommittedSignature(blocklySlotSignature);
 
   const followCheckbox = document.getElementById("chk-follow-agent") as HTMLInputElement | null;
   if (followCheckbox) {
@@ -986,14 +1018,84 @@ function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }):
   const signatureAfter = slotSignatureFrom(s.model.slots, s.model.loops ?? []);
   blocklySlotSignature = signatureAfter;
   refreshUndoButtons();
-  if (signatureBefore !== signatureAfter) {
-    void commitUiSemanticChange(
-      controller.exportDocumentSnapshot(),
-      options?.summary ?? "Edit mapping",
-    );
-    resetCommittedSignature(signatureAfter);
-  }
+  if (signatureBefore !== signatureAfter) void commitPendingUiChange(options?.summary ?? "Edit mapping");
   if (options?.notify !== false) controller.notifyChange();
+}
+
+/**
+ * Cheap fingerprint of what the shared history tracks (mapping model, sheets,
+ * loaded files), without Blockly layout, so moving a block is not a commit.
+ */
+function documentCommitSignature(): string {
+  const s = controller.getState();
+  const payload = JSON.stringify([
+    s.templateId,
+    s.templateFilename,
+    s.schemaFilename,
+    s.examples.map((e) => e.id),
+    s.model,
+    s.sheets,
+    s.handlebarsTemplate ?? "",
+  ]);
+  let hash = 2166136261;
+  for (let i = 0; i < payload.length; i++) {
+    hash ^= payload.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${payload.length}:${(hash >>> 0).toString(16)}`;
+}
+
+/**
+ * Desktop: commit the current document to the shared Agent API history when
+ * it changed since the last commit or sync (ADR 0014). Runs after every
+ * render, so controller-originated changes (Click-to-Map, AI chat tools,
+ * Import Suggestions) are committed too, not only Blockly edits. During an AI
+ * chat turn the commit carries the `ai-chat` origin and the turn id; the
+ * session folds a turn's commits into one history entry.
+ */
+function commitPendingUiChange(
+  summary?: string,
+  options: { ai?: { origin: UiCommitOrigin; notices: string[] }; force?: boolean } = {},
+): Promise<void> {
+  if (!isDesktopEnvironment() || !isAgentBridgeSynced() || applyingAgentBundle || !workspace) {
+    return Promise.resolve();
+  }
+  const signature = documentCommitSignature();
+  if (signature === committedDocSignature && !options.force) return Promise.resolve();
+  committedDocSignature = signature;
+  const ai = options.ai ?? aiWriteInProgress();
+  const origin = ai?.origin;
+  const text = ai
+    ? `AI chat: ${ai.notices.slice(-6).join("; ") || "edit"}`
+    : summary ?? pendingCommitSummary ?? controller.getState().statusMessage ?? "Edit mapping";
+  pendingCommitSummary = null;
+  return commitUiChange(controller.exportDocumentSnapshot(), text.slice(0, 400), { origin }).then((result) => {
+    const hit = result?.overwritten[0];
+    if (!hit) return;
+    controller.setStatusMessage(
+      formatMessage(uiChrome().agentChangeOverwritten, { agent: hit.actor, summary: hit.summary }),
+    );
+  });
+}
+
+/**
+ * Desktop: apply a bundle an agent wrote as one undo step (ADR 0014), after
+ * local changes were committed. Skipped when a local edit is still pending.
+ */
+async function applyAgentBundle(bundle: DocumentSnapshot, initial: boolean): Promise<boolean> {
+  if (!initial && documentCommitSignature() !== committedDocSignature) return false;
+  applyingAgentBundle = true;
+  try {
+    if (initial) {
+      controller.restoreDocumentSnapshot(bundle);
+    } else {
+      await withUndoableDocumentReplace(() => controller.restoreDocumentSnapshot(bundle));
+    }
+  } finally {
+    applyingAgentBundle = false;
+  }
+  committedDocSignature = documentCommitSignature();
+  return true;
 }
 
 function slotSignatureFrom(
@@ -1452,7 +1554,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
     if (canvasSig !== slotSignature) {
       replaceCanvasUndoable(workspace, () => {
         applyModelExpressions(workspace, s.model);
-      });
+      }, aiWriteInProgress()?.origin.turnId);
       refreshAiReviewMarkers(workspace);
     }
     blocklySlotSignature = slotSignature;
@@ -1640,7 +1742,14 @@ const importAiDialog = installImportAiDialog({
   formatDocUrl: host.resolveAppUrl("docs/AI_SUGGESTION_FORMAT.md"),
   readClipboard: () => controller.readClipboardText(),
   copyToClipboard: (text) => host.copyToClipboard(text),
-  importText: (text) => controller.importAiSuggestions(text),
+  // A pasted AI answer is an AI change too (ADR 0014), with its own undo step.
+  importText: (text) => {
+    let report!: ReturnType<typeof controller.importAiSuggestions>;
+    void withAiCommit({ provider: "copy-paste" }, () => {
+      report = asAiWriteSync(() => controller.importAiSuggestions(text));
+    });
+    return report;
+  },
   notes: requireEl("import-ai-notes"),
   describeSlot: (slotId) => describeSlotForNotes(slotId),
   onAnswer: (question, index, option) => aiChat?.answerQuestion(question, index, option),
@@ -3143,7 +3252,7 @@ async function runSuggestionsFallbackTurn(
   if (result.truncated) {
     notes.push(uiChrome().aiChatTruncated);
   } else if (looksLikeSuggestionsPayload(result.text)) {
-    const report = controller.importAiSuggestions(result.text);
+    const report = asAiWriteSync(() => controller.importAiSuggestions(result.text));
     const notice = mappingNoticeFor("import_suggestions", {}, { report });
     if (notice) {
       mappings.push(notice);
@@ -3164,7 +3273,38 @@ async function runSuggestionsFallbackTurn(
   };
 }
 
-async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
+/**
+ * Run `fn` as one AI change (ADR 0014): its canvas swaps share one Blockly undo
+ * group and its desktop commits carry the `ai-chat` origin and one turn id.
+ */
+async function withAiCommit<T>(origin: Omit<UiCommitOrigin, "origin" | "turnId">, fn: () => T | Promise<T>): Promise<T> {
+  const outer = activeAiCommit;
+  const turn = { origin: { origin: "ai-chat" as const, ...origin, turnId: crypto.randomUUID() }, notices: [] as string[] };
+  activeAiCommit = turn;
+  try {
+    return await fn();
+  } finally {
+    // The ✓ notices arrive after each write; the last commit carries them all
+    // (the session folds it into the turn's entry).
+    if (turn.notices.length) await commitPendingUiChange(undefined, { ai: turn, force: true });
+    activeAiCommit = outer;
+  }
+}
+
+function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
+  const creds = loadAiCredentials(localStorage);
+  if (!creds) return Promise.reject(new Error(uiChrome().saveAiOrCopy));
+  return withAiCommit({ provider: creds.providerId, model: creds.model }, () =>
+    runAiChatTurnInner({
+      ...request,
+      onEvent: (event) => {
+        if (event.type === "mapping") activeAiCommit?.notices.push(event.text);
+        request.onEvent?.(event);
+      },
+    }));
+}
+
+async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTurnResult> {
   const creds = loadAiCredentials(localStorage);
   if (!creds) throw new Error(uiChrome().saveAiOrCopy);
   controller.setStatusMessage("Calling AI…");
@@ -3173,6 +3313,7 @@ async function runAiChatTurn(request: AiChatTurnRequest): Promise<AiChatTurnResu
   try {
     // With credentials Send always streams the tool loop; Stop aborts `request.signal`.
     const result = await runMappingAgentOnController(controller, {
+      asAiWrite: asAiWriteSync,
       credentials: creds,
       prompt: request.prompt,
       history: request.history,
@@ -3604,6 +3745,7 @@ function render(): void {
   } finally {
     suppressBlocklyModelSync = false;
   }
+  void commitPendingUiChange();
   // Blockly apply may have refreshed generatedCode without a re-render.
   const afterCanvas = controller.getState();
 

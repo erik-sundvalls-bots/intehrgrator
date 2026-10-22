@@ -99,12 +99,16 @@ export class CanvasSwapEvent extends Blockly.Events.Abstract {
   }
 }
 
-/** Apply a bulk canvas mutation as a single undoable workspace snapshot. */
-export function replaceCanvasUndoable(workspace: Workspace, apply: () => void): void {
+/**
+ * Apply a bulk canvas mutation as a single undoable workspace snapshot.
+ * Snapshots sharing `group` (one AI chat turn) undo and redo together.
+ */
+export function replaceCanvasUndoable(workspace: Workspace, apply: () => void, group?: string): void {
   const before = structuredClone(Blockly.serialization.workspaces.save(workspace));
   apply();
   const after = structuredClone(Blockly.serialization.workspaces.save(workspace));
   const event = new CanvasSwapEvent(workspace, before, after);
   if (event.isNull()) return;
+  if (group) event.group = group;
   Blockly.Events.fire(event as AbstractEvent);
 }

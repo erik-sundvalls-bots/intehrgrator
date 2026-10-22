@@ -7,6 +7,7 @@ import { filterSlotRows, getExampleInspect, listExamplesInspect } from "./inspec
 import { basename, dirname, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
 import type { MutationContext, WorkbenchService } from "../workbench/service.ts";
+import { mcpClientActor } from "./actor.ts";
 import type { ConversionScriptLanguage, SourceFormatId } from "../types/mod.ts";
 import { isConversionScriptLanguage, isInstanceEncoding, isOutputMode } from "../types/mod.ts";
 import { exportBundle } from "../core/persistence/mod.ts";
@@ -709,13 +710,18 @@ export async function callAgentTool(
 }
 
 function mutationContextFromArgs(args: Record<string, unknown>): MutationContext | undefined {
-  if (typeof args._agentId !== "string" || !args._agentId) return undefined;
+  const client = typeof args._agentClient === "string" && args._agentClient ? args._agentClient : undefined;
+  if (typeof args._agentId !== "string" || !args._agentId) {
+    return client ? { actor: mcpClientActor(client) } : undefined;
+  }
   return {
     actor: {
       kind: "agent",
       id: args._agentId,
       displayName: String(args._agentName ?? args._agentId),
       color: typeof args._agentColor === "string" ? args._agentColor : undefined,
+      origin: "mcp",
+      ...(client ? { client } : {}),
     },
   };
 }
@@ -776,6 +782,7 @@ function projectBundleFromArgs(args: Record<string, unknown>): ProjectBundle {
   delete rest.revision;
   delete rest._agentId;
   delete rest._agentName;
+  delete rest._agentClient;
   delete rest._agentColor;
   delete rest.path;
   delete rest.bundle;

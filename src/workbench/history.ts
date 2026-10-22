@@ -1,4 +1,4 @@
-import type { HistoryActor } from "../agent/actor.ts";
+import { actorOrigin, type HistoryActor } from "../agent/actor.ts";
 import { bundleRevision } from "../agent/revision.ts";
 import type { ProjectBundle } from "../types/mod.ts";
 
@@ -82,6 +82,21 @@ export class HistoryLog {
   ): HistoryEntry | null {
     if (JSON.stringify(beforeBundle) === JSON.stringify(afterBundle)) return null;
     const revisionAfter = bundleRevision(afterBundle);
+    const tail = this.entries.at(-1);
+    if (tail && actor.turnId && tail.actor.turnId === actor.turnId && tail.actor.id === actor.id) {
+      // One AI chat turn is one entry (ADR 0014): later commits of the same
+      // turn extend it, unless another actor wrote in between.
+      tail.afterBundle = structuredClone(afterBundle);
+      tail.revisionAfter = revisionAfter;
+      tail.summary = summary;
+      tail.kind = kind;
+      tail.affectedSlotIds = [...new Set([...tail.affectedSlotIds, ...affectedSlotIds])];
+      tail.timestamp = new Date().toISOString();
+      this.redoStack = [];
+      this.noteActivity(tail);
+      void this.appendPersist(tail);
+      return tail;
+    }
     const entry: HistoryEntry = {
       seq: ++this.headSeq,
       revisionAfter,
@@ -95,19 +110,37 @@ export class HistoryLog {
     };
     this.entries.push(entry);
     this.redoStack = [];
-    if (actor.kind === "agent") {
-      this.lastActivity = {
-        agentId: actor.id,
-        displayName: actor.displayName,
-        color: actor.color ?? "",
-        revision: revisionAfter,
-        summary,
-        affectedSlotIds: [...affectedSlotIds],
-        at: entry.timestamp,
-      };
-    }
+    this.noteActivity(entry);
     void this.appendPersist(entry);
     return entry;
+  }
+
+  private noteActivity(entry: HistoryEntry): void {
+    if (entry.actor.kind !== "agent") return;
+    this.lastActivity = {
+      agentId: entry.actor.id,
+      displayName: entry.actor.displayName,
+      color: entry.actor.color ?? "",
+      revision: entry.revisionAfter,
+      summary: entry.summary,
+      affectedSlotIds: [...entry.affectedSlotIds],
+      at: entry.timestamp,
+    };
+  }
+
+  /** Update the summary of the newest entry when it belongs to AI chat turn `turnId`. */
+  updateTailSummary(turnId: string, summary: string): void {
+    const tail = this.entries.at(-1);
+    if (!tail || tail.actor.turnId !== turnId) return;
+    tail.summary = summary;
+    this.noteActivity(tail);
+    void this.appendPersist(tail);
+  }
+
+  /** Entries recorded after the one whose `revisionAfter` is `revision` (all when unknown). */
+  entriesAfterRevision(revision: string): HistoryEntry[] {
+    const idx = this.entries.findIndex((e) => e.revisionAfter === revision);
+    return idx < 0 ? [] : this.entries.slice(idx + 1);
   }
 
   undoGlobal(currentAfter: ProjectBundle): ProjectBundle | null {
@@ -182,7 +215,7 @@ export class HistoryLog {
       "",
       "## Target history entry",
       `- seq: ${entry.seq}`,
-      `- actor: ${entry.actor.displayName} (${entry.actor.kind})`,
+      `- actor: ${entry.actor.displayName} (${actorOrigin(entry.actor)})`,
       `- summary: ${entry.summary}`,
       `- affectedSlotIds: ${entry.affectedSlotIds.join(", ") || "(none)"}`,
       "",

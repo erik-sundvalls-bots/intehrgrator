@@ -580,6 +580,8 @@ export const en = {
     "Older chat turns were dropped to keep the request small; this message re-attaches the project context.",
   aiChatRevert: "Revert last AI turn",
   aiChatReverted: "Reverted the last AI turn",
+  agentChangeOverwritten:
+    "Your change replaced an agent change made at the same moment ({agent}: {summary}). It is still in the history.",
   aiChatToolCall: "Tool: {name}",
   aiChatToolCalls: "{count} tool call(s)",
   aiChatNoCredentials: "No AI credentials are configured for this browser. Configure them to chat directly, or use copy & paste with any AI chat.",
