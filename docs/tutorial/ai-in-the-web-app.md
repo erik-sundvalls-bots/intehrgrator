@@ -4,9 +4,9 @@ The **AI** menu has two sections for the web app, and a third that appears only 
 
 Back to the [tutorial index](../TUTORIAL.md).
 
-<img src="../assets/tutorial/ai-menu.png" alt="AI menu open, with Copy for an external chat above Your own AI" />
+<img src="../assets/tutorial/ai-menu.png" alt="AI menu open: copy/paste for an external AI chat above Your own AI, with Configure AI credentials" />
 
-*Copy-and-paste actions are grouped above Call AI and credentials.*
+*Copy-and-paste actions sit above **Configure AI credentials…**. The chat itself is the **AI chat** panel under Target & Previews.*
 
 ## Copy for an external chat
 
@@ -18,16 +18,31 @@ Under **copy/paste for external AI chat**, pick how context is packed. Each choi
 - **Attach files in chat** — the prompt tells you which files to attach yourself.
 - **Browse URIs (when available)** — the prompt points at URLs instead of embedding bytes.
 
-Paste the model’s reply with **Import AI suggestions** (paste icon in the menu). The dialog accepts raw JSON or an `intehrgrator-suggestions` fence. Validation errors stay in the dialog so you can copy them back to the chat. The format is [AI_SUGGESTION_FORMAT.md](../AI_SUGGESTION_FORMAT.md).
+Without credentials the **AI chat** panel offers the same flow: type your request, **Copy prompt**, paste it into your chat, then **Import AI answer…**.
+
+<img src="../assets/tutorial/ai-chat-copy-paste.png" alt="AI chat panel without credentials: notice with Configure AI credentials, message box, Copy prompt and Import AI answer buttons" />
+
+**Import AI suggestions** (menu) and **Import AI answer…** (chat) open the same dialog. It accepts raw JSON or an `intehrgrator-suggestions` fence and shows what will be applied. Validation errors stay in the dialog so you can copy them back to the chat. The format is [AI_SUGGESTION_FORMAT.md](../AI_SUGGESTION_FORMAT.md). This dialog is only for pasted answers.
 
 ## Your own AI
 
 Use this when intEHRgrator should call the model itself.
 
-1. **Configure AI credentials…** — pick a provider, endpoint, API key, and model. Credentials stay in this browser. They are never stored in the Project Bundle.
-2. **Call AI** — sends the current prompt. It streams the answer and uses mapping tools with the same names as MCP (`map_slot`, `import_suggestions`, `run_test`, …) on the open canvas, with a short line per applied mapping and a **Stop** button. Copy & paste with **Import AI answer…** is the one-shot import.
+1. **Configure AI credentials…** — pick a provider, endpoint, API key, and model. Credentials stay in this browser. They are never stored in the Project Bundle. There is nothing else to choose: the chat always uses the mapping tools.
 
-On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop app forwards Call AI through its own server, so Gemini, OpenAI, Anthropic, Hugging Face, and OpenCode Zen work there. Key pages: [Call AI credentials](../AI_CREDENTIALS.md).
+   <img src="../assets/tutorial/ai-credentials.png" alt="AI credentials dialog with the Ollama (local) preset: provider, endpoint, masked API key and model" />
+
+2. Type in the **AI chat** panel and press **Send**. The answer streams in, with the model's reasoning when the provider sends it. The model maps with the same tools as MCP (`list_slots`, `map_slot`, `import_suggestions`, `get_example`, `run_test`, …) right on the canvas, and each applied mapping shows as a short **✓ Mapped …** line. While it runs, **Send** becomes **Stop** (or press Esc); what was mapped before Stop stays.
+
+   <img src="../assets/tutorial/ai-chat-streaming.png" alt="AI chat while streaming: reasoning, a ✓ Mapped Systolic line, and the Stop button" />
+
+3. When the turn ends, **Revert last AI turn** puts the canvas back as it was before that turn. You can keep chatting; later messages send only your new text.
+
+   <img src="../assets/tutorial/ai-chat-done.png" alt="Finished AI chat turn with the ✓ line, one tool call, the answer and Revert last AI turn" />
+
+If a provider does not support function tools, the chat asks once for suggestions JSON and applies it directly; Revert works the same way.
+
+On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop app forwards AI chat requests through its own server, so Gemini, OpenAI, Anthropic, Hugging Face, and OpenCode Zen work there. Key pages: [AI chat credentials](../AI_CREDENTIALS.md).
 
 | Provider | Create credentials |
 |----------|-------------------|
@@ -41,6 +56,6 @@ On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop a
 | Hugging Face | [Access tokens](https://huggingface.co/settings/tokens) · [Inference Providers](https://huggingface.co/docs/inference-providers/en/index) |
 | OpenCode Zen | [Auth / API key](https://opencode.ai/auth) · [Zen](https://opencode.ai/docs/zen/) |
 
-Refreshing a target or source opens a report with **Copy merge prompt** and **Call AI**. Blocks you detached stay on the canvas.
+Refreshing a target or source opens a report with **Copy merge prompt** and **Open in AI chat**. Blocks you detached stay on the canvas.
 
 **Run Test** after any AI pass. See [Tests and export](tests-and-export.md).
