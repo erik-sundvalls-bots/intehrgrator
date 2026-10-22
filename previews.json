@@ -32,12 +32,12 @@
     "upstream": "c5af42ca53ad619621883e035abff258330d67c1"
   },
   "issue-252-a2-chat-via-service": {
-    "built": "2026-10-22T06:39:47Z",
+    "built": "2026-10-22T07:19:42Z",
     "dir": "issue-252-a2-chat-via-service",
     "mode": "merged",
     "pr": "263\thttps://github.com/regionstockholm/intehrgrator/pull/263\tOPEN\tAI chat runs the MCP tools through AgentClient; remove controller_tools.ts (ADR 0014, A2)",
-    "sha": "982418fc46388f2d563e2f8374d58b73ee314b7b",
-    "upstream": "c5af42ca53ad619621883e035abff258330d67c1"
+    "sha": "7a1d2aaa4f253f8394f946335f4e291a84b92c6e",
+    "upstream": "ffcf9d4d796bba79967eef9ebef657f2faf30b67"
   },
   "issue-252-ai-tokens-streaming": {
     "built": "2026-10-21T19:58:46Z",

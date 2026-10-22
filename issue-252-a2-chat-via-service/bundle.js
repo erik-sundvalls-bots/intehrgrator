@@ -192756,8 +192756,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "982418f" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-22T06:39:45.400Z" : "not built";
+var BUILD_ID = true ? "7a1d2aa" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-22T07:19:40.502Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
@@ -199731,7 +199731,7 @@ var AI_PROVIDER_PRESETS = [
     model: "gemini-3.8-flash",
     keyUrl: "https://aistudio.google.com/app/apikey",
     docsUrl: "https://ai.google.dev/gemini-api/docs/openai",
-    help: "Create a Gemini API key in Google AI Studio (new keys are auth keys; standard keys are rejected as of September 2026). Call AI POSTs Google's OpenAI-compatible chat completions URL with Authorization: Bearer <key>. Function tools work on that endpoint. GitHub Pages browsers often hit CORS; the desktop app forwards the call."
+    help: "Create a Gemini API key in Google AI Studio (new keys are auth keys; standard keys are rejected as of September 2026). AI chat POSTs Google's OpenAI-compatible chat completions URL with Authorization: Bearer <key>. Function tools work on that endpoint. GitHub Pages browsers often hit CORS; the desktop app forwards the call."
   },
   {
     id: "openai",
@@ -199749,7 +199749,7 @@ var AI_PROVIDER_PRESETS = [
     model: "claude-sonnet-4-6",
     keyUrl: "https://console.anthropic.com/settings/keys",
     docsUrl: "https://platform.claude.com/docs/en/api/openai-sdk",
-    help: "Create a Claude API key in the Anthropic Console. Call AI uses Anthropic's OpenAI-compatible POST /v1/chat/completions (Bearer + x-api-key). Function tools are supported. Native /v1/messages is not required here."
+    help: "Create a Claude API key in the Anthropic Console. AI chat uses Anthropic's OpenAI-compatible POST /v1/chat/completions (Bearer + x-api-key). Function tools are supported. Native /v1/messages is not required here."
   },
   {
     id: "ollama-local",
@@ -199759,7 +199759,7 @@ var AI_PROVIDER_PRESETS = [
     apiKeyPlaceholder: "ollama",
     keyUrl: "https://docs.ollama.com/openai",
     docsUrl: "https://docs.ollama.com/openai",
-    help: "Install Ollama and run a model (`ollama run \u2026`). Local /v1/chat/completions ignores the API key; Call AI sends the dummy value ollama. Enable CORS if you call from a browser (OLLAMA_ORIGINS). Mapping tools need a model that supports OpenAI function calling."
+    help: "Install Ollama and run a model (`ollama run \u2026`). Local /v1/chat/completions ignores the API key; AI chat sends the dummy value ollama. Enable CORS if you call from a browser (OLLAMA_ORIGINS). Mapping tools need a model that supports OpenAI function calling."
   },
   {
     id: "ollama-cloud",
@@ -199778,7 +199778,7 @@ var AI_PROVIDER_PRESETS = [
     apiKeyPlaceholder: "lm-studio",
     keyUrl: "https://lmstudio.ai/docs/developer/core/authentication",
     docsUrl: "https://lmstudio.ai/docs/developer/openai-compat",
-    help: "Start the LM Studio local server (Developer). Default OpenAI-compatible URL is http://localhost:1234/v1/chat/completions. Auth is off by default; if you enable tokens, paste a Bearer token from Server Settings. Turn on CORS for browser Call AI. Use the loaded model's identifier from GET /v1/models."
+    help: "Start the LM Studio local server (Developer). Default OpenAI-compatible URL is http://localhost:1234/v1/chat/completions. Auth is off by default; if you enable tokens, paste a Bearer token from Server Settings. Turn on CORS for browser AI chat. Use the loaded model's identifier from GET /v1/models."
   },
   {
     id: "lmstudio-cloud",
@@ -199788,7 +199788,7 @@ var AI_PROVIDER_PRESETS = [
     apiKeyPlaceholder: "lm-studio",
     keyUrl: "https://lmstudio.ai/docs/lmlink/basics",
     docsUrl: "https://lmstudio.ai/docs/developer/openai-compat",
-    help: "LM Studio Secure Cloud / Bionic Cloud is account + credits inside Bionic (not a public chat-completions host). For Call AI, point Endpoint at a reachable OpenAI-compatible LM Studio server: LM Link, another machine's :1234, or a LAN URL. Same /v1/chat/completions shape as local. If the remote server requires a token, paste it as the API key."
+    help: "LM Studio Secure Cloud / Bionic Cloud is account + credits inside Bionic (not a public chat-completions host). For AI chat, point Endpoint at a reachable OpenAI-compatible LM Studio server: LM Link, another machine's :1234, or a LAN URL. Same /v1/chat/completions shape as local. If the remote server requires a token, paste it as the API key."
   },
   {
     id: "huggingface",
@@ -199797,7 +199797,7 @@ var AI_PROVIDER_PRESETS = [
     model: "openai/gpt-oss-120b:fastest",
     keyUrl: "https://huggingface.co/settings/tokens",
     docsUrl: "https://huggingface.co/docs/inference-providers/en/index",
-    help: "Create a fine-grained Hugging Face token with permission \u201CMake calls to Inference Providers\u201D. Call AI posts to https://router.huggingface.co/v1/chat/completions with Bearer HF_TOKEN. Append :fastest, :cheapest, or a provider id to the model. Function calling is documented for Inference Providers."
+    help: "Create a fine-grained Hugging Face token with permission \u201CMake calls to Inference Providers\u201D. AI chat posts to https://router.huggingface.co/v1/chat/completions with Bearer HF_TOKEN. Append :fastest, :cheapest, or a provider id to the model. Function calling is documented for Inference Providers."
   },
   {
     id: "opencode-zen",
@@ -199806,7 +199806,7 @@ var AI_PROVIDER_PRESETS = [
     model: "big-pickle",
     keyUrl: "https://opencode.ai/auth",
     docsUrl: "https://opencode.ai/docs/zen/",
-    help: "Sign in at opencode.ai/auth, add billing, and copy the Zen API key. Call AI uses the OpenAI-compatible Zen gateway (https://opencode.ai/zen/v1/chat/completions) with Bearer auth. Pick a model whose Zen table lists chat-completions (big-pickle, minimax-m3, glm-5.3-flash, mimo-v2.5-free, \u2026). GPT rows use /responses and Claude rows use /messages \u2014 those will not work here."
+    help: "Sign in at opencode.ai/auth, add billing, and copy the Zen API key. AI chat uses the OpenAI-compatible Zen gateway (https://opencode.ai/zen/v1/chat/completions) with Bearer auth. Pick a model whose Zen table lists chat-completions (big-pickle, minimax-m3, glm-5.3-flash, mimo-v2.5-free, \u2026). GPT rows use /responses and Claude rows use /messages \u2014 those will not work here."
   },
   {
     id: "opencode-cloud",
@@ -199815,7 +199815,7 @@ var AI_PROVIDER_PRESETS = [
     model: "",
     keyUrl: "https://docs.railway.com/cloud-agents/opencode",
     docsUrl: "https://opencode.ai/docs/server/",
-    help: "OpenCode's cloud runner is an agent host, not a model key. Run `opencode serve` (or Railway `railway ca desktop --opencode`) and point that process at intEHRgrator MCP / HTTP Agent API \u2014 the same tools as an IDE agent. For in-app Call AI, pick OpenCode Zen (or another chat-completions provider) and paste that key. See docs/AI_CREDENTIALS.md and docs/AGENT_WORKFLOW.md."
+    help: "OpenCode's cloud runner is an agent host, not a model key. Run `opencode serve` (or Railway `railway ca desktop --opencode`) and point that process at intEHRgrator MCP / HTTP Agent API \u2014 the same tools as an IDE agent. For in-app AI chat, pick OpenCode Zen (or another chat-completions provider) and paste that key. See docs/AI_CREDENTIALS.md and docs/AGENT_WORKFLOW.md."
   }
 ];
 function findAiProviderPreset(id4) {
