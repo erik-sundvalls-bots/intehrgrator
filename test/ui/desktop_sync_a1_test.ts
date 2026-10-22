@@ -12,6 +12,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { chromium, type Page } from "npm:playwright@1.51.0";
 import { diastolicSuffix, findSlotIdEndingWith, findSystolicSlotId, waitForTestApi } from "./helpers.ts";
+import { patchEhrtslibValidator } from "../../scripts/patch-ehrtslib-validator.ts";
 
 const root = new URL("../../", import.meta.url).pathname;
 const port = 18_000 + Math.floor(Math.random() * 1000);
@@ -85,13 +86,26 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
   async fn() {
+    // The server imports the patched ehrtslib validator (`deno task vendor`);
+    // the CI UI job only downloads dist/, so write the override when missing.
+    try {
+      await Deno.stat(`${root}vendor/ehrtslib-overrides/validation/template_validator.ts`);
+    } catch {
+      await patchEhrtslibValidator(root);
+    }
     const server = new Deno.Command("deno", {
       args: ["run", "-A", "--no-check", "src/desktop/main.ts", "--headless", "--port", String(port)],
       cwd: root,
       env: { ...Deno.env.toObject(), INTEHR_AGENT_TOKEN: "" },
       stdout: "null",
-      stderr: "null",
+      stderr: "piped",
     }).spawn();
+    // Keep the server's stderr for a failed start.
+    let serverLog = "";
+    void (async () => {
+      const decoder = new TextDecoder();
+      for await (const chunk of server.stderr) serverLog = (serverLog + decoder.decode(chunk)).slice(-4000);
+    })().catch(() => {});
     const browser = await chromium.launch({ headless: true });
     try {
       await waitFor(async () => {
@@ -100,7 +114,9 @@ Deno.test({
         } catch {
           return false;
         }
-      }, "desktop server", 60_000);
+      }, "desktop server", 60_000).catch((err) => {
+        throw new Error(`${(err as Error).message}\n${serverLog}`);
+      });
       const fx = `${root}test/fixtures`;
       await api("POST", "/register-agent", { agentId: "probe", displayName: "Probe" });
       await api("POST", "/load-target", { path: `${fx}/blood_pressure.opt` });
