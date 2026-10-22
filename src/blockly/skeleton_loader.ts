@@ -1,6 +1,6 @@
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
 import { applySlotReviews } from "./ai_review.ts";
-import { slotExpressionBlocks } from "./mapping_ir.ts";
+import { extractMappingIr, slotExpressionBlocks } from "./mapping_ir.ts";
 import type { AllowedOrdinal, AllowedValue, MappingLoop, MappingModel, SkeletonNode } from "../types/mod.ts";
 import { AUTO_FIXED_LOCATABLE_ATTRS } from "../core/rm_mandatory.ts";
 import {
@@ -253,7 +253,14 @@ export function applyModelExpressions(
   options: { recordUndo?: boolean } = {},
 ): void {
   const apply = () => {
-    const slotMap = new Map(model.slots.filter((s) => s.expression).map((s) => [s.slotId, s]));
+    // Only slots whose canvas expression differs from the model are rebuilt
+    // (#266): re-attaching an unchanged expression is not always lossless (a
+    // terminology picker holding a coded text becomes a plain shell), so an
+    // untouched slot must keep its blocks.
+    const onCanvas = new Map(extractMappingIr(workspace).slots.map((s) => [s.slotId, s.expression]));
+    const slotMap = new Map(
+      model.slots.filter((s) => s.expression && onCanvas.get(s.slotId) !== s.expression).map((s) => [s.slotId, s]),
+    );
     for (const block of workspace.getAllBlocks(false)) {
       if (isSchemaStructureBlock(block)) {
         attachSchemaFieldExpressions(workspace, block, slotMap);

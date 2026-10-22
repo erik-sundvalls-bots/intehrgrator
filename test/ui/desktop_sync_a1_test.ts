@@ -154,6 +154,9 @@ Deno.test({
       await api("POST", "/map-slot", { slotId: dia, path: "$.diastolic", format: "json" });
       await waitFor(async () => (await expr(page, dia)).includes("diastolic"), "MCP change synced");
       assert((await expr(page, sys)).includes("systolic"), "UI mapping survives the MCP sync");
+      // #266: the pulled MCP change does not rewrite the untouched category (code 433 kept).
+      const category = await findSlotIdEndingWith(page, "//category/DV_CODED_TEXT/value");
+      assertStringIncludes(await expr(page, category), '"433"', "category keeps its code after the MCP sync");
       const mcp = (await history()).find((e) => e.kind === "map_slot")!;
       assertEquals(mcp.actor.origin, "mcp");
       assertEquals(mcp.actor.client, "test-client");
