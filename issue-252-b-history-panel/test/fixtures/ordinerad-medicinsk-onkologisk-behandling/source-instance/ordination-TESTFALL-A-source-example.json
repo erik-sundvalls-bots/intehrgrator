@@ -1,0 +1,58 @@
+{
+  "CytodosOrdinationKey": 3,
+  "RekvisisjonId": 314196635,
+  "Personnummer": "AWn+PyB/tOhO2QxDCTEUJJ89J4PDUdcOXReHhriraWdqFpgxXNkGhtt/4N4P",
+  "PasientenDeltarIStudie": 0,
+  "StudieId": null,
+  "KurdefinisjonNavn": "KPF Lunga Pembro 3v",
+  "KurStartDato": "2026-04-27T00:00:00",
+  "PasientKurnummer": 7,
+  "SignatureUser_UserName": "A1D8",
+  "SignatureUser_Fullname": "TakeCare_Test",
+  "SignatureDate": "2026-04-27T10:23:45.673",
+  "RekvisisjonVersjon": 3,
+  "RekvisisjonStatus": "Bekräftad",
+  "PDL_enhet_Namn": "OO Cancer TC TEST",
+  "PDL_enhet_HSAID": "ADNF",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Vardenhet_id": null,
+  "Vardenhet_namn": null,
+  "Vardenhet_HSAID": null,
+  "SenastUppdaterad": 1713427030140,
+  "SenastUppdaterad_orig": "2026-04-27T07:57:10.1400000+00:00",
+  "KurDagar": [
+    {
+      "KurdagLopenummer": 453234,
+      "Dognnummer": 1,
+      "StartTid": "2026-04-27T13:00:00",
+      "SenastUppdaterad": "2026-04-27T17:13:50.6100000+02:00",
+      "Substanser": [
+        {
+          "Lopenummer": 774456456,
+          "Doseberegnet": 140.00,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "Pembrolizumab",
+          "Innholdstoff_ATC": "L01FF02",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Intravenöst",
+          "Route_CodeValue": "3.0000",
+          "SenastUppdaterad": "2026-04-27T17:16:50.4730000+02:00"
+        },
+        {
+          "Lopenummer": 774456457,
+          "Doseberegnet": 1000.0,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "Atezolizumab sc",
+          "Innholdstoff_ATC": "L01FF05",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Subcutan",
+          "Route_CodeValue": "7.0000",
+          "SenastUppdaterad": "2026-04-27T17:16:50.4730000+02:00"
+        }
+      ]
+    }
+  ]
+}

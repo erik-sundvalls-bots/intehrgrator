@@ -63,6 +63,14 @@
     "sha": "c8b6a8c6a3c64cc6e3498e7547c6afd129467e6a",
     "upstream": "c5af42ca53ad619621883e035abff258330d67c1"
   },
+  "issue-252-b-history-panel": {
+    "built": "2026-10-22T08:38:09Z",
+    "dir": "issue-252-b-history-panel",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "0ea17049f9d8d82e004c0f546c77460dbd2ead22",
+    "upstream": "ffcf9d4d796bba79967eef9ebef657f2faf30b67"
+  },
   "release-0.9.2": {
     "built": "2026-10-19T18:57:56Z",
     "dir": "release-0.9.2",

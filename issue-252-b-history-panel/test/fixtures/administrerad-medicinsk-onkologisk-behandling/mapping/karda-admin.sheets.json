@@ -1,0 +1,66 @@
+[
+  {
+    "name": "medication_ism",
+    "kind": "decision-table",
+    "hitPolicy": "FIRST",
+    "headers": [
+      "encounter_status",
+      "administration_status",
+      "current_state",
+      "careflow_step",
+      "note"
+    ],
+    "decisionColumns": [
+      { "role": "condition" },
+      { "role": "condition" },
+      { "role": "output", "outputKind": "value", "valueType": "string" },
+      { "role": "output", "outputKind": "value", "valueType": "string" },
+      { "role": "output", "outputKind": "value", "valueType": "string" }
+    ],
+    "values": [
+      [
+        "Stoppad",
+        "Stoppad",
+        "completed",
+        "Fullföljd läkemedelsbehandling",
+        "Source Stoppad; OPT only allows current_state 532 completed + careflow at0007"
+      ],
+      [
+        "Stoppad",
+        "Administrerad",
+        "completed",
+        "Fullföljd läkemedelsbehandling",
+        "Source mixed Stoppad/Administrerad; OPT only allows 532 + at0007"
+      ],
+      [
+        "Administrerad",
+        "Stoppad",
+        "completed",
+        "Fullföljd läkemedelsbehandling",
+        "Source mixed Administrerad/Stoppad; OPT only allows 532 + at0007"
+      ],
+      [
+        "Administrerad",
+        "Administrerad",
+        "completed",
+        "Fullföljd läkemedelsbehandling",
+        "Source Administrerad; OPT only allows current_state 532 completed + careflow at0007"
+      ],
+      [
+        "—",
+        "—",
+        "completed",
+        "Fullföljd läkemedelsbehandling",
+        "Catch-all: OPT only allows current_state 532 completed + careflow at0007"
+      ]
+    ],
+    "rowCatchAll": [false, false, false, false, true],
+    "rowNames": [
+      "both_stopped",
+      "enc_stopped_admin_given",
+      "enc_given_admin_stopped",
+      "both_administered",
+      "opt_constraint_catchall"
+    ]
+  }
+]
