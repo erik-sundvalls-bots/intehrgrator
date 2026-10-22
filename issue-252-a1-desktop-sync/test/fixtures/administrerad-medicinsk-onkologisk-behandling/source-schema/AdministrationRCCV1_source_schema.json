@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://karolinska.se/schemas/karda/cytodos/AdministrationRCCV1.json",
+  "title": "AdministrationRCCV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "CytodosAdministrationKey",
+    "RekvisisjonId",
+    "EncounterId",
+    "PDL_enhet_Namn",
+    "PDL_enhet_HSAID"
+  ],
+  "properties": {
+    "CytodosAdministrationKey": { "type": "integer" },
+    "Personnummer": { "type": ["string", "null"] },
+    "RekvisisjonId": { "type": "integer" },
+    "ExternalEncounterId": { "type": ["integer", "null"] },
+    "EncounterId": { "type": "integer" },
+    "EncounterDate": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "EncounterStatus": { "type": ["integer", "null"] },
+    "EncounterStatus_LongDescription": { "type": ["string", "null"] },
+    "SignatureUser_FullName": { "type": ["string", "null"] },
+    "SignatureUser_UserName": { "type": ["string", "null"] },
+    "PDL_enhet_Namn": { "type": "string" },
+    "PDL_enhet_HSAID": { "type": "string" },
+    "PDL_vardgivare_Namn": { "type": ["string", "null"] },
+    "PDL_vardgivare_HSAID": { "type": ["string", "null"] },
+    "Sparrgrupp": { "type": ["string", "null"] },
+    "Inskrivningstidpunkt": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "Utskrivningstidpunkt": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "Diagnoskod_ICD10": { "type": ["string", "null"] },
+    "Diagnosnamn_ICD10": { "type": ["string", "null"] },
+    "Vardenhet_id": { "type": ["integer", "null"] },
+    "Vardenhet_namn": { "type": ["string", "null"] },
+    "Vardenhet_HSAID": { "type": ["string", "null"] },
+    "SenastUppdaterad": {
+      "type": ["integer", "null"],
+      "description": "Unix epoch milliseconds (Avro logicalType timestamp-millis)"
+    },
+    "SenastUppdaterad_orig": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "Substanser": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/Substans" }
+    }
+  },
+  "$defs": {
+    "Substans": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ContentID": { "type": ["integer", "null"] },
+        "AdministrationStatus": { "type": ["integer", "null"] },
+        "AdministrationStatus_LongDescription": { "type": ["string", "null"] },
+        "OrderLineId": { "type": ["integer", "null"] },
+        "Dose": { "type": ["number", "null"] },
+        "UnitCode": { "type": ["string", "null"] },
+        "SubstanceType": { "type": ["integer", "null"] },
+        "Innholdstoff_Navn": { "type": ["string", "null"] },
+        "Innholdstoff_ATC": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

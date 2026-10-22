@@ -1,0 +1,5 @@
+# Source schema formats
+
+The .avsc file is the Avro schema used in Kafka for this use case. The .json
+file is a JSON Schema equivalent. Both include PDL vårdgivare name/HSAID so
+schema-driven mapping sees the same fields as the example instances.

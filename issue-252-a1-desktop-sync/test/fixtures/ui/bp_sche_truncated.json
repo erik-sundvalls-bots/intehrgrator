@@ -1,0 +1,17 @@
+",
+  "title": "BloodPressureMeasurement",
+  "description": "A schema representing a single blood pressure reading.",
+  "type": "object",
+  "required": [
+    "patientId",
+    "timestamp",
+    "systolic",
+    "diastolic"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "patientId": {
+      "type": "string"
+    }
+  }
+}
