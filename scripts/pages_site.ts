@@ -47,13 +47,24 @@ export function pickRecommendedVersion(
   return versions[0];
 }
 
+/** Compare `vX.Y(.Z)` tags numerically, newest first (`v0.10` before `v0.9.2`; `v0.9` equals `v0.9.0`). */
+export function compareVersionTagsNewestFirst(a: string, b: string): number {
+  const pa = a.slice(1).split(".").map(Number);
+  const pb = b.slice(1).split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
 export function normalizeManifest(raw: unknown): VersionsManifest {
   if (!raw || typeof raw !== "object") return emptyManifest();
   const versions = (raw as VersionsManifest).versions;
   if (!Array.isArray(versions)) return emptyManifest();
-  const normalizedVersions = [...new Set(versions.filter((v) => typeof v === "string" && /^v\d/.test(v)))]
-    .sort()
-    .reverse();
+  const normalizedVersions = [
+    ...new Set(versions.filter((v): v is string => typeof v === "string" && VERSION_TAG_REGEX.test(v))),
+  ].sort(compareVersionTagsNewestFirst);
   const rawRecommended = (raw as VersionsManifest).recommended;
   const recommended = typeof rawRecommended === "string" && normalizedVersions.includes(rawRecommended)
     ? rawRecommended
