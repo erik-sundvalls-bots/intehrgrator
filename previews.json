@@ -80,12 +80,12 @@
     "upstream": "386fdaaa02acb07832cb0052d9371d22e0b82e4f"
   },
   "issue-lease-canvas": {
-    "built": "2026-10-23T04:05:31Z",
+    "built": "2026-10-23T07:09:55Z",
     "dir": "issue-lease-canvas",
     "mode": "merged",
-    "pr": "\t\t\t",
-    "sha": "e464942abb3e966d93936f8345ef0d1e98370079",
-    "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
+    "pr": "272\thttps://github.com/regionstockholm/intehrgrator/pull/272\tOPEN\tShow who leases what on the canvas",
+    "sha": "a09e106dbfb46b19356b66540da21fa555220871",
+    "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "issue-lease-subtree": {
     "built": "2026-10-23T07:09:20Z",
