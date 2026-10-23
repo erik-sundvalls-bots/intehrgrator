@@ -120,9 +120,9 @@ Deno.test("two unregistered MCP processes from the same IDE are separate agents 
     const l2 = await two.callTool("lease_slot", { slotId: dia }) as { lease: { displayName: string; agentId: string } };
     assertEquals(l2.lease.displayName, "cursor 2");
     // register_agent after the automatic registration renames the same agent (its lease follows).
-    const reg = await two.callTool("register_agent", { displayName: "Bo" }) as { agentId: string };
+    const reg = await two.callTool("register_agent", { displayName: "Bea" }) as { agentId: string };
     assertEquals(reg.agentId, l2.lease.agentId);
-    assertEquals(s.leases.list().find((l) => l.agentId === reg.agentId)?.displayName, "Bo");
+    assertEquals(s.leases.list().find((l) => l.agentId === reg.agentId)?.displayName, "Bea");
   } finally {
     await server.shutdown();
   }
