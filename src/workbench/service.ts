@@ -188,7 +188,9 @@ export class WorkbenchService {
   }
 
   registerAgent(options?: { agentId?: string; displayName?: string; color?: string }) {
-    return this.registry.register(options);
+    const reg = this.registry.register(options);
+    this.leases.renameAgent(reg.agentId, reg.displayName, reg.color);
+    return reg;
   }
 
   setActorFromHeaders(headers: Headers): HistoryActor {

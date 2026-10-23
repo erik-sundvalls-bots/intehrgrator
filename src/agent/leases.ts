@@ -94,6 +94,15 @@ export class SlotLeaseRegistry {
     return released;
   }
 
+  /** After a rename (register_agent again): the agent's leases show the new name and colour. */
+  renameAgent(agentId: string, displayName: string, color?: string): void {
+    for (const row of this.leases.values()) {
+      if (row.agentId !== agentId) continue;
+      row.displayName = displayName;
+      if (color) row.color = color;
+    }
+  }
+
   /** Release every lease `agentId` holds; returns how many. */
   releaseAll(agentId: string): number {
     let n = 0;
