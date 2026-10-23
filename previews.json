@@ -103,6 +103,14 @@
     "sha": "de36c86c7a453958613cb7ba7019d43495a26edd",
     "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
   },
+  "issue-parallel-agents-tutorial": {
+    "built": "2026-10-23T04:06:02Z",
+    "dir": "issue-parallel-agents-tutorial",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "15d3194666874d4c88f5f98c2f2702a7318ad337",
+    "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
+  },
   "release-0.9.2": {
     "built": "2026-10-19T18:57:56Z",
     "dir": "release-0.9.2",
