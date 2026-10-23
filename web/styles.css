@@ -2199,3 +2199,11 @@ span.ai-notes-option { cursor: default; }
 .history-actions { display: flex; gap: 6px; }
 .history-actions .pane-btn { font-size: 11px; padding: 1px 8px; }
 .history-empty { color: #666; padding: 6px 0; }
+
+/* Lease markers (S-15): dashed frame and name tag in the agent's colour. */
+.lease-marker-frame { fill: none; stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.lease-marker-tag text { fill: #fff; font: 600 10px/1 system-ui, sans-serif; pointer-events: none; }
+.lease-marker-tag { cursor: help; }
+.pane-leases { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #fff; padding: 0 6px; }
+.pane-leases[hidden] { display: none; }
+.pane-leases .lease-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
