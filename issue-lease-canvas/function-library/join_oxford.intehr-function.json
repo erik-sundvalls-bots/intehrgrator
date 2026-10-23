@@ -1,0 +1,306 @@
+{
+  "kind": "intehrgrator-function",
+  "version": 1,
+  "name": "join_oxford",
+  "description": "Joins a list of strings with an English Oxford / serial comma: A, B, and C. Parameter `names` (list). Returns a string. Decision table JoinOxford (FIRST): first → {{name}}, middle → `, {{name}}`, last → `, and {{name}}`. Not a join_list builtin.",
+  "parameters": [
+    "names"
+  ],
+  "hasReturn": true,
+  "returns": "String",
+  "locale": "en",
+  "decisionTables": [
+    "JoinOxford"
+  ],
+  "blocklyState": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "t%P`-qkaPc2$UCRvrMP7",
+          "x": 0,
+          "y": 0,
+          "extraState": {
+            "params": [
+              {
+                "name": "names",
+                "id": "join_oxford_names"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Joins a list of strings with an English Oxford / serial comma: A, B, and C. Parameter `names` (list). Returns a string. Decision table JoinOxford (FIRST): first → {{name}}, middle → `, {{name}}`, last → `, and {{name}}`. Not a join_list builtin.",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "join_oxford"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "vkgc=.YE}{5ZWZH+P19S",
+                "fields": {
+                  "VAR": {
+                    "id": "join_oxford_result"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "text",
+                      "id": "y0zaaG.Ug(066i~:xMnA",
+                      "fields": {
+                        "TEXT": ""
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "for_each_list",
+                    "id": "pD_XjPdR$qOJ#]u2L/`0",
+                    "fields": {
+                      "VAR": "item"
+                    },
+                    "inputs": {
+                      "LIST": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "8i|{tBAF`zG(0j8v346K",
+                          "fields": {
+                            "VAR": {
+                              "id": "join_oxford_names"
+                            }
+                          }
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "text_append",
+                          "id": ".IKLuY-Jps1r1tbF*qz|",
+                          "fields": {
+                            "VAR": {
+                              "id": "join_oxford_result"
+                            }
+                          },
+                          "inputs": {
+                            "TEXT": {
+                              "block": {
+                                "type": "decision_table",
+                                "id": "vZ[kPZj6qGV]Gn1UQ(!h",
+                                "fields": {
+                                  "NAME": "JoinOxford",
+                                  "OUTPUT": "snippet"
+                                },
+                                "inputs": {
+                                  "INPUTS": {
+                                    "block": {
+                                      "type": "maps_create_with",
+                                      "id": "0jC|i.n_A-HA-w.J|ka+",
+                                      "extraState": {
+                                        "itemCount": 3
+                                      },
+                                      "fields": {
+                                        "KEY0": "first",
+                                        "KEY1": "last",
+                                        "KEY2": "name"
+                                      },
+                                      "inputs": {
+                                        "VAL0": {
+                                          "shadow": {
+                                            "type": "text",
+                                            "id": "plm7(HW=C,Nx[*U!wLvj",
+                                            "fields": {
+                                              "TEXT": ""
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "logic_compare",
+                                            "id": "Tg~NVvT]UW)UJedJ[u%8",
+                                            "fields": {
+                                              "OP": "EQ"
+                                            },
+                                            "inputs": {
+                                              "A": {
+                                                "block": {
+                                                  "type": "logic_loop_index",
+                                                  "id": "/aPDNQ1#0xc:|URf,(Oc",
+                                                  "fields": {
+                                                    "VAR": ""
+                                                  }
+                                                }
+                                              },
+                                              "B": {
+                                                "block": {
+                                                  "type": "math_number",
+                                                  "id": "q=F9Y(O*I}3g((`6p.:t",
+                                                  "fields": {
+                                                    "NUM": 0
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "VAL1": {
+                                          "shadow": {
+                                            "type": "text",
+                                            "id": "Mhn7,l{t:oyMm0upJF]L",
+                                            "fields": {
+                                              "TEXT": ""
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "logic_compare",
+                                            "id": "mOkrdP=CgUwW=nB.LfXt",
+                                            "fields": {
+                                              "OP": "EQ"
+                                            },
+                                            "inputs": {
+                                              "A": {
+                                                "block": {
+                                                  "type": "logic_loop_index",
+                                                  "id": "Eyn4E$d?F+7f+f8V-nbt",
+                                                  "fields": {
+                                                    "VAR": ""
+                                                  }
+                                                }
+                                              },
+                                              "B": {
+                                                "block": {
+                                                  "type": "math_arithmetic",
+                                                  "id": "?zngNRl=L3_`lua0RAsp",
+                                                  "fields": {
+                                                    "OP": "MINUS"
+                                                  },
+                                                  "inputs": {
+                                                    "A": {
+                                                      "block": {
+                                                        "type": "logic_loop_length",
+                                                        "id": "=MEI2#aR,WMqlqx/9P(e",
+                                                        "fields": {
+                                                          "VAR": ""
+                                                        }
+                                                      }
+                                                    },
+                                                    "B": {
+                                                      "block": {
+                                                        "type": "math_number",
+                                                        "id": "eVJiL|^IQXR?/SYA58/M",
+                                                        "fields": {
+                                                          "NUM": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "VAL2": {
+                                          "shadow": {
+                                            "type": "text",
+                                            "id": "qH|sLc8{a`tkQrV(rq@U",
+                                            "fields": {
+                                              "TEXT": ""
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "logic_current_item",
+                                            "id": "A)3cMBbwP.V`9MQz-8ug",
+                                            "fields": {
+                                              "VAR": ""
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "variables_get",
+                "id": "8:;Jh0DQ73_frY{sJOah",
+                "fields": {
+                  "VAR": {
+                    "id": "join_oxford_result"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "names",
+        "id": "join_oxford_names"
+      }
+    ]
+  },
+  "sheets": [
+    {
+      "name": "JoinOxford",
+      "kind": "decision-table",
+      "headers": [
+        "first",
+        "last",
+        "snippet"
+      ],
+      "values": [
+        [
+          true,
+          "—",
+          "{{name}}"
+        ],
+        [
+          false,
+          false,
+          ", {{name}}"
+        ],
+        [
+          false,
+          true,
+          ", and {{name}}"
+        ]
+      ],
+      "columnTypes": [
+        "text",
+        "text",
+        "text"
+      ],
+      "hitPolicy": "FIRST",
+      "decisionColumns": [
+        {
+          "role": "condition"
+        },
+        {
+          "role": "condition"
+        },
+        {
+          "role": "output",
+          "outputKind": "snippet",
+          "valueType": "string"
+        }
+      ]
+    }
+  ]
+}
