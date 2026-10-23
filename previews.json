@@ -87,6 +87,14 @@
     "sha": "a09e106dbfb46b19356b66540da21fa555220871",
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
+  "issue-lease-human-warning": {
+    "built": "2026-10-23T07:49:23Z",
+    "dir": "issue-lease-human-warning",
+    "mode": "merged",
+    "pr": "275\thttps://github.com/regionstockholm/intehrgrator/pull/275\tOPEN\tWarn before you edit inside an agent's lease (countdown, Edit anyway / Cancel, you win)",
+    "sha": "55c8846cc47074dbd658305ccaa4215cec0f491a",
+    "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
+  },
   "issue-lease-subtree": {
     "built": "2026-10-23T07:09:20Z",
     "dir": "issue-lease-subtree",

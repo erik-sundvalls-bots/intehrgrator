@@ -1,0 +1,60 @@
+[
+  {
+    "name": "body_position",
+    "kind": "decision-table",
+    "headers": [
+      "position",
+      "code",
+      "label"
+    ],
+    "values": [
+      [
+        "sitting",
+        "at1001",
+        "Sitting"
+      ],
+      [
+        "standing",
+        "at1000",
+        "Standing"
+      ],
+      [
+        "lying",
+        "at1003",
+        "Lying"
+      ],
+      [
+        "reclining",
+        "at1002",
+        "Reclining"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "value",
+        "valueType": "string"
+      },
+      {
+        "role": "output",
+        "outputKind": "value",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      false,
+      false,
+      false
+    ]
+  }
+]

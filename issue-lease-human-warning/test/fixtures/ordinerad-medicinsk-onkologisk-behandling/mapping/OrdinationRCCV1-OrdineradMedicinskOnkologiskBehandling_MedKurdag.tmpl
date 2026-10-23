@@ -1,0 +1,168 @@
+{{ $feederAuditSystemId := "cytodos" -}}
+{{ $feederAuditTimestamp := dateInZone "2006-01-02T15:04:05.000Z" now "UTC" -}}
+{{/* Beredningsform, mapping from cytodos internal codes to snomed codes:
+  1.0000 Inf. koncentrat => 1237267003
+  2.0000 	Inf. substans => 385223009
+  3.0000 Tablett, kapsel mm. => "421378002" NOTE: 3.0000 in cytodos means "tablett, kapsel eller annat"; mapped to "Basic dose form with solid state of matter" /Oscar K, Mahreen, Ann-Sofie
+  4.0000 Färdig lösning => 385219001 */ -}}
+{{ $beredningsform := dict
+  "1.0000" "1237267003"
+  "2.0000" "385223009"
+  "3.0000" "421378002" 
+  "4.0000" "385219001"
+-}}
+{{/* Administreringsvägg, mapping from cytodos internal codes to snomed codes:
+1.0000	Intramuskulärt => 78421000
+2.0000	Peroralt => 26643006
+3.0000	Intravenöst => 47625008
+4.0000	intrathecalt => 72607000
+5.0000	Intraperitonealt => 38239002
+6.0000	Intraarteriellt => 58100008
+7.0000	Subcutant => 34206005
+9.0000	Sublingualt => 37839007
+11.0000	Intravesicalt => 372471009
+12.0000	Intralesionalt => 372466002
+14.0000	Intracutant => 372464004
+15.0000	IV infusion => 47625008
+16.0000	IV injektion => 47625008
+17.0000	IV Infusor => 47625008
+18.0000	Oralt (apotek) => 26643006
+19.0000	IVINF => 47625008 */ -}}
+{{ $administreringsväg := dict
+  "1.0000"  "78421000"  
+  "2.0000"  "26643006"  
+  "3.0000"  "47625008"  
+  "4.0000"  "72607000"  
+  "5.0000"  "38239002"  
+  "6.0000"  "58100008" 
+  "7.0000"  "34206005" 
+  "9.0000"  "37839007" 
+  "11.0000" "372471009" 
+  "12.0000" "372466002" 
+  "14.0000" "372464004" 
+  "15.0000" "47625008"  
+  "16.0000" "47625008"   
+  "18.0000" "26643006"  
+  "19.0000" "47625008" 
+-}}
+{
+  "ordineradmedicinskonkologiskbehandling/category|code": "433",
+  "ordineradmedicinskonkologiskbehandling/category|value": "event",
+  "ordineradmedicinskonkologiskbehandling/category|terminology": "openehr",
+  "ordineradmedicinskonkologiskbehandling/composer|name": "{{ .SignatureUser_Fullname }}",
+  "ordineradmedicinskonkologiskbehandling/composer/_identifier:0|type": "urn:oid:1.2.752.29.4.19",
+  "ordineradmedicinskonkologiskbehandling/composer/_identifier:0|id": "{{ .SignatureUser_UserName }}",
+  "ordineradmedicinskonkologiskbehandling/context/setting|code": "238",
+  "ordineradmedicinskonkologiskbehandling/context/setting|value": "other care",
+  "ordineradmedicinskonkologiskbehandling/context/setting|terminology": "openehr",
+  "ordineradmedicinskonkologiskbehandling/language|code": "sv",
+  "ordineradmedicinskonkologiskbehandling/language|terminology": "ISO_639-1",
+  "ordineradmedicinskonkologiskbehandling/territory|code": "SE",
+  "ordineradmedicinskonkologiskbehandling/territory|terminology": "ISO_3166-1",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/namn": "{{ .PDL_enhet_Namn }}",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/identifierare:0": "SE2321000016-{{ .PDL_enhet_HSAID }}",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/identifierare:0|type": "urn:oid:1.2.752.29.4.19",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/roll:0|code": "43741000",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/roll:0|value": "vårdenhet",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/roll:0|terminology": "http://snomed.info/sct/900000000000207008",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/namn": "{{ .PDL_vardgivare_Namn }}",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/identifierare:0": "{{ .PDL_vardgivare_HSAID }}",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/identifierare:0|type": "urn:oid:1.2.752.29.4.19",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/organisationsnummer:0": "2321000016",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/organisationsnummer:0|type": "urn:oid:2.5.4.97",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/roll:0|code": "143591000052106",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/roll:0|value": "vårdgivare",
+  "ordineradmedicinskonkologiskbehandling/context/vårdenhet/vårdgivare/roll:0|terminology": "http://snomed.info/sct/45991000052106",
+  "ordineradmedicinskonkologiskbehandling/context/läkemedelsregim/regim": "{{ .KurdefinisjonNavn }}",
+  "ordineradmedicinskonkologiskbehandling/context/läkemedelsregim/kurnummer": {{ eq .PasientKurnummer nil | ternary 0 (printf "%.0f" .PasientKurnummer) }}, {{/* It seems about 10% of records have null here; we will set to a default of 0 */}}
+  "ordineradmedicinskonkologiskbehandling/context/start_time": "{{ toLocalDateTime .SignatureDate }}", {{- /* using SignatureDate because... ?? TODO */}}
+  "ordineradmedicinskonkologiskbehandling/context/läkemedelsprövning/ges_inom_ramen_för_studie": {{ eq (int64 .PasientenDeltarIStudie) 1 }},
+{{- /* only include trial name if StudieId is not empty, otherwise leave the path out entirely */}}
+{{- if .StudieId -}}
+  "ordineradmedicinskonkologiskbehandling/context/läkemedelsprövning/studie": "{{ .StudieId }}",
+{{- end -}}
+
+  "ordineradmedicinskonkologiskbehandling/context/_health_care_facility|name": "{{ eq .Vardenhet_namn nil | ternary .PDL_enhet_Namn .Vardenhet_namn }}",
+  "ordineradmedicinskonkologiskbehandling/context/_health_care_facility/_identifier:0|type": "urn:oid:1.2.752.29.4.19",
+  "ordineradmedicinskonkologiskbehandling/context/_health_care_facility/_identifier:0|id": "SE2321000016-{{ eq .Vardenhet_HSAID nil | ternary .PDL_enhet_HSAID .Vardenhet_HSAID }}",
+
+{{- range $kurdag_i, $kurdag := .KurDagar -}}
+  {{- /* SECTION */ -}}
+  {{- $sectionUid := uuidv4 -}}
+  {{- $sectionName := printf "Ordination av kurdag #%d" (add $kurdag_i 1) -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/_uid": "{{ $sectionUid  }}",
+  {{- /* TODO: does not work to set name with Better API? "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/_name|value": "{{ $sectionName }}", */ -}}
+  {{- /* INSTRUCTION */ -}}
+  {{- $instructionUid := uuidv4 -}}
+  {{- $instructionName := "Läkemedelsordination" -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_uid": "{{ $instructionUid  }}",
+  {{- /* TODO: does not work to set name with Better API? "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_name|value": "{{ $instructionName }}", */ -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_feeder_audit/originating_system_item_id:0|type": "KurdagLopenummer",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_feeder_audit/originating_system_item_id:0|id": "{{ printf "%.0f" .KurdagLopenummer }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_feeder_audit/originating_system_audit|time": "{{ $feederAuditTimestamp }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_feeder_audit/originating_system_audit|version_id": "{{ $feederAuditTimestamp }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/_feeder_audit/originating_system_audit|system_id": "{{ $feederAuditSystemId }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/beställnings-id": "{{ printf "%.0f" $.RekvisisjonId }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/läkemedelsregim/kurdag": {{ printf "%.0f" .Dognnummer }},
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/language|code": "sv",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/language|terminology": "ISO_639-1",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/encoding|code": "UTF-8",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/encoding|terminology": "IANA_character-sets",
+  {{- range $substans_i, $substans := $kurdag.Substanser -}}
+    {{- /* ACTIVITY */ -}}
+    {{- $activityUid := uuidv4 -}}
+    {{- $activityName := printf "Ordination av substans #%d (%s)" (add $substans_i 1) .Innholdstoff_Navn -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_uid": "{{ $activityUid }}",
+  {{- /* TODO: does not work to set name with Better API? "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_name|value": "{{ $activityName }}", */ -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/läkemedelsartikel": "{{ .Innholdstoff_Navn }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_feeder_audit/originating_system_item_id:0|type": "Lopenummer",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_feeder_audit/originating_system_item_id:0|id": "{{ printf "%.0f" .Lopenummer }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_feeder_audit/originating_system_audit|time": "{{ $feederAuditTimestamp }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_feeder_audit/originating_system_audit|version_id": "{{ $feederAuditTimestamp }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/_feeder_audit/originating_system_audit|system_id": "{{ $feederAuditSystemId }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/substans|code": "{{ .Innholdstoff_ATC }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/substans|value": "{{ .Innholdstoff_Navn }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/substans|terminology": "2.16.840.1.113883.6.73",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/form|value": "{{ .Form }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/form|code": "{{ .Form_CodeValue }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/form/_mapping:0|match": "=",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/form/_mapping:0/target|terminology": "SNOMED-CT",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/form/_mapping:0/target|code": "{{ index $beredningsform .Form_CodeValue }}",
+  {{- /* Prescribed dose is required in the template; if it is null then this composition will fail validation and not be created */ -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/ordinerad_dos|magnitude": {{ eq .Doseberegnet nil | ternary "null" (printf "%f" .Doseberegnet) }},
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/detaljer_om_substans/ordinerad_dos|unit": "{{ .UnitCode }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/administreringsväg|value": "{{ .Route_LongDescription }}",
+   "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/administreringsväg|code": "{{ .Route_CodeValue }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/administreringsväg/_mapping:0|match": "=",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/administreringsväg/_mapping:0/target|terminology": "SNOMED-CT",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/administreringsväg/_mapping:0/target|code": "{{ index $administreringsväg .Route_CodeValue }}",
+  {{- /* only include planned administration date if StartTid is not empty, otherwise leave the path out entirely */ -}}
+  {{- if $kurdag.StartTid -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/läkemedelsordination/ordination_per_substans:{{ $substans_i }}/orderdetaljer/planerat_administreringsdatum": "{{ toLocalDateTime $kurdag.StartTid }}",
+  {{- end -}}
+  {{- /* ACTION */ -}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/ism_transition/current_state|code": "529",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/ism_transition/current_state|value": "scheduled",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/ism_transition/current_state|terminology": "openehr",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/ism_transition/careflow_step|code": "at0016",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/ism_transition/careflow_step|value": "Läkemedlets startdatum eller startvillkor inställt",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/ism_transition/careflow_step|terminology": "local",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/detaljer_om_substans/substans|code": "{{ .Innholdstoff_ATC }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/detaljer_om_substans/substans|value": "{{ .Innholdstoff_Navn }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/detaljer_om_substans/substans|terminology": "2.16.840.1.113883.6.73",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/_instruction_details|composition_uid": "$selfComposition",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/_instruction_details|path": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-INSTRUCTION.medication_order.v3 and uid/value='{{ $instructionUid }}']",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/_instruction_details|activity_id": "activities[at0001 and uid/value='{{ $activityUid }}']",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/order_id": "{{ printf "%.0f" $.RekvisisjonId }}",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/time": "{{ toLocalDateTime $.SignatureDate }}", {{/* TODO should we even include this and/or is it this value? */}}
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/language|code": "sv",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/language|terminology": "ISO_639-1",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/encoding|code": "UTF-8",
+  "ordineradmedicinskonkologiskbehandling/ordination_per_kurdag:{{ $kurdag_i }}/schemalagd_administrering_per_substans:{{ $substans_i }}/encoding|terminology": "IANA_character-sets",
+  {{- end -}}
+{{- end -}}
+{{/* Set the composition's UID to $selfComposition also so it can be later set by our Writer component, and will match what we set in the above ACTIONs */}}
+  "ordineradmedicinskonkologiskbehandling/_uid": "$selfComposition"
+
+{{- /* Note it is important that the very last line does not have a comma, otherwise the result will not be valid JSON */}}
+}
