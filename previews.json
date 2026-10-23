@@ -79,6 +79,14 @@
     "sha": "4945b91f7c43336bed27a2d2546e6da8b83da394",
     "upstream": "386fdaaa02acb07832cb0052d9371d22e0b82e4f"
   },
+  "issue-lease-subtree": {
+    "built": "2026-10-23T04:04:59Z",
+    "dir": "issue-lease-subtree",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "f752bcc6ddcc77b27271cc03e1851c21e75a7866",
+    "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
+  },
   "issue-mcp-stdio-framing": {
     "built": "2026-10-23T04:04:30Z",
     "dir": "issue-mcp-stdio-framing",
