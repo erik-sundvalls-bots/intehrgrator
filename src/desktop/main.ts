@@ -112,6 +112,9 @@ if (import.meta.main) {
       Deno.exit(1);
     }
     await runMcpStdio(new HttpAgentClient(base.replace(/\/$/, ""), opts.token));
+    // stdin closed (the IDE stopped the server): exit even though the desktop
+    // runtime would keep the process alive.
+    Deno.exit(0);
   } else {
     if (opts.load) {
       const bytes = await Deno.readFile(opts.load);
