@@ -37,19 +37,33 @@ export function shouldOpenUi(opts: DesktopCliOptions): boolean {
 
 type BrowserWindowHandle = {
   hide?: () => void;
+  isVisible?: () => boolean;
+  onload?: (() => void) | null;
 };
 
 type DenoDesktop = typeof Deno & {
   BrowserWindow?: new (options: Record<string, unknown>) => BrowserWindowHandle;
 };
 
-/** Adopt the Deno desktop startup window and hide it (`--headless`). */
-export function hideDesktopWindow(): void {
+/**
+ * Adopt the Deno desktop startup window and hide it (`--headless`, `--mcp`).
+ * With `watch`, also hide it within 250 ms whenever it shows (no flash).
+ */
+export function hideDesktopWindow(watch = false): void {
   const Ctor = (Deno as DenoDesktop).BrowserWindow;
   if (!Ctor) return;
   try {
     const win = new Ctor({ url: "about:blank", noActivate: true, visible: false });
     win.hide?.();
+    // The runtime shows the window again when it navigates it (to the app,
+    // or after ~15 s without a server): hide it again after every load.
+    win.onload = () => win.hide?.();
+    if (watch && win.isVisible) {
+      const timer = setInterval(() => {
+        if (win.isVisible?.()) win.hide?.();
+      }, 250);
+      Deno.unrefTimer(timer);
+    }
   } catch {
     try {
       const win = new Ctor({ url: "about:blank", noActivate: true });
@@ -104,9 +118,10 @@ if (import.meta.main) {
   if (opts.token) Deno.env.set("INTEHR_AGENT_TOKEN", opts.token);
 
   if (opts.mcp) {
-    // An IDE starts this as its MCP server: no window. Without this the
-    // compiled app showed an empty "Could not connect" window per MCP process.
-    hideDesktopWindow();
+    // An IDE starts this as its MCP server: no window. The compiled app
+    // showed an empty "Could not connect" window per MCP process (the runtime
+    // navigates the startup window after ~15 s without a server).
+    hideDesktopWindow(true);
     const base = Deno.env.get("INTEHR_AGENT_URL")?.trim();
     if (!base) {
       console.error(
