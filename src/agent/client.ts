@@ -94,7 +94,10 @@ export class HttpAgentClient implements AgentClient {
   ) {}
 
   async registerAgent(args: Record<string, unknown>) {
-    const json = await this.request("POST", "/api/v1/register-agent", args) as {
+    // Registering again (after the automatic registration on the first write)
+    // renames this agent instead of creating a second one.
+    const body = this.session && !args.agentId ? { ...args, agentId: this.session.agentId } : args;
+    const json = await this.request("POST", "/api/v1/register-agent", body) as {
       agentId: string;
       displayName: string;
       color: string;

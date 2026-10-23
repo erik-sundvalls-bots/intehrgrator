@@ -144,17 +144,17 @@ const cy = new McpAgent("Cy", "cursor");
 const agents = [ada, bo, cy];
 await Promise.all(agents.map((a) => a.init()));
 
+for (const a of agents) {
+  const reg = await a.call("register_agent", { displayName: a.name });
+  a.log(`registered (${(reg.data as { color?: string }).color ?? ""})`);
+}
+
 if (args.load) {
   const fx = join(root, "test/fixtures");
   await ada.call("load_target", { path: join(fx, "blood_pressure.opt") });
   await ada.call("load_source_schema", { path: join(fx, "dummy-json-vitals/source.schema.json") });
   await ada.call("add_example", { path: join(fx, "dummy-json-vitals/instance-1.json") });
   ada.log("loaded the blood pressure template, source schema and an example");
-}
-
-for (const a of agents) {
-  const reg = await a.call("register_agent", { displayName: a.name });
-  a.log(`registered (${(reg.data as { color?: string }).color ?? ""})`);
 }
 
 let failures = 0;

@@ -7,7 +7,8 @@
  * parent block). A subtree lease outlines the subtree's root block, which
  * contains the whole subtree. Markers are view-only (not saved, not in
  * history), separate from the AI author badge (ADR 0014) and the review
- * marker (ADR 0013), and redrawn on every agent poll.
+ * marker (ADR 0013), and redrawn on every agent poll. They are drawn on one
+ * layer above all blocks, so a neighbouring block never hides a name tag.
  */
 import type { Block, BlockSvg, WorkspaceSvg } from "blockly/core";
 import type { SlotLease } from "../agent/leases.ts";
@@ -57,8 +58,10 @@ export function leaseColor(lease: Pick<SlotLease, "agentId" | "color">): string 
   return `hsl(${(hash >>> 0) % 360} 65% 45%)`;
 }
 
+const LAYER_CLASS = "lease-markers-layer";
+
 export function clearLeaseMarkers(workspace: WorkspaceSvg): void {
-  for (const el of workspace.getParentSvg().querySelectorAll(`.${MARK_CLASS}`)) el.remove();
+  workspace.getParentSvg().querySelector(`.${LAYER_CLASS}`)?.remove();
 }
 
 /** Redraw all lease markers for `leases`. Returns how many leases found a block. */
@@ -71,10 +74,13 @@ export function renderLeaseMarkers(workspace: WorkspaceSvg, leases: SlotLease[],
     const block = leaseTargetBlock(blocks, lease.slotId);
     if (block) perBlock.set(block, [...(perBlock.get(block) ?? []), lease]);
   }
+  const layer = document.createElementNS(NS, "g");
+  layer.setAttribute("class", LAYER_CLASS);
   for (const [block, rows] of perBlock) {
-    const svg = (block as BlockSvg).getSvgRoot?.();
-    if (!svg) continue;
-    const { width, height } = block as BlockSvg;
+    const svgBlock = block as BlockSvg;
+    if (!svgBlock.getSvgRoot?.()) continue;
+    const { x, y } = svgBlock.getRelativeToSurfaceXY();
+    const { width, height } = svgBlock;
     let tagX = 0;
     rows.forEach((lease, i) => {
       const color = leaseColor(lease);
@@ -82,6 +88,7 @@ export function renderLeaseMarkers(workspace: WorkspaceSvg, leases: SlotLease[],
       g.setAttribute("class", MARK_CLASS);
       g.setAttribute("data-agent-id", lease.agentId);
       g.setAttribute("data-slot-id", lease.slotId);
+      g.setAttribute("transform", `translate(${x},${y})`);
       const pad = 3 + i * 3;
       const frame = document.createElementNS(NS, "rect");
       frame.setAttribute("class", `${MARK_CLASS}-frame`);
@@ -97,21 +104,23 @@ export function renderLeaseMarkers(workspace: WorkspaceSvg, leases: SlotLease[],
       const text = document.createElementNS(NS, "text");
       text.textContent = `🔒 ${texts.label(lease)}`;
       text.setAttribute("x", "6");
-      text.setAttribute("y", "11");
-      const approxWidth = 14 + text.textContent.length * 6.2;
+      text.setAttribute("y", "12");
+      const approxWidth = 16 + text.textContent.length * 6.4;
       const bg = document.createElementNS(NS, "rect");
       bg.setAttribute("width", String(approxWidth));
-      bg.setAttribute("height", "15");
+      bg.setAttribute("height", "17");
       bg.setAttribute("rx", "4");
       bg.setAttribute("fill", color);
-      tag.setAttribute("transform", `translate(${tagX - pad},${-pad - 17})`);
+      tag.setAttribute("transform", `translate(${tagX - pad},${-pad - 19})`);
       tagX += approxWidth + 4;
       const tip = document.createElementNS(NS, "title");
       tip.textContent = texts.title(lease);
       tag.append(bg, text, tip);
       g.append(frame, tag);
-      svg.append(g);
+      layer.append(g);
     });
   }
+  // Last child of the block canvas: above every block, moves and zooms with it.
+  workspace.getCanvas().append(layer);
   return perBlock.size;
 }
