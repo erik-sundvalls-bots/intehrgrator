@@ -120,4 +120,8 @@ Deno.test("history author badges: you, AI chat + model, MCP + client", () => {
     label: "MCP",
     detail: "cursor",
   });
+  assertEquals(
+    authorBadge({ kind: "agent", id: "a2", displayName: "Bo", origin: "mcp", client: "cursor" }).detail,
+    "Bo · cursor",
+  );
 });

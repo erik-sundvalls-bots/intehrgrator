@@ -196,6 +196,8 @@ import {
   slotFingerprints,
   writeAiAuthor,
 } from "../src/blockly/ai_author.ts";
+import { leaseColor, leaseTargetBlock, renderLeaseMarkers } from "../src/blockly/lease_markers.ts";
+import type { SlotLease } from "../src/agent/leases.ts";
 import { slotExpressionBlocks } from "../src/blockly/mapping_ir.ts";
 import {
   commitsSettled,
@@ -1174,6 +1176,7 @@ async function bootBlockly(): Promise<void> {
     onBaseline: () => {
       committedDocSignature = documentCommitSignature();
     },
+    onLeases: (leases) => showLeases(leases),
     onActivity: (activity) => {
       if (activity?.displayName) lastAgentAuthor = activity.displayName;
       if (!activity) return;
@@ -1182,6 +1185,7 @@ async function bootBlockly(): Promise<void> {
     },
   });
 
+  installLeaseChip();
   const followCheckbox = document.getElementById("chk-follow-agent") as HTMLInputElement | null;
   if (followCheckbox) {
     followCheckbox.checked = followActiveAgent;
@@ -1415,6 +1419,75 @@ function refreshUndoButtons(): void {
   const hint = messages.undoHistoryHint;
   undoBtn.title = undoBtn.disabled ? hint : `${hint} ${messages.undoLastEdit}`;
   redoBtn.title = redoBtn.disabled ? hint : `${hint} ${messages.redoLastEdit}`;
+}
+
+let currentLeases: SlotLease[] = [];
+let leaseChipIndex = 0;
+
+function leaseTexts() {
+  const m = uiChrome();
+  return {
+    label: (l: SlotLease) => (l.subtree ? `${l.displayName} · ${m.leaseSubtree}` : l.displayName),
+    title: (l: SlotLease) =>
+      formatMessage(m.leaseTitle, {
+        agent: l.displayName,
+        time: new Date(l.expiresAt).toLocaleTimeString(),
+        what: l.subtree ? m.leaseWhatSubtree : m.leaseWhatSlot,
+      }),
+  };
+}
+
+/** Lease markers on the canvas and the per-agent chip in the Mapping Editors header (S-15). */
+function showLeases(leases: SlotLease[]): void {
+  currentLeases = leases;
+  if (workspace) renderLeaseMarkers(workspace, leases, leaseTexts());
+  const chip = document.getElementById("lease-chip");
+  if (!chip) return;
+  chip.hidden = !leases.length;
+  if (!leases.length) {
+    chip.replaceChildren();
+    return;
+  }
+  const byAgent = new Map<string, { name: string; color: string; n: number }>();
+  for (const l of leases) {
+    const row = byAgent.get(l.agentId) ?? { name: l.displayName, color: leaseColor(l), n: 0 };
+    row.n++;
+    byAgent.set(l.agentId, row);
+  }
+  const parts: Node[] = [document.createTextNode(`🔒 `)];
+  for (const row of byAgent.values()) {
+    const dot = document.createElement("span");
+    dot.className = "lease-dot";
+    dot.style.background = row.color;
+    parts.push(dot, document.createTextNode(` ${row.name} ${row.n} `));
+  }
+  chip.replaceChildren(...parts);
+  chip.title = `${uiChrome().leasesChipTitle}\n${leases.map((l) => `${l.displayName}: ${l.slotId.split("//").pop()}${l.subtree ? "/…" : ""}`).join("\n")}`;
+}
+
+function installLeaseChip(): void {
+  const chip = document.getElementById("lease-chip");
+  chip?.addEventListener("click", () => {
+    if (!workspace || !currentLeases.length) return;
+    const lease = currentLeases[leaseChipIndex++ % currentLeases.length]!;
+    const block = leaseTargetBlock(workspace.getAllBlocks(false), lease.slotId) as Blockly.BlockSvg | undefined;
+    if (!block) return;
+    const scale = workspace.getScale();
+    const view = workspace.getMetrics();
+    if (block.height * scale < view.viewHeight * 0.8 && block.width * scale < view.viewWidth * 0.8) {
+      workspace.centerOnBlock(block.id, true);
+    } else {
+      // A big subtree: show its top-left corner with the name tag.
+      const xy = block.getRelativeToSurfaceXY();
+      workspace.scroll(-(xy.x * scale - 40), -(xy.y * scale - 40));
+    }
+  });
+  // Pulled bundles rebuild blocks: draw the markers again on the new blocks.
+  workspace?.addChangeListener((event) => {
+    if (event.type === Blockly.Events.FINISHED_LOADING && currentLeases.length) {
+      queueMicrotask(() => renderLeaseMarkers(workspace, currentLeases, leaseTexts()));
+    }
+  });
 }
 
 function pulseAgentActivity(activity: {

@@ -12,10 +12,13 @@
 
 import type { WorkbenchController } from "../workbench/controller.ts";
 import type { ProjectBundle } from "../types/mod.ts";
+import type { SlotLease } from "../agent/leases.ts";
 
 export interface AgentBridgeOptions {
   controller: WorkbenchController;
   onActivity?: (activity: AgentActivityPayload | null) => void;
+  /** Active agent leases after each poll (S-15), for the canvas markers. */
+  onLeases?: (leases: SlotLease[]) => void;
   /**
    * Commit any local change the session has not seen yet (called before a
    * sync). Resolves when the commit is done.
@@ -125,7 +128,7 @@ export function installAgentBridge(options: AgentBridgeOptions): void {
   if (typeof globalThis.fetch !== "function") return;
   if (!isDesktopEnvironment()) return;
 
-  const { controller, onActivity, flushLocal, applyRemote, onBaseline } = options;
+  const { controller, onActivity, onLeases, flushLocal, applyRemote, onBaseline } = options;
   let polled = false;
   let syncing = false;
   let lastActivityAt = "";
@@ -145,7 +148,8 @@ export function installAgentBridge(options: AgentBridgeOptions): void {
         return;
       }
       if (disposition === "pause") return;
-      const snap = await snapRes.json() as { revision: string; templateId?: string };
+      const snap = await snapRes.json() as { revision: string; templateId?: string; leases?: SlotLease[] };
+      let leases = snap.leases ?? [];
       const isFirstPoll = !polled;
       polled = true;
       const uiEmpty = !controller.getState().templateId;
@@ -163,10 +167,13 @@ export function installAgentBridge(options: AgentBridgeOptions): void {
         await commitsSettled();
         const current = await fetch("/api/v1/snapshot");
         if (current.ok) {
-          const now = await current.json() as { revision: string };
+          const now = await current.json() as { revision: string; leases?: SlotLease[] };
+          leases = now.leases ?? leases;
           if (now.revision !== syncedRevision) await pullBundle(false);
         }
       }
+
+      onLeases?.(leases);
 
       const actRes = await fetch("/api/v1/activity");
       if (actRes.ok) {
