@@ -826,6 +826,18 @@
       </div>
     </form>
   </dialog>
+  <dialog id="dialog-lease-warning" class="app-dialog lease-warning">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="leaseWarningTitle">An agent is working on this</h2>
+      <p id="lease-warning-intro"></p>
+      <ul id="lease-warning-list" class="lease-warning-list"></ul>
+      <div class="dialog-actions">
+        <button type="button" id="lease-warning-cancel" data-i18n="leaseWarningCancel">Cancel</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="lease-warning-edit" data-i18n="leaseWarningEdit">Edit anyway</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="dialog-local-mcp" class="app-dialog app-dialog--wide">
     <form method="dialog" class="dialog-form">
       <h2 data-i18n="localMcpTitle">Local MCP server</h2>

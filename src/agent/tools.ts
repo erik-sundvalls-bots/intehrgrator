@@ -318,7 +318,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "lease_slot",
     description:
-      "Advisory lease while this agent works (S-15): on one Target value slotId, or with subtree: true on a node path (a slotId prefix from list_slots, e.g. …//context/EVENT_CONTEXT) covering every slot below it. Other MCP agents then cannot change what it covers (their writes, undo and revert there fail with the holder); the person in the UI is never blocked and sees the lease on the canvas. Fails when it overlaps another agent's lease. Renew by calling again before ttlSec (default 120, max 3600) runs out. Call register_agent first so the lease shows your name and colour.",
+      "Advisory lease while this agent works (S-15): on one Target value slotId, or with subtree: true on a node path (a slotId prefix from list_slots, e.g. …//context/EVENT_CONTEXT) covering every slot below it. Other MCP agents then cannot change what it covers (their writes, undo and revert there fail with the holder); the person in the UI sees the lease on the canvas and is asked before changing what it covers, but may go ahead; if they do, your next write to such a slot fails once (the person wins), so read it again. Fails when it overlaps another agent's lease. Renew by calling again before ttlSec (default 120, max 3600) runs out. Call register_agent first so the lease shows your name and colour.",
     inputSchema: {
       type: "object",
       required: ["slotId"],

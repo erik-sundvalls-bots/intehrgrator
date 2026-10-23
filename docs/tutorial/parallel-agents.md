@@ -26,7 +26,7 @@ Give each agent its own part of the target, the way you would split work between
 | `list_leases` | Who holds what, and until when |
 | `release_slot { slotId }`, `{ slotId, subtree: true }`, `{ all: true }` | Release one lease, a subtree lease, or everything the agent holds |
 
-A lease lasts 120 seconds unless the agent asks for another `ttlSeconds` (at most an hour). Leasing again extends it. Leases are kept in the running app only. They are gone after a restart.
+A lease lasts 120 seconds unless the agent asks for another `ttlSec` (at most an hour). Leasing again extends it. Leases are kept in the running app only. They are gone after a restart.
 
 When an agent tries to change something that another agent leases, the whole call is refused and nothing changes. The agent gets a message it can act on:
 
@@ -37,7 +37,19 @@ blocked slots: …/items/at0010/value/value; Work on other slots, or wait and re
 
 The same rule covers **Undo**, **Redo** and **Revert** from an agent: an agent cannot take back another agent's leased change. `import_suggestions` is the exception. It skips the leased slots, applies the rest and lists what it skipped.
 
-Leases only hold back agents. Your own edits, and the AI chat inside the app, are never blocked.
+Leases hold back agents. The AI chat inside the app is never blocked, and neither are you, but you are asked first.
+
+## When you edit inside a lease
+
+If you change something an agent leases, for example by dragging a block into a leased part or by click-to-map, the app asks before saving the change. The warning names the agent and counts down to the end of the lease.
+
+<img src="../assets/tutorial/parallel-agents-lease-warning.png" alt="Warning An agent is working on this: Bo leased what you just changed, Bo · subtree: blood pressure › Mean Arterial Pressure, lease ends in 2:49, with Cancel and Edit anyway" />
+
+- **Edit anyway** saves your change. You are not asked again about that lease until it ends. If the agent then writes to that slot, its change is not applied and the status line says so: you win. The agent is told to read the slot again.
+- **Cancel** takes your change back. Nothing is saved.
+- If the lease ends or the agent releases it while the warning is open, the warning closes and your change is saved.
+
+You are asked when a change is about to be saved: at the end of a drag, a field edit or a click. Typing in a field does not ask on every key.
 
 ## See who leases what
 

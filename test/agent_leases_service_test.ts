@@ -127,3 +127,52 @@ Deno.test("two unregistered MCP processes from the same IDE are separate agents 
     await server.shutdown();
   }
 });
+
+Deno.test("person edits inside an agent's lease: that agent's next write there is refused once (person wins)", async () => {
+  const s = await loaded();
+  await callAgentTool(s, "lease_slot", { slotId: data, subtree: true, ...as("bo", "Bo") });
+  await callAgentTool(s, "map_slot", { slotId: dia, path: "$.diastolic", ...as("bo", "Bo") });
+  // The person maps systolic on the canvas ("Edit anyway" after the lease warning).
+  const bundle = structuredClone(s.exportBundle());
+  const slot = bundle.mapping.model.slots.find((r) => r.slotId === sys);
+  if (slot) slot.expression = "$.diastolic";
+  else bundle.mapping.model.slots.push({ slotId: sys, expression: "$.diastolic" } as typeof bundle.mapping.model.slots[0]);
+  s.commitFromUi(bundle, "Edit mapping");
+  assertStringIncludes(expr(s, sys), "diastolic");
+  // Bo's next write to that slot is refused and named in the snapshot; the person's value stays.
+  await assertRejects(
+    () => callAgentTool(s, "map_slot", { slotId: sys, path: "$.systolic", ...as("bo", "Bo") }),
+    Error,
+    "the person wins",
+  );
+  assertStringIncludes(expr(s, sys), "diastolic");
+  const notice = s.getSnapshot().humanWins?.at(-1);
+  assertEquals(notice?.agent, "Bo");
+  assertEquals(notice?.slotIds, [sys]);
+  // Only once: after reading the slot again, Bo may change it.
+  await callAgentTool(s, "map_slot", { slotId: sys, path: "$.systolic", ...as("bo", "Bo") });
+  assertStringIncludes(expr(s, sys), "systolic");
+  // Other slots in the lease were never blocked for Bo.
+  await callAgentTool(s, "map_slot", { slotId: dia, path: "$.systolic", ...as("bo", "Bo") });
+});
+
+Deno.test("person edits inside a lease: import_suggestions skips that slot once and says why", async () => {
+  const s = await loaded();
+  await callAgentTool(s, "lease_slot", { slotId: data, subtree: true, ...as("bo", "Bo") });
+  const bundle = structuredClone(s.exportBundle());
+  const slot = bundle.mapping.model.slots.find((r) => r.slotId === dia);
+  if (slot) slot.expression = "$.systolic";
+  else bundle.mapping.model.slots.push({ slotId: dia, expression: "$.systolic" } as typeof bundle.mapping.model.slots[0]);
+  s.commitFromUi(bundle, "Edit mapping");
+  const q = (path: string) => ({ type: "source_query_number", fields: { EXPRESSION: path } });
+  const envelope = {
+    format: "intehrgrator-suggestions",
+    version: "2",
+    target: { format: "openehr-template", targetId: s.exportBundle().target?.targetId ?? "" },
+    suggestions: [{ slotId: dia, block: q("$.diastolic") }, { slotId: sys, block: q("$.systolic") }],
+  };
+  const res = await callAgentTool(s, "import_suggestions", { text: JSON.stringify(envelope), ...as("bo", "Bo") });
+  assertStringIncludes(JSON.stringify(res), "the person wins");
+  assertStringIncludes(expr(s, dia), "systolic");
+  assertStringIncludes(expr(s, sys), "systolic");
+});

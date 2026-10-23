@@ -16,9 +16,19 @@ export interface AgentSnapshot {
   sheetNames?: string[];
   productStack?: ProductStackRow[];
   leases?: SlotLease[];
+  /** Agent writes refused because the person edited those slots during the agent's lease (newest last). */
+  humanWins?: HumanWinsNotice[];
   exampleCount?: number;
   activeExample?: string | null;
   constraintWarningCount?: number;
+}
+
+export interface HumanWinsNotice {
+  seq: number;
+  agentId: string;
+  agent: string;
+  slotIds: string[];
+  at: number;
 }
 
 export interface AgentMutationResult {

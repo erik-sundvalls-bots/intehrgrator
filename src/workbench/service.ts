@@ -25,7 +25,7 @@ import { actorFromHeaders, actorOrigin, type HistoryActor, USER_ACTOR } from "..
 import { changedTargetIds } from "../agent/lease_guard.ts";
 import { AgentRegistry } from "../agent/registry.ts";
 import { bundleRevision } from "../agent/revision.ts";
-import type { AgentSnapshot } from "../agent/types.ts";
+import type { AgentSnapshot, HumanWinsNotice } from "../agent/types.ts";
 import {
   compactSourceTree,
   constraintWarningsInspect,
@@ -106,6 +106,10 @@ export class WorkbenchService {
   readonly registry = new AgentRegistry();
   readonly history: HistoryLog;
   readonly leases = new SlotLeaseRegistry();
+  /** Per agent: slots the person edited during that agent's lease (refused once on its next write). */
+  private readonly humanTook = new Map<string, Set<string>>();
+  private readonly humanWins: HumanWinsNotice[] = [];
+  private humanWinsSeq = 0;
   private revision = "r0";
   private currentActor: HistoryActor = USER_ACTOR;
 
@@ -181,6 +185,7 @@ export class WorkbenchService {
       sheetNames: s.sheets.map((sheet) => sheet.name),
       productStack: productStackInspect(s.blocklyState),
       leases: this.leases.list(),
+      humanWins: this.humanWins.slice(-5),
       exampleCount: s.examples.length,
       activeExample: s.activeExample?.filename ?? null,
       constraintWarningCount: constraintWarnings.length,
@@ -246,6 +251,7 @@ export class WorkbenchService {
     }
     const before = this.exportBundle();
     this.controller.restoreDocumentSnapshot(structuredClone(bundle));
+    if (!options.actor || options.actor.kind === "user") this.noteHumanEditsInLeases(before, bundle);
     this.recordMutation(before, {
       actor: options.actor ?? USER_ACTOR,
       summary,
@@ -308,14 +314,23 @@ export class WorkbenchService {
         },
       });
       const foreign = this.leases.foreignHolders(payload.suggestions.map((s) => s.slotId), actorId);
-      if (foreign.size) {
+      const actor = ctx?.actor ?? this.currentActor;
+      const edited = new Set(
+        actorId && actor.kind === "agent" && actorOrigin(actor) === "mcp"
+          ? this.takeHumanEdited(actor, payload.suggestions.map((s) => s.slotId).filter((id) => !foreign.has(id)))
+          : [],
+      );
+      if (foreign.size || edited.size) {
         const filtered = {
           ...payload,
-          suggestions: payload.suggestions.filter((s) => !foreign.has(s.slotId)),
+          suggestions: payload.suggestions.filter((s) => !foreign.has(s.slotId) && !edited.has(s.slotId)),
         };
         toImport = JSON.stringify(filtered);
         for (const [slotId, row] of foreign) {
           leaseErrors.push(`${slotId}: leased by ${row.displayName} (${row.agentId})`);
+        }
+        for (const slotId of edited) {
+          leaseErrors.push(`${slotId}: edited by the person during your lease (the person wins); read it again`);
         }
       }
     } catch {
@@ -786,10 +801,46 @@ export class WorkbenchService {
    */
   private assertLeasesAllow(before: ProjectBundle, after: ProjectBundle, actor: HistoryActor): void {
     if (actor.kind !== "agent" || actorOrigin(actor) !== "mcp") return;
-    if (!this.leases.list().length) return;
-    const holders = this.leases.foreignHolders(changedTargetIds(before, after), actor.id);
+    const taken = this.humanTook.get(actor.id);
+    if (!this.leases.list().length && !taken?.size) return;
+    const changed = changedTargetIds(before, after);
+    const holders = this.leases.foreignHolders(changed, actor.id);
     const first = holders.values().next().value;
     if (first) throw new AgentSlotLeasedError(first, [...holders.keys()]);
+    const edited = this.takeHumanEdited(actor, changed);
+    if (edited.length) throw new HumanEditedSlotError(actor.displayName, edited);
+  }
+
+  /**
+   * The person edited slots inside an agent's lease (after the canvas warning,
+   * "Edit anyway"). The person wins (ADR 0014): that agent's next write to
+   * those slots is refused once, so it re-reads instead of overwriting.
+   */
+  private noteHumanEditsInLeases(before: ProjectBundle, after: ProjectBundle): void {
+    if (!this.leases.list().length) return;
+    for (const [slotId, lease] of this.leases.foreignHolders(changedTargetIds(before, after), undefined)) {
+      const set = this.humanTook.get(lease.agentId) ?? new Set<string>();
+      set.add(slotId);
+      this.humanTook.set(lease.agentId, set);
+    }
+  }
+
+  /** Slots among `slotIds` the person edited during `actor`'s lease; consumed and reported to the UI. */
+  private takeHumanEdited(actor: HistoryActor, slotIds: string[]): string[] {
+    const taken = this.humanTook.get(actor.id);
+    if (!taken?.size) return [];
+    const hit = slotIds.filter((id) => taken.has(id));
+    if (!hit.length) return [];
+    for (const id of hit) taken.delete(id);
+    this.humanWins.push({
+      seq: ++this.humanWinsSeq,
+      agentId: actor.id,
+      agent: actor.displayName.replace(/^MCP:\s*/, ""),
+      slotIds: hit,
+      at: Date.now(),
+    });
+    if (this.humanWins.length > 20) this.humanWins.splice(0, this.humanWins.length - 20);
+    return hit;
   }
 
   private agentIdForLeases(): string | undefined {
@@ -943,6 +994,15 @@ export class AgentRevisionConflictError extends Error {
   ) {
     super(`Revision conflict: expected ${expectedRevision}, current ${currentRevision}`);
     this.name = "AgentRevisionConflictError";
+  }
+}
+
+export class HumanEditedSlotError extends Error {
+  constructor(readonly agent: string, readonly slotIds: string[]) {
+    super(
+      `The person edited ${slotIds.join(", ")} while ${agent} held the lease; the person wins, so this change was not applied. Read the slot again (get_slot) and decide whether it still needs your change.`,
+    );
+    this.name = "HumanEditedSlotError";
   }
 }
 

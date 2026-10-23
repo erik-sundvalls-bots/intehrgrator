@@ -134,6 +134,25 @@ try {
   await panel.waitFor({ state: "visible" });
   await page.waitForTimeout(500);
   await clipAround(page, panel, "parallel-agents-history.png", { x: 6, top: 6, bottom: 6 }, { w: 700, h: 760 });
+  await page.click("#btn-history");
+
+  // 7. You change something inside Bo's lease: the warning with the countdown.
+  const slotInBo = await page.evaluate(() => {
+    const api = (globalThis as unknown as { intehrgratorTestApi: { findSlotIdBySuffix(s: string): string | null } })
+      .intehrgratorTestApi;
+    return api.findSlotIdBySuffix("items/at1006/value/value/value") ??
+      api.findSlotIdBySuffix("items/at0004/value/value/value");
+  });
+  if (slotInBo) {
+    await page.evaluate((id) =>
+      (globalThis as unknown as { intehrgratorTestApi: { mapNodeToSlot(a: string, b: string, c: string): void } })
+        .intehrgratorTestApi.mapNodeToSlot(id, "$.systolic", "json"), slotInBo);
+    const warning = page.locator("#dialog-lease-warning");
+    await warning.waitFor({ state: "visible" });
+    await page.waitForTimeout(2300);
+    await clipAround(page, warning, "parallel-agents-lease-warning.png", { x: 24, top: 24, bottom: 24 }, { w: 900, h: 520 });
+    await page.click("#lease-warning-cancel");
+  }
   console.log(`\nScreenshots written to ${out}`);
 } finally {
   try {
