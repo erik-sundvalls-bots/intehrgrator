@@ -104,12 +104,12 @@
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "issue-parallel-agents-tutorial": {
-    "built": "2026-10-23T04:06:02Z",
+    "built": "2026-10-23T07:10:28Z",
     "dir": "issue-parallel-agents-tutorial",
     "mode": "merged",
-    "pr": "\t\t\t",
-    "sha": "15d3194666874d4c88f5f98c2f2702a7318ad337",
-    "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
+    "pr": "273\thttps://github.com/regionstockholm/intehrgrator/pull/273\tOPEN\tTutorial: parallel IDE agents with leases",
+    "sha": "cb2fce77fcaf3f0974a6233bdee332e7587dee2d",
+    "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "release-0.9.2": {
     "built": "2026-10-19T18:57:56Z",

@@ -77707,7 +77707,7 @@ function unzipSync(data, opts) {
 }
 
 // src/core/persistence/mod.ts
-var APP_VERSION = "0.9.2";
+var APP_VERSION = "0.10.0";
 var BUNDLE_VERSION = 1;
 var AUTOSAVE_STORAGE_KEY = "__autosave__";
 var MANUAL_SAVE_KEY_PREFIX = "manual:";
@@ -192790,8 +192790,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "15d3194" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-10-23T04:06:00.467Z" : "not built";
+var BUILD_ID = true ? "cb2fce7" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-10-23T07:10:26.341Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
