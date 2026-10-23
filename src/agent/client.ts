@@ -131,10 +131,16 @@ export class HttpAgentClient implements AgentClient {
     return json;
   }
 
-  callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
-    if (name === "register_agent") return this.registerAgent(args);
+  async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+    if (name === "register_agent") return await this.registerAgent(args);
     const route = AGENT_TOOL_HTTP[name];
-    if (!route) return Promise.reject(new Error(`Unknown tool: ${name}`));
+    if (!route) throw new Error(`Unknown tool: ${name}`);
+    // Each MCP process (one IDE chat / agent) is its own agent: register on the
+    // first write or lease when the agent did not, so two chats from the same
+    // IDE get separate leases, names and colours instead of sharing "MCP: cursor".
+    if (!this.session && route.method !== "GET") {
+      await this.registerAgent({ displayName: this.clientName || "MCP agent" });
+    }
     const revision = args.revision as string | undefined;
     const rest = { ...args };
     delete rest.revision;

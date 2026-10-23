@@ -114,8 +114,10 @@ export function createAgentApiHandler(
       const tool = findAgentToolForHttp(req.method, path);
       if (!tool) return json({ error: "Not found" }, 404);
 
-      service.setActorFromHeaders(req.headers);
       const args = await argsFromHttpRequest(req, tool, url, revisionHeader);
+      // Set the actor after the body is read, right before the call: two
+      // agents' requests can interleave at that await.
+      service.setActorFromHeaders(req.headers);
       const result = await callAgentTool(service, tool, args);
       return json(result);
     } catch (err) {
@@ -130,6 +132,7 @@ export function createAgentApiHandler(
         return json({
           error: err.message,
           holder: err.holder,
+          ...(err.slotIds.length ? { slotIds: err.slotIds } : {}),
         }, 409);
       }
       const message = err instanceof Error ? err.message : String(err);
