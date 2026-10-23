@@ -72,8 +72,8 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/optional-rm/add` | `optional_rm_add` | `{ parentSlotId, rmType, attributeName }` |
 | POST | `/optional-rm/remove` | `optional_rm_remove` | `{ parentSlotId, attributeName }` |
 | POST | `/set-instance-encoding` | `set_instance_encoding` | `{ encoding, rootIndex? }` |
-| POST | `/lease-slot` | `lease_slot` | `{ slotId, ttlSec? }` — 409 if foreign holder |
-| POST | `/release-slot` | `release_slot` | `{ slotId }` |
+| POST | `/lease-slot` | `lease_slot` | `{ slotId, subtree?, ttlSec? }`: a slot, or with `subtree: true` a node path and every slot below it; 409 with `holder` when it overlaps another agent's lease |
+| POST | `/release-slot` | `release_slot` | `{ slotId, subtree? }` or `{ all: true }`; returns `released` |
 | POST | `/run-test` | `run_test` | Conversion Test Run (full `TestResult`) |
 | POST | `/generate-script` | `generate_script` | `{ language, path? }` Conversion Script |
 | POST | `/export-bundle` | `export_bundle` | `{ format: json\|zip, path? }` |
@@ -109,7 +109,7 @@ The UI polls `/api/v1/snapshot` and reloads the bundle when revision changes (li
 
 1. MCP **`register_agent`** at session start — desktop returns **name + colour**.
 2. Mutations carry agent headers for **attributed history**.
-3. **`lease_slot`** while mapping a hot slot; **`release_slot`** when done. `import_suggestions` skips slots leased by someone else.
+3. **`lease_slot`** on the slots, or with `subtree: true` the node path (a slot id prefix such as `…//context/EVENT_CONTEXT`), you are about to map; **`release_slot`** (`all: true`) when done. While a lease is held, another MCP agent's change that would touch a covered slot fails with 409 and the `holder` (MCP: a tool result with `isError`), and the project and history are left as they were. This covers every write, also `undo`, `revert`, `load_bundle` and Optional RM. `import_suggestions` skips the covered slots and lists them. The person in the desktop UI, and the in-app AI chat, are never blocked; they see the lease on the canvas. A stdio MCP process that did not call `register_agent` is registered on its first write as its client name (`cursor`, `cursor 2`, …), so two chats in one IDE do not share leases.
 4. **Open observer** popup: agent legend + **history timeline**.
 5. Main canvas: subtle **pulse** on touched slots; optional **Follow agent** checkbox pans to agent edits (default off).
 

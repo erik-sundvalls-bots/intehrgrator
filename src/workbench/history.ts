@@ -240,6 +240,12 @@ export class HistoryLog {
     return { bundle: structuredClone(bundle), entry, undone: targets[0]! };
   }
 
+  /** The change Redo would put back next. */
+  redoTarget(): HistoryEntry | undefined {
+    const seq = this.redoStack.at(-1);
+    return seq === undefined ? undefined : this.get(seq);
+  }
+
   /** Redo the change the last Undo rewound; appends a `redo` entry. */
   redo(current: ProjectBundle, actor: HistoryActor): { bundle: ProjectBundle; entry: HistoryEntry } | null {
     const seq = this.redoStack.pop();

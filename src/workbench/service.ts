@@ -21,7 +21,8 @@ import {
   isConversionScriptLanguage,
   isInstanceEncoding,
 } from "../types/mod.ts";
-import { actorFromHeaders, type HistoryActor, USER_ACTOR } from "../agent/actor.ts";
+import { actorFromHeaders, actorOrigin, type HistoryActor, USER_ACTOR } from "../agent/actor.ts";
+import { changedTargetIds } from "../agent/lease_guard.ts";
 import { AgentRegistry } from "../agent/registry.ts";
 import { bundleRevision } from "../agent/revision.ts";
 import type { AgentSnapshot } from "../agent/types.ts";
@@ -187,7 +188,9 @@ export class WorkbenchService {
   }
 
   registerAgent(options?: { agentId?: string; displayName?: string; color?: string }) {
-    return this.registry.register(options);
+    const reg = this.registry.register(options);
+    this.leases.renameAgent(reg.agentId, reg.displayName, reg.color);
+    return reg;
   }
 
   setActorFromHeaders(headers: Headers): HistoryActor {
@@ -304,16 +307,15 @@ export class WorkbenchService {
           format: state.target?.format ?? state.model.targetFormat ?? "openehr-template",
         },
       });
-      const foreign = this.leases.foreignHeld(payload.suggestions.map((s) => s.slotId), actorId);
-      if (foreign.length) {
-        const blocked = new Set(foreign.map((row) => row.slotId));
+      const foreign = this.leases.foreignHolders(payload.suggestions.map((s) => s.slotId), actorId);
+      if (foreign.size) {
         const filtered = {
           ...payload,
-          suggestions: payload.suggestions.filter((s) => !blocked.has(s.slotId)),
+          suggestions: payload.suggestions.filter((s) => !foreign.has(s.slotId)),
         };
         toImport = JSON.stringify(filtered);
-        for (const row of foreign) {
-          leaseErrors.push(`${row.slotId}: leased by ${row.displayName} (${row.agentId})`);
+        for (const [slotId, row] of foreign) {
+          leaseErrors.push(`${slotId}: leased by ${row.displayName} (${row.agentId})`);
         }
       }
     } catch {
@@ -447,6 +449,8 @@ export class WorkbenchService {
    * (ADR 0014). Appends an `undo` entry; the history is never rewritten.
    */
   undo(ctx?: MutationContext): UndoResult | null {
+    const target = this.history.undoTarget();
+    if (target) this.assertLeasesAllow(this.exportBundle(), target.beforeBundle, ctx?.actor ?? this.currentActor);
     const result = this.history.undo(this.exportBundle(), ctx?.actor ?? this.currentActor);
     if (!result) return null;
     this.controller.restoreDocumentSnapshot(result.bundle);
@@ -456,6 +460,8 @@ export class WorkbenchService {
 
   /** Go back to just after history entry `seq` ("Undo to here"), as one appended entry. */
   undoTo(seq: number, ctx?: MutationContext): UndoResult | null {
+    const to = this.history.get(seq);
+    if (to) this.assertLeasesAllow(this.exportBundle(), to.afterBundle, ctx?.actor ?? this.currentActor);
     const result = this.history.undoTo(seq, this.exportBundle(), ctx?.actor ?? this.currentActor);
     if (!result) return null;
     this.controller.restoreDocumentSnapshot(result.bundle);
@@ -469,6 +475,8 @@ export class WorkbenchService {
   }
 
   redo(ctx?: MutationContext): boolean {
+    const next = this.history.redoTarget();
+    if (next) this.assertLeasesAllow(this.exportBundle(), next.afterBundle, ctx?.actor ?? this.currentActor);
     const result = this.history.redo(this.exportBundle(), ctx?.actor ?? this.currentActor);
     if (!result) return false;
     this.controller.restoreDocumentSnapshot(result.bundle);
@@ -739,21 +747,49 @@ export class WorkbenchService {
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? `Instance encoding ${encoding}` });
   }
 
-  leaseSlot(slotId: string, ttlSec = 120, ctx?: MutationContext) {
+  /**
+   * Lease a slot, or with `subtree` a node path and every slot below it
+   * (S-15). Blocked (AgentSlotLeasedError) when it overlaps another agent's
+   * lease. `covers` is how many Target value slots the lease covers now.
+   */
+  leaseSlot(slotId: string, ttlSec = 120, ctx?: MutationContext, subtree = false) {
     const actor = ctx?.actor ?? this.currentActor;
     const agentId = actor.kind === "agent" ? actor.id : actor.id || "user";
+    const slotIds = this.listSlots().map((r) => r.slotId);
+    const covers = slotIds.filter((id) => id === slotId || (subtree && id.startsWith(`${slotId}/`))).length;
+    if (subtree && slotIds.length && !covers) {
+      throw new Error(`No Target value slots under ${slotId}; pass a node path that is a prefix of slot ids (list_slots)`);
+    }
+    const reg = actor.kind === "agent" ? this.registry.get(agentId) : undefined;
     const result = this.leases.acquire(slotId, {
       agentId,
       displayName: actor.displayName,
-    }, ttlSec);
+      color: reg?.color ?? actor.color,
+    }, ttlSec, subtree);
     if (!result.ok) throw new AgentSlotLeasedError(result.holder);
-    return result.lease;
+    return { ...result.lease, covers };
   }
 
-  releaseSlot(slotId: string, ctx?: MutationContext): boolean {
+  /** Release one of this agent's leases, or with `all` every one. Returns how many were released. */
+  releaseSlot(slotId: string | undefined, ctx?: MutationContext, opts: { subtree?: boolean; all?: boolean } = {}): number {
     const actor = ctx?.actor ?? this.currentActor;
     const agentId = actor.kind === "agent" ? actor.id : undefined;
-    return this.leases.release(slotId, agentId);
+    if (opts.all) return agentId ? this.leases.releaseAll(agentId) : 0;
+    if (!slotId) return 0;
+    return this.leases.release(slotId, agentId, opts.subtree) ? 1 : 0;
+  }
+
+  /**
+   * An MCP agent may not change what another agent leases (S-15). The person
+   * in the UI and the in-app AI chat are not checked: the person wins (ADR
+   * 0014) and sees the lease on the canvas.
+   */
+  private assertLeasesAllow(before: ProjectBundle, after: ProjectBundle, actor: HistoryActor): void {
+    if (actor.kind !== "agent" || actorOrigin(actor) !== "mcp") return;
+    if (!this.leases.list().length) return;
+    const holders = this.leases.foreignHolders(changedTargetIds(before, after), actor.id);
+    const first = holders.values().next().value;
+    if (first) throw new AgentSlotLeasedError(first, [...holders.keys()]);
   }
 
   private agentIdForLeases(): string | undefined {
@@ -855,6 +891,13 @@ export class WorkbenchService {
     } finally {
       this.mutating = false;
     }
+    try {
+      this.assertLeasesAllow(before, this.exportBundle(), ctx.actor ?? this.currentActor);
+    } catch (err) {
+      // Put the project back as it was; nothing is recorded.
+      this.controller.restoreDocumentSnapshot(before);
+      throw err;
+    }
     this.recordMutation(before, ctx);
   }
 
@@ -904,8 +947,12 @@ export class AgentRevisionConflictError extends Error {
 }
 
 export class AgentSlotLeasedError extends Error {
-  constructor(readonly holder: SlotLease) {
-    super(`Slot leased by ${holder.displayName} (${holder.agentId}) until ${holder.expiresAt}`);
+  constructor(readonly holder: SlotLease, readonly slotIds: string[] = []) {
+    super(
+      `${holder.subtree ? "Subtree" : "Slot"} ${holder.slotId} leased by ${holder.displayName} (${holder.agentId}) until ${
+        new Date(holder.expiresAt).toISOString()
+      }${slotIds.length ? `; blocked slots: ${slotIds.join(", ")}` : ""}. Work on other slots, or wait and retry.`,
+    );
     this.name = "AgentSlotLeasedError";
   }
 }

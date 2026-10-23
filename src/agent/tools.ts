@@ -317,25 +317,29 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "lease_slot",
-    description: "Advisory lease on a Target value slot while this agent is mapping it (S-15).",
+    description:
+      "Advisory lease while this agent works (S-15): on one Target value slotId, or with subtree: true on a node path (a slotId prefix from list_slots, e.g. …//context/EVENT_CONTEXT) covering every slot below it. Other MCP agents then cannot change what it covers (their writes, undo and revert there fail with the holder); the person in the UI is never blocked and sees the lease on the canvas. Fails when it overlaps another agent's lease. Renew by calling again before ttlSec (default 120, max 3600) runs out. Call register_agent first so the lease shows your name and colour.",
     inputSchema: {
       type: "object",
       required: ["slotId"],
-      properties: { slotId: { type: "string" }, ttlSec: { type: "number" } },
+      properties: {
+        slotId: { type: "string", description: "Value slot id, or a node path with subtree: true" },
+        subtree: { type: "boolean" },
+        ttlSec: { type: "number" },
+      },
     },
   },
   {
     name: "release_slot",
-    description: "Release a slot lease held by this agent.",
+    description: "Release a lease this agent holds (slotId, as leased), or all: true for every lease this agent holds. Release when done.",
     inputSchema: {
       type: "object",
-      required: ["slotId"],
-      properties: { slotId: { type: "string" } },
+      properties: { slotId: { type: "string" }, subtree: { type: "boolean" }, all: { type: "boolean" } },
     },
   },
   {
     name: "list_leases",
-    description: "List active advisory slot leases.",
+    description: "List active leases: slotId (or node path when subtree), holder name, colour and expiry.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -663,13 +667,25 @@ export async function callAgentTool(
       service.setInstanceEncoding(encoding, Number(args.rootIndex ?? 0), revision, ctx);
       return { revision: service.getRevision(), stack: service.getProductStack() };
     }
-    case "lease_slot":
+    case "lease_slot": {
+      const slotId = String(args.slotId ?? "").trim();
+      if (!slotId) throw new Error("lease_slot requires slotId");
       return {
-        lease: service.leaseSlot(String(args.slotId), Number(args.ttlSec ?? 120), ctx),
+        lease: service.leaseSlot(slotId, Number(args.ttlSec ?? 120), ctx, args.subtree === true || args.subtree === "true"),
         revision: service.getRevision(),
       };
-    case "release_slot":
-      return { ok: service.releaseSlot(String(args.slotId), ctx), revision: service.getRevision() };
+    }
+    case "release_slot": {
+      const released = service.releaseSlot(
+        typeof args.slotId === "string" ? args.slotId : undefined,
+        ctx,
+        {
+          subtree: args.subtree === undefined ? undefined : args.subtree === true || args.subtree === "true",
+          all: args.all === true || args.all === "true",
+        },
+      );
+      return { ok: released > 0, released, revision: service.getRevision() };
+    }
     case "list_leases":
       return { leases: service.leases.list(), revision: service.getRevision() };
     case "run_test": {
