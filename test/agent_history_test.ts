@@ -36,7 +36,15 @@ Deno.test("register_agent returns id, name, and colour", async () => {
   const json = await res.json() as { agentId: string; displayName: string; color: string };
   assertEquals(json.displayName, "Cursor Agent");
   assertEquals(typeof json.agentId, "string");
-  assertEquals(json.color.startsWith("hsl("), true);
+  assertEquals(json.color, "#1f6fb4");
+  // The next agent gets the next distinct colour; re-registering keeps yours.
+  const second = await (await handler(new Request("http://local/api/v1/register-agent", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ displayName: "Claude" }),
+  }))).json() as { color: string };
+  assertEquals(second.color, "#c62828");
+  assertEquals(service.registerAgent({ agentId: json.agentId, displayName: "Cursor Agent" }).color, "#1f6fb4");
 });
 
 Deno.test("import records agent attribution in history", async () => {
