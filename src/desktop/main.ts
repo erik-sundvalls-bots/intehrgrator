@@ -104,6 +104,9 @@ if (import.meta.main) {
   if (opts.token) Deno.env.set("INTEHR_AGENT_TOKEN", opts.token);
 
   if (opts.mcp) {
+    // An IDE starts this as its MCP server: no window. Without this the
+    // compiled app showed an empty "Could not connect" window per MCP process.
+    hideDesktopWindow();
     const base = Deno.env.get("INTEHR_AGENT_URL")?.trim();
     if (!base) {
       console.error(
