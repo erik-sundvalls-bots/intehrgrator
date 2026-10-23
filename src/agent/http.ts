@@ -10,6 +10,7 @@ import { aiChatActor, type HistoryActor, USER_ACTOR } from "./actor.ts";
 import {
   AgentRevisionConflictError,
   AgentSlotLeasedError,
+  HumanEditedSlotError,
   WorkbenchService,
 } from "../workbench/service.ts";
 import { agentApiUnauthorized } from "./auth.ts";
@@ -127,6 +128,9 @@ export function createAgentApiHandler(
           revision: err.currentRevision,
           expectedRevision: err.expectedRevision,
         }, 409);
+      }
+      if (err instanceof HumanEditedSlotError) {
+        return json({ error: err.message, humanWins: true, slotIds: err.slotIds }, 409);
       }
       if (err instanceof AgentSlotLeasedError) {
         return json({

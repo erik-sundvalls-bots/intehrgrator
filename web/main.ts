@@ -198,6 +198,16 @@ import {
 } from "../src/blockly/ai_author.ts";
 import { leaseColor, leaseTargetBlock, renderLeaseMarkers } from "../src/blockly/lease_markers.ts";
 import type { SlotLease } from "../src/agent/leases.ts";
+import type { HumanWinsNotice } from "../src/agent/types.ts";
+import { changedTargetIds } from "../src/agent/lease_guard.ts";
+import {
+  formatCountdown,
+  type LeaseHit,
+  leaseHits,
+  leaseKey,
+  pruneAcknowledged,
+  remainingByHit,
+} from "../src/web/lease_warning.ts";
 import { slotExpressionBlocks } from "../src/blockly/mapping_ir.ts";
 import {
   commitsSettled,
@@ -508,6 +518,14 @@ let suppressBlocklyModelSync = false;
 let applyingDocumentUndo = false;
 /** Desktop: fingerprint of the document last committed to / synced from the Agent API. */
 let committedDocSignature = "";
+/** Desktop: the document as last committed / synced, for the lease warning (what your edit changed, Cancel). */
+let committedSnapshot: DocumentSnapshot | null = null;
+
+/** The document as it is now is what the session has: no pending local change. */
+function markCommitted(signature = documentCommitSignature()): void {
+  committedDocSignature = signature;
+  if (isDesktopEnvironment()) committedSnapshot = controller.exportDocumentSnapshot();
+}
 /** True while a bundle written by an agent is being applied (not a local change). */
 let applyingAgentBundle = false;
 /** Summary for the next commit of a controller-originated change. */
@@ -589,7 +607,7 @@ function applyAiAuthorMarks(blocks = workspace ? slotExpressionBlocks(workspace)
   // Keep the marks in the saved Blockly JSON (save and export carry them)
   // without making the mark itself a change in the history.
   persistBlocklyCanvas({ notify: false });
-  committedDocSignature = documentCommitSignature();
+  markCommitted();
   chatServiceInstance?.acceptLiveState();
 }
 
@@ -614,7 +632,7 @@ function turnSlots(origin: UiCommitOrigin): Set<string> | undefined {
 
 /** Start the one history once the start-up project is loaded (web app: in the browser). */
 function startHistory(): void {
-  committedDocSignature = documentCommitSignature();
+  markCommitted();
   committedSlots = slotFingerprints(controller.getState().model.slots);
   adoptAiAuthorMarks();
   if (!isDesktopEnvironment()) chatService();
@@ -655,7 +673,7 @@ async function historyUndoTo(row: HistoryPanelRow): Promise<void> {
     absorbTrailingRender();
     result = await withUndoableDocumentReplace(() => chatService().undoTo(row.seq, { actor: USER_ACTOR }), group);
     absorbTrailingRender();
-    committedDocSignature = documentCommitSignature();
+    markCommitted();
     updateAiAuthorMarks("keep");
     render();
   }
@@ -684,7 +702,7 @@ async function historyRevert(row: HistoryPanelRow): Promise<void> {
     absorbTrailingRender();
     result = await withUndoableDocumentReplace(() => chatService().revert(row.seq, { actor: USER_ACTOR }), group);
     absorbTrailingRender();
-    committedDocSignature = documentCommitSignature();
+    markCommitted();
     updateAiAuthorMarks("keep");
     render();
   }
@@ -1174,9 +1192,12 @@ async function bootBlockly(): Promise<void> {
     flushLocal: () => commitPendingUiChange(),
     applyRemote: applyAgentBundle,
     onBaseline: () => {
-      committedDocSignature = documentCommitSignature();
+      markCommitted();
     },
-    onLeases: (leases) => showLeases(leases),
+    onLeases: (leases, humanWins) => {
+      showLeases(leases);
+      showHumanWins(humanWins);
+    },
     onActivity: (activity) => {
       if (activity?.displayName) lastAgentAuthor = activity.displayName;
       if (!activity) return;
@@ -1186,6 +1207,7 @@ async function bootBlockly(): Promise<void> {
   });
 
   installLeaseChip();
+  installLeaseWarning();
   const followCheckbox = document.getElementById("chk-follow-agent") as HTMLInputElement | null;
   if (followCheckbox) {
     followCheckbox.checked = followActiveAgent;
@@ -1325,13 +1347,23 @@ function commitPendingUiChange(
   }
   const signature = documentCommitSignature();
   if (signature === committedDocSignature && !options.force) return Promise.resolve();
-  committedDocSignature = signature;
-  if (absorbingRender && !options.ai && !options.force && aiWriteDepth === 0) {
+  // A lease warning is open: your change waits for Edit anyway / Cancel / the lease to end.
+  if (leaseHold) return Promise.resolve();
+  const absorbing = absorbingRender && !options.ai && !options.force && aiWriteDepth === 0;
+  const ai = options.ai ?? aiWriteInProgress();
+  if (desktop && !absorbing && !ai && committedSnapshot && currentLeases.length) {
+    const hits = leaseWarningHits(committedSnapshot);
+    if (hits.length) {
+      openLeaseWarning(hits, committedSnapshot, summary);
+      return Promise.resolve();
+    }
+  }
+  markCommitted(signature);
+  if (absorbing) {
     updateAiAuthorMarks("keep");
     chatServiceInstance?.acceptLiveState();
     return Promise.resolve();
   }
-  const ai = options.ai ?? aiWriteInProgress();
   const origin = ai?.origin;
   const text = ai
     ? `AI chat: ${ai.notices.slice(-6).join("; ") || "edit"}`
@@ -1391,7 +1423,7 @@ async function applyAgentBundle(bundle: DocumentSnapshot, initial: boolean): Pro
   } finally {
     applyingAgentBundle = false;
   }
-  committedDocSignature = documentCommitSignature();
+  markCommitted();
   if (initial) {
     committedSlots = slotFingerprints(controller.getState().model.slots);
     adoptAiAuthorMarks();
@@ -1463,6 +1495,126 @@ function showLeases(leases: SlotLease[]): void {
   }
   chip.replaceChildren(...parts);
   chip.title = `${uiChrome().leasesChipTitle}\n${leases.map((l) => `${l.displayName}: ${l.slotId.split("//").pop()}${l.subtree ? "/…" : ""}`).join("\n")}`;
+}
+
+/**
+ * Lease warning (S-15, ADR 0014): before your change to something an MCP
+ * agent leases reaches the shared project, ask. The change stays on screen
+ * but is held. "Edit anyway" commits it and stops asking about that lease
+ * until it ends; "Cancel" takes it back; when the lease ends meanwhile the
+ * change is committed without asking. Asked when a change is committed (end
+ * of a drag or field edit), never per keystroke.
+ */
+const acknowledgedLeases = new Set<string>();
+let leaseHold: {
+  hits: LeaseHit[];
+  before: DocumentSnapshot;
+  summary?: string;
+  timer: number;
+} | null = null;
+
+function leaseWarningHits(before: DocumentSnapshot): LeaseHit[] {
+  const now = Date.now();
+  pruneAcknowledged(acknowledgedLeases, currentLeases, now);
+  const changed = changedTargetIds(before, controller.exportDocumentSnapshot());
+  return leaseHits(changed, currentLeases, acknowledgedLeases, now);
+}
+
+function leaseHitSlots(hit: LeaseHit): string {
+  const names = hit.slotIds.map((id) => describeSlotForNotes(id) ?? id.split("/").filter(Boolean).slice(-4).join("/"));
+  return names.slice(0, 3).join(", ") + (names.length > 3 ? ` (+${names.length - 3})` : "");
+}
+
+function leaseAgents(hits: LeaseHit[]): string {
+  return [...new Set(hits.map((h) => h.lease.displayName))].join(", ");
+}
+
+function openLeaseWarning(hits: LeaseHit[], before: DocumentSnapshot, summary?: string): void {
+  const dialog = document.getElementById("dialog-lease-warning") as HTMLDialogElement | null;
+  const list = document.getElementById("lease-warning-list");
+  const intro = document.getElementById("lease-warning-intro");
+  if (!dialog || !list || !intro) return;
+  const m = uiChrome();
+  intro.textContent = formatMessage(m.leaseWarningIntro, { agent: leaseAgents(hits) });
+  list.replaceChildren(...hits.map((hit) => {
+    const li = document.createElement("li");
+    const dot = document.createElement("span");
+    dot.className = "lease-dot";
+    dot.style.background = leaseColor(hit.lease);
+    const what = document.createElement("span");
+    what.textContent = ` ${hit.lease.displayName}${hit.lease.subtree ? ` · ${m.leaseSubtree}` : ""}: ${leaseHitSlots(hit)} `;
+    const left = document.createElement("span");
+    left.className = "lease-countdown";
+    li.append(dot, what, left);
+    return li;
+  }));
+  const tick = () => {
+    if (!leaseHold) return;
+    const left = remainingByHit(leaseHold.hits, currentLeases, Date.now());
+    list.querySelectorAll<HTMLElement>(".lease-countdown").forEach((el, i) => {
+      el.textContent = left[i] > 0
+        ? formatMessage(uiChrome().leaseWarningEndsIn, { time: formatCountdown(left[i]) })
+        : uiChrome().leaseWarningEnded;
+    });
+    if (left.every((ms) => ms <= 0)) closeLeaseWarning("ended");
+  };
+  leaseHold = { hits, before, summary, timer: globalThis.setInterval(tick, 250) };
+  tick();
+  if (leaseHold && !dialog.open) dialog.showModal();
+}
+
+function closeLeaseWarning(choice: "edit" | "cancel" | "ended"): void {
+  const hold = leaseHold;
+  if (!hold) return;
+  globalThis.clearInterval(hold.timer);
+  leaseHold = null;
+  const dialog = document.getElementById("dialog-lease-warning") as HTMLDialogElement | null;
+  if (dialog?.open) dialog.close();
+  const m = uiChrome();
+  const agent = leaseAgents(hold.hits);
+  const slots = hold.hits.map(leaseHitSlots).join("; ");
+  if (choice === "cancel") {
+    const group = `lease-cancel:${crypto.randomUUID()}`;
+    undoGroupAuthors.set(group, USER_ACTOR.displayName);
+    void withUndoableDocumentReplace(() => controller.restoreDocumentSnapshot(hold.before), group).then(() => {
+      markCommitted();
+      controller.setStatusMessage(formatMessage(m.leaseWarningCancelled, { agent, slots }));
+    });
+    return;
+  }
+  if (choice === "edit") for (const hit of hold.hits) acknowledgedLeases.add(leaseKey(hit.lease));
+  void commitPendingUiChange(hold.summary).then(() => {
+    controller.setStatusMessage(
+      formatMessage(choice === "edit" ? m.leaseWarningEdited : m.leaseWarningExpired, { agent, slots }),
+    );
+  });
+}
+
+function installLeaseWarning(): void {
+  const dialog = document.getElementById("dialog-lease-warning") as HTMLDialogElement | null;
+  document.getElementById("lease-warning-edit")?.addEventListener("click", () => closeLeaseWarning("edit"));
+  document.getElementById("lease-warning-cancel")?.addEventListener("click", () => closeLeaseWarning("cancel"));
+  // Escape is Cancel.
+  dialog?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeLeaseWarning("cancel");
+  });
+}
+
+/** Agent writes refused because you changed those slots during their lease: say so once each. */
+let humanWinsSeen = -1;
+function showHumanWins(notices: HumanWinsNotice[]): void {
+  const newest = notices.at(-1)?.seq ?? 0;
+  if (humanWinsSeen < 0) {
+    humanWinsSeen = newest;
+    return;
+  }
+  const fresh = notices.filter((n) => n.seq > humanWinsSeen);
+  humanWinsSeen = Math.max(humanWinsSeen, newest);
+  const last = fresh.at(-1);
+  if (!last) return;
+  const slots = last.slotIds.map((id) => describeSlotForNotes(id) ?? id).join(", ");
+  controller.setStatusMessage(formatMessage(uiChrome().leaseHumanWins, { agent: last.agent, slots }));
 }
 
 function installLeaseChip(): void {
