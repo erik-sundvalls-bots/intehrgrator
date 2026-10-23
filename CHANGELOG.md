@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Fix: IDE MCP clients can connect**: the stdio MCP server (`deno task mcp`, `intEHRgrator --mcp`) only read LSP-style `Content-Length` frames, but MCP clients (Cursor, Claude Desktop, VS Code, the MCP SDK) send one JSON message per line, so they never got an `initialize` reply. Both framings are read now, and each reply uses the caller's. A failing tool (for example a slot leased by another agent) is now a tool result with `isError` and the reason, so the agent can react. `intEHRgrator --mcp` no longer opens an empty window for each MCP server an IDE starts, and it exits when the IDE closes the connection.
+
 ## [0.10.0] - 2026-10-23
 
 Minor release: one shared, append-only change history for you, the AI chat and MCP agents, with authors, Undo / Revert and a history panel (ADR 0014). MCP `undo` no longer takes `scope`, and the new `revert` tool takes back one entry.
