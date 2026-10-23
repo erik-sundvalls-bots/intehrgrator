@@ -127,7 +127,11 @@ export class HttpAgentClient implements AgentClient {
       body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(JSON.stringify(json));
+    if (!res.ok) {
+      // The message first (an agent reads it), then the details (holder, revision).
+      const { error, ...rest } = json as { error?: string };
+      throw new Error(error ? `${error}${Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : ""}` : JSON.stringify(json));
+    }
     return json;
   }
 
