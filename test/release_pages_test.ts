@@ -52,6 +52,13 @@ Deno.test("normalizeManifest deduplicates and sorts versions", () => {
   );
 });
 
+Deno.test("normalizeManifest sorts version tags numerically, newest first", () => {
+  assertEquals(
+    normalizeManifest({ versions: ["v0.9", "v0.10", "v0.9.2", "v0.8.10", "v0.8.8", "v1.0"] }),
+    { versions: ["v1.0", "v0.10", "v0.9.2", "v0.9", "v0.8.10", "v0.8.8"] },
+  );
+});
+
 Deno.test("normalizeManifest keeps only numeric v* release tags", () => {
   assertEquals(
     normalizeManifest({
