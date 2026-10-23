@@ -1470,8 +1470,17 @@ function installLeaseChip(): void {
   chip?.addEventListener("click", () => {
     if (!workspace || !currentLeases.length) return;
     const lease = currentLeases[leaseChipIndex++ % currentLeases.length]!;
-    const block = leaseTargetBlock(workspace.getAllBlocks(false), lease.slotId);
-    if (block) workspace.centerOnBlock(block.id);
+    const block = leaseTargetBlock(workspace.getAllBlocks(false), lease.slotId) as Blockly.BlockSvg | undefined;
+    if (!block) return;
+    const scale = workspace.getScale();
+    const view = workspace.getMetrics();
+    if (block.height * scale < view.viewHeight * 0.8 && block.width * scale < view.viewWidth * 0.8) {
+      workspace.centerOnBlock(block.id, true);
+    } else {
+      // A big subtree: show its top-left corner with the name tag.
+      const xy = block.getRelativeToSurfaceXY();
+      workspace.scroll(-(xy.x * scale - 40), -(xy.y * scale - 40));
+    }
   });
   // Pulled bundles rebuild blocks: draw the markers again on the new blocks.
   workspace?.addChangeListener((event) => {
