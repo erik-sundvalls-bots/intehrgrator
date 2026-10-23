@@ -96,12 +96,12 @@
     "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
   },
   "issue-mcp-stdio-framing": {
-    "built": "2026-10-23T04:04:30Z",
+    "built": "2026-10-23T07:08:47Z",
     "dir": "issue-mcp-stdio-framing",
     "mode": "merged",
-    "pr": "\t\t\t",
-    "sha": "de36c86c7a453958613cb7ba7019d43495a26edd",
-    "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
+    "pr": "270\thttps://github.com/regionstockholm/intehrgrator/pull/270\tOPEN\tFix: IDE MCP clients can connect to the stdio server; --mcp opens no window",
+    "sha": "85b91fdf75cc67f9f0db1c2a487ca03bb52ab8e7",
+    "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "issue-parallel-agents-tutorial": {
     "built": "2026-10-23T04:06:02Z",
