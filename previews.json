@@ -88,12 +88,12 @@
     "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
   },
   "issue-lease-subtree": {
-    "built": "2026-10-23T04:04:59Z",
+    "built": "2026-10-23T07:09:20Z",
     "dir": "issue-lease-subtree",
     "mode": "merged",
-    "pr": "\t\t\t",
-    "sha": "f752bcc6ddcc77b27271cc03e1851c21e75a7866",
-    "upstream": "0ce0fc823defb96c11096a35fdf1f2cba5703754"
+    "pr": "271\thttps://github.com/regionstockholm/intehrgrator/pull/271\tOPEN\tLeases for parallel MCP agents: subtrees, every write checked, separate agents per IDE chat",
+    "sha": "27c969ca601c3368d87875cdde69651c907a9abf",
+    "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "issue-mcp-stdio-framing": {
     "built": "2026-10-23T07:08:47Z",
