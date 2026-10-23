@@ -2,14 +2,12 @@
  * ehrtslib is loaded from the jsDelivr URL pinned in deno.json (`ehrtslib/`).
  * Terminology XML is fetched from that same prefix; the web build inlines it.
  */
-import { dirname, fromFileUrl, join } from "@std/path";
+// Imported (not read from disk) so a compiled desktop binary carries it: the
+// binary has no deno.json next to this file, and reading it crashed the app at start.
+import denoConfig from "../../deno.json" with { type: "json" };
 
 export function ehrtslibCdnPrefix(): string {
-  const denoJsonPath = join(dirname(fromFileUrl(import.meta.url)), "..", "..", "deno.json");
-  const denoJson = JSON.parse(Deno.readTextFileSync(denoJsonPath)) as {
-    imports?: Record<string, string>;
-  };
-  const prefix = denoJson.imports?.["ehrtslib/"];
+  const prefix = (denoConfig as { imports?: Record<string, string> }).imports?.["ehrtslib/"];
   if (typeof prefix !== "string" || !prefix.startsWith("https://")) {
     throw new Error(
       `deno.json imports["ehrtslib/"] must be the jsDelivr release prefix, got ${String(prefix)}`,
