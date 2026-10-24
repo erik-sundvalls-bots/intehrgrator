@@ -33,6 +33,7 @@ import {
 export { parseAiConfidence };
 import type { SheetDocument } from "../sheets/mod.ts";
 import { buildSlotTree, formatSlotTree, resolveSlotRef, SLOT_TREE_GUIDE } from "./slot_tree.ts";
+import { formatModelsBlock, type ModelDescription } from "./models_block.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
 /**
@@ -94,6 +95,10 @@ export interface BuildPromptOptions {
     sheetName?: string;
     message: string;
   }>;
+  /** `## Models` (#277 §7): target and source models, named once. */
+  models?: ModelDescription[];
+  /** Copy & paste: attach the raw target file too (off by default, #277 §6). */
+  attachOriginalTarget?: boolean;
 }
 
 const VALUE_BLOCK_TYPES = new Set([
@@ -154,125 +159,40 @@ export function joinLoopPath(loopPath: string, relative: string): string {
   return `${loopPath}/${rel}`;
 }
 
-export function buildPrompt(options: BuildPromptOptions): string {
-  const mapped = new Set(options.model.slots.filter((s) => s.expression).map((s) => s.slotId));
-  const slotTree = buildSlotTree(options.skeleton, {
-    include: (s) => options.scope === "slot" ? s.slotId === options.slotId : !mapped.has(s.slotId),
-  });
-
-  const api = options.delivery === "api";
-  const targetLabel = formatTargetTask(options.targetFormat);
+/**
+ * Stable prompt prefix (#277 §6): task rules, response format, references,
+ * slot tree format, block examples. It holds nothing project-specific (no
+ * names, ids, counts, revisions or languages), so providers can cache it.
+ * Copy & paste prompts start with it; AI chat sends the `api` prefix in the
+ * system message and the project context in the first user message.
+ */
+export function stablePromptPrefix(mode: "api" | "copy", formatDocUrl: string): string {
   const sections: string[] = [
     "# intEHRgrator mapping assist",
     "",
-    "## Task",
-    `Map source data to ${targetLabel} conforming to the loaded target definition.`,
+    "Map source data to the loaded target (openEHR Composition, JSON or XML document, or free-form text). The project context (target, models, slot tree, source) follows after this guide.",
     "",
-    "## Target",
-    `- format: \`${options.targetFormat}\``,
-    `- targetId: \`${options.targetId}\``,
-    `- filename: \`${options.targetFilename || "(none)"}\``,
-    "",
-    "## Source",
-    options.sourceFormat
-      ? `- schema format: \`${options.sourceFormat}\``
-      : "- (no source schema loaded)",
-    options.activeExampleFilename
-      ? `- active example: \`${options.activeExampleFilename}\``
-      : "- (no active example)",
-    "",
-    `## Scope: \`${options.scope}\``,
   ];
-  if (options.slotId) sections.push(`- slotId: \`${options.slotId}\``);
-
-  if (api) {
+  if (mode === "api") {
     sections.push(
-      "",
       "## Response format",
-      `Apply mappings with the function tools. \`import_suggestions\` takes an \`intehrgrator-suggestions\` version \`"2"\` envelope with Blockly \`block\` fragments per ${options.formatDocUrl}.`,
+      `Apply mappings with the function tools. \`import_suggestions\` takes an \`intehrgrator-suggestions\` version \`"2"\` envelope with Blockly \`block\` fragments per ${formatDocUrl} (fetch only if needed; same version ⇒ same content).`,
       NOTES_CONVENTION,
       "",
     );
   } else {
     sections.push(
-      "",
       "## Response format",
-      `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${options.formatDocUrl}`,
+      `Respond with exactly one fenced JSON block tagged \`intehrgrator-suggestions\` per: ${formatDocUrl}`,
       "Use version `\"2\"` with Blockly `block` fragments (not JS-shaped xpath wrappers).",
-      `The JSON must validate against: ${schemaUrlFromFormatDoc(options.formatDocUrl)}`,
+      `The JSON must validate against: ${schemaUrlFromFormatDoc(formatDocUrl)}`,
+      "Fetch these only if needed; same version ⇒ same content.",
       NOTES_CONVENTION,
       "",
     );
   }
-
-  if (options.targetFormat === "openehr-template") {
-    sections.push(...openEhrReferenceSections(options.formatDocUrl));
-  }
-
-  sections.push(
-    "## Slot tree",
-    SLOT_TREE_GUIDE,
-    "```json",
-    formatSlotTree(slotTree),
-    "```",
-    "",
-  );
-
-  const sheetSection = compactSheetSection(options.sheets);
-  if (sheetSection) sections.push(...sheetSection);
-
-  if (options.productStack?.length) {
-    sections.push(
-      "## Product stack",
-      "Conversion start chain (Instance roots, Instance encoding, product-grain loops). Change encoding with the `set_instance_encoding` Agent API/MCP tool — not this envelope.",
-      "```json",
-      compactJsonRows(options.productStack),
-      "```",
-      "",
-    );
-  }
-
-  if (options.optionalRm?.length && api) {
-    const attachments = options.optionalRm.reduce((n, row) => n + row.attachments.length, 0);
-    sections.push(
-      "## Optional RM Insertion",
-      `${attachments} RM-optional attributes on ${options.optionalRm.length} parent slots are not in the envelope. Call \`list_optional_rm\` (optionally with \`parentSlotId\`) for the catalog, then \`optional_rm_add\`.`,
-      "",
-    );
-  } else if (options.optionalRm?.length) {
-    sections.push(
-      "## Optional RM Insertion",
-      "These RM-optional attributes are not in the envelope. Call `optional_rm_add` with `parentSlotId`, `rmType`, and `attributeName` copied from this list (then map any new value slots).",
-      "```json",
-      compactJsonRows(options.optionalRm),
-      "```",
-      "",
-    );
-  }
-
-  if (options.constraintWarnings?.length && api) {
-    sections.push(
-      "## Constraint warnings",
-      `${options.constraintWarnings.length} open (unmapped mandatory slots, Decision table lint, abstract EVENT / ITEM_STRUCTURE). Call \`list_constraint_warnings\` for the list and re-check after mapping.`,
-      "",
-    );
-  } else if (options.constraintWarnings?.length) {
-    const sample = options.constraintWarnings.slice(0, 24);
-    sections.push(
-      "## Constraint warnings",
-      "Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with `import_suggestions` / `replace_sheets` / `optional_rm_add`, then re-check `list_constraint_warnings`.",
-      "```json",
-      compactJsonRows(sample),
-      "```",
-      "",
-    );
-  }
-
-  sections.push(
-    ...(api
-      ? apiSourceSections(options.sourceOutline, options.exampleManifest)
-      : deliverySections(options.delivery as AiArtifactDelivery, options.artifacts)),
-  );
+  sections.push(...referenceSections());
+  sections.push("## Slot tree format", SLOT_TREE_GUIDE, "");
   sections.push(
     "",
     "## Block examples",
@@ -389,15 +309,133 @@ export function buildPrompt(options: BuildPromptOptions): string {
     "**Repeating container** — put `for_each_list` in top-level `loops[]` (`source_query_node` in LIST for source nodes, or a list value for a computed collection); child slots use `loopVar` + relative `EXPRESSION` (groups with `loop` in the slot tree). Loop body reporters `logic_loop_index` / `logic_loop_length` serialize as `var(\"<item>_index\")` / `var(\"<item>_length\")` (0-based; length fixed at loop entry). Grammatical list join (Swedish *och* / Oxford comma) is a 1-arg Blockly Function that loops, appends a FIRST Decision-table snippet, and is called from the slot — not a `join_list` builtin. Optional RM Insertion uses `optional_rm_add` / `optional_rm_remove` tools, not this envelope.",
     'Loop fragment (merge into the envelope; ids from the slot tree): `{"loops":[{"attachSlotId":"<loop group>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<group><id of a slot in that group>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
     "",
+    "## Rules",
+    "Build each `slotId` from the slot tree (`group` + `id`). Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
+    "",
+  );
+  return sections.filter((line, i, arr) => !(line === "" && arr[i - 1] === "")).join("\n");
+}
+
+/** Last line of the stable prefix; the project context starts after it. */
+export const PROJECT_CONTEXT_START = "# Project";
+
+export function buildPrompt(options: BuildPromptOptions): string {
+  const mapped = new Set(options.model.slots.filter((s) => s.expression).map((s) => s.slotId));
+  const slotTree = buildSlotTree(options.skeleton, {
+    include: (s) => options.scope === "slot" ? s.slotId === options.slotId : !mapped.has(s.slotId),
+  });
+
+  const api = options.delivery === "api";
+  const targetLabel = formatTargetTask(options.targetFormat);
+  const sections: string[] = [];
+  if (!api) sections.push(stablePromptPrefix("copy", options.formatDocUrl), "");
+  sections.push(
+    PROJECT_CONTEXT_START,
+    "",
+    "## Task",
+    `Map source data to ${targetLabel} conforming to the loaded target definition.`,
+    "",
+    "## Target",
+    `- format: \`${options.targetFormat}\``,
+    `- targetId: \`${options.targetId}\``,
+    `- filename: \`${options.targetFilename || "(none)"}\``,
+  );
+  if (!api && !options.attachOriginalTarget) {
+    sections.push("- The original target file is not attached: the slot tree below has what mapping needs. (The user can turn on **Attach original target** in the AI menu.)");
+  }
+  sections.push(
+    "",
+    "## Source",
+    options.sourceFormat
+      ? `- schema format: \`${options.sourceFormat}\``
+      : "- (no source schema loaded)",
+    options.activeExampleFilename
+      ? `- active example: \`${options.activeExampleFilename}\``
+      : "- (no active example)",
+    "",
+    `## Scope: \`${options.scope}\``,
+  );
+  if (options.slotId) sections.push(`- slotId: \`${options.slotId}\``);
+  sections.push("");
+
+  if (options.models?.length) {
+    sections.push("## Models", formatModelsBlock(options.models), "");
+  }
+
+  sections.push(
+    "## Slot tree",
+    "```json",
+    formatSlotTree(slotTree),
+    "```",
+    "",
+  );
+
+  const sheetSection = compactSheetSection(options.sheets);
+  if (sheetSection) sections.push(...sheetSection);
+
+  if (options.productStack?.length) {
+    sections.push(
+      "## Product stack",
+      "Conversion start chain (Instance roots, Instance encoding, product-grain loops). Change encoding with the `set_instance_encoding` Agent API/MCP tool — not this envelope.",
+      "```json",
+      compactJsonRows(options.productStack),
+      "```",
+      "",
+    );
+  }
+
+  if (options.optionalRm?.length && api) {
+    const attachments = options.optionalRm.reduce((n, row) => n + row.attachments.length, 0);
+    sections.push(
+      "## Optional RM Insertion",
+      `${attachments} RM-optional attributes on ${options.optionalRm.length} parent slots are not in the envelope. Call \`list_optional_rm\` (optionally with \`parentSlotId\`) for the catalog, then \`optional_rm_add\`.`,
+      "",
+    );
+  } else if (options.optionalRm?.length) {
+    sections.push(
+      "## Optional RM Insertion",
+      "These RM-optional attributes are not in the envelope. Call `optional_rm_add` with `parentSlotId`, `rmType`, and `attributeName` copied from this list (then map any new value slots).",
+      "```json",
+      compactJsonRows(options.optionalRm),
+      "```",
+      "",
+    );
+  }
+
+  if (options.constraintWarnings?.length && api) {
+    sections.push(
+      "## Constraint warnings",
+      `${options.constraintWarnings.length} open (unmapped mandatory slots, Decision table lint, abstract EVENT / ITEM_STRUCTURE). Call \`list_constraint_warnings\` for the list and re-check after mapping.`,
+      "",
+    );
+  } else if (options.constraintWarnings?.length) {
+    const sample = options.constraintWarnings.slice(0, 24);
+    sections.push(
+      "## Constraint warnings",
+      "Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with `import_suggestions` / `replace_sheets` / `optional_rm_add`, then re-check `list_constraint_warnings`.",
+      "```json",
+      compactJsonRows(sample),
+      "```",
+      "",
+    );
+  }
+
+  const artifacts = options.attachOriginalTarget ? options.artifacts : options.artifacts.filter((a) => a.role !== "target");
+  sections.push(
+    ...(api
+      ? apiSourceSections(options.sourceOutline, options.exampleManifest)
+      : deliverySections(options.delivery as AiArtifactDelivery, artifacts)),
+  );
+  sections.push(
+    "",
     "## Instruction",
-    (api
-      ? "Map with the tools (`map_slot`, `import_suggestions`, `optional_rm_add`, `replace_sheets`), then `run_test`. "
-      : "Return exactly one `intehrgrator-suggestions` fenced JSON block. ") +
-      "Build each `slotId` from the slot tree (`group` + `id`). Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
+    api
+      ? "Map with the tools (`map_slot`, `import_suggestions`, `optional_rm_add`, `replace_sheets`), then `run_test`, following the rules in the system message."
+      : "Return exactly one `intehrgrator-suggestions` fenced JSON block, following the rules above.",
   );
 
   if (options.delivery === "inline") {
-    const parts = options.artifacts.filter((a) => a.content.length > 0);
+    const parts = artifacts.filter((a) => a.content.length > 0);
     if (parts.length) {
       sections.push("", formatMultipart(parts));
     }
@@ -476,16 +514,18 @@ function formatTargetTask(format: string): string {
   }
 }
 
-function openEhrReferenceSections(_formatDocUrl: string): string[] {
+/** Generic references, the same for every project (part of the stable prefix). */
+function referenceSections(): string[] {
   return [
-    "## openEHR references",
-    "When the target is an openEHR template, use authoritative sources — do not invent RM paths, archetype ids, or terminology codes.",
+    "## References",
+    "Use authoritative sources — do not invent RM paths, archetype ids, or terminology codes.",
     "",
-    "- **openehr-assistant MCP** (recommended): archetype/template lookup, terminology resolution, spec digests, and ADL/AQL guidance. Install the [openEHR Assistant Plugin](https://github.com/cadasto/openehr-assistant-plugin) in your AI environment when possible.",
+    "- **openehr-assistant MCP** (recommended for openEHR targets): archetype/template lookup, terminology resolution, spec digests, and ADL/AQL guidance. Install the [openEHR Assistant Plugin](https://github.com/cadasto/openehr-assistant-plugin) in your AI environment when possible.",
     "- **ehrtslib (DeepWiki)**: https://deepwiki.com/ErikSundvall/ehrtslib",
     "- **ehrtslib (GitHub)**: https://github.com/ErikSundvall/ehrtslib",
-    "- **openEHR specifications**: https://specifications.openehr.org/",
-    "- **openEHR specs (AI index)**: https://specifications.openehr.org/llms.txt",
+    "- **openEHR specifications**: https://specifications.openehr.org/ (AI index: https://specifications.openehr.org/llms.txt; RM: https://specifications.openehr.org/releases/RM/latest/)",
+    "- **openEHR CKM** (archetypes by id): https://ckm.openehr.org/ckm/",
+    "- **XML Schema**: https://www.w3.org/TR/xmlschema11-1/ · **JSON Schema**: https://json-schema.org/specification",
     "",
   ];
 }

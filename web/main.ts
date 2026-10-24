@@ -255,6 +255,7 @@ import {
   runSuggestionsChatTurn,
   SUGGESTIONS_FALLBACK_INSTRUCTION,
 } from "../src/core/ai/mapping_agent.ts";
+import { pinnedDocUrl } from "../src/core/ai/pinned_links.ts";
 import { DEFAULT_GITHUB_TEMPLATE_URL } from "../src/core/clinical_model/github_template.ts";
 import { DEFAULT_GITHUB_EXAMPLES_URL } from "../src/core/source/github_examples.ts";
 import {
@@ -2262,7 +2263,7 @@ const importAiDialog = installImportAiDialog({
   clipboard: requireEl<HTMLButtonElement>("import-ai-clipboard"),
   copyErrors: requireEl<HTMLButtonElement>("import-ai-copy-errors"),
   openButton: requireEl<HTMLButtonElement>("btn-import-ai"),
-  formatDocUrl: host.resolveAppUrl("docs/AI_SUGGESTION_FORMAT.md"),
+  formatDocUrl: pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md"),
   readClipboard: () => controller.readClipboardText(),
   copyToClipboard: (text) => host.copyToClipboard(text),
   // A pasted AI answer is an AI change too (ADR 0014), with its own undo step.
@@ -2301,6 +2302,8 @@ aiChat = installAiChatPanel({
   buildProjectContext: (delivery) => controller.buildAiPromptText(delivery ?? lastAiDelivery()),
   getDelivery: () => lastAiDelivery(),
   setDelivery: (delivery) => localStorage.setItem("intehrgrator.aiDelivery", delivery),
+  getAttachOriginalTarget: () => controller.getAiAttachOriginalTarget(),
+  setAttachOriginalTarget: (on) => controller.setAiAttachOriginalTarget(on),
   copyToClipboard: (text) => host.copyToClipboard(text),
   pickTextFile: () => host.pickTextFile(".md,.txt,.json,text/markdown,text/plain,application/json"),
   fetchText: async (url) => (await host.fetchTextUrl(url)).text,
@@ -2422,6 +2425,15 @@ function installCopyAiMenu(): void {
       }
     });
   });
+
+  // #277: raw target file in copy & paste prompts only on request (saved per project).
+  const attachTarget = document.getElementById("menu-ai-attach-target");
+  if (attachTarget instanceof HTMLInputElement) {
+    attachTarget.addEventListener("change", () => controller.setAiAttachOriginalTarget(attachTarget.checked));
+    document.getElementById("btn-copy-ai")?.addEventListener("click", () => {
+      attachTarget.checked = controller.getAiAttachOriginalTarget();
+    });
+  }
 
   menu.querySelectorAll<HTMLButtonElement>("[data-ai-delivery]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -3763,6 +3775,7 @@ async function runSuggestionsFallbackTurn(
     credentials: creds,
     prompt: `${request.prompt}\n\n${SUGGESTIONS_FALLBACK_INSTRUCTION}${excerpt}`,
     history: request.history,
+    systemPrefix: controller.buildAiSystemPrefix("copy"),
     proxyUrl,
     signal: request.signal,
     onEvent: request.onEvent,
@@ -3855,6 +3868,7 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       credentials: creds,
       prompt: request.prompt,
       history: request.history,
+      systemPrefix: controller.buildAiSystemPrefix("api"),
       proxyUrl,
       signal: request.signal,
       onEvent: request.onEvent,

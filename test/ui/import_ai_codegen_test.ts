@@ -57,7 +57,7 @@ Deno.test({
       );
       assertStringIncludes(prompt, "## Slot tree");
       assertStringIncludes(prompt, "intehrgrator-suggestions");
-      assertStringIncludes(prompt, "## openEHR references");
+      assertStringIncludes(prompt, "## References");
       assertStringIncludes(prompt, "openehr-assistant MCP");
       assertStringIncludes(prompt, "cadasto/openehr-assistant-plugin");
       assertStringIncludes(prompt, "icd10_snomed");

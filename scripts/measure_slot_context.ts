@@ -53,7 +53,9 @@ export async function slotContextTexts(fx: { target: string; schema?: string; ex
     ["list_slots rows (view:rows)", JSON.stringify(await callAgentTool(service, "list_slots", { view: "rows" }))],
     [`slot tree (${tree.length} groups)`, formatSlotTree(tree)],
     ["list_slots (tree, default)", JSON.stringify(await callAgentTool(service, "list_slots", {}))],
-    ["prompt api", c.buildAiPromptText("api")],
+    ["stable prefix api (system message, cacheable)", c.buildAiSystemPrefix("api")],
+    ["prompt api (first user message context)", c.buildAiPromptText("api")],
+    ["stable prefix copy (cacheable)", c.buildAiSystemPrefix("copy")],
     ["prompt copy uri", c.buildAiPromptText("uri")],
     ["prompt copy inline", c.buildAiPromptText("inline")],
   ];

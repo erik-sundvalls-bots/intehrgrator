@@ -290,6 +290,8 @@ body { display: flex; flex-direction: column; min-height: 100%; }
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
 }
 .split-btn-menu-item:hover { background: #f4f8f7; }
+.split-btn-menu-check { cursor: pointer; border-top: 1px solid #e4ebe9; }
+.split-btn-menu-check input { margin: 0; accent-color: #00795f; }
 .split-btn-menu-item:disabled { opacity: 0.55; cursor: default; }
 .split-btn-menu-link {
   color: inherit;

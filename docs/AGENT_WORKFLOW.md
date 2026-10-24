@@ -102,6 +102,8 @@ Output modes that execute for catalogued families:
 
 Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. AI chat runs these tool names in-process and does not need stdio MCP.
 
+The stdio MCP `initialize` result carries `instructions`: this workflow in short and version-pinned links to this file and the suggestion format (`https://regionstockholm.github.io/intehrgrator/v<version>/docs/…`; same version ⇒ same content).
+
 Pass agent identity on mutations: headers **`X-Agent-Id`**, **`X-Agent-Name`**, optional **`X-Agent-Color`** (after `register-agent`), and **`X-Agent-Client`** (the MCP client name; stdio MCP sends `clientInfo.name` from `initialize`). History entries carry `actor.origin` (`human`, `ai-chat`, `mcp`).
 
 The UI polls `/api/v1/snapshot` and reloads the bundle when revision changes (live canvas sync). Pure block **x/y** drags do not append history; structural / expression changes do.

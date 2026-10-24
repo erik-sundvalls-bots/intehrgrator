@@ -3,6 +3,7 @@
  * otherwise uses an embedded WorkbenchService (file-based workflow).
  */
 
+import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
 import { getSharedWorkbenchService } from "./http.ts";
 import { APP_VERSION } from "../core/persistence/mod.ts";
 import { AGENT_TOOLS } from "./tools.ts";
@@ -103,6 +104,20 @@ export function takeMessages(buffer: Uint8Array): {
   return { messages, rest: buffer.slice(start) };
 }
 
+/**
+ * MCP `initialize` instructions (#277 §8): the workflow in short plus a
+ * version-pinned link to the full AGENT_WORKFLOW.md (same version ⇒ same
+ * content, so an agent need not fetch it twice).
+ */
+export function mcpInstructions(): string {
+  return [
+    "intEHRgrator maps a source (JSON / XML, with schema and examples) onto a target (openEHR template, JSON Schema, XSD) on one shared canvas.",
+    "Workflow: register_agent (name yourself) → list_slots (compact slot tree; a slot id is group + row id) and get_source_tree → get_slot for one slot's full detail → lease_slot what you will edit when other agents work in parallel → map_slot / import_suggestions → run_test → release_slot. Every change is in the shared history (undo / revert).",
+    "The person in the app always wins: a refused write (humanWins, or a slot leased by another agent) is a tool error to react to, not to retry blindly.",
+    `Full guide (fetch only if needed): ${pinnedDocUrl("docs/AGENT_WORKFLOW.md")} · suggestion format: ${pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md")}`,
+  ].join("\n");
+}
+
 export async function handleMcpRequest(req: JsonRpcRequest, client: AgentClient): Promise<unknown> {
   if (req.method === "initialize") {
     const clientName = (req.params as { clientInfo?: { name?: unknown } } | undefined)?.clientInfo?.name;
@@ -111,6 +126,7 @@ export async function handleMcpRequest(req: JsonRpcRequest, client: AgentClient)
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
       serverInfo: { name: "intehrgrator", version: APP_VERSION },
+      instructions: mcpInstructions(),
     };
   }
   if (req.method === "notifications/initialized") return undefined;
