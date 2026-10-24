@@ -39,6 +39,7 @@ Deno.test({
         "inline",
         "attach",
         "uri",
+        "languages",
         "btn-import-ai",
         "own",
         "credentials",
