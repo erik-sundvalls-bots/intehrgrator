@@ -111,6 +111,14 @@
     "sha": "911ff0fa4a6c689b967e1707f4f130939a4f3e3b",
     "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
   },
+  "issue-277-prompt-cache": {
+    "built": "2026-10-24T06:04:21Z",
+    "dir": "issue-277-prompt-cache",
+    "mode": "merged",
+    "pr": "288\thttps://github.com/regionstockholm/intehrgrator/pull/288\tOPEN\tAI chat: prompt caching for Claude via OpenRouter (#277 \u00a76, on #281)",
+    "sha": "29bf266dcad470d19eae75df3ede8dd7da9e3df3",
+    "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
+  },
   "issue-277-source-tree": {
     "built": "2026-10-24T06:03:57Z",
     "dir": "issue-277-source-tree",
