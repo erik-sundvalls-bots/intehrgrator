@@ -90,9 +90,20 @@ export function availableOptLanguages(
       term_definitions?: Record<string, unknown>;
     };
     description?: { details?: Record<string, unknown> };
+    archetype_term_definitions?: Record<string, Record<string, unknown> | undefined>;
   },
 ): string[] {
-  return availableTemplateLanguages(opt);
+  const langs = availableTemplateLanguages(opt);
+  // OPT 1.4 XML keeps translations per archetype (`<ontology>` / `<component_ontologies>`
+  // with `<term_definitions language="sv">`), not in the merged ontology (#279).
+  const seen = new Set(langs);
+  const extra = new Set<string>();
+  for (const bags of Object.values(opt.archetype_term_definitions ?? {})) {
+    for (const [lang, table] of Object.entries(bags ?? {})) {
+      if (!seen.has(lang) && table && typeof table === "object" && Object.keys(table).length) extra.add(lang);
+    }
+  }
+  return [...langs, ...extra];
 }
 
 /**

@@ -77,6 +77,8 @@ export interface GenerateSkeletonResult {
   languages: string[];
   /** Web Template JSON for Simplified FLAT / structured Test Run serialise. */
   webTemplateJson?: string;
+  /** OPT XML translation: Web Template in `language` for descriptions (#279); FLAT keeps `webTemplateJson`. */
+  languageWebTemplateJson?: string;
 }
 
 export function generateSkeleton(
@@ -94,10 +96,15 @@ export function generateSkeleton(
     throw new Error("Could not parse operational template from input");
   }
   const generated = generateSkeletonFromOperational(opt, optSource, undefined, options);
+  const webTemplateJson = webTemplateJsonFromOperational(opt, generated.language);
+  const translated = generated.language !== resolveOptLanguage(opt)
+    ? translatedWebTemplateJson(opt, generated.language)
+    : undefined;
   return {
     ...generated,
     warnings: [...parsed.warnings, ...generated.warnings],
-    webTemplateJson: webTemplateJsonFromOperational(opt, generated.language),
+    webTemplateJson,
+    ...(translated ? { languageWebTemplateJson: translated } : {}),
   };
 }
 
@@ -134,6 +141,36 @@ export function generateSkeletonFromWebTemplate(
   };
 }
 
+/**
+ * Web Template in `language` when that language is only in the per-archetype
+ * bags (OPT XML `<component_ontologies>` translations), else undefined (#279).
+ * ehrtslib's builder only takes a language the merged ontology has, so the
+ * ontology gets that language (template-level terms as in the original) and
+ * the builder then reads the translated archetype bags. Only for descriptions:
+ * `webTemplateJson` (FLAT ids) is built as before.
+ */
+function translatedWebTemplateJson(opt: AmObject, language: string): string | undefined {
+  try {
+    const ontology = (opt as { ontology?: { term_definitions?: Record<string, unknown> } }).ontology;
+    const defs = ontology?.term_definitions;
+    const perArchetype = (opt as { archetype_term_definitions?: Record<string, Record<string, unknown>> })
+      .archetype_term_definitions;
+    if (defs && !defs[language] && Object.values(perArchetype ?? {}).some((t) => t?.[language])) {
+      const original = resolveOptLanguage(opt);
+      const saved = ontology!.term_definitions;
+      ontology!.term_definitions = { ...defs, [language]: { ...(defs[original] as object ?? {}) } };
+      try {
+        return JSON.stringify(buildWebTemplate(opt, { defaultLanguage: language }));
+      } finally {
+        ontology!.term_definitions = saved;
+      }
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function webTemplateJsonFromOperational(opt: AmObject, language: string): string | undefined {
   try {
     return JSON.stringify(buildWebTemplate(opt, { defaultLanguage: language }));
@@ -159,7 +196,10 @@ export function generateSkeletonFromOperational(
   const lang = preferred && (languages.length === 0 || languages.includes(preferred))
     ? resolveOptLanguage(opt, preferred)
     : resolveOptLanguage(opt);
-  applyOperationalTemplateTermScopes(opt, lang);
+  // The term definitions inline in each C_ARCHETYPE_ROOT are in the template's
+  // original language; translations come from `<component_ontologies>` (#279).
+  // Tagging them with `lang` would overwrite the translation with the original.
+  applyOperationalTemplateTermScopes(opt, languages.length > 1 ? resolveOptLanguage(opt) : lang);
   const fallbackTerms = mergedOntologyTerms(opt, lang);
   const archetypeTerms = mergeTermMaps(
     optSource ? buildArchetypeTermsIndex(optSource) : undefined,

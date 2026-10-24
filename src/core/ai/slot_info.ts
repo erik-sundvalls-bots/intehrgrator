@@ -186,6 +186,59 @@ function openEhrInfo(node: WtNode, lang: string): SlotInfo {
 
 const VALUE_RM = /^(DV_|CODE_PHRASE$|PARTY_|DV$|ELEMENT$)/;
 
+/**
+ * One Web Template with the names and descriptions of several, matched by
+ * `aqlPath` (#279): an OPT XML file gives one Web Template per language, and
+ * `get_slot` wants every language. The first is the base; later ones only add
+ * `localizedNames` / `localizedDescriptions` / value `localizedLabels` /
+ * `localizedDescriptions` for languages the base does not have.
+ */
+export function mergeWebTemplateLanguages(jsons: Array<string | undefined>): string | undefined {
+  const parsed = jsons.flatMap((j) => {
+    if (!j) return [];
+    try {
+      const wt = JSON.parse(j) as { tree?: WtNode };
+      return wt.tree ? [wt] : [];
+    } catch {
+      return [];
+    }
+  });
+  if (parsed.length < 2) return jsons.find(Boolean);
+  const [base, ...rest] = parsed;
+  const byPath = new Map<string, WtNode>();
+  const index = (node: WtNode) => {
+    if (node.aqlPath !== undefined) { if (!byPath.has(node.aqlPath)) byPath.set(node.aqlPath, node); };
+    node.children?.forEach(index);
+  };
+  index(base!.tree!);
+  const add = (into: Record<string, string> | undefined, from: Record<string, string> | undefined) => {
+    if (!from) return into;
+    const out = { ...into };
+    for (const [l, v] of Object.entries(from)) if (out[l] === undefined && v) out[l] = v;
+    return Object.keys(out).length ? out : undefined;
+  };
+  const merge = (node: WtNode) => {
+    const target = node.aqlPath !== undefined ? byPath.get(node.aqlPath) : undefined;
+    if (target) {
+      target.localizedNames = add(target.localizedNames, node.localizedNames);
+      target.localizedDescriptions = add(target.localizedDescriptions, node.localizedDescriptions);
+      (node.inputs ?? []).forEach((input, i) => {
+        const into = target.inputs?.[i];
+        if (!into || (into.suffix ?? "") !== (input.suffix ?? "")) return;
+        for (const item of input.list ?? []) {
+          const same = into.list?.find((x) => x.value === item.value);
+          if (!same) continue;
+          same.localizedLabels = add(same.localizedLabels, item.localizedLabels);
+          same.localizedDescriptions = add(same.localizedDescriptions, item.localizedDescriptions);
+        }
+      });
+    }
+    node.children?.forEach(merge);
+  };
+  for (const wt of rest) merge(wt.tree!);
+  return JSON.stringify(base);
+}
+
 export function openEhrSlotInfo(webTemplateJson: string | undefined, templateId: string, language = "en"): SlotInfoIndex {
   const index: SlotInfoIndex = { slots: new Map(), groups: new Map() };
   if (!webTemplateJson) return index;

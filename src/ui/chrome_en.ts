@@ -31,6 +31,7 @@ export const en = {
   langWidgetTitle: "Shown in",
   langWidgetFollow: "Follow the source",
   langWidgetChosen: "your choice",
+  langWidgetUnknown: "Not an ISO 639-1 language code: {code}",
   menuAiCopyHeading: "copy/paste for external AI chat",
   menuAiOwnHeading: "Your own AI",
   menuAiDesktopHeading: "Desktop",

@@ -132,7 +132,9 @@ These commands are in the toolbar **File** menu. **Functions** has its own lectu
 
 - **ⓘ** next to pane headers explains formats.
 - **Help** in the toolbar opens this tutorial series, **Report a bug**, and **Request a feature**. Describe the clinical workflow you are trying to support.
-- **Language** in the toolbar switches Blockly UI messages (`en`, `sv`, `de`, `es`, `ca`, `fr`). The 💬 button in the target pane is separate: it shows which language the target's labels are in. By default that is the first target language that matches the source's language (the Swedish labels for a Swedish source); pick another to keep it, or **Follow the source** to go back. Hover a target row to see its label in the other languages. A bilingual source schema (XSD `xml:lang`, JSON Schema `x-i18n`) gets its own 💬 in the Schema header for its descriptions. **AI ▾ → Languages…** sets the source languages when they cannot be detected, and which target languages' labels go to the AI.
+- **Language** in the toolbar switches Blockly UI messages (`en`, `sv`, `de`, `es`, `ca`, `fr`). The 💬 button in the target pane is separate: it shows which language the target's labels are in. By default that is the first target language that matches the source's language (the Swedish labels for a Swedish source); pick another to keep it, or **Follow the source** to go back. Hover a target row to see its label in the other languages. A bilingual source schema (XSD `xml:lang`, JSON Schema `x-i18n`) gets its own 💬 in the Schema header for its descriptions. **AI ▾ → Languages…** sets the source languages when they cannot be detected, and which target languages' labels go to the AI. A language code that is not an ISO 639-1 code is listed as written, with ⚠.
+
+  <img src="../assets/tutorial/target-language-widget.png" width="450" alt="The 💬 sv button in the target pane, open: Follow the source (sv), 1. Swedish, 2. English, 3. German" />
 
 ## Next
 

@@ -79,7 +79,7 @@ import {
 import { stablePromptPrefix } from "../core/ai/mod.ts";
 import { describeModels, type ModelDescription } from "../core/ai/models_block.ts";
 import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
-import { type SlotInfoIndex, slotInfoForTarget } from "../core/ai/slot_info.ts";
+import { mergeWebTemplateLanguages, type SlotInfoIndex, slotInfoForTarget } from "../core/ai/slot_info.ts";
 import {
   aiContextLanguages,
   detectSourceLanguages,
@@ -187,7 +187,8 @@ export class WorkbenchController {
   /** Example id → origin URI when loaded from URL (session). */
   private exampleOriginUrls = new Map<string, string>();
   private target: TargetDefinition | null = null;
-  private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; index: SlotInfoIndex } | null = null;
+  private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; lang?: string; index: SlotInfoIndex } | null = null;
+  private mergedWebTemplate: { target: TargetDefinition; json: string | undefined } | null = null;
   /** UI language: breaks a `target.lang.1` tie only (#277 §4). */
   private uiLanguage = "en";
   /** Target re-read per language (labels for the AI, hover), per loaded target (#279). */
@@ -1746,11 +1747,35 @@ export class WorkbenchController {
   getSlotInfoIndex(): SlotInfoIndex {
     const skeleton = this.getAiSkeleton();
     const cache = this.slotInfoCache;
-    if (cache && cache.target === this.target && cache.skeleton === skeleton) return cache.index;
     const lang = this.getAiLanguages()[0];
-    const index = slotInfoForTarget(this.target && lang ? { ...this.target, language: lang } : this.target, skeleton);
-    this.slotInfoCache = { target: this.target, skeleton, index };
+    if (cache && cache.target === this.target && cache.skeleton === skeleton && cache.lang === lang) return cache.index;
+    const target = this.target ? { ...this.target, webTemplateJson: this.allLanguagesWebTemplate() } : null;
+    const index = slotInfoForTarget(target && lang ? { ...target, language: lang } : target, skeleton);
+    this.slotInfoCache = { target: this.target, skeleton, lang, index };
     return index;
+  }
+
+  /**
+   * An OPT XML target's Web Template with the names and descriptions of every
+   * target language (#279): ehrtslib builds one language per Web Template, so
+   * each language is built from the OPT and merged. Other targets: as loaded.
+   */
+  private allLanguagesWebTemplate(): string | undefined {
+    const target = this.target;
+    if (!target) return undefined;
+    const own = target.languageWebTemplateJson ?? target.webTemplateJson;
+    const langs = targetLanguagesOf(target);
+    if (!own || langs.length < 2 || !target.content.trimStart().startsWith("<")) return own;
+    const cached = this.mergedWebTemplate;
+    if (cached?.target === target) return cached.json;
+    const ownLang = target.language ?? langs[0];
+    const others = langs.filter((l) => l !== ownLang).map((l) => {
+      const t = this.targetInLanguage(l);
+      return t?.languageWebTemplateJson ?? (t?.language === l ? t?.webTemplateJson : undefined);
+    });
+    const json = mergeWebTemplateLanguages([own, ...others]);
+    this.mergedWebTemplate = { target, json };
+    return json;
   }
 
   /** Stable AI chat prefix for the system message (#277 §6). */

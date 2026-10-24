@@ -22,6 +22,7 @@ export const sv: ChromeMessages = {
   langWidgetTitle: "Visas på",
   langWidgetFollow: "Följ källan",
   langWidgetChosen: "ditt val",
+  langWidgetUnknown: "Inte en språkkod enligt ISO 639-1: {code}",
   openInAiChat: "Öppna i AI-chatt",
   aiChat: "AI-chatt",
   addToAiChat: "Lägg till i AI-chatt",

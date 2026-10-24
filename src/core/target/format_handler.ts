@@ -41,6 +41,12 @@ export interface TargetDefinition {
   fileset?: ClinicalModelFileset;
   /** Web Template JSON used for ontology/label language switching when content is OPT XML. */
   webTemplateJson?: string;
+  /**
+   * OPT XML re-read in `language`: the Web Template built in that language
+   * (descriptions for the AI, #279). `webTemplateJson` stays the first load's,
+   * because Simplified FLAT ids come from its names.
+   */
+  languageWebTemplateJson?: string;
   /** Ontology / localized label language currently applied to `skeleton`. */
   language?: string;
   /** Languages available on this target model (when multilingual). */
@@ -120,7 +126,9 @@ export function reloadTargetLanguage(
       webTemplateJson: loaded.webTemplateJson,
     };
   }
-  if (definition.webTemplateJson) {
+  // An OPT XML file is re-read itself: its translations are in the OPT, the
+  // Web Template built from it only carries the language it was built in (#279).
+  if (definition.webTemplateJson && !definition.content.trimStart().startsWith("<")) {
     const generated = generateSkeletonFromWebTemplate(definition.webTemplateJson, {
       language,
     });
@@ -140,6 +148,11 @@ export function reloadTargetLanguage(
     ...reloaded,
     fileset: definition.fileset,
     webTemplateJson: definition.webTemplateJson,
+    ...(reloaded.languageWebTemplateJson
+      ? { languageWebTemplateJson: reloaded.languageWebTemplateJson }
+      : reloaded.webTemplateJson && reloaded.webTemplateJson !== definition.webTemplateJson
+      ? { languageWebTemplateJson: reloaded.webTemplateJson }
+      : {}),
   };
 }
 
@@ -189,6 +202,7 @@ registerTargetFormatHandler({
       language: generated.language,
       languages: generated.languages,
       webTemplateJson: generated.webTemplateJson,
+      ...(generated.languageWebTemplateJson ? { languageWebTemplateJson: generated.languageWebTemplateJson } : {}),
     };
   },
   render({ definition, slotValues }) {
