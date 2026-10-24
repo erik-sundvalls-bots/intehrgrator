@@ -119,6 +119,14 @@
     "sha": "63c4cbbe2761dae8ed6b64bd22137110485cf62e",
     "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
   },
+  "issue-279-label-languages": {
+    "built": "2026-10-24T05:12:26Z",
+    "dir": "issue-279-label-languages",
+    "mode": "merged",
+    "pr": "285\thttps://github.com/regionstockholm/intehrgrator/pull/285\tOPEN\tLanguages: target.lang.1 labels for the AI, \ud83d\udcac widgets for target and source, Languages\u2026 dialog (#279, #277 part 4)",
+    "sha": "6c5bc9e8b06648174e6d112d8820eadc875e644e",
+    "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
+  },
   "issue-lease-canvas": {
     "built": "2026-10-23T07:09:55Z",
     "dir": "issue-lease-canvas",

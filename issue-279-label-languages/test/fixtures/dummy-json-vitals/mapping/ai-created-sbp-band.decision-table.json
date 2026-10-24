@@ -1,0 +1,33 @@
+{
+  "name": "sbp_band",
+  "kind": "decision-table",
+  "headers": [
+    "sbp",
+    "band"
+  ],
+  "values": [
+    [
+      "< 90",
+      "low"
+    ],
+    [
+      "90..139",
+      "normal"
+    ],
+    [
+      ">= 140",
+      "high"
+    ]
+  ],
+  "hitPolicy": "FIRST",
+  "decisionColumns": [
+    {
+      "role": "condition"
+    },
+    {
+      "role": "output",
+      "outputKind": "value",
+      "valueType": "string"
+    }
+  ]
+}

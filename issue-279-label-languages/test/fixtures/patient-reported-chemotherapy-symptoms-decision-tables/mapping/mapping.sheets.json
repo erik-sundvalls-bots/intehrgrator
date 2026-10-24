@@ -1,0 +1,116 @@
+[
+  {
+    "name": "fatigue_note",
+    "kind": "decision-table",
+    "headers": [
+      "answer",
+      "snippet"
+    ],
+    "values": [
+      [
+        "Ja",
+        "{{followup}}."
+      ],
+      [
+        "—",
+        ""
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      true
+    ]
+  },
+  {
+    "name": "swelling_note",
+    "kind": "decision-table",
+    "headers": [
+      "code",
+      "snippet"
+    ],
+    "values": [
+      [
+        "at0.3",
+        "Svåra besvär, svårt att röra sig. Patientens kommentar angående lokalisation: \"{{location}}\"."
+      ],
+      [
+        "—",
+        "{{severity}}. Patientens kommentar angående lokalisation: \"{{location}}\"."
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      true
+    ]
+  },
+  {
+    "name": "itch_note",
+    "kind": "decision-table",
+    "headers": [
+      "treated",
+      "snippet"
+    ],
+    "values": [
+      [
+        "Ja",
+        "{{severity}}. Patientens kommentar angående egen behandling: \"{{treatment}}\"."
+      ],
+      [
+        "—",
+        "{{severity}}."
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text"
+    ],
+    "hitPolicy": "FIRST",
+    "collectJoin": "; ",
+    "decisionColumns": [
+      {
+        "role": "condition"
+      },
+      {
+        "role": "output",
+        "outputKind": "snippet",
+        "valueType": "string"
+      }
+    ],
+    "rowCatchAll": [
+      false,
+      true
+    ]
+  }
+]

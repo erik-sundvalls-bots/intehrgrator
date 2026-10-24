@@ -1,0 +1,61 @@
+{
+  "CytodosAdministrationKey": 1042,
+  "Personnummer": "NULL",
+  "RekvisisjonId": 73821234,
+  "ExternalEncounterId": 3357093,
+  "EncounterId": 1892896,
+  "EncounterDate": "2026-04-27T13:03:11",
+  "EncounterStatus": 3,
+  "EncounterStatus_LongDescription": "Stoppad",
+  "SignatureUser_FullName": "TakeCare_Test",
+  "SignatureUser_UserName": "A1D8",
+  "PDL_enhet_Namn": "OO Cancer TC",
+  "PDL_enhet_HSAID": "BW01",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Sparrgrupp": "K Cancer",
+  "Inskrivningstidpunkt": "2026-04-27T12:30:34",
+  "Utskrivningstidpunkt": "2026-04-27T12:30:34",
+  "Diagnoskod_ICD10": "C342",
+  "Diagnosnamn_ICD10": "Malign tumör i mellanlob, bronk eller lunga",
+  "Vardenhet_id": 4466,
+  "Vardenhet_namn": "S MBA A10",
+  "Vardenhet_HSAID": "C4DS",
+  "SenastUppdaterad": 1775544370859,
+  "SenastUppdaterad_orig": "2024-05-23T10:10:23.7066667+00:00",
+  "Substanser": [
+    {
+      "ContentID": 1292559,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456456,
+      "Dose": 625.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "PRÖV-Karboplatin",
+      "Innholdstoff_ATC": "L01XA02"
+    },
+    {
+      "ContentID": 1292560,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456457,
+      "Dose": 885.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "PRÖV-Pemetrexed",
+      "Innholdstoff_ATC": "L01BA04"
+    },
+    {
+      "ContentID": 1292560,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456457,
+      "Dose": 205.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "PRÖV-Pembrolizumab",
+      "Innholdstoff_ATC": "L01FF02"
+    }
+  ]
+}
