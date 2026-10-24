@@ -185,7 +185,7 @@ function assistantMessageForLoop(
 }
 
 export const MAPPING_TOOLS_USER_PREFIX =
-  "The markdown that follows is project context (slot manifest, source tree, example list). Map with the function tools: map_slot for Click-to-Map paths, import_suggestions for loops / Decision tables / bulk envelopes, get_example for example values, then run_test.";
+  "The markdown that follows is project context (slot tree, source tree, example list). Map with the function tools: map_slot for Click-to-Map paths, import_suggestions for loops / Decision tables / bulk envelopes, get_example for example values, then run_test.";
 
 export async function runMappingAgent(options: RunMappingAgentOptions): Promise<MappingAgentResult> {
   const tools = mappingAgentOpenAiTools();
@@ -340,7 +340,7 @@ function notesFromToolArgs(name: string, args: Record<string, unknown>): Suggest
 
 /** Appended to the user message when the provider rejected function tools. */
 export const SUGGESTIONS_FALLBACK_INSTRUCTION =
-  "Function tools are not available for this provider, so ignore any tool instructions above: reply with exactly one fenced `intehrgrator-suggestions` JSON block (version \"2\", Blockly `block` fragments; copy each `slotId` from the slot manifest), plus optional `### Notes` / `### Questions`.";
+  "Function tools are not available for this provider, so ignore any tool instructions above: reply with exactly one fenced `intehrgrator-suggestions` JSON block (version \"2\", Blockly `block` fragments; build each `slotId` from the slot tree: `group` + `id`), plus optional `### Notes` / `### Questions`.";
 
 /**
  * One suggestions-JSON chat turn (no tools) with the chat history. AI chat uses

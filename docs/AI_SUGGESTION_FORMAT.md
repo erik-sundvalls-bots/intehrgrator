@@ -36,7 +36,7 @@ One fence tagged `intehrgrator-suggestions`. Outside the fence the answer may ad
   },
   "loops": [
     {
-      "attachSlotId": "string — repeatable container from manifest (multiplicity 0..* / 1..*)",
+      "attachSlotId": "string — a slot-tree group with loop: true (multiplicity 0..* / 1..*)",
       "block": {
         "type": "for_each_list",
         "fields": { "VAR": "vital" },
@@ -51,7 +51,7 @@ One fence tagged `intehrgrator-suggestions`. Outside the fence the answer may ad
   ],
   "suggestions": [
     {
-      "slotId": "string — copy from manifest",
+      "slotId": "string — slot-tree group + row id (or any full id)",
       "loopVar": "vital",
       "block": {
         "type": "source_query_number",
@@ -67,7 +67,7 @@ One fence tagged `intehrgrator-suggestions`. Outside the fence the answer may ad
 ```
 
 - `target.targetId` ≡ Mapping Model `templateId`. Mismatch → reject.
-- Copy every `slotId` / `attachSlotId` **verbatim** from the prompt manifest.
+- Build every `slotId` as slot-tree `group` + row `id`, and `attachSlotId` from a `loop` group. Full skeleton ids from older prompts and `list_slots` `view: "rows"` are accepted too, as is a unique tail of an id.
 - `loops` optional. Omit when all mappings are single-valued.
 - `loopVar` optional on a suggestion; when set, must equal some `loops[].block.fields.VAR`. `EXPRESSION` is then **relative to that loop’s `PATH`** (no leading `$` / `/`). Absolute `EXPRESSION` ignores `loopVar`.
 
@@ -107,7 +107,7 @@ Use these **sparingly**, only for risks: ambiguous source, unit / coding mismatc
 | `openehr-template` | `{targetId}{path}` — leaves often end `/value` |
 | `json-schema` | `{targetId}:{jsonPath}` |
 | `xml-schema` | `{nameOrPath}:{xmlPath}` |
-| `free-form` | as in manifest |
+| `free-form` | as in the slot tree |
 
 Unknown ids → skip on import.
 
@@ -167,9 +167,9 @@ Use when source has repeating nodes (e.g. several vitals in one encounter) and t
 2. Target / source schema / examples (format, filename, origin)
 3. Scope `full` \| `slot`
 4. Link to this doc
-5. Slot manifest: `{ slotId, valueType, label, pathLabel?, targetPath?, multiplicity?, attachSlotId?, unitsFixed?, allowedUnits?, codeFixed?, terminologyFixed?, allowedValues? }` — `valueType` is format-native (openEHR `DV_*`, JSON Schema `string`/`number`, XSD type, or `PARTY_IDENTIFIED`). `attachSlotId` is the repeating ancestor to copy into `loops[]`. Unconstrained `DV_QUANTITY` units are not a separate value slot: put `maps_create_with` keys `magnitude` + `units` on the quantity slot. Unconstrained `DV_CODED_TEXT`: `maps_create_with` keys `value` + `code_string` + `terminology_id`. Unique constrained codes appear as `codeFixed`; lists of choices as `allowedValues`. Party identity (`composer`, `health_care_facility`) is the PARTY_IDENTIFIED container slot, not `/name/value`.
+5. Slot tree (#277): one group per repeating container or archetype/parent node, `{ group, label, type, mult, loop?, within?, slots: [{ id, type, label?, mult, mandatory?, fixed?, units?, values?, terminology?, expr? }] }`; a slot id is `group` + row `id`. `fixed` holds template-pinned `units` / `code` / `terminology`; `values` the allowed codes. `type` is format-native (openEHR `DV_*`, JSON Schema `string`/`number`, XSD type, or `PARTY_IDENTIFIED`). A `loop: true` group is the repeating ancestor to use as `attachSlotId` in `loops[]`. Unconstrained `DV_QUANTITY` units are not a separate value slot: put `maps_create_with` keys `magnitude` + `units` on the quantity slot. Unconstrained `DV_CODED_TEXT`: `maps_create_with` keys `value` + `code_string` + `terminology_id`. Unique constrained codes appear in `fixed.code`; lists of choices as `values`. Party identity (`composer`, `health_care_facility`) is the PARTY_IDENTIFIED container slot, not `/name/value`.
 6. Artifact delivery (below)
-7. Instruction: one version-`2` fence; use `loops` + relative paths when `multiplicity` is repeating (repeatable containers are listed separately for `attachSlotId`). Prefer a **Decision table** when several inputs / don't-care / hit policies make the mapping easier for humans to read than nested `if`. Prefer **`sheet_lookup`** for 1-key terminology (e.g. ICD-10 → SNOMED CT). Keep **`maps_get`** for **default context map** **runtime keys**. Target scaffold generation often wires Default point lookups (`maps_get` with `"defaults"`) before Copy prompt — **omit those slots only when the source has no value** and the user did not ask otherwise. **When the source has data for a slot that scaffold/defaults would fill, map from the source** (`source_query` / `text`); source wins over defaults. Typical examples: **context start time**, **healthcare facility**, **composer** (name/id). Party identity value slots map via `source_query` / `text` on the manifest leaf, not RM container blocks. Do not map source quantities onto ordinal/score fields unless the source is already that score. Copy prompt includes Sheet / Decision table previews, the Product stack, an **Optional RM Insertion** catalog (`optional_rm_add` ids), and **Constraint warnings** (`list_constraint_warnings`) when present.
+7. Instruction: one version-`2` fence; use `loops` + relative paths when `multiplicity` is repeating (`loop` groups give the `attachSlotId`). Prefer a **Decision table** when several inputs / don't-care / hit policies make the mapping easier for humans to read than nested `if`. Prefer **`sheet_lookup`** for 1-key terminology (e.g. ICD-10 → SNOMED CT). Keep **`maps_get`** for **default context map** **runtime keys**. Target scaffold generation often wires Default point lookups (`maps_get` with `"defaults"`) before Copy prompt — **omit those slots only when the source has no value** and the user did not ask otherwise. **When the source has data for a slot that scaffold/defaults would fill, map from the source** (`source_query` / `text`); source wins over defaults. Typical examples: **context start time**, **healthcare facility**, **composer** (name/id). Party identity value slots map via `source_query` / `text` on the slot-tree leaf, not RM container blocks. Do not map source quantities onto ordinal/score fields unless the source is already that score. Copy prompt includes Sheet / Decision table previews, the Product stack, an **Optional RM Insertion** catalog (`optional_rm_add` ids), and **Constraint warnings** (`list_constraint_warnings`) when present.
 
 ### Artifact delivery
 
@@ -354,7 +354,7 @@ For a **small inline table** without a named Sheet, nest `maps_create_with` insi
 }
 ```
 
-**Source over defaults (composer, time, facility)** — scaffold may already use `maps_get("defaults", …)`; when the source has values, map from source. Composer / facility are **PARTY_IDENTIFIED** slots (`list_slots` `valueType`), not a `/name/value` DV_TEXT leaf. `maps_create_with` keys `name`, `id`, `type` unpack RM `name` (string) and `identifiers[]` (`DV_IDENTIFIER.id`):
+**Source over defaults (composer, time, facility)** — scaffold may already use `maps_get("defaults", …)`; when the source has values, map from source. Composer / facility are **PARTY_IDENTIFIED** slots (slot-tree `type`), not a `/name/value` DV_TEXT leaf. `maps_create_with` keys `name`, `id`, `type` unpack RM `name` (string) and `identifiers[]` (`DV_IDENTIFIER.id`):
 
 ```intehrgrator-suggestions
 {

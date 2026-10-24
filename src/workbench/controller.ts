@@ -1470,6 +1470,12 @@ export class WorkbenchController {
     }
   }
 
+  /** The loaded target file as read (for `get_slot`'s raw constraint). */
+  getTargetSource(): { format: string; filename: string; content: string } | null {
+    if (!this.target || !this.templateContent) return null;
+    return { format: this.target.format, filename: this.templateFilename || this.target.filename, content: this.templateContent };
+  }
+
   private collectAiArtifacts(): AiPromptArtifact[] {
     const artifacts: AiPromptArtifact[] = [];
     if (this.target && this.templateContent) {

@@ -134,7 +134,7 @@ Deno.test("node-by-node map_slot maps dummy JSON vitals and Test Run passes", as
   await client.registerAgent({ displayName: "node-by-node mapper" });
   await client.callTool("load_target", { path: join(dir, "target.schema.json") });
   await client.callTool("add_example", { path: join(dir, "instance-1.json") });
-  const listed = await client.callTool("list_slots", {}) as {
+  const listed = await client.callTool("list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const systolic = listed.slots.find((s) => s.slotId.endsWith("$.systolic"))?.slotId;

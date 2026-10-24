@@ -34,7 +34,7 @@ Deno.test("headless MCP tools: load JSON target → import → run_test → gene
     content: example,
   });
 
-  const slots = await callAgentTool(service, "list_slots", {}) as {
+  const slots = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; mapped: boolean }>;
   };
   const systolic = slots.slots.find((s) => s.slotId.includes("systolic"))?.slotId;
@@ -91,7 +91,7 @@ Deno.test("Agent HTTP load-target, list_slots, lease 409, auth", async () => {
   }));
   assertEquals(load.status, 200);
 
-  const slotsRes = await handler(new Request("http://local/api/v1/slots"));
+  const slotsRes = await handler(new Request("http://local/api/v1/slots?view=rows"));
   assertEquals(slotsRes.status, 200);
   const slotsBody = await slotsRes.json() as { slots: Array<{ slotId: string }> };
   const slotId = slotsBody.slots.find((s) => s.slotId.endsWith("items/at0004/value/value/value"))?.slotId;
@@ -377,7 +377,7 @@ Deno.test("list_slots includes attachSlotId for repeating administration ACTION"
     "AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
   );
   await callAgentTool(service, "load_target", { path: opt });
-  const listed = await callAgentTool(service, "list_slots", {}) as {
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{
       slotId: string;
       attachSlotId?: string;
@@ -439,7 +439,7 @@ Deno.test("import_suggestions maps_create_with fills DV_QUANTITY magnitude and u
     content: JSON.stringify({ Dose: 140, UnitCode: "mg" }),
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { templateId: string };
-  const listed = await callAgentTool(service, "list_slots", {}) as {
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const doseId = listed.slots.find((s) => s.slotId.endsWith("items/at0139/value/value/value"))?.slotId;
@@ -493,7 +493,7 @@ Deno.test("openEHR Test Run nests DV_CODED_TEXT defining_code and DV_IDENTIFIER.
     content: JSON.stringify({ HSA: "CCJ3" }),
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { templateId: string };
-  const listed = await callAgentTool(service, "list_slots", {}) as {
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const categoryId = listed.slots.find((s) => s.slotId.includes("//category/"))?.slotId;
@@ -556,7 +556,7 @@ Deno.test("for_each_list attach prefers repeating ACTION over EVALUATION", async
     }),
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { templateId: string };
-  const listed = await callAgentTool(service, "list_slots", {}) as {
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; attachSlotId?: string }>;
   };
   const dose = listed.slots.find((s) => s.slotId.endsWith("items/at0139/value/value/value"));
@@ -645,7 +645,7 @@ Deno.test("OPT load attaches a Web Template for Simplified FLAT Test Run", async
 Deno.test("list_slots includes composer and scaffolded health_care_facility", async () => {
   const service = new WorkbenchService();
   await callAgentTool(service, "load_target", { path: adminOpt });
-  const listed = await callAgentTool(service, "list_slots", {}) as {
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; valueType: string }>;
   };
   const composer = listed.slots.find((s) => s.slotId.endsWith("//composer"));
@@ -699,7 +699,7 @@ Deno.test("optional_rm_add health_care_facility then map party name and identifi
     "PARTY_IDENTIFIED",
   );
   const snap = await callAgentTool(service, "get_snapshot", {}) as { templateId: string };
-  const listed = await callAgentTool(service, "list_slots", {}) as {
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; valueType: string }>;
   };
   const composerId = listed.slots.find((s) => s.slotId.endsWith("//composer"))?.slotId;
