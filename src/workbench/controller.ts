@@ -601,6 +601,22 @@ export class WorkbenchController {
     return { target: order, ai: aiContextLanguages(mode, order, src) };
   }
 
+  /**
+   * The source tree the AI sees: descriptions in `source.lang.1` (when the
+   * schema has it), whatever language the source pane shows (#279).
+   */
+  getAiSourceTree(): SchemaTreeNode | null {
+    const tree = this.schemaTree;
+    if (!tree || !this.schemaContent) return tree;
+    const langs = this.getSourceSchemaLanguages();
+    if (langs.length < 2 || langs[0] === this.getSourceDisplayLanguage()) return tree;
+    try {
+      return localizeSourceTree(tree, this.schemaContent, this.schemaFormat, langs[0]);
+    } catch {
+      return tree;
+    }
+  }
+
   /** Languages the source schema's own texts come in (the 💬 source widget offers these). */
   getSourceSchemaLanguages(): string[] {
     if (!this.schemaContent) return [];
@@ -1640,7 +1656,7 @@ export class WorkbenchController {
       attachOriginalTarget: Boolean(this.settings.aiAttachOriginalTarget),
       ...(delivery === "api"
         ? {
-          sourceOutline: sourceTreeOutline(this.schemaTree ?? this.buildExampleTree()),
+          sourceOutline: sourceTreeOutline(this.getAiSourceTree() ?? this.buildExampleTree()),
           exampleManifest: this.examples.list().map((ex) => ({
             id: ex.id,
             filename: ex.filename,

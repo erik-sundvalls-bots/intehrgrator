@@ -139,3 +139,16 @@ Deno.test("older bundles: modelLanguage becomes the target display choice", asyn
   assertEquals(next.getState().modelLanguage, "de");
   assertEquals(next.getState().settings.display?.targetLabelLang, "de");
 });
+
+Deno.test("api prompt source outline: descriptions in source.lang.1, not the shown source language", async () => {
+  const controller = new WorkbenchController(stubHost());
+  controller.loadSchemaContent("referral.xsd", await Deno.readTextFile(join(REFERRAL, "referral.xsd")));
+  controller.setLanguageSettings({ sourceLanguages: ["sv"] });
+  const before = controller.buildAiPromptText("api");
+  assertStringIncludes(before, " — ");
+  controller.setSourceDisplayLanguage("en");
+  assertEquals(controller.getState().sourceDisplayLanguage, "en");
+  assertEquals(controller.buildAiPromptText("api"), before);
+  controller.setSourceDisplayLanguage("sv");
+  assertEquals(controller.buildAiPromptText("api"), before);
+});

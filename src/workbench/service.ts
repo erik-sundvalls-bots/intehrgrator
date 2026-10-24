@@ -662,7 +662,7 @@ export class WorkbenchService {
   getSourceTree() {
     const s = this.controller.getState();
     return {
-      schema: compactSourceTree(s.schemaTree),
+      schema: compactSourceTree(this.controller.getAiSourceTree()),
       schemaFormat: s.schemaFormat,
       schemaFilename: s.schemaFilename,
       example: compactSourceTree(s.exampleTree ?? null),
