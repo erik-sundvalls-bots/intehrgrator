@@ -102,6 +102,10 @@ export interface BuildPromptOptions {
   attachOriginalTarget?: boolean;
   /** Descriptions, ranges, value texts per slot (#277 enrichment). */
   slotInfo?: SlotInfoIndex;
+  /** Labels in the AI context languages after `target.lang.1` (#279). */
+  extraLabels?: Array<[string, Map<string, string>]>;
+  /** `source.lang.N` / `target.lang.N` priority lists (#277 §4). */
+  languages?: { source: string[]; target: string[] };
 }
 
 const VALUE_BLOCK_TYPES = new Set([
@@ -327,6 +331,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
   const slotTree = buildSlotTree(options.skeleton, {
     include: (s) => options.scope === "slot" ? s.slotId === options.slotId : !mapped.has(s.slotId),
     info: options.slotInfo,
+    extraLabels: options.extraLabels,
   });
 
   const api = options.delivery === "api";
@@ -356,6 +361,15 @@ export function buildPrompt(options: BuildPromptOptions): string {
     options.activeExampleFilename
       ? `- active example: \`${options.activeExampleFilename}\``
       : "- (no active example)",
+  );
+  const langs = options.languages;
+  if (langs && (langs.source.length || langs.target.length > 1)) {
+    if (langs.source.length) sections.push(`- source languages: ${langs.source.join(", ")}`);
+    if (langs.target.length > 1) {
+      sections.push(`- target languages: ${langs.target.join(", ")} (slot tree labels in \`${langs.target[0]}\`)`);
+    }
+  }
+  sections.push(
     "",
     `## Scope: \`${options.scope}\``,
   );

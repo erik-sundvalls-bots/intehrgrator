@@ -158,3 +158,51 @@ export function displayLanguage(choice: string | undefined, order: readonly stri
   }
   return order[0];
 }
+
+/**
+ * The language a target was authored in: OPT `<language>`, Web Template
+ * `defaultLanguage`, JSON Schema `x-lang`, else its first listed language.
+ */
+export function targetOriginalLanguage(
+  target: { format: string; content: string; webTemplateJson?: string; languages?: string[]; language?: string } | null,
+): string | undefined {
+  if (!target) return undefined;
+  const text = target.content.trimStart();
+  if (target.format === "openehr-template") {
+    if (text.startsWith("<")) {
+      const m = text.match(/<language>\s*<terminology_id>[\s\S]*?<\/terminology_id>\s*<code_string>([^<]+)<\/code_string>/);
+      if (m) return normalizeLangCode(m[1]!);
+    }
+    const wt = target.webTemplateJson ?? (text.startsWith("{") ? text : "");
+    if (wt) {
+      try {
+        const lang = (JSON.parse(wt) as { defaultLanguage?: unknown }).defaultLanguage;
+        if (typeof lang === "string") return normalizeLangCode(lang);
+      } catch {
+        // Not a Web Template.
+      }
+    }
+  }
+  if (target.format === "json-schema" && text.startsWith("{")) {
+    try {
+      const lang = (JSON.parse(text) as Record<string, unknown>)["x-lang"];
+      if (typeof lang === "string") return normalizeLangCode(lang);
+    } catch {
+      // Malformed JSON: no language.
+    }
+  }
+  return target.languages?.[0] ?? target.language;
+}
+
+/** Languages a target offers: its listed languages, else JSON Schema `x-lang` / `x-i18n` keys. */
+export function targetLanguagesOf(
+  target: { format: string; content: string; languages?: string[]; language?: string } | null,
+): string[] {
+  if (!target) return [];
+  if (target.languages?.length) return [...target.languages];
+  if (target.format === "json-schema") {
+    const found = detectSourceLanguages([{ format: "json", content: target.content }]);
+    if (found.length) return found;
+  }
+  return target.language ? [target.language] : [];
+}

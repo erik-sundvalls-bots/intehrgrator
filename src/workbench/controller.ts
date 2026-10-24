@@ -80,6 +80,16 @@ import { stablePromptPrefix } from "../core/ai/mod.ts";
 import { describeModels, type ModelDescription } from "../core/ai/models_block.ts";
 import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
 import { type SlotInfoIndex, slotInfoForTarget } from "../core/ai/slot_info.ts";
+import {
+  aiContextLanguages,
+  detectSourceLanguages,
+  displayLanguage,
+  normalizeLangCode,
+  orderTargetLanguages,
+  targetLanguagesOf,
+  targetOriginalLanguage,
+} from "../core/languages.ts";
+import { localizeSourceTree } from "../core/source/schema_loader.ts";
 import type { HostAdapter, PickedTextFile } from "../host/mod.ts";
 import { constraintWarningsInspect, productStackInspect, sourceTreeOutline } from "../agent/inspect.ts";
 import { getValidAttachments } from "../core/rm_attachment_catalog.ts";
@@ -178,6 +188,15 @@ export class WorkbenchController {
   private exampleOriginUrls = new Map<string, string>();
   private target: TargetDefinition | null = null;
   private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; index: SlotInfoIndex } | null = null;
+  /** UI language: breaks a `target.lang.1` tie only (#277 §4). */
+  private uiLanguage = "en";
+  /** Target re-read per language (labels for the AI, hover), per loaded target (#279). */
+  private languageTargets: { target: TargetDefinition | null; byLang: Map<string, TargetDefinition | null> } = {
+    target: null,
+    byLang: new Map(),
+  };
+  private aiSkeletonCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; lang: string; ai: SkeletonNode[] } | null =
+    null;
   private model: MappingModel = createEmptyModel("");
   private settings: ProjectSettings = { ...DEFAULT_SETTINGS };
   private examples = new ExampleInstanceManager();
@@ -317,6 +336,12 @@ export class WorkbenchController {
       urlHistory: this.captureUrlHistory(),
       modelLanguage: this.target?.language ?? this.settings.modelLanguage ?? null,
       modelLanguages: this.target?.languages ?? [],
+      /** `target.lang.N` order (#279). */
+      targetLanguages: this.getTargetLanguages(),
+      /** Target labels follow `target.lang.1` unless the user picked a language. */
+      targetDisplayChosen: Boolean(this.settings.display?.targetLabelLang),
+      sourceSchemaLanguages: this.getSourceSchemaLanguages(),
+      sourceDisplayLanguage: this.getSourceDisplayLanguage() ?? null,
       lastRefreshReport: this.lastRefreshReport,
     };
   }
@@ -391,11 +416,11 @@ export class WorkbenchController {
         "Better .t.json templates need a GitHub blob/raw URL so dependent archetypes can be fetched. Use ▾ → From GitHub template…",
       );
     }
-    const preferredLanguage = this.settings.modelLanguage;
+    const preferredLanguage = this.settings.display?.targetLabelLang;
     const target = getTargetFormatHandler(format).load(filename, content, {
       language: preferredLanguage,
     });
-    return this.applyLoadedTarget(target, mode);
+    return this.applyLoadedTarget(this.inDisplayLanguage(target), mode);
   }
 
   refreshTargetContent(filename: string, content: string): RefreshDiffReport {
@@ -430,7 +455,28 @@ export class WorkbenchController {
     if (!this.target) return;
     const available = this.target.languages ?? [];
     if (available.length && !available.includes(language)) return;
-    if (this.target.language === language) return;
+    // An explicit choice (💬): kept until the user picks again (#279).
+    this.settings = { ...this.settings, display: { ...this.settings.display, targetLabelLang: language } };
+    if (this.target.language === language) {
+      this.markDirty();
+      this.notifyChange();
+      return;
+    }
+    this.switchTargetLanguage(language);
+    this.statusMessage = `Model language: ${language}`;
+    this.markDirty();
+  }
+
+  /** Back to "follow `target.lang.1`" for the target labels (#279). */
+  clearTargetDisplayLanguage(): void {
+    const { targetLabelLang: _t, ...rest } = this.settings.display ?? {};
+    this.settings = { ...this.settings, display: rest };
+    if (!this.followTargetLang1()) this.notifyChange();
+    this.markDirty();
+  }
+
+  private switchTargetLanguage(language: string): void {
+    if (!this.target || this.target.language === language) return;
     const previous = this.getBlocklyState?.() ?? this.blocklyState;
     const reloaded = reloadTargetLanguage(this.target, language);
     this.target = reloaded;
@@ -439,8 +485,197 @@ export class WorkbenchController {
     this.syncSlotLabelsFromSkeleton();
     if (previous) this.blocklyState = previous;
     this.refreshDerived();
-    this.statusMessage = `Model language: ${language}`;
+  }
+
+  /** Re-show the target in `target.lang.1` unless the user chose a language; true when it switched. */
+  private followTargetLang1(): boolean {
+    if (!this.target) return false;
+    const want = this.wantedTargetLanguage(this.target);
+    if (!want || want === this.target.language) return false;
+    try {
+      this.switchTargetLanguage(want);
+      this.markDirty();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** The language a (multilingual) target should be shown in: the 💬 choice, else `target.lang.1`. */
+  private wantedTargetLanguage(target: TargetDefinition): string | undefined {
+    if (target.format === "free-form" || !target.content) return undefined;
+    const langs = target.languages ?? [];
+    if (langs.length < 2) return undefined;
+    return displayLanguage(this.settings.display?.targetLabelLang, this.orderedTargetLanguages(target));
+  }
+
+  /** A freshly read target, re-read in its display language when that differs. */
+  private inDisplayLanguage(target: TargetDefinition): TargetDefinition {
+    const want = this.wantedTargetLanguage(target);
+    if (!want || want === target.language) return target;
+    try {
+      return reloadTargetLanguage(target, want);
+    } catch {
+      return target;
+    }
+  }
+
+  private orderedTargetLanguages(target: TargetDefinition | null): string[] {
+    return orderTargetLanguages(
+      targetLanguagesOf(target),
+      targetOriginalLanguage(target),
+      this.getSourceLanguages(),
+      this.uiLanguage,
+    );
+  }
+
+  /** The UI (chrome) language: only breaks a `target.lang.1` tie (#277 §4). */
+  setUiLanguage(code: string): void {
+    const next = normalizeLangCode(code) || "en";
+    if (next === this.uiLanguage) return;
+    this.uiLanguage = next;
+    if (!this.followTargetLang1()) this.notifyChange();
+  }
+
+  /** `source.lang.N`: the user's list, else detected from the source schema and examples. */
+  getSourceLanguages(): string[] {
+    const set = this.settings.sourceLanguages;
+    if (set?.length) return [...set];
+    return this.detectedSourceLanguages();
+  }
+
+  detectedSourceLanguages(): string[] {
+    const contents: Array<{ format: string; content: string }> = [];
+    if (this.schemaContent) contents.push({ format: this.schemaFormat, content: this.schemaContent });
+    for (const ex of this.examples.list()) contents.push({ format: ex.format, content: ex.content });
+    return detectSourceLanguages(contents);
+  }
+
+  /** `target.lang.N` (#277 §4). */
+  getTargetLanguages(): string[] {
+    return this.orderedTargetLanguages(this.target);
+  }
+
+  /** Target languages whose labels go to the AI, `target.lang.1` first (#279). */
+  getAiLanguages(): string[] {
+    return aiContextLanguages(this.settings.aiContextLanguages, this.getTargetLanguages(), this.getSourceLanguages());
+  }
+
+  getLanguageSettings(): {
+    sourceLanguages: string[] | null;
+    detectedSourceLanguages: string[];
+    aiContextLanguages: "matched" | "lang1" | "all";
+  } {
+    return {
+      sourceLanguages: this.settings.sourceLanguages?.length ? [...this.settings.sourceLanguages] : null,
+      detectedSourceLanguages: this.detectedSourceLanguages(),
+      aiContextLanguages: this.settings.aiContextLanguages ?? "matched",
+    };
+  }
+
+  /** Source languages (empty = detect) and which target labels go to the AI (#279). */
+  setLanguageSettings(next: { sourceLanguages?: string[] | null; aiContextLanguages?: "matched" | "lang1" | "all" }): void {
+    const settings = { ...this.settings };
+    if (next.sourceLanguages !== undefined) {
+      const list = (next.sourceLanguages ?? []).map(normalizeLangCode).filter(Boolean);
+      if (list.length) settings.sourceLanguages = list;
+      else delete settings.sourceLanguages;
+    }
+    if (next.aiContextLanguages !== undefined) {
+      if (next.aiContextLanguages === "matched") delete settings.aiContextLanguages;
+      else settings.aiContextLanguages = next.aiContextLanguages;
+    }
+    this.settings = settings;
+    this.relocalizeSource();
+    if (!this.followTargetLang1()) this.notifyChange();
     this.markDirty();
+  }
+
+  /** Languages the source schema's own texts come in (the 💬 source widget offers these). */
+  getSourceSchemaLanguages(): string[] {
+    if (!this.schemaContent) return [];
+    const found = detectSourceLanguages([{ format: this.schemaFormat, content: this.schemaContent }]);
+    const prio = this.getSourceLanguages();
+    return [...prio.filter((l) => found.includes(l)), ...found.filter((l) => !prio.includes(l))];
+  }
+
+  getSourceDisplayLanguage(): string | undefined {
+    const langs = this.getSourceSchemaLanguages();
+    return langs.length > 1 ? displayLanguage(this.settings.display?.sourceLabelLang, langs) : langs[0];
+  }
+
+  /** 💬 on the source pane: show descriptions in `language` (#279). */
+  setSourceDisplayLanguage(language: string | null): void {
+    const display = { ...this.settings.display };
+    if (language) display.sourceLabelLang = language;
+    else delete display.sourceLabelLang;
+    this.settings = { ...this.settings, display };
+    this.relocalizeSource();
+    this.markDirty();
+    this.notifyChange();
+  }
+
+  private relocalizeSource(): void {
+    if (!this.schemaTree || !this.schemaContent) return;
+    if (this.getSourceSchemaLanguages().length < 2) return;
+    try {
+      this.schemaTree = localizeSourceTree(this.schemaTree, this.schemaContent, this.schemaFormat, this.getSourceDisplayLanguage());
+    } catch {
+      // Keep the tree as loaded.
+    }
+  }
+
+  /** The loaded target re-read in `lang` (cached per target), or null when that fails. */
+  private targetInLanguage(lang: string): TargetDefinition | null {
+    const target = this.target;
+    if (!target) return null;
+    if (this.languageTargets.target !== target) this.languageTargets = { target, byLang: new Map() };
+    if (target.language === lang) return target;
+    const cached = this.languageTargets.byLang.get(lang);
+    if (cached !== undefined) return cached;
+    let loaded: TargetDefinition | null = null;
+    try {
+      loaded = reloadTargetLanguage(target, lang);
+    } catch {
+      loaded = null;
+    }
+    this.languageTargets.byLang.set(lang, loaded);
+    return loaded;
+  }
+
+  /** Slot id → label in `lang`, for hover texts and AI `labels`. */
+  getTargetLabels(lang: string): Map<string, string> {
+    const out = new Map<string, string>();
+    const t = this.targetInLanguage(lang);
+    if (!t) return out;
+    const walk = (nodes: SkeletonNode[]) => {
+      for (const n of nodes) {
+        if (n.label) out.set(n.slotId, n.label);
+        walk(n.children);
+      }
+    };
+    walk(t === this.target ? this.skeleton : t.skeleton);
+    return out;
+  }
+
+  /**
+   * The skeleton the AI sees: labels and value texts in `target.lang.1`,
+   * whatever language the panes show (#279). Same slot ids as the shown one.
+   */
+  getAiSkeleton(): SkeletonNode[] {
+    const lang = this.getAiLanguages()[0];
+    if (!this.target || !lang || lang === this.target.language) return this.skeleton;
+    const c = this.aiSkeletonCache;
+    if (c && c.target === this.target && c.skeleton === this.skeleton && c.lang === lang) return c.ai;
+    const t = this.targetInLanguage(lang);
+    const ai = t ? applyOptionalRmToSkeleton(t.skeleton, this.model.optionalRm) : this.skeleton;
+    this.aiSkeletonCache = { target: this.target, skeleton: this.skeleton, lang, ai };
+    return ai;
+  }
+
+  /** Labels in the AI languages after `target.lang.1` (#279). */
+  getAiExtraLabels(): Array<[string, Map<string, string>]> {
+    return this.getAiLanguages().slice(1).map((lang) => [lang, this.getTargetLabels(lang)]);
   }
 
   private applyLoadedTarget(
@@ -1383,9 +1618,11 @@ export class WorkbenchController {
       targetFilename: this.templateFilename,
       sourceFormat: this.schemaTree ? this.schemaFormat : undefined,
       activeExampleFilename: this.examples.getActive()?.filename,
-      skeleton: this.skeleton,
+      skeleton: this.getAiSkeleton(),
       model: this.model,
       formatDocUrl: pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md"),
+      extraLabels: this.getAiExtraLabels(),
+      languages: { source: this.getSourceLanguages(), target: this.getTargetLanguages() },
       delivery,
       artifacts: this.collectAiArtifacts(),
       models: this.describeAiModels(),
@@ -1407,7 +1644,7 @@ export class WorkbenchController {
       productStack: productStackInspect(this.getBlocklyState?.() ?? this.blocklyState),
       optionalRm: this.collectOptionalRmCatalog(),
       constraintWarnings: constraintWarningsInspect({
-        skeleton: this.skeleton,
+        skeleton: this.getAiSkeleton(),
         model: this.model,
         sheets: this.sheets,
         blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
@@ -1481,10 +1718,12 @@ export class WorkbenchController {
   /** The loaded target file as read (for `get_slot`'s raw constraint). */
   /** Descriptions, ranges, value texts … from the target definition, per slot (#277). Cached per target + skeleton. */
   getSlotInfoIndex(): SlotInfoIndex {
+    const skeleton = this.getAiSkeleton();
     const cache = this.slotInfoCache;
-    if (cache && cache.target === this.target && cache.skeleton === this.skeleton) return cache.index;
-    const index = slotInfoForTarget(this.target, this.skeleton);
-    this.slotInfoCache = { target: this.target, skeleton: this.skeleton, index };
+    if (cache && cache.target === this.target && cache.skeleton === skeleton) return cache.index;
+    const lang = this.getAiLanguages()[0];
+    const index = slotInfoForTarget(this.target && lang ? { ...this.target, language: lang } : this.target, skeleton);
+    this.slotInfoCache = { target: this.target, skeleton, index };
     return index;
   }
 
@@ -1816,6 +2055,9 @@ export class WorkbenchController {
       content,
       filename.replace(/\.[^.]+$/, ""),
     );
+    this.relocalizeSource();
+    // A new source can change `target.lang.1` (#279).
+    this.followTargetLang1();
     if (refresh) {
       const mappedPaths = mappedSourcePathsFromExpressions(
         this.model.slots.map((slot) => slot.expression ?? ""),
@@ -2097,22 +2339,6 @@ export class WorkbenchController {
       this.templateId = storedTarget.targetId;
       this.skeleton = applyOptionalRmToSkeleton(storedTarget.skeleton, this.model.optionalRm);
       this.model.targetFormat = storedTarget.format;
-      const preferred = this.settings.modelLanguage;
-      if (
-        preferred &&
-        preferred !== storedTarget.language &&
-        storedTarget.content &&
-        storedTarget.format !== "free-form"
-      ) {
-        try {
-          const reloaded = reloadTargetLanguage(storedTarget, preferred);
-          this.target = reloaded;
-          this.skeleton = applyOptionalRmToSkeleton(reloaded.skeleton, this.model.optionalRm);
-          this.syncSlotLabelsFromSkeleton();
-        } catch {
-          // Keep persisted skeleton when regenerate fails.
-        }
-      }
     }
     if (bundle.sourceSchema?.tree?.[0]) {
       this.schemaTree = bundle.sourceSchema.tree[0];
@@ -2122,6 +2348,25 @@ export class WorkbenchController {
         detectSourceFormat(bundle.sourceSchema.filename, bundle.sourceSchema.content);
     }
     for (const ex of bundle.examples) this.examples.addExample(ex);
+    // Display languages (#279): older bundles kept the target's shown language in `modelLanguage`.
+    if (!this.settings.display?.targetLabelLang && bundle.settings?.modelLanguage && !bundle.settings.display) {
+      this.settings = { ...this.settings, display: { ...this.settings.display, targetLabelLang: bundle.settings.modelLanguage } };
+    }
+    if (storedTarget) {
+      const preferred = this.wantedTargetLanguage(storedTarget);
+      if (preferred && preferred !== storedTarget.language) {
+        try {
+          const reloaded = reloadTargetLanguage(storedTarget, preferred);
+          this.target = reloaded;
+          this.skeleton = applyOptionalRmToSkeleton(reloaded.skeleton, this.model.optionalRm);
+          this.syncSlotLabelsFromSkeleton();
+          this.settings = { ...this.settings, modelLanguage: reloaded.language };
+        } catch {
+          // Keep persisted skeleton when regenerate fails.
+        }
+      }
+    }
+    this.relocalizeSource();
     if (bundle.activeExampleId) this.examples.setActive(bundle.activeExampleId);
     if (this.urlStorage) restoreUrlHistory(bundle.urlHistory, this.urlStorage);
     this.outputValidations.clear();
@@ -2143,7 +2388,7 @@ export class WorkbenchController {
   private async loadGitHubModel(url: string): Promise<GitHubClinicalModelLoadResult> {
     return await loadGitHubClinicalModel(url, {
       fetch: this.githubFetch,
-      language: this.settings.modelLanguage,
+      language: this.settings.display?.targetLabelLang,
       onProgress: (event) => {
         if (event.phase === "complete") return;
         this.setTaskStep(event.phase, "running", event.message);
@@ -2164,6 +2409,8 @@ export class WorkbenchController {
       language: loaded.language,
       languages: loaded.languages,
     };
+    this.target = this.inDisplayLanguage(this.target);
+    loaded = { ...loaded, skeleton: this.target.skeleton, language: this.target.language ?? loaded.language, languages: this.target.languages ?? loaded.languages };
     this.templateFilename = loaded.filename;
     this.templateContent = loaded.optXml;
     this.templateId = loaded.templateId;
