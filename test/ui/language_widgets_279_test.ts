@@ -11,7 +11,8 @@ import { chromium, type Page } from "npm:playwright@1.51.0";
 import { baseUrl, fixtureText, waitForTestApi } from "./helpers.ts";
 
 const SHOTS = Deno.env.get("PR_SCREENSHOTS") === "1";
-const WT = "vendor/openEHR-model-examples/local/theme-packs/sport-event-details/templates/Accident report including vital signs.wt.json";
+// A bilingual XSD target (en, sv): its labels are the `xs:documentation` texts.
+const XSD = "test/fixtures/multilingual-referral/referral.xsd";
 const SV_SOURCE = `<?xml version="1.0"?>\n<olycka xml:lang="sv"><skada>Fraktur</skada></olycka>`;
 
 type Api = { loadTemplate(n: string, c: string): void; loadSchema(n: string, c: string): void };
@@ -36,21 +37,21 @@ Deno.test({
 
       const targetBtn = page.locator("#target-lang-widget .lang-widget-btn");
       const targetTree = page.locator("#target-schema-tree");
-      await load(page, "loadTemplate", "accident.wt.json", await fixtureText(WT));
+      await load(page, "loadTemplate", "referral.xsd", await fixtureText(XSD));
       await targetBtn.waitFor({ state: "visible", timeout: 5_000 });
       assertEquals((await targetBtn.innerText()).trim(), "💬 en");
-      assertStringIncludes(await targetTree.innerText(), "Injury");
+      assertStringIncludes(await targetTree.innerText(), "How urgent the referral is.");
 
       // A Swedish source makes sv target.lang.1: the target follows it.
       await load(page, "loadSchema", "olycka.xml", SV_SOURCE);
       assertEquals((await targetBtn.innerText()).trim(), "💬 sv");
-      assertStringIncludes(await targetTree.innerText(), "Skada");
+      assertStringIncludes(await targetTree.innerText(), "Hur brådskande remissen är.");
       // Hover shows the other languages' labels.
-      const skada = targetTree.locator(".tree-label", { hasText: /^Skada/ }).first();
-      assertStringIncludes((await skada.getAttribute("title")) ?? "", "en: Injury");
+      const priority = targetTree.locator(".tree-label", { hasText: /^Hur brådskande/ }).first();
+      assertStringIncludes((await priority.getAttribute("title")) ?? "", "en: How urgent the referral is.");
       assertEquals(await page.locator("#source-lang-widget").isVisible(), false, "one source language: no widget");
 
-      // Keyboard: open, move to Deutsch, pick.
+      // Keyboard: open, move to English, pick.
       await targetBtn.focus();
       await page.keyboard.press("ArrowDown");
       const menu = page.locator("#target-lang-widget-menu");
@@ -70,11 +71,12 @@ Deno.test({
         }
         await page.screenshot({ path: "/workspace/pr279-target-widget-page.png" });
       }
-      const deIndex = items.findIndex((t) => t.includes("de"));
-      await menu.locator("[role=menuitemradio]").nth(deIndex).focus();
+      await page.keyboard.press("ArrowDown"); // 1. Swedish (focus starts on "Follow")
+      await page.keyboard.press("ArrowDown"); // 2. English
       await page.keyboard.press("Enter");
       await page.waitForTimeout(300);
-      assertEquals((await targetBtn.innerText()).trim(), "💬 de");
+      assertEquals((await targetBtn.innerText()).trim(), "💬 en");
+      assertStringIncludes(await targetTree.innerText(), "How urgent the referral is.");
       assertEquals(await menu.isVisible(), false);
 
       // Back to following the source.
