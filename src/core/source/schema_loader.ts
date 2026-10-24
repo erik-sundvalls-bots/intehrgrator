@@ -1,6 +1,8 @@
 import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
 import { parseJsonDocument, unwrapExecuteEnvelope } from "./json_document.ts";
 import { resolveJsonPointer } from "./json_pointer.ts";
+import { childElements, isXmlSchemaRoot, parseXmlDocument } from "../xml/xml_dom.ts";
+import { docText, parseXsd, type XsdNode } from "../xsd/xsd_model.ts";
 
 type JsonSchemaObject = Record<string, unknown>;
 
@@ -21,11 +23,36 @@ export function inferSchemaFromInstance(content: string, rootName = "root"): Sch
 }
 
 export function loadXmlSchemaFromInstance(xml: string, rootName = "root"): SchemaTreeNode {
-  const doc = new DOMParser().parseFromString(xml, "application/xml");
-  if (doc.querySelector("parsererror")) {
-    throw new Error("Invalid XML");
-  }
+  const doc = parseXmlDocument(xml);
   return xmlNodeToSchema(doc.documentElement, rootName, `/${doc.documentElement.tagName}`);
+}
+
+/**
+ * XML Source Schema: an XSD (`xs:schema` root) is read as a schema — element
+ * and attribute paths, types, multiplicity and `xs:documentation` — and any
+ * other XML document as an instance whose structure is inferred (#278).
+ */
+export function loadXmlSourceSchema(content: string, rootName = "root", lang?: string): SchemaTreeNode {
+  const doc = parseXmlDocument(content);
+  if (isXmlSchemaRoot(doc)) return loadXsdSchemaTree(content, lang);
+  return xmlNodeToSchema(doc.documentElement, rootName, `/${doc.documentElement.tagName}`);
+}
+
+/** Source tree for an XSD; `description` is the documentation in `lang` (else the first). */
+export function loadXsdSchemaTree(content: string, lang?: string): SchemaTreeNode {
+  return xsdNodeToSchemaTree(parseXsd(content).root, lang);
+}
+
+function xsdNodeToSchemaTree(node: XsdNode, lang?: string): SchemaTreeNode {
+  const description = docText(node.docs, lang);
+  return {
+    path: node.path,
+    name: node.xmlKind === "attribute" ? `@${node.name}` : node.name,
+    type: node.complex && !node.simpleContent ? "element" : node.type,
+    multiplicity: node.multiplicity,
+    ...(description ? { description } : {}),
+    children: node.children.map((child) => xsdNodeToSchemaTree(child, lang)),
+  };
 }
 
 /** Normalize tree paths so schema (`$.a.b`) and instance (`$.a.b` / `$[1]`) can be matched. */
@@ -349,7 +376,7 @@ function instanceToSchemaTree(value: unknown, name: string, path: string): Schem
 function xmlNodeToSchema(el: Element, name: string, path: string): SchemaTreeNode {
   const children: SchemaTreeNode[] = [];
   const seen = new Set<string>();
-  for (const child of el.children) {
+  for (const child of childElements(el)) {
     if (seen.has(child.tagName)) continue;
     seen.add(child.tagName);
     children.push(xmlNodeToSchema(child, child.tagName, `${path}/${child.tagName}`));

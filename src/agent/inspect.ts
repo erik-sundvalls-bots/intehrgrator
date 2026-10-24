@@ -52,6 +52,8 @@ export interface SourceTreeNode {
   name: string;
   type: string;
   multiplicity?: string;
+  /** JSON Schema `description` / XSD `xs:documentation`. */
+  description?: string;
   value?: unknown;
   children?: SourceTreeNode[];
 }
@@ -154,6 +156,7 @@ export function compactSourceTree(
     type: node.type,
   };
   if (node.multiplicity) row.multiplicity = node.multiplicity;
+  if (node.description) row.description = node.description;
   if (node.value !== undefined && (typeof node.value !== "object" || node.value === null)) {
     row.value = node.value;
   }

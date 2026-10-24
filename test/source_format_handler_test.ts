@@ -98,8 +98,8 @@ Deno.test("xml handler pathToExpression", () => {
 });
 
 Deno.test({
-  name: "xml handler loadInstance / evaluate (requires DOMParser)",
-  ignore: typeof globalThis.DOMParser === "undefined",
+  // Headless Deno has no DOMParser; the slimdom fallback covers it (#278).
+  name: "xml handler loadInstance / evaluate",
   fn() {
     const handler = getSourceFormatHandler("xml");
     const xml = "<patient><id>abc</id></patient>";

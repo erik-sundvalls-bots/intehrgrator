@@ -1,4 +1,5 @@
 import fontoxpath from "fontoxpath";
+import { parseXmlDocument } from "../xml/xml_dom.ts";
 import type { SourceFormatId } from "../../types/mod.ts";
 import type { MappingFunction } from "../../types/mod.ts";
 import type { ExprAst } from "../expression/mod.ts";
@@ -58,8 +59,12 @@ export function createSourceContext(
       ...(parameters ? { namedMaps: { [DEFAULTS_MAP_NAME]: parameters } } : {}),
     };
   }
-  const doc = new DOMParser().parseFromString(content, "application/xml");
-  if (doc.querySelector("parsererror")) throw new Error("Invalid XML source");
+  let doc: Document;
+  try {
+    doc = parseXmlDocument(content);
+  } catch (err) {
+    throw new Error(`Invalid XML source: ${err instanceof Error ? err.message : String(err)}`);
+  }
   return { format, kind, data: doc, xmlDocument: doc };
 }
 
