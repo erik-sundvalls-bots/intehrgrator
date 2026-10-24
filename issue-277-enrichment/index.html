@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#005c53" />
+  <meta name="description" content="intEHRgrator — visual integration workbench for mapping source data to openEHR" />
+  <title>intEHRgrator — Integration Workbench</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:400,500" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" />
+  <link rel="stylesheet" href="vendor/shoelace/themes/light.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="vendor/jspreadsheet/jsuites.css" />
+  <link rel="stylesheet" href="vendor/jspreadsheet/jspreadsheet.css" />
+</head>
+<body>
+  <header class="toolbar menubar">
+    <strong class="brand">intEHRgrator</strong>
+    <nav class="menubar-nav" aria-label="Main menu">
+    <div class="menubar-item">
+      <button id="btn-menu-file" class="menubar-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file" data-i18n="menuFile">File</button>
+      <div id="menu-file" class="split-btn-menu" hidden role="menu">
+        <button id="btn-new-project" class="split-btn-menu-item" type="button" role="menuitem" data-i18n="newProject">New Project</button>
+        <button id="btn-load-project" class="split-btn-menu-item" type="button" role="menuitem" data-i18n="loadProject">Load Project</button>
+        <button id="btn-save-project" class="split-btn-menu-item" type="button" role="menuitem" data-i18n="saveAs">Save as</button>
+        <button id="btn-export-project" class="split-btn-menu-item" type="button" role="menuitem" data-i18n="exportProject">Export Project</button>
+        <button id="btn-import-project" class="split-btn-menu-item" type="button" role="menuitem" data-i18n="importProject">Import Project</button>
+        <button id="btn-better-form" class="split-btn-menu-item" type="button" role="menuitem" title="The licensed renderer stays in this browser. Upload it in the viewer if it is missing." data-i18n="betterForm" data-i18n-title="betterFormTitle">Open Better form</button>
+      </div>
+    </div>
+    <div class="menubar-item">
+      <button id="btn-copy-ai" class="menubar-btn" type="button" title="AI assistance" data-i18n="menuAi" data-i18n-title="aiMenuAria" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-copy-ai">AI</button>
+      <div id="menu-copy-ai" class="split-btn-menu" hidden role="menu">
+        <div class="split-btn-menu-heading" data-ai-section="copy" data-i18n="menuAiCopyHeading">copy/paste for external AI chat</div>
+        <button type="button" class="split-btn-menu-item split-btn-menu-item--icon" role="menuitem" data-ai-delivery="inline">
+          <span class="material-symbols-outlined split-btn-menu-icon" aria-hidden="true">content_copy</span>
+          <span data-i18n="menuEmbedFiles">Embed files in prompt</span>
+        </button>
+        <button type="button" class="split-btn-menu-item split-btn-menu-item--icon" role="menuitem" data-ai-delivery="attach">
+          <span class="material-symbols-outlined split-btn-menu-icon" aria-hidden="true">content_copy</span>
+          <span data-i18n="menuAttachFiles">Attach files in chat</span>
+        </button>
+        <button type="button" class="split-btn-menu-item split-btn-menu-item--icon" role="menuitem" data-ai-delivery="uri">
+          <span class="material-symbols-outlined split-btn-menu-icon" aria-hidden="true">content_copy</span>
+          <span data-i18n="menuBrowseUris">Browse URIs (when available)</span>
+        </button>
+        <label class="split-btn-menu-item split-btn-menu-item--icon split-btn-menu-check" data-i18n-title="menuAttachOriginalTargetTitle" title="Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.">
+          <input id="menu-ai-attach-target" type="checkbox" />
+          <span data-i18n="menuAttachOriginalTarget">Attach original target</span>
+        </label>
+        <button id="btn-import-ai" class="split-btn-menu-item split-btn-menu-item--icon" type="button" role="menuitem">
+          <span class="material-symbols-outlined split-btn-menu-icon" aria-hidden="true">content_paste</span>
+          <span data-i18n="importAi">Import AI suggestions</span>
+        </button>
+        <div class="split-btn-menu-heading" data-ai-section="own" data-i18n="menuAiOwnHeading">Your own AI</div>
+        <button type="button" class="split-btn-menu-item" role="menuitem" data-ai-action="credentials" data-i18n="menuAiCredentials">
+          Configure AI credentials…
+        </button>
+        <div id="ai-menu-desktop" hidden>
+          <div class="split-btn-menu-heading" data-ai-section="desktop" data-i18n="menuAiDesktopHeading">Desktop</div>
+          <button type="button" class="split-btn-menu-item" role="menuitem" data-ai-action="local-mcp" data-i18n="menuLocalMcp">
+            Local MCP server…
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="menubar-item">
+      <button id="btn-example-sets" class="menubar-btn" type="button" title="Load a complete example set (source, target, optional mapping) from catalog URIs" data-i18n="exampleSets" data-i18n-title="exampleSetsTitle" aria-haspopup="menu" aria-controls="menu-example-sets">Example Sets</button>
+      <div id="menu-example-sets" class="split-btn-menu" hidden role="menu"></div>
+    </div>
+    <button id="btn-functions" class="menubar-btn" type="button" title="Save, load, or contribute Blockly Functions; browse the GitHub Function library" data-i18n="functions" data-i18n-title="functionsTitle">Functions</button>
+    <div class="menubar-item">
+      <button id="btn-help" class="menubar-btn" type="button" title="Tutorial and issue reporting" data-i18n="help" data-i18n-title="helpTitle" aria-haspopup="menu" aria-controls="menu-help">Help</button>
+      <div id="menu-help" class="split-btn-menu" hidden role="menu">
+        <a
+          class="split-btn-menu-item split-btn-menu-link"
+          role="menuitem"
+          href="https://github.com/regionstockholm/intehrgrator/blob/main/docs/TUTORIAL.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="userTutorial"
+        >User tutorial</a>
+        <a
+          class="split-btn-menu-item split-btn-menu-link"
+          role="menuitem"
+          href="https://github.com/regionstockholm/intehrgrator/issues/new/choose"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="reportBug"
+        >Report a bug</a>
+        <a
+          class="split-btn-menu-item split-btn-menu-link"
+          role="menuitem"
+          href="https://github.com/regionstockholm/intehrgrator/issues/new/choose"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="requestFeature"
+        >Request a feature</a>
+      </div>
+    </div>
+    </nav>
+    <span class="toolbar-spacer"></span>
+    <label class="toolbar-lang" for="ui-language-dropdown">
+      <span id="ui-language-label">Language</span>
+      <select id="ui-language-dropdown" aria-label="Application UI language" data-i18n-aria="uiLanguageAria"></select>
+    </label>
+  </header>
+
+  <main
+    class="panes"
+    data-split="row"
+    data-split-storage="layout-main-panes-v3"
+    data-split-sizes="1,2.6,1"
+    data-split-preferred="1"
+  >
+    <section class="pane source-pane" id="source-pane">
+      <div class="pane-slide-rail pane-slide-rail--source" id="rail-source" hidden>
+        <button type="button" title="Show Source" data-i18n="showSource" data-i18n-title="showSource">Source</button>
+      </div>
+      <div class="pane-slide-main">
+      <div class="pane-header">
+        <button
+          type="button"
+          id="btn-slide-source"
+          class="pane-btn pane-btn-on-dark pane-slide-btn"
+          title="Slide Source away"
+          aria-label="Slide Source away"
+          data-i18n-title="slideSourceAway"
+          data-i18n-aria="slideSourceAway"
+        >
+          <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+            <rect x="3.6" y="4.7" width="5.4" height="14.6" rx="1" fill="currentColor"></rect>
+          </svg>
+        </button>
+        <h2 data-i18n="source">Source</h2>
+        <div class="pane-header-actions">
+        <span class="info-tip">
+          <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-source-click-to-map" aria-label="Click-to-Map into Handlebars" data-i18n-aria="clickToMapAria">i</button>
+          <span id="tip-source-click-to-map" class="info-tip-balloon" role="tooltip" data-i18n-html="clickToMapHtml">
+            Click a Source Schema or Example Instance node to map it into the selected Blockly block.
+            If a Code text block (LANG = Handlebars) or a Handlebars text block is selected,
+            the click inserts a VMS-Hbs {{path}} at the caret. Hold Shift for nested
+            {{#with}} / {{#each}}. Otherwise Listening Mode fills the waiting Source query block.
+          </span>
+        </span>
+        </div>
+      </div>
+      <p id="handlebars-click-hint" class="source-handlebars-hint" hidden data-i18n="handlebarsHint">
+        Handlebars insert ready — click a source node for {{path}}; Shift+click for nested #with/#each.
+      </p>
+      <div
+        class="pane-body"
+        data-split="column"
+        data-split-storage="layout-source-sections"
+        data-split-sizes="1.2,1"
+      >
+        <div class="pane-section">
+          <div class="section-header">
+            <h3 data-i18n="schema">Schema</h3>
+            <div class="section-header-actions">
+              <span class="info-tip">
+                <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-load-schema" aria-label="Supported schema formats" data-i18n-aria="schemaFormatsAria">i</button>
+                <span id="tip-load-schema" class="info-tip-balloon" role="tooltip" data-i18n-html="schemaFormatsHtml">
+                  Supported: JSON Schema, JSON or XML documents, XSD samples, and openEHR Web Template, Composition JSON, or a GitHub .t.json (archetypes fetched from the same repo).<br>
+                  Load from a local file, a URL, or ▾ → From GitHub template….
+                </span>
+              </span>
+              <div class="split-btn">
+              <button id="btn-load-schema" class="pane-btn split-btn-main" type="button" data-i18n="loadSchema">Load Schema</button>
+              <button
+                id="btn-load-schema-menu"
+                class="pane-btn split-btn-chevron"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="menu-load-schema"
+                aria-label="More schema load options"
+                data-i18n-aria="schemaMenuAria"
+              >▾</button>
+              <div id="menu-load-schema" class="split-btn-menu" hidden role="menu"></div>
+              </div>
+            </div>
+          </div>
+          <div id="schema-tree" class="tree-pane"></div>
+        </div>
+        <div class="pane-section">
+          <div class="section-header">
+            <h3 data-i18n="examples">Examples</h3>
+            <div class="section-header-actions">
+              <span class="info-tip">
+                <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-add-example" aria-label="Supported example formats" data-i18n-aria="exampleFormatsAria">i</button>
+                <span id="tip-add-example" class="info-tip-balloon" role="tooltip" data-i18n-html="exampleFormatsHtml">
+                  Supported: JSON or XML instance files.<br>
+                  Load one file, a local folder, a GitHub folder (▾), or a single file from URL.
+                </span>
+              </span>
+              <div class="split-btn">
+              <button id="btn-add-example" class="pane-btn split-btn-main" type="button" data-i18n="addExample">+ Add Example</button>
+              <button
+                id="btn-add-example-menu"
+                class="pane-btn split-btn-chevron"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="menu-add-example"
+                aria-label="More example load options"
+                data-i18n-aria="exampleMenuAria"
+              >▾</button>
+              <div id="menu-add-example" class="split-btn-menu" hidden role="menu"></div>
+              </div>
+            </div>
+          </div>
+          <div id="example-validation" class="example-validation" hidden></div>
+          <div id="example-tabs" class="example-tabs"></div>
+          <div id="example-tree" class="tree-pane"></div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <section class="pane mapping-pane">
+      <div class="pane-header">
+        <h2 data-i18n="mappingEditors">Mapping Editors</h2>
+        <div class="pane-header-actions">
+          <button id="btn-undo" class="pane-btn pane-btn-on-dark pane-btn-icon" type="button" title="Undo last mapping editor action" aria-label="Undo" data-i18n-title="undo" data-i18n-aria="undo" disabled>
+            <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"></path></svg>
+          </button>
+          <button id="btn-redo" class="pane-btn pane-btn-on-dark pane-btn-icon" type="button" title="Redo last mapping editor action" aria-label="Redo" data-i18n-title="redo" data-i18n-aria="redo" disabled>
+            <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7z"></path></svg>
+          </button>
+          <button id="btn-history" class="pane-btn pane-btn-on-dark pane-btn-icon" type="button" title="History: who changed what (you, AI chat, MCP agents), with Undo to here and Revert" aria-label="History" data-i18n-title="historyOpenTitle" data-i18n-aria="historyTitle" aria-expanded="false">
+            <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"></path></svg>
+          </button>
+          <button id="lease-chip" class="pane-leases pane-btn pane-btn-on-dark" type="button" hidden title="MCP agents' leases right now (who works on what). Click to show the next one." data-i18n-title="leasesChipTitle"></button>
+          <label class="pane-follow-agent" title="When enabled, pan the main canvas to blocks an agent just edited" data-i18n-title="followAgentTitle">
+            <input id="chk-follow-agent" type="checkbox" />
+            <span data-i18n="followAgent">Follow agent</span>
+          </label>
+          <button
+            id="btn-open-canvas"
+            class="pane-btn pane-btn-on-dark pane-btn-icon"
+            type="button"
+            title="Open viewer window: live canvas, agent legend, and attributed history timeline"
+            data-i18n-title="openViewerTitle"
+          >
+            <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"></path>
+            </svg>
+            <span data-i18n="openViewer">Open viewer window</span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="pane-body"
+        data-split="column"
+        data-split-storage="layout-mapping-sections-v2"
+        data-split-sizes="1.2,1"
+        data-split-preferred="0"
+      >
+        <div id="blockly-mount" class="blockly-mount"></div>
+        <div class="mapping-bottom">
+          <div class="mapping-editor-tabs" role="tablist" aria-label="Mapping editor text views" data-i18n-aria="mappingViewsAria">
+            <div class="mapping-editor-tab-group">
+              <div class="split-btn split-btn--compact">
+                <button id="tab-mapping-json" class="mapping-editor-tab active split-btn-main" type="button" data-i18n="mappingSpec">Mapping Spec</button>
+                <button
+                  id="tab-mapping-json-menu"
+                  class="mapping-editor-tab split-btn-chevron"
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="menu-mapping-spec-layout"
+                  aria-label="Mapping Spec view options"
+                  data-i18n-aria="specLayoutAria"
+                >▾</button>
+                <div id="menu-mapping-spec-layout" class="split-btn-menu" hidden role="menu">
+                  <button type="button" class="split-btn-menu-item" role="menuitem" data-spec-layout="list" data-i18n="listView">List view (all roots)</button>
+                  <button type="button" class="split-btn-menu-item" role="menuitem" data-spec-layout="tabs" data-i18n="tabbedView">Tabbed view (per root)</button>
+                </div>
+              </div>
+              <button id="tab-sheets" class="mapping-editor-tab" type="button">Tables & Sheets</button>
+            </div>
+            <button
+              id="btn-upload-spec"
+              class="pane-btn pane-btn-icon mapping-spec-upload"
+              type="button"
+              title="Upload a Blockly workspace JSON file"
+              aria-label="Upload a Blockly workspace JSON file"
+              data-i18n-title="uploadSpecTitle"
+              data-i18n-aria="uploadSpecAria"
+            >
+              <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M6 18h12v-3h2v3c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2v-3h2v3zM7 9l1.41 1.41L11 7.83V16h2V7.83l2.59 2.58L17 9l-5-5z"></path>
+              </svg>
+            </button>
+            <div id="sheets-actions" class="sheets-actions" hidden></div>
+            <div id="mapping-spec-bulk-bar" class="mapping-spec-bulk-bar">
+              <button
+                id="btn-spec-mark-warned"
+                class="pane-btn mapping-spec-bulk-btn"
+                type="button"
+                title="Mark unmapped optional scaffold trees that show a constraint warning"
+                data-i18n="markWarned"
+                data-i18n-title="markWarnedTitle"
+              >Mark warned optional</button>
+              <button
+                id="btn-spec-delete-marked"
+                class="pane-btn mapping-spec-bulk-btn"
+                type="button"
+                disabled
+                title="Delete checked nodes and their children from the canvas"
+                data-i18n="deleteMarked"
+                data-i18n-title="deleteMarkedTitle"
+              >Delete marked</button>
+            </div>
+          </div>
+          <div class="spec-editor-host" id="spec-editor-wrap">
+            <div
+              class="editor-action-toolbar"
+              id="spec-editor-toolbar"
+              role="toolbar"
+              aria-label="Mapping Spec editor actions"
+              data-i18n-aria="specEditorActionsAria"
+            >
+              <button
+                type="button"
+                class="pane-btn pane-btn-icon editor-action-btn"
+                data-editor-action="search"
+                title="Search in mapping spec"
+                aria-label="Search in mapping spec"
+                data-i18n-title="searchSpecTitle"
+                data-i18n-aria="searchSpecAria"
+              >
+                <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="pane-btn pane-btn-icon editor-action-btn"
+                data-editor-action="copy"
+                title="Copy mapping spec"
+                aria-label="Copy mapping spec"
+                data-i18n-title="copySpecTitle"
+                data-i18n-aria="copySpecAria"
+              >
+                <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                id="btn-download-spec"
+                class="pane-btn pane-btn-icon editor-action-btn"
+                data-editor-action="download"
+                title="Download the full Blockly workspace JSON"
+                aria-label="Download the full Blockly workspace JSON"
+                data-i18n-title="downloadSpecTitle"
+                data-i18n-aria="downloadSpecAria"
+              >
+                <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M18 15v3H6v-3H4v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3zm-1-4-1.41-1.41L13 12.17V4h-2v8.17L8.41 9.59 7 11l5 5z"></path>
+                </svg>
+              </button>
+            </div>
+            <div id="spec-editor" class="editor-host"></div>
+          </div>
+          <div id="sheets-host" class="sheets-host" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pane output-pane" id="output-pane">
+      <div class="pane-slide-rail pane-slide-rail--output" id="rail-output" hidden>
+        <button type="button" data-output-tab="target-schema" title="Target schema" data-i18n="railTarget" data-i18n-title="railTargetTitle">Target schema</button>
+        <button type="button" data-output-tab="script" title="Generated conversion script(s)" data-i18n="railScripts" data-i18n-title="railScriptsTitle">Scripts</button>
+        <button type="button" data-output-tab="test" title="Conversion Test Run(s)" data-i18n="railTest" data-i18n-title="railTestTitle">Test</button>
+      </div>
+      <div class="pane-slide-main">
+      <div class="pane-header">
+        <h2 data-i18n="targetPreviews">Target &amp; Previews</h2>
+        <div class="pane-header-actions">
+          <span class="control-with-info">
+          <span class="info-tip info-tip--end">
+            <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-open-target" aria-label="Supported target formats" data-i18n-aria="targetFormatsAria">i</button>
+            <span id="tip-open-target" class="info-tip-balloon" role="tooltip" data-i18n-html="targetFormatsHtml">
+              Supported: openEHR OPT/OPT2, Web Template, JSON Schema, XML Schema (XSD), ADL, free-form templates, or a GitHub .t.json (archetypes fetched from the same repo).<br>
+              Choose a target and a default context map together. ▾ also offers file, URL, GitHub, and non-destructive refresh.
+            </span>
+          </span>
+          <div class="split-btn">
+            <button id="btn-open-template" class="pane-btn pane-btn-on-dark split-btn-main" type="button" title="Load a target and pick a default context map" data-i18n="loadTarget" data-i18n-title="loadTargetTitle">Load target &amp; default context map</button>
+            <button
+              id="btn-open-template-menu"
+              class="pane-btn pane-btn-on-dark split-btn-chevron"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="menu-open-template"
+              aria-label="More target load options"
+              data-i18n-aria="targetMenuAria"
+            >▾</button>
+            <div id="menu-open-template" class="split-btn-menu" hidden role="menu"></div>
+          </div>
+          </span>
+          <label class="pane-lang pane-lang--on-dark" id="model-language-wrap" hidden for="model-language-dropdown">
+            <span id="model-language-label">Model</span>
+            <select id="model-language-dropdown" aria-label="Target model ontology language" data-i18n-aria="modelLanguageAria"></select>
+          </label>
+          <span class="control-with-info">
+          <span class="info-tip info-tip--end">
+            <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-output-script" aria-label="Conversion script formats" data-i18n-aria="scriptFormatsAria">i</button>
+            <span id="tip-output-script" class="info-tip-balloon" role="tooltip" data-i18n-html="scriptFormatsHtml">
+              Mapping preview interprets the mapping without generating a script.
+              Conversion scripts (so far): TypeScript, Java, Handlebars, XQuery, and Go Template.
+              TypeScript, Handlebars, Go Template, and XQuery also run in Conversion Test Run.
+              Java generates an Archie class but does not execute in the web app.
+              For openEHR targets, JSON vs XML instance chooses how XQuery serializes the composition.<br>
+              Download on the script editor saves the generated script. The overlay Download on Conversion Test Run saves that instance.
+            </span>
+          </span>
+          <label class="pane-select-label" for="export-target">
+            <select id="export-target">
+              <option value="preview" data-i18n="mappingPreview">Mapping preview</option>
+              <option value="typescript">TypeScript</option>
+              <option value="java">Java</option>
+              <option value="handlebars">Handlebars</option>
+              <option value="xquery">XQuery</option>
+              <option value="go-template">Go Template</option>
+            </select>
+          </label>
+          </span>
+          <label class="pane-select-label" id="openehr-instance-shape-wrap" hidden for="openehr-instance-shape">
+            <span data-i18n="instance">Instance</span>
+            <select id="openehr-instance-shape" title="Desired openEHR instance shape. XQuery export and Test Run use this serialization." data-i18n-title="instanceTitle">
+              <option value="json" data-i18n="jsonInstance">JSON instance</option>
+              <option value="xml" data-i18n="xmlInstance">XML instance</option>
+            </select>
+          </label>
+        </div>
+        <button
+          type="button"
+          id="btn-slide-output"
+          class="pane-btn pane-btn-on-dark pane-slide-btn"
+          title="Slide Target &amp; Previews away"
+          aria-label="Slide Target &amp; Previews away"
+          data-i18n-title="slideTargetAway"
+          data-i18n-aria="slideTargetAway"
+        >
+          <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+            <rect x="15" y="4.7" width="5.4" height="14.6" rx="1" fill="currentColor"></rect>
+          </svg>
+        </button>
+      </div>
+      <div id="output-stack" class="output-stack">
+      <sl-tab-group id="output-tabs" class="output-tabs">
+        <sl-tab slot="nav" panel="target-schema" id="tab-target-schema" data-i18n="tabTargetSchema">Target schema</sl-tab>
+        <sl-tab slot="nav" panel="script" id="tab-generated-script" data-i18n="tabScripts">Generated conversion script(s)</sl-tab>
+        <sl-tab slot="nav" panel="test" id="tab-test-run" data-i18n="tabTest">Conversion Test Run(s)</sl-tab>
+
+        <sl-tab-panel name="target-schema">
+          <div id="target-schema-tree" class="tree-pane"></div>
+        </sl-tab-panel>
+
+        <sl-tab-panel name="script">
+          <div class="pane-section pane-section--tab">
+            <h3 data-i18n="generatedScripts">Generated conversion script(s)</h3>
+            <div class="export-editor-host">
+              <div
+                class="editor-action-toolbar"
+                id="export-editor-toolbar"
+                role="toolbar"
+                aria-label="Conversion script editor actions"
+                data-i18n-aria="scriptEditorActionsAria"
+              >
+                <button
+                  type="button"
+                  class="pane-btn pane-btn-icon editor-action-btn"
+                  data-editor-action="search"
+                  title="Search in conversion script"
+                  aria-label="Search in conversion script"
+                  data-i18n-title="searchScriptTitle"
+                  data-i18n-aria="searchScriptAria"
+                >
+                  <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="pane-btn pane-btn-icon editor-action-btn"
+                  data-editor-action="copy"
+                  title="Copy conversion script"
+                  aria-label="Copy conversion script"
+                  data-i18n-title="copyScriptTitle"
+                  data-i18n-aria="copyScriptAria"
+                >
+                  <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  id="btn-export-ts"
+                  class="pane-btn pane-btn-icon editor-action-btn"
+                  data-editor-action="download"
+                  title="Download conversion script"
+                  aria-label="Download conversion script"
+                  data-i18n-title="downloadScriptTitle"
+                  data-i18n-aria="downloadScriptAria"
+                >
+                  <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M18 15v3H6v-3H4v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3zm-1-4-1.41-1.41L13 12.17V4h-2v8.17L8.41 9.59 7 11l5 5z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div id="export-editor" class="editor-host"></div>
+            </div>
+          </div>
+        </sl-tab-panel>
+
+        <sl-tab-panel name="test">
+          <div class="pane-section pane-section--tab">
+            <div class="section-header">
+              <h3 data-i18n="testRuns">Conversion Test Run(s)</h3>
+              <div class="section-header-actions">
+                <div class="pane-btn-group">
+                  <button id="btn-run-test" class="pane-btn" type="button" data-i18n="runTest">Run Test</button>
+                  <button id="btn-autoplay" class="pane-btn" type="button" data-i18n="pause" title="Auto-run is on: all test files re-run shortly after each change. Pause it on slow computers.">⏸ Pause</button>
+                </div>
+              </div>
+            </div>
+            <div id="test-output-tabs" class="example-tabs test-output-tabs"></div>
+            <div id="test-output-validation" class="example-validation" hidden></div>
+            <div class="test-output-host">
+              <div
+                class="editor-action-toolbar"
+                id="test-output-toolbar"
+                role="toolbar"
+                aria-label="Test output editor actions"
+                data-i18n-aria="testEditorActionsAria"
+              >
+                <button
+                  type="button"
+                  class="pane-btn pane-btn-icon editor-action-btn"
+                  data-editor-action="search"
+                  title="Search in test output"
+                  aria-label="Search in test output"
+                  data-i18n-title="searchTestTitle"
+                  data-i18n-aria="searchTestAria"
+                >
+                  <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="pane-btn pane-btn-icon editor-action-btn"
+                  data-editor-action="copy"
+                  title="Copy test output"
+                  aria-label="Copy test output"
+                  data-i18n-title="copyTestTitle"
+                  data-i18n-aria="copyTestAria"
+                >
+                  <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  id="btn-download-test-output"
+                  class="pane-btn pane-btn-icon editor-action-btn"
+                  data-editor-action="download"
+                  title="Download Conversion Test Run output"
+                  aria-label="Download Conversion Test Run output"
+                  data-i18n-title="downloadTestTitle"
+                  data-i18n-aria="downloadTestAria"
+                >
+                  <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M18 15v3H6v-3H4v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3zm-1-4-1.41-1.41L13 12.17V4h-2v8.17L8.41 9.59 7 11l5 5z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div id="test-output" class="editor-host"></div>
+            </div>
+          </div>
+        </sl-tab-panel>
+      </sl-tab-group>
+      <section id="ai-chat-panel" class="ai-chat-panel" hidden aria-label="AI chat" data-i18n-aria="aiChat"></section>
+      </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="history-panel" class="history-panel" hidden aria-label="History" data-i18n-aria="historyTitle"></aside>
+  <footer id="status-bar" class="status-bar">
+    <span id="status-main" data-i18n="ready">Ready</span>
+    <span id="status-save" class="status-save"></span>
+    <span id="status-build" class="status-build"></span>
+  </footer>
+
+  <div id="task-progress-overlay" class="task-progress-overlay" hidden></div>
+
+  <dialog id="dialog-functions" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="functions">Functions</h2>
+      <p data-i18n-html="functionsIntroHtml">
+        Save a Blockly Function (definition + Decision tables) to disk, load one into this mapping,
+        or browse the GitHub Function library. Contribute files a review issue — it does not auto-merge.
+      </p>
+      <h3 class="dialog-subhead" data-i18n="onThisCanvas">On this canvas</h3>
+      <div id="function-canvas-list" class="function-library-list"></div>
+      <div class="dialog-actions">
+        <button type="button" id="function-library-load-disk" data-i18n="loadFromDisk">Load from disk…</button>
+      </div>
+      <h3 class="dialog-subhead" data-i18n="functionLibrary">Function library</h3>
+      <label class="dialog-label">
+        <span data-i18n="catalogUrl">Catalog URL</span>
+        <input id="function-library-catalog-url" type="text" inputmode="url" autocomplete="url" />
+      </label>
+      <div id="function-library-list" class="function-library-list"></div>
+      <p id="function-library-status" class="function-library-status"></p>
+      <div class="dialog-actions">
+        <button type="button" id="function-library-refresh" data-i18n="loadCatalog">Load catalog</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="function-library-close" value="cancel" data-i18n="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-function-clash" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="nameInUse">Name already in use</h2>
+      <p id="function-clash-message"></p>
+      <div class="dialog-actions">
+        <button type="button" id="function-clash-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" value="replace" data-i18n="replace">Replace</button>
+        <button type="submit" value="rename" data-i18n="rename">Rename</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-function-contribute" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form" id="function-contribute-form">
+      <h2 data-i18n="contributeTitle">Contribute Function</h2>
+      <p data-i18n-html="contributeIntroHtml">
+        Opens a GitHub issue on <code>regionstockholm/intehrgrator</code> with your description
+        and the Function definition. Maintainers review by hand.
+      </p>
+      <p><span data-i18n="functionName">Function:</span> <strong id="function-contribute-name"></strong></p>
+      <label class="dialog-label">
+        <span data-i18n="descriptionRequired">Description (required)</span>
+        <textarea id="function-contribute-description" rows="5" required placeholder="What it returns, locale, Decision table, parameters…" data-i18n-placeholder="contributePlaceholder"></textarea>
+      </label>
+      <p data-i18n-html="needGithubHtml">
+        Need a GitHub account?
+        <a id="function-contribute-signup" href="https://github.com/signup" target="_blank" rel="noopener noreferrer">Create an account</a>
+        or
+        <a id="function-contribute-login" href="https://github.com/login" target="_blank" rel="noopener noreferrer">log in</a>,
+        then submit.
+      </p>
+      <p id="function-contribute-error" class="dialog-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" id="function-contribute-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="button" id="function-contribute-submit" data-i18n="openGithubIssue">Open GitHub issue</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-save-as" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="saveAs">Save as</h2>
+      <p data-i18n="saveAsIntro">Save the current workspace under a name you can load later.</p>
+      <label class="dialog-label">
+        <span data-i18n="projectName">Project name</span>
+        <input id="save-as-name" type="text" required placeholder="My integration project" data-i18n-placeholder="projectNamePlaceholder" />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" id="save-as-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="save-as-confirm" value="confirm" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dialog-load-project" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="loadProjectTitle">Load project</h2>
+      <p data-i18n="loadProjectIntro">Select a saved workspace. Loading replaces the current project.</p>
+      <div id="load-project-list" class="load-project-list"></div>
+      <div class="dialog-actions">
+        <button type="button" id="load-project-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-load-url" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 id="load-url-title" data-i18n="loadFromUrl">Load from URL</h2>
+      <p id="load-url-hint" data-i18n="loadUrlHint">Paste an https URL. GitHub file pages are converted to raw content.</p>
+      <label class="dialog-label">
+        <span data-i18n="urlLabel">URL</span>
+        <input id="load-url-input" type="text" inputmode="url" autocomplete="url" required placeholder="https://…" />
+      </label>
+      <p id="load-url-error" class="dialog-error" hidden></p>
+      <div>
+        <h3 id="load-url-history-heading" class="dialog-subhead" data-i18n="recentUrls">Recent URLs</h3>
+        <div id="load-url-history" class="load-project-list"></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="load-url-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="load-url-confirm" value="confirm" data-i18n="load">Load</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-joint-load" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="jointTitle">Load target &amp; default context map</h2>
+      <p data-i18n-html="jointIntroHtml">
+        Pick a target and a default context map together. Confirm scaffolds the
+        <strong>Template Skeleton</strong> and <strong>Default point</strong>s.
+        <strong>New</strong> loads the target into the Target schema tab only so you can
+        pull chips and values, then Apply on the canvas block.
+      </p>
+      <fieldset class="joint-load-fieldset">
+        <legend data-i18n="targetLegend">Target</legend>
+        <p id="joint-target-summary" class="joint-load-summary" data-i18n="noTargetYet">No target selected yet.</p>
+        <div class="dialog-actions">
+          <button type="button" id="joint-target-file" data-i18n="fromFile">From file…</button>
+          <button type="button" id="joint-target-current" hidden data-i18n="useLoadedTarget">Use loaded target</button>
+        </div>
+        <label class="dialog-label">
+          <span data-i18n="targetUrl">Target URL</span>
+          <input id="joint-target-url" type="url" inputmode="url" autocomplete="url" placeholder="https://…" />
+        </label>
+        <div class="dialog-actions">
+          <button type="button" id="joint-target-url-load" data-i18n="fetchUrl">Fetch URL</button>
+        </div>
+      </fieldset>
+      <fieldset class="joint-load-fieldset">
+        <legend data-i18n="mapLegend">Default context map</legend>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-map" value="factory" checked />
+          <span data-i18n-html="factoryMapHtml">openEHR factory (<code>defaults_openEHR_1</code>)</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-map" value="current" />
+          <span data-i18n="keepMap">Keep the map already on the canvas</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-map" value="new" />
+          <span data-i18n="newMap">New (empty) — Target schema first, then Apply</span>
+        </label>
+        <label class="joint-load-option" id="joint-map-file-option" hidden>
+          <input type="radio" name="joint-map" value="file" />
+          <span id="joint-map-file-label" data-i18n="browsedFile">Browsed file</span>
+        </label>
+        <div id="joint-map-catalog" class="load-project-list"></div>
+        <div class="dialog-actions">
+          <button type="button" id="joint-map-browse" data-i18n="browseMap">Browse map file…</button>
+        </div>
+      </fieldset>
+      <div class="dialog-actions">
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="joint-load-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="joint-load-confirm" value="confirm" disabled data-i18n="loadAndScaffold">Load &amp; scaffold</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-refresh-report" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="refreshReport">Refresh report</h2>
+      <pre id="refresh-report-body" class="refresh-report-body"></pre>
+      <div class="dialog-actions">
+        <button type="button" id="refresh-copy-prompt" data-i18n="copyMergePrompt">Copy merge prompt</button>
+        <button type="button" id="refresh-call-ai" data-i18n="openInAiChat">Open in AI chat</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="submit" value="confirm" data-i18n="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-ai-credentials" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="aiCredentialsTitle">AI credentials</h2>
+      <p data-i18n-html="aiCredentialsIntroHtml">
+        Optional OpenAI-compatible chat endpoint so <strong>AI chat</strong> can map from the web app.
+        Credentials stay in this browser only — not in the Project Bundle.
+        <strong>AI chat</strong> can use the same mapping tools as MCP / the HTTP Agent API
+        (<code>map_slot</code>, <code>import_suggestions</code>, <code>run_test</code>, …).
+        An AI-assisted IDE with local MCP remains a separate, fully valid path.
+        Step-by-step key pages:
+        <a href="https://github.com/regionstockholm/intehrgrator/blob/main/docs/AI_CREDENTIALS.md" target="_blank" rel="noopener noreferrer" id="ai-credentials-guide">AI chat credentials</a>.
+      </p>
+      <label class="dialog-label">
+        <span data-i18n="provider">Provider</span>
+        <select id="ai-provider">
+          <option value="" data-i18n="aiSelectProvider">Select provider…</option>
+          <option value="custom" data-i18n="customEndpoint">Custom OpenAI-compatible endpoint</option>
+        </select>
+      </label>
+      <p id="ai-provider-help" class="ai-provider-help"></p>
+      <p class="ai-provider-links">
+        <a id="ai-key-docs" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" data-i18n="getApiKey">Get an API key</a>
+        ·
+        <a id="ai-provider-docs" href="https://platform.openai.com/docs/api-reference/chat" target="_blank" rel="noopener noreferrer" data-i18n="providerDocs">Provider docs</a>
+      </p>
+      <label class="dialog-label">
+        <span data-i18n="endpoint">Endpoint</span>
+        <input id="ai-endpoint" type="url" placeholder="https://api.openai.com/v1/chat/completions" />
+      </label>
+      <label class="dialog-label">
+        <span data-i18n="apiKey">API key</span>
+        <input id="ai-api-key" type="password" autocomplete="off" />
+      </label>
+      <label class="dialog-label">
+        <span data-i18n="model">Model</span>
+        <input id="ai-model" type="text" placeholder="gpt-4.1" />
+      </label>
+      <div class="ai-models-row">
+        <button type="button" id="ai-fetch-models" data-i18n="aiFetchModels">Connect &amp; fetch models</button>
+        <select id="ai-model-picker" disabled aria-label="Fetched models" data-i18n-aria="aiModelPickerLabel"></select>
+      </div>
+      <p id="ai-models-status" class="ai-models-status" role="status" aria-live="polite" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" id="ai-credentials-clear" data-i18n="aiForgetKey" title="Remove this provider's API key from this browser (endpoint and model are kept)" data-i18n-title="aiForgetKeyTitle">Forget key for this provider</button>
+        <button type="button" id="ai-credentials-clear-all" data-i18n="aiClearAllProviders">Clear all</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="ai-credentials-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="ai-credentials-save" value="confirm" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-lease-warning" class="app-dialog lease-warning">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="leaseWarningTitle">An agent is working on this</h2>
+      <p id="lease-warning-intro"></p>
+      <ul id="lease-warning-list" class="lease-warning-list"></ul>
+      <div class="dialog-actions">
+        <button type="button" id="lease-warning-cancel" data-i18n="leaseWarningCancel">Cancel</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="lease-warning-edit" data-i18n="leaseWarningEdit">Edit anyway</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-local-mcp" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="localMcpTitle">Local MCP server</h2>
+      <p data-i18n="localMcpIntro">
+        Start or stop the server your IDE uses to edit this canvas. Copy the configuration into the IDE’s MCP settings. Keep this app open.
+      </p>
+      <p id="local-mcp-status" class="local-mcp-status"></p>
+      <p>
+        <span data-i18n="localMcpUrlLabel">Agent API URL</span><br />
+        <code id="local-mcp-url"></code>
+      </p>
+      <p>
+        <span data-i18n="localMcpTokenLabel">Token</span><br />
+        <code id="local-mcp-token"></code>
+      </p>
+      <p data-i18n="localMcpConfigLabel">IDE configuration (mcp.json)</p>
+      <pre id="local-mcp-config" class="refresh-report-body"></pre>
+      <div class="dialog-actions">
+        <button type="button" id="local-mcp-toggle" data-i18n="localMcpStop">Stop</button>
+        <button type="button" id="local-mcp-copy" data-i18n="localMcpCopy">Copy configuration</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="submit" id="local-mcp-close" value="cancel" data-i18n="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-defaults-map" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="defaultsTitle">Default context map</h2>
+      <p data-i18n="defaultsIntro">Load a saved map, browse a file or URL, download the unique default context map, or save the current canvas map under a name.</p>
+      <div id="defaults-map-list" class="load-project-list"></div>
+      <label class="dialog-label">
+        <span data-i18n="urlLabel">URL</span>
+        <input id="defaults-map-url-input" type="text" inputmode="url" autocomplete="url" placeholder="https://…" />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" id="defaults-map-browse" data-i18n="browseFile">Browse file…</button>
+        <button type="button" id="defaults-map-url-load" data-i18n="loadUrlBtn">Load URL</button>
+        <button type="button" id="defaults-map-download" data-i18n="downloadFile">Download file…</button>
+        <button type="button" id="defaults-map-save-as" data-i18n="saveAsEllipsis">Save as…</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="defaults-map-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-defaults-save-as" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="saveDefaultsTitle">Save default context mapping as</h2>
+      <p data-i18n="saveDefaultsIntro">Store the current default context mapping under a name you can pick later.</p>
+      <label class="dialog-label">
+        <span data-i18n="nameLabel">Name</span>
+        <input id="defaults-save-as-name" type="text" required placeholder="Clinic defaults" />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" id="defaults-save-as-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="defaults-save-as-confirm" value="confirm" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-hardcode-defaults" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="hardcodeTitle">Hardcode default context mapping entry</h2>
+      <p data-i18n-html="hardcodeIntroHtml">
+        Choose a map key to <strong>inline</strong> on the canvas. Every
+        <code>get defaults key …</code> lookup for that key is replaced with a copy of
+        the value from this default context mapping. After that, those slots no longer read the
+        convert-time <code>defaults</code> argument — they use the hardcoded block instead.
+        The default context mapping itself is left unchanged so you can hardcode other keys later
+        or keep the entry for remaining lookups.
+      </p>
+      <div id="hardcode-defaults-list" class="load-project-list"></div>
+      <div class="dialog-actions">
+        <button type="button" id="hardcode-defaults-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-import-ai" class="app-dialog app-dialog--xl">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="importAiTitle">Import AI suggestions</h2>
+      <p data-i18n-html="importAiIntroHtml">
+        Paste the JSON from the AI chat (a raw object or an
+        <code>intehrgrator-suggestions</code> fence). Import validates against the
+        suggestion JSON Schema; errors stay visible here and can be copied back to the AI.
+      </p>
+      <div id="import-ai-notes" class="import-ai-notes" hidden aria-live="polite"></div>
+      <label class="dialog-label">
+        <span data-i18n="suggestions">Suggestions</span>
+        <textarea
+          id="import-ai-text"
+          rows="14"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder='{"format":"intehrgrator-suggestions","version":"2","suggestions":[…]}'
+        ></textarea>
+      </label>
+      <div id="import-ai-report" class="import-ai-report" hidden></div>
+      <div class="dialog-actions">
+        <button type="button" id="import-ai-clipboard" data-i18n="pasteClipboard">Paste clipboard</button>
+        <button type="button" id="import-ai-copy-errors" hidden data-i18n="copyErrorsForAi">Copy errors for AI</button>
+        <span class="dialog-actions-spacer"></span>
+        <button type="button" id="import-ai-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="import-ai-confirm" value="confirm" data-i18n="importAction">Import</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-recommended-version" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="notRecommended">Not on the recommended version</h2>
+      <p id="recommended-version-message"></p>
+      <p>
+        <a id="recommended-version-link" href="#"></a>
+      </p>
+      <p data-i18n-html="bleedingEdgeHtml">
+        Prefer to experiment? The bleeding-edge build (updated on every change to <code>main</code>)
+        is always at <a id="recommended-version-bleeding-edge-link" href="#">the site root</a>.
+      </p>
+      <p data-i18n-html="newHereHtml">
+        New here? Read the
+        <a id="recommended-version-tutorial-link" href="#">tutorial</a>
+        or the
+        <a id="recommended-version-readme-link" href="#">README</a>.
+      </p>
+      <label class="dialog-label dialog-label--checkbox">
+        <input id="recommended-version-dont-show-again" type="checkbox" />
+        <span data-i18n="dontShowAgain">Don't show this again for this version</span>
+      </label>
+      <div class="dialog-actions">
+        <button type="submit" id="recommended-version-dismiss" value="confirm" data-i18n="dismiss">Dismiss</button>
+      </div>
+    </form>
+  </dialog>
+  <span id="defaults-map-block-info" class="info-tip info-tip--anchor-host">
+    <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-defaults-map-block" aria-label="About the default context map" data-i18n-aria="defaultsBlockAria">i</button>
+    <span id="tip-defaults-map-block" class="info-tip-balloon" role="tooltip" data-i18n-html="defaultsBlockHtml">
+      <strong>Default context map</strong> is the unique canvas table you author here. At <em>convert time</em>, generated Conversion Scripts receive it as a <code>defaults</code> argument keyed by <strong>runtime key</strong> (<code>language</code>, <code>facility</code>, …). <code>maps_get("defaults", runtimeKey)</code> looks those up. Runtime code can merge that bag with per-message values, other named maps, and Sheet grids — the canvas map is the reusable baseline, not literals baked into every slot.<br>
+      <strong>Scaffold targets</strong> (chips) are authoring-only RM paths, not convert-time keys: <code>Class.attribute</code> (e.g. <code>COMPOSITION.composer</code>, <code>EVENT_CONTEXT.health_care_facility</code>), ancestor paths, and wildcards (<code>*.language</code> lights every language slot). A more specific chip wins when several match the same slot. Empty chips → a runtime-only key that lights nothing. Extra keys stay available for Map lookups even if they do not light a slot.<br>
+      Confirm, <strong>Apply default context map</strong>, or a later target refresh join <strong>Default point</strong>s. Value edits are live in Test Run. A slot already mapped from source is not replaced.<br>
+      The folder opens load/save: pick a map saved in this browser, browse a JSON file, load a URL, save a named copy, or download the current map as JSON you can upload again later.
+    </span>
+  </span>
+  <span id="decision-table-block-info" class="info-tip info-tip--anchor-host">
+    <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-decision-table-block" aria-label="About decision tables" data-i18n-aria="decisionBlockAria">i</button>
+    <span id="tip-decision-table-block" class="info-tip-balloon" role="tooltip" data-i18n-html="decisionBlockHtml">
+      <strong>Decision table</strong> is a named rule grid in the Tables & Sheets tab: condition columns (equality, don't-care <code>—</code>) and output columns (plain values or VMS-Mustache snippets). The grid owns column names and types; this block’s locals Map keys stay in sync.<br>
+      Plug a Map of locals on the right (keys = condition headers). The output dropdown returns one typed column (🔤 string, 🔢 number, ✓ boolean), or <em>all outputs</em> as a Map (↦). Switching that type may unplug the block; canvas undo/redo restores it.<br>
+      Hit policy (FIRST / UNIQUE / COLLECT) is on the Tables & Sheets tab. Flatten nested sources into the locals Map (or via variables) before eval.
+    </span>
+  </span>
+  <script src="./wasm/wasm_exec.js"></script>
+  <script type="module" src="./bundle.js"></script>
+</body>
+</html>

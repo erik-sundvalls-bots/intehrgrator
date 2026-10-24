@@ -1,0 +1,299 @@
+{
+  "$comment": "intEHRgrator example-set catalog. All assets use relative URIs under ../test/fixtures/ (resolved against this file's URL; build copies fixtures into dist/). Canonical long-term home may move to ehrtslib. Each source schema has an unmapped set and a mapped set; #70 sibling decision-table sets sit beside lung-MDT and chemo gold (do not rewrite those directories).",
+  "version": 1,
+  "sets": [
+    {
+      "id": "dummy-json-vitals",
+      "title": "Dummy vitals (JSON Schema → JSON Schema) — unmapped",
+      "description": "Minimal JSON Schema source, three valid instances, and a JSON Schema target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/dummy-json-vitals/source.schema.json",
+        "instances": [
+          "../test/fixtures/dummy-json-vitals/instance-1.json",
+          "../test/fixtures/dummy-json-vitals/instance-2.json",
+          "../test/fixtures/dummy-json-vitals/instance-3.json"
+        ]
+      },
+      "target": "../test/fixtures/dummy-json-vitals/target.schema.json"
+    },
+    {
+      "id": "dummy-json-vitals-mapped",
+      "title": "Dummy vitals (JSON Schema → JSON Schema) — mapped",
+      "description": "Same dummy files plus a Blockly mapping (source paths into the JSON Schema target, including unit) and a default context map.",
+      "source": {
+        "schema": "../test/fixtures/dummy-json-vitals/source.schema.json",
+        "instances": [
+          "../test/fixtures/dummy-json-vitals/instance-1.json",
+          "../test/fixtures/dummy-json-vitals/instance-2.json",
+          "../test/fixtures/dummy-json-vitals/instance-3.json"
+        ]
+      },
+      "target": "../test/fixtures/dummy-json-vitals/target.schema.json",
+      "mapping": "../test/fixtures/dummy-json-vitals/mapping.blockly.json",
+      "defaults": "../test/fixtures/dummy-json-vitals/defaults.map.json"
+    },
+    {
+      "id": "Simple-vitals-unmapped",
+      "title": "Dummy vitals (JSON Schema → openEHR Template) — unmapped",
+      "description": "Minimal JSON Schema source and blood-pressure instances targeting simple-diagnose-and-vitals.opt. No mapping — use Click-to-Map or Agent API map_slot.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt"
+    },
+    {
+      "id": "Simple-vitals",
+      "title": "Dummy vitals (JSON Schema → openEHR Template) — mapped",
+      "description": "Minimal JSON Schema source, valid instances plus one named-invalid instance, mapped to the simple-diagnose-and-vitals OPT. Blood-pressure Position uses a Decision table. Uses the operational template (.opt), which is self-contained; the sibling .t.json is a differential Archetype Designer file that needs overlay parent ADLs to flatten.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.blockly.json",
+      "sheets": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.sheets.json"
+    },
+    {
+      "id": "Simple-vitals-series-unmapped",
+      "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — unmapped",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt"
+    },
+    {
+      "id": "Simple-vitals-series",
+      "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — mapped",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). Mapping uses a Decision table for diagnosis and a for_each_list over measurements.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/bp-series.blockly.json",
+      "sheets": "../test/fixtures/legacy-simulated-json/mapping/bp-series.sheets.json"
+    },
+    {
+      "id": "obx-mhv1-unmapped-json-to-openehr",
+      "title": "OBX MHV1 (JSON → openEHR) — unmapped",
+      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetrix-MHV1/source-schema/obx-mhv1.review-1.schema.json",
+        "instances": [
+          "../test/fixtures/Obstetrix-MHV1/source-instance/1-primigravida-basprogram.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/2-ivf-multipara.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/3-komplex-mhv3.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/4-nightly-primigravida.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt"
+    },
+    {
+      "id": "obx-mhv1-mapped-json-to-openehr",
+      "title": "OBX MHV1 (JSON → openEHR) — mapped",
+      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. Lifestyle codes use a Decision table. The template is a GitHub .t.json (dependencies fetched from the same branch).",
+      "source": {
+        "schema": "../test/fixtures/Obstetrix-MHV1/source-schema/obx-mhv1.review-1.schema.json",
+        "instances": [
+          "../test/fixtures/Obstetrix-MHV1/source-instance/1-primigravida-basprogram.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/2-ivf-multipara.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/3-komplex-mhv3.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/4-nightly-primigravida.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt",
+      "mapping": "../test/fixtures/Obstetrix-MHV1/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/Obstetrix-MHV1/mapping/mapping.sheets.json"
+    },
+    {
+      "id": "chemo-symptoms-flat-to-tc-xml-unmapped",
+      "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — unmapped",
+      "description": "openEHR FLAT compositions from a patient symptom questionnaire targeting TakeCare ProfdocHISMessage XML. No mapping.",
+      "source": {
+        "instances": [
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/2-ex-composition-empty.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/3-ex-composition-full.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/4-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/5-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/6-ex-composition-nightly.txt"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd"
+    },
+    {
+      "id": "chemo-symptoms-flat-to-tc-xml",
+      "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — mapped",
+      "description": "openEHR FLAT composition from a patient symptom questionnaire, mapped to TakeCare ProfdocHISMessage XML using schema-generated Target schema blocks (TakeCare-CasenoteWrite-edit01.xsd). Rebuilds mappningsscript-1-9-1-prod: all TextKeyWord/NumericKeyword TermIds, the no-symptom 16183 branch, free-text helper, and Defaults Map header parameters. Select Go Template output mode to see generated Go text/template code.",
+      "source": {
+        "instances": [
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/2-ex-composition-empty.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/3-ex-composition-full.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/4-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/5-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/6-ex-composition-nightly.txt"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/patient-reported-chemotherapy-symptoms/mapping/mapping.blockly.json",
+      "defaults": "../test/fixtures/patient-reported-chemotherapy-symptoms/defaults.map.json"
+    },
+    {
+      "id": "chemo-symptoms-flat-to-tc-xml-decision-tables",
+      "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — mapped, decision tables",
+      "description": "#70 sibling of chemo-symptoms-flat-to-tc-xml. Same XSD, Defaults Map, FLAT instances, and PROD Go script as gold. Inner Note {{if eq}} branches become FIRST Decision tables with VMS-Mustache snippets. cleanAndQuoteFreeTextInput stays one Go define. Do not rewrite the original chemo Blockly gold.",
+      "source": {
+        "instances": [
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/2-ex-composition-empty.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/3-ex-composition-full.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/4-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/5-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/6-ex-composition-nightly.txt"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.sheets.json",
+      "defaults": "../test/fixtures/patient-reported-chemotherapy-symptoms/defaults.map.json"
+    },
+    {
+      "id": "lung-mdt-form-to-tc-xml-unmapped",
+      "title": "Lung MDT form (→ TakeCare XML) — unmapped",
+      "description": "Lung multidisciplinary-team openEHR form instances targeting TakeCare ProfdocHISMessage XML. No mapping.",
+      "source": {
+        "instances": [
+          "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
+          "../test/fixtures/lung-MDT-form/source-instance/2-mdt-review-smoker-ultrasound.json"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "defaults": "../test/fixtures/lung-MDT-form/defaults.map.json"
+    },
+    {
+      "id": "lung-mdt-form-to-tc-xml",
+      "title": "Lung MDT form (→ TakeCare XML) — mapped",
+      "description": "Rebuilds the production lung-MDT Handlebars mapping as Blockly using schema-generated TakeCare ProfdocHISMessage blocks (TakeCare-CasenoteWrite-edit01.xsd), not generic XML blocks. Header fields come from the default context map. Notes keep the original Handlebars. Mapping preview and Handlebars Output mode both evaluate nested Code text LANG=handlebars on this XML Schema canvas, so TermId and Note pairs agree. Set TemplateId/TemplateType to the casenote used in the target environment.",
+      "source": {
+        "instances": [
+          "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
+          "../test/fixtures/lung-MDT-form/source-instance/2-mdt-review-smoker-ultrasound.json"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/lung-MDT-form/mapping/mapping.blockly.json",
+      "defaults": "../test/fixtures/lung-MDT-form/defaults.map.json"
+    },
+    {
+      "id": "lung-mdt-form-to-tc-xml-decision-tables",
+      "title": "Lung MDT form (→ TakeCare XML) — mapped, decision tables",
+      "description": "#70 sibling of lung-mdt-form-to-tc-xml. Same TakeCare XSD, Defaults Map, and PROD Handlebars gold. Imaging TermId, smoking Note, and treatment connector/regimen/dose phrases are Decision tables with VMS-Mustache snippets. Do not modify test/fixtures/lung-MDT-form/ mapping gold.",
+      "source": {
+        "instances": [
+          "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
+          "../test/fixtures/lung-MDT-form/source-instance/2-mdt-review-smoker-ultrasound.json"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+      "defaults": "../test/fixtures/lung-MDT-form/defaults.map.json"
+    },
+    {
+      "id": "karda-ordinationsdata-to-openehr-flat-unmapped",
+      "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — unmapped",
+      "description": "OrdinationRCCV1 JSON Schema and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
+        "instances": [
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-example_source_used_for_mapping.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-A-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-B-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-C-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-D-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-E-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/target-schema/OrdineradMedicinskOnkologiskBehandling_MedKurdag.1.0.0-alpha.27.sv.en.opt"
+    },
+    {
+      "id": "karda-ordinationsdata-to-openehr-flat",
+      "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
+      "description": "OrdinationRCCV1 JSON Schema (aligned with Avro, including PDL vårdgivare name/HSAID) and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. Blockly mapping from the Go text/template artefact uses Decision tables for form/route; TypeScript Conversion Script Test Run is the check.",
+      "source": {
+        "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
+        "instances": [
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-example_source_used_for_mapping.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-A-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-B-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-C-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-D-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-E-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/target-schema/OrdineradMedicinskOnkologiskBehandling_MedKurdag.1.0.0-alpha.27.sv.en.opt",
+      "mapping": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
+    },
+    {
+      "id": "karda-administreringsdata-to-openehr-flat-unmapped",
+      "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — unmapped",
+      "description": "AdministrationRCCV1 Avro source schema and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
+        "instances": [
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-example_source_used_for_mapping.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-A-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-B-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-C-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt"
+    },
+    {
+      "id": "karda-administreringsdata-to-openehr-flat",
+      "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
+      "description": "AdministrationRCCV1 Avro source schema (aligned with JSON Schema, including PDL vårdgivare name/HSAID) and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Blockly mapping from the Go text/template artefact uses a Decision table for ISM states.",
+      "source": {
+        "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
+        "instances": [
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-example_source_used_for_mapping.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-A-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-B-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-C-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
+      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
+    }
+  ]
+}
