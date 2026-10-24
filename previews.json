@@ -79,6 +79,14 @@
     "sha": "4945b91f7c43336bed27a2d2546e6da8b83da394",
     "upstream": "386fdaaa02acb07832cb0052d9371d22e0b82e4f"
   },
+  "issue-278-xml-xsd-source": {
+    "built": "2026-10-24T04:02:00Z",
+    "dir": "issue-278-xml-xsd-source",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "63c4cbbe2761dae8ed6b64bd22137110485cf62e",
+    "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
+  },
   "issue-lease-canvas": {
     "built": "2026-10-23T07:09:55Z",
     "dir": "issue-lease-canvas",
