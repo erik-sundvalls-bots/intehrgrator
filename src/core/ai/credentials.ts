@@ -3,6 +3,7 @@
  * Stored in Host localStorage — never in the Project Bundle.
  */
 import { redactSecret } from "./redact.ts";
+import { parseProviderUsage, type TokenUsage } from "./token_usage.ts";
 import { promptCacheFields } from "./prompt_cache.ts";
 
 export const AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
@@ -59,6 +60,8 @@ export interface ChatCompletionResult {
   assistantMessage?: ChatMessage;
   /** The provider stopped at the output-token limit (finish_reason length / MAX_TOKENS). */
   truncated?: boolean;
+  /** Token use the provider reported for this request (#276); absent when it reported none. */
+  usage?: TokenUsage;
 }
 
 /** Output-token ceiling when the caller does not pass one. */
@@ -193,11 +196,12 @@ function isEventStream(response: Response): boolean {
 export async function readChatCompletionStream(
   response: Response,
   onDelta?: (delta: ChatStreamDelta) => void,
-): Promise<{ choice: RawChoice; reasoning: string }> {
+): Promise<{ choice: RawChoice; reasoning: string; usage?: TokenUsage }> {
   const reader = response.body?.getReader();
   let content = "";
   let reasoning = "";
   let finish: unknown;
+  let usage: TokenUsage | undefined;
   const calls: Array<{ id?: string; name: string; args: string; extra?: unknown }> = [];
   if (!reader) return { choice: { message: { role: "assistant", content: "" } }, reasoning };
   const decoder = new TextDecoder();
@@ -218,6 +222,9 @@ export async function readChatCompletionStream(
       const err = chunk.error as { message?: unknown };
       throw new Error(`AI stream error: ${String(err?.message ?? JSON.stringify(chunk.error)).slice(0, 400)}`);
     }
+    // With stream_options.include_usage the last chunk has `usage` and no choices.
+    const reported = parseProviderUsage(chunk.usage);
+    if (reported) usage = reported;
     const choice = (chunk.choices as Array<Record<string, unknown>> | undefined)?.[0];
     if (!choice) return;
     if (choice.finish_reason != null) finish = choice.finish_reason;
@@ -293,6 +300,7 @@ export async function readChatCompletionStream(
       },
     },
     reasoning,
+    ...(usage ? { usage } : {}),
   };
 }
 
@@ -309,7 +317,7 @@ export async function postChatCompletions(
   const parsed = parseAiCredentials(credentials);
   if (!parsed) throw new Error("AI credentials are incomplete");
   const fetchImpl = options?.fetch ?? globalThis.fetch;
-  const send = async (stream: boolean): Promise<Response> => {
+  const send = async (stream: boolean, streamUsage = stream): Promise<Response> => {
     const body = {
       model: parsed.model,
       temperature: options?.temperature ?? 0,
@@ -317,6 +325,8 @@ export async function postChatCompletions(
       messages,
       ...(options?.tools?.length ? { tools: options.tools, tool_choice: "auto" } : {}),
       ...(stream ? { stream: true } : {}),
+      // Ask for a final usage chunk (#276); a provider that rejects it is asked again without.
+      ...(stream && streamUsage ? { stream_options: { include_usage: true } } : {}),
       ...promptCacheFields(parsed.endpoint, parsed.model),
     };
     const headers: Record<string, string> = {
@@ -350,19 +360,29 @@ export async function postChatCompletions(
   let streaming = Boolean(options?.onDelta);
   let response = await send(streaming);
   if (!response.ok && streaming && response.status === 400) {
-    const err = await failure(response);
-    // A provider without streaming: ask again for one JSON answer.
-    if (!/stream/i.test(err.message)) throw err;
-    streaming = false;
-    response = await send(false);
+    let err = await failure(response);
+    // A provider that does not know stream_options: stream without the usage chunk.
+    if (/stream_options|include_usage/i.test(err.message)) {
+      response = await send(true, false);
+      if (!response.ok && response.status === 400) err = await failure(response);
+    }
+    if (!response.ok) {
+      // A provider without streaming: ask again for one JSON answer.
+      if (!/stream/i.test(err.message)) throw err;
+      streaming = false;
+      response = await send(false);
+    }
   }
   if (!response.ok) throw await failure(response);
-  let raw: { choices?: RawChoice[] };
+  let raw: { choices?: RawChoice[]; usage?: unknown };
+  let usage: TokenUsage | undefined;
   if (streaming && isEventStream(response)) {
     const read = await readChatCompletionStream(response, options?.onDelta);
     raw = { choices: [read.choice] };
+    usage = read.usage;
   } else {
-    raw = await response.json() as { choices?: RawChoice[] };
+    raw = await response.json() as { choices?: RawChoice[]; usage?: unknown };
+    usage = parseProviderUsage(raw?.usage);
     // Non-streaming fallback: still show the answer in one piece.
     const content = raw?.choices?.[0]?.message?.content;
     if (streaming && typeof content === "string" && content) options?.onDelta?.({ kind: "text", text: content });
@@ -413,6 +433,7 @@ export async function postChatCompletions(
   return {
     text,
     raw,
+    ...(usage ? { usage } : {}),
     ...(truncated ? { truncated } : {}),
     ...(toolCalls.length ? { toolCalls } : {}),
     assistantMessage,
