@@ -117,7 +117,7 @@ Deno.test({
       await page.click("#ai-chat-copy-menu-btn");
       const menu = page.locator("#ai-chat-copy-menu");
       await menu.waitFor({ state: "visible" });
-      const items = await menu.locator(".split-btn-menu-item").evaluateAll((els) =>
+      const items = await menu.locator(".split-btn-menu-item:not(.split-btn-menu-check)").evaluateAll((els) =>
         els.map((el) => [el.querySelector(".material-symbols-outlined")?.textContent, el.textContent?.trim()])
       );
       assertEquals(items.map(([icon]) => icon), ["content_copy", "content_copy", "content_copy"]);
