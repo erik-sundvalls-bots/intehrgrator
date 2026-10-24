@@ -3,6 +3,7 @@
  * Stored in Host localStorage — never in the Project Bundle.
  */
 import { redactSecret } from "./redact.ts";
+import { promptCacheFields } from "./prompt_cache.ts";
 
 export const AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
 
@@ -316,6 +317,7 @@ export async function postChatCompletions(
       messages,
       ...(options?.tools?.length ? { tools: options.tools, tool_choice: "auto" } : {}),
       ...(stream ? { stream: true } : {}),
+      ...promptCacheFields(parsed.endpoint, parsed.model),
     };
     const headers: Record<string, string> = {
       "content-type": "application/json",
