@@ -79,6 +79,14 @@
     "sha": "4945b91f7c43336bed27a2d2546e6da8b83da394",
     "upstream": "386fdaaa02acb07832cb0052d9371d22e0b82e4f"
   },
+  "issue-276-token-budget": {
+    "built": "2026-10-24T04:17:22Z",
+    "dir": "issue-276-token-budget",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "5e68493d3049928248354fb734104dd1c42b863a",
+    "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
+  },
   "issue-278-xml-xsd-source": {
     "built": "2026-10-24T04:02:00Z",
     "dir": "issue-278-xml-xsd-source",
