@@ -1,0 +1,52 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "json-schema",
+    "targetId": "BloodPressureSeries"
+  },
+  "loops": [
+    {
+      "attachSlotId": "BloodPressureSeries:$.measurements[*].timestamp",
+      "block": {
+        "type": "for_each_source",
+        "fields": {
+          "VAR": "reading",
+          "PATH": "$.measurements"
+        }
+      },
+      "note": "AI-created: repeating measurements"
+    }
+  ],
+  "suggestions": [
+    {
+      "slotId": "BloodPressureSeries:$.diagnosis.code",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.diagnosis.code"
+        }
+      }
+    },
+    {
+      "slotId": "BloodPressureSeries:$.measurements[*].systolic",
+      "loopVar": "reading",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "systolic"
+        }
+      }
+    },
+    {
+      "slotId": "BloodPressureSeries:$.measurements[*].diastolic",
+      "loopVar": "reading",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "diastolic"
+        }
+      }
+    }
+  ]
+}

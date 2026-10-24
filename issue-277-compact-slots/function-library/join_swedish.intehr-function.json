@@ -1,0 +1,306 @@
+{
+  "kind": "intehrgrator-function",
+  "version": 1,
+  "name": "join_swedish_words",
+  "description": "Joins a list of words to a comma separated text string in the way words are enumerated in Swedish with \"och\" (and) before last word. A decision table is used to select output pattern first → `{{word}}`, middle → `, {{word}}`, last → ` och {{word}}`. Parameter `list_of_words`. Returns `joined_words`.",
+  "parameters": [
+    "list_of_words"
+  ],
+  "hasReturn": true,
+  "returns": "String",
+  "locale": "sv",
+  "decisionTables": [
+    "SweJoinWords"
+  ],
+  "blocklyState": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "W2EANf*Fesb.SL?e)Y%@",
+          "x": 0,
+          "y": 0,
+          "extraState": {
+            "params": [
+              {
+                "name": "list_of_words",
+                "id": "join_swedish_words_list_of_words"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Joins a list of words to a comma separated text string in the way words are enumerated in Swedish with \"och\" (and) before last word. A decision table is used to select output pattern first → `{{word}}`, middle → `, {{word}}`, last → ` och {{word}}`. Parameter `list_of_words`. Returns `joined_words`.",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "join_swedish_words"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "BJ-7mkwYNU`([+oT4By-",
+                "fields": {
+                  "VAR": {
+                    "id": "join_swedish_words_joined_words"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "text",
+                      "id": "*?D]_QX8G=$={1?lL-}2",
+                      "fields": {
+                        "TEXT": ""
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "for_each_list",
+                    "id": "DH9WMJ$2IF?fXAbQuW#)",
+                    "fields": {
+                      "VAR": "word"
+                    },
+                    "inputs": {
+                      "LIST": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "*i=Xms|(-|m)S8}}`qQu",
+                          "fields": {
+                            "VAR": {
+                              "id": "join_swedish_words_list_of_words"
+                            }
+                          }
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "text_append",
+                          "id": "etm:yBn$8Iw;y9*a5vJ.",
+                          "fields": {
+                            "VAR": {
+                              "id": "join_swedish_words_joined_words"
+                            }
+                          },
+                          "inputs": {
+                            "TEXT": {
+                              "block": {
+                                "type": "decision_table",
+                                "id": "^Ssqp]Qb%`q6bEInt0i/",
+                                "fields": {
+                                  "NAME": "SweJoinWords",
+                                  "OUTPUT": "snippet"
+                                },
+                                "inputs": {
+                                  "INPUTS": {
+                                    "block": {
+                                      "type": "maps_create_with",
+                                      "id": "Y21wa155+kam#ZZK?EiJ",
+                                      "extraState": {
+                                        "itemCount": 3
+                                      },
+                                      "fields": {
+                                        "KEY0": "first",
+                                        "KEY1": "last",
+                                        "KEY2": "word"
+                                      },
+                                      "inputs": {
+                                        "VAL0": {
+                                          "shadow": {
+                                            "type": "text",
+                                            "id": "RS+Gb8:#d65UDyoym4F~",
+                                            "fields": {
+                                              "TEXT": ""
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "logic_compare",
+                                            "id": "ybBL(NFDqU0D5k8+kAAC",
+                                            "fields": {
+                                              "OP": "EQ"
+                                            },
+                                            "inputs": {
+                                              "A": {
+                                                "block": {
+                                                  "type": "logic_loop_index",
+                                                  "id": "U|;Iqn}$[]*VNX6:Z3A%",
+                                                  "fields": {
+                                                    "VAR": ""
+                                                  }
+                                                }
+                                              },
+                                              "B": {
+                                                "block": {
+                                                  "type": "math_number",
+                                                  "id": "Deqx9y@:K!U$V-r:u{CA",
+                                                  "fields": {
+                                                    "NUM": 0
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "VAL1": {
+                                          "shadow": {
+                                            "type": "text",
+                                            "id": "%S/hYAT9cIPF+dCC48iu",
+                                            "fields": {
+                                              "TEXT": ""
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "logic_compare",
+                                            "id": "zfWu-cqS7ChOd]C-IUml",
+                                            "fields": {
+                                              "OP": "EQ"
+                                            },
+                                            "inputs": {
+                                              "A": {
+                                                "block": {
+                                                  "type": "logic_loop_index",
+                                                  "id": "wBeK:B*_a0.,UQI~!0^7",
+                                                  "fields": {
+                                                    "VAR": ""
+                                                  }
+                                                }
+                                              },
+                                              "B": {
+                                                "block": {
+                                                  "type": "math_arithmetic",
+                                                  "id": "y}atl:iTG%h0vE~S+ANO",
+                                                  "fields": {
+                                                    "OP": "MINUS"
+                                                  },
+                                                  "inputs": {
+                                                    "A": {
+                                                      "block": {
+                                                        "type": "logic_loop_length",
+                                                        "id": "]lfrYt3?:DpMgBM3.}JY",
+                                                        "fields": {
+                                                          "VAR": ""
+                                                        }
+                                                      }
+                                                    },
+                                                    "B": {
+                                                      "block": {
+                                                        "type": "math_number",
+                                                        "id": "n{j39h,EC[aSx5XkUisd",
+                                                        "fields": {
+                                                          "NUM": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "VAL2": {
+                                          "shadow": {
+                                            "type": "text",
+                                            "id": "KBFykd0eN,,D~N2Sq;f(",
+                                            "fields": {
+                                              "TEXT": ""
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "logic_current_item",
+                                            "id": "Q7rp-$[q9zl$za~rq2mY",
+                                            "fields": {
+                                              "VAR": ""
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "variables_get",
+                "id": "hhVL;Yw0a-]?I`){%bsK",
+                "fields": {
+                  "VAR": {
+                    "id": "join_swedish_words_joined_words"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "list_of_words",
+        "id": "join_swedish_words_list_of_words"
+      }
+    ]
+  },
+  "sheets": [
+    {
+      "name": "SweJoinWords",
+      "kind": "decision-table",
+      "headers": [
+        "first",
+        "last",
+        "snippet"
+      ],
+      "values": [
+        [
+          true,
+          "—",
+          "{{word}}"
+        ],
+        [
+          false,
+          false,
+          ", {{word}}"
+        ],
+        [
+          false,
+          true,
+          " och {{word}}"
+        ]
+      ],
+      "columnTypes": [
+        "text",
+        "text",
+        "text"
+      ],
+      "hitPolicy": "FIRST",
+      "decisionColumns": [
+        {
+          "role": "condition"
+        },
+        {
+          "role": "condition"
+        },
+        {
+          "role": "output",
+          "outputKind": "snippet",
+          "valueType": "string"
+        }
+      ]
+    }
+  ]
+}

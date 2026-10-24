@@ -87,6 +87,14 @@
     "sha": "5e68493d3049928248354fb734104dd1c42b863a",
     "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
   },
+  "issue-277-compact-slots": {
+    "built": "2026-10-24T04:34:53Z",
+    "dir": "issue-277-compact-slots",
+    "mode": "merged",
+    "pr": "\t\t\t",
+    "sha": "80d4b7afa868aa6ac63626e39b7a33ce557a3438",
+    "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
+  },
   "issue-278-xml-xsd-source": {
     "built": "2026-10-24T04:02:00Z",
     "dir": "issue-278-xml-xsd-source",

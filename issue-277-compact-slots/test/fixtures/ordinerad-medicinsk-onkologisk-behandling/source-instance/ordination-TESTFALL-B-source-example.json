@@ -1,0 +1,58 @@
+{
+  "CytodosOrdinationKey": 3,
+  "RekvisisjonId": 73821234,
+  "Personnummer": "AWn+PyB/tOhO2QxDCTEUJJ89J4PDUdcOXReHhriraWdqFpgxXNkGhtt/4N4P",
+  "PasientenDeltarIStudie": 1,
+  "StudieId": "",
+  "KurdefinisjonNavn": "KPF Hud Cemip",
+  "KurStartDato": "2026-01-14T00:00:00",
+  "PasientKurnummer": 17,
+  "SignatureUser_UserName": "A1D8",
+  "SignatureUser_Fullname": "TakeCare_Test",
+  "SignatureDate": "2025-10-03T10:02:43.150",
+  "RekvisisjonVersjon": 3,
+  "RekvisisjonStatus": "Bekräftad",
+  "PDL_enhet_Namn": "OO Cancer TC TEST",
+  "PDL_enhet_HSAID": "ADNF",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Vardenhet_id": null,
+  "Vardenhet_namn": null,
+  "Vardenhet_HSAID": null,
+  "SenastUppdaterad": 1713427030140,
+  "SenastUppdaterad_orig": "2026-04-07 08:46:10.2967402 +02:00",
+  "KurDagar": [
+    {
+      "KurdagLopenummer": 453234,
+      "Dognnummer": 1,
+      "StartTid": "2026-04-27T13:00:00",
+      "SenastUppdaterad": "2026-04-27T17:13:50.6100000+02:00",
+      "Substanser": [
+        {
+          "Lopenummer": 774456456,
+          "Doseberegnet": 150.00,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "Pembrolizumab",
+          "Innholdstoff_ATC": "L01FF02",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Intravenöst",
+          "Route_CodeValue": "3.0000",
+          "SenastUppdaterad": "2026-04-27T17:16:50.4730000+02:00"
+        },
+        {
+          "Lopenummer": 774456457,
+          "Doseberegnet": 1104.0,
+          "UnitCode": "mg",
+          "Innholdstoff_Navn": "Atezolizumab sc",
+          "Innholdstoff_ATC": "L01FF05",
+          "Form": "Inf. substans",
+          "Form_CodeValue": "2.0000",
+          "Route_LongDescription": "Subcutan",
+          "Route_CodeValue": "2.0000",
+          "SenastUppdaterad": "2026-04-27T17:16:50.4730000+02:00"
+        }
+      ]
+    }
+  ]
+}
