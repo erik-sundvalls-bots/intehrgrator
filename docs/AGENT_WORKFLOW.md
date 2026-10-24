@@ -44,7 +44,7 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | GET | `/slot?id=…` | `get_slot` | One Target slot in full: documentation, all value set entries, fixed values, the constraint from the target file (JSON Schema subschema, XSD element/attribute, openEHR template node fields), current mapping and lease |
 | GET | `/examples` | `list_examples` | Example instances (id, filename, format, chars, active) without bodies |
 | GET | `/example` | `get_example` | One example body capped at `maxChars` (default 8,000, max 40,000), or `?path=` for a subtree of the Active Example with values |
-| GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees |
+| GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees, with full descriptions in `descriptionLanguage` (a node's `lang` only where it differs); `?language=en` for another schema language |
 | GET | `/sheets` | `get_sheets` | Sheet / Decision table summaries + documents |
 | GET | `/product-stack` | `get_product_stack` | Conversion start chain (Instance roots, encodings, loops) |
 | GET | `/optional-rm` | `list_optional_rm` | Optional RM catalog (`?parentSlotId=`) |

@@ -2,7 +2,7 @@ import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
 import { parseJsonDocument, unwrapExecuteEnvelope } from "./json_document.ts";
 import { resolveJsonPointer } from "./json_pointer.ts";
 import { childElements, isXmlSchemaRoot, parseXmlDocument } from "../xml/xml_dom.ts";
-import { docText, parseXsd, type XsdNode } from "../xsd/xsd_model.ts";
+import { docEntry, parseXsd, type XsdNode } from "../xsd/xsd_model.ts";
 
 type JsonSchemaObject = Record<string, unknown>;
 
@@ -44,13 +44,15 @@ export function loadXsdSchemaTree(content: string, lang?: string): SchemaTreeNod
 }
 
 function xsdNodeToSchemaTree(node: XsdNode, lang?: string): SchemaTreeNode {
-  const description = docText(node.docs, lang);
+  const doc = docEntry(node.docs, lang);
+  const description = doc?.text;
   return {
     path: node.path,
     name: node.xmlKind === "attribute" ? `@${node.name}` : node.name,
     type: node.complex && !node.simpleContent ? "element" : node.type,
     multiplicity: node.multiplicity,
     ...(description ? { description } : {}),
+    ...(description && doc?.lang ? { descriptionLang: doc.lang } : {}),
     children: node.children.map((child) => xsdNodeToSchemaTree(child, lang)),
   };
 }
@@ -455,22 +457,30 @@ export function localizeSourceTree(
     return rec;
   };
   const base = lang.split("-")[0]!;
-  const describe = (schema: JsonSchemaObject | undefined): string | undefined => {
+  const defaultLang = typeof root["x-lang"] === "string" && root["x-lang"] ? root["x-lang"] as string : undefined;
+  const describe = (schema: JsonSchemaObject | undefined): { text?: string; lang?: string } => {
     const i18n = schema?.["x-i18n"] as Record<string, JsonSchemaObject> | undefined;
-    const localized = i18n?.[lang]?.description ?? i18n?.[base]?.description;
-    if (typeof localized === "string" && localized.trim()) return localized.trim();
-    return schema ? schemaDescription(schema) : undefined;
+    const key = i18n?.[lang]?.description !== undefined ? lang : base;
+    const localized = i18n?.[key]?.description;
+    if (typeof localized === "string" && localized.trim()) return { text: localized.trim(), lang: key };
+    const text = schema ? schemaDescription(schema) : undefined;
+    return { text, lang: text ? defaultLang : undefined };
   };
   const walk = (node: SchemaTreeNode, schema: JsonSchemaObject | undefined): SchemaTreeNode => {
-    const description = describe(schema);
+    const { text: description, lang: descriptionLang } = describe(schema);
     const children = node.children.map((child) => {
       const sub = node.type === "array"
         ? deref(Array.isArray(schema?.items) ? (schema?.items as unknown[])[0] : schema?.items)
         : deref((schema?.properties as JsonSchemaObject | undefined)?.[child.name]);
       return walk(child, sub);
     });
-    const { description: _old, ...rest } = node;
-    return { ...rest, ...(description ? { description } : {}), children };
+    const { description: _old, descriptionLang: _oldLang, ...rest } = node;
+    return {
+      ...rest,
+      ...(description ? { description } : {}),
+      ...(description && descriptionLang ? { descriptionLang } : {}),
+      children,
+    };
   };
   return walk(tree, deref(root));
 }

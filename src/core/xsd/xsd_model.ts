@@ -130,15 +130,20 @@ export function parseXsd(content: string): XsdModel {
 
 /** Documentation text in `lang`, else without `xml:lang`, else the first. */
 export function docText(docs: readonly XsdDoc[], lang?: string): string | undefined {
+  return docEntry(docs, lang)?.text;
+}
+
+/** The documentation entry `docText` picks: `lang`, else its base language, else one without `xml:lang`, else the first. */
+export function docEntry(docs: readonly XsdDoc[], lang?: string): XsdDoc | undefined {
   if (!docs.length) return undefined;
   if (lang) {
     const exact = docs.find((d) => d.lang.toLowerCase() === lang.toLowerCase());
-    if (exact) return exact.text;
+    if (exact) return exact;
     const base = lang.split("-")[0].toLowerCase();
     const sameBase = docs.find((d) => d.lang.split("-")[0].toLowerCase() === base);
-    if (sameBase) return sameBase.text;
+    if (sameBase) return sameBase;
   }
-  return (docs.find((d) => !d.lang) ?? docs[0]).text;
+  return docs.find((d) => !d.lang) ?? docs[0];
 }
 
 /** Documentation as `{lang: text}` (`""` key for documentation without `xml:lang`). */

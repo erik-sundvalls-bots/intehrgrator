@@ -189,6 +189,7 @@ export class WorkbenchController {
   private target: TargetDefinition | null = null;
   private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; lang?: string; index: SlotInfoIndex } | null = null;
   private mergedWebTemplate: { target: TargetDefinition; json: string | undefined } | null = null;
+  private sourceTreeCache: { tree: SchemaTreeNode; lang: string; localized: SchemaTreeNode } | null = null;
   /** UI language: breaks a `target.lang.1` tie only (#277 §4). */
   private uiLanguage = "en";
   /** Target re-read per language (labels for the AI, hover), per loaded target (#279). */
@@ -607,15 +608,31 @@ export class WorkbenchController {
    * schema has it), whatever language the source pane shows (#279).
    */
   getAiSourceTree(): SchemaTreeNode | null {
+    return this.getSourceTreeIn(this.getAiSourceDescriptionLanguage());
+  }
+
+  /**
+   * Language of the source descriptions the AI gets: the first source
+   * language the schema has texts in, else the schema's own (#277 §5).
+   */
+  getAiSourceDescriptionLanguage(): string | undefined {
+    return this.getSourceSchemaLanguages()[0];
+  }
+
+  /** The source tree with descriptions in `lang` (each node marked with its text's language), cached. */
+  getSourceTreeIn(lang: string | undefined): SchemaTreeNode | null {
     const tree = this.schemaTree;
-    if (!tree || !this.schemaContent) return tree;
-    const langs = this.getSourceSchemaLanguages();
-    if (langs.length < 2 || langs[0] === this.getSourceDisplayLanguage()) return tree;
+    if (!tree || !this.schemaContent || !lang) return tree;
+    const c = this.sourceTreeCache;
+    if (c && c.tree === tree && c.lang === lang) return c.localized;
+    let localized: SchemaTreeNode = tree;
     try {
-      return localizeSourceTree(tree, this.schemaContent, this.schemaFormat, langs[0]);
+      localized = localizeSourceTree(tree, this.schemaContent, this.schemaFormat, lang);
     } catch {
-      return tree;
+      localized = tree;
     }
+    this.sourceTreeCache = { tree, lang, localized };
+    return localized;
   }
 
   /** Languages the source schema's own texts come in (the 💬 source widget offers these). */
@@ -1657,7 +1674,12 @@ export class WorkbenchController {
       attachOriginalTarget: Boolean(this.settings.aiAttachOriginalTarget),
       ...(delivery === "api"
         ? {
-          sourceOutline: sourceTreeOutline(this.getAiSourceTree() ?? this.buildExampleTree()),
+          sourceOutline: sourceTreeOutline(
+            this.getAiSourceTree() ?? this.buildExampleTree(),
+            1500,
+            this.schemaTree ? this.getAiSourceDescriptionLanguage() : undefined,
+          ),
+          sourceDescriptionLanguage: this.schemaTree ? this.getAiSourceDescriptionLanguage() : undefined,
           exampleManifest: this.examples.list().map((ex) => ({
             id: ex.id,
             filename: ex.filename,
