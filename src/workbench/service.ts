@@ -620,7 +620,7 @@ export class WorkbenchService {
   listSlotTree(args: Record<string, unknown> = {}) {
     const s = this.controller.getState();
     const keep = new Set(filterSlotRows(listSlotsInspect(s.skeleton, s.model), args).map((r) => r.slotId));
-    return buildSlotTree(s.skeleton, { include: (slot) => keep.has(slot.slotId), model: s.model });
+    return buildSlotTree(s.skeleton, { include: (slot) => keep.has(slot.slotId), model: s.model, info: this.controller.getSlotInfoIndex() });
   }
 
   /** `get_slot`: full details of one slot (#277 §3). */
@@ -633,6 +633,7 @@ export class WorkbenchService {
       s.model,
       slotId,
       this.controller.getTargetSource(),
+      this.controller.getSlotInfoIndex(),
       lease
         ? {
           agentId: lease.agentId,

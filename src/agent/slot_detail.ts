@@ -7,6 +7,7 @@ import type { MappingModel, SkeletonNode } from "../types/mod.ts";
 import { findSkeletonTrail, nearestContentAncestor, nearestRepeatingContainer, pathLabelFromTrail } from "../core/skeleton/generate_skeleton.ts";
 import { compactSlotIdMap } from "../core/ai/slot_tree.ts";
 import { parseXsd, type XsdNode } from "../core/xsd/xsd_model.ts";
+import { type SlotInfo, slotInfoFor, type SlotInfoIndex } from "../core/ai/slot_info.ts";
 
 export interface TargetSource {
   format: string;
@@ -37,6 +38,10 @@ export interface SlotDetail {
   ordinals?: SkeletonNode["allowedOrdinals"];
   /** The constraint as the target file has it: JSON Schema subschema, XSD element/attribute, or the template node. */
   constraint?: { kind: "json-schema" | "xsd" | "openehr"; value: unknown };
+  /** Full meaning, comment, bindings, ranges, value descriptions and per-language texts (#277). */
+  info?: SlotInfo;
+  /** The enclosing group's meaning (archetype, event, object), full text. */
+  groupInfo?: { slotId: string; label?: string; description: string };
   mapping?: { expression: string; note?: string; confidence?: number };
   lease?: { agentId: string; displayName?: string; expiresAt?: string; subtree?: boolean };
 }
@@ -120,6 +125,7 @@ export function slotDetail(
   model: MappingModel,
   slotId: string,
   target: TargetSource | null,
+  info: SlotInfoIndex | undefined,
   lease?: { agentId: string; displayName?: string; expiresAt?: string; subtree?: boolean },
 ): SlotDetail | undefined {
   const trail = findSkeletonTrail(skeleton, slotId);
@@ -144,6 +150,9 @@ export function slotDetail(
   } else if (target?.format === "openehr-template") {
     constraint = { kind: "openehr", value: templateConstraint(node) };
   }
+  const slotInfo = info ? slotInfoFor(info, slotId) : undefined;
+  const groupNode = [...trail].reverse().find((n) => n !== node && info?.groups.get(n.slotId)?.description);
+  const groupText = groupNode ? info?.groups.get(groupNode.slotId)?.description : undefined;
   return {
     slotId,
     id: compact,
@@ -164,6 +173,8 @@ export function slotDetail(
     ...(node.allowedValues?.length ? { values: node.allowedValues.map((v) => ({ ...v })) } : {}),
     ...(node.allowedOrdinals?.length ? { ordinals: node.allowedOrdinals.map((v) => ({ ...v })) } : {}),
     ...(constraint ? { constraint } : {}),
+    ...(slotInfo ? { info: slotInfo } : {}),
+    ...(groupNode && groupText ? { groupInfo: { slotId: groupNode.slotId, ...(groupNode.label ? { label: groupNode.label } : {}), description: groupText } } : {}),
     ...(mapped?.expression
       ? {
         mapping: {

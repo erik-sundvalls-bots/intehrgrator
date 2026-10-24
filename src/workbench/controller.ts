@@ -79,6 +79,7 @@ import {
 import { stablePromptPrefix } from "../core/ai/mod.ts";
 import { describeModels, type ModelDescription } from "../core/ai/models_block.ts";
 import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
+import { type SlotInfoIndex, slotInfoForTarget } from "../core/ai/slot_info.ts";
 import type { HostAdapter, PickedTextFile } from "../host/mod.ts";
 import { constraintWarningsInspect, productStackInspect, sourceTreeOutline } from "../agent/inspect.ts";
 import { getValidAttachments } from "../core/rm_attachment_catalog.ts";
@@ -176,6 +177,7 @@ export class WorkbenchController {
   /** Example id → origin URI when loaded from URL (session). */
   private exampleOriginUrls = new Map<string, string>();
   private target: TargetDefinition | null = null;
+  private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; index: SlotInfoIndex } | null = null;
   private model: MappingModel = createEmptyModel("");
   private settings: ProjectSettings = { ...DEFAULT_SETTINGS };
   private examples = new ExampleInstanceManager();
@@ -1387,6 +1389,7 @@ export class WorkbenchController {
       delivery,
       artifacts: this.collectAiArtifacts(),
       models: this.describeAiModels(),
+      slotInfo: this.getSlotInfoIndex(),
       attachOriginalTarget: Boolean(this.settings.aiAttachOriginalTarget),
       ...(delivery === "api"
         ? {
@@ -1476,6 +1479,15 @@ export class WorkbenchController {
   }
 
   /** The loaded target file as read (for `get_slot`'s raw constraint). */
+  /** Descriptions, ranges, value texts … from the target definition, per slot (#277). Cached per target + skeleton. */
+  getSlotInfoIndex(): SlotInfoIndex {
+    const cache = this.slotInfoCache;
+    if (cache && cache.target === this.target && cache.skeleton === this.skeleton) return cache.index;
+    const index = slotInfoForTarget(this.target, this.skeleton);
+    this.slotInfoCache = { target: this.target, skeleton: this.skeleton, index };
+    return index;
+  }
+
   /** Stable AI chat prefix for the system message (#277 §6). */
   buildAiSystemPrefix(mode: "api" | "copy" = "api"): string {
     return stablePromptPrefix(mode, pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md"));

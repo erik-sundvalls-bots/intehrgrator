@@ -4,7 +4,7 @@
  * A Target Format describes the data structure produced by a conversion.
  * Export dialects (TypeScript, Java, Handlebars) are separate adapters.
  */
-import { XMLParser } from "fast-xml-parser";
+import { docText, parseXsd, type XsdModel, type XsdNode } from "../xsd/xsd_model.ts";
 import type {
   ClinicalModelFileset,
   SchemaTreeNode,
@@ -305,183 +305,53 @@ function parseXmlSchema(content: string, fallbackId: string, preferredLang?: str
   language?: string;
   languages?: string[];
 } {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "@",
-    removeNSPrefix: true,
-  });
-  const document = parser.parse(stripBom(content).replace(/^\uFEFF/, "")) as Record<string, unknown>;
-  const schema = asRecord(document.schema);
-  if (!schema) throw new Error("Invalid XML Schema: missing xs:schema");
-  const languages = collectXmlSchemaLanguages(schema);
-  const language = preferredLang && languages.includes(preferredLang)
-    ? preferredLang
-    : languages[0];
-  const rootElement = arrayOf(schema.element)[0];
-  if (!rootElement) throw new Error("Invalid XML Schema: no root xs:element");
-  const rootName = stringAttr(rootElement, "@name") || fallbackId;
+  // One XSD reader for source and target (#278 / #277): named types, refs,
+  // groups, attribute groups and extensions resolve into the skeleton.
+  let model: XsdModel;
+  try {
+    model = parseXsd(stripBom(content));
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "Invalid XML Schema");
+  }
+  const languages = orderLanguages(undefined, model.languages.filter(Boolean));
+  const language = preferredLang && languages.includes(preferredLang) ? preferredLang : languages[0];
+  const rootName = model.rootName || fallbackId;
   return {
-    targetId: stringAttr(schema, "@targetNamespace") || rootName,
-    root: xsdElementToSkeleton(rootElement, rootName, `/${rootName}`, true, language),
+    targetId: model.targetNamespace || rootName,
+    root: xsdNodeToSkeleton(model.root, true, language),
     language,
     languages: languages.length ? languages : undefined,
   };
 }
 
-function collectXmlSchemaLanguages(node: unknown, langs = new Set<string>()): string[] {
-  if (!node || typeof node !== "object") return orderLanguages(undefined, [...langs]);
-  if (Array.isArray(node)) {
-    for (const item of node) collectXmlSchemaLanguages(item, langs);
-    return orderLanguages(undefined, [...langs]);
-  }
-  const rec = node as Record<string, unknown>;
-  const annotation = asRecord(rec.annotation);
-  for (const doc of documentationNodes(annotation)) {
-    const lang = documentationLang(doc);
-    if (lang) langs.add(lang);
-  }
-  for (const value of Object.values(rec)) collectXmlSchemaLanguages(value, langs);
-  return orderLanguages(undefined, [...langs]);
-}
-
-function documentationNodes(
-  annotation: Record<string, unknown> | null,
-): Array<Record<string, unknown> | string> {
-  if (!annotation) return [];
-  const raw = annotation.documentation;
-  if (typeof raw === "string") return [raw];
-  if (Array.isArray(raw)) return raw.filter((item) => typeof item === "string" || isRecord(item));
-  return isRecord(raw) ? [raw] : [];
-}
-
-function documentationLang(doc: Record<string, unknown> | string): string {
-  if (typeof doc === "string") return "";
-  return stringAttr(doc, "@lang") || stringAttr(doc, "@xml:lang");
-}
-
-function xsdDocumentationLabel(
-  element: Record<string, unknown>,
-  language: string | undefined,
-): string | undefined {
-  const docs = documentationNodes(asRecord(element.annotation));
-  if (!docs.length) return undefined;
-  if (language) {
-    const match = docs.find((doc) => documentationLang(doc) === language);
-    const text = documentationText(match);
-    if (text) return text;
-  }
-  return documentationText(docs[0]);
-}
-
-function documentationText(doc: Record<string, unknown> | string | undefined): string | undefined {
-  if (doc == null) return undefined;
-  if (typeof doc === "string") {
-    const trimmed = doc.trim();
-    return trimmed || undefined;
-  }
-  if (typeof doc["#text"] === "string" && doc["#text"].trim()) return doc["#text"].trim();
-  return undefined;
-}
-
-function xsdElementToSkeleton(
-  element: Record<string, unknown>,
-  fallbackName: string,
-  path: string,
-  root = false,
-  language?: string,
-): SkeletonNode {
-  const name = stringAttr(element, "@name") || fallbackName;
-  const documentation = xsdDocumentationLabel(element, language);
+function xsdNodeToSkeleton(node: XsdNode, root: boolean, language?: string): SkeletonNode {
+  const documentation = docText(node.docs, language);
   // xml:lang documentation doubles as the localized block title when present;
   // keep the same prose on `documentation` for the help viewer.
-  const label = documentation || name;
-  const complex = asRecord(element.complexType);
-  const sequence = asRecord(complex?.sequence) ?? asRecord(complex?.all) ??
-    asRecord(complex?.choice);
-  const childElements = arrayOf(sequence?.element).map((child) => {
-    const childName = stringAttr(child, "@name") || typeLocalName(stringAttr(child, "@ref")) ||
-      "element";
-    return xsdElementToSkeleton(child, childName, `${path}/${childName}`, false, language);
-  });
-  const attributes = xsdAttributesToSkeleton(complex, path, language);
-  const children = [...attributes, ...childElements];
-  const { min, multiplicity } = xsdOccurs(element, root);
-  const type = xsdDeclaredType(element) || (complex ? "complexType" : "string");
-  const kind = children.length || complex ? "container" : "value";
-  const node: SkeletonNode = {
-    slotId: `${root ? name : path}:${path}`,
-    targetPath: path,
+  const label = documentation || node.name;
+  const kids = node.children.map((child) => xsdNodeToSkeleton(child, false, language));
+  // Attributes first, as before.
+  const children = [...kids.filter((k) => k.xmlKind === "attribute"), ...kids.filter((k) => k.xmlKind !== "attribute")];
+  const kind = children.length || node.complex ? "container" : "value";
+  const multiplicity = root ? "1" : node.multiplicity;
+  const out: SkeletonNode = {
+    slotId: node.xmlKind === "element" && root ? `${node.name}:${node.path}` : `${node.path}:${node.path}`,
+    targetPath: node.path,
     blockType: kind === "container" ? "target_structure" : "target_value",
-    rmType: type,
+    rmType: node.complex && !node.simpleContent ? "complexType" : (node.type || "string"),
     label,
-    rmAttribute: name,
+    rmAttribute: node.name,
     kind,
-    mandatory: min > 0,
+    mandatory: root ? true : node.min > 0 || (node.xmlKind === "attribute" && Boolean(node.fixed)),
     multiplicity,
     slotCardinality: multiplicity,
-    xmlKind: "element",
+    xmlKind: node.xmlKind,
     ...(documentation ? { documentation } : {}),
     children,
   };
-  const fixed = stringAttr(element, "@fixed") || stringAttr(element, "@default");
-  if (fixed) node.fixedValue = fixed;
-  return node;
-}
-
-function xsdAttributesToSkeleton(
-  complex: Record<string, unknown> | null,
-  parentPath: string,
-  language?: string,
-): SkeletonNode[] {
-  if (!complex) return [];
-  return arrayOf(complex.attribute).map((attr) => {
-    const name = stringAttr(attr, "@name") || "attr";
-    const use = stringAttr(attr, "@use") || "optional";
-    const type = xsdDeclaredType(attr) || "string";
-    const fixed = stringAttr(attr, "@fixed") || stringAttr(attr, "@default");
-    const required = use === "required" || Boolean(fixed);
-    const multiplicity = required ? "1" : "0..1";
-    const path = `${parentPath}/@${name}`;
-    const documentation = xsdDocumentationLabel(attr, language);
-    const node: SkeletonNode = {
-      slotId: `${path}:${path}`,
-      targetPath: path,
-      blockType: "target_value",
-      rmType: type,
-      label: documentation || name,
-      rmAttribute: name,
-      kind: "value",
-      mandatory: required,
-      multiplicity,
-      slotCardinality: multiplicity,
-      xmlKind: "attribute",
-      ...(documentation ? { documentation } : {}),
-      children: [],
-    };
-    if (fixed) node.fixedValue = fixed;
-    return node;
-  });
-}
-
-function xsdDeclaredType(element: Record<string, unknown>): string {
-  const named = typeLocalName(stringAttr(element, "@type"));
-  if (named) return named;
-  const simple = asRecord(element.simpleType);
-  const restriction = asRecord(simple?.restriction);
-  return typeLocalName(stringAttr(restriction, "@base"));
-}
-
-function xsdOccurs(
-  element: Record<string, unknown>,
-  root: boolean,
-): { min: number; max: number | null; multiplicity: string } {
-  const min = Number(stringAttr(element, "@minOccurs") || (root ? "1" : "1"));
-  const maxToken = stringAttr(element, "@maxOccurs") || "1";
-  const max = maxToken === "unbounded" ? null : Number(maxToken);
-  const multiplicity = max === 1
-    ? (min > 0 ? "1" : "0..1")
-    : (min > 0 ? "1..*" : "0..*");
-  return { min, max, multiplicity };
+  const fixed = node.fixed ?? node.default;
+  if (fixed) out.fixedValue = fixed;
+  return out;
 }
 
 function renderGenericNode(
@@ -942,27 +812,14 @@ function shouldRenderAsArray(attribute: string, count: number): boolean {
     new Set(["content", "items", "events", "activities", "participations", "links"]).has(attribute);
 }
 
-function arrayOf(value: unknown): Record<string, unknown>[] {
-  if (Array.isArray(value)) return value.filter(isRecord);
-  return isRecord(value) ? [value] : [];
-}
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return isRecord(value) ? value : null;
-}
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 function stringAttr(value: Record<string, unknown> | null | undefined, key: string): string {
   const item = value?.[key];
   return typeof item === "string" || typeof item === "number" ? String(item) : "";
 }
 
-function typeLocalName(value: string): string {
-  return value.split(":").pop() ?? value;
-}
 
 function stripExtension(filename: string): string {
   return filename.replace(/\.[^.]+$/, "");
