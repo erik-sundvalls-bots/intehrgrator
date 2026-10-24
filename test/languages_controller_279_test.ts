@@ -13,17 +13,17 @@ import type { LoadableProjectEntry, StoredProjectRecord } from "@intehrgrator/co
 
 function stubHost(): HostAdapter {
   return {
-    pickTextFile: async () => null,
-    pickTextFilesFromDirectory: async () => null,
-    pickBinaryFile: async () => null,
+    pickTextFile: () => Promise.resolve(null),
+    pickTextFilesFromDirectory: () => Promise.resolve(null),
+    pickBinaryFile: () => Promise.resolve(null),
     downloadText: () => {},
     downloadBytes: () => {},
-    copyToClipboard: async () => {},
-    readClipboard: async () => "",
-    saveAutosave: async () => {},
-    saveManualSave: async () => {},
-    loadStoredProjectRecord: async () => null as StoredProjectRecord | null,
-    listLoadableProjects: async () => [] as LoadableProjectEntry[],
+    copyToClipboard: () => Promise.resolve({}),
+    readClipboard: () => Promise.resolve(""),
+    saveAutosave: () => Promise.resolve({}),
+    saveManualSave: () => Promise.resolve({}),
+    loadStoredProjectRecord: () => Promise.resolve(null as StoredProjectRecord | null),
+    listLoadableProjects: () => Promise.resolve([] as LoadableProjectEntry[]),
     resolveAppUrl: (path) => path,
     fetchTextUrl: () => Promise.reject(new Error("fetchTextUrl not stubbed")),
   };

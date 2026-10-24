@@ -591,6 +591,16 @@ export class WorkbenchController {
     this.markDirty();
   }
 
+  /** What the Languages dialog would give, before it is saved. */
+  previewLanguages(
+    source: string[] | null,
+    mode: "matched" | "lang1" | "all",
+  ): { target: string[]; ai: string[] } {
+    const src = source?.length ? source : this.detectedSourceLanguages();
+    const order = orderTargetLanguages(targetLanguagesOf(this.target), targetOriginalLanguage(this.target), src, this.uiLanguage);
+    return { target: order, ai: aiContextLanguages(mode, order, src) };
+  }
+
   /** Languages the source schema's own texts come in (the 💬 source widget offers these). */
   getSourceSchemaLanguages(): string[] {
     if (!this.schemaContent) return [];
