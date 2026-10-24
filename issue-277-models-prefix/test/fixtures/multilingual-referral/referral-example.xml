@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Referral>
+  <PatientId>191212121212</PatientId>
+  <Priority>URGENT</Priority>
+  <Systolic>142</Systolic>
+  <Diagnosis primary="true"><Code>I10</Code></Diagnosis>
+  <Diagnosis><Code>E11.9</Code></Diagnosis>
+</Referral>

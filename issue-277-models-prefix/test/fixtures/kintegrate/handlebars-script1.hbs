@@ -1,0 +1,120 @@
+{{!-- <--- This is how you start a comment block in Handlebars
+  This is the column where you author (and possibly compile) your conversion script.
+  Currently you see a simple Handlebars template.
+  After importing instance data and/or schema (or other structure defitnitions) they can help you author the conversion script.
+  Select nodes in the tree on the left to insert paths to data elements at the current cursor position in this template.
+ This ends comment block:   --}}
+ 
+If intro.json is loaded as source this example will work, otherwise likely a lot of blank spots:
+----- Start -----
+Remember, ⤡ means: {{starter_tips.tip_object.Right_click_explanations.[⤡]}}
+
+A number of tips:
+{{#with starter_tips}}
+  {{#each tip_array}}
+- {{.}}
+  {{/each}}
+{{/with}}
+----- The end -----
+
+
+----- Another example block -----
+
+The examples below fit with the example input file MDK_Rek_demo1.json
+
+Example with full flat path: 
+  {{granskning.bakgrund.0.sjukdomshistoria.0.ospecificerad_händelse.0.anamnes.0.[|value]}}
+
+Example looping/traversing tree combined with parital flat 
+paths when we have reached a relevant repeating level:
+  {{#with granskning}}
+    {{#each rubrik}}
+      {{#each behållare}}
+        {{#each deltagare}} {{! this is a list with potentially many rows }}
+Närvarande:
+          {{#each deltagare}} 
+{{namn.0.[|value]}} (Specialitet: {{vårdgivarroll.0.specialitet.0.[|value]}})
+          {{/each}}
+        {{/each}}
+      {{/each}}
+    {{/each}}
+  {{/with}}
+
+Bakgrund:
+{{#with granskning}}
+  {{#each bakgrund}}
+    {{#each sjukdomshistoria}}
+      {{#each ospecificerad_händelse}}
+ Aktuellt: {{aktuellt.0.[|value]}}
+ Anamnes: {{anamnes.0.[|value]}}
+ Komorbiditet: {{komorbiditet.0.[|value]}}
+      {{/each}}
+    {{/each}}
+  {{/each}}
+{{/with}}
+
+{{!-- Example of helper functions for comparisons that can be used (in parenthesis) in e.g. #if-blocks 
+
+      eq: v1 === v2, equals
+      ne: v1 !== v2, not equals
+      lt: v1 < v2, less than
+      gt: v1 > v2, greater than
+      lte: v1 <= v2, less than or equal to
+      gte: v1 >= v2, greater than or equal to
+      and(expression1, expression2, ...expressions) => all expressions must be true
+      or(expression1, expression2, ...expressions) => at least one expression must be true
+
+--}}
+{{!-- Example of numeric comparisons (if there are values) --}}
+{{#with granskning.utredning_undersökning.0.funktionsutredning.0.spirometriresultat.[0].ospecificerad_händelse.[0].kvot_fev1_fvc.[0].resultat.[0]}}
+  {{#if [|numerator]}}
+FEV1/FVC: {{[|numerator]}}
+    {{#if (gte [|numerator] 70)}}
+  FEV1/FVC kvot är över eller lika med 70% - då kanske patienten kan pusta ut? Om den har någon luft kvar?
+    {{else}}
+  FEV1/FVC kvot är under 70% (eller saknas?) - kanske inte så bra värde, men ett Handlebars script ska nog inte ge medicinskt beslutsstöd
+    {{/if}}
+  {{else}}
+FEV1/FVC-resutat saknas!
+  {{/if}}
+{{/with}}
+
+{{!-- Or simpler by going deeper and using "." (current context) instead of repeating the path. Also compressed line breaks in syntax a bit,  --}}
+{{#with granskning.utredning_undersökning.0.funktionsutredning.0.spirometriresultat.[0].ospecificerad_händelse.[0].kvot_fev1_fvc.[0].resultat.[0].[|numerator]}}
+ {{~#if .}}FEV1/FVC: {{.}}
+  {{#if (gte . 70)}}  FEV1/FVC kvot är över eller lika med 70% - då kanske patienten kan pusta ut? Om den har någon luft kvar?
+  {{else}}FEV1/FVC kvot är under 70% (eller saknas?) - kanske inte så bra värde, men ett Handlebars script ska nog inte ge medicinskt beslutsstöd
+  {{/if}}
+ {{else}}FEV1/FVC-resutat saknas!
+ {{/if}}
+{{/with}}
+
+{{!-- Using "~" for removing whitespace. Using "#if (and x y z)" to check if all of values x y and z are available --}}
+TNM-Klassificering:
+{{~#with granskning.bedömning.0.behållare.0.klinisk_tnm-klassificering.[0]}}
+ (Version: {{tnm-version.0.[|value]}})
+{{#if (and primärtumör_t.0.[|value] regional_lymfkörtlar_n.0.[|value] fjärrmetastaser_m.0.[|value])}}
+T: {{primärtumör_t.0.[|value]}}
+N: {{regional_lymfkörtlar_n.0.[|value]}}
+M: {{fjärrmetastaser_m.0.[|value]}}
+Stadium: {{stadieindelning.0.[|value]}}
+{{/if}}
+{{/with}} 
+
+{{!-- Example of using @data variables described in https://handlebarsjs.com/api-reference/data-variables.html 
+      by looping over participants (deltagare) separating with a comma and ending with and and period.--}}
+Närvarande:
+{{~#with granskning.rubrik.[0].behållare.[0].deltagare.[0]}}    
+  {{#each deltagare}}
+    {{~#if @first}} {{namn.0.[|value]}}
+    {{~else if @last}} och {{namn.0.[|value]}}.
+    {{else}} , {{namn.0.[|value]}}
+    {{/if}}
+  {{/each}}
+  
+{{!-- Example of using @index variable to number items in a list --}}
+Närvarolista i ankomstordning:
+  {{#each deltagare}}
+    {{~@index}}. {{namn.0.[|value]}}
+  {{/each}}    
+{{/with}}
