@@ -149,7 +149,7 @@ function suggestionsFromPrompt(prompt: string): {
 } {
   const targetMatch = prompt.match(/- targetId: `([^`]+)`/);
   const targetId = targetMatch?.[1] ?? "";
-  const fence = prompt.match(/## Slot tree[\s\S]*?```json\s*([\s\S]*?)```/);
+  const fence = prompt.match(/\n## Slot tree\n```json\s*([\s\S]*?)```/);
   if (!fence) throw new Error("Copy AI Prompt did not include a slot tree");
   // #277: slot id = group path + row id.
   const groups = JSON.parse(fence[1]) as Array<{ group: string; slots: Array<{ id: string; label?: string }> }>;
