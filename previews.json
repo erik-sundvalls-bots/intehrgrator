@@ -111,6 +111,14 @@
     "sha": "911ff0fa4a6c689b967e1707f4f130939a4f3e3b",
     "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
   },
+  "issue-277-source-tree": {
+    "built": "2026-10-24T06:03:57Z",
+    "dir": "issue-277-source-tree",
+    "mode": "merged",
+    "pr": "287\thttps://github.com/regionstockholm/intehrgrator/pull/287\tOPEN\tSource tree: description language per node, get_source_tree {language} (#277 part 6, \u00a75)",
+    "sha": "d3588670585d8cf3788b32e8772b08b0718b018c",
+    "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
+  },
   "issue-278-xml-xsd-source": {
     "built": "2026-10-24T04:02:00Z",
     "dir": "issue-278-xml-xsd-source",
