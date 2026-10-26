@@ -34,6 +34,7 @@ export { parseAiConfidence };
 import type { SheetDocument } from "../sheets/mod.ts";
 import { buildSlotTree, formatSlotTree, resolveSlotRef, SLOT_TREE_GUIDE } from "./slot_tree.ts";
 import { formatModelsBlock, type ModelDescription } from "./models_block.ts";
+import type { SlotInfoIndex } from "./slot_info.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
 /**
@@ -99,6 +100,8 @@ export interface BuildPromptOptions {
   models?: ModelDescription[];
   /** Copy & paste: attach the raw target file too (off by default, #277 §6). */
   attachOriginalTarget?: boolean;
+  /** Descriptions, ranges, value texts per slot (#277 enrichment). */
+  slotInfo?: SlotInfoIndex;
 }
 
 const VALUE_BLOCK_TYPES = new Set([
@@ -323,6 +326,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
   const mapped = new Set(options.model.slots.filter((s) => s.expression).map((s) => s.slotId));
   const slotTree = buildSlotTree(options.skeleton, {
     include: (s) => options.scope === "slot" ? s.slotId === options.slotId : !mapped.has(s.slotId),
+    info: options.slotInfo,
   });
 
   const api = options.delivery === "api";

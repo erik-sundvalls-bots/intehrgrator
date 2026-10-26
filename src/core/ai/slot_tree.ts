@@ -19,6 +19,7 @@ import {
   nearestRepeatingContainer,
   pathLabelFromTrail,
 } from "../skeleton/generate_skeleton.ts";
+import { shortText, type SlotInfo, slotInfoFor, type SlotInfoIndex } from "./slot_info.ts";
 
 /** One value slot in the tree. Empty fields are omitted. */
 export interface SlotTreeRow {
@@ -33,8 +34,21 @@ export interface SlotTreeRow {
   /** Allowed units of a quantity. */
   units?: string[];
   /** Allowed coded values; `terminology` is hoisted to the row when shared. */
-  values?: Array<{ code: string; text: string; terminology?: string; assumed?: boolean }>;
+  values?: Array<{ code: string; text?: string; description?: string; terminology?: string; assumed?: boolean }>;
   terminology?: string;
+  /** Meaning, first sentence (`get_slot` has the full text). */
+  description?: string;
+  comment?: string;
+  annotations?: Record<string, string>;
+  bindings?: string[];
+  ordinals?: Array<{ value: number; code: string; text: string }>;
+  range?: SlotInfo["range"];
+  precision?: number;
+  pattern?: string;
+  length?: SlotInfo["length"];
+  format?: string;
+  examples?: unknown[];
+  default?: unknown;
   /** Current mapping expression (`list_slots` only). */
   expr?: string;
 }
@@ -43,6 +57,8 @@ export interface SlotTreeGroup {
   /** Compact path of the group node; the `attachSlotId` of a loop when `loop` is set. */
   group: string;
   label?: string;
+  /** The group node's meaning, first sentence (never repeated on its slots). */
+  description?: string;
   type?: string;
   mult?: string;
   /** Repeating container: map its children inside a `for_each_list` attached here. */
@@ -189,7 +205,7 @@ function lastStepName(id: string): string {
   return "";
 }
 
-function rowFor(node: SkeletonNode, id: string, model?: Map<string, string>): SlotTreeRow {
+function rowFor(node: SkeletonNode, id: string, model?: Map<string, string>, info?: SlotInfo): SlotTreeRow {
   const fixed: Record<string, string> = {};
   const ff = node.fixedFields ?? {};
   if (ff.units) fixed.units = String(ff.units);
@@ -198,17 +214,39 @@ function rowFor(node: SkeletonNode, id: string, model?: Map<string, string>): Sl
   const label = node.label?.trim();
   const values = valueSetRows(node);
   const expr = model?.get(node.slotId);
+  const description = shortText(info?.description);
+  const vd = info?.valueDescriptions ?? {};
+  let rowValues = values.values;
+  if (!rowValues && info?.enum?.length) rowValues = info.enum.map((e) => ({ code: e.code, ...(e.text ? { text: e.text } : {}) }));
+  if (rowValues && Object.keys(vd).length) {
+    rowValues = rowValues.map((v) => vd[v.code] ? { ...v, description: shortText(vd[v.code], 100) } : v);
+  }
+  const ordinals = info?.ordinals ?? (node.allowedOrdinals?.length
+    ? node.allowedOrdinals.map((o) => ({ value: o.value, code: o.code, text: o.label }))
+    : undefined);
   return {
     id,
     type: node.rmType,
-    // A label that only repeats the type or the path's last name adds nothing.
-    ...(label && label !== node.rmType && label !== lastStepName(id) ? { label } : {}),
+    // A label that only repeats the type, the path's last name or the documentation adds nothing.
+    ...(label && label !== node.rmType && label !== lastStepName(id) && label !== info?.description?.trim() ? { label } : {}),
+    ...(description ? { description } : {}),
     ...(node.multiplicity ? { mult: node.multiplicity } : {}),
     ...(node.mandatory ? { mandatory: true } : {}),
     ...(Object.keys(fixed).length ? { fixed } : {}),
     ...(node.allowedUnits?.length ? { units: [...node.allowedUnits] } : {}),
     ...(values.terminology && !fixed.terminology ? { terminology: values.terminology } : {}),
-    ...(values.values ? { values: values.values } : {}),
+    ...(rowValues ? { values: rowValues } : {}),
+    ...(ordinals?.length ? { ordinals } : {}),
+    ...(info?.range ? { range: info.range } : {}),
+    ...(info?.precision !== undefined ? { precision: info.precision } : {}),
+    ...(info?.pattern ? { pattern: info.pattern } : {}),
+    ...(info?.length ? { length: info.length } : {}),
+    ...(info?.format ? { format: info.format } : {}),
+    ...(info?.examples?.length ? { examples: info.examples } : {}),
+    ...(info?.default !== undefined ? { default: info.default } : {}),
+    ...(info?.comment ? { comment: shortText(info.comment) } : {}),
+    ...(info?.annotations ? { annotations: info.annotations } : {}),
+    ...(info?.bindings?.length ? { bindings: info.bindings } : {}),
     ...(expr ? { expr } : {}),
   };
 }
@@ -218,6 +256,8 @@ export interface BuildSlotTreeOptions {
   include?: (slot: SkeletonNode) => boolean;
   /** Add the current mapping expression to rows (`list_slots`). */
   model?: MappingModel;
+  /** Descriptions, ranges, value texts … from the target definition (#277 enrichment). */
+  info?: SlotInfoIndex;
 }
 
 /** Group the value slots under their loop / content ancestor, in skeleton order. */
@@ -256,9 +296,13 @@ export function buildSlotTree(skeleton: SkeletonNode[], options: BuildSlotTreeOp
       // The root's name (template id / root element) would repeat in every group.
       const label = owner ? pathLabelFromTrail(ownerTrail.length > 1 ? ownerTrail.slice(1) : ownerTrail) : undefined;
       const outer = loop ? nearestRepeatingContainer(ownerTrail.slice(0, -1)) : null;
+      const groupDoc = owner ? options.info?.groups.get(owner.slotId)?.description?.trim() : undefined;
+      const groupDescription = shortText(groupDoc);
       group = {
         group: key,
-        ...(label ? { label } : {}),
+        // XSD labels are the documentation: give it once, as the description.
+        ...(label && label !== groupDoc ? { label } : {}),
+        ...(groupDescription ? { description: groupDescription } : {}),
         ...(owner ? { type: owner.rmType } : {}),
         ...(owner?.multiplicity ? { mult: owner.multiplicity } : {}),
         ...(loop ? { loop: true as const } : {}),
@@ -267,7 +311,8 @@ export function buildSlotTree(skeleton: SkeletonNode[], options: BuildSlotTreeOp
       };
       groups.set(key, group);
     }
-    group.slots.push(rowFor(slot, key ? tailAfter(c(slot.slotId), key) : c(slot.slotId), exprs));
+    const info = options.info ? slotInfoFor(options.info, slot.slotId) : undefined;
+    group.slots.push(rowFor(slot, key ? tailAfter(c(slot.slotId), key) : c(slot.slotId), exprs, info));
   }
   return [...groups.values()];
 }

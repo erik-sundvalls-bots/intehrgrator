@@ -45,7 +45,7 @@ export async function slotContextTexts(fx: { target: string; schema?: string; ex
   if (fx.example) await callAgentTool(service, "add_example", { filename: name(fx.example), content: await Deno.readTextFile(fx.example) });
   const { skeleton, model } = service["controller"].getState();
   const rows = listSlotsInspect(skeleton, model).map(({ mapped: _m, ...row }) => row);
-  const tree = buildSlotTree(skeleton, { model });
+  const tree = buildSlotTree(skeleton, { model, info: service["controller"].getSlotInfoIndex() });
   const c = service["controller"];
   return [
     ["raw target", raw],
