@@ -72,6 +72,7 @@
     "compile:ehrtslib": "deno run -A scripts/compile-ehrtslib.ts",
     "release": "deno run -A scripts/release.ts",
     "release:no-test": "deno run -A scripts/release.ts --no-test",
+    "measure:context": "deno run -A --no-check scripts/measure_slot_context.ts",
     "mcp": "deno run -A src/agent/mcp_stdio.ts",
     "generate:function-library": "deno run -A --no-check scripts/generate-function-library.ts"
   },

@@ -112,7 +112,7 @@ Deno.test("postChatCompletions sends OpenAI tools and reads tool_calls", async (
 
 Deno.test("chat tools list_slots then map_slot then run_test on dummy vitals", async () => {
   const controller = await loadVitalsController();
-  const listed = await executeMappingAgentTool(controller, "list_slots", {}) as {
+  const listed = await executeMappingAgentTool(controller, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; mapped: boolean }>;
   };
   const systolic = listed.slots.find((row) => row.slotId.includes("systolic"))?.slotId;
@@ -122,7 +122,7 @@ Deno.test("chat tools list_slots then map_slot then run_test on dummy vitals", a
     path: "$.systolic",
     format: "json",
   });
-  const after = await executeMappingAgentTool(controller, "list_slots", {}) as {
+  const after = await executeMappingAgentTool(controller, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; mapped: boolean; expression?: string }>;
   };
   const mapped = after.slots.find((row) => row.slotId === systolic);
@@ -136,7 +136,7 @@ Deno.test("chat tools list_slots then map_slot then run_test on dummy vitals", a
 
 Deno.test("runMappingAgent loops tool calls then imports leftover suggestions JSON", async () => {
   const controller = await loadVitalsController();
-  const listed = await executeMappingAgentTool(controller, "list_slots", {}) as {
+  const listed = await executeMappingAgentTool(controller, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const systolic = listed.slots.find((row) => row.slotId.includes("systolic"))?.slotId;
@@ -195,7 +195,7 @@ Deno.test("runMappingAgent loops tool calls then imports leftover suggestions JS
 
 Deno.test("runMappingAgent executes map_slot on the live controller", async () => {
   const controller = await loadVitalsController();
-  const listed = await executeMappingAgentTool(controller, "list_slots", {}) as {
+  const listed = await executeMappingAgentTool(controller, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const systolic = listed.slots.find((row) => row.slotId.includes("systolic"))?.slotId;
@@ -233,7 +233,7 @@ Deno.test("runMappingAgent executes map_slot on the live controller", async () =
     }) as typeof fetch,
   });
   assertEquals(result.toolNames, ["map_slot"]);
-  const after = await executeMappingAgentTool(controller, "list_slots", {}) as {
+  const after = await executeMappingAgentTool(controller, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; mapped: boolean; expression?: string }>;
   };
   const mapped = after.slots.find((row) => row.slotId === systolic);

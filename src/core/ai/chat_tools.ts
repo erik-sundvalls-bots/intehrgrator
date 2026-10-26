@@ -13,6 +13,7 @@ export { GET_EXAMPLE_DEFAULT_CHARS, GET_EXAMPLE_MAX_CHARS } from "../../agent/in
 export const CALL_AI_TOOL_NAMES = [
   "get_snapshot",
   "list_slots",
+  "get_slot",
   "get_source_tree",
   "get_sheets",
   "get_product_stack",

@@ -16,7 +16,6 @@ import type {
   TargetFormatId,
 } from "../../types/mod.ts";
 import { applyExpressionEdit } from "../mapping_model/mod.ts";
-import { collectValueSlots, collectRepeatableContainers, findSkeletonTrail, nearestContentAncestor, nearestRepeatingContainer, pathLabelFromTrail } from "../skeleton/generate_skeleton.ts";
 import { validateExpressionSource } from "../expression/mod.ts";
 import { Validator, type Schema } from "@cfworker/json-schema";
 import { SUGGESTION_FORMAT_SCHEMA } from "./suggestion_schema.ts";
@@ -33,6 +32,7 @@ import {
 } from "./response_notes.ts";
 export { parseAiConfidence };
 import type { SheetDocument } from "../sheets/mod.ts";
+import { buildSlotTree, formatSlotTree, resolveSlotRef, SLOT_TREE_GUIDE } from "./slot_tree.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
 /**
@@ -155,48 +155,9 @@ export function joinLoopPath(loopPath: string, relative: string): string {
 }
 
 export function buildPrompt(options: BuildPromptOptions): string {
-  const valueSlots = collectValueSlots(options.skeleton);
   const mapped = new Set(options.model.slots.filter((s) => s.expression).map((s) => s.slotId));
-  const seen = new Set<string>();
-  const inScope = valueSlots.filter((s) => {
-    if (seen.has(s.slotId)) return false;
-    seen.add(s.slotId);
-    if (options.scope === "slot") return s.slotId === options.slotId;
-    return !mapped.has(s.slotId);
-  });
-
-  const manifest = inScope.map((s) => {
-    const trail = findSkeletonTrail(options.skeleton, s.slotId);
-    const repeating = nearestRepeatingContainer(trail);
-    const parent = nearestContentAncestor(trail);
-    const pathLabel = pathLabelFromTrail(trail);
-    return {
-      slotId: s.slotId,
-      valueType: s.rmType,
-      label: s.label,
-      ...(pathLabel ? { pathLabel } : {}),
-      ...(s.targetPath ? { targetPath: s.targetPath } : {}),
-      ...(s.multiplicity ? { multiplicity: s.multiplicity } : {}),
-      ...(repeating ? { attachSlotId: repeating.slotId } : {}),
-      ...(parent ? { parentRmType: parent.rmType } : {}),
-      ...(s.archetypeNodeId && s.archetypeNodeId !== s.label ? { archetypeNodeId: s.archetypeNodeId } : {}),
-      ...(s.fixedFields?.units ? { unitsFixed: s.fixedFields.units } : {}),
-      ...(s.fixedFields?.code_string || s.fixedFields?.defining_code
-        ? { codeFixed: String(s.fixedFields.code_string ?? s.fixedFields.defining_code) }
-        : {}),
-      ...(s.fixedFields?.terminology_id ? { terminologyFixed: s.fixedFields.terminology_id } : {}),
-      ...(s.allowedUnits?.length ? { allowedUnits: s.allowedUnits } : {}),
-      ...(s.allowedValues?.length
-        ? {
-          allowedValues: s.allowedValues.map((v) => ({
-            code: v.code,
-            label: v.label,
-            ...(v.terminologyId ? { terminologyId: v.terminologyId } : {}),
-            ...(v.assumed ? { assumed: true } : {}),
-          })),
-        }
-        : {}),
-    };
+  const slotTree = buildSlotTree(options.skeleton, {
+    include: (s) => options.scope === "slot" ? s.slotId === options.slotId : !mapped.has(s.slotId),
   });
 
   const api = options.delivery === "api";
@@ -249,29 +210,13 @@ export function buildPrompt(options: BuildPromptOptions): string {
   }
 
   sections.push(
-    "## Slot manifest",
+    "## Slot tree",
+    SLOT_TREE_GUIDE,
     "```json",
-    compactJsonRows(manifest),
+    formatSlotTree(slotTree),
     "```",
     "",
   );
-
-  const repeatable = collectRepeatableContainers(options.skeleton).map((s) => ({
-    slotId: s.slotId,
-    valueType: s.rmType,
-    label: s.label,
-    multiplicity: s.multiplicity,
-  }));
-  if (repeatable.length) {
-    sections.push(
-      "## Repeatable containers",
-      "Copy `attachSlotId` from this list. One loop per repeating container: `for_each_list` with a `source_query_node` in LIST when iterating source nodes, or `for_each_list` with a list value when iterating a computed list.",
-      "```json",
-      compactJsonRows(repeatable),
-      "```",
-      "",
-    );
-  }
 
   const sheetSection = compactSheetSection(options.sheets);
   if (sheetSection) sections.push(...sheetSection);
@@ -336,7 +281,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     "**Terminology translation (ICD-10 → SNOMED CT)** — `sheet_lookup` against a named Sheet (headers `code` / `snomed`), key from source:",
     "```json",
     JSON.stringify({
-      slotId: "{targetId}{path/to/code_string/value}",
+      slotId: "<group><id of the code slot>",
       block: {
         type: "sheet_lookup",
         fields: { NAME: "icd10_snomed" },
@@ -358,7 +303,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     "**Decision table (combinational rules)** — load/replace the grid with `replace_sheets` (`kind: \"decision-table\"`); fill the slot with `decision_table`. Prefer this over nested `logic_ternary` when several independent inputs (with don't-care) map to outputs:",
     "```json",
     JSON.stringify({
-      slotId: "{targetId}{path/to/value}",
+      slotId: "<group><id>",
       block: {
         type: "decision_table",
         fields: { NAME: "sbp_band", OUTPUT: "band" },
@@ -384,10 +329,10 @@ export function buildPrompt(options: BuildPromptOptions): string {
     }, null, 2),
     "```",
     "",
-    "**DV_QUANTITY magnitude + units** — when `unitsFixed` is absent:",
+    "**DV_QUANTITY magnitude + units** — when the slot has no `fixed.units`:",
     "```json",
     JSON.stringify({
-      slotId: "{targetId}{path/to/quantity/value/value}",
+      slotId: "<group><id of the quantity slot>",
       loopVar: "item",
       block: {
         type: "maps_create_with",
@@ -410,7 +355,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     "**Source over defaults (time / composer)** — map from source when present:",
     "```json",
     JSON.stringify({
-      slotId: "{targetId}/context/start_time/value",
+      slotId: "/context/start_time/value",
       block: {
         type: "source_query",
         fields: { EXPRESSION: "$.encounter.startTime" },
@@ -421,7 +366,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     "**Party identity `name` slot** (PARTY_IDENTIFIED container from `list_slots`; source over defaults). Optional identifiers: `maps_create_with` keys `name`, `id`, `type`:",
     "```json",
     JSON.stringify({
-      slotId: "{targetId}//composer",
+      slotId: "/composer",
       block: {
         type: "maps_create_with",
         extraState: { itemCount: 3 },
@@ -441,14 +386,14 @@ export function buildPrompt(options: BuildPromptOptions): string {
     }, null, 2),
     "```",
     "",
-    "**Repeating container** — put `for_each_list` in top-level `loops[]` (`source_query_node` in LIST for source nodes, or a list value for a computed collection); child slots use `loopVar` + relative `EXPRESSION` (see Repeatable containers list). Loop body reporters `logic_loop_index` / `logic_loop_length` serialize as `var(\"<item>_index\")` / `var(\"<item>_length\")` (0-based; length fixed at loop entry). Grammatical list join (Swedish *och* / Oxford comma) is a 1-arg Blockly Function that loops, appends a FIRST Decision-table snippet, and is called from the slot — not a `join_list` builtin. Optional RM Insertion uses `optional_rm_add` / `optional_rm_remove` tools, not this envelope.",
-    'Loop fragment (merge into the envelope; ids from the lists above): `{"loops":[{"attachSlotId":"<container slotId>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<slot under that container>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
+    "**Repeating container** — put `for_each_list` in top-level `loops[]` (`source_query_node` in LIST for source nodes, or a list value for a computed collection); child slots use `loopVar` + relative `EXPRESSION` (groups with `loop` in the slot tree). Loop body reporters `logic_loop_index` / `logic_loop_length` serialize as `var(\"<item>_index\")` / `var(\"<item>_length\")` (0-based; length fixed at loop entry). Grammatical list join (Swedish *och* / Oxford comma) is a 1-arg Blockly Function that loops, appends a FIRST Decision-table snippet, and is called from the slot — not a `join_list` builtin. Optional RM Insertion uses `optional_rm_add` / `optional_rm_remove` tools, not this envelope.",
+    'Loop fragment (merge into the envelope; ids from the slot tree): `{"loops":[{"attachSlotId":"<loop group>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<group><id of a slot in that group>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
     "",
     "## Instruction",
     (api
       ? "Map with the tools (`map_slot`, `import_suggestions`, `optional_rm_add`, `replace_sheets`), then `run_test`. "
       : "Return exactly one `intehrgrator-suggestions` fenced JSON block. ") +
-      "Copy each `slotId` from the slot manifest. Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
+      "Build each `slotId` from the slot tree (`group` + `id`). Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
   );
 
   if (options.delivery === "inline") {
@@ -1084,19 +1029,12 @@ function sanitizeBlock(raw: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-/** Collapse `templateId//path` (AI separator) onto `templateId/path` (skeleton ids). */
+/**
+ * A slot id from an AI answer as a known skeleton id: exact, `templateId//path`
+ * vs `templateId/path`, the compact slot-tree id, or a unique tail (#277).
+ */
 export function resolveKnownSlotId(slotId: string, knownSlotIds: Set<string>): string | null {
-  if (knownSlotIds.has(slotId)) return slotId;
-  const collapsed = collapseSlashes(slotId);
-  if (knownSlotIds.has(collapsed)) return collapsed;
-  for (const known of knownSlotIds) {
-    if (collapseSlashes(known) === collapsed) return known;
-  }
-  return null;
-}
-
-function collapseSlashes(slotId: string): string {
-  return slotId.replace(/\/{2,}/g, "/");
+  return resolveSlotRef(slotId, knownSlotIds);
 }
 
 /** `$item?pulse` / `$item.pulse` → `pulse` when `loopVar` is `item`. */
