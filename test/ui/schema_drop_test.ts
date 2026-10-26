@@ -110,3 +110,32 @@ Deno.test({
     }
   },
 });
+
+Deno.test({
+  name: "UI: drop an XSD onto #schema-tree renders element paths, not xs:* markup (#278)",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const xsd = await fixtureText("test/fixtures/multilingual-referral/referral.xsd");
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage();
+      await page.goto(`${baseUrl}/?testMode=1`, { waitUntil: "networkidle" });
+      await waitForTestApi(page);
+
+      await dropTextFile(page, "#schema-tree", "referral.xsd", xsd);
+      await page.waitForSelector('#schema-tree .tree-row[data-path="/Referral/PatientId"]', {
+        timeout: 5_000,
+      });
+      const snap = await getSnapshot(page);
+      assertEquals(snap.schemaError, null);
+      const paths = await page.locator("#schema-tree .tree-row[data-path]").evaluateAll((rows) =>
+        rows.map((row) => (row as HTMLElement).dataset.path ?? "")
+      );
+      assert(paths.includes("/Referral/Diagnosis/@primary"), paths.join(", "));
+      assertEquals(paths.some((p) => p.includes("xs:")), false, paths.join(", "));
+    } finally {
+      await browser.close();
+    }
+  },
+});

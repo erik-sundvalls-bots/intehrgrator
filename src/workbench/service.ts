@@ -284,6 +284,9 @@ export class WorkbenchService {
     this.mutate(() => {
       this.controller.loadSchemaContent(filename, content);
     }, { ...ctx, kind: "load_bundle", summary: ctx?.summary ?? `Load schema ${filename}` });
+    // A file that could not be read is a tool error, not a silent empty Source pane (#278).
+    const error = this.controller.getState().schemaError;
+    if (error) throw new Error(error);
   }
 
   addExampleContent(filename: string, content: string, ctx?: MutationContext): void {
