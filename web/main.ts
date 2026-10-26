@@ -2395,6 +2395,7 @@ aiChat = installAiChatPanel({
   downloadText: (filename, text) => void host.downloadText(filename, text, "application/json"),
   openImportDialog: (text) => void importAiDialog.open(text),
   runTurn: (request) => runAiChatTurn(request),
+  model: () => loadAiCredentials(localStorage)?.model ?? "",
   setStatus: (message) => controller.setStatusMessage(message),
   formatError: (err) => formatCallAiError(err),
   describeSlot: (slotId) => describeSlotForNotes(slotId),
@@ -3890,6 +3891,7 @@ async function runSuggestionsFallbackTurn(
     messages: result.messages,
     toolCalls: [],
     mappings,
+    usage: result.usage,
     note: notes.join(" "),
   };
 }
@@ -3959,6 +3961,7 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       proxyUrl,
       signal: request.signal,
       onEvent: request.onEvent,
+      tokenBudget: request.tokenBudget,
       onAfterMutation: () => {
         persistBlocklyCanvas({ summary: "AI chat" });
         render();
@@ -3980,6 +3983,8 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       suggestionNotes: result.suggestionNotes,
       mappings: result.mappingNotices,
       ...(result.stopped ? { stopped: true } : {}),
+      usage: result.usage,
+      ...(result.budgetReached ? { budgetReached: true } : {}),
       note: result.truncated
         ? uiChrome().aiChatTruncated
         : result.stepLimitReached
