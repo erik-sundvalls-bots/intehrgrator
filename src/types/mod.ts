@@ -371,6 +371,8 @@ export interface ProjectSettings {
   autoplay: boolean;
   /** Ontology / localizedNames language for the loaded multilingual target. */
   modelLanguage?: string;
+  /** Copy & paste AI prompt also attaches the raw target file (#277; off: slot tree only). */
+  aiAttachOriginalTarget?: boolean;
 }
 
 export interface ProjectBundle {

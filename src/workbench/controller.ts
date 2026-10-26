@@ -76,6 +76,9 @@ import {
   validateSuggestionEnvelope,
   withSlotReview,
 } from "../core/ai/mod.ts";
+import { stablePromptPrefix } from "../core/ai/mod.ts";
+import { describeModels, type ModelDescription } from "../core/ai/models_block.ts";
+import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
 import type { HostAdapter, PickedTextFile } from "../host/mod.ts";
 import { constraintWarningsInspect, productStackInspect, sourceTreeOutline } from "../agent/inspect.ts";
 import { getValidAttachments } from "../core/rm_attachment_catalog.ts";
@@ -1380,9 +1383,11 @@ export class WorkbenchController {
       activeExampleFilename: this.examples.getActive()?.filename,
       skeleton: this.skeleton,
       model: this.model,
-      formatDocUrl: this.host.resolveAppUrl("docs/AI_SUGGESTION_FORMAT.md"),
+      formatDocUrl: pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md"),
       delivery,
       artifacts: this.collectAiArtifacts(),
+      models: this.describeAiModels(),
+      attachOriginalTarget: Boolean(this.settings.aiAttachOriginalTarget),
       ...(delivery === "api"
         ? {
           sourceOutline: sourceTreeOutline(this.schemaTree ?? this.buildExampleTree()),
@@ -1471,6 +1476,42 @@ export class WorkbenchController {
   }
 
   /** The loaded target file as read (for `get_slot`'s raw constraint). */
+  /** Stable AI chat prefix for the system message (#277 §6). */
+  buildAiSystemPrefix(mode: "api" | "copy" = "api"): string {
+    return stablePromptPrefix(mode, pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md"));
+  }
+
+  getAiAttachOriginalTarget(): boolean {
+    return Boolean(this.settings.aiAttachOriginalTarget);
+  }
+
+  /** Copy & paste prompts attach the raw target file only when this is on (#277 §6). */
+  setAiAttachOriginalTarget(on: boolean): void {
+    if (Boolean(this.settings.aiAttachOriginalTarget) === on) return;
+    this.settings = { ...this.settings, aiAttachOriginalTarget: on };
+    this.notifyChange();
+  }
+
+  /** `## Models`: the target and source schema, identifiers copied from the files (#277 §7). */
+  private describeAiModels(): ModelDescription[] {
+    const models: ModelDescription[] = [];
+    const target = this.getTargetSource();
+    if (target) {
+      models.push(describeModels({
+        role: "target",
+        format: target.format,
+        filename: target.filename,
+        content: target.content,
+        skeleton: this.skeleton,
+        targetId: this.templateId,
+      }));
+    }
+    if (this.schemaTree && this.schemaContent) {
+      models.push(describeModels({ role: "source", format: this.schemaFormat, filename: this.schemaFilename, content: this.schemaContent }));
+    }
+    return models;
+  }
+
   getTargetSource(): { format: string; filename: string; content: string } | null {
     if (!this.target || !this.templateContent) return null;
     return { format: this.target.format, filename: this.templateFilename || this.target.filename, content: this.templateContent };

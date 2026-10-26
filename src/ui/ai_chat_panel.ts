@@ -135,6 +135,9 @@ export interface AiChatPanelOptions {
   /** Last copy/paste delivery mode, shared with the header AI menu. */
   getDelivery?: () => AiPromptDelivery;
   setDelivery?: (delivery: AiPromptDelivery) => void;
+  /** Copy & paste: also attach the raw target file (#277; default off). */
+  getAttachOriginalTarget?: () => boolean;
+  setAttachOriginalTarget?: (on: boolean) => void;
   copyToClipboard: (text: string) => Promise<void>;
   pickTextFile: () => Promise<{ name: string; text: string } | null>;
   fetchText: (url: string) => Promise<string>;
@@ -390,6 +393,21 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       void copyPrompt(delivery);
     });
     copyMenu.append(item);
+  }
+  if (options.setAttachOriginalTarget) {
+    const check = el("label", { className: "split-btn-menu-item split-btn-menu-item--icon split-btn-menu-check" });
+    check.title = ui().menuAttachOriginalTargetTitle;
+    const box = el("input");
+    box.type = "checkbox";
+    box.id = "ai-chat-attach-target";
+    box.checked = Boolean(options.getAttachOriginalTarget?.());
+    box.addEventListener("change", () => options.setAttachOriginalTarget?.(box.checked));
+    check.append(box, el("span", { text: ui().menuAttachOriginalTarget }));
+    copyMenu.append(check);
+    // Keep in step with the AI menu's checkbox.
+    copyChevron.addEventListener("click", () => {
+      box.checked = Boolean(options.getAttachOriginalTarget?.());
+    });
   }
   copySplit.append(copyBtn, copyChevron, copyMenu);
   const importBtn = el("button", { className: "pane-btn", type: "button" });

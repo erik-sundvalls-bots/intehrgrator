@@ -109,6 +109,7 @@ async function scriptedTurn(
     prompt,
     history,
     executeTool: (name, args) => executeMappingAgentTool(c, name, args),
+    systemPrefix: c.buildAiSystemPrefix("api"),
     fetch: fetchStub,
   });
   return { bodies, result };

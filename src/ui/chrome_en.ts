@@ -12,6 +12,8 @@ export const en = {
   menuEmbedFiles: "Embed files in prompt",
   menuAttachFiles: "Attach files in chat",
   menuBrowseUris: "Browse URIs (when available)",
+  menuAttachOriginalTarget: "Attach original target",
+  menuAttachOriginalTargetTitle: "Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.",
   menuAiCopyHeading: "copy/paste for external AI chat",
   menuAiOwnHeading: "Your own AI",
   menuAiDesktopHeading: "Desktop",
