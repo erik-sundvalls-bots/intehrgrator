@@ -153,3 +153,17 @@ Deno.test("SDV: the Web Template for Simplified FLAT ids stays the original lang
   // One Web Template carries every language (ehrtslib #160).
   assertStringIncludes(before, "Systoliskt");
 });
+
+Deno.test("SDV: an OPT XML loaded after picking sv in 💬 keeps original-language Web Template ids", async () => {
+  const controller = await sdvController();
+  controller.setModelLanguage("sv");
+  controller.loadTemplateContent("simple-diagnose-and-vitals.opt", await Deno.readTextFile(SDV));
+  const target = (controller as unknown as { target: { language?: string; webTemplateJson?: string } }).target;
+  assertEquals(target.language, "sv");
+  assertEquals(systolic(controller.getState().skeleton).label, "Systoliskt");
+  type Node = { id: string; name?: string; children?: Node[] };
+  const find = (n: Node): Node | undefined => n.id === "systolic" ? n : n.children?.map(find).find(Boolean);
+  const node = find((JSON.parse(target.webTemplateJson!) as { tree: Node }).tree);
+  assert(node, "Web Template id from the English original");
+  assertEquals(node.name, "Systoliskt");
+});
