@@ -85,7 +85,12 @@ Deno.test("SDV slot tree groups loop slots once, with units, codes and short ids
   assertEquals(systolic.fixed, { units: "mm[Hg]" });
   const position = bp.slots.find((r) => r.label === "Position")!;
   assertEquals(position.fixed?.terminology ?? position.terminology, "local");
-  assertEquals(position.values?.[0], { code: "at1000", text: "Standing" });
+  // The OPT's Web Template carries every language, so value descriptions too (ehrtslib #160).
+  assertEquals(position.values?.[0], {
+    code: "at1000",
+    text: "Standing",
+    description: "Standing at the time of blood pressure measurement.",
+  });
   // No pathLabel / attachSlotId / repeated targetId in rows.
   const text = formatSlotTree(groups);
   assertEquals(text.includes("pathLabel"), false);

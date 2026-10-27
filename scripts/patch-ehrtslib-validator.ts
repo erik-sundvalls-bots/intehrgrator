@@ -54,20 +54,6 @@ const CALL_SITE_SINGLE_NEXT = `        const child = matchConstraintChild(childr
         if (!child) return;
         this.validateNode(`;
 
-const MATCH_FN = `function matchConstraintChild(
-  children: openehr_am.C_OBJECT[],
-  rmItem: unknown,
-): openehr_am.C_OBJECT | undefined {
-  if (children.length === 1) return children[0];
-  const actual = TypeRegistry.getTypeNameFromInstance(rmItem);
-  if (!actual) return children[0];
-  return children.find((child) => {
-    const expected = child.rm_type_name;
-    if (!expected) return false;
-    return actual === expected || isSubtypeOf(actual, expected);
-  });
-}`;
-
 const MATCH_FN_NEXT = `function matchConstraintChild(
   children: openehr_am.C_OBJECT[],
   rmItem: unknown,
@@ -175,7 +161,6 @@ export async function patchEhrtslibValidator(root = Deno.cwd()): Promise<void> {
     const replacements: Array<[string, string]> = [
       [CALL_SITE_ARRAY, CALL_SITE_ARRAY_NEXT],
       [CALL_SITE_SINGLE, CALL_SITE_SINGLE_NEXT],
-      [MATCH_FN, MATCH_FN_NEXT],
     ];
     for (const [from, to] of replacements) {
       if (!next.includes(from)) {
@@ -185,6 +170,13 @@ export async function patchEhrtslibValidator(root = Deno.cwd()): Promise<void> {
       }
       next = next.replace(from, to);
     }
+    // The whole upstream matchConstraintChild is replaced (its body changes between releases).
+    const fnStart = next.indexOf("function matchConstraintChild(");
+    const fnEnd = fnStart < 0 ? -1 : next.indexOf("\n}\n", fnStart);
+    if (fnEnd < 0) {
+      throw new Error(`ehrtslib TemplateValidator patch missed matchConstraintChild in ${path}. Upstream may have changed.`);
+    }
+    next = next.slice(0, fnStart) + MATCH_FN_NEXT + next.slice(fnEnd + 2);
     changed = true;
     console.log("Patched ehrtslib TemplateValidator sibling constraint matching");
   }
