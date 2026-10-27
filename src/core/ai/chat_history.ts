@@ -4,6 +4,7 @@
  */
 import type { ChatMessage } from "./credentials.ts";
 import type { SuggestionNote } from "./response_notes.ts";
+import { parseUsageTotals, type UsageTotals } from "./token_usage.ts";
 
 export const CHAT_HISTORY_KEY_PREFIX = "intehrgrator.ai.chat.";
 /** Rough cap so one long chat cannot exhaust localStorage. */
@@ -16,6 +17,16 @@ export const CHAT_HISTORY_MAX_CHARS = 400_000;
  */
 export const CHAT_HISTORY_MAX_TOKENS = 64_000;
 
+/**
+ * History limit for a model with a known context window (#276): half the
+ * window (the rest is room for this turn's tool results and answer), never
+ * below `CHAT_HISTORY_MAX_TOKENS`. Unknown window: `CHAT_HISTORY_MAX_TOKENS`.
+ */
+export function historyTokenLimit(contextWindow?: number): number {
+  if (!contextWindow || contextWindow <= 0) return CHAT_HISTORY_MAX_TOKENS;
+  return Math.max(CHAT_HISTORY_MAX_TOKENS, Math.floor(contextWindow / 2));
+}
+
 /** Token estimate for wire messages: about 3 characters per token for this JSON-heavy chat (o200k_base). */
 export function estimateChatTokens(messages: readonly ChatMessage[]): number {
   return Math.ceil(JSON.stringify(messages).length / 3);
@@ -24,6 +35,8 @@ export function estimateChatTokens(messages: readonly ChatMessage[]): number {
 export interface ChatDisplayEntry {
   role: "user" | "assistant" | "note" | "error";
   text: string;
+  /** A note with a button: "raise-budget" raises the token budget and sends "continue" (#276). */
+  action?: "raise-budget";
   /** Tool names called during an assistant turn (collapsed lines). */
   toolCalls?: string[];
   /** Short lines for mappings tools applied this turn ("Mapped Systolic ← $.systolic"). */
@@ -43,6 +56,10 @@ export interface ChatSession {
   contextSent: boolean;
   /** `chipKey`s whose details were already attached. */
   attachedChipKeys: string[];
+  /** Token use of every request in this chat until Clear history (#276). */
+  usage?: UsageTotals;
+  /** The 80 % budget warning was shown for this chat. */
+  budgetWarned?: boolean;
 }
 
 interface StorageLike {
@@ -71,6 +88,8 @@ export function loadChatSession(storage: StorageLike, projectId: string): ChatSe
       display: Array.isArray(parsed.display) ? parsed.display : [],
       contextSent: parsed.contextSent === true,
       attachedChipKeys: Array.isArray(parsed.attachedChipKeys) ? parsed.attachedChipKeys : [],
+      ...(parseUsageTotals(parsed.usage) ? { usage: parseUsageTotals(parsed.usage) } : {}),
+      ...(parsed.budgetWarned === true ? { budgetWarned: true } : {}),
     };
   } catch {
     return emptyChatSession();

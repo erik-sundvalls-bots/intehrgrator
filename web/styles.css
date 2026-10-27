@@ -2250,3 +2250,33 @@ span.ai-notes-option { cursor: default; }
 .dialog-fieldset legend { font-size: 12px; padding: 0 4px; }
 .dialog-radio { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 2px 0; }
 .dialog-hint.is-error { color: #b3261e; }
+
+/* AI chat token meter and context ring (#276) */
+.ai-usage { position: relative; display: inline-flex; }
+.ai-usage[hidden] { display: none; }
+.ai-chat-actions { flex-wrap: wrap; row-gap: 4px; }
+.ai-chat-actions .pane-btn.ai-usage-btn {
+  gap: 5px; padding: 3px 7px; font-variant-numeric: tabular-nums;
+  background: transparent; color: #49454f; border-color: #c4c7c5;
+}
+.ai-chat-actions .pane-btn.ai-usage-btn:hover { background: #f1f3f4; }
+.ai-usage-btn--running .ai-usage-label { color: var(--primary); }
+.ai-chat-actions .pane-btn.ai-usage-btn--warn { border-color: #b06000; color: #8a4b00; background: #fff4e0; }
+.ai-chat-actions .pane-btn.ai-usage-btn--over { border-color: #b3261e; color: #b3261e; background: #fdecea; }
+.ai-usage-ring { width: 16px; height: 16px; flex: none; }
+.ai-usage-ring-track { stroke: #e0e0e0; }
+.ai-usage-ring-arc { stroke: var(--primary); transition: stroke-dasharray 0.3s ease; }
+.ai-usage-ring--high .ai-usage-ring-arc { stroke: #b06000; }
+.ai-usage-popover {
+  position: fixed; z-index: 1000; width: 320px; box-sizing: border-box;
+  background: #fff; border: 1px solid #c4c7c5; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: 10px 12px; font-size: 12px; color: #1f1f1f;
+}
+.ai-usage-popover[hidden] { display: none; }
+.ai-usage-details p { margin: 0 0 4px; }
+.ai-usage-form { margin-top: 8px; border-top: 1px solid #e0e0e0; padding-top: 8px; display: grid; gap: 6px; }
+.ai-usage-field { display: grid; grid-template-columns: 1fr 110px; align-items: center; gap: 8px; }
+.ai-usage-field input { font: inherit; padding: 2px 6px; border: 1px solid #c4c7c5; border-radius: 4px; }
+.ai-usage-help { margin: 0; color: #5f6368; line-height: 1.35; }
+.ai-usage-buttons { display: flex; justify-content: flex-end; gap: 6px; }
+.ai-chat-raise-budget { margin-top: 6px; font-size: 12px; }

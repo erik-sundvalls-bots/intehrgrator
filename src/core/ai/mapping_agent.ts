@@ -14,6 +14,7 @@ import {
 } from "./credentials.ts";
 import { isCallAiToolName, isMutatingCallAiTool, mappingAgentOpenAiTools } from "./chat_tools.ts";
 import type { ImportSuggestionsReport } from "../../types/mod.ts";
+import { addUsage, emptyUsageTotals, estimateTokens, type TokenUsage, totalTokens, type UsageTotals } from "./token_usage.ts";
 import type { AgentClient } from "../../agent/client.ts";
 
 export interface MappingAgentResult {
@@ -27,8 +28,12 @@ export interface MappingAgentResult {
   suggestionNotes: SuggestionNote[];
   /** The last answer stopped at the output-token limit (finish_reason length). */
   truncated?: boolean;
-  /** The loop ran out of steps while the model still wanted to call tools. */
+  /** The loop ran out of steps (runaway guard) while the model still wanted to call tools. */
   stepLimitReached?: boolean;
+  /** The turn used up `tokenBudget` while the model still wanted to call tools (#276). */
+  budgetReached?: boolean;
+  /** Token use of this turn's requests (#276). */
+  usage: UsageTotals;
   /** The user pressed Stop (or the caller aborted): text is what arrived so far. */
   stopped?: boolean;
   /** One short line per mapping a tool applied this turn (the inline stream notices). */
@@ -46,7 +51,9 @@ export type MappingAgentEvent =
   | { type: "reasoning"; text: string }
   | { type: "tool"; name: string }
   | { type: "mapping"; text: string }
-  | { type: "tool-error"; name: string; error: string };
+  | { type: "tool-error"; name: string; error: string }
+  /** After each request: that request's use and the turn's running totals (#276). */
+  | { type: "usage"; step: number; usage: TokenUsage; turn: UsageTotals };
 
 export interface RunMappingAgentOptions {
   credentials: AiProviderCredentials;
@@ -55,7 +62,14 @@ export interface RunMappingAgentOptions {
   fetch?: typeof fetch;
   signal?: AbortSignal;
   proxyUrl?: string;
+  /** Runaway guard on tool-loop steps. Default `DEFAULT_MAX_STEPS`. */
   maxSteps?: number;
+  /**
+   * Tokens (input + output) this turn may use before it pauses (#276). Checked
+   * before each request, so the request that crosses it still completes and
+   * its tool calls run. Undefined = no budget.
+   */
+  tokenBudget?: number;
   onAfterMutation?: () => void;
   importText?: (text: string) => ImportSuggestionsReport | Promise<ImportSuggestionsReport>;
   /**
@@ -76,6 +90,26 @@ export interface RunMappingAgentOptions {
 }
 
 export const DEFAULT_STEP_TIMEOUT_MS = 180_000;
+/**
+ * Only a guard against a model that loops forever (#276): ordinary mapping
+ * work should never reach it. Cost is watched with the token meter and the
+ * optional token budget instead.
+ */
+export const DEFAULT_MAX_STEPS = 100;
+
+/** Estimated use of one request when the provider reported none (characters / 3). */
+export function estimateRequestUsage(
+  sent: ChatMessage[],
+  tools: unknown,
+  completion: Pick<ChatCompletionResult, "text" | "toolCalls">,
+): TokenUsage {
+  const out = completion.text + (completion.toolCalls ?? []).map((c) => c.name + c.arguments).join("");
+  return {
+    input: estimateTokens(JSON.stringify(sent)) + (tools ? estimateTokens(JSON.stringify(tools)) : 0),
+    output: estimateTokens(out),
+    estimated: true,
+  };
+}
 
 /** Tools whose results are large snapshots: only the newest copy stays in history. */
 const SNAPSHOT_TOOLS = new Set([
@@ -210,7 +244,8 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
   ];
   const conversation = () => messages.slice(1);
   const toolNames: string[] = [];
-  const maxSteps = options.maxSteps ?? 16;
+  const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS;
+  let usage = emptyUsageTotals();
   let lastText = "";
   // Text the model writes next to tool calls is part of the answer (models
   // continue a sentence across steps): keep every step's text, not only the last.
@@ -239,6 +274,7 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
     messages: compactToolHistory(conversation()),
     suggestionNotes,
     mappingNotices,
+    usage,
     ...extra,
   });
   const stopped = (step: number): MappingAgentResult => {
@@ -248,11 +284,15 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
 
   for (let step = 1; step <= maxSteps; step++) {
     if (options.signal?.aborted) return stopped(step - 1);
+    if (options.tokenBudget !== undefined && step > 1 && totalTokens(usage) >= options.tokenBudget) {
+      return result(step - 1, { budgetReached: true });
+    }
     emit?.({ type: "step", step });
     partial = "";
     let completion: ChatCompletionResult;
+    const sent = compactToolHistory(messages);
     try {
-      completion = await postChatCompletions(options.credentials, compactToolHistory(messages), {
+      completion = await postChatCompletions(options.credentials, sent, {
         fetch: options.fetch,
         signal: stepSignal(options.signal, options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS),
         proxyUrl: options.proxyUrl,
@@ -264,6 +304,9 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
       throw err;
     }
     partial = "";
+    const stepUsage = completion.usage ?? estimateRequestUsage(sent, tools, completion);
+    usage = addUsage(usage, stepUsage);
+    emit?.({ type: "usage", step, usage: stepUsage, turn: usage });
     lastText = completion.text;
     if (completion.text.trim()) texts.push(completion.text.trim());
     const calls = completion.toolCalls ?? [];
@@ -368,7 +411,7 @@ export async function runSuggestionsChatTurn(options: {
   proxyUrl?: string;
   /** Stream text / reasoning deltas into the chat bubble. */
   onEvent?: (event: MappingAgentEvent) => void;
-}): Promise<{ text: string; messages: ChatMessage[]; truncated?: boolean }> {
+}): Promise<{ text: string; messages: ChatMessage[]; truncated?: boolean; usage: UsageTotals }> {
   const history = options.history ?? [];
   const messages: ChatMessage[] = [
     { role: "system", content: withSystemPrefix(SUGGESTIONS_SYSTEM, options.systemPrefix) },
@@ -388,9 +431,13 @@ export async function runSuggestionsChatTurn(options: {
       }
       : {}),
   });
+  const stepUsage = completion.usage ?? estimateRequestUsage(messages, undefined, completion);
+  const usage = addUsage(emptyUsageTotals(), stepUsage);
+  options.onEvent?.({ type: "usage", step: 1, usage: stepUsage, turn: usage });
   messages.push({ role: "assistant", content: completion.text });
   return {
     text: completion.text,
+    usage,
     messages: messages.slice(1),
     ...(completion.truncated ? { truncated: true } : {}),
   };

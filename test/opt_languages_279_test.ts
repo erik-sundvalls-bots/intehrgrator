@@ -148,7 +148,8 @@ Deno.test("SDV: the Web Template for Simplified FLAT ids stays the original lang
   const before = (controller as unknown as { target: { webTemplateJson?: string } }).target.webTemplateJson;
   assert(before);
   controller.setModelLanguage("sv");
-  const after = (controller as unknown as { target: { webTemplateJson?: string; languageWebTemplateJson?: string } }).target;
+  const after = (controller as unknown as { target: { webTemplateJson?: string } }).target;
   assertEquals(after.webTemplateJson, before);
-  assertStringIncludes(after.languageWebTemplateJson ?? "", "Systoliskt");
+  // One Web Template carries every language (ehrtslib #160).
+  assertStringIncludes(before, "Systoliskt");
 });
