@@ -10,6 +10,8 @@ import {
   codedTextRmType,
 } from "@intehrgrator/core/openehr/coded_text.ts";
 import { adoptBlocklyState } from "@intehrgrator/workbench/blockly_sync.ts";
+import { stablePromptPrefix } from "@intehrgrator/core/ai/mod.ts";
+import { SLOT_TREE_GUIDE } from "@intehrgrator/core/ai/slot_tree.ts";
 import type {
   MappingSlot,
   SkeletonNode,
@@ -280,4 +282,31 @@ Deno.test("#274 FLAT output carries the code and terminology of a coded DV_TEXT"
   assertEquals(byKey[`${base}|code`], "S06.0");
   assertEquals(byKey[`${base}|terminology`], "ICD-10");
   assertEquals(byKey[`${base}|value`], "Concussion");
+});
+
+Deno.test("#274 the slot tree shows a coded DV_TEXT slot as DV_CODED_TEXT; the guide says so", async () => {
+  const service = await vitals();
+  const typeOf = async () => {
+    const listed = await callAgentTool(service, "list_slots", {
+      query: "Problem/Diagnosis name",
+    }) as {
+      groups: Array<
+        { group: string; slots: Array<{ id: string; type: string }> }
+      >;
+    };
+    const rows = listed.groups.flatMap((g) =>
+      g.slots.filter((r) => DIAGNOSIS.endsWith(r.id))
+    );
+    return rows[0]?.type;
+  };
+  assertEquals(await typeOf(), "DV_TEXT");
+  await suggest(service, { slotId: DIAGNOSIS, block: CODED_BLOCK });
+  assertEquals(await typeOf(), "DV_CODED_TEXT");
+  assertStringIncludes(SLOT_TREE_GUIDE, "DV_CODED_TEXT");
+  for (const mode of ["api", "copy"] as const) {
+    assertStringIncludes(
+      stablePromptPrefix(mode, "x"),
+      "map the slot as `DV_CODED_TEXT` (recommended)",
+    );
+  }
 });

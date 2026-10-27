@@ -11,6 +11,7 @@
  * slot id is `group` + `id`. `resolveSlotRef` maps every form back (full id,
  * compact id, a unique tail), so tools keep accepting today's slot ids.
  */
+import { applyCodedTextSlots } from "../openehr/coded_text.ts";
 import type { MappingModel, SkeletonNode } from "../../types/mod.ts";
 import {
   collectValueSlots,
@@ -300,7 +301,9 @@ function extraLabelsFor(
 }
 
 /** Group the value slots under their loop / content ancestor, in skeleton order. */
-export function buildSlotTree(skeleton: SkeletonNode[], options: BuildSlotTreeOptions = {}): SlotTreeGroup[] {
+export function buildSlotTree(input: SkeletonNode[], options: BuildSlotTreeOptions = {}): SlotTreeGroup[] {
+  // A DV_TEXT slot mapped as DV_CODED_TEXT shows that type (#274).
+  const skeleton = options.model ? applyCodedTextSlots(input, options.model.slots) : input;
   const all = collectValueSlots(skeleton);
   const seen = new Set<string>();
   const slots = all.filter((s) => {
@@ -369,4 +372,4 @@ export function formatSlotTree(groups: SlotTreeGroup[]): string {
 
 /** Slot-tree reading guide, shared by the prompt and the tool description. */
 export const SLOT_TREE_GUIDE =
-  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";
+  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";

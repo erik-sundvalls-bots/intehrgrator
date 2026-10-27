@@ -70,6 +70,7 @@ One fence tagged `intehrgrator-suggestions`. Outside the fence the answer may ad
 - Build every `slotId` as slot-tree `group` + row `id`, and `attachSlotId` from a `loop` group. Full skeleton ids from older prompts and `list_slots` `view: "rows"` are accepted too, as is a unique tail of an id.
 - `loops` optional. Omit when all mappings are single-valued.
 - `loopVar` optional on a suggestion; when set, must equal some `loops[].block.fields.VAR`. `EXPRESSION` is then **relative to that loop’s `PATH`** (no leading `$` / `/`). Absolute `EXPRESSION` ignores `loopVar`.
+- `rmType` optional, only on a `DV_TEXT` slot ([#274](https://github.com/regionstockholm/intehrgrator/issues/274)). Every `DV_TEXT` slot also accepts its subclass `DV_CODED_TEXT`. A `maps_create_with` block with keys `value`, `code_string` and `terminology_id` maps the slot as `DV_CODED_TEXT` (inferred, no `rmType` needed). `"rmType": "DV_TEXT"` switches a coded slot back to plain text. `rmType` on any other slot is skipped with an error. Example: `{"slotId": "…/at0002/value/DV_TEXT/value", "block": {"type": "maps_create_with", "extraState": {"itemCount": 3}, "fields": {"KEY0": "value", "KEY1": "code_string", "KEY2": "terminology_id"}, "inputs": {"VAL0": {"block": {"type": "source_query", "fields": {"EXPRESSION": "$.diagnosis.display"}}}, "VAL1": {"block": {"type": "source_query", "fields": {"EXPRESSION": "$.diagnosis.code"}}}, "VAL2": {"block": {"type": "source_query", "fields": {"EXPRESSION": "$.diagnosis.codeSystem"}}}}}}`.
 
 ### Notes, questions and confidence
 

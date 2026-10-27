@@ -225,7 +225,8 @@ Deno.test("buildPrompt inline embeds multipart body", () => {
     }],
   });
   assertEquals(prompt.includes("## Slot tree") && prompt.includes(`"slots":[`), true);
-  assertEquals(prompt.includes("rmType"), false);
+  // Slot rows carry `type`, not `rmType` (the rules may name the suggestion field, #274).
+  assertEquals(prompt.includes("\"rmType\":"), false);
   assertEquals(prompt.includes("--intehrgrator-part"), true);
   assertEquals(prompt.includes('X-Intehrgrator-Role: source-schema'), true);
   assertEquals(prompt.includes('{"type":"object"}'), true);
