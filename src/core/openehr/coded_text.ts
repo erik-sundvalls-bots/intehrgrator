@@ -26,6 +26,16 @@ export function expressionHasCode(expression: string): boolean {
   return /^\s*map\(/.test(expression) && CODE_KEYS.test(expression);
 }
 
+/** The template's RM type, or DV_CODED_TEXT when the canvas maps a DV_TEXT node as that subclass. */
+export function textSubtype(
+  target: { rmType: string },
+  mapped: string,
+): string {
+  return target.rmType === "DV_TEXT" && mapped === CODED_TEXT
+    ? CODED_TEXT
+    : target.rmType;
+}
+
 /**
  * The RM type a mapping of a DV_TEXT node gets: `requested` when it is
  * DV_TEXT or DV_CODED_TEXT, else DV_CODED_TEXT when the expression carries a

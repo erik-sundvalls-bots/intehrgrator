@@ -189,6 +189,19 @@ Deno.test("#274 a code on a DV_TEXT slot maps it as DV_CODED_TEXT in TypeScript 
   const onCanvas = canvasSlot(service, DIAGNOSIS);
   assertEquals(onCanvas?.rmType, "DV_CODED_TEXT");
   assertStringIncludes(onCanvas?.expression ?? "", '"code_string"');
+  // A browser edit persists the canvas; the slot stays DV_CODED_TEXT.
+  const controller = (service as unknown as {
+    controller: {
+      getState(): { blocklyState: unknown; skeleton: SkeletonNode[] };
+      syncFromBlockly(state: unknown, slots: MappingSlot[]): void;
+    };
+  }).controller;
+  const state = controller.getState();
+  controller.syncFromBlockly(
+    state.blocklyState,
+    adoptBlocklyState(state.blocklyState, state.skeleton).extract.slots,
+  );
+  assertEquals(slot(service, DIAGNOSIS)?.rmType, "DV_CODED_TEXT");
   for (const mode of ["typescript", "xquery"] as const) {
     const result = await run(service, mode);
     assertEquals(result.ok, true, `${mode}: ${result.error}`);
