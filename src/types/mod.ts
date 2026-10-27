@@ -259,6 +259,12 @@ export interface SkeletonNode {
   archetypeShortName?: string;
   /** Template-constrained LOCATABLE.name (`C_STRING` list / AQL name hint). */
   nameConstraint?: string;
+  /**
+   * The term in the target's primary language (the first language in the OPT),
+   * set when `label` is in another language. Output names never follow the
+   * display language.
+   */
+  primaryName?: string;
   kind: SkeletonNodeKind;
   /** RM attribute on the parent object this node occupies (e.g. data, items, value). */
   rmAttribute?: string;

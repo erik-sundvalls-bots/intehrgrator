@@ -94,6 +94,12 @@ export function generateSkeleton(
     throw new Error("Could not parse operational template from input");
   }
   const generated = generateSkeletonFromOperational(opt, optSource, undefined, options);
+  // The template's primary language (lang.1). In OPT 1.4 that is the top-level
+  // `<language>` chosen at export, which ehrtslib exposes as `original_language`.
+  const primary = resolveOptLanguage(opt);
+  if (generated.language !== primary) {
+    withPrimaryNames(generated.skeleton, generateSkeletonFromOperational(opt, optSource, undefined, { language: primary }).skeleton);
+  }
   return {
     ...generated,
     warnings: [...parsed.warnings, ...generated.warnings],
@@ -123,6 +129,16 @@ export function generateSkeletonFromWebTemplate(
     (webTemplate as { tree?: unknown }).tree,
     generated.skeleton,
   );
+  // A Web Template's `defaultLanguage` is the template's primary language (lang.1).
+  const primary = webTemplate.defaultLanguage;
+  if (primary && primary !== language && languages.includes(primary)) {
+    withPrimaryNames(
+      generated.skeleton,
+      generateSkeletonFromOperational(webTemplateToOpt(webTemplate) as AmObject, "", buildWebTemplateTermsIndex(webTemplate, primary), {
+        language: primary,
+      }).skeleton,
+    );
+  }
   return {
     ...generated,
     templateId: generated.templateId !== "unknown"
@@ -149,6 +165,30 @@ function webTemplateJsonFromOperational(opt: AmObject, language: string, languag
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Set `primaryName` on each node of `skeleton` (labels in a display language)
+ * from the same node in `primary` (labels in the primary language), so output
+ * names do not follow the display language.
+ */
+function withPrimaryNames(skeleton: SkeletonNode[], primary: SkeletonNode[]): void {
+  const names = new Map<string, string>();
+  const collect = (nodes: SkeletonNode[]) => {
+    for (const n of nodes) {
+      if (n.label) names.set(n.slotId, n.label);
+      collect(n.children);
+    }
+  };
+  collect(primary);
+  const apply = (nodes: SkeletonNode[]) => {
+    for (const n of nodes) {
+      const name = names.get(n.slotId);
+      if (name && name !== n.label) n.primaryName = name;
+      apply(n.children);
+    }
+  };
+  apply(skeleton);
 }
 
 /** Walk an already-resolved OPERATIONAL_TEMPLATE (OPT XML, flattened .t.json, …). */
