@@ -32,7 +32,7 @@ deno task build  # build web app into /dist
 deno task dev`  # start and serve on `http://localhost:5173`
 ```
 
-NOTE: ehrtslib is not cloned. `deno.json` imports it from the jsDelivr URL at main commit [`f6d211e`](https://github.com/ErikSundvall/ehrtslib/commit/f6d211ebd89ae0aa5110ac88a289a4d05ea7d854) (after release v0.5.1; includes [ehrtslib #160](https://github.com/ErikSundvall/ehrtslib/pull/160), every OPT 1.4 language and Web Templates built from a primary language). `deno task vendor` still clones example archetypes, and it rewrites one local file, `vendor/ehrtslib-overrides/validation/template_validator.ts`, when upstream `TemplateValidator` still needs sibling constraint matching patches (`scripts/patch-ehrtslib-validator.ts`). Re-run vendor after pull if openEHR validation tests fail oddly.
+NOTE: ehrtslib is not cloned. `deno.json` imports it from the jsDelivr URL for release [v0.6](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.6). `deno task vendor` still clones example archetypes, and it writes one local file, `vendor/ehrtslib-overrides/validation/template_validator.ts`: upstream `TemplateValidator` with one patch (`scripts/patch-ehrtslib-validator.ts`) so an omitted optional attribute (protocol, state, other_context) is not reported as required. Re-run vendor after pull if openEHR validation tests fail oddly.
 
 ## Tests
 

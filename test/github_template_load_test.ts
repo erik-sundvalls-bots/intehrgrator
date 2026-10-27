@@ -264,3 +264,18 @@ Deno.test("controller loadSchemaFromUrl uses GitHub clinical-model closure for s
   assert(state.schemaTree);
   assertEquals(state.schemaFormat, "openehr-web-template");
 });
+
+Deno.test("GitHub OPT in sv: labels in Swedish, Web Template ids from the original language (#289)", async () => {
+  const opt = await Deno.readTextFile(join(import.meta.dirname!, "fixtures", "simple-diagnose-and-vitals.opt"));
+  const url = "https://github.com/org/repo/blob/main/templates/sdv.opt";
+  const loaded = await loadGitHubClinicalModel(url, {
+    fetch: mockGithubFetch({ "templates/sdv.opt": opt }),
+    language: "sv",
+  });
+  assertEquals(loaded.language, "sv");
+  type Node = { id: string; name?: string; children?: Node[] };
+  const find = (n: Node): Node | undefined => n.id === "systolic" ? n : n.children?.map(find).find(Boolean);
+  const systolic = find((JSON.parse(loaded.webTemplateJson) as { tree: Node }).tree);
+  assert(systolic, "id from the English original");
+  assertEquals(systolic.name, "Systoliskt");
+});
