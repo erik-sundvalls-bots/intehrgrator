@@ -38,9 +38,7 @@ import {
   archetypeShortName,
   availableOptLanguages,
   availableWebTemplateLanguages,
-  buildArchetypeTermsIndex,
   buildWebTemplateTermsIndex,
-  compositionArchetypeRef,
   liveArchetypeTermsIndex,
   locatableNodeLabel,
   lookupTermText,
@@ -93,7 +91,7 @@ export function generateSkeleton(
     }
     throw new Error("Could not parse operational template from input");
   }
-  const generated = generateSkeletonFromOperational(opt, optSource, undefined, options);
+  const generated = generateSkeletonFromOperational(opt, undefined, options);
   return {
     ...generated,
     warnings: [...parsed.warnings, ...generated.warnings],
@@ -115,7 +113,6 @@ export function generateSkeletonFromWebTemplate(
     : (webTemplate.defaultLanguage || languages[0] || "en");
   const generated = generateSkeletonFromOperational(
     opt,
-    "",
     buildWebTemplateTermsIndex(webTemplate, language),
     { language },
   );
@@ -154,7 +151,6 @@ function webTemplateJsonFromOperational(opt: AmObject, language: string, languag
 /** Walk an already-resolved OPERATIONAL_TEMPLATE (OPT XML, flattened .t.json, …). */
 export function generateSkeletonFromOperational(
   opt: AmObject,
-  optSource = "",
   extraArchetypeTerms?: Map<string, TermBag>,
   options?: GenerateSkeletonOptions,
 ): GenerateSkeletonResult {
@@ -170,14 +166,9 @@ export function generateSkeletonFromOperational(
     : resolveOptLanguage(opt);
   applyOperationalTemplateTermScopes(opt, lang);
   const fallbackTerms = mergedOntologyTerms(opt, lang);
-  const archetypeTerms = mergeTermMaps(
-    optSource ? buildArchetypeTermsIndex(optSource) : undefined,
-    liveArchetypeTermsIndex(opt, lang),
-    extraArchetypeTerms,
-  );
+  const archetypeTerms = mergeTermMaps(liveArchetypeTermsIndex(opt, lang), extraArchetypeTerms);
   const archetypeTermRecord = termBagsRecord(archetypeTerms);
-  const rootArchetypeRef = (optSource ? compositionArchetypeRef(optSource) : undefined) ??
-    (opt.definition?.archetype_ref as string | undefined) ??
+  const rootArchetypeRef = (opt.definition?.archetype_ref as string | undefined) ??
     (extraArchetypeTerms?.has(TEMPLATE_ROOT_TERM_SCOPE) ? TEMPLATE_ROOT_TERM_SCOPE : undefined) ??
     [...archetypeTerms.keys()][0];
 

@@ -16,7 +16,6 @@ import { generateSkeletonFromOperational } from "../skeleton/generate_skeleton.t
 import {
   availableOptLanguages,
   availableWebTemplateLanguages,
-  buildWebTemplateTermsIndex,
   orderLanguages,
   resolveOptLanguage,
 } from "../skeleton/template_terms.ts";
@@ -127,13 +126,10 @@ function scaffoldWorkspace(
   const ontologyLanguage = resolveOptLanguage(opt, preferredLanguage);
   const webTemplate = buildWebTemplate(opt, {
     languages: [ontologyLanguage, ...availableOptLanguages(opt).filter((l) => l !== ontologyLanguage)],
+    // Ids (Simplified FLAT paths) from the original language, whatever 💬 shows, until #289.
+    idLanguage: "original",
   });
-  const generated = generateSkeletonFromOperational(
-    opt,
-    optXml,
-    buildWebTemplateTermsIndex(webTemplate, ontologyLanguage),
-    { language: ontologyLanguage },
-  );
+  const generated = generateSkeletonFromOperational(opt, undefined, { language: ontologyLanguage });
   const templateId = generated.templateId !== "unknown"
     ? generated.templateId
     : webTemplate.templateId || basename(rootPath);
