@@ -54,6 +54,8 @@ export interface SourceTreeNode {
   multiplicity?: string;
   /** JSON Schema `description` / XSD `xs:documentation`. */
   description?: string;
+  /** Language of `description`, only when it is not the tree's `descriptionLanguage` (#277 §5). */
+  lang?: string;
   value?: unknown;
   children?: SourceTreeNode[];
 }
@@ -144,10 +146,15 @@ function cloneAllowedValue(value: AllowedValue): AllowedValue {
   };
 }
 
+/**
+ * `get_source_tree` form of a source tree. With `descriptionLang`, a node's
+ * `lang` is given only where its description is in another language (#277 §5).
+ */
 export function compactSourceTree(
   node: SchemaTreeNode | null | undefined,
   depth = 0,
   maxDepth = 8,
+  descriptionLang?: string,
 ): SourceTreeNode | null {
   if (!node) return null;
   const row: SourceTreeNode = {
@@ -156,13 +163,16 @@ export function compactSourceTree(
     type: node.type,
   };
   if (node.multiplicity) row.multiplicity = node.multiplicity;
-  if (node.description) row.description = node.description;
+  if (node.description) {
+    row.description = node.description;
+    if (node.descriptionLang && !sameLang(node.descriptionLang, descriptionLang)) row.lang = node.descriptionLang;
+  }
   if (node.value !== undefined && (typeof node.value !== "object" || node.value === null)) {
     row.value = node.value;
   }
   if (depth < maxDepth && node.children.length) {
     row.children = node.children
-      .map((child) => compactSourceTree(child, depth + 1, maxDepth))
+      .map((child) => compactSourceTree(child, depth + 1, maxDepth, descriptionLang))
       .filter((c): c is SourceTreeNode => Boolean(c));
   }
   return row;
@@ -251,11 +261,6 @@ function findCompactNode(node: SourceTreeNode | null, path: string): SourceTreeN
   return null;
 }
 
-/**
- * Indented one-line-per-node outline of a source tree (`path type [mult]`),
- * without example values: the `api` AI chat context sends this instead of
- * the source schema body (#252). Stops at `maxLines` with a pointer line.
- */
 /** First sentence of a source node's description, at most 80 characters (#277). */
 function outlineDescription(text: string | undefined): string | undefined {
   const t = text?.replace(/\s+/g, " ").trim();
@@ -264,9 +269,20 @@ function outlineDescription(text: string | undefined): string | undefined {
   return sentence.length <= 80 ? sentence : `${sentence.slice(0, 79).trimEnd()}…`;
 }
 
+function sameLang(a: string | undefined, b: string | undefined): boolean {
+  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Indented one-line-per-node outline of a source tree (`path type [mult] — description`),
+ * without example values: the `api` AI chat context sends this instead of
+ * the source schema body (#252). A description in another language than
+ * `descriptionLang` is marked `(en)` (#277 §5). Stops at `maxLines` with a pointer line.
+ */
 export function sourceTreeOutline(
   node: SchemaTreeNode | null | undefined,
   maxLines = 1500,
+  descriptionLang?: string,
 ): string {
   if (!node) return "";
   const lines: string[] = [];
@@ -277,7 +293,10 @@ export function sourceTreeOutline(
     } else {
       const mult = n.multiplicity ? ` [${n.multiplicity}]` : "";
       const about = outlineDescription(n.description);
-      lines.push(`${"  ".repeat(depth)}${n.path} ${n.type}${mult}${about ? ` — ${about}` : ""}`);
+      const mark = about && n.descriptionLang && descriptionLang && !sameLang(n.descriptionLang, descriptionLang)
+        ? `(${n.descriptionLang}) `
+        : "";
+      lines.push(`${"  ".repeat(depth)}${n.path} ${n.type}${mult}${about ? ` — ${mark}${about}` : ""}`);
     }
     for (const child of n.children) walk(child, depth + 1);
   };

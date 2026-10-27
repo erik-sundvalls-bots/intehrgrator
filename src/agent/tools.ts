@@ -90,8 +90,12 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "get_source_tree",
-    description: "Compact Source Schema and Active Example trees (paths for Click-to-Map / source_query).",
-    inputSchema: { type: "object", properties: {} },
+    description:
+      "Compact Source Schema and Active Example trees (paths for Click-to-Map / source_query), with each node's full description. descriptionLanguage is the language of the descriptions (source.lang.1 when the schema has it); a node has lang only when its text is in another language. sourceLanguages / schemaLanguages list the source's languages; pass language (e.g. \"en\") for the descriptions in another schema language.",
+    inputSchema: {
+      type: "object",
+      properties: { language: { type: "string", description: "ISO 639-1 code of one of schemaLanguages" } },
+    },
   },
   {
     name: "get_sheets",
@@ -558,7 +562,7 @@ export async function callAgentTool(
     case "get_example":
       return { revision: service.getRevision(), ...getExampleInspect(service.getExampleState(), args) };
     case "get_source_tree":
-      return { revision: service.getRevision(), ...service.getSourceTree() };
+      return { revision: service.getRevision(), ...service.getSourceTree(args) };
     case "get_sheets":
       return { revision: service.getRevision(), ...service.getSheets() };
     case "get_product_stack":

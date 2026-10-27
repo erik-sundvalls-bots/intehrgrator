@@ -327,6 +327,8 @@ export interface SchemaTreeNode {
   multiplicity?: string;
   /** JSON Schema `description` or similar prose for the help popup. */
   description?: string;
+  /** Language of `description` when known (XSD `xml:lang`, JSON Schema `x-i18n` key / `x-lang`) (#277 §5). */
+  descriptionLang?: string;
   children: SchemaTreeNode[];
 }
 

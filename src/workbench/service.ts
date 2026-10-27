@@ -659,10 +659,23 @@ export class WorkbenchService {
     return { examples: s.examples, activeExample: s.activeExample, exampleTree: s.exampleTree };
   }
 
-  getSourceTree() {
+  /**
+   * `get_source_tree`: descriptions in `language` when given (one of the
+   * schema's languages), else in the AI's source language (#277 §5).
+   */
+  getSourceTree(args: { language?: unknown } = {}) {
     const s = this.controller.getState();
+    const schemaLanguages = this.controller.getSourceSchemaLanguages();
+    const asked = typeof args.language === "string" ? args.language.trim() : "";
+    const descriptionLanguage = asked
+      ? (schemaLanguages.find((l) => l.toLowerCase() === asked.toLowerCase()) ?? asked)
+      : this.controller.getAiSourceDescriptionLanguage();
+    const sourceLanguages = this.controller.getSourceLanguages();
     return {
-      schema: compactSourceTree(this.controller.getAiSourceTree()),
+      schema: compactSourceTree(this.controller.getSourceTreeIn(descriptionLanguage), 0, 8, descriptionLanguage),
+      ...(descriptionLanguage && s.schemaTree ? { descriptionLanguage } : {}),
+      ...(sourceLanguages.length ? { sourceLanguages } : {}),
+      ...(schemaLanguages.length ? { schemaLanguages } : {}),
       schemaFormat: s.schemaFormat,
       schemaFilename: s.schemaFilename,
       example: compactSourceTree(s.exampleTree ?? null),

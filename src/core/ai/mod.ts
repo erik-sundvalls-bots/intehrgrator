@@ -76,6 +76,8 @@ export interface BuildPromptOptions {
   artifacts: AiPromptArtifact[];
   /** `api` only: indented source path outline (`sourceTreeOutline`), instead of file bodies. */
   sourceOutline?: string;
+  /** `api` only: language of the outline's descriptions (`source.lang.1` when the schema has it, #277 §5). */
+  sourceDescriptionLanguage?: string;
   /** `api` only: examples the model can read with `get_example`. */
   exampleManifest?: AiExampleManifestRow[];
   sourceFormat?: string;
@@ -441,7 +443,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
   const artifacts = options.attachOriginalTarget ? options.artifacts : options.artifacts.filter((a) => a.role !== "target");
   sections.push(
     ...(api
-      ? apiSourceSections(options.sourceOutline, options.exampleManifest)
+      ? apiSourceSections(options.sourceOutline, options.exampleManifest, options.sourceDescriptionLanguage)
       : deliverySections(options.delivery as AiArtifactDelivery, artifacts)),
   );
   sections.push(
@@ -472,12 +474,16 @@ export function compactJsonRows(rows: unknown[]): string {
 function apiSourceSections(
   outline: string | undefined,
   examples: AiExampleManifestRow[] | undefined,
+  descriptionLanguage?: string,
 ): string[] {
   const out: string[] = [];
   if (outline?.trim()) {
+    const langNote = descriptionLanguage
+      ? ` Descriptions in \`${descriptionLanguage}\`; \`(en)\` before one marks another language.`
+      : "";
     out.push(
       "## Source tree",
-      "One node per line: `path type [multiplicity]`, indented by depth. Use these paths in `map_slot` / `source_query` (`get_source_tree` returns the same with example values).",
+      `One node per line: \`path type [multiplicity] — description\` (first sentence), indented by depth.${langNote} Use these paths in \`map_slot\` / \`source_query\` (\`get_source_tree\` returns full descriptions and example values).`,
       "```text",
       outline,
       "```",
