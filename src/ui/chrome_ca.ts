@@ -475,4 +475,12 @@ export const ca: ChromeMessages = {
   optionalAttributes: "Atributs opcionals…",
   openViewerMenu: "Obre la finestra de visualització…",
   noAgentsYet: "Encara no hi ha agents connectats.",
+  aiChatHistoryTrimmed: "S'han tret torns antics del xat perquè la petició quedi dins de {limit} tokens (l'API reenvia tot el xat a cada pas); aquest missatge torna a adjuntar el context del projecte.",
+  aiChatHistoryFull: "No s'ha enviat res: l'historial del xat té uns {tokens} tokens, per sobre del límit de {limit} d'aquest model, i tot l'historial va amb cada petició. Com voleu continuar?",
+  aiChatHistoryTrimChoice: "Continuar amb l'historial retallat",
+  aiChatHistoryRecapChoice: "Començar un xat nou amb resum",
+  aiChatHistoryCancelChoice: "Cancel·lar",
+  aiChatHistoryRecapStarted: "Xat nou iniciat. Un resum del xat anterior (els vostres missatges, les respostes i els mapatges) va amb el vostre missatge, juntament amb el context del projecte.",
+  aiChatHistoryCancelled: "No enviat. El vostre missatge encara és al quadre.",
+  aiChatStorageTrimmed: "Aquest xat és més gran del que desa el navegador ({limit} caràcters). Aquesta pàgina conserva tot el xat, però en recarregar només queden els torns més recents.",
 };

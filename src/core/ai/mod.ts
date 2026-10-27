@@ -430,9 +430,12 @@ export function buildPrompt(options: BuildPromptOptions): string {
     );
   } else if (options.constraintWarnings?.length) {
     const sample = options.constraintWarnings.slice(0, 24);
+    const omitted = options.constraintWarnings.length - sample.length;
     sections.push(
       "## Constraint warnings",
-      "Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with `import_suggestions` / `replace_sheets` / `optional_rm_add`, then re-check `list_constraint_warnings`.",
+      `Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with \`import_suggestions\` / \`replace_sheets\` / \`optional_rm_add\`, then re-check \`list_constraint_warnings\`.${
+        omitted ? ` First ${sample.length} of ${options.constraintWarnings.length} shown; ${omitted} more not listed here.` : ""
+      }`,
       "```json",
       compactJsonRows(sample),
       "```",
@@ -512,10 +515,11 @@ function compactSheetSection(sheets: SheetDocument[] | undefined): string[] | nu
     headers: [...sheet.headers],
     ...(sheet.hitPolicy ? { hitPolicy: sheet.hitPolicy } : {}),
     previewRows: sheet.values.slice(0, 8),
+    ...(sheet.values.length > 8 ? { rows: sheet.values.length, rowsOmitted: sheet.values.length - 8 } : {}),
   }));
   return [
     "## Sheets and Decision tables",
-    "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; inputs Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope.",
+    "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; inputs Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope. `previewRows` holds the first 8 rows; `rowsOmitted` counts the rest.",
     "```json",
     compactJsonRows(compact),
     "```",
