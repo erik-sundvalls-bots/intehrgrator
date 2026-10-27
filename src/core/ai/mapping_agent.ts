@@ -127,25 +127,49 @@ const STUB_MIN_CHARS = 1_500;
 
 /**
  * Replace older copies of snapshot tool results (list_slots, get_source_tree,
- * run_test, …) with a one-line stub, keeping the newest copy of each. The
+ * run_test, …) with a one-line stub, keeping the newest copy of each call:
+ * same tool **and** same arguments, so `get_example` of another example or
+ * `list_slots` with another filter is never dropped (#292). The
  * `tool_call_id` stays, so the wire conversation remains valid (#252).
  */
 export function compactToolHistory(messages: ChatMessage[]): ChatMessage[] {
+  const argsById = new Map<string, string>();
+  for (const m of messages) {
+    for (const call of m.tool_calls ?? []) argsById.set(call.id, canonicalArgs(call.function?.arguments));
+  }
+  const key = (m: ChatMessage) => `${m.name}\u0000${argsById.get(m.tool_call_id ?? "") ?? ""}`;
   const newest = new Map<string, number>();
   messages.forEach((m, i) => {
-    if (m.role === "tool" && m.name && SNAPSHOT_TOOLS.has(m.name)) newest.set(m.name, i);
+    if (m.role === "tool" && m.name && SNAPSHOT_TOOLS.has(m.name)) newest.set(key(m), i);
   });
   return messages.map((m, i) => {
     if (m.role !== "tool" || !m.name || !SNAPSHOT_TOOLS.has(m.name)) return m;
-    if (newest.get(m.name) === i) return m;
+    if (newest.get(key(m)) === i) return m;
     if ((m.content ?? "").length < STUB_MIN_CHARS || (m.content ?? "").startsWith('{"superseded"')) return m;
     return {
       ...m,
       content: JSON.stringify({
-        superseded: `Older ${m.name} result removed to save tokens; a newer one is below. Call ${m.name} again if you need it.`,
+        superseded:
+          `Older ${m.name} result removed to save tokens; a newer one with the same arguments is below. Call ${m.name} again if you need it.`,
       }),
     };
   });
+}
+
+/** Tool arguments with sorted keys, so `{a,b}` and `{b,a}` are the same call. */
+function canonicalArgs(raw: string | undefined): string {
+  if (!raw?.trim()) return "{}";
+  try {
+    const sort = (v: unknown): unknown =>
+      Array.isArray(v)
+        ? v.map(sort)
+        : v && typeof v === "object"
+        ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sort((v as Record<string, unknown>)[k])]))
+        : v;
+    return JSON.stringify(sort(JSON.parse(raw)));
+  } catch {
+    return raw.trim();
+  }
 }
 
 function isAbortError(err: unknown, signal?: AbortSignal): boolean {
