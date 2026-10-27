@@ -82,6 +82,8 @@ export const es: ChromeMessages = {
   collapseAllTitle: "Contraer todos los bloques anidados",
   expandChildren: "Expandir hijos",
   collapseChildren: "Contraer hijos",
+  useCodedText: "Usar texto codificado (DV_CODED_TEXT)",
+  usePlainText: "Usar texto simple (DV_TEXT)",
   followAgent: "Seguir al agente",
   followAgentTitle: "Si está activo, desplaza el lienzo principal a los bloques que un agente acaba de editar",
   openViewer: "Abrir ventana de visor",

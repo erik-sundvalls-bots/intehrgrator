@@ -1055,6 +1055,11 @@ export function switchTextShellRmType(
   if (parent && next.outputConnection) parent.connect(next.outputConnection);
   const input = next.getInput(dvFieldInputName("value"));
   if (text?.outputConnection && input?.connection) input.connection.connect(text.outputConnection);
+  if (rmType === "DV_CODED_TEXT") {
+    // Show the code_string / terminology_id sockets to fill in.
+    ensureDvFieldVisible(next, "defining_code");
+    ensureNestedCodePhrase(workspace, next, dvFieldInputName("defining_code"));
+  }
   return next;
 }
 

@@ -100,6 +100,8 @@ export const en = {
   collapseAllTitle: "Collapse all nested blocks",
   expandChildren: "Expand children",
   collapseChildren: "Collapse children",
+  useCodedText: "Use coded text (DV_CODED_TEXT)",
+  usePlainText: "Use plain text (DV_TEXT)",
   followAgent: "Follow agent",
   followAgentTitle: "When enabled, pan the main canvas to blocks an agent just edited",
   openViewer: "Open viewer window",

@@ -82,6 +82,8 @@ export const ca: ChromeMessages = {
   collapseAllTitle: "Plega tots els blocs imbricats",
   expandChildren: "Desplega els fills",
   collapseChildren: "Plega els fills",
+  useCodedText: "Usa text codificat (DV_CODED_TEXT)",
+  usePlainText: "Usa text simple (DV_TEXT)",
   followAgent: "Segueix l'agent",
   followAgentTitle: "Quan està actiu, desplaça el llenç principal fins als blocs que un agent acaba d'editar",
   openViewer: "Obre la finestra de visualització",

@@ -109,6 +109,8 @@ export const sv: ChromeMessages = {
   collapseAllTitle: "Fäll ihop alla nästlade block",
   expandChildren: "Expandera barn",
   collapseChildren: "Fäll ihop barn",
+  useCodedText: "Använd kodad text (DV_CODED_TEXT)",
+  usePlainText: "Använd vanlig text (DV_TEXT)",
   followAgent: "Följ agent",
   leaseTitle: "Reserverad av {agent} till {time}: andra MCP-agenter kan inte ändra {what}. Du får en fråga först.",
   leaseWhatSlot: "den här platsen",

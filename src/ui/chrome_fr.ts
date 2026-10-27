@@ -82,6 +82,8 @@ export const fr: ChromeMessages = {
   collapseAllTitle: "Réduire tous les blocs imbriqués",
   expandChildren: "Développer les enfants",
   collapseChildren: "Réduire les enfants",
+  useCodedText: "Utiliser du texte codé (DV_CODED_TEXT)",
+  usePlainText: "Utiliser du texte simple (DV_TEXT)",
   followAgent: "Suivre l'agent",
   followAgentTitle: "Lorsque cette option est active, le canevas principal se centre sur les blocs qu'un agent vient de modifier",
   openViewer: "Ouvrir la fenêtre de visualisation",
