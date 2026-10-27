@@ -19,6 +19,7 @@ import {
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
 import { isListAttribute } from "./typescript.ts";
 import { usesOpenEhrProduct } from "./product.ts";
+import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import {
   functionIdentMap,
@@ -521,7 +522,9 @@ function compactConstruct(
     ctx.types.add("DV_CODED_TEXT");
     const value = map.get("value")!;
     const code = map.get("defining_code") ?? map.get("code_string")!;
-    return `new DvCodedText(${asStringExpr(value)}, ${asStringExpr(code)})`;
+    const term = map.get("terminology_id");
+    const phrase = term ? `asString(${term}) + "::" + ${asStringExpr(code)}` : asStringExpr(code);
+    return `new DvCodedText(${asStringExpr(value)}, ${phrase})`;
   }
   if (rmType === "PARTY_SELF") {
     ctx.types.add("PARTY_SELF");
@@ -831,6 +834,16 @@ function emitSkeletonValue(
     const rubric = fields.value ??
       (node.label && node.label !== rmType ? node.label : "");
     ctx.types.add("DV_CODED_TEXT");
+    const coded = codedTextParts(slot?.expression);
+    if (coded) {
+      const part = (ast: ExprAst | undefined, lit: string) => ast ? asStringExpr(emitJavaExpression(ast, ctx)) : JSON.stringify(lit);
+      const t = coded.terminology ?? { kind: "literal", value: term };
+      const c = coded.code ?? { kind: "literal", value: code ?? "" };
+      const phrase = t.kind === "literal" && c.kind === "literal"
+        ? JSON.stringify(`${t.value}::${c.value}`)
+        : `${part(t, "")} + "::" + ${part(c, "")}`;
+      return `new DvCodedText(${part(coded.value, rubric)}, ${phrase})`;
+    }
     if (code) {
       return `new DvCodedText(${JSON.stringify(rubric)}, ${
         JSON.stringify(`${term}::${code}`)

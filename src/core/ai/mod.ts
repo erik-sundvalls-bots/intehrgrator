@@ -35,6 +35,7 @@ import type { SheetDocument } from "../sheets/mod.ts";
 import { buildSlotTree, formatSlotTree, resolveSlotRef, SLOT_TREE_GUIDE } from "./slot_tree.ts";
 import { formatModelsBlock, type ModelDescription } from "./models_block.ts";
 import type { SlotInfoIndex } from "./slot_info.ts";
+import { codedTextRmType } from "../openehr/coded_text.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
 /**
@@ -987,6 +988,7 @@ function collectSuggestionItems(
         slotId: item.slotId,
         block: sanitizeBlock(item.block) as SuggestionBlock,
         loopVar: typeof item.loopVar === "string" ? item.loopVar : inheritedLoopVar,
+        ...(typeof item.rmType === "string" ? { rmType: item.rmType } : {}),
         note: optionalNote(item.note),
         ...(parseAiConfidence(item.confidence) !== undefined
           ? { confidence: parseAiConfidence(item.confidence) }
@@ -1243,7 +1245,15 @@ export function importSuggestions(
       report.errors.push(`${suggestion.slotId}: ${err}`);
       continue;
     }
-    const meta = slotMeta?.get(slotId);
+    let meta = slotMeta?.get(slotId);
+    // DV_TEXT may be mapped as its subclass DV_CODED_TEXT (#274).
+    if (meta?.rmType === "DV_TEXT") {
+      meta = { ...meta, rmType: codedTextRmType(expression, suggestion.rmType) };
+    } else if (suggestion.rmType && suggestion.rmType !== meta?.rmType) {
+      report.skipped++;
+      report.errors.push(`${suggestion.slotId}: rmType ${suggestion.rmType} only fits a DV_TEXT slot`);
+      continue;
+    }
     next = applyExpressionEdit(next, slotId, expression, meta);
     const review = slotReviewFrom(suggestion.note, suggestion.confidence);
     if (review) next = withSlotReview(next, slotId, review);
