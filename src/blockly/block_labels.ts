@@ -69,7 +69,7 @@ export function relabelWorkspaceFromSkeleton(
 }
 
 /** ELEMENT blocks store the value-leaf id in SLOT_ID; labels use the container. */
-function labelSlotId(block: Block): string {
+export function labelSlotId(block: Block): string {
   if (block.type === "element") {
     const stored = String(block.getFieldValue("ELEMENT_SLOT_ID") || "");
     if (stored) return stored;
@@ -84,7 +84,7 @@ function isDataValueShell(block: Block): boolean {
   return block.type !== "element" && isDataValueBlock(block);
 }
 
-function walkSkeleton(nodes: SkeletonNode[], visit: (node: SkeletonNode) => void): void {
+export function walkSkeleton(nodes: SkeletonNode[], visit: (node: SkeletonNode) => void): void {
   for (const node of nodes) {
     visit(node);
     if (node.children.length) walkSkeleton(node.children, visit);

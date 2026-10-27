@@ -57,6 +57,8 @@ export interface TsEmitContext {
   helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic">;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
   archetypeRootIds?: Map<string, string>;
+  /** Skeleton nodes by slot id: output names of blocks not renamed by the user. */
+  skeletonNodes?: Map<string, SkeletonNode>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
   fnIdents?: Map<string, string>;
