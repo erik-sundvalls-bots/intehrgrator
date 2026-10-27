@@ -45,6 +45,8 @@ export interface TargetDefinition {
   language?: string;
   /** Languages available on this target model (when multilingual). */
   languages?: string[];
+  /** Id language `webTemplateJson` ids were built in (#289); absent = `"primary"` (lang.1). */
+  idLanguage?: string;
 }
 
 export interface TargetLoadOptions {
@@ -118,6 +120,8 @@ export function reloadTargetLanguage(
       language: loaded.language,
       languages: loaded.languages.length ? loaded.languages : definition.languages,
       webTemplateJson: loaded.webTemplateJson,
+      // Fresh Web Template: primary-language ids again until re-applied.
+      idLanguage: undefined,
     };
   }
   // An OPT XML file is re-read itself (#279): target languages keep the OPT's
@@ -142,6 +146,7 @@ export function reloadTargetLanguage(
     ...reloaded,
     fileset: definition.fileset,
     webTemplateJson: definition.webTemplateJson,
+    idLanguage: definition.idLanguage,
   };
 }
 

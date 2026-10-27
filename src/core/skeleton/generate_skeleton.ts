@@ -150,8 +150,10 @@ export function generateSkeletonFromWebTemplate(
 /**
  * Web Template with every OPT language, `language` first (#279): labels in
  * `language`, `localizedNames` / `localizedDescriptions` for the rest. Ids
- * (Simplified FLAT paths) always from the original language, whatever 💬
- * shows, until #289 lets the user choose.
+ * (Simplified FLAT paths) from the primary language (lang.1; for OPT 1.4 the
+ * top-level `<language>`, which ehrtslib calls `original_language`), whatever
+ * 💬 shows. The Ids dropdown on the COMPOSITION root picks another (#289,
+ * `core/target/id_language.ts`).
  */
 function webTemplateJsonFromOperational(opt: AmObject, language: string, languages: string[]): string | undefined {
   try {

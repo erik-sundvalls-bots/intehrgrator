@@ -35,6 +35,9 @@ export interface IntehrMessages {
   CAT_VARIABLES: string;
   CAT_PROCEDURES: string;
   EXTRACT_TO_FUNCTION: string;
+  ID_LANGUAGE: string;
+  ID_LANGUAGE_TOOLTIP: string;
+  ID_LANGUAGE_CONFIRM: string;
   SAVE_FUNCTION: string;
   CONTRIBUTE_FUNCTION: string;
   SOURCE_QUERY: string;
@@ -104,6 +107,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Functions",
     EXTRACT_TO_FUNCTION: "Extract to function",
+    ID_LANGUAGE: "Ids",
+    ID_LANGUAGE_TOOLTIP:
+      "Language of this target's Web Template ids and Simplified FLAT paths. lang.1 is the template's primary language. Undo reverts a change.",
+    ID_LANGUAGE_CONFIRM:
+      "Change the id language from {from} to {to}? Mappings stay, but this target's Simplified FLAT paths change, so systems reading earlier output may need updating. Undo reverts it.",
     SAVE_FUNCTION: "Save Function…",
     CONTRIBUTE_FUNCTION: "Contribute Function…",
     SOURCE_QUERY: "source",
@@ -181,6 +189,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_VARIABLES: "Variabler",
     CAT_PROCEDURES: "Funktioner",
     EXTRACT_TO_FUNCTION: "Bryt ut till funktion",
+    ID_LANGUAGE: "Id:n",
+    ID_LANGUAGE_TOOLTIP:
+      "Språk för målets Web Template-id:n och Simplified FLAT-sökvägar. lang.1 är mallens primära språk. Ångra återställer en ändring.",
+    ID_LANGUAGE_CONFIRM:
+      "Byta id-språk från {from} till {to}? Mappningarna finns kvar, men målets Simplified FLAT-sökvägar ändras, så system som läser tidigare utdata kan behöva uppdateras. Ångra återställer.",
     SAVE_FUNCTION: "Spara funktion…",
     CONTRIBUTE_FUNCTION: "Bidra med funktion…",
     SOURCE_QUERY: "källa",
@@ -258,6 +271,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_VARIABLES: "Variablen",
     CAT_PROCEDURES: "Funktionen",
     EXTRACT_TO_FUNCTION: "In Funktion auslagern",
+    ID_LANGUAGE: "IDs",
+    ID_LANGUAGE_TOOLTIP:
+      "Sprache der Web-Template-IDs und Simplified-FLAT-Pfade dieses Ziels. lang.1 ist die Primärsprache des Templates. Rückgängig macht eine Änderung rückgängig.",
+    ID_LANGUAGE_CONFIRM:
+      "ID-Sprache von {from} auf {to} ändern? Die Zuordnungen bleiben, aber die Simplified-FLAT-Pfade dieses Ziels ändern sich; Systeme, die frühere Ausgaben lesen, müssen evtl. angepasst werden. Rückgängig macht es rückgängig.",
     SAVE_FUNCTION: "Funktion speichern…",
     CONTRIBUTE_FUNCTION: "Funktion beitragen…",
     SOURCE_QUERY: "Quelle",
@@ -335,6 +353,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Funciones",
     EXTRACT_TO_FUNCTION: "Extraer a función",
+    ID_LANGUAGE: "IDs",
+    ID_LANGUAGE_TOOLTIP:
+      "Idioma de los IDs del Web Template y de las rutas Simplified FLAT de este destino. lang.1 es el idioma principal de la plantilla. Deshacer revierte un cambio.",
+    ID_LANGUAGE_CONFIRM:
+      "¿Cambiar el idioma de los IDs de {from} a {to}? Los mapeos se mantienen, pero cambian las rutas Simplified FLAT de este destino, así que los sistemas que leen salidas anteriores pueden necesitar ajustes. Deshacer lo revierte.",
     SAVE_FUNCTION: "Guardar función…",
     CONTRIBUTE_FUNCTION: "Contribuir función…",
     SOURCE_QUERY: "origen",
@@ -412,6 +435,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Funcions",
     EXTRACT_TO_FUNCTION: "Extreure a funció",
+    ID_LANGUAGE: "IDs",
+    ID_LANGUAGE_TOOLTIP:
+      "Idioma dels IDs del Web Template i de les rutes Simplified FLAT d'aquesta destinació. lang.1 és l'idioma principal de la plantilla. Desfés reverteix un canvi.",
+    ID_LANGUAGE_CONFIRM:
+      "Canviar l'idioma dels IDs de {from} a {to}? Els mapatges es mantenen, però canvien les rutes Simplified FLAT d'aquesta destinació, de manera que els sistemes que llegeixen sortides anteriors poden necessitar ajustos. Desfés ho reverteix.",
     SAVE_FUNCTION: "Desar funció…",
     CONTRIBUTE_FUNCTION: "Contribuir funció…",
     SOURCE_QUERY: "origen",
@@ -489,6 +517,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_VARIABLES: "Variables",
     CAT_PROCEDURES: "Fonctions",
     EXTRACT_TO_FUNCTION: "Extraire vers une fonction",
+    ID_LANGUAGE: "IDs",
+    ID_LANGUAGE_TOOLTIP:
+      "Langue des identifiants du Web Template et des chemins Simplified FLAT de cette cible. lang.1 est la langue principale du modèle. Annuler revient sur un changement.",
+    ID_LANGUAGE_CONFIRM:
+      "Changer la langue des identifiants de {from} à {to} ? Les correspondances sont conservées, mais les chemins Simplified FLAT de cette cible changent ; les systèmes qui lisent des sorties antérieures devront peut-être être adaptés. Annuler revient en arrière.",
     SAVE_FUNCTION: "Enregistrer la fonction…",
     CONTRIBUTE_FUNCTION: "Proposer la fonction…",
     SOURCE_QUERY: "source",

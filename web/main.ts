@@ -2,6 +2,9 @@ import * as Blockly from "blockly/core";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
 import { WorkbenchController } from "../src/workbench/controller.ts";
+import { setIdLanguageChangeGuard, setIdLanguageChoices } from "../src/blockly/field_id_language.ts";
+import { ID_LANGUAGE_FIELD, PRIMARY_ID_LANGUAGE } from "../src/core/target/id_language.ts";
+import { mappedSourcePathsFromExpressions } from "../src/core/target/refresh_diff.ts";
 import { TASK_PROGRESS_OVERLAY_ID, taskProgressInnerHtml } from "../src/workbench/task_progress.ts";
 import { ensureGoTemplateWasm } from "../src/core/output/go_template_runtime.ts";
 import {
@@ -911,7 +914,40 @@ function setupLanguageWidgets(): void {
   }
 }
 
+let idLanguageChoicesKey = "";
+
+/** Id-language dropdowns on COMPOSITION roots follow the target's languages (#289). */
+function syncIdLanguageFields(s: ReturnType<WorkbenchController["getState"]>): void {
+  const key = s.targetIdLanguages.join(",");
+  if (key === idLanguageChoicesKey) return;
+  idLanguageChoicesKey = key;
+  setIdLanguageChoices(s.targetIdLanguages);
+  const ws = Blockly.getMainWorkspace?.();
+  for (const block of ws?.getBlocksByType("composition", false) ?? []) {
+    const field = block.getField(ID_LANGUAGE_FIELD) as unknown as
+      | { doValueUpdate_(v: string): void; getValue(): string; forceRerender(): void }
+      | null;
+    if (!field) continue;
+    field.doValueUpdate_(field.getValue());
+    field.forceRerender();
+  }
+}
+
+/**
+ * Changing the id language keeps every mapping (slot ids are archetype paths)
+ * but changes the target's Simplified FLAT paths, so ask once mappings exist.
+ */
+function confirmIdLanguageChange(from: string, to: string): boolean {
+  const s = controller.getState();
+  // Template defaults (context map, fixed codes) are not mappings; source-bound slots are.
+  if (!mappedSourcePathsFromExpressions(s.model.slots.map((slot) => slot.expression ?? "")).length) return true;
+  const code = (v: string) => v === PRIMARY_ID_LANGUAGE ? (s.targetIdLanguages[0] ?? "lang.1") : v;
+  return globalThis.confirm(formatMessage(msg(detectLocale()).ID_LANGUAGE_CONFIRM, { from: code(from), to: code(to) }));
+}
+setIdLanguageChangeGuard(confirmIdLanguageChange);
+
 function syncLanguageWidgets(s: ReturnType<WorkbenchController["getState"]>): void {
+  syncIdLanguageFields(s);
   targetLangWidget?.update({
     languages: s.modelLanguages.length > 1 ? s.targetLanguages : [],
     current: s.modelLanguage,

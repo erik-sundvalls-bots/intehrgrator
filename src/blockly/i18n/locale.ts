@@ -48,6 +48,8 @@ export async function loadBlocklyLocale(locale: IntehrLocale): Promise<void> {
     Msg["INTEHR_FOR_EACH_SOURCE_NODES"] = custom.FOR_EACH_SOURCE_NODES;
     Msg["INTEHR_FOR_EACH_SOURCE_DO"] = custom.FOR_EACH_SOURCE_DO;
     Msg["INTEHR_FOR_EACH_SOURCE_TOOLTIP"] = custom.FOR_EACH_SOURCE_TOOLTIP;
+    Msg["INTEHR_ID_LANGUAGE"] = custom.ID_LANGUAGE;
+    Msg["INTEHR_ID_LANGUAGE_TOOLTIP"] = custom.ID_LANGUAGE_TOOLTIP;
   }
 }
 

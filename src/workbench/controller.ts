@@ -12,6 +12,7 @@ import type {
   OpenEhrJsonDeserializeMode,
   OutputMode,
   OutputValidation,
+  FileLanguageSettings,
   ProjectBundle,
   ProjectSettings,
   SchemaIssue,
@@ -91,6 +92,13 @@ import {
   targetOriginalLanguage,
 } from "../core/languages.ts";
 import { localizeSourceTree } from "../core/source/schema_loader.ts";
+import {
+  idLanguageChoices,
+  idLanguageFromBlocklyState,
+  normalizeIdLanguage,
+  PRIMARY_ID_LANGUAGE,
+  webTemplateWithIdLanguage,
+} from "../core/target/id_language.ts";
 import type { HostAdapter, PickedTextFile } from "../host/mod.ts";
 import { constraintWarningsInspect, productStackInspect, sourceTreeOutline } from "../agent/inspect.ts";
 import { getValidAttachments } from "../core/rm_attachment_catalog.ts";
@@ -342,6 +350,9 @@ export class WorkbenchController {
       targetLanguages: this.getTargetLanguages(),
       /** Target labels follow `target.lang.1` unless the user picked a language. */
       targetDisplayChosen: Boolean(this.settings.display?.targetLabelLang),
+      /** Id-language dropdown on the COMPOSITION root (#289): lang.1 (primary) first. */
+      targetIdLanguages: idLanguageChoices(this.target),
+      targetIdLanguage: this.target?.idLanguage ?? PRIMARY_ID_LANGUAGE,
       sourceSchemaLanguages: this.getSourceSchemaLanguages(),
       sourceDisplayLanguage: this.getSourceDisplayLanguage() ?? null,
       lastRefreshReport: this.lastRefreshReport,
@@ -2141,7 +2152,33 @@ export class WorkbenchController {
     return id;
   }
 
+  /**
+   * Keep `target.webTemplateJson` ids in the id language chosen on the
+   * COMPOSITION root block (#289). The canvas is the source of truth, so
+   * Blockly undo also undoes the choice.
+   */
+  private applyTargetIdLanguage(): void {
+    const target = this.target;
+    if (!target?.webTemplateJson || target.format !== "openehr-template") return;
+    const choices = idLanguageChoices(target);
+    const want = normalizeIdLanguage(
+      idLanguageFromBlocklyState(this.getBlocklyState?.() ?? this.blocklyState),
+      choices[0],
+    );
+    if (want === (target.idLanguage ?? PRIMARY_ID_LANGUAGE)) return;
+    if (want !== PRIMARY_ID_LANGUAGE && !choices.includes(want)) return;
+    const webTemplateJson = webTemplateWithIdLanguage(target, want);
+    if (!webTemplateJson) return;
+    this.target = {
+      ...target,
+      webTemplateJson,
+      idLanguage: want === PRIMARY_ID_LANGUAGE ? undefined : want,
+    };
+    this.outputValidations.clear();
+  }
+
   private refreshDerived(): void {
+    this.applyTargetIdLanguage();
     // Spec view is widgets over the pretty Blockly JSON document.
     this.specText = formatBlocklyState(this.getBlocklyState?.() ?? this.blocklyState);
     const mode = this.settings.exportTarget;
@@ -2303,6 +2340,48 @@ export class WorkbenchController {
     }
   }
 
+  /** Per-file language settings of the target (#289): lang.1 (primary) first. */
+  private targetLanguageSettings(target: TargetDefinition): FileLanguageSettings {
+    const primary = targetOriginalLanguage(target);
+    const langs = targetLanguagesOf(target);
+    const languages = primary ? [primary, ...langs.filter((l) => l !== primary)] : langs;
+    const label = this.settings.display?.targetLabelLang;
+    return {
+      languages,
+      idLanguage: target.idLanguage ?? PRIMARY_ID_LANGUAGE,
+      ...(label ? { labelLanguage: label } : {}),
+    };
+  }
+
+  private sourceLanguageSettings(): FileLanguageSettings {
+    const label = this.settings.display?.sourceLabelLang;
+    return {
+      languages: this.getSourceLanguages(),
+      ...(label ? { labelLanguage: label } : {}),
+    };
+  }
+
+  /** Per-file language settings (#289) win over the project-wide ones they replace. */
+  private restoreFileLanguageSettings(bundle: ProjectBundle): void {
+    const target = bundle.target?.languageSettings;
+    const source = bundle.sourceSchema?.languageSettings;
+    const display = { ...this.settings.display };
+    if (target?.labelLanguage) display.targetLabelLang = target.labelLanguage;
+    if (source?.labelLanguage) display.sourceLabelLang = source.labelLanguage;
+    this.settings = { ...this.settings, display };
+    // Auto-detected source languages stay automatic; a stored order that differs is restored.
+    if (
+      source?.languages?.length && !bundle.settings?.sourceLanguages?.length &&
+      source.languages.join() !== this.detectedSourceLanguages().join()
+    ) {
+      this.settings = { ...this.settings, sourceLanguages: [...source.languages] };
+    }
+    if (this.target && target?.languages?.length) {
+      const known = new Set(this.target.languages ?? target.languages);
+      this.target = { ...this.target, languages: target.languages.filter((l) => known.has(l)) };
+    }
+  }
+
   private toBundle(): ProjectBundle {
     const now = new Date().toISOString();
     return {
@@ -2322,6 +2401,8 @@ export class WorkbenchController {
           webTemplateJson: this.target.webTemplateJson,
           language: this.target.language,
           languages: this.target.languages,
+          ...(this.target.idLanguage ? { idLanguage: this.target.idLanguage } : {}),
+          languageSettings: this.targetLanguageSettings(this.target),
         }
         : null,
       sourceSchema: this.schemaTree
@@ -2330,6 +2411,7 @@ export class WorkbenchController {
           format: this.schemaFormat,
           content: this.schemaContent,
           tree: [this.schemaTree],
+          languageSettings: this.sourceLanguageSettings(),
         }
         : null,
       examples: this.examples.list(),
@@ -2397,6 +2479,7 @@ export class WorkbenchController {
         detectSourceFormat(bundle.sourceSchema.filename, bundle.sourceSchema.content);
     }
     for (const ex of bundle.examples) this.examples.addExample(ex);
+    this.restoreFileLanguageSettings(bundle);
     // Display languages (#279): older bundles kept the target's shown language in `modelLanguage`.
     if (!this.settings.display?.targetLabelLang && bundle.settings?.modelLanguage && !bundle.settings.display) {
       this.settings = { ...this.settings, display: { ...this.settings.display, targetLabelLang: bundle.settings.modelLanguage } };
