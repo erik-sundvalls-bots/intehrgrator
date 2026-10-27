@@ -179,11 +179,11 @@ The test runner is a core informatician workflow, not a nice-to-have.
 1. User optionally selects a single value slot (scopes prompt to that `slotId`) or leaves unselected (all unmapped slots)
 2. Expands **AI chat** (toggle on its bar under Target & Previews) or opens ▾ and picks a copy/paste delivery mode (embed, attach, URI) or **Import AI suggestions**
 3. **Configure AI credentials…** — pick a provider (Gemini, OpenAI, Anthropic, Ollama local/cloud, LM Studio local/cloud, Hugging Face, OpenCode Zen / cloud runner). Each preset fills the OpenAI-compatible endpoint and links to that vendor’s key page. Walkthrough: [AI_CREDENTIALS.md](AI_CREDENTIALS.md).
-4. App copies markdown to clipboard, or POSTs it. AI chat with tools inspects `list_slots` / `get_source_tree` and writes via `map_slot` or `import_suggestions`. One-shot mode still imports `intehrgrator-suggestions` JSON.
+4. App copies markdown to clipboard, or POSTs it. AI chat with tools inspects `list_slots` / `get_slot` / `get_source_tree` and writes via `map_slot` or `import_suggestions`. One-shot mode still imports `intehrgrator-suggestions` JSON.
    - Task description (map source → loaded **Target instance format**) and scope (`slot` | `full`)
    - Target: format, `targetId`, filename, origin (file or URI), structure summary
    - Source schema and example instance(s): format, filename, origin
-   - Slot manifest: `{ slotId, valueType, label, targetPath?, multiplicity? }` for in-scope unmapped slots
+   - Slot tree (#277): grouped compact rows `{ group, label, type, mult, loop?, slots: [{ id, type, label?, mult, fixed?, values?, expr? }] }` for in-scope slots; slot id = `group` + `id`. `get_slot` gives one slot in full.
    - **Artifact delivery** — one of:
      - **Embed files in prompt** (`inline`) — multipart file bodies in the clipboard text
      - **Attach files in chat** (`attach`) — checklist for chat UI uploads

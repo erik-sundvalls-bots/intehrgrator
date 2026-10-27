@@ -290,6 +290,8 @@ body { display: flex; flex-direction: column; min-height: 100%; }
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
 }
 .split-btn-menu-item:hover { background: #f4f8f7; }
+.split-btn-menu-check { cursor: pointer; border-top: 1px solid #e4ebe9; }
+.split-btn-menu-check input { margin: 0; accent-color: #00795f; }
 .split-btn-menu-item:disabled { opacity: 0.55; cursor: default; }
 .split-btn-menu-link {
   color: inherit;
@@ -2215,6 +2217,39 @@ span.ai-notes-option { cursor: default; }
 .lease-warning-list { list-style: none; padding: 0; margin: 0.5rem 0 1rem; }
 .lease-warning-list li { display: flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0; }
 .lease-warning-list .lease-countdown { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+
+/* 💬 language widget (#279) */
+.lang-widget { position: relative; display: inline-flex; flex-shrink: 0; }
+.lang-widget[hidden] { display: none; }
+.lang-widget-btn {
+  font: inherit; font-size: 12px; line-height: 1; padding: 3px 6px; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--border); background: #fff; color: #202124; white-space: nowrap;
+}
+.lang-widget--on-dark .lang-widget-btn { border-color: rgba(255, 255, 255, 0.45); background: transparent; color: #fff; }
+.lang-widget-btn:focus-visible, .lang-widget-item:focus-visible { outline: 2px solid #1a73e8; outline-offset: 1px; }
+.lang-widget-menu {
+  position: fixed; z-index: 10000; min-width: 200px; padding: 4px;
+  background: #fff; color: #202124; border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); display: flex; flex-direction: column;
+}
+.lang-widget-menu[hidden] { display: none; }
+.lang-widget-item {
+  font: inherit; font-size: 12px; text-align: left; padding: 5px 8px; border: 0; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer; white-space: nowrap;
+}
+.lang-widget-item:hover { background: #f1f3f4; }
+.lang-widget-unknown { color: #b06000; }
+.lang-widget-item[aria-checked="true"] { font-weight: 600; }
+.lang-widget-item[aria-checked="true"]::before { content: "✓ "; }
+.lang-widget-item.is-current:not([aria-checked="true"]) { font-style: italic; }
+.lang-widget-follow { border-bottom: 1px solid var(--border); border-radius: 4px 4px 0 0; margin-bottom: 2px; }
+.lang-widget-rank { color: #5f6368; display: inline-block; min-width: 1.4em; }
+.lang-widget-item code { color: #5f6368; font-size: 11px; }
+.dialog-hint { font-size: 12px; color: #5f6368; margin: 2px 0 8px; }
+.dialog-fieldset { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px 8px; margin: 6px 0; }
+.dialog-fieldset legend { font-size: 12px; padding: 0 4px; }
+.dialog-radio { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 2px 0; }
+.dialog-hint.is-error { color: #b3261e; }
 
 /* AI chat token meter and context ring (#276) */
 .ai-usage { position: relative; display: inline-flex; }

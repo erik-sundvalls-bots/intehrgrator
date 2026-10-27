@@ -47,6 +47,14 @@
           <span class="material-symbols-outlined split-btn-menu-icon" aria-hidden="true">content_copy</span>
           <span data-i18n="menuBrowseUris">Browse URIs (when available)</span>
         </button>
+        <label class="split-btn-menu-item split-btn-menu-item--icon split-btn-menu-check" data-i18n-title="menuAttachOriginalTargetTitle" title="Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.">
+          <input id="menu-ai-attach-target" type="checkbox" />
+          <span data-i18n="menuAttachOriginalTarget">Attach original target</span>
+        </label>
+        <button id="menu-ai-languages" type="button" class="split-btn-menu-item split-btn-menu-item--icon" role="menuitem" data-ai-action="languages">
+          <span class="split-btn-menu-icon" aria-hidden="true">💬</span>
+          <span data-i18n="menuAiLanguages">Languages…</span>
+        </button>
         <button id="btn-import-ai" class="split-btn-menu-item split-btn-menu-item--icon" type="button" role="menuitem">
           <span class="material-symbols-outlined split-btn-menu-icon" aria-hidden="true">content_paste</span>
           <span data-i18n="importAi">Import AI suggestions</span>
@@ -165,6 +173,7 @@
                   Load from a local file, a URL, or ▾ → From GitHub template….
                 </span>
               </span>
+              <span id="source-lang-widget" hidden></span>
               <div class="split-btn">
               <button id="btn-load-schema" class="pane-btn split-btn-main" type="button" data-i18n="loadSchema">Load Schema</button>
               <button
@@ -403,10 +412,7 @@
             <div id="menu-open-template" class="split-btn-menu" hidden role="menu"></div>
           </div>
           </span>
-          <label class="pane-lang pane-lang--on-dark" id="model-language-wrap" hidden for="model-language-dropdown">
-            <span id="model-language-label">Model</span>
-            <select id="model-language-dropdown" aria-label="Target model ontology language" data-i18n-aria="modelLanguageAria"></select>
-          </label>
+          <span id="target-lang-widget" class="lang-widget--on-dark" hidden></span>
           <span class="control-with-info">
           <span class="info-tip info-tip--end">
             <button type="button" class="info-tip-btn" aria-expanded="false" aria-describedby="tip-output-script" aria-label="Conversion script formats" data-i18n-aria="scriptFormatsAria">i</button>
@@ -676,6 +682,29 @@
       <div class="dialog-actions">
         <button type="button" id="save-as-cancel" value="cancel" data-i18n="cancel">Cancel</button>
         <button type="submit" id="save-as-confirm" value="confirm" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dialog-ai-languages" class="app-dialog app-dialog--wide">
+    <form method="dialog" class="dialog-form">
+      <h2 data-i18n="aiLanguagesTitle">Languages</h2>
+      <p data-i18n="aiLanguagesIntro">Which languages the source is in decides which target language the AI and the panes use first.</p>
+      <label class="dialog-label">
+        <span data-i18n="aiSourceLanguagesLabel">Source languages (priority order)</span>
+        <input id="ai-source-languages" type="text" autocomplete="off" spellcheck="false" placeholder="sv, en" />
+      </label>
+      <p id="ai-source-languages-hint" class="dialog-hint"></p>
+      <fieldset class="dialog-fieldset">
+        <legend data-i18n="aiContextLanguagesLabel">Target labels sent to the AI</legend>
+        <label class="dialog-radio"><input type="radio" name="ai-context-languages" value="matched" /> <span data-i18n="aiContextMatched">First target language + the ones the source uses</span></label>
+        <label class="dialog-radio"><input type="radio" name="ai-context-languages" value="lang1" /> <span data-i18n="aiContextLang1">First target language only (fewest tokens)</span></label>
+        <label class="dialog-radio"><input type="radio" name="ai-context-languages" value="all" /> <span data-i18n="aiContextAll">All target languages</span></label>
+      </fieldset>
+      <p id="ai-languages-preview" class="dialog-hint" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button type="button" id="ai-languages-cancel" value="cancel" data-i18n="cancel">Cancel</button>
+        <button type="submit" id="ai-languages-save" value="confirm" data-i18n="save">Save</button>
       </div>
     </form>
   </dialog>

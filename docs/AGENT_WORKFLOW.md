@@ -40,10 +40,11 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | GET | `/health` | — | Liveness (unauthenticated) |
 | POST | `/ai-chat-completions` | — | Desktop AI chat forwarder (provider URL + key in JSON body; not MCP) |
 | GET | `/snapshot` | `get_snapshot` | Revision, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status |
-| GET | `/slots` | `list_slots` | Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers for `loops[]`; query `?unmappedOnly=true&query=…` filters |
+| GET | `/slots` | `list_slots` | Target value slots as a compact **slot tree** (#277): `{revision, groups:[{group, label, type, mult, loop?, within?, slots:[{id, type, label?, labels?, mult, mandatory?, fixed?, units?, values?, terminology?, expr?}]}]}`. Labels and descriptions are in `target.lang.1` (the first target language that matches the source's language), whatever language the user's panes show; `labels` gives other matched languages (#279). A slot id is `group` + row `id`; every id form (full skeleton id, compact, unique tail) is accepted by the write tools. `?view=rows` returns the legacy flat rows (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers; query `?unmappedOnly=true&query=…` filters both views |
+| GET | `/slot?id=…` | `get_slot` | One Target slot in full: documentation, all value set entries, fixed values, the constraint from the target file (JSON Schema subschema, XSD element/attribute, openEHR template node fields), current mapping and lease |
 | GET | `/examples` | `list_examples` | Example instances (id, filename, format, chars, active) without bodies |
 | GET | `/example` | `get_example` | One example body capped at `maxChars` (default 8,000, max 40,000), or `?path=` for a subtree of the Active Example with values |
-| GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees |
+| GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees, with full descriptions in `descriptionLanguage` (a node's `lang` only where it differs); `?language=en` for another schema language |
 | GET | `/sheets` | `get_sheets` | Sheet / Decision table summaries + documents |
 | GET | `/product-stack` | `get_product_stack` | Conversion start chain (Instance roots, encodings, loops) |
 | GET | `/optional-rm` | `list_optional_rm` | Optional RM catalog (`?parentSlotId=`) |
@@ -89,7 +90,7 @@ Mutating requests accept **`If-Match: <revision>`** from the last snapshot. On c
 
 `load_example_set` **`includeMapping` defaults to true**: a mapped catalog set **adopts** its Blockly canvas, Sheets, and loops. `get_snapshot.appliedSlots` is the mapped slot count and is greater than 0 after that adopt. **`includeMapping: false`** loads the target, schema, and examples and **scaffolds** an empty Mapping Model from the Template Skeleton (no saved expressions).
 
-`list_slots` `parentRmType` is the nearest COMPOSITION, SECTION, or ENTRY ancestor (`ACTION` vs `EVALUATION` when sibling content shares `at0000`). Pair it with `pathLabel` and `attachSlotId`; do not parse raw Blockly to tell those slots apart.
+`list_slots` groups name their archetype / parent node in `label` and `within`; `loop: true` marks a repeating container whose `group` is the `attachSlotId` for `loops[]`. Call `get_slot` for one slot's full detail instead of loading the target file. In `view: "rows"`, `parentRmType` is the nearest COMPOSITION, SECTION, or ENTRY ancestor (`ACTION` vs `EVALUATION` when sibling content shares `at0000`). Pair it with `pathLabel` and `attachSlotId`; do not parse raw Blockly to tell those slots apart.
 
 Output modes that execute for catalogued families:
 
@@ -100,6 +101,8 @@ Output modes that execute for catalogued families:
 | Chemo symptoms TakeCare XML | TypeScript and Go template. |
 
 Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. AI chat runs these tool names in-process and does not need stdio MCP.
+
+The stdio MCP `initialize` result carries `instructions`: this workflow in short and version-pinned links to this file and the suggestion format (`https://regionstockholm.github.io/intehrgrator/v<version>/docs/…`; same version ⇒ same content).
 
 Pass agent identity on mutations: headers **`X-Agent-Id`**, **`X-Agent-Name`**, optional **`X-Agent-Color`** (after `register-agent`), and **`X-Agent-Client`** (the MCP client name; stdio MCP sends `clientInfo.name` from `initialize`). History entries carry `actor.origin` (`human`, `ai-chat`, `mcp`).
 

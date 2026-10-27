@@ -224,7 +224,7 @@ Deno.test("buildPrompt inline embeds multipart body", () => {
       content: '{"type":"object"}',
     }],
   });
-  assertEquals(prompt.includes("valueType"), true);
+  assertEquals(prompt.includes("## Slot tree") && prompt.includes(`"slots":[`), true);
   assertEquals(prompt.includes("rmType"), false);
   assertEquals(prompt.includes("--intehrgrator-part"), true);
   assertEquals(prompt.includes('X-Intehrgrator-Role: source-schema'), true);
@@ -246,7 +246,7 @@ Deno.test("buildPrompt openEHR target includes references and block examples", (
     delivery: "attach",
     artifacts: [],
   });
-  assertEquals(prompt.includes("## openEHR references"), true);
+  assertEquals(prompt.includes("## References"), true);
   assertEquals(prompt.includes("openehr-assistant MCP"), true);
   assertEquals(prompt.includes("cadasto/openehr-assistant-plugin"), true);
   assertEquals(prompt.includes("llms.txt"), true);
@@ -271,6 +271,8 @@ Deno.test("buildPrompt uri lists browseable URLs", () => {
     model,
     formatDocUrl: "https://example.test/fmt",
     delivery: "uri",
+    // #277: the raw target is listed only with "Attach original target".
+    attachOriginalTarget: true,
     artifacts: [
       {
         role: "target",

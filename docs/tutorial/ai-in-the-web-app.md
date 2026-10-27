@@ -18,6 +18,10 @@ Under **copy/paste for external AI chat**, pick how context is packed. Each choi
 - **Attach files in chat** — the prompt tells you which files to attach yourself.
 - **Browse URIs (when available)** — the prompt points at URLs instead of embedding bytes.
 
+Every prompt describes the target as a compact **slot tree** (each value slot with its type, allowed values and fixed units) and names the template, archetypes or schemas once under **Models**. The raw target file (an OPT can be 100,000 tokens) is left out unless you tick **Attach original target**; the choice is saved with the project. The same checkbox is in the AI chat panel's copy menu.
+
+<img src="../assets/tutorial/ai-menu-attach-target.png" alt="AI menu with the Attach original target checkbox ticked below the three copy choices" />
+
 Without credentials the **AI chat** panel offers the same flow: type your request, **Copy prompt**, paste it into your chat, then **Import AI answer…**.
 
 <img src="../assets/tutorial/ai-chat-copy-paste.png" alt="AI chat panel without credentials: notice with Configure AI credentials, message box, Copy prompt and Import AI answer buttons" />

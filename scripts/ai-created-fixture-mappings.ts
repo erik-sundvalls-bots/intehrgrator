@@ -89,7 +89,7 @@ async function dummyJsonVitals(): Promise<void> {
 
   await client.callTool("replace_sheets", { sheets: [sbpBand] });
 
-  const slots = await client.callTool("list_slots", {}) as {
+  const slots = await client.callTool("list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const snap = await client.callTool("get_snapshot", {}) as {
@@ -147,7 +147,7 @@ async function dummyVitalsSbpBand(): Promise<void> {
   await client.callTool("add_example", { path: join(dir, "instance-1.json") });
   await client.callTool("replace_sheets", { sheets: [sbpBand] });
 
-  const slots = await client.callTool("list_slots", {}) as { slots: Array<{ slotId: string }> };
+  const slots = await client.callTool("list_slots", { view: "rows" }) as { slots: Array<{ slotId: string }> };
   const snap = await client.callTool("get_snapshot", {}) as { revision: string; templateId: string };
   const envelope = {
     format: "intehrgrator-suggestions",
@@ -205,7 +205,7 @@ async function dummyVitalsOpenEhrBp(): Promise<void> {
     path: join(dir, "instance-1.json"),
   });
 
-  const slots = await callAgentTool(service, "list_slots", {}) as {
+  const slots = await callAgentTool(service, "list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string }>;
   };
   const systolic = slots.slots.find((s) => s.slotId.endsWith("items/at0004/value/value/value"))?.slotId;
@@ -260,7 +260,7 @@ async function icd10SheetLookup(): Promise<void> {
     path: join(mappingDir, "ai-created-icd10-snomed.source.json"),
   });
   await client.callTool("replace_sheets", { sheets: [sheet] });
-  const slots = await client.callTool("list_slots", {}) as { slots: Array<{ slotId: string }> };
+  const slots = await client.callTool("list_slots", { view: "rows" }) as { slots: Array<{ slotId: string }> };
   const snap = await client.callTool("get_snapshot", {}) as { revision: string; templateId: string };
   const envelope = {
     format: "intehrgrator-suggestions",
@@ -311,7 +311,7 @@ async function legacySimulatedJson(): Promise<void> {
   await client.callTool("load_target", { path: join(dir, "bp-schema.json") });
   await client.callTool("load_source_schema", { path: join(dir, "bp-schema.json") });
   await client.callTool("add_example", { path: join(dir, "instances", "bp-inst.json") });
-  const slots = await client.callTool("list_slots", {}) as { slots: Array<{ slotId: string }> };
+  const slots = await client.callTool("list_slots", { view: "rows" }) as { slots: Array<{ slotId: string }> };
   const snap = await client.callTool("get_snapshot", {}) as { revision: string; templateId: string };
   const fields = ["patientId", "timestamp", "systolic", "diastolic", "pulse", "bodyPosition"];
   const envelope = {
@@ -351,7 +351,7 @@ async function legacySimulatedJsonSeries(): Promise<void> {
   await client.callTool("add_example", {
     path: join(dir, "instances-series", "bp-series-inst.json"),
   });
-  const slots = await client.callTool("list_slots", {}) as {
+  const slots = await client.callTool("list_slots", { view: "rows" }) as {
     slots: Array<{ slotId: string; multiplicity?: string }>;
   };
   const snap = await client.callTool("get_snapshot", {}) as { revision: string; templateId: string };

@@ -48,11 +48,11 @@
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.5.1/"
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@f6d211ebd89ae0aa5110ac88a289a4d05ea7d854/"
   },
   "scopes": {
-    "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.5.1/": {
-      "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.5.1/validation/template_validator.ts": "./vendor/ehrtslib-overrides/validation/template_validator.ts"
+    "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@f6d211ebd89ae0aa5110ac88a289a4d05ea7d854/": {
+      "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@f6d211ebd89ae0aa5110ac88a289a4d05ea7d854/validation/template_validator.ts": "./vendor/ehrtslib-overrides/validation/template_validator.ts"
     }
   },
   "tasks": {
@@ -72,6 +72,7 @@
     "compile:ehrtslib": "deno run -A scripts/compile-ehrtslib.ts",
     "release": "deno run -A scripts/release.ts",
     "release:no-test": "deno run -A scripts/release.ts --no-test",
+    "measure:context": "deno run -A --no-check scripts/measure_slot_context.ts",
     "mcp": "deno run -A src/agent/mcp_stdio.ts",
     "generate:function-library": "deno run -A --no-check scripts/generate-function-library.ts"
   },

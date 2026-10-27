@@ -97,7 +97,7 @@ export function generateSkeleton(
   return {
     ...generated,
     warnings: [...parsed.warnings, ...generated.warnings],
-    webTemplateJson: webTemplateJsonFromOperational(opt, generated.language),
+    webTemplateJson: webTemplateJsonFromOperational(opt, generated.language, generated.languages),
   };
 }
 
@@ -134,9 +134,18 @@ export function generateSkeletonFromWebTemplate(
   };
 }
 
-function webTemplateJsonFromOperational(opt: AmObject, language: string): string | undefined {
+/**
+ * Web Template with every OPT language, `language` first (#279): labels in
+ * `language`, `localizedNames` / `localizedDescriptions` for the rest. Ids
+ * (Simplified FLAT paths) always from the original language, whatever 💬
+ * shows, until #289 lets the user choose.
+ */
+function webTemplateJsonFromOperational(opt: AmObject, language: string, languages: string[]): string | undefined {
   try {
-    return JSON.stringify(buildWebTemplate(opt, { defaultLanguage: language }));
+    return JSON.stringify(buildWebTemplate(opt, {
+      languages: [language, ...languages.filter((l) => l !== language)],
+      idLanguage: "original",
+    }));
   } catch {
     return undefined;
   }

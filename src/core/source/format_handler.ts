@@ -14,6 +14,7 @@ import {
   inferSchemaFromInstance,
   loadJsonSchema,
   loadXmlSchemaFromInstance,
+  loadXmlSourceSchema,
   pathToFontoxpath,
 } from "./schema_loader.ts";
 import { parseJsonDocument, unwrapExecuteEnvelope } from "./json_document.ts";
@@ -73,8 +74,8 @@ const jsonHandler = createJsonHandler("json");
 const xmlHandler: SourceFormatHandler = {
   id: "xml",
   loadSchema(content, rootName = "root") {
-    // v1: XSD deferred — infer structural tree from an XML document sample.
-    return loadXmlSchemaFromInstance(content, rootName);
+    // An XSD is read as a schema; any other XML document as a sample instance (#278).
+    return loadXmlSourceSchema(content, rootName);
   },
   loadInstance(content, rootName = "root") {
     return loadXmlSchemaFromInstance(content, rootName);

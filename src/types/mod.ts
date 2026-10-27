@@ -327,6 +327,8 @@ export interface SchemaTreeNode {
   multiplicity?: string;
   /** JSON Schema `description` or similar prose for the help popup. */
   description?: string;
+  /** Language of `description` when known (XSD `xml:lang`, JSON Schema `x-i18n` key / `x-lang`) (#277 §5). */
+  descriptionLang?: string;
   children: SchemaTreeNode[];
 }
 
@@ -369,8 +371,16 @@ export interface ProjectSettings {
   openEhrJsonDeserializeMode: OpenEhrJsonDeserializeMode;
   autoscroll: boolean;
   autoplay: boolean;
-  /** Ontology / localizedNames language for the loaded multilingual target. */
+  /** Ontology / localizedNames language the target is currently shown in. */
   modelLanguage?: string;
+  /** `source.lang.N` set by the user (#277 §4); unset = detected from the source. */
+  sourceLanguages?: string[];
+  /** Which target languages' labels go to the AI (#279); default `matched`. */
+  aiContextLanguages?: "matched" | "lang1" | "all";
+  /** Display languages chosen in the 💬 widgets (#279); unset = `lang.1`. */
+  display?: { targetLabelLang?: string; sourceLabelLang?: string };
+  /** Copy & paste AI prompt also attaches the raw target file (#277; off: slot tree only). */
+  aiAttachOriginalTarget?: boolean;
 }
 
 export interface ProjectBundle {

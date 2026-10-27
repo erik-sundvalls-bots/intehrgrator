@@ -77,6 +77,12 @@ export interface RunMappingAgentOptions {
    * a follow-up user message without the tools prefix.
    */
   history?: ChatMessage[];
+  /**
+   * Stable guide appended to the system message (#277 §6: rules, response
+   * format, references, block examples), so the project context in the first
+   * user message comes after a cacheable prefix.
+   */
+  systemPrefix?: string;
   /** Stream the answer (SSE) and report progress. Without it each step is one JSON call. */
   onEvent?: (event: MappingAgentEvent) => void;
   /** Per-request timeout in ms (each step gets its own; Stop is `signal`). Default 180 s. */
@@ -218,14 +224,18 @@ function assistantMessageForLoop(
   };
 }
 
+function withSystemPrefix(system: string, prefix?: string): string {
+  return prefix?.trim() ? `${system}\n\n${prefix}` : system;
+}
+
 export const MAPPING_TOOLS_USER_PREFIX =
-  "The markdown that follows is project context (slot manifest, source tree, example list). Map with the function tools: map_slot for Click-to-Map paths, import_suggestions for loops / Decision tables / bulk envelopes, get_example for example values, then run_test.";
+  "The markdown that follows is project context (slot tree, source tree, example list). Map with the function tools: map_slot for Click-to-Map paths, import_suggestions for loops / Decision tables / bulk envelopes, get_example for example values, then run_test.";
 
 export async function runMappingAgent(options: RunMappingAgentOptions): Promise<MappingAgentResult> {
   const tools = mappingAgentOpenAiTools();
   const history = options.history ?? [];
   const messages: ChatMessage[] = [
-    { role: "system", content: MAPPING_TOOLS_SYSTEM },
+    { role: "system", content: withSystemPrefix(MAPPING_TOOLS_SYSTEM, options.systemPrefix) },
     ...history,
     {
       role: "user",
@@ -383,7 +393,7 @@ function notesFromToolArgs(name: string, args: Record<string, unknown>): Suggest
 
 /** Appended to the user message when the provider rejected function tools. */
 export const SUGGESTIONS_FALLBACK_INSTRUCTION =
-  "Function tools are not available for this provider, so ignore any tool instructions above: reply with exactly one fenced `intehrgrator-suggestions` JSON block (version \"2\", Blockly `block` fragments; copy each `slotId` from the slot manifest), plus optional `### Notes` / `### Questions`.";
+  "Function tools are not available for this provider, so ignore any tool instructions above: reply with exactly one fenced `intehrgrator-suggestions` JSON block (version \"2\", Blockly `block` fragments; build each `slotId` from the slot tree: `group` + `id`), plus optional `### Notes` / `### Questions`.";
 
 /**
  * One suggestions-JSON chat turn (no tools) with the chat history. AI chat uses
@@ -394,6 +404,8 @@ export async function runSuggestionsChatTurn(options: {
   credentials: AiProviderCredentials;
   prompt: string;
   history?: ChatMessage[];
+  /** Stable copy & paste guide appended to the system message (#277 §6). */
+  systemPrefix?: string;
   fetch?: typeof fetch;
   signal?: AbortSignal;
   proxyUrl?: string;
@@ -402,7 +414,7 @@ export async function runSuggestionsChatTurn(options: {
 }): Promise<{ text: string; messages: ChatMessage[]; truncated?: boolean; usage: UsageTotals }> {
   const history = options.history ?? [];
   const messages: ChatMessage[] = [
-    { role: "system", content: SUGGESTIONS_SYSTEM },
+    { role: "system", content: withSystemPrefix(SUGGESTIONS_SYSTEM, options.systemPrefix) },
     ...history,
     { role: "user", content: options.prompt },
   ];

@@ -161,7 +161,7 @@ Deno.test("desktop proxy passes a streamed body through unread", async () => {
 
 Deno.test("runMappingAgent streams events and a short mapping notice per applied map_slot", async () => {
   const c = await bpController();
-  const slots = ((await runChatTool(c, "list_slots", { unmappedOnly: true })) as { slots: Array<{ slotId: string; label?: string }> }).slots;
+  const slots = ((await runChatTool(c, "list_slots", { view: "rows", unmappedOnly: true })) as { slots: Array<{ slotId: string; label?: string }> }).slots;
   const target = slots.find((s) => /systolic/i.test(`${s.slotId} ${s.label}`)) ?? slots[0]!;
   const events: MappingAgentEvent[] = [];
   let step = 0;
@@ -291,7 +291,7 @@ Deno.test("mappingNoticeFor summarises mutating tools only", () => {
     mappingNoticeFor("import_suggestions", {}, { report: { applied: 3, skipped: 0, errors: [], loopsAccepted: 1, schemaIssues: [] } }),
     "Imported 3 suggestions, 1 loop",
   );
-  assertEquals(mappingNoticeFor("list_slots", {}, {}), undefined);
+  assertEquals(mappingNoticeFor("list_slots", { view: "rows" }, {}), undefined);
   assertEquals(mappingNoticeFor("map_slot", { slotId: "x", path: "$.a" }, { error: "nope" }), undefined);
 });
 
@@ -350,8 +350,8 @@ Deno.test("get_example / list_examples / list_slots filters", async () => {
   const ex = (await runChatTool(c, "get_example", { maxChars: 20 })) as { content: string; truncated?: boolean };
   assertEquals(ex.content.length, 20);
   assertEquals(ex.truncated, true);
-  const all = ((await runChatTool(c, "list_slots", {})) as { slots: unknown[] }).slots.length;
-  const some = ((await runChatTool(c, "list_slots", { query: "systolic" })) as { slots: Array<{ slotId: string }> }).slots;
+  const all = ((await runChatTool(c, "list_slots", { view: "rows" })) as { slots: unknown[] }).slots.length;
+  const some = ((await runChatTool(c, "list_slots", { view: "rows", query: "systolic" })) as { slots: Array<{ slotId: string }> }).slots;
   assert(some.length > 0 && some.length < all);
 });
 
@@ -395,7 +395,7 @@ Deno.test("a multi-step tools turn resends at most one full copy of list_slots /
       return Promise.resolve(new Response(JSON.stringify({ choices: [{ message }] }), { status: 200 }));
     }) as typeof fetch,
   });
-  const listSlotsChars = JSON.stringify(JSON.stringify(await runChatTool(c, "list_slots", {}))).length;
+  const listSlotsChars = JSON.stringify(JSON.stringify(await runChatTool(c, "list_slots", { view: "rows" }))).length;
   const last = JSON.parse(bodies.at(-1)!) as { messages: ChatMessage[] };
   const full = last.messages.filter((m) => m.role === "tool" && !String(m.content).startsWith('{"superseded"'));
   assertEquals(full.filter((m) => m.name === "list_slots").length, 1);
@@ -430,7 +430,7 @@ Deno.test("AI chat mapping tools are a subset of the MCP / Agent API tools with 
   assertEquals(listed.examples[0]?.active, true);
   const ex = await callAgentTool(service, "get_example", { maxChars: "10" }) as { content: string; truncated?: boolean };
   assertEquals(ex.content.length, 10);
-  const filtered = await callAgentTool(service, "list_slots", { unmappedOnly: "true", query: "systolic" }) as {
+  const filtered = await callAgentTool(service, "list_slots", { view: "rows", unmappedOnly: "true", query: "systolic" }) as {
     slots: unknown[];
   };
   assert(filtered.slots.length > 0);

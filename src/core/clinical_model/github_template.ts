@@ -14,6 +14,7 @@ import { OptXmlSerializer } from "ehrtslib/generation/opt_xml_serializer.ts";
 import { buildWebTemplate } from "ehrtslib/serialization/simplified/web_template_builder.ts";
 import { generateSkeletonFromOperational } from "../skeleton/generate_skeleton.ts";
 import {
+  availableOptLanguages,
   availableWebTemplateLanguages,
   buildWebTemplateTermsIndex,
   orderLanguages,
@@ -124,7 +125,9 @@ function scaffoldWorkspace(
     ? rootFile.content
     : new OptXmlSerializer().serialize(opt);
   const ontologyLanguage = resolveOptLanguage(opt, preferredLanguage);
-  const webTemplate = buildWebTemplate(opt, { defaultLanguage: ontologyLanguage });
+  const webTemplate = buildWebTemplate(opt, {
+    languages: [ontologyLanguage, ...availableOptLanguages(opt).filter((l) => l !== ontologyLanguage)],
+  });
   const generated = generateSkeletonFromOperational(
     opt,
     optXml,

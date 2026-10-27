@@ -55,9 +55,9 @@ Deno.test({
       const prompt = await page.evaluate(() =>
         (globalThis as unknown as { __clip?: string }).__clip ?? ""
       );
-      assertStringIncludes(prompt, "## Slot manifest");
+      assertStringIncludes(prompt, "## Slot tree");
       assertStringIncludes(prompt, "intehrgrator-suggestions");
-      assertStringIncludes(prompt, "## openEHR references");
+      assertStringIncludes(prompt, "## References");
       assertStringIncludes(prompt, "openehr-assistant MCP");
       assertStringIncludes(prompt, "cadasto/openehr-assistant-plugin");
       assertStringIncludes(prompt, "icd10_snomed");
@@ -88,7 +88,14 @@ Deno.test({
         });
       });
 
-      await waitForMappedSlot(page, slotId);
+      // The prompt's slot tree id is compact (#277); the model keeps the full skeleton id.
+      const fullSlotId = await page.waitForFunction((compact) => {
+        const api = (globalThis as unknown as {
+          intehrgratorTestApi: { getSnapshot: () => { model: { slots: Array<{ slotId: string }> } } };
+        }).intehrgratorTestApi;
+        return api.getSnapshot().model.slots.find((s) => s.slotId.endsWith(compact))?.slotId ?? false;
+      }, slotId, { timeout: 10_000 }).then((h) => h.jsonValue() as Promise<string>);
+      await waitForMappedSlot(page, fullSlotId);
       await page.waitForFunction(() => {
         const api = (globalThis as unknown as {
           intehrgratorTestApi: { getSnapshot: () => { generatedCode: string } };
@@ -97,7 +104,7 @@ Deno.test({
       }, { timeout: 10_000 });
 
       const after = await getSnapshot(page);
-      const mapped = after.model.slots.find((s) => s.slotId === slotId);
+      const mapped = after.model.slots.find((s) => s.slotId === fullSlotId);
       assert(mapped?.expression.includes("xpathNumber"), mapped?.expression);
       assertStringIncludes(after.generatedCode, "xpathNumber");
       assertStringIncludes(after.generatedCode, "$.systolic");
@@ -142,21 +149,15 @@ function suggestionsFromPrompt(prompt: string): {
 } {
   const targetMatch = prompt.match(/- targetId: `([^`]+)`/);
   const targetId = targetMatch?.[1] ?? "";
-  const fence = prompt.match(/## Slot manifest\s*```json\s*([\s\S]*?)```/);
-  if (!fence) throw new Error("Copy AI Prompt did not include a slot manifest");
-  const manifest = JSON.parse(fence[1]) as Array<{
-    slotId: string;
-    label?: string;
-    archetypeNodeId?: string;
-  }>;
-  const slot = manifest.find((item) =>
-    item.slotId.endsWith(systolicSuffix) ||
-    /systolic/i.test(item.label ?? "") ||
-    item.archetypeNodeId === "at0004"
-  );
+  const fence = prompt.match(/\n## Slot tree\n```json\s*([\s\S]*?)```/);
+  if (!fence) throw new Error("Copy AI Prompt did not include a slot tree");
+  // #277: slot id = group path + row id.
+  const groups = JSON.parse(fence[1]) as Array<{ group: string; slots: Array<{ id: string; label?: string }> }>;
+  const manifest = groups.flatMap((g) => g.slots.map((row) => ({ slotId: `${g.group}${row.id}`, label: row.label })));
+  const slot = manifest.find((item) => item.slotId.endsWith(systolicSuffix) || /systolic/i.test(item.label ?? ""));
   if (!slot) {
     throw new Error(
-      `no systolic slot in AI prompt manifest (${manifest.length} slots)`,
+      `no systolic slot in AI prompt slot tree (${manifest.length} slots)`,
     );
   }
   const envelope = [
