@@ -185,7 +185,6 @@ Deno.test({
           : Deno.readTextFile(join(root, path)),
       listExamples: () => Promise.resolve(["person-01.json"]),
     };
-    const project = await loadFileProject(manifest, files);
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       viewport: { width: 1400, height: 900 },
@@ -215,7 +214,7 @@ Deno.test({
           if (message.type === "intehrgrator:project-ready") {
             await post({
               type: "intehrgrator:project-load",
-              bundle: project.bundle,
+              bundle: (await loadFileProject(manifest, files)).bundle,
               version,
               generation: 1,
               reason: "initial",
@@ -307,7 +306,16 @@ Deno.test({
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       assertEquals(savedResult, { name: "Example Person" });
-      await page.locator("#btn-menu-file").click();
+      // A new webview context must reconstruct all inputs from the saved project.
+      await page.reload({ waitUntil: "networkidle" });
+      await waitForTestApi(page);
+      await page.waitForFunction(() => document.getElementById("btn-save-project")?.textContent === "Save mapping");
+      await page.waitForSelector('#schema-tree .tree-row[data-path="$.displayName"]');
+      const restored = await getSnapshot(page);
+      assertEquals(restored.exampleCount, 1);
+      assertEquals(restored.activeExampleFilename, "person-01.json");
+      assertEquals(restored.templateId, "Person");
+      assertEquals(restored.blocklyBlocks.some(block => block.fields?.EXPRESSION === "$.id"), false);
       const nameQuery = (await getSnapshot(page)).blocklyBlocks.find((block) =>
         block.fields?.EXPRESSION === "$.displayName"
       );

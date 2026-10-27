@@ -3,7 +3,6 @@ import { registerFileProjects } from "./file_project.ts";
 import { assertHttpUrl, filenameFromUrl, toFetchableUrl } from "../src/host/fetch_url.ts";
 import { acceptToExtensions, acceptToVscodeFilters } from "../src/host/file_picker.ts";
 
-const VIEW_TYPE = "intehrgrator.workbench";
 const SAVES_KEY = "intehrgrator.saves";
 
 interface HostRequest {
@@ -23,26 +22,6 @@ interface StoredRecord {
 
 export function activate(context: vscode.ExtensionContext): void {
   registerFileProjects(context, webviewHtml, (webview, message) => handleHostRequest(context, webview, message as HostRequest));
-  context.subscriptions.push(
-    vscode.commands.registerCommand("intehrgrator.openWorkbench", async () => {
-      const panel = vscode.window.createWebviewPanel(
-        VIEW_TYPE,
-        "intEHRgrator",
-        vscode.ViewColumn.One,
-        {
-          enableScripts: true,
-          retainContextWhenHidden: true,
-          localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "dist")],
-        },
-      );
-      panel.webview.html = await webviewHtml(context, panel.webview);
-      panel.webview.onDidReceiveMessage(
-        (message: HostRequest) => void handleHostRequest(context, panel.webview, message),
-        undefined,
-        context.subscriptions,
-      );
-    }),
-  );
 }
 
 export function deactivate(): void {

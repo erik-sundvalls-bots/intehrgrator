@@ -21,30 +21,67 @@ const profile = await Deno.makeTempDir({
   dir: join(root, ".local"),
   prefix: "vscode-profile-",
 });
-const code = await new Promise<number>((resolve, reject) => {
-  const process = spawn(executable, [
-    "--user-data-dir",
-    join(profile, "profile"),
-    "--extensions-dir",
-    join(profile, "extensions"),
-    "--extensionDevelopmentPath",
-    root,
-    "--extensionTestsPath",
-    join(root, "test/vscode/file_project_smoke.cjs"),
-    "--disable-gpu",
-    "--disable-workspace-trust",
-    "--skip-welcome",
-    project,
-  ], {
-    env: { ...Deno.env.toObject(), INTEHRGRATOR_TEST_PROJECT: project },
-    stdio: "inherit",
-    windowsHide: true,
-  });
-  process.on("error", reject);
-  process.on("exit", (code) => resolve(code ?? 1));
-});
-const report = JSON.parse(
-  await Deno.readTextFile(join(project, "test-result.json")),
+// --extensionTestsPath deliberately makes VS Code storage in-memory. A normal
+// isolated window plus a driver extension exercises real cold-start persistence.
+const driver = join(profile, "extensions", "intehrgrator-test-driver");
+await ensureDir(driver);
+await Deno.writeTextFile(
+  join(driver, "package.json"),
+  JSON.stringify({
+    name: "intehrgrator-test-driver",
+    publisher: "intehrgrator-tests",
+    version: "1.0.0",
+    engines: { vscode: "^1.85.0" },
+    activationEvents: ["onStartupFinished"],
+    main: "./driver.cjs",
+  }),
 );
-console.log(JSON.stringify(report, null, 2));
-if (code || !report.ok) Deno.exit(1);
+await Deno.writeTextFile(
+  join(driver, "driver.cjs"),
+  `
+const vscode = require('vscode');
+exports.activate = async () => {
+  try { await require(process.env.INTEHRGRATOR_TEST_SUITE).run(); }
+  catch (error) { console.error(error); }
+  finally { await vscode.workspace.saveAll(false); await vscode.commands.executeCommand('workbench.action.quit'); }
+};
+`,
+);
+for (const phase of ["initial", "restored"]) {
+  try { await Deno.remove(join(project, "test-result.json")); } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) throw error;
+  }
+  const code = await new Promise<number>((resolve, reject) => {
+    const child = spawn(executable, [
+      "--user-data-dir",
+      join(profile, "profile"),
+      "--extensions-dir",
+      join(profile, "extensions"),
+      "--extensionDevelopmentPath",
+      root,
+      "--disable-gpu",
+      "--disable-workspace-trust",
+      "--skip-welcome",
+      project,
+    ], {
+      env: {
+        ...Deno.env.toObject(),
+        INTEHRGRATOR_TEST_PROJECT: project,
+        INTEHRGRATOR_TEST_PHASE: phase,
+        INTEHRGRATOR_TEST_SUITE: join(
+          root,
+          "test/vscode/file_project_smoke.cjs",
+        ),
+      },
+      stdio: "inherit",
+      windowsHide: true,
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
+  const report = JSON.parse(
+    await Deno.readTextFile(join(project, "test-result.json")),
+  );
+  console.log(JSON.stringify({ phase, ...report }, null, 2));
+  if (code || !report.ok) Deno.exit(1);
+}

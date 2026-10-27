@@ -10,6 +10,7 @@ import {
 import type { ProjectEditorMessage } from "../src/workbench/file_project_editor.ts";
 
 const EDITOR = "intehrgrator.fileProject";
+const RECENT_PROJECTS = "intehrgrator.fileProjectUris";
 type WebviewHtml = (
   context: vscode.ExtensionContext,
   webview: vscode.Webview,
@@ -21,6 +22,23 @@ export function registerFileProjects(
   legacyRequest: (webview: vscode.Webview, message: unknown) => Promise<void>,
 ): void {
   const knownProjects = new Map<string, vscode.Uri>();
+  const recentProjects = () =>
+    context.workspaceState.get<string[]>(RECENT_PROJECTS, []);
+  const discoverProjects = () =>
+    vscode.workspace.findFiles(
+      "**/intehrgrator.json",
+      "**/{node_modules,.git,dist,.local}/**",
+    );
+  const rememberProject = async (uri: vscode.Uri) => {
+    const path = uri.toString();
+    await context.workspaceState.update(
+      RECENT_PROJECTS,
+      [path, ...recentProjects().filter((entry) => entry !== path)].slice(
+        0,
+        20,
+      ),
+    );
+  };
   const queue = new Map<string, Promise<void>>();
   const enqueue = (uri: vscode.Uri, operation: () => Promise<void>) => {
     const key = uri.toString();
@@ -39,21 +57,89 @@ export function registerFileProjects(
   const locate = async (mapping: vscode.Uri) => {
     const known = knownProjects.get(mapping.toString());
     if (known) return known;
-    for (
-      const uri of await vscode.workspace.findFiles(
-        "**/intehrgrator.json",
-        "**/{node_modules,.git,dist}/**",
-      )
-    ) {
-      const manifest = parseFileProject(await read(uri));
-      if (resolve(uri, manifest.mapping).toString() === mapping.toString()) {
-        return uri;
+    const candidates = new Set([
+      ...recentProjects(),
+      ...(await discoverProjects()).map((uri) => uri.toString()),
+    ]);
+    for (const path of candidates) {
+      const uri = vscode.Uri.parse(path);
+      try {
+        const manifest = parseFileProject(await read(uri));
+        if (resolve(uri, manifest.mapping).toString() === mapping.toString()) {
+          return uri;
+        }
+      } catch {
+        // A removed or unrelated invalid project must not prevent restoration of this mapping.
       }
     }
     throw new Error(
       "No intehrgrator.json references this mapping. Use intEHRgrator: Open File Project.",
     );
   };
+  const openWorkbench = async () => {
+    for (const path of recentProjects()) {
+      const uri = vscode.Uri.parse(path);
+      try {
+        await vscode.workspace.fs.stat(uri);
+      } catch (error) {
+        if (
+          error instanceof vscode.FileSystemError &&
+          error.code === "FileNotFound"
+        ) continue;
+        throw error;
+      }
+      await vscode.commands.executeCommand("intehrgrator.openFileProject", uri);
+      return;
+    }
+    const projects = await discoverProjects();
+    if (projects.length) {
+      const selected = projects.length === 1
+        ? projects[0]
+        : (await vscode.window.showQuickPick(
+          projects.map((uri) => ({
+            label: vscode.workspace.asRelativePath(uri),
+            uri,
+          })),
+          { placeHolder: "Open an intEHRgrator file project" },
+        ))?.uri;
+      if (selected) {
+        await vscode.commands.executeCommand(
+          "intehrgrator.openFileProject",
+          selected,
+        );
+      }
+      return;
+    }
+    const selected = await vscode.window.showQuickPick([
+      {
+        label: "Create a file project",
+        command: "intehrgrator.createFileProject",
+      },
+      {
+        label: "Open an existing file project",
+        command: "intehrgrator.openFileProject",
+      },
+    ], { placeHolder: "Choose an intEHRgrator project" });
+    if (selected) await vscode.commands.executeCommand(selected.command);
+  };
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "intehrgrator.openWorkbench",
+      openWorkbench,
+    ),
+  );
+  // Upgrade an old standalone panel to the file-backed editor when VS Code revives it.
+  context.subscriptions.push(
+    vscode.window.registerWebviewPanelSerializer("intehrgrator.workbench", {
+      async deserializeWebviewPanel(panel) {
+        try {
+          await openWorkbench();
+        } finally {
+          panel.dispose();
+        }
+      },
+    }),
+  );
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "intehrgrator.openFileProject",
@@ -73,6 +159,7 @@ export function registerFileProjects(
           mapping,
           EDITOR,
         );
+        await rememberProject(uri);
       },
     ),
   );
@@ -147,6 +234,8 @@ export function registerFileProjects(
     vscode.window.registerCustomEditorProvider(EDITOR, {
       async resolveCustomTextEditor(document, panel) {
         const manifestUri = await locate(document.uri);
+        knownProjects.set(document.uri.toString(), manifestUri);
+        await rememberProject(manifestUri);
         const root = vscode.Uri.joinPath(manifestUri, "..");
         const disposables: vscode.Disposable[] = [];
         let generation = 0;

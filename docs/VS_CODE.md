@@ -6,6 +6,12 @@ Install the intEHRgrator VSIX using **Extensions: Install from VSIX…**, then r
 **intEHRgrator: Open File Project** to open an existing `intehrgrator.json`.
 You can also right-click that file in Explorer.
 
+**intEHRgrator: Open Integration Workbench** resumes the most recently opened
+file project in the workspace. It reloads schema, examples and mapping from disk
+when the view is reopened. If there is no previous project, it finds project
+files in the workspace or offers Create / Open. Only project URIs are remembered
+in VS Code storage; project contents remain in the repository.
+
 ```text
 intehrgrator.json
 mapping/main.mapping.json

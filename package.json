@@ -16,6 +16,7 @@
     "onCommand:intehrgrator.openWorkbench",
     "onCommand:intehrgrator.openFileProject",
     "onCommand:intehrgrator.createFileProject",
+    "onWebviewPanel:intehrgrator.workbench",
     "onCustomEditor:intehrgrator.fileProject"
   ],
   "main": "./dist/extension.js",

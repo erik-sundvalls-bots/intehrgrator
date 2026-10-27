@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **VS Code: reopening the workbench resumes the file project** instead of opening an empty standalone view. Project URIs are remembered across sessions; schema, examples and mapping are reloaded from disk.
+
 - **VS Code file projects**: open a visual mapping backed by separate source, target and mapping files; saving updates generated code and per-example results in the repository, including incomplete mappings and removed fields. The shared `project:run --check` command verifies committed results in CI.
 
 ## [0.10.0] - 2026-10-23
