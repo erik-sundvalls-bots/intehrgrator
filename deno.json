@@ -48,12 +48,7 @@
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.6/"
-  },
-  "scopes": {
-    "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.6/": {
-      "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.6/validation/template_validator.ts": "./vendor/ehrtslib-overrides/validation/template_validator.ts"
-    }
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.7/"
   },
   "tasks": {
     "vendor": "deno run -A scripts/vendor-ehrtslib.ts",
