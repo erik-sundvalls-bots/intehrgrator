@@ -2280,3 +2280,5 @@ span.ai-notes-option { cursor: default; }
 .ai-usage-help { margin: 0; color: #5f6368; line-height: 1.35; }
 .ai-usage-buttons { display: flex; justify-content: flex-end; gap: 6px; }
 .ai-chat-raise-budget { margin-top: 6px; font-size: 12px; }
+.ai-chat-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ai-chat-choices .pane-btn { font-size: 12px; }

@@ -11,9 +11,9 @@ export const CHAT_HISTORY_KEY_PREFIX = "intehrgrator.ai.chat.";
 export const CHAT_HISTORY_MAX_CHARS = 400_000;
 
 /**
- * Rough budget for the history sent with a new message (#252). Older whole
- * turns are dropped before Send when the estimate is above it, so a long chat
- * cannot grow every request without bound.
+ * Rough budget for the history sent with a new message (#252). Above it, Send
+ * pauses and the user picks: trim old turns, new chat with a recap, or cancel
+ * (#292). Nothing is dropped without that choice.
  */
 export const CHAT_HISTORY_MAX_TOKENS = 64_000;
 
@@ -35,8 +35,12 @@ export function estimateChatTokens(messages: readonly ChatMessage[]): number {
 export interface ChatDisplayEntry {
   role: "user" | "assistant" | "note" | "error";
   text: string;
-  /** A note with a button: "raise-budget" raises the token budget and sends "continue" (#276). */
-  action?: "raise-budget";
+  /**
+   * A note with buttons: "raise-budget" raises the token budget and sends
+   * "continue" (#276); "history-full" asks how to go on when the history is
+   * above the limit (#292).
+   */
+  action?: "raise-budget" | "history-full";
   /** Tool names called during an assistant turn (collapsed lines). */
   toolCalls?: string[];
   /** Short lines for mappings tools applied this turn ("Mapped Systolic ← $.systolic"). */
@@ -60,6 +64,10 @@ export interface ChatSession {
   usage?: UsageTotals;
   /** The 80 % budget warning was shown for this chat. */
   budgetWarned?: boolean;
+  /** Recap of an earlier chat, sent once with the next message (#292). */
+  recap?: string;
+  /** The user was told that the stored copy of this chat is cut (#292). */
+  storageTrimNoted?: boolean;
 }
 
 interface StorageLike {
@@ -90,6 +98,8 @@ export function loadChatSession(storage: StorageLike, projectId: string): ChatSe
       attachedChipKeys: Array.isArray(parsed.attachedChipKeys) ? parsed.attachedChipKeys : [],
       ...(parseUsageTotals(parsed.usage) ? { usage: parseUsageTotals(parsed.usage) } : {}),
       ...(parsed.budgetWarned === true ? { budgetWarned: true } : {}),
+      ...(typeof parsed.recap === "string" && parsed.recap ? { recap: parsed.recap } : {}),
+      ...(parsed.storageTrimNoted === true ? { storageTrimNoted: true } : {}),
     };
   } catch {
     return emptyChatSession();
@@ -115,7 +125,7 @@ export function trimChatSession(session: ChatSession, maxChars = CHAT_HISTORY_MA
 
 /**
  * Drop the oldest whole turns until the history estimate fits `maxTokens`.
- * Returns whether anything was dropped, so the chat can say so.
+ * Only after the user chose "Continue with trimmed history" (#292).
  */
 export function trimChatSessionToTokens(
   session: ChatSession,
@@ -133,14 +143,41 @@ export function trimChatSessionToTokens(
   return { session: next, trimmed, tokens: estimateChatTokens(next.messages) };
 }
 
-export function saveChatSession(storage: StorageLike, projectId: string, session: ChatSession): ChatSession {
-  const trimmed = trimChatSession(session);
+/**
+ * Persist the chat. Only the stored copy is cut to `CHAT_HISTORY_MAX_CHARS`;
+ * the caller keeps its full session and tells the user when `trimmed` (#292).
+ */
+export function saveChatSession(
+  storage: StorageLike,
+  projectId: string,
+  session: ChatSession,
+): { stored: ChatSession; trimmed: boolean } {
+  const stored = trimChatSession(session);
   try {
-    storage.setItem(chatHistoryKey(projectId), JSON.stringify(trimmed));
+    storage.setItem(chatHistoryKey(projectId), JSON.stringify(stored));
   } catch {
     // quota / private mode: the chat still works for this page load
   }
-  return trimmed;
+  return { stored, trimmed: stored.messages.length < session.messages.length };
+}
+
+/**
+ * Plain-text recap of a chat for "Start new chat with summary" (#292): every
+ * user message, answer and applied mapping line, in order. Notes and errors
+ * are left out; the mappings themselves are on the project, whose context the
+ * new chat re-attaches.
+ */
+export function chatRecap(session: ChatSession): string {
+  const lines: string[] = [];
+  for (const entry of session.display) {
+    if (entry.role === "user") lines.push(`User: ${entry.text}`);
+    else if (entry.role === "assistant") {
+      const block = [entry.text.trim() ? `Assistant: ${entry.text.trim()}` : "Assistant:"];
+      for (const m of entry.mappings ?? []) block.push(`  - ${m}`);
+      if (block.length > 1 || entry.text.trim()) lines.push(block.join("\n"));
+    }
+  }
+  return lines.join("\n\n");
 }
 
 export function clearChatSession(storage: StorageLike, projectId: string): void {
