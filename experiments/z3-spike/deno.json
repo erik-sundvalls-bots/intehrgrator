@@ -1,0 +1,14 @@
+{
+  "//": "Throwaway Z3 WASM spike (issue #41). Own config so it does not touch the app's deno.lock or node_modules.",
+  "lock": false,
+  "nodeModulesDir": "none",
+  "tasks": {
+    "spike": "deno run --allow-read --allow-write=. --allow-env --allow-sys spike.ts",
+    "browser": "deno run -A browser_check.ts"
+  },
+  "imports": {
+    "handlebars": "npm:handlebars@^4.7.9",
+    "z3-solver": "npm:z3-solver@5.3.2",
+    "playwright": "npm:playwright@1.51.0"
+  }
+}

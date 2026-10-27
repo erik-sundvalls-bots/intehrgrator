@@ -1,0 +1,18 @@
+{
+  "without_coop_coep": {
+    "crossOriginIsolated": false,
+    "sab": "undefined",
+    "init_ms": 185,
+    "error": "thread constructor failed: Resource temporarily unavailable",
+    "page_total_ms": 255
+  },
+  "with_coop_coep": {
+    "crossOriginIsolated": true,
+    "sab": "function",
+    "init_ms": 184,
+    "verdict": "sat",
+    "solve_ms": 67,
+    "model": "(/ 279.0 2.0)",
+    "page_total_ms": 311
+  }
+}

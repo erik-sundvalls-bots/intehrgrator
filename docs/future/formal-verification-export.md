@@ -14,6 +14,10 @@ TypeScript golden oracles landed with
 including those in-dialect snippets, evidence-pack export, chunk-level test
 suites, and convert-time throws are
 [#41](https://github.com/regionstockholm/intehrgrator/issues/41).
+**Revised 2026-10-27:** a throwaway **Z3 WASM spike** on real fixture Decision tables
+(Deno + headless Chromium; see [Spike](#spike-z3-wasm-on-real-fixtures-2026-10-27)) and a
+critical read of an **AI conversation (Gemini) Erik shared** on #41
+(see [Input from an AI conversation](#input-from-an-ai-conversation-gemini-shared-on-41)).
 
 ## Idea
 
@@ -221,9 +225,9 @@ Phased delivery:
 | Phase | Deliverable |
 |-------|-------------|
 | **R0** | Convert-time throws: Mapping Expression `error(message)`, Blockly Throw block, Decision table error output / catch-all throw. Needed so Rejected vs Erroneous is distinguishable before Z3. |
-| **R1** | Generate SMT + mapping-contract from VMS Mapping Model **including lowered VMS-Hbs / VMS-Go / VMS-Mustache**; Z3 WASM Worker; Verify mapping action; counterexample → Example Instance; Source Schema coverage overlay (template paths count as reads). |
+| **R1** | Start with **Decision tables**: the [spike](#spike-z3-wasm-on-real-fixtures-2026-10-27) showed that dead-row, no-match and output-value-set checks already run in milliseconds on real fixtures. Then generate SMT + mapping-contract from VMS Mapping Model **including lowered VMS-Hbs / VMS-Go / VMS-Mustache**; Z3 WASM Worker; Verify mapping action; counterexample → Example Instance; Source Schema coverage overlay (template paths count as reads). |
 | **R2** | Verification evidence pack export (queries + results + coverage + solver identity + dialect ASTs). |
-| **R3** | Chunk-level test suite export in the chosen Conversion script language (Decision table rules, snippet interpolations, Blockly Functions, loop grain). PBT overlay for unspecified inputs and `regexReplaceAll`. |
+| **R3** | Chunk-level test suite export in the chosen Conversion script language (Decision table rules, snippet interpolations, Blockly Functions, loop grain). **Differential test vectors:** each Z3 model (one per reachable path / Decision table row) becomes a fixture replayed on Mapping preview **and** every generated Conversion script language, so codegen divergences (empty sequence vs `null` vs `undefined`, 0- vs 1-based indexing, numeric coercion) surface without symbolic execution of TS/Java/XQuery. PBT overlay for unspecified inputs and `regexReplaceAll`. |
 | **R4** | Optional Dafny slice for nominated critical slots; CI replay of the evidence pack’s SMT with the same Z3 version. |
 
 ## Architecture (target)
@@ -276,17 +280,27 @@ Properties to encode first (same layers as below; VMS mappings only):
 **Do not** expect informaticians to read SMT-LIB. The UI shows: pass/fail per
 property, a prose counterexample, and “Load as Example Instance”.
 
-WASM hosting constraints (implementation, not product language):
+WASM hosting constraints (implementation, not product language; numbers measured
+in the [spike](#spike-z3-wasm-on-real-fixtures-2026-10-27) with `z3-solver` 5.3.2):
 
-- `z3-solver` includes `z3-built.wasm` (~30+ MB). Lazy-load on first Verify
-  mapping; keep it off the Mapping Editor critical path.
+- `z3-built.wasm` is **35.4 MB** (8.1 MB with `gzip -9`) plus `z3-built.js`
+  0.36 MB. Lazy-load on first Verify mapping; keep it off the Mapping Editor
+  critical path.
 - Z3 needs `SharedArrayBuffer` → **COOP/COEP** headers. `deno task dev` and the
   desktop app can send them. GitHub Pages cannot set those headers; use a
   documented workaround (`coi-serviceworker` or equivalent) or degrade Verify
-  mapping on Pages with a clear message. Do not silently no-op.
-- Init is environment-specific (`z3-solver/browser` vs Node/Deno `locateFile`).
-  Deno can import `npm:z3-solver`; pin the solver **version** in the evidence
-  pack.
+  mapping on Pages with a clear message. Do not silently no-op. **Measured:**
+  without the headers `init()` still *resolves*, and the first `check()` then
+  throws `thread constructor failed`. So gate the feature on
+  `self.crossOriginIsolated`, not on a successful `init()`.
+- The **browser** entry of `z3-solver` is CommonJS and reads `global.initZ3`, and
+  `z3-built.js` must be loaded as its own `<script>` (it spawns workers from
+  itself). The spike needed a small `deno bundle` shim plus a separate script tag.
+  The web app's esbuild build must do the same; do not inline `z3-built.js`.
+- Deno: `import { init } from "npm:z3-solver"` works as is (no `locateFile` was
+  needed with Deno 2.9.7). Call `killThreads(api.em)` when done, or the worker
+  threads keep the process alive (matters for `deno test` and a replay CLI).
+  Pin the solver **version** in the evidence pack.
 - Run Z3 off the UI thread. Time-box checks; show partial results.
 
 ### B. Source Schema overlay and counterexamples
@@ -423,6 +437,112 @@ Canvas `text_handlebars` is the VMS-Hbs specification
 (`ProjectBundle.mapping.blocklyState`). Verify mapping must walk it with
 the same VMS-Hbs lowering, not only Blockly slots.
 
+## Spike: Z3 WASM on real fixtures (2026-10-27)
+
+A throwaway experiment in
+[`experiments/z3-spike/`](../../experiments/z3-spike/README.md) (own `deno.json`, not
+imported by the app or tests). It **hand-encodes** Decision tables from
+`test/fixtures/**` into SMT, mirroring `src/core/sheets/decision_table.ts`: FIRST hit
+policy, a catch-all row matches only when no earlier row matched, don't-care glyphs,
+numeric predicates `a..b` / `>= n` / `< n`, and otherwise string equality. It solves
+them with `npm:z3-solver` 5.3.2 under Deno 2.9.7 and replays every counterexample on the
+app's own `evaluateDecisionTable`, the Test Run oracle. The encoder is **not** generated
+from the Mapping Model; generating it is the actual work of #41.
+
+### Measurements (Linux x86-64 box, 8 vCPU; orders of magnitude, not benchmarks)
+
+| What | Result |
+|------|--------|
+| Bundle | `z3-built.wasm` 35.4 MB (8.1 MB `gzip -9`), `z3-built.js` 0.36 MB |
+| Deno: `init()` (WASM compile + threads) | 112–134 ms over six runs (from the local npm cache) |
+| Deno: whole spike, 30 tables, 216 queries | ≈1.8 s wall; scan of all tables ≈1.25 s (≈6 ms per query on average, including encoding); slowest single query ≈25 ms |
+| Real-arithmetic gap query (P1 below) | ≈86 ms; same query restricted to integers ≈31 ms |
+| SMT-LIB text round trip (`solver.toString()` → new solver `fromString`) | works; parse + solve ≈12 ms |
+| Headless Chromium, **with** COOP/COEP | `crossOriginIsolated: true`; `init()` 184–262 ms; P1 solve 67–78 ms |
+| Headless Chromium, **without** COOP/COEP | `init()` resolves (185–449 ms), then `check()` throws `thread constructor failed: Resource temporarily unavailable` |
+
+Browser numbers are from `localhost`; they do not include downloading 35 MB over a real
+network.
+
+### What it checked and found
+
+| # | Property (fixture) | Encoding | Verdict | Real issue? |
+|---|--------------------|----------|---------|-------------|
+| P1 | **Completeness vs Source Schema + required target slot**: `sbp_band` (`dummy-json-vitals`). Rows `< 90`, `90..139`, `>= 140`; source `systolic` is JSON Schema `number`; target `band` is `required`. | `sbp` as Real; assert *no row matches* | **sat**: `sbp = 279/2` (139.5). Replay on `evaluateDecisionTable` → `null`, so required `band` is missing. Over **integers** the same table is **unsat** (complete). | **Yes, a small one.** `90..139` is inclusive on both ends, so 139 < x < 140 falls through. The three demo instances are integers, so Test Run never sees it. Fix: `90..<140`-style half-open ranges, `< 140` in row 2, or an integer Source Schema type. |
+| P2 | **Value-set consistency vs target OPT + sensitivity**: `medication_ism` (`administrerad-medicinsk-onkologisk-behandling`, Karda). | Output columns as `ite` chains over rows; allowed codes read from the OPT's ISM_TRANSITION (`current_state` openehr::532 "completed", `careflow_step` local::at0007 "Fullföljd läkemedelsbehandling") | Outputs outside the OPT: **unsat** (proved for every input string). Outputs depend on inputs: **unsat**. No dead rows. | **No bug, but the sensitivity check correctly reports "constant output".** This is intentional (the table's notes say the OPT allows only one value). It is exactly the "declare the equivalence class" case of open question 7. The rows 1–4 vs catch-all distinction only affects the `note` column. |
+| P3 | **Dead (shadowed) rows** under FIRST and **reachable no-match** for every Decision table in the fixtures (30 tables), with Source Schema preconditions where the fixture schema has them (`bodyPosition` `enum`, ICD-10 `oneOf` consts) | One query per row plus one no-match query; present (non-empty) inputs | No row is dead in isolation. **Given the Source Schema**, `reclining` (simple-vitals, bp-series, mapping-series `body_position`) and the bp-series / mapping-series catch-all row (`''` → Sitting) are unreachable for *present* values. No-match is **unsat** for `icd10_display` and `body_position` under their schemas. No-match is **sat** for `lifestyle_code` (Obstetrix-MHV1, used by `obx-mhv1.intehrgrator-suggestions.json`): its inputs `TobakForegrav` / `SnusForeGrav` / `AlkoholForeGrav` / … are schema `integer` with no enum, so e.g. `0` → `null`. | **Candidates for a human, not bugs per se.** `reclining` is harmless dead weight vs the simulated schema. Obstetrix: whether codes outside 1–3 occur in real MHV1 data is unknown; Z3 can only say the schema allows them. Separately (evaluator replay, not Z3): in bp-series / mapping-series an **absent** `bodyPosition` falls to the catch-all row and yields `at1001` / "Sitting" on a mandatory Position element, which may be **invented clinical meaning** (layer 4) or a deliberate default. Worth a look. |
+
+A fourth, smaller check reproduces a pitfall from the AI conversation. It encodes
+`unit = src.unit; if (unit == "mmHg") unit = "mm[Hg]"` as two assertions on **one**
+constant. Z3 returns **sat** for the whole query (not "UNSAT" as the conversation
+said) and **unsat** once `src_unit = "mmHg"` is added. In other words, the encoding
+**silently prunes** the branch it was meant to check. That is worse than an error,
+and it is why `variables_set` needs `let`/SSA lowering (below).
+
+### Lessons for #41
+
+1. **The domain decides the verdict.** P1 is "proved complete" over integers and
+   "broken" over JSON `number`. The evidence pack must record the encoded
+   source domain next to every `unsat`, and Verify mapping should say "for every
+   systolic that is a JSON number", not "for every input".
+2. **Replay every counterexample on the real oracle** (`evaluateDecisionTable` /
+   Mapping preview, and later generated code). The spike did this for every `sat`
+   and the results agreed. Do it in the product too: it also catches encoder
+   bugs.
+3. **Decision tables are the cheapest first target.** They are finite, they are
+   already in the Mapping Model, and they map onto three useful checks (dead row,
+   no-match hole, output ∉ target value set) that informaticians understand.
+4. **String inputs need an explicit "present" precondition**, or Z3's first
+   counterexample is `""` (absent optional source), which is usually by design.
+   Absent vs present-but-unknown should be two separate properties.
+5. **SMT-LIB text is a workable artefact.** `solver.toString()` emits it,
+   `fromString` replays it, and a native `z3` (or `cvc5`, if we stay inside
+   standard theories) can re-check the `.smt2` in CI. This supports slice C.
+6. **Hosting caveats are real but manageable** (COOP/COEP gating, CommonJS browser
+   entry, a separate `z3-built.js`, `killThreads` in Deno). None of them blocked
+   the spike.
+
+## Input from an AI conversation (Gemini, shared on #41)
+
+Erik linked a Gemini conversation in #41 (two turns: *can Z3-based approaches such as
+SAGE / Pex / Moles verify or test integration mappings and openEHR forms?* and
+*should intEHRgrator emit something Z3 consumes or integrate Z3 another way?*).
+It is **input, not authority**. Claims were checked against primary sources or by
+running them in the spike before anything was adopted.
+
+### Taken (with corrections)
+
+| Idea | Status in this note |
+|------|---------------------|
+| Verify **upstream of codegen** (Blockly / Mapping Model → SMT) rather than symbolically executing generated TypeScript, Java, XQuery, Go and Handlebars | Already the direction (slice A). The conversation's reason (one encoding vs one symbolic engine per target language) is sound. |
+| Emit standard **SMT-LIB v2 text** as the artefact | Adopted for slice C. The spike confirmed the `toString` / `fromString` round trip in `z3-solver`. |
+| **Expression-oriented lowering** (`if`/`switch`/ternary → `ite`) and **let/SSA** for reassignment | Adopted. VMS already removed statement `controls_if`. `variables_set` in a `for_each_*` grain needs `let`/SSA (pitfall reproduced above). |
+| **Differential test vectors**: Z3 models → language-agnostic fixtures → run on every generated Conversion script language | Adopted into R3 / slice D. Expected outputs should come from Mapping preview (ADR 0003 oracle) **and** the Z3 model; a disagreement is an encoder or codegen bug. |
+| **Negated postcondition query** Φ_source(S) ∧ T = M(S) ∧ ¬Φ_target(T), with a subset of OPT / Web Template constraints compiled to SMT (occurrences, code lists, quantity ranges/units) | Adopted as the query shape (P2 is a small instance). `TemplateValidator` stays the authoritative postcondition; counterexamples must still be replayed through it. The RM invariants cited, DV_PROPORTION `Valid_denominator: denominator /= 0.0` and Interval `Limits_consistent`, are in the openEHR RM / BASE specs. |
+| **Equivalence / regression query** M_old(S) ≠ M_new(S) between two mapping versions (refactor, template upgrade) | **New** property for this note. See open question 14. |
+| Generate **fast-check arbitraries** from the target template / Source Schema for PBT | Consistent with the existing PBT tier. |
+| Model unknown functions as **uninterpreted functions** | Already used for `regexReplaceAll`. The conversation's use case (live terminology / MPI lookups) does not apply: convert-time lookups here are the Defaults Map and static Sheets. |
+
+### Rejected or flagged
+
+| Claim in the conversation | Why |
+|---------------------------|-----|
+| "If UNSAT you have **mathematically proven** that for *every possible valid source input* the mapping produces a schema-valid composition" | Only relative to the **encoding**: the source domain as encoded (see P1), uninterpreted XPath / regex, bounded collections, which OPT constraints were encoded, and whether the SMT semantics match preview and codegen (ADR 0003). The UI and evidence pack must state those assumptions. |
+| Z3 "synthesizes a minimal, path-complete corpus … **guaranteed** 100 % branch and condition coverage (**MC/DC**)" | Path completeness holds only for finite, loop-free encodings that finish within the time box (`unknown` / timeout exist). MC/DC needs independence pairs per condition, not one model per path. "Minimal" is not guaranteed. |
+| "Solves in milliseconds" / "500-node forms in milliseconds" | Small Decision tables: yes, measured (3–90 ms). Larger mappings, string-heavy queries and quantifiers: unmeasured. Keep the time box. |
+| Naive reassignment makes Z3 "immediately report UNSAT" | Wrong: run in the spike, it is **sat** with the branch silently pruned. The conclusion (use SSA) stands; the failure mode is worse than claimed. |
+| Attach `(! … :named block_id)` and use it to put warnings on the block a counterexample flows through | Named assertions give **unsat cores**, which help explain *why* something is proved or contradictory. They do not localise a **sat** counterexample. For that, evaluate per-block / per-row terms in the model, as the spike does per Decision table row. |
+| Example constants: systolic "Archetype constraint `[0..300)`"; Python snippet | `openEHR-EHR-OBSERVATION.blood_pressure.v2` constrains systolic to `0.0..<1000.0 mm[Hg]` (CKM mirror ADL). The Python snippet uses `If` and `StringVal` without importing them. Illustrative only. |
+| **Better Studio** form JSON (`dependencies` / `expressions` blocks with `show` / `hide` / `require` / `disable` / `clear`) and the "ghost mandatory", unreachable-field and score-gap checks | Better documents that its Form Builder has dependency logic and expressions, but no **public schema** for the exported form JSON was found (search 2026-10-27). The conversation itself noted it lacked documentation. The checks are plausible, and are the same shapes as dead-row / no-match / required-slot above. They are **out of scope for intEHRgrator** and would be a separate investigation (open question 17). |
+| Integration sources "HL7v2, FHIR, SQL row"; "no mature symbolic executor for XQuery" | intEHRgrator sources are JSON, XML and openEHR. The XQuery remark is unverified and moot, because we verify upstream of codegen. |
+| CrossHair / `hypothesis-crosshair`, Rosette as alternatives | They exist (PyPI `crosshair-tool`, `hypothesis-crosshair`; Rosette is Racket), but intEHRgrator emits no Python and runs in Deno and the browser. They stay in Tier 2 for comparison only. |
+
+Background facts checked: SAGE is Microsoft's whitebox fuzzer for x86 binaries; Pex
+ships in Visual Studio as **IntelliTest**; Moles became **Microsoft Fakes**; Symbolic
+PathFinder is the Java Pathfinder symbolic-execution extension. All use or used an SMT
+solver. None of them is a candidate here, because they analyse generated code, not
+the mapping specification.
+
 ## Anti-patterns
 
 - Treating Schematron or JSON Schema assertions alone as “proof” — they validate output, not mapping logic for all inputs.
@@ -435,6 +555,12 @@ the same VMS-Hbs lowering, not only Blockly slots.
 - Generating a cartesian **whole-convert** test matrix as the default suite — explode on source fields; emit **chunk** tests (collapsed Decision table rules, functions, grain).
 - Leaving Decision table no-match as `null` while calling convert crash-free — that is a silent hole, not Rejected.
 - Shipping Verify mapping that **silently no-ops** on GitHub Pages because COOP/COEP is missing.
+  (`init()` succeeds without the headers; only `check()` fails, so gate on `crossOriginIsolated`.)
+- Reporting "proved for all inputs" without the **encoded source domain** (integer vs JSON `number`,
+  present vs absent, enum vs free string). The same table can be complete in one and broken in the other.
+- Encoding reassignment (`variables_set`) as repeated assertions on one SMT constant. It prunes branches
+  silently. Use `let`/SSA.
+- Trusting a `sat` model without replaying it on Mapping preview / the generated script.
 
 ## Blockly and product features that hinder declarative export / verification
 
@@ -712,6 +838,26 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
     encode as-is, warn when nesting exceeds a small depth).
 12. **`regexReplaceAll`** — keep uninterpreted in SMT; which gold strings belong
     in the evidence pack vs generated chunk tests.
+13. **Numeric Decision table conditions** — the spike found a 139 < x < 140 hole in
+    `sbp_band` because `a..b` is inclusive. Options: half-open range syntax
+    (`90..<140`), a lint that runs the no-match query on save, or typing source
+    numbers as integer where the Source Schema says so. Probably all three.
+14. **Version equivalence** — offer "is mapping v2 equivalent to v1 for all
+    source?" (M_old ≠ M_new query) when refactoring or upgrading a template?
+    Useful for release notes and MDR change control.
+15. **Target constraints in SMT vs `TemplateValidator`** — how much of the
+    OPT / Web Template (occurrences, code lists, quantity ranges, RM invariants)
+    to compile into SMT, versus generating candidates with Z3 and judging them with
+    `TemplateValidator`. The spike read code lists straight from the OPT; a real
+    emitter should reuse ehrtslib's parsed template.
+16. **Absent vs present source** — model optional source as a separate
+    "absent" flag per read, so that "what happens when bodyPosition is missing"
+    (spike: Sitting via the `''` row) is its own reviewable property, not noise in
+    every counterexample.
+17. **openEHR forms (e.g. Better Studio)** — the same checks (unreachable field,
+    required-but-hidden, score gaps) would apply to form dependency rules, but
+    there is no public form-JSON schema to build on. Separate issue, or out of
+    scope?
 
 ## Related
 
@@ -728,6 +874,7 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 - [ADR 0009](../adr/0009-verifiable-template-dialects.md) — VMS-Hbs / VMS-Go / VMS-Mustache; in-dialect snippets are VMS
 - [verifiable-template-snippets.md](../proposals/verifiable-template-snippets.md) — dialect investigation; `regexReplaceAll` not SMT-proved
 - [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official JS/TS bindings; Z3 distributed as WASM
+- [experiments/z3-spike](../../experiments/z3-spike/README.md) — throwaway Z3 WASM spike (Deno + Chromium) with recorded results
 - [Autonoma: What Is Decision Table Testing?](https://getautonoma.com/blog/decision-table-testing) — collapse don’t-cares, then one parameterised test per remaining rule (comment on [#41](https://github.com/regionstockholm/intehrgrator/issues/41))
 
 ## External references
@@ -739,6 +886,13 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 - Metamorphic testing of transformations (relations between paired runs, no gold output per input): Chen et al., *Metamorphic Testing: A Review of Challenges and Opportunities*
 - Z3 JavaScript/WASM: [z3-solver](https://www.npmjs.com/package/z3-solver); browser `SharedArrayBuffer` / COOP-COEP notes in that package README
 - Decision-table test collapsing: [Autonoma](https://getautonoma.com/blog/decision-table-testing)
+- SMT-LIB v2 standard (portable `.smt2` for replay with Z3 or cvc5): [smt-lib.org](https://smt-lib.org/)
+- Whitebox test generation background (from the AI conversation; analyse *code*, not specs):
+  [SAGE: Automated Whitebox Fuzz Testing](https://www.microsoft.com/en-us/research/publication/automated-whitebox-fuzz-testing/),
+  [Pex and Moles](https://www.microsoft.com/en-us/research/project/pex-and-moles-isolation-and-white-box-unit-testing-for-net/)
+  (Pex → Visual Studio IntelliTest; Moles → Microsoft Fakes)
+- openEHR RM data types invariants (DV_PROPORTION `Valid_denominator`): [RM data_types](https://specifications.openehr.org/releases/RM/latest/data_types.html);
+  Interval `Limits_consistent`: [BASE foundation_types](https://specifications.openehr.org/releases/BASE/latest/foundation_types.html)
 
 ## Question for parallel research
 
