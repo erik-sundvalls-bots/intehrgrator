@@ -672,7 +672,7 @@ export class WorkbenchService {
       : this.controller.getAiSourceDescriptionLanguage();
     const sourceLanguages = this.controller.getSourceLanguages();
     return {
-      schema: compactSourceTree(this.controller.getSourceTreeIn(descriptionLanguage), 0, 8, descriptionLanguage),
+      schema: compactSourceTree(this.controller.getSourceTreeIn(descriptionLanguage), 0, undefined, descriptionLanguage),
       ...(descriptionLanguage && s.schemaTree ? { descriptionLanguage } : {}),
       ...(sourceLanguages.length ? { sourceLanguages } : {}),
       ...(schemaLanguages.length ? { schemaLanguages } : {}),

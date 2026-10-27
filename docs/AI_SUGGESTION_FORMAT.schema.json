@@ -196,6 +196,10 @@
         "block": {
           "$ref": "#/$defs/valueBlock"
         },
+        "rmType": {
+          "enum": ["DV_CODED_TEXT", "DV_TEXT"],
+          "description": "Only on a DV_TEXT slot: DV_CODED_TEXT maps it as the subclass (value + code_string + terminology_id). Inferred when the block is a map with code_string."
+        },
         "note": {
           "type": "string",
           "description": "Only for risks: ambiguous source, unit/coding mismatch, lossy conversion, guessed path. Not for routine confirmations."

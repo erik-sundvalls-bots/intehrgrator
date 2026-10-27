@@ -36,6 +36,8 @@ export interface SlotInfo {
   length?: { min?: number; max?: number; exact?: number };
   format?: string;
   examples?: unknown[];
+  /** JSON Schema `examples` beyond the first 3, counted (#292). */
+  examplesOmitted?: number;
   default?: unknown;
   /** Allowed values the skeleton does not list itself (JSON `enum`, XSD enumeration). */
   enum?: Array<{ code: string; text?: string }>;
@@ -248,7 +250,10 @@ function jsonInfo(schema: Json, lang?: string): SlotInfo {
   if (typeof schema.maxLength === "number") length.max = schema.maxLength;
   if (Object.keys(length).length) info.length = length;
   if (typeof schema.format === "string") info.format = schema.format;
-  if (Array.isArray(schema.examples) && schema.examples.length) info.examples = schema.examples.slice(0, 3);
+  if (Array.isArray(schema.examples) && schema.examples.length) {
+    info.examples = schema.examples.slice(0, 3);
+    if (schema.examples.length > 3) info.examplesOmitted = schema.examples.length - 3;
+  }
   if (schema.default !== undefined) info.default = schema.default;
   if (Array.isArray(schema.enum)) {
     info.enum = schema.enum.filter((v) => v !== null).map((v) => ({ code: String(v) }));

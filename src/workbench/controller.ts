@@ -22,6 +22,7 @@ import type {
   TargetFormatId,
   TestResult,
 } from "../types/mod.ts";
+import { textSubtype } from "../core/openehr/coded_text.ts";
 import {
   APP_VERSION,
   AUTOSAVE_STORAGE_KEY,
@@ -1403,7 +1404,7 @@ export class WorkbenchController {
     for (const item of slots) {
       const targetSlot = targetSlots.get(item.slotId);
       next = applyExpressionEdit(next, item.slotId, item.expression, {
-        rmType: targetSlot?.rmType ?? item.rmType,
+        rmType: targetSlot ? textSubtype(targetSlot, item.rmType) : item.rmType,
         returnType: targetSlot ? returnTypeForTarget(targetSlot.rmType) : "string",
         label: targetSlot?.label,
         mandatory: targetSlot?.mandatory,
