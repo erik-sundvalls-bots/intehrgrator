@@ -9,6 +9,7 @@ import {
   codedTextParts,
   codedTextRmType,
 } from "@intehrgrator/core/openehr/coded_text.ts";
+import { adoptBlocklyState } from "@intehrgrator/workbench/blockly_sync.ts";
 import type {
   MappingSlot,
   SkeletonNode,
@@ -106,6 +107,21 @@ function slot(
   }).controller.getState().model.slots.find((s) => s.slotId === slotId);
 }
 
+/** The slot as the canvas reads it back (what a browser edit persists). */
+function canvasSlot(
+  service: WorkbenchService,
+  slotId: string,
+): MappingSlot | undefined {
+  const s = (service as unknown as {
+    controller: {
+      getState(): { blocklyState: unknown; skeleton: SkeletonNode[] };
+    };
+  }).controller.getState();
+  return adoptBlocklyState(s.blocklyState, s.skeleton).extract.slots.find((x) =>
+    x.slotId === slotId
+  );
+}
+
 Deno.test("codedTextRmType: an explicit choice wins, else a code makes DV_CODED_TEXT", () => {
   const coded =
     'map("value", xpathString("a"), "code_string", xpathString("b"))';
@@ -170,6 +186,9 @@ Deno.test("#274 a code on a DV_TEXT slot maps it as DV_CODED_TEXT in TypeScript 
   const mapped = slot(service, DIAGNOSIS);
   assertEquals(mapped?.rmType, "DV_CODED_TEXT");
   assertStringIncludes(mapped?.expression ?? "", '"code_string"');
+  const onCanvas = canvasSlot(service, DIAGNOSIS);
+  assertEquals(onCanvas?.rmType, "DV_CODED_TEXT");
+  assertStringIncludes(onCanvas?.expression ?? "", '"code_string"');
   for (const mode of ["typescript", "xquery"] as const) {
     const result = await run(service, mode);
     assertEquals(result.ok, true, `${mode}: ${result.error}`);
@@ -206,6 +225,7 @@ Deno.test("#274 rmType DV_TEXT switches a coded slot back to plain text", async 
   });
   assertEquals(report.applied, 1, JSON.stringify(report));
   assertEquals(slot(service, DIAGNOSIS)?.rmType, "DV_TEXT");
+  assertEquals(canvasSlot(service, DIAGNOSIS)?.rmType, "DV_TEXT");
   const value = diagnosisValue(await run(service, "typescript"));
   assertEquals(value._type, "DV_TEXT");
   assertEquals(value.value, "Concussion");

@@ -217,7 +217,7 @@ function collectSlots(workspace: Workspace): {
       continue;
     }
     const slotId = block.getFieldValue("SLOT_ID");
-    const rmType = block.getFieldValue("RM_TYPE") || block.getFieldValue("TARGET_TYPE");
+    let rmType = block.getFieldValue("RM_TYPE") || block.getFieldValue("TARGET_TYPE");
     const valueBlock = block.getInputTargetBlock("VALUE");
     const exprBlock = valueBlock && isTermPickBlock(valueBlock)
       ? valueBlock
@@ -227,7 +227,10 @@ function collectSlots(workspace: Workspace): {
       ? expressionBlockFromDataValueShell(block)
       : valueBlock;
     const shell = valueBlock && isDataValueBlock(valueBlock) ? valueBlock : isDataValueBlock(block) ? block : null;
-    const coded = shell?.getFieldValue("RM_TYPE") === "DV_CODED_TEXT" ? codedTextExpression(shell) : null;
+    const shellRm = shell?.getFieldValue("RM_TYPE");
+    // The element's RM_TYPE is the template's DV_TEXT; its shell may be DV_CODED_TEXT (#274).
+    if (shellRm === "DV_TEXT" || shellRm === "DV_CODED_TEXT") rmType = shellRm;
+    const coded = shellRm === "DV_CODED_TEXT" ? codedTextExpression(shell!) : null;
     const expression = coded ?? blockToExpression(exprBlock);
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
