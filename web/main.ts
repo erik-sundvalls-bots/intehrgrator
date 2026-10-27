@@ -881,12 +881,14 @@ function setupLanguageWidgets(): void {
   if (targetRoot) {
     targetLangWidget = createLanguageWidget(targetRoot, {
       nameOf: displayLanguageName,
+      isKnown: isKnownLanguage,
       onPick: (code) => code ? controller.setModelLanguage(code) : controller.clearTargetDisplayLanguage(),
       texts: () => ({
         aria: uiChrome().langWidgetTargetAria,
         title: uiChrome().langWidgetTitle,
         follow: uiChrome().langWidgetFollow,
         chosen: uiChrome().langWidgetChosen,
+        unknown: uiChrome().langWidgetUnknown,
       }),
     });
   }
@@ -894,12 +896,14 @@ function setupLanguageWidgets(): void {
   if (sourceRoot) {
     sourceLangWidget = createLanguageWidget(sourceRoot, {
       nameOf: displayLanguageName,
+      isKnown: isKnownLanguage,
       onPick: (code) => controller.setSourceDisplayLanguage(code),
       texts: () => ({
         aria: uiChrome().langWidgetSourceAria,
         title: uiChrome().langWidgetTitle,
         follow: uiChrome().langWidgetFollow,
         chosen: uiChrome().langWidgetChosen,
+        unknown: uiChrome().langWidgetUnknown,
       }),
     });
   }

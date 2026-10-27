@@ -16,9 +16,11 @@ export interface LanguageWidgetState {
 export interface LanguageWidgetOptions {
   /** Shown name of a code, in the UI language. */
   nameOf: (code: string) => string;
+  /** False for a code that is not in the ISO 639-1 codeset: shown as-is with a warning (#279). */
+  isKnown?: (code: string) => boolean;
   /** `null` = follow `lang.1` again. */
   onPick: (code: string | null) => void;
-  texts: () => { aria: string; title: string; follow: string; chosen: string };
+  texts: () => { aria: string; title: string; follow: string; chosen: string; unknown?: string };
 }
 
 export interface LanguageWidget {
@@ -138,6 +140,15 @@ export function createLanguageWidget(root: HTMLElement, options: LanguageWidgetO
       const codeEl = document.createElement("code");
       codeEl.textContent = code;
       item.append(codeEl);
+      if (options.isKnown && !options.isKnown(code)) {
+        const warn = document.createElement("span");
+        warn.className = "lang-widget-unknown";
+        warn.textContent = " ⚠";
+        warn.setAttribute("aria-hidden", "true");
+        item.append(warn);
+        item.title = (t.unknown ?? "Not an ISO 639-1 code: {code}").replace("{code}", code);
+        item.dataset.unknown = "true";
+      }
       if (code === current) item.classList.add("is-current");
       item.addEventListener("click", () => {
         close(true);

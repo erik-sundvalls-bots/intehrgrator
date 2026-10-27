@@ -5,12 +5,14 @@
  * Languages… dialog sets `source.lang.N` and the AI context languages.
  *
  * Set PR_SCREENSHOTS=1 to write /workspace/pr279-*.png (never in CI).
+ * Set TUTORIAL_SCREENSHOTS=1 to rewrite docs/assets/tutorial/target-language-widget.png.
  */
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { chromium, type Page } from "npm:playwright@1.51.0";
 import { baseUrl, fixtureText, waitForTestApi } from "./helpers.ts";
 
 const SHOTS = Deno.env.get("PR_SCREENSHOTS") === "1";
+const TUTORIAL = Deno.env.get("TUTORIAL_SCREENSHOTS") === "1";
 // A bilingual XSD target (en, sv): its labels are the `xs:documentation` texts.
 const XSD = "test/fixtures/multilingual-referral/referral.xsd";
 const SV_SOURCE = `<?xml version="1.0"?>\n<olycka xml:lang="sv"><skada>Fraktur</skada></olycka>`;
@@ -122,6 +124,94 @@ Deno.test({
       assertEquals(await page.inputValue("#ai-source-languages"), "sv, en");
       assertEquals(await page.locator("input[name=ai-context-languages][value=all]").isChecked(), true);
       await page.click("#ai-languages-cancel");
+    } finally {
+      await browser.close();
+    }
+  },
+});
+
+// An XSD target documented in English and in a code that is not ISO 639-1.
+const ODD_LANG_XSD = `<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="Note">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">A note.</xs:documentation>
+      <xs:documentation xml:lang="qq">Qq note.</xs:documentation>
+    </xs:annotation>
+    <xs:complexType><xs:sequence>
+      <xs:element name="Text" type="xs:string">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">The text.</xs:documentation>
+          <xs:documentation xml:lang="qq">Qq text.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence></xs:complexType>
+  </xs:element>
+</xs:schema>`;
+
+Deno.test({
+  name: "UI: 💬 on an OPT XML target (SDV en/sv/de); ?hl=sv does not pick the label language; unknown codes are flagged (#279)",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+      await page.goto(`${baseUrl}/?testMode=1&hl=sv`, { waitUntil: "networkidle" });
+      await waitForTestApi(page);
+      const targetBtn = page.locator("#target-lang-widget .lang-widget-btn");
+      const targetTree = page.locator("#target-schema-tree");
+      const menu = page.locator("#target-lang-widget-menu");
+
+      // English source: target.lang.1 = en, whatever the UI language.
+      await load(page, "loadTemplate", "simple-diagnose-and-vitals.opt", await fixtureText("test/fixtures/simple-diagnose-and-vitals.opt"));
+      await load(page, "loadSchema", "vitals.xml", `<?xml version="1.0"?>\n<vitals xml:lang="en"><systolic>120</systolic></vitals>`);
+      await targetBtn.waitFor({ state: "visible", timeout: 10_000 });
+      assertEquals((await targetBtn.innerText()).trim(), "💬 en");
+      assertStringIncludes(await targetTree.innerText(), "Systolic");
+
+      await targetBtn.click();
+      await menu.waitFor({ state: "visible", timeout: 2_000 });
+      const langs = await menu.locator("[data-lang]").evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.lang));
+      assertEquals(langs, ["en", "sv", "de"]);
+      await menu.locator("[data-lang=sv]").click();
+      await page.waitForTimeout(400);
+      assertEquals((await targetBtn.innerText()).trim(), "💬 sv");
+      assertStringIncludes(await targetTree.innerText(), "Systoliskt");
+
+      // A schema language outside ISO 639-1 is listed as-is, with a warning.
+      await load(page, "loadTemplate", "note.xsd", ODD_LANG_XSD);
+      await targetBtn.waitFor({ state: "visible", timeout: 5_000 });
+      await targetBtn.click();
+      const odd = menu.locator("[data-lang=qq]");
+      await odd.waitFor({ state: "visible", timeout: 2_000 });
+      assertEquals(await odd.getAttribute("data-unknown"), "true");
+      assertStringIncludes((await odd.getAttribute("title")) ?? "", "qq");
+      assertStringIncludes(await odd.innerText(), "⚠");
+      assertEquals(await menu.locator("[data-lang=en]").getAttribute("data-unknown"), null);
+
+      if (TUTORIAL) {
+        // English chrome, SDV shown in Swedish, popover open over the target pane.
+        const shot = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+        await shot.goto(`${baseUrl}/?testMode=1&hl=en`, { waitUntil: "networkidle" });
+        await waitForTestApi(shot);
+        await load(shot, "loadTemplate", "simple-diagnose-and-vitals.opt", await fixtureText("test/fixtures/simple-diagnose-and-vitals.opt"));
+        await load(shot, "loadSchema", "vitals.xml", `<?xml version="1.0"?>\n<vitals xml:lang="sv"><systolic>120</systolic></vitals>`);
+        await shot.locator("#target-lang-widget .lang-widget-btn").click();
+        const m = shot.locator("#target-lang-widget-menu");
+        await m.waitFor({ state: "visible", timeout: 2_000 });
+        const pane = await shot.locator("#target-schema-tree").boundingBox();
+        const mbox = await m.boundingBox();
+        if (pane && mbox) {
+          const x = Math.min(pane.x, mbox.x) - 10;
+          const y = mbox.y - 50;
+          await shot.screenshot({
+            path: "docs/assets/tutorial/target-language-widget.png",
+            clip: { x, y, width: pane.x + pane.width - x + 10, height: 340 },
+          });
+        }
+        await shot.close();
+      }
     } finally {
       await browser.close();
     }

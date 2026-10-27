@@ -120,7 +120,9 @@ export function reloadTargetLanguage(
       webTemplateJson: loaded.webTemplateJson,
     };
   }
-  if (definition.webTemplateJson) {
+  // An OPT XML file is re-read itself (#279): target languages keep the OPT's
+  // order, and `webTemplateJson` (Simplified FLAT ids) stays the first load's.
+  if (definition.webTemplateJson && !definition.content.trimStart().startsWith("<")) {
     const generated = generateSkeletonFromWebTemplate(definition.webTemplateJson, {
       language,
     });

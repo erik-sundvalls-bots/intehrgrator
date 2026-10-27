@@ -187,7 +187,7 @@ export class WorkbenchController {
   /** Example id → origin URI when loaded from URL (session). */
   private exampleOriginUrls = new Map<string, string>();
   private target: TargetDefinition | null = null;
-  private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; index: SlotInfoIndex } | null = null;
+  private slotInfoCache: { target: TargetDefinition | null; skeleton: SkeletonNode[]; lang?: string; index: SlotInfoIndex } | null = null;
   /** UI language: breaks a `target.lang.1` tie only (#277 §4). */
   private uiLanguage = "en";
   /** Target re-read per language (labels for the AI, hover), per loaded target (#279). */
@@ -1746,10 +1746,10 @@ export class WorkbenchController {
   getSlotInfoIndex(): SlotInfoIndex {
     const skeleton = this.getAiSkeleton();
     const cache = this.slotInfoCache;
-    if (cache && cache.target === this.target && cache.skeleton === skeleton) return cache.index;
     const lang = this.getAiLanguages()[0];
+    if (cache && cache.target === this.target && cache.skeleton === skeleton && cache.lang === lang) return cache.index;
     const index = slotInfoForTarget(this.target && lang ? { ...this.target, language: lang } : this.target, skeleton);
-    this.slotInfoCache = { target: this.target, skeleton, index };
+    this.slotInfoCache = { target: this.target, skeleton, lang, index };
     return index;
   }
 

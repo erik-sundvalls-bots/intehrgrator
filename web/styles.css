@@ -2238,6 +2238,7 @@ span.ai-notes-option { cursor: default; }
   background: transparent; color: inherit; cursor: pointer; white-space: nowrap;
 }
 .lang-widget-item:hover { background: #f1f3f4; }
+.lang-widget-unknown { color: #b06000; }
 .lang-widget-item[aria-checked="true"] { font-weight: 600; }
 .lang-widget-item[aria-checked="true"]::before { content: "✓ "; }
 .lang-widget-item.is-current:not([aria-checked="true"]) { font-style: italic; }

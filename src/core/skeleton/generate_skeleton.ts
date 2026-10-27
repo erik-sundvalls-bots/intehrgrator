@@ -97,7 +97,7 @@ export function generateSkeleton(
   return {
     ...generated,
     warnings: [...parsed.warnings, ...generated.warnings],
-    webTemplateJson: webTemplateJsonFromOperational(opt, generated.language),
+    webTemplateJson: webTemplateJsonFromOperational(opt, generated.language, generated.languages),
   };
 }
 
@@ -134,9 +134,13 @@ export function generateSkeletonFromWebTemplate(
   };
 }
 
-function webTemplateJsonFromOperational(opt: AmObject, language: string): string | undefined {
+/**
+ * Web Template with every OPT language, `language` first (#279): labels and
+ * ids in `language`, `localizedNames` / `localizedDescriptions` for the rest.
+ */
+function webTemplateJsonFromOperational(opt: AmObject, language: string, languages: string[]): string | undefined {
   try {
-    return JSON.stringify(buildWebTemplate(opt, { defaultLanguage: language }));
+    return JSON.stringify(buildWebTemplate(opt, { languages: [language, ...languages.filter((l) => l !== language)] }));
   } catch {
     return undefined;
   }
