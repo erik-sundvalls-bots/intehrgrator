@@ -15,6 +15,7 @@ import type {
 } from "../types/mod.ts";
 import { procedureParamNames } from "../core/function_library/blockly_json.ts";
 import {
+  dvFieldInputName,
   expressionBlockFromDataValueShell,
   isDataValueBlock,
   optionalRmExtrasOf,
@@ -225,7 +226,9 @@ function collectSlots(workspace: Workspace): {
       : isDataValueBlock(block)
       ? expressionBlockFromDataValueShell(block)
       : valueBlock;
-    const expression = blockToExpression(exprBlock);
+    const shell = valueBlock && isDataValueBlock(valueBlock) ? valueBlock : isDataValueBlock(block) ? block : null;
+    const coded = shell?.getFieldValue("RM_TYPE") === "DV_CODED_TEXT" ? codedTextExpression(shell) : null;
+    const expression = coded ?? blockToExpression(exprBlock);
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
@@ -233,6 +236,28 @@ function collectSlots(workspace: Workspace): {
     }
   }
   return { slots, blocks };
+}
+
+/**
+ * A DV_CODED_TEXT shell whose code or terminology comes from a mapping (not a
+ * fixed field) reads back as `map("value", …, "code_string", …,
+ * "terminology_id", …)`, so the model keeps the code (#274). Else null.
+ */
+function codedTextExpression(shell: Block): string | null {
+  const phrase = shell.getInputTargetBlock(dvFieldInputName("defining_code"));
+  const part = (owner: Block | null, attr: string) => {
+    const target = owner?.getInputTargetBlock(dvFieldInputName(attr));
+    return target && !target.isShadow() ? blockToExpression(target) : "";
+  };
+  const code = part(phrase, "code_string") || part(shell, "code_string");
+  const term = part(phrase, "terminology_id") || part(shell, "terminology_id");
+  if (!code && !term) return null;
+  const pairs: string[] = [];
+  const value = part(shell, "value");
+  if (value) pairs.push(`"value", ${value}`);
+  if (code) pairs.push(`"code_string", ${code}`);
+  if (term) pairs.push(`"terminology_id", ${term}`);
+  return `map(${pairs.join(", ")})`;
 }
 
 function optionalRmFromWorkspace(workspace: Workspace): OptionalRmInsertion[] {

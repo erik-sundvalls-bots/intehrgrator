@@ -36,6 +36,7 @@ import {
   preferredInstanceEncoding,
 } from "../output/instance_encoding.ts";
 import { usesOpenEhrProduct } from "./product.ts";
+import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 
@@ -1097,9 +1098,11 @@ function xmlChild(key: string, value: string): string {
 function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
   const slot = ctx.slots.get(node.slotId);
   let expr: string | null = null;
+  const coded = node.rmType === "DV_CODED_TEXT" ? codedTextParts(slot?.expression) : null;
+  const part = (ast?: ExprAst) => ast ? emitXQueryExpr(ast, ctx.env) : undefined;
   if (slot?.expression) {
     try {
-      expr = emitXQueryExpr(parseExpression(slot.expression), ctx.env);
+      expr = coded ? part(coded.value) ?? null : emitXQueryExpr(parseExpression(slot.expression), ctx.env);
     } catch {
       expr = "()";
     }
@@ -1151,17 +1154,19 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
     rmType === "DV_TEXT" || rmType === "DV_IDENTIFIER" || rmType === "DV_CODED_TEXT"
   ) {
     const value = expr ?? (fields.value ? xqString(fields.value) : null);
-    const code = fields.defining_code ?? fields.code_string;
+    const fixedCode = fields.defining_code ?? fields.code_string;
     if (rmType === "DV_CODED_TEXT") {
-      const term = fields.terminology_id ?? "openehr";
+      // A map("value", …, "code_string", …, "terminology_id", …) mapping (#274) wins over fixed fields.
+      const term = part(coded?.terminology) ?? xqString(fields.terminology_id ?? "openehr");
+      const code = part(coded?.code) ?? (fixedCode ? xqString(fixedCode) : null);
       if (!code && !value) return null;
       if (ctx.shape === "json") {
-        return `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${xqString(term)}, "code_string": ${code ? xqString(code) : '""'} } }`;
+        return `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} } }`;
       }
       return `attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { ${
         value ?? '""'
-      } }, element rm:defining_code { element rm:terminology_id { element rm:value { ${xqString(term)} } }, element rm:code_string { ${
-        code ? xqString(code) : '""'
+      } }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${
+        code ?? '""'
       } } }`;
     }
     if (!value) return null;
