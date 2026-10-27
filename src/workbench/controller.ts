@@ -1673,7 +1673,13 @@ export class WorkbenchController {
     const active = this.examples.getActive();
     if (!active) return null;
     const rootName = active.filename.replace(/\.[^.]+$/, "");
-    return getSourceFormatHandler(active.format).loadInstance(active.content, rootName);
+    try {
+      return getSourceFormatHandler(active.format).loadInstance(active.content, rootName);
+    } catch {
+      // A file-backed Example Instance can be invalid while being edited.
+      // Test Run and source validation report its error; keep the Mapping Editor usable.
+      return null;
+    }
   }
 
   private buildExampleValidations(): Record<string, InstanceValidationIssue[]> {

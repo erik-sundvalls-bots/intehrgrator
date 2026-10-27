@@ -43,6 +43,7 @@
     "npm:@lezer/highlight@^1.2.1": "1.2.3",
     "npm:@lhncbc/ucum-lhc@*": "7.1.8",
     "npm:@shoelace-style/shoelace@2.20.1": "2.20.1_@floating-ui+utils@0.2.12_@types+react@19.3.0",
+    "npm:@types/vscode@1.85.0": "1.85.0",
     "npm:blockly@*": "11.2.2",
     "npm:blockly@11.2.2": "11.2.2",
     "npm:blockly@^11.2.2": "11.2.2",
@@ -576,6 +577,9 @@
     },
     "@types/trusted-types@2.0.7": {
       "integrity": "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="
+    },
+    "@types/vscode@1.85.0": {
+      "integrity": "sha512-CF/RBon/GXwdfmnjZj0WTUMZN5H6YITOfBCP4iEZlOtVQXuzw6t7Le7+cR+7JzdMrnlm7Mfp49Oj2TuSXIWo3g=="
     },
     "agent-base@7.1.4": {
       "integrity": "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="
@@ -2282,6 +2286,7 @@
       "npm:@floating-ui/dom@^1.7.4",
       "npm:@lezer/highlight@^1.2.1",
       "npm:@shoelace-style/shoelace@2.20.1",
+      "npm:@types/vscode@1.85.0",
       "npm:blockly@^11.2.2",
       "npm:fast-xml-parser@^4.5.6",
       "npm:fflate@~0.8.2",

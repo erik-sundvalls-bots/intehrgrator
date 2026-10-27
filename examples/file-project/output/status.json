@@ -1,0 +1,18 @@
+{
+  "artifacts": [
+    "output/conversion.ts",
+    "output/examples/person-01.json"
+  ],
+  "examples": {
+    "person-01.json": {
+      "ok": true,
+      "validation": {
+        "applicable": false,
+        "messages": [],
+        "valid": true
+      },
+      "warnings": []
+    }
+  },
+  "mappingIssues": []
+}

@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **VS Code file projects**: open a visual mapping backed by separate source, target and mapping files; saving updates generated code and per-example results in the repository, including incomplete mappings and removed fields. The shared `project:run --check` command verifies committed results in CI.
+
 ## [0.10.0] - 2026-10-23
 
 Minor release: one shared, append-only change history for you, the AI chat and MCP agents, with authors, Undo / Revert and a history panel (ADR 0014). MCP `undo` no longer takes `scope`, and the new `revert` tool takes back one entry.

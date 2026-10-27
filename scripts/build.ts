@@ -95,6 +95,9 @@ await esbuild.build({
   entryPoints: ["extension/extension.ts"],
   bundle: true,
   outfile: "dist/extension.js",
+  // The mapping workbench never uses jsdom's synchronous XMLHttpRequest worker.
+  // Its relative require.resolve cannot survive bundling into extension.js.
+  define: { "require.resolve": "undefined" },
   format: "cjs",
   target: "node18",
   platform: "node",

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { registerFileProjects } from "./file_project.ts";
 import { assertHttpUrl, filenameFromUrl, toFetchableUrl } from "../src/host/fetch_url.ts";
 import { acceptToExtensions, acceptToVscodeFilters } from "../src/host/file_picker.ts";
 
@@ -21,6 +22,7 @@ interface StoredRecord {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  registerFileProjects(context, webviewHtml, (webview, message) => handleHostRequest(context, webview, message as HostRequest));
   context.subscriptions.push(
     vscode.commands.registerCommand("intehrgrator.openWorkbench", async () => {
       const panel = vscode.window.createWebviewPanel(
@@ -274,17 +276,17 @@ async function webviewHtml(
 ): Promise<string> {
   const dist = vscode.Uri.joinPath(context.extensionUri, "dist");
   const htmlBytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dist, "index.html"));
-  const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(dist, "styles.css"));
-  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(dist, "bundle.js"));
   const csp = [
     "default-src 'none'",
-    `style-src ${webview.cspSource} https://fonts.googleapis.com`,
+    `style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src ${webview.cspSource} https://fonts.gstatic.com`,
     `img-src ${webview.cspSource} data:`,
-    `script-src ${webview.cspSource}`,
+    `script-src ${webview.cspSource} 'unsafe-eval'`,
+    `connect-src ${webview.cspSource} https:`,
   ].join("; ");
   return new TextDecoder().decode(htmlBytes)
+    .replace(/(href|src)="(?!https?:|#|data:)([^"\s]+)"/g, (_match, attribute, path) =>
+      `${attribute}="${webview.asWebviewUri(vscode.Uri.joinPath(dist, path))}"`)
     .replace("</head>", `<meta http-equiv="Content-Security-Policy" content="${csp}"></head>`)
-    .replace('href="styles.css"', `href="${styleUri}"`)
-    .replace('src="./bundle.js"', `src="${scriptUri}"`);
+    ;
 }

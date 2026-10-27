@@ -22,6 +22,8 @@ jobs:
         run: deno task vendor
       - name: Test
         run: deno task test
+      - name: Check file project output
+        run: deno task project:run examples/file-project/intehrgrator.json --check
       - name: Build
         run: deno task build
       - name: Upload build artifact

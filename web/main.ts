@@ -1,6 +1,8 @@
 import * as Blockly from "blockly/core";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
+import { VsCodeWebviewHostAdapter } from "../src/host/vscode_webview_adapter.ts";
+import { connectFileProjectEditor } from "../src/workbench/file_project_editor.ts";
 import { WorkbenchController } from "../src/workbench/controller.ts";
 import { TASK_PROGRESS_OVERLAY_ID, taskProgressInnerHtml } from "../src/workbench/task_progress.ts";
 import { ensureGoTemplateWasm } from "../src/core/output/go_template_runtime.ts";
@@ -4535,6 +4537,7 @@ async function main(): Promise<void> {
     console.warn("Go template WASM not loaded:", err);
   });
   await bootBlockly();
+  if (host instanceof VsCodeWebviewHostAdapter) connectFileProjectEditor(controller, host);
   await wasmReady;
   render();
   startHistory();

@@ -10,3 +10,4 @@ src/desktop/www/
 # Local Click-to-Map / Test Run experiments (e.g. scripts/map-bp-series-ui.ts)
 mappings/
 dump-err.txt
+*.vsix

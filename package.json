@@ -4,6 +4,7 @@
   "description": "Visual healthcare integration mapping workbench",
   "version": "0.10.0",
   "publisher": "regionstockholm",
+  "repository": { "type": "git", "url": "https://github.com/regionstockholm/intehrgrator" },
   "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.85.0"
@@ -12,19 +13,44 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:intehrgrator.openWorkbench"
+    "onCommand:intehrgrator.openWorkbench",
+    "onCommand:intehrgrator.openFileProject",
+    "onCommand:intehrgrator.createFileProject",
+    "onCustomEditor:intehrgrator.fileProject"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
+        "command": "intehrgrator.openFileProject",
+        "title": "intEHRgrator: Open File Project"
+      },
+      {
+        "command": "intehrgrator.createFileProject",
+        "title": "intEHRgrator: Create File Project"
+      },
+      {
         "command": "intehrgrator.openWorkbench",
         "title": "intEHRgrator: Open Integration Workbench"
       }
-    ]
+    ],
+    "customEditors": [{
+      "viewType": "intehrgrator.fileProject",
+      "displayName": "intEHRgrator Mapping",
+      "selector": [{ "filenamePattern": "*.mapping.json" }, { "filenamePattern": "*.blockly.json" }],
+      "priority": "option"
+    }],
+    "menus": {
+      "explorer/context": [{
+        "command": "intehrgrator.openFileProject",
+        "when": "resourceFilename == intehrgrator.json",
+        "group": "navigation"
+      }]
+    }
   },
   "scripts": {
     "build": "deno task build",
     "test": "deno task test"
   }
 }
+

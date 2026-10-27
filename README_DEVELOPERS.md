@@ -6,6 +6,10 @@ For terms and definitions used in this repo, including in this readme, see [CONT
 
 **End-user docs:** [README.md](README.md) · [docs/TUTORIAL.md](docs/TUTORIAL.md)
 
+## VS Code file projects
+
+The extension can open a Git-backed project with separate source, mapping and output files. See [VS Code file projects](docs/VS_CODE.md) for setup, reviewable results and the CI runner.
+
 ## Project persistence
 
 The web app stores mapping projects in its **IndexedDB** storage.

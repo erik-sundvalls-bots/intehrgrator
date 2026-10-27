@@ -1,0 +1,94 @@
+{
+  "blocklyState": {
+    "blocks": {
+      "blocks": [
+        {
+          "deletable": false,
+          "extraState": {
+            "itemCount": 0,
+            "targets": []
+          },
+          "id": "Io+)Gfplgnz;Odr;AM]N",
+          "type": "default_context_map",
+          "x": 20,
+          "y": 20
+        },
+        {
+          "id": "`m!`%XYkcZr|,AI4!fJX",
+          "inline": false,
+          "next": {
+            "block": {
+              "extraState": {
+                "attrs": [
+                  "identifier",
+                  "name"
+                ],
+                "connection": "statement",
+                "extras": [],
+                "fields": [
+                  {
+                    "card": {
+                      "max": 1,
+                      "min": 1
+                    },
+                    "check": "String",
+                    "kind": "value",
+                    "name": "identifier",
+                    "slotId": "Person:$.identifier"
+                  },
+                  {
+                    "card": {
+                      "max": 1,
+                      "min": 1
+                    },
+                    "check": "String",
+                    "kind": "value",
+                    "name": "name",
+                    "slotId": "Person:$.name"
+                  }
+                ],
+                "instanceRoot": true,
+                "typeCheck": "schema_Person"
+              },
+              "fields": {
+                "NAME": "Person",
+                "SLOT_ID": "Person:$",
+                "TARGET_TYPE": "object"
+              },
+              "id": "r0Z[0rHEtFf.E*loi$w$",
+              "inputs": {
+                "TARGET_identifier": {
+                  "block": {
+                    "fields": {
+                      "EXPRESSION": "$.id",
+                      "RETURN_TYPE": "string"
+                    },
+                    "id": "T6QENXxgK{Eo9BNu(cOv",
+                    "type": "source_query"
+                  }
+                },
+                "TARGET_name": {
+                  "block": {
+                    "fields": {
+                      "EXPRESSION": "$.displayName",
+                      "RETURN_TYPE": "string"
+                    },
+                    "id": "PlUU`@L7Q/orA%VtzX|4",
+                    "type": "source_query"
+                  }
+                }
+              },
+              "type": "schema_Person"
+            }
+          },
+          "type": "conversion_start",
+          "x": 20,
+          "y": 196
+        }
+      ],
+      "languageVersion": 0
+    }
+  },
+  "sheets": [],
+  "version": 1
+}
