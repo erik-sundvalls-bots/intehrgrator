@@ -35,6 +35,7 @@ import type { SheetDocument } from "../sheets/mod.ts";
 import { buildSlotTree, formatSlotTree, resolveSlotRef, SLOT_TREE_GUIDE } from "./slot_tree.ts";
 import { formatModelsBlock, type ModelDescription } from "./models_block.ts";
 import type { SlotInfoIndex } from "./slot_info.ts";
+import { codedTextRmType } from "../openehr/coded_text.ts";
 
 export type AiArtifactDelivery = "attach" | "inline" | "uri";
 /**
@@ -430,9 +431,12 @@ export function buildPrompt(options: BuildPromptOptions): string {
     );
   } else if (options.constraintWarnings?.length) {
     const sample = options.constraintWarnings.slice(0, 24);
+    const omitted = options.constraintWarnings.length - sample.length;
     sections.push(
       "## Constraint warnings",
-      "Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with `import_suggestions` / `replace_sheets` / `optional_rm_add`, then re-check `list_constraint_warnings`.",
+      `Unmapped mandatory slots, Decision table lint, and abstract EVENT / ITEM_STRUCTURE. Patch with \`import_suggestions\` / \`replace_sheets\` / \`optional_rm_add\`, then re-check \`list_constraint_warnings\`.${
+        omitted ? ` First ${sample.length} of ${options.constraintWarnings.length} shown; ${omitted} more not listed here.` : ""
+      }`,
       "```json",
       compactJsonRows(sample),
       "```",
@@ -512,10 +516,11 @@ function compactSheetSection(sheets: SheetDocument[] | undefined): string[] | nu
     headers: [...sheet.headers],
     ...(sheet.hitPolicy ? { hitPolicy: sheet.hitPolicy } : {}),
     previewRows: sheet.values.slice(0, 8),
+    ...(sheet.values.length > 8 ? { rows: sheet.values.length, rowsOmitted: sheet.values.length - 8 } : {}),
   }));
   return [
     "## Sheets and Decision tables",
-    "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; inputs Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope.",
+    "These grids are already on the project. Terminology / 1-key lookup → `sheet_lookup` on a **Sheet**. Combinational rules that humans should read as a table → **Decision table** (`decision_table` block; inputs Map keys match condition columns). Create or replace grids with the `replace_sheets` Agent API/MCP tool, not this envelope. `previewRows` holds the first 8 rows; `rowsOmitted` counts the rest.",
     "```json",
     compactJsonRows(compact),
     "```",
@@ -983,6 +988,7 @@ function collectSuggestionItems(
         slotId: item.slotId,
         block: sanitizeBlock(item.block) as SuggestionBlock,
         loopVar: typeof item.loopVar === "string" ? item.loopVar : inheritedLoopVar,
+        ...(typeof item.rmType === "string" ? { rmType: item.rmType } : {}),
         note: optionalNote(item.note),
         ...(parseAiConfidence(item.confidence) !== undefined
           ? { confidence: parseAiConfidence(item.confidence) }
@@ -1239,7 +1245,15 @@ export function importSuggestions(
       report.errors.push(`${suggestion.slotId}: ${err}`);
       continue;
     }
-    const meta = slotMeta?.get(slotId);
+    let meta = slotMeta?.get(slotId);
+    // DV_TEXT may be mapped as its subclass DV_CODED_TEXT (#274).
+    if (meta?.rmType === "DV_TEXT") {
+      meta = { ...meta, rmType: codedTextRmType(expression, suggestion.rmType) };
+    } else if (suggestion.rmType && suggestion.rmType !== meta?.rmType) {
+      report.skipped++;
+      report.errors.push(`${suggestion.slotId}: rmType ${suggestion.rmType} only fits a DV_TEXT slot`);
+      continue;
+    }
     next = applyExpressionEdit(next, slotId, expression, meta);
     const review = slotReviewFrom(suggestion.note, suggestion.confidence);
     if (review) next = withSlotReview(next, slotId, review);

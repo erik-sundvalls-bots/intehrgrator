@@ -58,6 +58,8 @@ export interface SourceTreeNode {
   lang?: string;
   value?: unknown;
   children?: SourceTreeNode[];
+  /** Children left out at `SOURCE_TREE_MAX_DEPTH` (never a silent cut, #292). */
+  childrenOmitted?: number;
 }
 
 export interface ProductStackRow {
@@ -150,10 +152,13 @@ function cloneAllowedValue(value: AllowedValue): AllowedValue {
  * `get_source_tree` form of a source tree. With `descriptionLang`, a node's
  * `lang` is given only where its description is in another language (#277 §5).
  */
+/** Depth guard for `get_source_tree`; deeper children are counted in `childrenOmitted`. */
+export const SOURCE_TREE_MAX_DEPTH = 64;
+
 export function compactSourceTree(
   node: SchemaTreeNode | null | undefined,
   depth = 0,
-  maxDepth = 8,
+  maxDepth = SOURCE_TREE_MAX_DEPTH,
   descriptionLang?: string,
 ): SourceTreeNode | null {
   if (!node) return null;
@@ -174,6 +179,8 @@ export function compactSourceTree(
     row.children = node.children
       .map((child) => compactSourceTree(child, depth + 1, maxDepth, descriptionLang))
       .filter((c): c is SourceTreeNode => Boolean(c));
+  } else if (node.children.length) {
+    row.childrenOmitted = node.children.length;
   }
   return row;
 }
@@ -230,7 +237,7 @@ export function getExampleInspect(s: ExampleState, args: Record<string, unknown>
     if (example.id !== s.activeExample?.id) {
       throw new Error("path works on the Active Example; call set_active_example first or omit path");
     }
-    const node = findCompactNode(compactSourceTree(s.exampleTree ?? null, 0, 64), path);
+    const node = findCompactNode(compactSourceTree(s.exampleTree ?? null), path);
     if (!node) throw new Error(`No node at ${path} in ${example.filename}`);
     const text = JSON.stringify(node);
     return {

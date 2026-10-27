@@ -24,6 +24,7 @@ import {
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
 import { attributesFor } from "../rm_meta.ts";
 import { usesOpenEhrProduct } from "./product.ts";
+import { codedTextParts } from "../openehr/coded_text.ts";
 import {
   functionIdentMap,
   jsFunctionIdent,
@@ -1067,6 +1068,15 @@ function emitSkeletonValue(
     const code = fields.defining_code ?? fields.code_string;
     const rubric = fields.value ??
       (node.label && node.label !== rmType ? node.label : "");
+    const coded = codedTextParts(slot?.expression);
+    if (coded) {
+      const part = (ast: ExprAst | undefined, lit: string) => ast ? asStringExpr(emitTsExpression(ast, ctx)) : JSON.stringify(lit);
+      ctx.types.add("DV_CODED_TEXT");
+      ctx.types.add("CODE_PHRASE");
+      return `new DV_CODED_TEXT({ value: ${part(coded.value, rubric)}, defining_code: new CODE_PHRASE({ terminology_id: ${
+        part(coded.terminology, term)
+      }, code_string: ${part(coded.code, code ?? "")} }) })`;
+    }
     if (code) {
       if (codePhraseTerseSafe(term) && !code.includes("::")) {
         return JSON.stringify(`${term}::${code}|${rubric}|`);

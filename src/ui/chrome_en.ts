@@ -100,6 +100,8 @@ export const en = {
   collapseAllTitle: "Collapse all nested blocks",
   expandChildren: "Expand children",
   collapseChildren: "Collapse children",
+  useCodedText: "Use coded text (DV_CODED_TEXT)",
+  usePlainText: "Use plain text (DV_TEXT)",
   followAgent: "Follow agent",
   followAgentTitle: "When enabled, pan the main canvas to blocks an agent just edited",
   openViewer: "Open viewer window",
@@ -598,6 +600,16 @@ export const en = {
   aiChatStopped: "Stopped. Mappings made before Stop stay on the canvas; one Undo takes back the whole turn.",
   aiChatHistoryTrimmed:
     "Older chat turns were dropped to keep the request within {limit} tokens (the API resends the whole chat every step); this message re-attaches the project context.",
+  aiChatHistoryFull:
+    "Nothing sent: this chat's history is about {tokens} tokens, above the {limit} limit for this model, and the whole history goes with every request. How do you want to go on?",
+  aiChatHistoryTrimChoice: "Continue with trimmed history",
+  aiChatHistoryRecapChoice: "Start new chat with summary",
+  aiChatHistoryCancelChoice: "Cancel",
+  aiChatHistoryRecapStarted:
+    "New chat started. A recap of the earlier chat (your messages, the answers and the mappings) goes with your message, together with the project context.",
+  aiChatHistoryCancelled: "Not sent. Your message is still in the box.",
+  aiChatStorageTrimmed:
+    "This chat is larger than the browser stores ({limit} characters). This page keeps the whole chat, but after a reload only the newest turns are left.",
   historyTitle: "History",
   historyOpenTitle: "History: who changed what (you, AI chat, MCP agents), with Undo to here and Revert",
   historyClose: "Close history",

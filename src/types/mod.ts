@@ -490,6 +490,8 @@ export interface SuggestionEnvelope {
     block: SuggestionBlock;
     /** When set, `block` EXPRESSION is relative to that loop VAR's PATH. */
     loopVar?: string;
+    /** `DV_CODED_TEXT` on a DV_TEXT slot (inferred when the block has a code); `DV_TEXT` switches back (#274). */
+    rmType?: string;
     note?: string;
     /** Integer percent 0–100; omitted when the model is confident (≥ ~90). */
     confidence?: AiConfidence;

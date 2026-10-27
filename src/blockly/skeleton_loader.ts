@@ -1,7 +1,7 @@
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
 import { applySlotReviews } from "./ai_review.ts";
 import { extractMappingIr, slotExpressionBlocks } from "./mapping_ir.ts";
-import type { AllowedOrdinal, AllowedValue, MappingLoop, MappingModel, SkeletonNode } from "../types/mod.ts";
+import type { AllowedOrdinal, AllowedValue, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../types/mod.ts";
 import { AUTO_FIXED_LOCATABLE_ATTRS } from "../core/rm_mandatory.ts";
 import {
   attributesFor,
@@ -34,6 +34,7 @@ import {
   rmAttributeInputName,
   syncRmAttributeInputs,
   ensureIntervalEventMathFunctionScaffold,
+  switchTextShellRmType,
 } from "./blocks/rm_blocks.ts";
 import { enforceMouthCaptionLayout } from "./mouth_layout.ts";
 import { createTermPickBlock, isTermPickBlock } from "./blocks/term_pick.ts";
@@ -247,6 +248,8 @@ export function setAllBlocksCollapsed(
   }
 }
 
+const isTextRmType = (rmType: string | undefined) => rmType === "DV_TEXT" || rmType === "DV_CODED_TEXT";
+
 export function applyModelExpressions(
   workspace: Blockly.Workspace,
   model: MappingModel,
@@ -257,10 +260,13 @@ export function applyModelExpressions(
     // (#266): re-attaching an unchanged expression is not always lossless (a
     // terminology picker holding a coded text becomes a plain shell), so an
     // untouched slot must keep its blocks.
-    const onCanvas = new Map(extractMappingIr(workspace).slots.map((s) => [s.slotId, s.expression]));
-    const slotMap = new Map(
-      model.slots.filter((s) => s.expression && onCanvas.get(s.slotId) !== s.expression).map((s) => [s.slotId, s]),
-    );
+    const onCanvas = new Map(extractMappingIr(workspace).slots.map((s) => [s.slotId, s]));
+    // A DV_TEXT ↔ DV_CODED_TEXT switch with the same expression is a change too (#274).
+    const changed = (s: MappingSlot) => {
+      const canvas = onCanvas.get(s.slotId);
+      return canvas?.expression !== s.expression || (isTextRmType(s.rmType) && isTextRmType(canvas.rmType) && canvas.rmType !== s.rmType);
+    };
+    const slotMap = new Map(model.slots.filter((s) => s.expression && changed(s)).map((s) => [s.slotId, s]));
     for (const block of workspace.getAllBlocks(false)) {
       if (isSchemaStructureBlock(block)) {
         attachSchemaFieldExpressions(workspace, block, slotMap);
@@ -274,7 +280,8 @@ export function applyModelExpressions(
       } else if (block.type === "party_identified" || block.type === "party_related") {
         attachExpressionToPartyName(workspace, block, slot.expression, slot.returnType);
       } else if (isTermPickBlock(block) || isDataValueBlock(block)) {
-        attachExpressionToTypedValue(workspace, block, slot.expression, slot.returnType, slot.rmType);
+        const shell = isTextRmType(slot.rmType) ? switchTextShellRmType(workspace, block, slot.rmType) : block;
+        attachExpressionToTypedValue(workspace, shell, slot.expression, slot.returnType, slot.rmType);
       } else if (isGenericValueBlockType(block.type)) {
         attachExpressionToTarget(workspace, block, slot.expression, slot.returnType);
       }
@@ -1382,8 +1389,9 @@ function attachExpressionToElement(
   rmTypeHint?: string,
 ): void {
   const rmType = rmTypeHint || elementValueDvType(elementBlock);
-  const shell = ensureElementDataValueShell(workspace, elementBlock, rmType);
-  if (!shell) return;
+  const existing = ensureElementDataValueShell(workspace, elementBlock, rmType);
+  if (!existing) return;
+  const shell = isTextRmType(rmType) ? switchTextShellRmType(workspace, existing, rmType) : existing;
 
   const exprBlock = expressionToBlock(workspace, expression, returnType);
   connectExpressionToDataValueShell(shell, exprBlock);

@@ -1,9 +1,4 @@
 import {
-  asArray,
-  parseLegacyTemplateXml,
-  textValue,
-} from "ehrtslib/parser/legacy/xml_aom_mapper.ts";
-import {
   availableTemplateLanguages,
   resolveTemplateLanguage,
 } from "ehrtslib/generation/term_codes.ts";
@@ -301,74 +296,6 @@ export function locatableNodeLabel(
 export function publicArchetypeRef(scope?: string): string | undefined {
   if (!scope || scope.startsWith("__")) return undefined;
   return scope;
-}
-
-function parseTermsOnNode(node: Record<string, unknown>): TermBag {
-  const bag: TermBag = {};
-  for (const td of asArray(node.term_definitions)) {
-    const rec = td as Record<string, unknown>;
-    const code = String(rec["@_code"] ?? rec.code ?? "");
-    if (!code) continue;
-    const entry: { text?: string; description?: string } = {};
-    for (const it of asArray(rec.items)) {
-      const item = it as Record<string, unknown>;
-      const id = String(item["@_id"] ?? item.id ?? "");
-      const val = textValue(item);
-      if (!val) continue;
-      if (id === "text") entry.text = val;
-      if (id === "description") entry.description = val;
-    }
-    bag[code] = entry;
-  }
-  return bag;
-}
-
-/**
- * Per-archetype term tables from OPT XML.
- * ehrtslib `parseOptXml` now attaches the same data; this walk is a fallback overlay.
- */
-export function buildArchetypeTermsIndex(optSource: string): Map<string, TermBag> {
-  const index = new Map<string, TermBag>();
-  try {
-    const root = parseLegacyTemplateXml(optSource);
-    const def = root.definition;
-    if (def && typeof def === "object") walkXmlForArchetypeTerms(def, index);
-  } catch {
-    // Non-XML templates fall back to merged ontology terms only.
-  }
-  return index;
-}
-
-function walkXmlForArchetypeTerms(
-  node: unknown,
-  index: Map<string, TermBag>,
-): void {
-  if (!node || typeof node !== "object") return;
-  const n = node as Record<string, unknown>;
-  const archId = textValue(n.archetype_id);
-  if (archId) {
-    const terms = parseTermsOnNode(n);
-    if (Object.keys(terms).length > 0) index.set(archId, terms);
-  }
-  for (const child of asArray(n.children)) walkXmlForArchetypeTerms(child, index);
-  for (const attr of asArray(n.attributes)) {
-    for (const c of asArray((attr as Record<string, unknown>).children)) {
-      walkXmlForArchetypeTerms(c, index);
-    }
-  }
-}
-
-export function compositionArchetypeRef(optSource: string): string | undefined {
-  try {
-    const root = parseLegacyTemplateXml(optSource);
-    const def = root.definition;
-    if (def && typeof def === "object") {
-      return textValue((def as Record<string, unknown>).archetype_id);
-    }
-  } catch {
-    // ignore
-  }
-  return undefined;
 }
 
 export function mergedOntologyTerms(

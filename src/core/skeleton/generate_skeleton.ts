@@ -38,9 +38,7 @@ import {
   archetypeShortName,
   availableOptLanguages,
   availableWebTemplateLanguages,
-  buildArchetypeTermsIndex,
   buildWebTemplateTermsIndex,
-  compositionArchetypeRef,
   liveArchetypeTermsIndex,
   locatableNodeLabel,
   lookupTermText,
@@ -93,12 +91,12 @@ export function generateSkeleton(
     }
     throw new Error("Could not parse operational template from input");
   }
-  const generated = generateSkeletonFromOperational(opt, optSource, undefined, options);
+  const generated = generateSkeletonFromOperational(opt, undefined, options);
   // The template's primary language (lang.1). In OPT 1.4 that is the top-level
   // `<language>` chosen at export, which ehrtslib exposes as `original_language`.
   const primary = resolveOptLanguage(opt);
   if (generated.language !== primary) {
-    withPrimaryNames(generated.skeleton, generateSkeletonFromOperational(opt, optSource, undefined, { language: primary }).skeleton);
+    withPrimaryNames(generated.skeleton, generateSkeletonFromOperational(opt, undefined, { language: primary }).skeleton);
   }
   return {
     ...generated,
@@ -121,7 +119,6 @@ export function generateSkeletonFromWebTemplate(
     : (webTemplate.defaultLanguage || languages[0] || "en");
   const generated = generateSkeletonFromOperational(
     opt,
-    "",
     buildWebTemplateTermsIndex(webTemplate, language),
     { language },
   );
@@ -134,7 +131,7 @@ export function generateSkeletonFromWebTemplate(
   if (primary && primary !== language && languages.includes(primary)) {
     withPrimaryNames(
       generated.skeleton,
-      generateSkeletonFromOperational(webTemplateToOpt(webTemplate) as AmObject, "", buildWebTemplateTermsIndex(webTemplate, primary), {
+      generateSkeletonFromOperational(webTemplateToOpt(webTemplate) as AmObject, buildWebTemplateTermsIndex(webTemplate, primary), {
         language: primary,
       }).skeleton,
     );
@@ -194,7 +191,6 @@ function withPrimaryNames(skeleton: SkeletonNode[], primary: SkeletonNode[]): vo
 /** Walk an already-resolved OPERATIONAL_TEMPLATE (OPT XML, flattened .t.json, …). */
 export function generateSkeletonFromOperational(
   opt: AmObject,
-  optSource = "",
   extraArchetypeTerms?: Map<string, TermBag>,
   options?: GenerateSkeletonOptions,
 ): GenerateSkeletonResult {
@@ -210,14 +206,9 @@ export function generateSkeletonFromOperational(
     : resolveOptLanguage(opt);
   applyOperationalTemplateTermScopes(opt, lang);
   const fallbackTerms = mergedOntologyTerms(opt, lang);
-  const archetypeTerms = mergeTermMaps(
-    optSource ? buildArchetypeTermsIndex(optSource) : undefined,
-    liveArchetypeTermsIndex(opt, lang),
-    extraArchetypeTerms,
-  );
+  const archetypeTerms = mergeTermMaps(liveArchetypeTermsIndex(opt, lang), extraArchetypeTerms);
   const archetypeTermRecord = termBagsRecord(archetypeTerms);
-  const rootArchetypeRef = (optSource ? compositionArchetypeRef(optSource) : undefined) ??
-    (opt.definition?.archetype_ref as string | undefined) ??
+  const rootArchetypeRef = (opt.definition?.archetype_ref as string | undefined) ??
     (extraArchetypeTerms?.has(TEMPLATE_ROOT_TERM_SCOPE) ? TEMPLATE_ROOT_TERM_SCOPE : undefined) ??
     [...archetypeTerms.keys()][0];
 
