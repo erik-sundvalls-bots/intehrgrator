@@ -82,6 +82,8 @@ export const de: ChromeMessages = {
   collapseAllTitle: "Alle verschachtelten Blöcke zuklappen",
   expandChildren: "Kinder aufklappen",
   collapseChildren: "Kinder zuklappen",
+  useCodedText: "Codierten Text verwenden (DV_CODED_TEXT)",
+  usePlainText: "Einfachen Text verwenden (DV_TEXT)",
   followAgent: "Agent folgen",
   followAgentTitle: "Wenn aktiv, schwenkt die Hauptfläche zu Blöcken, die ein Agent gerade geändert hat",
   openViewer: "Ansichtsfenster öffnen",

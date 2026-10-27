@@ -111,6 +111,8 @@ import {
 } from "../src/blockly/mod.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
 import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
+import { installCodedTextMenu } from "../src/blockly/coded_text_menu.ts";
+import { allowsCodedText } from "../src/core/openehr/coded_text.ts";
 import { APP_VERSION } from "../src/core/persistence/mod.ts";
 import {
   blockOwnClientRect,
@@ -1051,6 +1053,11 @@ async function bootBlockly(): Promise<void> {
       confidence: () => uiChrome().aiReviewConfidence,
     },
     onChange: () => persistBlocklyCanvas({ summary: "Mark AI suggestion reviewed" }),
+  });
+  installCodedTextMenu({
+    labels: { useCodedText: () => uiChrome().useCodedText, usePlainText: () => uiChrome().usePlainText },
+    isTextSlot: (slotId) => allowsCodedText(findSkeletonNodeIn(controller.getState().skeleton, slotId)),
+    onChange: () => persistBlocklyCanvas({ summary: "Switch DV_TEXT / DV_CODED_TEXT" }),
   });
   installFunctionLibraryMenus(workspace, {
     save: (name) => functionLibraryUi?.saveNamed(name),
