@@ -8,7 +8,6 @@
 import { assert, assertEquals, assertMatch, assertStringIncludes } from "@std/assert";
 import { chromium, type Page } from "npm:playwright@1.51.0";
 import { diastolicSuffix, findSlotIdEndingWith, findSystolicSlotId, waitForTestApi } from "./helpers.ts";
-import { patchEhrtslibValidator } from "../../scripts/patch-ehrtslib-validator.ts";
 
 const root = new URL("../../", import.meta.url).pathname;
 const port = 19_000 + Math.floor(Math.random() * 1000);
@@ -68,11 +67,6 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
   async fn() {
-    try {
-      await Deno.stat(`${root}vendor/ehrtslib-overrides/validation/template_validator.ts`);
-    } catch {
-      await patchEhrtslibValidator(root);
-    }
     const server = new Deno.Command("deno", {
       args: ["run", "-A", "--no-check", "src/desktop/main.ts", "--headless", "--port", String(port)],
       cwd: root,
