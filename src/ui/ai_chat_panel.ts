@@ -21,8 +21,11 @@ import {
   partsChips,
 } from "../core/ai/chat_context.ts";
 import {
+  CHAT_HISTORY_MAX_CHARS,
   type ChatSession,
+  chatRecap,
   clearChatSession,
+  emptyChatSession,
   estimateChatTokens,
   historyTokenLimit,
   loadChatSession,
@@ -76,6 +79,8 @@ export const AI_CHAT_COLLAPSED_KEY = "intehrgrator.ai.chatCollapsed";
 const LEGACY_AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 export const AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 export const PROJECT_CONTEXT_HEADING = "## Project context";
+/** Heading of the recap that "Start new chat with summary" sends once (#292). */
+export const EARLIER_CHAT_HEADING = "## Earlier chat (recap)";
 /** Smallest message list kept visible while growing the entry box (px). */
 const MIN_LOG_PX = 32;
 
@@ -611,6 +616,39 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     void send();
   };
 
+  /** The history-full card was answered: its buttons go away. */
+  const settleHistoryPause = () => {
+    for (const entry of session.display) if (entry.action === "history-full") delete entry.action;
+  };
+
+  /** "Continue with trimmed history": drop the oldest turns, then send (#292). */
+  const continueTrimmed = () => {
+    settleHistoryPause();
+    void send({ trimConfirmed: true });
+  };
+
+  /** "Start new chat with summary": empty wire history plus a recap sent once (#292). */
+  const newChatWithRecap = () => {
+    settleHistoryPause();
+    const previous = session;
+    session = {
+      ...emptyChatSession(),
+      display: [...previous.display, { role: "note", text: ui().aiChatHistoryRecapStarted }],
+      recap: chatRecap(previous),
+      ...(previous.usage ? { usage: previous.usage } : {}),
+      ...(previous.budgetWarned ? { budgetWarned: true } : {}),
+    };
+    forceContext = false;
+    void send();
+  };
+
+  const cancelHistoryPause = () => {
+    settleHistoryPause();
+    session.display.push({ role: "note", text: ui().aiChatHistoryCancelled });
+    persist();
+    renderLog();
+  };
+
   // ── log ───────────────────────────────────────────────────────────────────
   const mappingLines = (lines: string[]) => {
     const box = el("div", { className: "ai-chat-mappings" });
@@ -739,6 +777,19 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         raise.addEventListener("click", () => raiseBudgetAndContinue());
         row.append(raise);
       }
+      if (entry.action === "history-full" && index === session.display.length - 1) {
+        const choices = el("div", { className: "ai-chat-choices" });
+        const choice = (id: string, text: string, onClick: () => void, primary = false) => {
+          const btn = el("button", { className: primary ? "pane-btn pane-btn-primary" : "pane-btn", text, type: "button" });
+          btn.id = id;
+          btn.addEventListener("click", onClick);
+          choices.append(btn);
+        };
+        choice("ai-chat-history-trim", ui().aiChatHistoryTrimChoice, continueTrimmed, true);
+        choice("ai-chat-history-recap", ui().aiChatHistoryRecapChoice, newChatWithRecap);
+        choice("ai-chat-history-cancel", ui().aiChatHistoryCancelChoice, cancelHistoryPause);
+        row.append(choices);
+      }
       log.append(row);
     });
     if (sending && live) renderLive();
@@ -746,8 +797,17 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     log.scrollTop = log.scrollHeight;
   };
 
+  /** Save; only the stored copy may be cut, and the user hears about it once per chat (#292). */
   const persist = () => {
-    session = saveChatSession(storage, sessionProject, session);
+    const { trimmed } = saveChatSession(storage, sessionProject, session);
+    if (trimmed && !session.storageTrimNoted) {
+      session.storageTrimNoted = true;
+      session.display.push({
+        role: "note",
+        text: formatMessage(ui().aiChatStorageTrimmed, { limit: formatTokens(CHAT_HISTORY_MAX_CHARS) }),
+      });
+      saveChatSession(storage, sessionProject, session);
+    }
   };
 
   /** Switch to the current project's history. Returns true when it changed. */
@@ -788,9 +848,10 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     const parts = readInputParts(input);
     const composed = composeUserMessage(parts, session.attachedChipKeys);
     const withContext = forceContext || !session.contextSent;
+    const recap = session.recap ? `\n\n${EARLIER_CHAT_HEADING}\n\n${session.recap}` : "";
     const prompt = withContext
-      ? `${composed.text}\n\n${PROJECT_CONTEXT_HEADING}\n\n${options.buildProjectContext(delivery ?? options.getDelivery?.())}`
-      : composed.text;
+      ? `${composed.text}${recap}\n\n${PROJECT_CONTEXT_HEADING}\n\n${options.buildProjectContext(delivery ?? options.getDelivery?.())}`
+      : `${composed.text}${recap}`;
     return { parts, composed, prompt, withContext };
   };
 
@@ -798,12 +859,13 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     session.display.push({ role: "user", text: c.composed.displayText });
     session.attachedChipKeys = [...new Set([...session.attachedChipKeys, ...c.composed.attachedKeys])];
     if (c.withContext) session.contextSent = true;
+    delete session.recap;
     forceContext = false;
     input.replaceChildren();
     savedRange = null;
   };
 
-  const send = async () => {
+  const send = async ({ trimConfirmed = false }: { trimConfirmed?: boolean } = {}) => {
     if (sending) return;
     syncProject();
     if (!options.hasCredentials()) {
@@ -820,13 +882,28 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       renderLog();
       return;
     }
-    // Keep the history sent with this message within the model's context
-    // window (#252, #276). Dropping the first turn also drops the project
+    // History above the limit for this model (#252, #276): stop and let the
+    // user choose; old turns are dropped only on "Continue with trimmed
+    // history" (#292). Dropping the first turn also drops the project
     // context, so it is re-attached.
     const historyLimit = historyTokenLimit(limits.contextWindow);
-    const fitted = trimChatSessionToTokens(session, historyLimit);
-    if (fitted.trimmed) {
-      session = fitted.session;
+    const historyTokens = estimateChatTokens(session.messages);
+    if (historyTokens > historyLimit) {
+      if (!trimConfirmed) {
+        settleHistoryPause();
+        session.display.push({
+          role: "note",
+          action: "history-full",
+          text: formatMessage(ui().aiChatHistoryFull, {
+            tokens: formatTokens(historyTokens),
+            limit: formatTokens(historyLimit),
+          }),
+        });
+        persist();
+        renderLog();
+        return;
+      }
+      session = trimChatSessionToTokens(session, historyLimit).session;
       session.display.push({
         role: "note",
         text: formatMessage(ui().aiChatHistoryTrimmed, { limit: formatTokens(historyLimit) }),

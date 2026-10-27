@@ -51,6 +51,8 @@ export interface SlotTreeRow {
   length?: SlotInfo["length"];
   format?: string;
   examples?: unknown[];
+  /** More `examples` in the schema than listed. */
+  examplesOmitted?: number;
   default?: unknown;
   /** Current mapping expression (`list_slots` only). */
   expr?: string;
@@ -254,6 +256,7 @@ function rowFor(
     ...(info?.length ? { length: info.length } : {}),
     ...(info?.format ? { format: info.format } : {}),
     ...(info?.examples?.length ? { examples: info.examples } : {}),
+    ...(info?.examplesOmitted ? { examplesOmitted: info.examplesOmitted } : {}),
     ...(info?.default !== undefined ? { default: info.default } : {}),
     ...(info?.comment ? { comment: shortText(info.comment) } : {}),
     ...(info?.annotations ? { annotations: info.annotations } : {}),

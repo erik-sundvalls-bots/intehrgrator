@@ -477,4 +477,12 @@ export const fr: ChromeMessages = {
   noAgentsYet: "Aucun agent connecté pour l'instant.",
   optionalAttributes: "Attributs facultatifs…",
   openViewerMenu: "Ouvrir la fenêtre de visualisation…",
+  aiChatHistoryTrimmed: "Des tours anciens du chat ont été retirés pour que la requête reste sous {limit} tokens (l'API renvoie tout le chat à chaque étape) ; ce message joint à nouveau le contexte du projet.",
+  aiChatHistoryFull: "Rien n'a été envoyé : l'historique du chat fait environ {tokens} tokens, au-dessus de la limite de {limit} pour ce modèle, et tout l'historique part avec chaque requête. Comment voulez-vous continuer ?",
+  aiChatHistoryTrimChoice: "Continuer avec l'historique raccourci",
+  aiChatHistoryRecapChoice: "Nouveau chat avec résumé",
+  aiChatHistoryCancelChoice: "Annuler",
+  aiChatHistoryRecapStarted: "Nouveau chat démarré. Un résumé du chat précédent (vos messages, les réponses et les mappings) part avec votre message, avec le contexte du projet.",
+  aiChatHistoryCancelled: "Non envoyé. Votre message est toujours dans la zone de saisie.",
+  aiChatStorageTrimmed: "Ce chat dépasse ce que le navigateur enregistre ({limit} caractères). Cette page garde tout le chat, mais après un rechargement seuls les tours les plus récents restent.",
 };

@@ -477,4 +477,12 @@ export const de: ChromeMessages = {
   optionalAttributes: "Optionale Attribute…",
   openViewerMenu: "Ansichtsfenster öffnen…",
   noAgentsYet: "Noch keine Agenten verbunden.",
+  aiChatHistoryTrimmed: "Ältere Chat-Runden wurden entfernt, damit die Anfrage unter {limit} Tokens bleibt (die API sendet bei jedem Schritt den ganzen Chat); diese Nachricht hängt den Projektkontext erneut an.",
+  aiChatHistoryFull: "Nichts gesendet: Der Chatverlauf hat etwa {tokens} Tokens, über dem Limit von {limit} für dieses Modell, und der ganze Verlauf geht mit jeder Anfrage mit. Wie möchten Sie fortfahren?",
+  aiChatHistoryTrimChoice: "Mit gekürztem Verlauf fortfahren",
+  aiChatHistoryRecapChoice: "Neuen Chat mit Zusammenfassung starten",
+  aiChatHistoryCancelChoice: "Abbrechen",
+  aiChatHistoryRecapStarted: "Neuer Chat gestartet. Eine Zusammenfassung des bisherigen Chats (Ihre Nachrichten, die Antworten und die Mappings) geht mit Ihrer Nachricht mit, zusammen mit dem Projektkontext.",
+  aiChatHistoryCancelled: "Nicht gesendet. Ihre Nachricht steht noch im Eingabefeld.",
+  aiChatStorageTrimmed: "Dieser Chat ist größer, als der Browser speichert ({limit} Zeichen). Diese Seite behält den ganzen Chat, aber nach einem Neuladen bleiben nur die neuesten Runden.",
 };
