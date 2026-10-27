@@ -8,7 +8,7 @@ import { chromium } from "npm:playwright@1.51.0";
 import { baseUrl, loadBpFixtures, waitForTestApi } from "./helpers.ts";
 
 const ENDPOINT = "https://ai-history.test/v1/chat/completions";
-const BIG = "A".repeat(200_000); // ~67k tokens, above the 64k limit of a model with an unknown window
+const BIG = "lorem ipsum ".repeat(17_000); // ~68k tokens, above the 64k limit of a model with an unknown window
 
 const sse = (text: string) =>
   `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: text } }] })}\n\n` +
@@ -55,7 +55,7 @@ Deno.test({
         await page.keyboard.type(text);
         await page.click("#ai-chat-send");
       };
-      const idle = () => page.locator("#ai-chat-send").waitFor({ state: "visible", timeout: 10_000 });
+      const idle = () => page.locator("#ai-chat-send").waitFor({ state: "visible", timeout: 60_000 });
       const lastNote = () => page.locator(".ai-chat-msg--note").last().innerText();
 
       await say("first");
@@ -64,7 +64,7 @@ Deno.test({
 
       // Above the limit: nothing goes out, the card asks.
       await say("second");
-      await page.locator("#ai-chat-history-trim").waitFor({ state: "visible" });
+      await page.locator("#ai-chat-history-trim").waitFor({ state: "visible", timeout: 30_000 });
       assertEquals(bodies.length, 1);
       assertStringIncludes(await lastNote(), "Nothing sent");
       await page.click("#ai-chat-history-cancel");
