@@ -4,6 +4,7 @@
  */
 import { redactSecret } from "./redact.ts";
 import { parseProviderUsage, type TokenUsage } from "./token_usage.ts";
+import { promptCacheFields } from "./prompt_cache.ts";
 
 export const AI_CREDENTIALS_STORAGE_KEY = "intehrgrator.ai.credentials";
 
@@ -326,6 +327,7 @@ export async function postChatCompletions(
       ...(stream ? { stream: true } : {}),
       // Ask for a final usage chunk (#276); a provider that rejects it is asked again without.
       ...(stream && streamUsage ? { stream_options: { include_usage: true } } : {}),
+      ...promptCacheFields(parsed.endpoint, parsed.model),
     };
     const headers: Record<string, string> = {
       "content-type": "application/json",
