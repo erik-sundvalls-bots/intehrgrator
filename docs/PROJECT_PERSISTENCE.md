@@ -12,7 +12,7 @@ The web app persists projects in IndexedDB and can export/import the same data a
 | Source | Source Schema content + metadata |
 | Examples | Array of example instances `{ id, filename, format, content }`, plus `activeExampleId` |
 | Mapping | Native Blockly workspace JSON (canonical) and a derived Mapping Model snapshot |
-| Settings | Theme, validation, model language. **Output mode** is session-only and is not restored |
+| Settings | Theme, validation, shown target / source languages (`display`, #279; older bundles' `modelLanguage` becomes the target choice), `sourceLanguages`, `aiContextLanguages`. **Output mode** is session-only and is not restored |
 | Metadata | Project id, app version, created/updated timestamps |
 
 Generated Export and Test Run output are **not** stored — they are rebuilt from the Mapping Specification after load.

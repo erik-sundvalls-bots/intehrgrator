@@ -412,3 +412,65 @@ export function appendJsonPath(path: string, key: string): string {
     ? `${path}.${key}`
     : `${path}[${JSON.stringify(key)}]`;
 }
+
+/**
+ * Source tree with descriptions in `lang` (#279): an XSD is re-read with that
+ * `xml:lang` documentation; a JSON Schema takes `x-i18n[lang].description`
+ * (falling back to `description`). Other sources come back unchanged.
+ */
+export function localizeSourceTree(
+  tree: SchemaTreeNode,
+  content: string,
+  format: string,
+  lang: string | undefined,
+): SchemaTreeNode {
+  if (!lang) return tree;
+  const text = content.trimStart();
+  if (text.startsWith("<")) {
+    try {
+      if (isXmlSchemaRoot(parseXmlDocument(content))) return loadXsdSchemaTree(content, lang);
+    } catch {
+      return tree;
+    }
+    return tree;
+  }
+  if (format !== "json" || !text.startsWith("{")) return tree;
+  let root: JsonSchemaObject;
+  try {
+    root = JSON.parse(text) as JsonSchemaObject;
+  } catch {
+    return tree;
+  }
+  if (!isJsonSchemaDocument(root)) return tree;
+  const deref = (node: unknown, depth = 0): JsonSchemaObject | undefined => {
+    if (!node || typeof node !== "object") return undefined;
+    const rec = node as JsonSchemaObject;
+    if (typeof rec.$ref === "string" && rec.$ref.startsWith("#/") && depth < 16) {
+      let target: unknown = root;
+      for (const part of rec.$ref.slice(2).split("/")) {
+        target = (target as JsonSchemaObject | undefined)?.[part.replace(/~1/g, "/").replace(/~0/g, "~")];
+      }
+      return deref(target, depth + 1);
+    }
+    return rec;
+  };
+  const base = lang.split("-")[0]!;
+  const describe = (schema: JsonSchemaObject | undefined): string | undefined => {
+    const i18n = schema?.["x-i18n"] as Record<string, JsonSchemaObject> | undefined;
+    const localized = i18n?.[lang]?.description ?? i18n?.[base]?.description;
+    if (typeof localized === "string" && localized.trim()) return localized.trim();
+    return schema ? schemaDescription(schema) : undefined;
+  };
+  const walk = (node: SchemaTreeNode, schema: JsonSchemaObject | undefined): SchemaTreeNode => {
+    const description = describe(schema);
+    const children = node.children.map((child) => {
+      const sub = node.type === "array"
+        ? deref(Array.isArray(schema?.items) ? (schema?.items as unknown[])[0] : schema?.items)
+        : deref((schema?.properties as JsonSchemaObject | undefined)?.[child.name]);
+      return walk(child, sub);
+    });
+    const { description: _old, ...rest } = node;
+    return { ...rest, ...(description ? { description } : {}), children };
+  };
+  return walk(tree, deref(root));
+}

@@ -256,6 +256,14 @@ function findCompactNode(node: SourceTreeNode | null, path: string): SourceTreeN
  * without example values: the `api` AI chat context sends this instead of
  * the source schema body (#252). Stops at `maxLines` with a pointer line.
  */
+/** First sentence of a source node's description, at most 80 characters (#277). */
+function outlineDescription(text: string | undefined): string | undefined {
+  const t = text?.replace(/\s+/g, " ").trim();
+  if (!t) return undefined;
+  const sentence = t.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? t;
+  return sentence.length <= 80 ? sentence : `${sentence.slice(0, 79).trimEnd()}…`;
+}
+
 export function sourceTreeOutline(
   node: SchemaTreeNode | null | undefined,
   maxLines = 1500,
@@ -268,7 +276,8 @@ export function sourceTreeOutline(
       omitted++;
     } else {
       const mult = n.multiplicity ? ` [${n.multiplicity}]` : "";
-      lines.push(`${"  ".repeat(depth)}${n.path} ${n.type}${mult}`);
+      const about = outlineDescription(n.description);
+      lines.push(`${"  ".repeat(depth)}${n.path} ${n.type}${mult}${about ? ` — ${about}` : ""}`);
     }
     for (const child of n.children) walk(child, depth + 1);
   };

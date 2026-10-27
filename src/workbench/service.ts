@@ -620,7 +620,13 @@ export class WorkbenchService {
   listSlotTree(args: Record<string, unknown> = {}) {
     const s = this.controller.getState();
     const keep = new Set(filterSlotRows(listSlotsInspect(s.skeleton, s.model), args).map((r) => r.slotId));
-    return buildSlotTree(s.skeleton, { include: (slot) => keep.has(slot.slotId), model: s.model, info: this.controller.getSlotInfoIndex() });
+    // Labels in `target.lang.1` (+ `labels` in the other AI languages), whatever the panes show (#279).
+    return buildSlotTree(this.controller.getAiSkeleton(), {
+      include: (slot) => keep.has(slot.slotId),
+      model: s.model,
+      info: this.controller.getSlotInfoIndex(),
+      extraLabels: this.controller.getAiExtraLabels(),
+    });
   }
 
   /** `get_slot`: full details of one slot (#277 §3). */
@@ -629,7 +635,7 @@ export class WorkbenchService {
     const slotId = this.resolveSlotRef(ref);
     const lease = this.leases.list().find((l) => leaseCovers(l, slotId));
     const detail = slotDetail(
-      s.skeleton,
+      this.controller.getAiSkeleton(),
       s.model,
       slotId,
       this.controller.getTargetSource(),
@@ -656,7 +662,7 @@ export class WorkbenchService {
   getSourceTree() {
     const s = this.controller.getState();
     return {
-      schema: compactSourceTree(s.schemaTree),
+      schema: compactSourceTree(this.controller.getAiSourceTree()),
       schemaFormat: s.schemaFormat,
       schemaFilename: s.schemaFilename,
       example: compactSourceTree(s.exampleTree ?? null),

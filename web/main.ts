@@ -276,6 +276,8 @@ import {
   type WorkbenchTestSnapshot,
 } from "../src/ui_test/test_api.ts";
 import { maybeShowRecommendedVersionPopup } from "../src/ui/recommended_version_popup.ts";
+import { createLanguageWidget, type LanguageWidget } from "../src/ui/language_widget.ts";
+import { isKnownLanguage, parseLanguageList } from "../src/core/languages.ts";
 
 const host = createHostAdapter();
 const controller = new WorkbenchController(host, { urlStorage: localStorage });
@@ -870,39 +872,121 @@ function setupUiLanguageMenu(locale: IntehrLocale): void {
   });
 }
 
-function setupModelLanguageMenu(): void {
-  const wrap = document.getElementById("model-language-wrap");
-  const labelEl = document.getElementById("model-language-label");
-  const select = document.getElementById("model-language-dropdown") as HTMLSelectElement | null;
-  if (!wrap || !select) return;
-  if (labelEl) labelEl.textContent = msg(blocklyLocale).MODEL_LANGUAGE_LABEL;
-  select.addEventListener("change", () => {
-    controller.setModelLanguage(select.value);
+let targetLangWidget: LanguageWidget | null = null;
+let sourceLangWidget: LanguageWidget | null = null;
+
+/** 💬 widgets on the target and source panes (#279). */
+function setupLanguageWidgets(): void {
+  const targetRoot = document.getElementById("target-lang-widget");
+  if (targetRoot) {
+    targetLangWidget = createLanguageWidget(targetRoot, {
+      nameOf: displayLanguageName,
+      onPick: (code) => code ? controller.setModelLanguage(code) : controller.clearTargetDisplayLanguage(),
+      texts: () => ({
+        aria: uiChrome().langWidgetTargetAria,
+        title: uiChrome().langWidgetTitle,
+        follow: uiChrome().langWidgetFollow,
+        chosen: uiChrome().langWidgetChosen,
+      }),
+    });
+  }
+  const sourceRoot = document.getElementById("source-lang-widget");
+  if (sourceRoot) {
+    sourceLangWidget = createLanguageWidget(sourceRoot, {
+      nameOf: displayLanguageName,
+      onPick: (code) => controller.setSourceDisplayLanguage(code),
+      texts: () => ({
+        aria: uiChrome().langWidgetSourceAria,
+        title: uiChrome().langWidgetTitle,
+        follow: uiChrome().langWidgetFollow,
+        chosen: uiChrome().langWidgetChosen,
+      }),
+    });
+  }
+}
+
+function syncLanguageWidgets(s: ReturnType<WorkbenchController["getState"]>): void {
+  targetLangWidget?.update({
+    languages: s.modelLanguages.length > 1 ? s.targetLanguages : [],
+    current: s.modelLanguage,
+    chosen: s.targetDisplayChosen,
+  });
+  sourceLangWidget?.update({
+    languages: s.sourceSchemaLanguages,
+    current: s.sourceDisplayLanguage,
+    chosen: Boolean(s.settings.display?.sourceLabelLang),
   });
 }
 
-function syncModelLanguageMenu(s: ReturnType<WorkbenchController["getState"]>): void {
-  const wrap = document.getElementById("model-language-wrap");
-  const select = document.getElementById("model-language-dropdown") as HTMLSelectElement | null;
-  if (!wrap || !select) return;
-  const languages = s.modelLanguages ?? [];
-  const multilingual = languages.length > 1;
-  wrap.hidden = !multilingual;
-  if (!multilingual) return;
-  const current = s.modelLanguage ?? languages[0] ?? "";
-  const same =
-    select.options.length === languages.length &&
-    languages.every((lang, i) => select.options[i]?.value === lang) &&
-    select.value === current;
-  if (same) return;
-  select.replaceChildren();
-  for (const lang of languages) {
-    const opt = document.createElement("option");
-    opt.value = lang;
-    opt.textContent = displayLanguageName(lang);
-    if (lang === current) opt.selected = true;
-    select.appendChild(opt);
+let targetHoverCache: { key: string; byLang: Array<[string, Map<string, string>]> } | null = null;
+
+/** Hover text on target tree rows: the label in the target's other languages (#279). */
+function targetAltLabels(s: ReturnType<WorkbenchController["getState"]>): ((slotId: string) => string | undefined) | undefined {
+  if (s.modelLanguages.length < 2) return undefined;
+  const key = `${s.templateId}|${s.modelLanguage}|${s.targetLanguages.join(",")}`;
+  if (targetHoverCache?.key !== key) {
+    const others = s.targetLanguages.filter((l) => l !== s.modelLanguage);
+    targetHoverCache = { key, byLang: others.map((l) => [l, controller.getTargetLabels(l)]) };
   }
+  const byLang = targetHoverCache.byLang;
+  return (slotId) => {
+    const parts = byLang.map(([l, m]) => (m.get(slotId) ? `${l}: ${m.get(slotId)}` : "")).filter(Boolean);
+    return parts.length ? parts.join("\n") : undefined;
+  };
+}
+
+/** AI menu → Languages…: `source.lang.N` and which target labels go to the AI (#279). */
+function openAiLanguagesDialog(): void {
+  const dialog = document.getElementById("dialog-ai-languages") as HTMLDialogElement | null;
+  const input = document.getElementById("ai-source-languages") as HTMLInputElement | null;
+  const hint = document.getElementById("ai-source-languages-hint");
+  const preview = document.getElementById("ai-languages-preview");
+  if (!dialog || !input) return;
+  const current = controller.getLanguageSettings();
+  input.value = current.sourceLanguages?.join(", ") ?? "";
+  input.placeholder = current.detectedSourceLanguages.join(", ") || "sv, en";
+  dialog.querySelectorAll<HTMLInputElement>("input[name=ai-context-languages]").forEach((r) => {
+    r.checked = r.value === current.aiContextLanguages;
+  });
+  const refresh = () => {
+    const t = uiChrome();
+    const typed = parseLanguageList(input.value);
+    const unknown = typed.filter((c) => !isKnownLanguage(c));
+    const detected = current.detectedSourceLanguages;
+    if (hint) {
+      hint.textContent = unknown.length
+        ? t.aiSourceLanguagesInvalid.replace("{codes}", unknown.join(", "))
+        : detected.length
+        ? t.aiSourceLanguagesDetected.replace("{langs}", detected.join(", "))
+        : t.aiSourceLanguagesNone;
+      hint.classList.toggle("is-error", unknown.length > 0);
+    }
+    const mode = (dialog.querySelector<HTMLInputElement>("input[name=ai-context-languages]:checked")?.value ??
+      "matched") as "matched" | "lang1" | "all";
+    const { target: order, ai } = controller.previewLanguages(typed.filter(isKnownLanguage), mode);
+    if (preview) {
+      preview.textContent = order.length
+        ? t.aiLanguagesPreview.replace("{order}", order.join(", ")).replace("{ai}", ai.join(", "))
+        : "";
+    }
+  };
+  input.oninput = refresh;
+  dialog.querySelectorAll<HTMLInputElement>("input[name=ai-context-languages]").forEach((r) => (r.onchange = refresh));
+  refresh();
+  const cancel = document.getElementById("ai-languages-cancel");
+  if (cancel) cancel.onclick = () => dialog.close("cancel");
+  dialog.returnValue = "cancel";
+  dialog.onclose = () => {
+    if (dialog.returnValue !== "confirm") return;
+    const mode = (dialog.querySelector<HTMLInputElement>("input[name=ai-context-languages]:checked")?.value ??
+      "matched") as "matched" | "lang1" | "all";
+    controller.setLanguageSettings({
+      sourceLanguages: parseLanguageList(input.value).filter(isKnownLanguage),
+      aiContextLanguages: mode,
+    });
+  };
+  dialog.showModal();
+  input.focus();
 }
 
 function displayLanguageName(code: string): string {
@@ -925,10 +1009,11 @@ async function projectForLocaleReload(): Promise<ProjectBundle | null> {
 async function bootBlockly(): Promise<void> {
   const locale = detectLocale();
   blocklyLocale = locale;
+  controller.setUiLanguage(locale);
   await loadBlocklyLocale(locale);
   initBlocklyGenerators();
   setupUiLanguageMenu(locale);
-  setupModelLanguageMenu();
+  setupLanguageWidgets();
 
   workspace = Blockly.inject(blocklyMount, {
     theme: createModestTheme(),
@@ -2423,6 +2508,8 @@ function installCopyAiMenu(): void {
         openAiCredentialsDialog();
       } else if (action === "local-mcp") {
         openLocalMcpDialog();
+      } else if (action === "languages") {
+        openAiLanguagesDialog();
       }
     });
   });
@@ -4222,7 +4309,7 @@ function render(): void {
     taskProgressOverlay.hidden = true;
   }
 
-  syncModelLanguageMenu(s);
+  syncLanguageWidgets(s);
 
   if (s.schemaTree) {
     renderSchemaTree(
@@ -4247,7 +4334,7 @@ function render(): void {
 
   renderTargetSchemaTree(
     targetSchemaTreeEl,
-    s.skeleton.length ? targetSchemaTreeFromSkeleton(s.skeleton) : [],
+    s.skeleton.length ? targetSchemaTreeFromSkeleton(s.skeleton, targetAltLabels(s)) : [],
     undefined,
     uiChrome().loadTargetEmpty,
   );

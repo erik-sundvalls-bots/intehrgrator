@@ -71,27 +71,37 @@ export function findSkeletonNodeIn(
   return undefined;
 }
 
-/** Full target (including optional template nodes) for the Target schema tab. */
-export function targetSchemaTreeFromSkeleton(nodes: SkeletonNode[]): SchemaTreeNode[] {
-  return nodes.map(skeletonNodeToTree);
+/** A target tree row; `altLabels` = the label in the target's other languages (hover, #279). */
+export interface TargetTreeNode extends SchemaTreeNode {
+  altLabels?: string;
+  children: TargetTreeNode[];
 }
 
-function skeletonNodeToTree(node: SkeletonNode): SchemaTreeNode {
-  return {
-    path: node.slotId,
-    name: node.label || node.rmType || node.blockType,
-    type: node.rmType || node.blockType,
-    multiplicity: node.multiplicity ?? node.effectiveCardinality,
-    description: node.documentation,
-    children: node.children.map(skeletonNodeToTree),
+/** Full target (including optional template nodes) for the Target schema tab. */
+export function targetSchemaTreeFromSkeleton(
+  nodes: SkeletonNode[],
+  altLabels?: (slotId: string) => string | undefined,
+): TargetTreeNode[] {
+  const toTree = (node: SkeletonNode): TargetTreeNode => {
+    const alt = altLabels?.(node.slotId);
+    return {
+      path: node.slotId,
+      name: node.label || node.rmType || node.blockType,
+      type: node.rmType || node.blockType,
+      multiplicity: node.multiplicity ?? node.effectiveCardinality,
+      description: node.documentation,
+      ...(alt ? { altLabels: alt } : {}),
+      children: node.children.map(toTree),
+    };
   };
+  return nodes.map(toTree);
 }
 
 export type TargetTreeSelectHandler = (slotId: string, event?: MouseEvent) => void;
 
 export function renderTargetSchemaTree(
   container: HTMLElement,
-  nodes: SchemaTreeNode[],
+  nodes: TargetTreeNode[],
   onSelect: TargetTreeSelectHandler = () => {},
   emptyLabel = "Load a target schema or template.",
 ): void {
@@ -107,7 +117,7 @@ export function renderTargetSchemaTree(
 }
 
 function buildTargetNode(
-  node: SchemaTreeNode,
+  node: TargetTreeNode,
   onSelect: TargetTreeSelectHandler,
   depth: number,
 ): HTMLElement {
@@ -126,7 +136,7 @@ function buildTargetNode(
   meta.textContent = `  ${metaParts.join(" ")}`;
   label.append(document.createTextNode(node.name), meta);
   label.draggable = true;
-  label.title = node.description ?? node.path;
+  label.title = [node.description ?? node.path, node.altLabels].filter(Boolean).join("\n");
   label.addEventListener("click", (event) => onSelect(node.path, event));
   label.addEventListener("dragstart", (e) => {
     const payload: TargetDragPayload = { slotId: node.path };

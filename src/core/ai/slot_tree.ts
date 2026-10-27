@@ -27,6 +27,8 @@ export interface SlotTreeRow {
   id: string;
   type: string;
   label?: string;
+  /** The label in other AI context languages, by language code (#279). */
+  labels?: Record<string, string>;
   mult?: string;
   mandatory?: boolean;
   /** Values pinned by the template: `units`, `code`, `terminology`. */
@@ -205,7 +207,13 @@ function lastStepName(id: string): string {
   return "";
 }
 
-function rowFor(node: SkeletonNode, id: string, model?: Map<string, string>, info?: SlotInfo): SlotTreeRow {
+function rowFor(
+  node: SkeletonNode,
+  id: string,
+  model?: Map<string, string>,
+  info?: SlotInfo,
+  extra?: Array<[string, Map<string, string>]>,
+): SlotTreeRow {
   const fixed: Record<string, string> = {};
   const ff = node.fixedFields ?? {};
   if (ff.units) fixed.units = String(ff.units);
@@ -224,11 +232,13 @@ function rowFor(node: SkeletonNode, id: string, model?: Map<string, string>, inf
   const ordinals = info?.ordinals ?? (node.allowedOrdinals?.length
     ? node.allowedOrdinals.map((o) => ({ value: o.value, code: o.code, text: o.label }))
     : undefined);
+  const labels = extraLabelsFor(node.slotId, label, extra, info);
   return {
     id,
     type: node.rmType,
     // A label that only repeats the type, the path's last name or the documentation adds nothing.
     ...(label && label !== node.rmType && label !== lastStepName(id) && label !== info?.description?.trim() ? { label } : {}),
+    ...(labels ? { labels } : {}),
     ...(description ? { description } : {}),
     ...(node.multiplicity ? { mult: node.multiplicity } : {}),
     ...(node.mandatory ? { mandatory: true } : {}),
@@ -258,6 +268,32 @@ export interface BuildSlotTreeOptions {
   model?: MappingModel;
   /** Descriptions, ranges, value texts … from the target definition (#277 enrichment). */
   info?: SlotInfoIndex;
+  /**
+   * Extra AI context languages (after `target.lang.1`, whose labels the skeleton
+   * already has): slot id → label per language, added as `labels` when they differ (#279).
+   */
+  extraLabels?: Array<[string, Map<string, string>]>;
+}
+
+function langPick(map: Record<string, string> | undefined, lang: string): string | undefined {
+  if (!map) return undefined;
+  return map[lang] ?? map[lang.split("-")[0]!];
+}
+
+/** `labels` of a row: the label in each extra language that differs from the row's own. */
+function extraLabelsFor(
+  slotId: string,
+  label: string | undefined,
+  extra: Array<[string, Map<string, string>]> | undefined,
+  info: SlotInfo | undefined,
+): Record<string, string> | undefined {
+  if (!extra?.length) return undefined;
+  const out: Record<string, string> = {};
+  for (const [lang, map] of extra) {
+    const text = (map.get(slotId) ?? langPick(info?.labels, lang))?.trim();
+    if (text && text !== label) out[lang] = text;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** Group the value slots under their loop / content ancestor, in skeleton order. */
@@ -312,7 +348,7 @@ export function buildSlotTree(skeleton: SkeletonNode[], options: BuildSlotTreeOp
       groups.set(key, group);
     }
     const info = options.info ? slotInfoFor(options.info, slot.slotId) : undefined;
-    group.slots.push(rowFor(slot, key ? tailAfter(c(slot.slotId), key) : c(slot.slotId), exprs, info));
+    group.slots.push(rowFor(slot, key ? tailAfter(c(slot.slotId), key) : c(slot.slotId), exprs, info, options.extraLabels));
   }
   return [...groups.values()];
 }
@@ -330,4 +366,4 @@ export function formatSlotTree(groups: SlotTreeGroup[]): string {
 
 /** Slot-tree reading guide, shared by the prompt and the tool description. */
 export const SLOT_TREE_GUIDE =
-  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices.";
+  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";
