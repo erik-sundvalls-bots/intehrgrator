@@ -383,6 +383,19 @@ export interface ProjectSettings {
   aiAttachOriginalTarget?: boolean;
 }
 
+/**
+ * Language settings stored with one file of the project (#289), so they
+ * restore on reload whatever other files use.
+ */
+export interface FileLanguageSettings {
+  /** Ordered languages: lang.1 (primary) first, then lang.2, … */
+  languages: string[];
+  /** Target only: Web Template id / FLAT path language, `"primary"` or an ISO code. */
+  idLanguage?: string;
+  /** Language the file's pane shows labels / descriptions in (💬); absent = automatic. */
+  labelLanguage?: string;
+}
+
 export interface ProjectBundle {
   version: number;
   projectId: string;
@@ -399,12 +412,16 @@ export interface ProjectBundle {
     language?: string;
     languages?: string[];
     webTemplateJson?: string;
+    /** Id language `webTemplateJson` ids were built in (#289); absent = primary. */
+    idLanguage?: string;
+    languageSettings?: FileLanguageSettings;
   } | null;
   sourceSchema: {
     filename: string;
     format?: SourceFormatId;
     content: string;
     tree: SchemaTreeNode[];
+    languageSettings?: FileLanguageSettings;
   } | null;
   examples: ExampleInstance[];
   activeExampleId: string | null;
