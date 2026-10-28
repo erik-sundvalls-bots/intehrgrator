@@ -259,6 +259,12 @@ export interface SkeletonNode {
   archetypeShortName?: string;
   /** Template-constrained LOCATABLE.name (`C_STRING` list / AQL name hint). */
   nameConstraint?: string;
+  /**
+   * The term in the target's primary language (the first language in the OPT),
+   * set when `label` is in another language. Output names never follow the
+   * display language.
+   */
+  primaryName?: string;
   kind: SkeletonNodeKind;
   /** RM attribute on the parent object this node occupies (e.g. data, items, value). */
   rmAttribute?: string;
@@ -327,6 +333,8 @@ export interface SchemaTreeNode {
   multiplicity?: string;
   /** JSON Schema `description` or similar prose for the help popup. */
   description?: string;
+  /** Language of `description` when known (XSD `xml:lang`, JSON Schema `x-i18n` key / `x-lang`) (#277 §5). */
+  descriptionLang?: string;
   children: SchemaTreeNode[];
 }
 
@@ -369,8 +377,29 @@ export interface ProjectSettings {
   openEhrJsonDeserializeMode: OpenEhrJsonDeserializeMode;
   autoscroll: boolean;
   autoplay: boolean;
-  /** Ontology / localizedNames language for the loaded multilingual target. */
+  /** Ontology / localizedNames language the target is currently shown in. */
   modelLanguage?: string;
+  /** `source.lang.N` set by the user (#277 §4); unset = detected from the source. */
+  sourceLanguages?: string[];
+  /** Which target languages' labels go to the AI (#279); default `matched`. */
+  aiContextLanguages?: "matched" | "lang1" | "all";
+  /** Display languages chosen in the 💬 widgets (#279); unset = `lang.1`. */
+  display?: { targetLabelLang?: string; sourceLabelLang?: string };
+  /** Copy & paste AI prompt also attaches the raw target file (#277; off: slot tree only). */
+  aiAttachOriginalTarget?: boolean;
+}
+
+/**
+ * Language settings stored with one file of the project (#289), so they
+ * restore on reload whatever other files use.
+ */
+export interface FileLanguageSettings {
+  /** Ordered languages: lang.1 (primary) first, then lang.2, … */
+  languages: string[];
+  /** Target only: Web Template id / FLAT path language, `"primary"` or an ISO code. */
+  idLanguage?: string;
+  /** Language the file's pane shows labels / descriptions in (💬); absent = automatic. */
+  labelLanguage?: string;
 }
 
 export interface ProjectBundle {
@@ -389,12 +418,16 @@ export interface ProjectBundle {
     language?: string;
     languages?: string[];
     webTemplateJson?: string;
+    /** Id language `webTemplateJson` ids were built in (#289); absent = primary. */
+    idLanguage?: string;
+    languageSettings?: FileLanguageSettings;
   } | null;
   sourceSchema: {
     filename: string;
     format?: SourceFormatId;
     content: string;
     tree: SchemaTreeNode[];
+    languageSettings?: FileLanguageSettings;
   } | null;
   examples: ExampleInstance[];
   activeExampleId: string | null;
@@ -474,6 +507,8 @@ export interface SuggestionEnvelope {
     block: SuggestionBlock;
     /** When set, `block` EXPRESSION is relative to that loop VAR's PATH. */
     loopVar?: string;
+    /** `DV_CODED_TEXT` on a DV_TEXT slot (inferred when the block has a code); `DV_TEXT` switches back (#274). */
+    rmType?: string;
     note?: string;
     /** Integer percent 0–100; omitted when the model is confident (≥ ~90). */
     confidence?: AiConfidence;

@@ -10,7 +10,18 @@ const configPath = join(root, "deno.json");
 const vscodeExternal: esbuild.Plugin = {
   name: "vscode-external",
   setup(build) {
-    build.onResolve({ filter: /^vscode$/ }, () => ({ path: "vscode", external: true }));
+    // VS Code exposes its API through the extension host's CommonJS loader.
+    build.onResolve(
+      { filter: /^vscode$/ },
+      ({ namespace }) =>
+        namespace === "vscode-shim"
+          ? { path: "vscode", external: true }
+          : { path: "vscode", namespace: "vscode-shim" },
+    );
+    build.onLoad({ filter: /.*/, namespace: "vscode-shim" }, () => ({
+      contents: 'module.exports = require("vscode");',
+      loader: "js",
+    }));
   },
 };
 
@@ -94,16 +105,34 @@ await esbuild.build({
   plugins: [xmlEmbedPlugin, vscodeExternal, ...denoPlugins({ configPath })],
   entryPoints: ["extension/extension.ts"],
   bundle: true,
-  outfile: "dist/extension.js",
+  outfile: "dist/extension.mjs",
   // The mapping workbench never uses jsdom's synchronous XMLHttpRequest worker.
-  // Its relative require.resolve cannot survive bundling into extension.js.
+  // Its relative require.resolve cannot survive bundling into extension.mjs.
   define: { "require.resolve": "undefined" },
-  format: "cjs",
+  // ehrtslib initialization uses top-level await. Keep it in an ESM bundle
+  // behind the CommonJS entry point that VS Code loads.
+  format: "esm",
+  banner: {
+    js:
+      `import { createRequire as __extensionCreateRequire } from "node:module";
+import { fileURLToPath as __extensionFileURLToPath } from "node:url";
+import { dirname as __extensionDirname } from "node:path";
+const require = __extensionCreateRequire(import.meta.url);
+const __filename = __extensionFileURLToPath(import.meta.url);
+const __dirname = __extensionDirname(__filename);`,
+  },
   target: "node18",
   platform: "node",
   sourcemap: true,
-  external: ["vscode"],
 });
+await Deno.writeTextFile(
+  join(outDir, "extension.js"),
+  `let extension;
+const load = () => extension ??= import("./extension.mjs");
+exports.activate = async (context) => (await load()).activate(context);
+exports.deactivate = async () => extension ? (await extension).deactivate() : undefined;
+`,
+);
 
 await copy(join(root, "web", "index.html"), join(outDir, "index.html"), { overwrite: true });
 await copy(join(root, "web", "styles.css"), join(outDir, "styles.css"), { overwrite: true });

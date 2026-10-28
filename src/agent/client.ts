@@ -94,7 +94,10 @@ export class HttpAgentClient implements AgentClient {
   ) {}
 
   async registerAgent(args: Record<string, unknown>) {
-    const json = await this.request("POST", "/api/v1/register-agent", args) as {
+    // Registering again (after the automatic registration on the first write)
+    // renames this agent instead of creating a second one.
+    const body = this.session && !args.agentId ? { ...args, agentId: this.session.agentId } : args;
+    const json = await this.request("POST", "/api/v1/register-agent", body) as {
       agentId: string;
       displayName: string;
       color: string;
@@ -127,14 +130,24 @@ export class HttpAgentClient implements AgentClient {
       body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(JSON.stringify(json));
+    if (!res.ok) {
+      // The message first (an agent reads it), then the details (holder, revision).
+      const { error, ...rest } = json as { error?: string };
+      throw new Error(error ? `${error}${Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : ""}` : JSON.stringify(json));
+    }
     return json;
   }
 
-  callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
-    if (name === "register_agent") return this.registerAgent(args);
+  async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+    if (name === "register_agent") return await this.registerAgent(args);
     const route = AGENT_TOOL_HTTP[name];
-    if (!route) return Promise.reject(new Error(`Unknown tool: ${name}`));
+    if (!route) throw new Error(`Unknown tool: ${name}`);
+    // Each MCP process (one IDE chat / agent) is its own agent: register on the
+    // first write or lease when the agent did not, so two chats from the same
+    // IDE get separate leases, names and colours instead of sharing "MCP: cursor".
+    if (!this.session && route.method !== "GET") {
+      await this.registerAgent({ displayName: this.clientName || "MCP agent" });
+    }
     const revision = args.revision as string | undefined;
     const rest = { ...args };
     delete rest.revision;

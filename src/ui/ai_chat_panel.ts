@@ -21,12 +21,29 @@ import {
   partsChips,
 } from "../core/ai/chat_context.ts";
 import {
+  CHAT_HISTORY_MAX_CHARS,
   type ChatSession,
+  chatRecap,
   clearChatSession,
+  emptyChatSession,
+  estimateChatTokens,
+  historyTokenLimit,
   loadChatSession,
   saveChatSession,
   trimChatSessionToTokens,
 } from "../core/ai/chat_history.ts";
+import {
+  budgetState,
+  contextWindowFor,
+  emptyUsageTotals,
+  formatTokens,
+  loadAiChatLimits,
+  mergeUsageTotals,
+  saveAiChatLimits,
+  totalTokens,
+  type UsageTotals,
+} from "../core/ai/token_usage.ts";
+import { installUsageMeter } from "./ai_usage_meter.ts";
 import type { MappingAgentEvent } from "../core/ai/mapping_agent.ts";
 import type { ChatMessage } from "../core/ai/credentials.ts";
 import {
@@ -62,6 +79,8 @@ export const AI_CHAT_COLLAPSED_KEY = "intehrgrator.ai.chatCollapsed";
 const LEGACY_AI_CHAT_OPEN_KEY = "intehrgrator.ai.chatOpen";
 export const AI_CHAT_SPLIT_KEY = "layout-output-ai-chat";
 export const PROJECT_CONTEXT_HEADING = "## Project context";
+/** Heading of the recap that "Start new chat with summary" sends once (#292). */
+export const EARLIER_CHAT_HEADING = "## Earlier chat (recap)";
 /** Smallest message list kept visible while growing the entry box (px). */
 const MIN_LOG_PX = 32;
 
@@ -82,6 +101,8 @@ export interface AiChatTurnRequest {
   signal: AbortSignal;
   /** Live progress for the streaming bubble. */
   onEvent: (event: MappingAgentEvent) => void;
+  /** Tokens this turn may use before it pauses (what is left of the chat's budget, #276). */
+  tokenBudget?: number;
 }
 
 export interface AiChatTurnResult {
@@ -96,6 +117,10 @@ export interface AiChatTurnResult {
   mappings?: string[];
   /** The run was stopped; `text` is what arrived before Stop. */
   stopped?: boolean;
+  /** Token use of this turn (#276). */
+  usage?: UsageTotals;
+  /** The turn paused at `tokenBudget`. */
+  budgetReached?: boolean;
 }
 
 export interface AiChatPanelOptions {
@@ -115,6 +140,9 @@ export interface AiChatPanelOptions {
   /** Last copy/paste delivery mode, shared with the header AI menu. */
   getDelivery?: () => AiPromptDelivery;
   setDelivery?: (delivery: AiPromptDelivery) => void;
+  /** Copy & paste: also attach the raw target file (#277; default off). */
+  getAttachOriginalTarget?: () => boolean;
+  setAttachOriginalTarget?: (on: boolean) => void;
   copyToClipboard: (text: string) => Promise<void>;
   pickTextFile: () => Promise<{ name: string; text: string } | null>;
   fetchText: (url: string) => Promise<string>;
@@ -128,6 +156,8 @@ export interface AiChatPanelOptions {
   /** Short label for a slot id in Notes (path label tail). */
   describeSlot?: (slotId: string) => string | undefined;
   prompt?: (message: string) => string | null;
+  /** Model id of the active AI credentials, for its context window (#276). */
+  model?: () => string;
 }
 
 export interface AiChatPanelHandle {
@@ -196,6 +226,14 @@ export function readCollapsed(storage: Storage): boolean {
   return !legacyOpen;
 }
 
+/** Next budget after a pause: double it, and at least a quarter above what is used. */
+export function raisedBudget(budget: number | undefined, used: number): number {
+  const next = Math.max((budget ?? 0) * 2, Math.ceil(used * 1.25));
+  // Round to two significant digits so the setting reads well (2.5M, 120k).
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(next)) - 1);
+  return Math.ceil(next / magnitude) * magnitude;
+}
+
 export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHandle {
   const { panel, stack, tabs, storage } = options;
   const confirmFn = options.confirm ?? ((m: string) => globalThis.confirm(m));
@@ -212,6 +250,8 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   let running: AbortController | null = null;
   /** Live streaming bubble content for the running turn. */
   let live: { text: string; reasoning: string; tool: string; mappings: string[]; errors: number } | null = null;
+  /** Token use of the running turn so far (#276). */
+  let turnUsage: UsageTotals | null = null;
   let liveRow: HTMLElement | null = null;
   let liveFrame = 0;
   let forceContext = false;
@@ -359,6 +399,21 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     });
     copyMenu.append(item);
   }
+  if (options.setAttachOriginalTarget) {
+    const check = el("label", { className: "split-btn-menu-item split-btn-menu-item--icon split-btn-menu-check" });
+    check.title = ui().menuAttachOriginalTargetTitle;
+    const box = el("input");
+    box.type = "checkbox";
+    box.id = "ai-chat-attach-target";
+    box.checked = Boolean(options.getAttachOriginalTarget?.());
+    box.addEventListener("change", () => options.setAttachOriginalTarget?.(box.checked));
+    check.append(box, el("span", { text: ui().menuAttachOriginalTarget }));
+    copyMenu.append(check);
+    // Keep in step with the AI menu's checkbox.
+    copyChevron.addEventListener("click", () => {
+      box.checked = Boolean(options.getAttachOriginalTarget?.());
+    });
+  }
   copySplit.append(copyBtn, copyChevron, copyMenu);
   const importBtn = el("button", { className: "pane-btn", type: "button" });
   importBtn.id = "ai-chat-import-answer";
@@ -373,7 +428,26 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   stopBtn.id = "ai-chat-stop";
   iconLabel(stopBtn, "stop_circle", ui().aiChatStop);
   stopBtn.hidden = true;
-  actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), stopBtn, sendBtn);
+  const currentModel = () => options.model?.() ?? "";
+  const meter = installUsageMeter({
+    onSave: ({ budget, contextWindow }) => {
+      const limits = loadAiChatLimits(storage);
+      const model = currentModel();
+      const windows = { ...limits.contextWindows };
+      if (model) {
+        if (contextWindow) windows[model] = contextWindow;
+        else delete windows[model];
+      }
+      saveAiChatLimits(storage, { ...(budget ? { budget } : {}), contextWindows: windows });
+      // A higher budget clears the 80 % note so it can warn again later.
+      if (session.budgetWarned && budgetState(chatTokens(), budget) === "ok") {
+        session.budgetWarned = false;
+        persist();
+      }
+      refreshMeter();
+    },
+  });
+  actions.append(copySplit, importBtn, el("span", { className: "ai-chat-spacer" }), meter.element, stopBtn, sendBtn);
   composer.append(input, actions);
   // Same look as every split_pane.ts divider (6px bar, centred 3-dot grip).
   const grip = el("div", { className: "split-handle split-handle--row ai-chat-grip", title: ui().aiChatResizeInput });
@@ -512,6 +586,69 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     }
   });
 
+  // ── token meter (#276) ───────────────────────────────────────────────────
+  const chatTokens = () => totalTokens(session.usage ?? emptyUsageTotals()) + totalTokens(turnUsage ?? emptyUsageTotals());
+  const limitsNow = () => {
+    const limits = loadAiChatLimits(storage);
+    const model = currentModel();
+    const override = model ? limits.contextWindows[model] : undefined;
+    return { budget: limits.budget, override, contextWindow: contextWindowFor(model, override), model };
+  };
+  const refreshMeter = () => {
+    const limits = limitsNow();
+    meter.update({
+      chat: session.usage,
+      turn: turnUsage ?? undefined,
+      running: Boolean(running),
+      model: limits.model,
+      budget: limits.budget,
+      contextWindow: limits.contextWindow,
+      contextWindowOverride: limits.override,
+      contextEstimate: estimateChatTokens(session.messages),
+    });
+  };
+  /** Raise the budget past what is used and send "continue" (the paused turn goes on). */
+  const raiseBudgetAndContinue = () => {
+    const limits = loadAiChatLimits(storage);
+    saveAiChatLimits(storage, { ...limits, budget: raisedBudget(limits.budget, chatTokens()) });
+    session.budgetWarned = false;
+    setInputParts([{ text: "continue" }]);
+    void send();
+  };
+
+  /** The history-full card was answered: its buttons go away. */
+  const settleHistoryPause = () => {
+    for (const entry of session.display) if (entry.action === "history-full") delete entry.action;
+  };
+
+  /** "Continue with trimmed history": drop the oldest turns, then send (#292). */
+  const continueTrimmed = () => {
+    settleHistoryPause();
+    void send({ trimConfirmed: true });
+  };
+
+  /** "Start new chat with summary": empty wire history plus a recap sent once (#292). */
+  const newChatWithRecap = () => {
+    settleHistoryPause();
+    const previous = session;
+    session = {
+      ...emptyChatSession(),
+      display: [...previous.display, { role: "note", text: ui().aiChatHistoryRecapStarted }],
+      recap: chatRecap(previous),
+      ...(previous.usage ? { usage: previous.usage } : {}),
+      ...(previous.budgetWarned ? { budgetWarned: true } : {}),
+    };
+    forceContext = false;
+    void send();
+  };
+
+  const cancelHistoryPause = () => {
+    settleHistoryPause();
+    session.display.push({ role: "note", text: ui().aiChatHistoryCancelled });
+    persist();
+    renderLog();
+  };
+
   // ── log ───────────────────────────────────────────────────────────────────
   const mappingLines = (lines: string[]) => {
     const box = el("div", { className: "ai-chat-mappings" });
@@ -573,6 +710,10 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       case "tool-error":
         live.errors++;
         break;
+      case "usage":
+        turnUsage = event.turn;
+        refreshMeter();
+        break;
       case "step":
         // A new step starts a new paragraph of streamed text.
         if (live.text && !live.text.endsWith("\n\n")) live.text += "\n\n";
@@ -624,6 +765,31 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       } else if (entry.text) {
         row.append(el("div", { className: "ai-chat-text", text: entry.text }));
       }
+      // Only the newest pause note keeps its button.
+      if (entry.action === "raise-budget" && index === session.display.length - 1) {
+        const limits = loadAiChatLimits(storage);
+        const raise = el("button", {
+          className: "pane-btn ai-chat-raise-budget",
+          text: formatMessage(ui().aiChatBudgetRaise, { budget: formatTokens(raisedBudget(limits.budget, chatTokens())) }),
+          type: "button",
+        });
+        raise.id = "ai-chat-raise-budget";
+        raise.addEventListener("click", () => raiseBudgetAndContinue());
+        row.append(raise);
+      }
+      if (entry.action === "history-full" && index === session.display.length - 1) {
+        const choices = el("div", { className: "ai-chat-choices" });
+        const choice = (id: string, text: string, onClick: () => void, primary = false) => {
+          const btn = el("button", { className: primary ? "pane-btn pane-btn-primary" : "pane-btn", text, type: "button" });
+          btn.id = id;
+          btn.addEventListener("click", onClick);
+          choices.append(btn);
+        };
+        choice("ai-chat-history-trim", ui().aiChatHistoryTrimChoice, continueTrimmed, true);
+        choice("ai-chat-history-recap", ui().aiChatHistoryRecapChoice, newChatWithRecap);
+        choice("ai-chat-history-cancel", ui().aiChatHistoryCancelChoice, cancelHistoryPause);
+        row.append(choices);
+      }
       log.append(row);
     });
     if (sending && live) renderLive();
@@ -631,8 +797,17 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     log.scrollTop = log.scrollHeight;
   };
 
+  /** Save; only the stored copy may be cut, and the user hears about it once per chat (#292). */
   const persist = () => {
-    session = saveChatSession(storage, sessionProject, session);
+    const { trimmed } = saveChatSession(storage, sessionProject, session);
+    if (trimmed && !session.storageTrimNoted) {
+      session.storageTrimNoted = true;
+      session.display.push({
+        role: "note",
+        text: formatMessage(ui().aiChatStorageTrimmed, { limit: formatTokens(CHAT_HISTORY_MAX_CHARS) }),
+      });
+      saveChatSession(storage, sessionProject, session);
+    }
   };
 
   /** Switch to the current project's history. Returns true when it changed. */
@@ -657,6 +832,8 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     importBtn.hidden = Boolean(running);
     copyBtn.classList.toggle("pane-btn-primary", !hasCreds);
     copyChevron.classList.toggle("pane-btn-primary", !hasCreds);
+    meter.element.hidden = !hasCreds;
+    refreshMeter();
     // Stored prompts and Clear history live only in the expanded panel.
     promptsWrap.hidden = collapsed;
     clearBtn.hidden = collapsed;
@@ -671,9 +848,10 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     const parts = readInputParts(input);
     const composed = composeUserMessage(parts, session.attachedChipKeys);
     const withContext = forceContext || !session.contextSent;
+    const recap = session.recap ? `\n\n${EARLIER_CHAT_HEADING}\n\n${session.recap}` : "";
     const prompt = withContext
-      ? `${composed.text}\n\n${PROJECT_CONTEXT_HEADING}\n\n${options.buildProjectContext(delivery ?? options.getDelivery?.())}`
-      : composed.text;
+      ? `${composed.text}${recap}\n\n${PROJECT_CONTEXT_HEADING}\n\n${options.buildProjectContext(delivery ?? options.getDelivery?.())}`
+      : `${composed.text}${recap}`;
     return { parts, composed, prompt, withContext };
   };
 
@@ -681,12 +859,13 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     session.display.push({ role: "user", text: c.composed.displayText });
     session.attachedChipKeys = [...new Set([...session.attachedChipKeys, ...c.composed.attachedKeys])];
     if (c.withContext) session.contextSent = true;
+    delete session.recap;
     forceContext = false;
     input.replaceChildren();
     savedRange = null;
   };
 
-  const send = async () => {
+  const send = async ({ trimConfirmed = false }: { trimConfirmed?: boolean } = {}) => {
     if (sending) return;
     syncProject();
     if (!options.hasCredentials()) {
@@ -694,12 +873,41 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       return;
     }
     if (!readInputParts(input).some((part) => "chip" in part || part.text.trim())) return;
-    // Keep the history sent with this message under the token budget (#252).
-    // Dropping the first turn also drops the project context, so it is re-attached.
-    const fitted = trimChatSessionToTokens(session);
-    if (fitted.trimmed) {
-      session = fitted.session;
-      session.display.push({ role: "note", text: ui().aiChatHistoryTrimmed });
+    const limits = limitsNow();
+    // Token budget (#276): a spending warner, not a police. At 100 % Send pauses
+    // until the user raises the budget.
+    if (limits.budget && chatTokens() >= limits.budget) {
+      pushBudgetPause(limits.budget);
+      persist();
+      renderLog();
+      return;
+    }
+    // History above the limit for this model (#252, #276): stop and let the
+    // user choose; old turns are dropped only on "Continue with trimmed
+    // history" (#292). Dropping the first turn also drops the project
+    // context, so it is re-attached.
+    const historyLimit = historyTokenLimit(limits.contextWindow);
+    const historyTokens = estimateChatTokens(session.messages);
+    if (historyTokens > historyLimit) {
+      if (!trimConfirmed) {
+        settleHistoryPause();
+        session.display.push({
+          role: "note",
+          action: "history-full",
+          text: formatMessage(ui().aiChatHistoryFull, {
+            tokens: formatTokens(historyTokens),
+            limit: formatTokens(historyLimit),
+          }),
+        });
+        persist();
+        renderLog();
+        return;
+      }
+      session = trimChatSessionToTokens(session, historyLimit).session;
+      session.display.push({
+        role: "note",
+        text: formatMessage(ui().aiChatHistoryTrimmed, { limit: formatTokens(historyLimit) }),
+      });
     }
     const c = composePrompt("api");
     if (!c.composed.displayText) return;
@@ -709,16 +917,21 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     const controller = new AbortController();
     running = controller;
     live = { text: "", reasoning: "", tool: "", mappings: [], errors: 0 };
+    turnUsage = emptyUsageTotals();
     persist();
     renderLog();
     refreshChrome();
+    let paused = false;
     try {
       const result = await options.runTurn({
         prompt: c.prompt,
         history,
         signal: controller.signal,
         onEvent: onTurnEvent,
+        ...(limits.budget ? { tokenBudget: limits.budget - chatTokens() } : {}),
       });
+      if (result.usage) turnUsage = result.usage;
+      paused = Boolean(result.budgetReached);
       session.messages = result.messages;
       const mappings = result.mappings ?? live?.mappings ?? [];
       session.display.push({
@@ -744,6 +957,22 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       // Keep the user message in the wire history so a retry has context.
       session.messages = [...history, { role: "user", content: c.prompt }];
     } finally {
+      // Requests made before an error or Stop still count.
+      if (turnUsage?.requests) session.usage = mergeUsageTotals(session.usage ?? emptyUsageTotals(), turnUsage);
+      turnUsage = null;
+      const budget = loadAiChatLimits(storage).budget;
+      if (paused && budget) pushBudgetPause(budget);
+      else if (budget && budgetState(chatTokens(), budget) === "warn" && !session.budgetWarned) {
+        session.budgetWarned = true;
+        session.display.push({
+          role: "note",
+          text: formatMessage(ui().aiChatBudgetWarn, {
+            percent: Math.round((chatTokens() / budget) * 100),
+            budget: formatTokens(budget),
+            used: formatTokens(chatTokens()),
+          }),
+        });
+      }
       sending = false;
       running = null;
       live = null;
@@ -752,7 +981,17 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       persist();
       renderLog();
       refreshChrome();
+      // The actions row may wrap after the run (Stop → Copy / Import): keep the newest entry in view.
+      log.scrollTop = log.scrollHeight;
     }
+  };
+
+  const pushBudgetPause = (budget: number) => {
+    session.display.push({
+      role: "note",
+      action: "raise-budget",
+      text: formatMessage(ui().aiChatBudgetReached, { used: formatTokens(chatTokens()), budget: formatTokens(budget) }),
+    });
   };
 
   const copyPrompt = async (delivery?: AiPromptDelivery) => {
@@ -966,6 +1205,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     });
     persist();
     renderLog();
+    refreshMeter();
   });
   credsBtn.addEventListener("click", () => options.openCredentials());
   credsDismiss.addEventListener("click", () => {

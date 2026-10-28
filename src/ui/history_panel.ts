@@ -71,10 +71,14 @@ export function authorBadge(
       detail: actor.model ?? (pasted ? ui().historyPasted : undefined),
     };
   }
+  // Parallel agents from one IDE share a client name: show the agent's own
+  // name too ("Bo · cursor"), as on its canvas lease tag.
+  const name = actor.displayName.replace(/^MCP:\s*/, "");
+  const client = actor.client;
   return {
     origin,
     label: "MCP",
-    detail: actor.client ?? actor.displayName.replace(/^MCP:\s*/, ""),
+    detail: client && name !== client ? `${name} · ${client}` : client ?? name,
   };
 }
 

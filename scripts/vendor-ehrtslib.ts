@@ -1,6 +1,5 @@
 import { ensureDir } from "@std/fs";
 import { join } from "@std/path";
-import { patchEhrtslibValidator } from "./patch-ehrtslib-validator.ts";
 
 type VendorSpec = {
   dir: string;
@@ -34,8 +33,6 @@ try {
 } catch {
   // no previous clone
 }
-
-await patchEhrtslibValidator();
 
 async function vendorRepo(spec: VendorSpec): Promise<void> {
   const { dir, url } = spec;

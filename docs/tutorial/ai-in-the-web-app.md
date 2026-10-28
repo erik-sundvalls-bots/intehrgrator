@@ -18,6 +18,10 @@ Under **copy/paste for external AI chat**, pick how context is packed. Each choi
 - **Attach files in chat** — the prompt tells you which files to attach yourself.
 - **Browse URIs (when available)** — the prompt points at URLs instead of embedding bytes.
 
+Every prompt describes the target as a compact **slot tree** (each value slot with its type, allowed values and fixed units) and names the template, archetypes or schemas once under **Models**. The raw target file (an OPT can be 100,000 tokens) is left out unless you tick **Attach original target**; the choice is saved with the project. The same checkbox is in the AI chat panel's copy menu.
+
+<img src="../assets/tutorial/ai-menu-attach-target.png" alt="AI menu with the Attach original target checkbox ticked below the three copy choices" />
+
 Without credentials the **AI chat** panel offers the same flow: type your request, **Copy prompt**, paste it into your chat, then **Import AI answer…**.
 
 <img src="../assets/tutorial/ai-chat-copy-paste.png" alt="AI chat panel without credentials: notice with Configure AI credentials, message box, Copy prompt and Import AI answer buttons" />
@@ -41,6 +45,18 @@ Use this when intEHRgrator should call the model itself.
    <img src="../assets/tutorial/ai-chat-done.png" alt="Finished AI chat turn with the ✓ line, one tool call and the answer" />
 
 If a provider does not support function tools, the chat asks once for suggestions JSON and applies it directly, also as one Undo step.
+
+### Token use, context window and budget
+
+Next to **Stop** / **Send** a meter shows the tokens this chat has used, updated after every step while the model works. It counts what the provider reports (input, cached input, output, and the cost when the provider gives one, such as OpenRouter); a `~` means the provider reported nothing and the number is an estimate. The ring shows how full the model's context window is: the last request's input plus output against the window. The window is known for common models (GPT-4o, GPT-4.1, GPT-5, o-series, Claude, Gemini, DeepSeek, …); for any other model set it in the meter's popover, otherwise the ring is hidden.
+
+The chat API keeps no session on the provider's side: every step sends the whole chat again, so the input grows with each step and turn. Providers with prompt caching bill the repeated start of the chat cheaper ("cached" in the popover). When the history gets too long for the model's context window (half of it; 64k tokens for an unknown model), the oldest turns are dropped and the next message re-attaches the project context.
+
+Click the meter to set an optional **token budget per chat** (input + output until **Clear history**, for example `2M`). At 80 % the chat warns; at 100 % it pauses after the step that reached it. **Raise budget … and continue** raises it and lets the model go on where it stopped. The budget is a spending warning, not a hard limit, and it is kept in this browser only. A model that keeps calling tools without finishing is stopped after 100 steps; send "continue" to let it go on.
+
+<img src="../assets/tutorial/ai-chat-tokens.png" alt="Token meter popover: context 41k of 128k tokens, input, cached and output tokens of this chat, token budget and context-window fields" />
+
+<img src="../assets/tutorial/ai-chat-budget-paused.png" alt="AI chat paused at the token budget, with a Raise budget to 200k and continue button and the red meter 126k / 100k" />
 
 On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop app forwards AI chat requests through its own server, so Gemini, OpenAI, Anthropic, Hugging Face, and OpenCode Zen work there. Key pages: [AI chat credentials](../AI_CREDENTIALS.md).
 

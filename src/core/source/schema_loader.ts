@@ -1,6 +1,8 @@
 import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
 import { parseJsonDocument, unwrapExecuteEnvelope } from "./json_document.ts";
 import { resolveJsonPointer } from "./json_pointer.ts";
+import { childElements, isXmlSchemaRoot, parseXmlDocument } from "../xml/xml_dom.ts";
+import { docEntry, parseXsd, type XsdNode } from "../xsd/xsd_model.ts";
 
 type JsonSchemaObject = Record<string, unknown>;
 
@@ -21,11 +23,38 @@ export function inferSchemaFromInstance(content: string, rootName = "root"): Sch
 }
 
 export function loadXmlSchemaFromInstance(xml: string, rootName = "root"): SchemaTreeNode {
-  const doc = new DOMParser().parseFromString(xml, "application/xml");
-  if (doc.querySelector("parsererror")) {
-    throw new Error("Invalid XML");
-  }
+  const doc = parseXmlDocument(xml);
   return xmlNodeToSchema(doc.documentElement, rootName, `/${doc.documentElement.tagName}`);
+}
+
+/**
+ * XML Source Schema: an XSD (`xs:schema` root) is read as a schema — element
+ * and attribute paths, types, multiplicity and `xs:documentation` — and any
+ * other XML document as an instance whose structure is inferred (#278).
+ */
+export function loadXmlSourceSchema(content: string, rootName = "root", lang?: string): SchemaTreeNode {
+  const doc = parseXmlDocument(content);
+  if (isXmlSchemaRoot(doc)) return loadXsdSchemaTree(content, lang);
+  return xmlNodeToSchema(doc.documentElement, rootName, `/${doc.documentElement.tagName}`);
+}
+
+/** Source tree for an XSD; `description` is the documentation in `lang` (else the first). */
+export function loadXsdSchemaTree(content: string, lang?: string): SchemaTreeNode {
+  return xsdNodeToSchemaTree(parseXsd(content).root, lang);
+}
+
+function xsdNodeToSchemaTree(node: XsdNode, lang?: string): SchemaTreeNode {
+  const doc = docEntry(node.docs, lang);
+  const description = doc?.text;
+  return {
+    path: node.path,
+    name: node.xmlKind === "attribute" ? `@${node.name}` : node.name,
+    type: node.complex && !node.simpleContent ? "element" : node.type,
+    multiplicity: node.multiplicity,
+    ...(description ? { description } : {}),
+    ...(description && doc?.lang ? { descriptionLang: doc.lang } : {}),
+    children: node.children.map((child) => xsdNodeToSchemaTree(child, lang)),
+  };
 }
 
 /** Normalize tree paths so schema (`$.a.b`) and instance (`$.a.b` / `$[1]`) can be matched. */
@@ -349,7 +378,7 @@ function instanceToSchemaTree(value: unknown, name: string, path: string): Schem
 function xmlNodeToSchema(el: Element, name: string, path: string): SchemaTreeNode {
   const children: SchemaTreeNode[] = [];
   const seen = new Set<string>();
-  for (const child of el.children) {
+  for (const child of childElements(el)) {
     if (seen.has(child.tagName)) continue;
     seen.add(child.tagName);
     children.push(xmlNodeToSchema(child, child.tagName, `${path}/${child.tagName}`));
@@ -384,4 +413,74 @@ export function appendJsonPath(path: string, key: string): string {
   return /^[\p{L}_$][\p{L}\p{N}_$]*$/u.test(key)
     ? `${path}.${key}`
     : `${path}[${JSON.stringify(key)}]`;
+}
+
+/**
+ * Source tree with descriptions in `lang` (#279): an XSD is re-read with that
+ * `xml:lang` documentation; a JSON Schema takes `x-i18n[lang].description`
+ * (falling back to `description`). Other sources come back unchanged.
+ */
+export function localizeSourceTree(
+  tree: SchemaTreeNode,
+  content: string,
+  format: string,
+  lang: string | undefined,
+): SchemaTreeNode {
+  if (!lang) return tree;
+  const text = content.trimStart();
+  if (text.startsWith("<")) {
+    try {
+      if (isXmlSchemaRoot(parseXmlDocument(content))) return loadXsdSchemaTree(content, lang);
+    } catch {
+      return tree;
+    }
+    return tree;
+  }
+  if (format !== "json" || !text.startsWith("{")) return tree;
+  let root: JsonSchemaObject;
+  try {
+    root = JSON.parse(text) as JsonSchemaObject;
+  } catch {
+    return tree;
+  }
+  if (!isJsonSchemaDocument(root)) return tree;
+  const deref = (node: unknown, depth = 0): JsonSchemaObject | undefined => {
+    if (!node || typeof node !== "object") return undefined;
+    const rec = node as JsonSchemaObject;
+    if (typeof rec.$ref === "string" && rec.$ref.startsWith("#/") && depth < 16) {
+      let target: unknown = root;
+      for (const part of rec.$ref.slice(2).split("/")) {
+        target = (target as JsonSchemaObject | undefined)?.[part.replace(/~1/g, "/").replace(/~0/g, "~")];
+      }
+      return deref(target, depth + 1);
+    }
+    return rec;
+  };
+  const base = lang.split("-")[0]!;
+  const defaultLang = typeof root["x-lang"] === "string" && root["x-lang"] ? root["x-lang"] as string : undefined;
+  const describe = (schema: JsonSchemaObject | undefined): { text?: string; lang?: string } => {
+    const i18n = schema?.["x-i18n"] as Record<string, JsonSchemaObject> | undefined;
+    const key = i18n?.[lang]?.description !== undefined ? lang : base;
+    const localized = i18n?.[key]?.description;
+    if (typeof localized === "string" && localized.trim()) return { text: localized.trim(), lang: key };
+    const text = schema ? schemaDescription(schema) : undefined;
+    return { text, lang: text ? defaultLang : undefined };
+  };
+  const walk = (node: SchemaTreeNode, schema: JsonSchemaObject | undefined): SchemaTreeNode => {
+    const { text: description, lang: descriptionLang } = describe(schema);
+    const children = node.children.map((child) => {
+      const sub = node.type === "array"
+        ? deref(Array.isArray(schema?.items) ? (schema?.items as unknown[])[0] : schema?.items)
+        : deref((schema?.properties as JsonSchemaObject | undefined)?.[child.name]);
+      return walk(child, sub);
+    });
+    const { description: _old, descriptionLang: _oldLang, ...rest } = node;
+    return {
+      ...rest,
+      ...(description ? { description } : {}),
+      ...(description && descriptionLang ? { descriptionLang } : {}),
+      children,
+    };
+  };
+  return walk(tree, deref(root));
 }

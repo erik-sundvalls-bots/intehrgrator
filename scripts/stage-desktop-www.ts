@@ -29,6 +29,7 @@ const skip = (rel: string) =>
   rel.endsWith(".map") ||
   rel === "extension.js" ||
   rel.startsWith("extension.js") ||
+  rel.startsWith("extension.mjs") ||
   rel.startsWith("release") ||
   rel.startsWith("desktop-www");
 

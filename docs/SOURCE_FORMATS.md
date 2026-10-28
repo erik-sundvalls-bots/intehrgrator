@@ -7,8 +7,8 @@
 | JSON schema | ✓ | `JSON.parse` | fontoxpath (authoring / click-to-map from schema tree) |
 | Avro schema (`.avsc` JSON) | ✓ | Record/`fields` tree | Same JSON evaluator; instances stay JSON |
 | JSON instance | ✓ | `JSON.parse` | fontoxpath (example tabs + Test Run) |
-| XML instance | ✓ | `DOMParser` | fontoxpath (example tabs + Test Run) |
-| XML schema (XSD) | Deferred | — | [future/xml-schema-support.md](future/xml-schema-support.md) |
+| XML instance | ✓ | `DOMParser` in the browser, slimdom in the headless service (MCP, scripts) | fontoxpath (example tabs + Test Run) |
+| XML schema (XSD) | ✓ | `parseXsd` (`src/core/xsd/xsd_model.ts`): elements, `@attributes`, types, multiplicity, `xs:documentation` per `xml:lang`; named types, `ref`, groups and extensions resolved within the file (no `xs:import` / `xs:include`) | Same XPath paths as the instance (`/Root/Child`, `/Root/Child/@attr`) |
 | openEHR Composition (canonical JSON) as source | ✓ | `openehr-composition` / `openehr-canonical-json` | fontoxpath over JSON tree |
 | openEHR FLAT JSON as source | ✓ | `openehr-flat-json` | Bracketed path keys (`ctx/…`, `\|magnitude`) |
 | openEHR STRUCTURED JSON as source | ✓ | `openehr-structured-json` | Same JSON evaluator; simplified-format leaf detection |

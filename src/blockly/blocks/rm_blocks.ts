@@ -31,6 +31,8 @@ import { FieldSkeletonTitle, humanizeRmType, isSkeletonTitleField } from "../fie
 import { INSTANCE_ROOT_CONNECTION } from "../instance_root.ts";
 import { FieldDropdownHug } from "../field_dropdown_hug.ts";
 import { INSTANCE_ENCODING_FIELD } from "../../core/output/instance_encoding.ts";
+import { ID_LANGUAGE_FIELD, PRIMARY_ID_LANGUAGE } from "../../core/target/id_language.ts";
+import { FieldIdLanguage, idLanguageLabel, idLanguageTooltip } from "../field_id_language.ts";
 import { instanceEncodingDropdownOptions } from "../../types/mod.ts";
 import {
   parseSlotCardinality,
@@ -1024,6 +1026,45 @@ function ensureNestedDvCodedText(
   return coded;
 }
 
+const TEXT_SHELLS = new Set(["DV_TEXT", "DV_CODED_TEXT"]);
+
+/**
+ * Swap a DV_TEXT shell for DV_CODED_TEXT or back (#274), keeping its slot id,
+ * mandatory flag, parent connection and the `value` mapping. Returns the
+ * shell now on the canvas (the same one when nothing changes).
+ */
+export function switchTextShellRmType(
+  workspace: Blockly.Workspace,
+  shell: Blockly.Block,
+  rmType: string,
+): Blockly.Block {
+  const current = String(shell.getFieldValue("RM_TYPE") ?? "");
+  if (current === rmType || !TEXT_SHELLS.has(current) || !TEXT_SHELLS.has(rmType)) return shell;
+  const parent = shell.outputConnection?.targetConnection ?? null;
+  const text = shell.getInputTargetBlock(dvFieldInputName("value"));
+  text?.outputConnection?.disconnect();
+  const blockType = blockTypeForRm(rmType);
+  ensureRmBlockType(blockType, rmType);
+  const next = workspace.newBlock(blockType);
+  for (const field of ["SLOT_ID", "MANDATORY"]) {
+    if (next.getField(field)) next.setFieldValue(shell.getFieldValue(field) ?? "", field);
+  }
+  shell.dispose(false);
+  if (typeof document !== "undefined") {
+    (next as BlockSvg).initSvg?.();
+    (next as BlockSvg).render?.();
+  }
+  if (parent && next.outputConnection) parent.connect(next.outputConnection);
+  const input = next.getInput(dvFieldInputName("value"));
+  if (text?.outputConnection && input?.connection) input.connection.connect(text.outputConnection);
+  if (rmType === "DV_CODED_TEXT") {
+    // Show the code_string / terminology_id sockets to fill in.
+    ensureDvFieldVisible(next, "defining_code");
+    ensureNestedCodePhrase(workspace, next, dvFieldInputName("defining_code"));
+  }
+  return next;
+}
+
 export function isDataValueBlock(block: Blockly.Block): boolean {
   const rm = block.getFieldValue("RM_TYPE") || "";
   return block.type.startsWith("dv_") || rm.startsWith("DV_") || block.type === "code_phrase";
@@ -1193,6 +1234,12 @@ function defineContainerBlock(
           new FieldDropdownHug(instanceEncodingDropdownOptions()),
           INSTANCE_ENCODING_FIELD,
         );
+        // #289: Web Template id / FLAT path language of this target file.
+        const ids = this.appendDummyInput(ID_LANGUAGE_FIELD).setAlign(inputAlignLeft());
+        ids.appendField(idLanguageLabel());
+        const idField = new FieldIdLanguage();
+        idField.setTooltip(idLanguageTooltip());
+        ids.appendField(idField, ID_LANGUAGE_FIELD);
       }
       if (options.specializationCheck) {
         const kind = this.appendValueInput(RM_SPECIALIZATION_INPUT)
@@ -1235,6 +1282,7 @@ function defineContainerBlock(
         this.setPreviousStatement(true, INSTANCE_ROOT_CONNECTION);
         this.setNextStatement(true, INSTANCE_ROOT_CONNECTION);
         this.setFieldValue("canonical-json", INSTANCE_ENCODING_FIELD);
+        this.setFieldValue(PRIMARY_ID_LANGUAGE, ID_LANGUAGE_FIELD);
       }
       enforceOpenEhrBlockLayout(this);
       if (options.rmType === "INTERVAL_EVENT") {

@@ -40,10 +40,11 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | GET | `/health` | — | Liveness (unauthenticated) |
 | POST | `/ai-chat-completions` | — | Desktop AI chat forwarder (provider URL + key in JSON body; not MCP) |
 | GET | `/snapshot` | `get_snapshot` | Revision, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status |
-| GET | `/slots` | `list_slots` | Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers for `loops[]`; query `?unmappedOnly=true&query=…` filters |
+| GET | `/slots` | `list_slots` | Target value slots as a compact **slot tree** (#277): `{revision, groups:[{group, label, type, mult, loop?, within?, slots:[{id, type, label?, labels?, mult, mandatory?, fixed?, units?, values?, terminology?, expr?}]}]}`. Labels and descriptions are in `target.lang.1` (the first target language that matches the source's language), whatever language the user's panes show; `labels` gives other matched languages (#279). A slot id is `group` + row `id`; every id form (full skeleton id, compact, unique tail) is accepted by the write tools. `?view=rows` returns the legacy flat rows (id, mapped, valueType, pathLabel, multiplicity, attachSlotId, parentRmType, unitsFixed / allowedUnits, codeFixed / allowedValues, expression) plus `repeatable` containers; query `?unmappedOnly=true&query=…` filters both views |
+| GET | `/slot?id=…` | `get_slot` | One Target slot in full: documentation, all value set entries, fixed values, the constraint from the target file (JSON Schema subschema, XSD element/attribute, openEHR template node fields), current mapping and lease |
 | GET | `/examples` | `list_examples` | Example instances (id, filename, format, chars, active) without bodies |
 | GET | `/example` | `get_example` | One example body capped at `maxChars` (default 8,000, max 40,000), or `?path=` for a subtree of the Active Example with values |
-| GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees |
+| GET | `/source-tree` | `get_source_tree` | Compact Source Schema + Active Example trees, with full descriptions in `descriptionLanguage` (a node's `lang` only where it differs); `?language=en` for another schema language |
 | GET | `/sheets` | `get_sheets` | Sheet / Decision table summaries + documents |
 | GET | `/product-stack` | `get_product_stack` | Conversion start chain (Instance roots, encodings, loops) |
 | GET | `/optional-rm` | `list_optional_rm` | Optional RM catalog (`?parentSlotId=`) |
@@ -72,8 +73,8 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/optional-rm/add` | `optional_rm_add` | `{ parentSlotId, rmType, attributeName }` |
 | POST | `/optional-rm/remove` | `optional_rm_remove` | `{ parentSlotId, attributeName }` |
 | POST | `/set-instance-encoding` | `set_instance_encoding` | `{ encoding, rootIndex? }` |
-| POST | `/lease-slot` | `lease_slot` | `{ slotId, ttlSec? }` — 409 if foreign holder |
-| POST | `/release-slot` | `release_slot` | `{ slotId }` |
+| POST | `/lease-slot` | `lease_slot` | `{ slotId, subtree?, ttlSec? }`: a slot, or with `subtree: true` a node path and every slot below it; 409 with `holder` when it overlaps another agent's lease |
+| POST | `/release-slot` | `release_slot` | `{ slotId, subtree? }` or `{ all: true }`; returns `released` |
 | POST | `/run-test` | `run_test` | Conversion Test Run (full `TestResult`) |
 | POST | `/generate-script` | `generate_script` | `{ language, path? }` Conversion Script |
 | POST | `/export-bundle` | `export_bundle` | `{ format: json\|zip, path? }` |
@@ -89,7 +90,7 @@ Mutating requests accept **`If-Match: <revision>`** from the last snapshot. On c
 
 `load_example_set` **`includeMapping` defaults to true**: a mapped catalog set **adopts** its Blockly canvas, Sheets, and loops. `get_snapshot.appliedSlots` is the mapped slot count and is greater than 0 after that adopt. **`includeMapping: false`** loads the target, schema, and examples and **scaffolds** an empty Mapping Model from the Template Skeleton (no saved expressions).
 
-`list_slots` `parentRmType` is the nearest COMPOSITION, SECTION, or ENTRY ancestor (`ACTION` vs `EVALUATION` when sibling content shares `at0000`). Pair it with `pathLabel` and `attachSlotId`; do not parse raw Blockly to tell those slots apart.
+`list_slots` groups name their archetype / parent node in `label` and `within`; `loop: true` marks a repeating container whose `group` is the `attachSlotId` for `loops[]`. Call `get_slot` for one slot's full detail instead of loading the target file. In `view: "rows"`, `parentRmType` is the nearest COMPOSITION, SECTION, or ENTRY ancestor (`ACTION` vs `EVALUATION` when sibling content shares `at0000`). Pair it with `pathLabel` and `attachSlotId`; do not parse raw Blockly to tell those slots apart.
 
 Output modes that execute for catalogued families:
 
@@ -101,6 +102,8 @@ Output modes that execute for catalogued families:
 
 Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. AI chat runs these tool names in-process and does not need stdio MCP.
 
+The stdio MCP `initialize` result carries `instructions`: this workflow in short and version-pinned links to this file and the suggestion format (`https://regionstockholm.github.io/intehrgrator/v<version>/docs/…`; same version ⇒ same content).
+
 Pass agent identity on mutations: headers **`X-Agent-Id`**, **`X-Agent-Name`**, optional **`X-Agent-Color`** (after `register-agent`), and **`X-Agent-Client`** (the MCP client name; stdio MCP sends `clientInfo.name` from `initialize`). History entries carry `actor.origin` (`human`, `ai-chat`, `mcp`).
 
 The UI polls `/api/v1/snapshot` and reloads the bundle when revision changes (live canvas sync). Pure block **x/y** drags do not append history; structural / expression changes do.
@@ -109,7 +112,7 @@ The UI polls `/api/v1/snapshot` and reloads the bundle when revision changes (li
 
 1. MCP **`register_agent`** at session start — desktop returns **name + colour**.
 2. Mutations carry agent headers for **attributed history**.
-3. **`lease_slot`** while mapping a hot slot; **`release_slot`** when done. `import_suggestions` skips slots leased by someone else.
+3. **`lease_slot`** on the slots, or with `subtree: true` the node path (a slot id prefix such as `…//context/EVENT_CONTEXT`), you are about to map; **`release_slot`** (`all: true`) when done. While a lease is held, another MCP agent's change that would touch a covered slot fails with 409 and the `holder` (MCP: a tool result with `isError`), and the project and history are left as they were. This covers every write, also `undo`, `revert`, `load_bundle` and Optional RM. `import_suggestions` skips the covered slots and lists them. The in-app AI chat is never blocked. The person in the desktop UI sees the lease on the canvas and, before a change to a covered slot is saved, gets a warning with a countdown to the lease's end: **Edit anyway** saves it (asked once per lease), **Cancel** takes it back, and when the lease ends the change is saved. After **Edit anyway** the lease holder's next write to that slot fails once with 409 and `humanWins: true` (MCP: `isError`, "the person wins"; `import_suggestions` skips the slot and says why), so the agent reads the slot again before changing it. A stdio MCP process that did not call `register_agent` is registered on its first write as its client name (`cursor`, `cursor 2`, …), so two chats in one IDE do not share leases.
 4. **Open observer** popup: agent legend + **history timeline**.
 5. Main canvas: subtle **pulse** on touched slots; optional **Follow agent** checkbox pans to agent edits (default off).
 
