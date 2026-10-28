@@ -647,7 +647,10 @@ gzipped). The downloaded artefact also passed the 225 queries below.
 That wasm still contains the CI checkout path. A pending pull request
 ([z3-wasm-singlethread#1](https://github.com/regionstockholm/z3-wasm-singlethread/pull/1))
 removes it so the hash no longer depends on the build directory; two local builds in
-different directories then matched (`228258f7…3f84`). The same pull request prepares a
+different directories and the pull request's CI build
+([run 40748561434](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40748561434))
+all produced the same `z3-built.wasm`, SHA-256
+`228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84`. The same pull request prepares a
 **v0.1.0 GitHub release** with attested assets and a changelog. A maintainer still has to
 add the tag/release trigger to the workflow before the release can be cut. Nothing is
 published to npm.
