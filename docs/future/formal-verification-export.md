@@ -608,6 +608,43 @@ Not done:
 4. Whichever build is used: lazy `import()` on the first Verify mapping, same-origin
    assets, a Worker, Cancel, and results shown as findings, as described in A.
 
+### Follow-up: provenance check and our own build (2026-10-28)
+
+**`z3-josh` provenance: not satisfactory.** Still no public source repository (npm
+metadata has no `repository`/`homepage`; nothing under the maintainer's 113 public
+repositories or in GitHub code search), no npm provenance attestation (the registry's
+attestations endpoint returns 404; `npm audit signatures` shows only the registry
+signature), no LICENSE file and no build scripts in the tarball. The WASM reports
+`Z3 4.16.0.0` without a git hash, so it cannot be tied to an upstream commit
+(wasm SHA-256 `5bb1ada8…6747`).
+
+**Official upstream:** `z3-solver` is Z3's own build (`src/api/js/scripts/build-wasm.ts`),
+published by Z3's public `wasm-release.yml` with an npm token. It has **no npm
+provenance attestation** either, but the 5.3.2 tarball shasum printed in that workflow's
+public log (run 40199605963, commit `b411c902`) equals the registry's. Upstream already
+compiles the solver with `-DZ3_SINGLE_THREADED=ON`; the pthreads (and therefore COOP/COEP)
+come only from the JS bindings, which run `check()` and similar on a `std::thread`.
+Z3's GitHub releases contain **no WASM artefact**, threaded or not.
+
+**Our build:** [erik-sundvalls-bots/z3-wasm-singlethread](https://github.com/erik-sundvalls-bots/z3-wasm-singlethread)
+follows upstream's `build-wasm.ts` at tag `z3-5.3.2` (commit `b411c902`, verified against
+the remote tag) with the same emsdk 3.1.73, removing only the threading flags and adding
+`-DZ3_POLLING_TIMER=ON` (needed for timeouts without threads). Every deviation is listed in
+its `BUILD-DIFF.md`, and the build stops if upstream's recipe changes. The API is
+three functions (evaluate SMT-LIB2 text in a fresh context, version, free) plus a Worker
+wrapper with cancel. The version string carries the upstream commit hash. The repo
+has a CI workflow with SHA-pinned actions, build-provenance attestation and SHA-256 sums;
+it is **not yet active** because the bot token lacks the `workflow` scope, so the file
+sits in `ci/build.yml`. Dependabot, secret scanning with push protection, CodeQL, private
+vulnerability reporting and a `main` ruleset are on. Nothing is published to npm or tagged.
+
+Local measurements (box, not CI; same 225 queries, fresh context per query):
+21.9 MB wasm (6.1 MB gzipped) and 0.53–0.74 s with upstream's exception model;
+16.8 MB (5.4 MB) and 0.33–0.52 s with `-fwasm-exceptions`. Both had 0 verdict
+mismatches. In headless Chromium without COOP/COEP (`crossOriginIsolated=false`) the
+Worker started in 134 ms, `:timeout` returned `unknown`, and `cancel()` gave a fresh
+worker in 22 ms. The recommendation above stands, with this build in place of `z3-josh`.
+
 ## Input from an AI conversation (Gemini, shared on #41)
 
 Erik linked a Gemini conversation in #41 (two turns: *can Z3-based approaches such as
@@ -972,10 +1009,15 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
     verification fails, is stale or was cancelled. Should a project (e.g. one
     marked for an MDR/IVDR technical file) be able to **require** a passing,
     non-stale Verify mapping before Generated Export or the evidence pack?
-19. **Single-threaded Z3 supply** — build Z3 (`--single-threaded`,
-    `-DPOLLING_TIMER`, wasm exceptions) in a separate pinned repository or release
-    asset, or adopt `z3-josh` once its source is public? Who maintains the
-    upgrade cadence, and how is the WASM hash recorded in the evidence pack?
+19. **Single-threaded Z3 supply** — proposed: build it ourselves in
+    [z3-wasm-singlethread](https://github.com/erik-sundvalls-bots/z3-wasm-singlethread)
+    (Z3's own recipe at a pinned tag, minus threads; `z3-josh` rejected, see
+    *Follow-up: provenance check and our own build*). Still open: should the repository
+    move to the `regionstockholm` organisation? Who reviews Z3/emsdk bumps, and on what
+    cadence (each Z3 release, or security fixes only)? Upstream's or native wasm
+    exceptions? How do we consume it (vendored `dist/` with checked SHA-256, a release
+    asset, or npm)? How is the WASM SHA-256 and provenance attestation recorded in the
+    evidence pack?
 
 ## Related
 
