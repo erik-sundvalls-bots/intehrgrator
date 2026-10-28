@@ -26,3 +26,12 @@ z3 sbp_band_gap.smt2  # optional: same query with a native z3 binary
 
 Run on: Deno 2.9.7, z3-solver 5.3.2, z3-josh 0.1.2, coi-serviceworker 0.1.7, Playwright 1.51 Chromium, Linux x86-64 (8 vCPU), 2026-10-27/28.
 Timings are from that box. Treat them as orders of magnitude, not benchmarks.
+
+## Follow-up
+
+`z3-josh` was used here only for measurement. Its provenance could not be established, so the
+single-threaded Z3 for intEHRgrator is now built in
+[regionstockholm/z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)
+from a pinned upstream Z3 tag, with attested CI builds. See
+[formal-verification-export.md](../../docs/future/formal-verification-export.md#follow-up-provenance-check-and-our-own-build-2026-10-28).
+The scripts here were not switched to it.

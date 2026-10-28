@@ -598,7 +598,7 @@ Not done:
 2. **Do not depend on `z3-josh` as published.** Either build the same
    configuration ourselves from tagged upstream Z3 (pinned, reproducible, with the
    WASM hash recorded in the evidence pack), or adopt `z3-josh` only once its source
-   is public and pinned by hash. Keep the solver behind a small interface (`init`,
+   is public and pinned by hash (done: see *Follow-up* below). Keep the solver behind a small interface (`init`,
    `checkSmtLib(text) → verdict + model text`, `interrupt`), so `z3-solver` remains a
    drop-in where isolation is available (desktop, `deno task dev`, CI replay).
 3. **Do not add `coi-serviceworker`** to the web app. It works, but it forces a
@@ -626,17 +626,31 @@ compiles the solver with `-DZ3_SINGLE_THREADED=ON`; the pthreads (and therefore 
 come only from the JS bindings, which run `check()` and similar on a `std::thread`.
 Z3's GitHub releases contain **no WASM artefact**, threaded or not.
 
-**Our build:** [erik-sundvalls-bots/z3-wasm-singlethread](https://github.com/erik-sundvalls-bots/z3-wasm-singlethread)
+**Our build:** [regionstockholm/z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)
+(its permanent home; first created under the bot account, now removed there)
 follows upstream's `build-wasm.ts` at tag `z3-5.3.2` (commit `b411c902`, verified against
 the remote tag) with the same emsdk 3.1.73, removing only the threading flags and adding
 `-DZ3_POLLING_TIMER=ON` (needed for timeouts without threads). Every deviation is listed in
 its `BUILD-DIFF.md`, and the build stops if upstream's recipe changes. The API is
 three functions (evaluate SMT-LIB2 text in a fresh context, version, free) plus a Worker
-wrapper with cancel. The version string carries the upstream commit hash. The repo
-has a CI workflow with SHA-pinned actions, build-provenance attestation and SHA-256 sums;
-it is **not yet active** because the bot token lacks the `workflow` scope, so the file
-sits in `ci/build.yml`. Dependabot, secret scanning with push protection, CodeQL, private
-vulnerability reporting and a `main` ruleset are on. Nothing is published to npm or tagged.
+wrapper with cancel. The version string carries the upstream commit hash.
+
+CI uses SHA-pinned actions and runs the Node and Deno smoke tests. The first run on `main`,
+[40667619572](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40667619572),
+passed and produced a SLSA build-provenance attestation. `gh attestation verify --repo
+regionstockholm/z3-wasm-singlethread` succeeds on the downloaded files. The attestation names
+`regionstockholm/z3-wasm-singlethread`, `refs/heads/main` at `135c08b` and
+`.github/workflows/build.yml`. `z3-built.wasm` is SHA-256
+`b66e26677b74bc82536196968f03202f34e3c7158def2c7bee679c53466f566a` (21.9 MB, 6.1 MB
+gzipped). The downloaded artefact also passed the 225 queries below.
+
+That wasm still contains the CI checkout path. A pending pull request
+([z3-wasm-singlethread#1](https://github.com/regionstockholm/z3-wasm-singlethread/pull/1))
+removes it so the hash no longer depends on the build directory; two local builds in
+different directories then matched (`228258f7…3f84`). The same pull request prepares a
+**v0.1.0 GitHub release** with attested assets and a changelog. A maintainer still has to
+add the tag/release trigger to the workflow before the release can be cut. Nothing is
+published to npm.
 
 Local measurements (box, not CI; same 225 queries, fresh context per query):
 21.9 MB wasm (6.1 MB gzipped) and 0.53–0.74 s with upstream's exception model;
@@ -1009,14 +1023,14 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
     verification fails, is stale or was cancelled. Should a project (e.g. one
     marked for an MDR/IVDR technical file) be able to **require** a passing,
     non-stale Verify mapping before Generated Export or the evidence pack?
-19. **Single-threaded Z3 supply** — proposed: build it ourselves in
-    [z3-wasm-singlethread](https://github.com/erik-sundvalls-bots/z3-wasm-singlethread)
-    (Z3's own recipe at a pinned tag, minus threads; `z3-josh` rejected, see
-    *Follow-up: provenance check and our own build*). Still open: should the repository
-    move to the `regionstockholm` organisation? Who reviews Z3/emsdk bumps, and on what
-    cadence (each Z3 release, or security fixes only)? Upstream's or native wasm
-    exceptions? How do we consume it (vendored `dist/` with checked SHA-256, a release
-    asset, or npm)? How is the WASM SHA-256 and provenance attestation recorded in the
+19. **Single-threaded Z3 supply** — decided: we build it ourselves in
+    [regionstockholm/z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)
+    (Z3's own recipe at a pinned tag, minus threads; CI with build-provenance
+    attestation; `z3-josh` rejected, see *Follow-up: provenance check and our own
+    build*). Still open: who reviews Z3/emsdk bumps, and on what cadence (each Z3
+    release, or security fixes only)? Upstream's or native wasm exceptions? How does
+    intEHRgrator consume it (release asset from v0.1.0 onwards, vendored with a checked
+    SHA-256, or npm)? How is the WASM SHA-256 and provenance attestation recorded in the
     evidence pack?
 
 ## Related
