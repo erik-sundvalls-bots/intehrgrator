@@ -3,17 +3,17 @@
   "deno": "2.9.7",
   "wasm_bytes": 35418833,
   "timings": {
-    "import_ms": 6,
-    "init_wasm_ms": 111.8,
-    "p1_sbp_band_gap_ms": 81.5,
-    "p1_sbp_band_gap_int_ms": 31.1,
+    "import_ms": 14,
+    "init_wasm_ms": 177.9,
+    "p1_sbp_band_gap_ms": 103.2,
+    "p1_sbp_band_gap_int_ms": 34.6,
     "p2_ism_valueset_ms": 4.6,
-    "p2_ism_sensitivity_ms": 4.7,
-    "p2_ism_row1_reachable_ms": 5.2,
-    "p2_ism_row2_reachable_ms": 3.7,
-    "p2_ism_row3_reachable_ms": 4.2,
-    "p2_ism_row4_reachable_ms": 4.1,
-    "p2_ism_row5_reachable_ms": 29.4
+    "p2_ism_sensitivity_ms": 22.6,
+    "p2_ism_row1_reachable_ms": 5.9,
+    "p2_ism_row2_reachable_ms": 3.6,
+    "p2_ism_row3_reachable_ms": 2.9,
+    "p2_ism_row4_reachable_ms": 4.4,
+    "p2_ism_row5_reachable_ms": 31.1
   },
   "results": {
     "p1_sbp_band": {
@@ -21,7 +21,7 @@
       "srcType": "number",
       "bandRequired": true,
       "verdict": "sat",
-      "solve_ms": 81.5,
+      "solve_ms": 103.2,
       "counterexample": {
         "sbp": "(/ 279.0 2.0)",
         "sbp_decimal": 139.5
@@ -31,7 +31,7 @@
       "verdict_if_integer": "unsat",
       "smtlib_roundtrip": {
         "verdict": "sat",
-        "parse_and_solve_ms": 11.2
+        "parse_and_solve_ms": 12.7
       }
     },
     "p2_medication_ism": {
@@ -54,8 +54,8 @@
     "p3_all_tables": {
       "tables": 30,
       "queries": 216,
-      "total_ms": 1227.2,
-      "max_query_ms": 21.7,
+      "total_ms": 1481.3,
+      "max_query_ms": 24.7,
       "findings": [
         {
           "file": "test/fixtures/Obstetrix-MHV1/mapping/mapping.sheets.json",

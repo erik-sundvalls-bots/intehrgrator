@@ -4,11 +4,14 @@
   "nodeModulesDir": "none",
   "tasks": {
     "spike": "deno run --allow-read --allow-write=. --allow-env --allow-sys spike.ts",
-    "browser": "deno run -A browser_check.ts"
+    "browser": "deno run -A browser_check.ts",
+    "hosting": "deno run -A hosting_check.ts",
+    "josh-deno": "deno run --allow-read --allow-env --allow-sys josh_deno_check.ts"
   },
   "imports": {
     "handlebars": "npm:handlebars@^4.7.9",
     "z3-solver": "npm:z3-solver@5.3.2",
-    "playwright": "npm:playwright@1.51.0"
+    "playwright": "npm:playwright@1.51.0",
+    "z3-josh": "npm:z3-josh@0.1.2"
   }
 }

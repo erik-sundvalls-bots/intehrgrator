@@ -94,13 +94,19 @@ function encode(sheet: SheetDocument, numeric: Set<string>, prefix = "") {
   return { vars, conds, match, selected, noMatch };
 }
 
+/** Every query as SMT-LIB text, replayed by hosting_check.ts in the browser (z3-solver vs z3-josh). */
+const queryDump: { label: string; smt: string; verdict?: string }[] = [];
+
 async function solve(label: string, assertions: B[]) {
   const s = new Z3.Solver();
   for (const a of assertions) s.add(a);
+  const dumped = { label, smt: s.toString() } as { label: string; smt: string; verdict?: string };
+  queryDump.push(dumped);
   const t0 = performance.now();
   const r = await s.check();
   const solve_ms = ms(t0);
   timings[`${label}_ms`] = solve_ms;
+  dumped.verdict = r;
   return { r, s, solve_ms };
 }
 
@@ -350,6 +356,7 @@ try {
   wasmBytes = Deno.statSync(wasm).size;
 } catch { /* npm cache layout differs */ }
 const out = { z3_solver: "5.3.2", deno: Deno.version.deno, wasm_bytes: wasmBytes, timings, results };
+Deno.writeTextFileSync(new URL("queries.json", import.meta.url), JSON.stringify(queryDump) + "\n");
 Deno.writeTextFileSync(new URL("results.json", import.meta.url), JSON.stringify(out, null, 2) + "\n");
 console.log(JSON.stringify(out, null, 2));
 await killThreads(api.em); // otherwise z3-solver worker threads keep Deno alive

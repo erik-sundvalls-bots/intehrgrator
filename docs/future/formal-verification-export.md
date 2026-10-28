@@ -18,6 +18,10 @@ suites, and convert-time throws are
 (Deno + headless Chromium; see [Spike](#spike-z3-wasm-on-real-fixtures-2026-10-27)) and a
 critical read of an **AI conversation (Gemini) Erik shared** on #41
 (see [Input from an AI conversation](#input-from-an-ai-conversation-gemini-shared-on-41)).
+**Revised 2026-10-28** after Erik's review on PR #300: Verify mapping is **lazy-loaded
+and explicitly triggered** (button / menu, deliberate save, export; never on every edit),
+and a second experiment measured how to run Z3 on a **static host without COOP/COEP**
+(see [Hosting without COOP/COEP](#hosting-without-coopcoep-github-pages-2026-10-28)).
 
 ## Idea
 
@@ -213,7 +217,7 @@ The product has six coupled slices (see [#41](https://github.com/regionstockholm
 
 | Slice | What the informatician sees |
 |-------|-----------------------------|
-| **A. Verify mapping** | In-app Z3 check during authoring (debounced, Worker). Not a Conversion script language. |
+| **A. Verify mapping** | In-app Z3 check, **started by the informatician** (Verify mapping button / menu item) and on deliberate save and export; never on every edit. Z3 is lazy-loaded and runs off the UI thread. Not a Conversion script language. |
 | **B. Coverage + counterexamples** | Unread Source Schema nodes highlighted; a sat model shown as a loadable Example Instance. |
 | **C. Verification evidence pack** | Downloadable bundle of SMT, Z3 version, sat/unsat, counterexamples, coverage, VMS lint — for MDR/IVDR technical files. |
 | **D. Chunk-level test suite** | Generated tests in the **same Conversion script language** as Output mode, one suite per mapping chunk (including in-dialect template snippets). |
@@ -280,19 +284,53 @@ Properties to encode first (same layers as below; VMS mappings only):
 **Do not** expect informaticians to read SMT-LIB. The UI shows: pass/fail per
 property, a prose counterexample, and “Load as Example Instance”.
 
+#### When it runs and how Z3 is loaded
+
+- **Lazy-loaded, never in the main bundle.** The Z3 module, its WASM and its worker
+  script are fetched by a **dynamic `import()` on the first Verify mapping** of a
+  session, from the **same origin** as the app (part of the Pages / desktop build, not
+  a CDN). The browser HTTP cache keeps them; the PWA service worker
+  (`web/sw.js`) may also cache them cache-first, the same way it treats other
+  static assets. The size is 16.9 MB (single-threaded build) or 35.4 MB (`z3-solver`)
+  of WASM; see [Hosting](#hosting-without-coopcoep-github-pages-2026-10-28).
+  Users who never press Verify mapping never download it.
+- **Explicit triggers only:**
+  1. **Verify mapping** button / menu item, the primary way.
+  2. **Deliberate save** (Save / Save as of the Project Bundle, not autosave or
+     the desktop sync's background writes).
+  3. **Export** (Generated Export, evidence pack).
+  **Never on every edit.** There is no debounced background run.
+- **Non-blocking and cancellable.** Solving runs in a Worker. A progress indicator
+  with **Cancel** is shown; cancel calls `interrupt()`, and the check resolves
+  `unknown`, which was measured at about 300 ms after an interrupt in both builds.
+  Save and export **do not wait** for Verify mapping. They start it in the background
+  and complete normally.
+- **Results are findings.** They appear in the same findings / Constraint warning
+  surface as other validation, marked with the Mapping Model hash they were computed
+  for. Editing the mapping marks them **stale**; it does not re-run them.
+- **Export proceeds with a warning, not a block** (failing or stale verification is
+  listed in the export summary and the evidence pack). Whether some projects should
+  be able to **require** a passing verification before export is open question 18.
+
 WASM hosting constraints (implementation, not product language; numbers measured
 in the [spike](#spike-z3-wasm-on-real-fixtures-2026-10-27) with `z3-solver` 5.3.2):
 
 - `z3-built.wasm` is **35.4 MB** (8.1 MB with `gzip -9`) plus `z3-built.js`
   0.36 MB. Lazy-load on first Verify mapping; keep it off the Mapping Editor
   critical path.
-- Z3 needs `SharedArrayBuffer` → **COOP/COEP** headers. `deno task dev` and the
-  desktop app can send them. GitHub Pages cannot set those headers; use a
-  documented workaround (`coi-serviceworker` or equivalent) or degrade Verify
-  mapping on Pages with a clear message. Do not silently no-op. **Measured:**
-  without the headers `init()` still *resolves*, and the first `check()` then
-  throws `thread constructor failed`. So gate the feature on
-  `self.crossOriginIsolated`, not on a successful `init()`.
+- `z3-solver` needs `SharedArrayBuffer` (Emscripten pthreads), and browsers only
+  provide that in a **cross-origin isolated** page, i.e. one served with
+  **COOP** `same-origin` + **COEP** `require-corp` / `credentialless` headers.
+  This is **not a CORS problem**. Hosting the library on the same origin as the
+  app (e.g. the same GitHub Pages site) does **not** remove the requirement; the
+  *document* must carry the headers, and GitHub Pages cannot set custom response
+  headers. `deno task dev` and the desktop app can send them. On Pages the options
+  are a header-injecting service worker or a single-threaded Z3 build; both were
+  measured, see [Hosting](#hosting-without-coopcoep-github-pages-2026-10-28).
+  Do not silently no-op. **Measured:** without the headers `init()` still
+  *resolves*, and the first `check()` then throws `thread constructor failed`. So
+  with `z3-solver`, gate the feature on `self.crossOriginIsolated`, not on a
+  successful `init()`.
 - The **browser** entry of `z3-solver` is CommonJS and reads `global.initZ3`, and
   `z3-built.js` must be loaded as its own `<script>` (it spawns workers from
   itself). The spike needed a small `deno bundle` shim plus a separate script tag.
@@ -454,9 +492,9 @@ from the Mapping Model; generating it is the actual work of #41.
 | What | Result |
 |------|--------|
 | Bundle | `z3-built.wasm` 35.4 MB (8.1 MB `gzip -9`), `z3-built.js` 0.36 MB |
-| Deno: `init()` (WASM compile + threads) | 112–134 ms over six runs (from the local npm cache) |
-| Deno: whole spike, 30 tables, 216 queries | ≈1.8 s wall; scan of all tables ≈1.25 s (≈6 ms per query on average, including encoding); slowest single query ≈25 ms |
-| Real-arithmetic gap query (P1 below) | ≈86 ms; same query restricted to integers ≈31 ms |
+| Deno: `init()` (WASM compile + threads) | 112–178 ms over seven runs (from the local npm cache) |
+| Deno: whole spike, 30 tables, 216 queries | ≈1.8 s wall; scan of all tables 1.24–1.48 s (≈6 ms per query on average, including encoding); slowest single query ≈25 ms |
+| Real-arithmetic gap query (P1 below) | 86–103 ms; same query restricted to integers ≈31 ms |
 | SMT-LIB text round trip (`solver.toString()` → new solver `fromString`) | works; parse + solve ≈12 ms |
 | Headless Chromium, **with** COOP/COEP | `crossOriginIsolated: true`; `init()` 184–262 ms; P1 solve 67–78 ms |
 | Headless Chromium, **without** COOP/COEP | `init()` resolves (185–449 ms), then `check()` throws `thread constructor failed: Resource temporarily unavailable` |
@@ -465,6 +503,7 @@ Browser numbers are from `localhost`; they do not include downloading 35 MB over
 network.
 
 ### What it checked and found
+
 
 | # | Property (fixture) | Encoding | Verdict | Real issue? |
 |---|--------------------|----------|---------|-------------|
@@ -501,6 +540,73 @@ and it is why `variables_set` needs `let`/SSA lowering (below).
 6. **Hosting caveats are real but manageable** (COOP/COEP gating, CommonJS browser
    entry, a separate `z3-built.js`, `killThreads` in Deno). None of them blocked
    the spike.
+
+### Hosting without COOP/COEP (GitHub Pages, 2026-10-28)
+
+The question: can Verify mapping run on the GitHub Pages web app, which cannot send
+COOP/COEP? (It is cross-origin isolation, not CORS; see A.) The experiment in
+[`experiments/z3-spike/hosting_check.ts`](../../experiments/z3-spike/hosting_check.ts)
+serves pages from a static `localhost` server that sends **no isolation headers**,
+and loads them in headless Chromium (Playwright 1.51). Each variant replays the same
+**225 SMT-LIB queries** that `spike.ts` dumped (`queries.json`, from the 30 fixture
+Decision tables) and compares the verdicts with the Deno `z3-solver` run. Side-effect
+probes on every page:
+- the Google Fonts stylesheet that `web/index.html` uses;
+- an `<img>` from another origin without a CORP header;
+- a CORS `fetch` to that origin.
+
+The ranges cover five runs on the same box (plus one extra run for the cancel row).
+
+| | **A. `z3-solver` 5.3.2 + `coi-serviceworker` 0.1.7** | **B. `z3-josh` 0.1.2 (single-threaded Z3)** |
+|---|---|---|
+| How | A service worker re-serves same-origin responses with COOP/COEP, then reloads the page once | Z3 compiled **without pthreads**; solving runs in a plain dedicated Worker; no `SharedArrayBuffer` |
+| Works without headers? | **Yes, after a forced reload**: `crossOriginIsolated: true`, 225/225 verdicts agree | **Yes, directly**: `crossOriginIsolated: false`, 225/225 verdicts agree |
+| WASM size | 35.4 MB (8.1 MB `gzip -9`) + 0.36 MB JS | **16.9 MB** (5.2 MB `gzip -9`) + 0.45 MB entry + 0.28 MB worker JS |
+| `init()` in Chromium | 222–323 ms | 129–152 ms |
+| Replaying the 225 queries | 0.97–1.24 s (slowest query 66–78 ms) | 0.76–0.86 s (slowest query 45–55 ms) |
+| Cancel at 300 ms (`interrupt()` on x³+y³+z³ = 42, x > 1000) | resolves `unknown` after ≈305 ms | resolves `unknown` after ≈301 ms (per its README, by terminating and respawning its worker) |
+| First visit | **2 navigations** (forced reload); ≈1.9–2.2 s to results | 1 navigation; ≈1.5–1.9 s to results |
+| Deno | works (see the spike) | works: `init` ≈100 ms, the 225 queries in ≈0.7 s, 225/225 agree ([`josh_deno_check.ts`](../../experiments/z3-spike/josh_deno_check.ts)) |
+| Side effects on the page | COEP applies to the **whole app**. coi-serviceworker uses `require-corp` when the page has `window.chrome`/`window.netscape` (real Chrome and Firefox), and here also on the first, reloaded document. It uses `credentialless` on later visits in headless Chromium. Under `require-corp` the cross-origin `<img>` without CORP was blocked in 4 of 5 first-visit runs; under `credentialless` it loaded. Google Fonts CSS and the CORS fetch worked in every run. | **None measured**: no headers, no service worker, all probes loaded |
+| App fit | `web/sw.js` already owns the scope (one service worker per scope), so the header rewriting would have to be merged into it rather than added as a second worker. The same-origin `better-form-viewer.html` popup / `postMessage` bridge and any future cross-origin embeds would then run under COOP/COEP. **Not tested:** hard reload (bypasses the service worker), private windows, Safari. | Pure ESM; WASM and worker are resolved with `new URL(…, import.meta.url)`, so a bundler should be able to copy them as assets (not yet tried with the app's esbuild build), and a dynamic `import()` gives the lazy load directly |
+| Provenance | Official Z3 bindings (Microsoft), plus a small, widely used helper that has not been published since 2023 | **Single maintainer, first published 2026-07, no public source repository found** (npm lists none; `github.com/joshuahhh/z3-josh` returns 404). The README documents the build recipe: Z3 4.16.0, `mk_make.py --single-threaded`, `-DPOLLING_TIMER`, `-fwasm-exceptions`. |
+
+`z3-josh`'s API differs from `z3-solver` in a few ways (from its README; not all were
+exercised here):
+- model lookups are `async`;
+- `unsatCore()` throws;
+- `solver.set(…)` parameters do not reach the worker;
+- `Optimize` and tactics run on the main thread.
+
+None of these blocked the replay, which only uses `fromString` + `check()`.
+
+Not done:
+- No other maintained single-threaded build or alternative solver was found on npm.
+  `@yowasp/boolector` exists but has no strings or reals, and `@cooljapan/oxiz` was
+  not evaluated.
+- Building Z3 ourselves with the same recipe was not attempted. z3-josh's README puts
+  it at about 15 minutes.
+- Download time over a real network was not measured (everything was served from
+  `localhost`).
+
+**Recommendation**
+
+1. **Single-threaded Z3 in a plain Worker** is the better fit for the Pages web app.
+   It needs no headers and no service worker, the download is half the size, and it
+   was as fast or faster on these queries. It is cancellable and behaves the same in
+   Deno.
+2. **Do not depend on `z3-josh` as published.** Either build the same
+   configuration ourselves from tagged upstream Z3 (pinned, reproducible, with the
+   WASM hash recorded in the evidence pack), or adopt `z3-josh` only once its source
+   is public and pinned by hash. Keep the solver behind a small interface (`init`,
+   `checkSmtLib(text) → verdict + model text`, `interrupt`), so `z3-solver` remains a
+   drop-in where isolation is available (desktop, `deno task dev`, CI replay).
+3. **Do not add `coi-serviceworker`** to the web app. It works, but it forces a
+   reload, and it puts the whole app (fonts, popups, future embeds) under COEP for one
+   optional feature. It would also have to be merged into `web/sw.js`. Keep it only as
+   a fallback if a single-threaded build turns out to be too slow on large mappings.
+4. Whichever build is used: lazy `import()` on the first Verify mapping, same-origin
+   assets, a Worker, Cancel, and results shown as findings, as described in A.
 
 ## Input from an AI conversation (Gemini, shared on #41)
 
@@ -554,6 +660,10 @@ the mapping specification.
   and `if`/`eq` trees. Only *out-of-dialect* templates skip proof.
 - Generating a cartesian **whole-convert** test matrix as the default suite — explode on source fields; emit **chunk** tests (collapsed Decision table rules, functions, grain).
 - Leaving Decision table no-match as `null` while calling convert crash-free — that is a silent hole, not Rejected.
+- Running Verify mapping **on every edit** (debounced background runs): the 17–35 MB solver download and
+  the CPU cost are only paid when the informatician asks, or on deliberate save / export.
+- Putting Z3 in the main bundle or loading it from a third-party CDN: load it with a dynamic `import()`
+  from the app's own origin, on the first Verify mapping only.
 - Shipping Verify mapping that **silently no-ops** on GitHub Pages because COOP/COEP is missing.
   (`init()` succeeds without the headers; only `check()` fails, so gate on `crossOriginIsolated`.)
 - Reporting "proved for all inputs" without the **encoded source domain** (integer vs JSON `number`,
@@ -829,7 +939,7 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 5. **Execution oracle** — Verify mapping checks the Mapping Model / generated SMT; ADR 0003 still requires preview ≡ TypeScript on VMS. Counterexamples should be replayed on both oracles.
 6. **Robustness generators** — how complete must Source Schema be before PBT/Z3 can claim “no valid source crashes convert”?
 7. **Sensitivity vs equivalence classes** — when `switch` or a Decision table maps many codes to one target, how to declare that class so sensitivity checks do not false-fail.
-8. **GitHub Pages + SharedArrayBuffer** — `coi-serviceworker` vs “Verify mapping on desktop / local dev only” for the Pages web app.
+8. **GitHub Pages + SharedArrayBuffer** — *measured 2026-10-28*: both `coi-serviceworker` and a single-threaded Z3 build work without headers. The recommendation is a single-threaded build in a plain Worker (see [Hosting](#hosting-without-coopcoep-github-pages-2026-10-28)). Still open: who builds and pins it (open question 19).
 9. **Evidence pack layout** — sidecar zip vs optional Project Bundle section; whether replay is `deno task verify` or checked-in SMT + CI.
 10. **Decision table no-match** — breaking change to throw vs opt-in table flag vs Verify mapping warning until a catch-all error row exists. Recommend: warn in R0, throw only when an error row / flag is set, so existing tables keep returning `null` until authors opt in.
 11. **Template SMT bound** — how deep to encode nested `#if` / `{{if}}` before
@@ -858,6 +968,14 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
     required-but-hidden, score gaps) would apply to form dependency rules, but
     there is no public form-JSON schema to build on. Separate issue, or out of
     scope?
+18. **Export gate** — the default is that export proceeds with a warning when
+    verification fails, is stale or was cancelled. Should a project (e.g. one
+    marked for an MDR/IVDR technical file) be able to **require** a passing,
+    non-stale Verify mapping before Generated Export or the evidence pack?
+19. **Single-threaded Z3 supply** — build Z3 (`--single-threaded`,
+    `-DPOLLING_TIMER`, wasm exceptions) in a separate pinned repository or release
+    asset, or adopt `z3-josh` once its source is public? Who maintains the
+    upgrade cadence, and how is the WASM hash recorded in the evidence pack?
 
 ## Related
 
