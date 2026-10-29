@@ -12,11 +12,18 @@ and the **VMS-Hbs**, **VMS-Go** and **VMS-Mustache** dialects
 Z3 (including those in-dialect snippets), evidence-pack export, chunk-level test suites
 and convert-time throws.
 
-Verify mapping is **lazy-loaded and explicitly triggered** (button / menu, deliberate
-save, export; never on every edit). The solver is a **single-threaded Z3 WASM build**,
+Verify mapping serves two purposes: **interactive feedback while the informatician
+authors** and **packaged evidence afterwards**. In the first release it is
+**lazy-loaded and explicitly triggered** (button / menu, deliberate save, export);
+a debounced live mode, paired with the existing Test Run Auto-run, is a
+[design suggestion for a future decision](#design-suggestions-future-decision-live-test--validation).
+The solver is a **single-threaded Z3 WASM build**,
 [z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0),
 which runs in a plain Worker and needs no COOP/COEP headers, so it works on GitHub Pages
-(see [Provenance and the build we use](#provenance-and-the-build-we-use)). A throwaway
+(see [Provenance and the build we use](#provenance-and-the-build-we-use)). **Every
+intEHRgrator variant uses this same build** (same WASM, pinned version and settings),
+so verification results do not depend on which variant ran
+([Same Z3 build in every variant](#same-z3-build-in-every-variant-reproducibility)). A throwaway
 [spike](#spike-z3-wasm-on-real-fixtures) on real fixture Decision tables backs the
 design, and an [AI conversation (Gemini) shared on #41](#input-from-an-ai-conversation-gemini-shared-on-41)
 was checked claim by claim.
@@ -50,7 +57,9 @@ instances (`TemplateValidator`) and warns on unmapped mandatory slots. That is
 7. **Include in-dialect template snippets** (**VMS-Hbs**, **VMS-Go**,
    **VMS-Mustache**) in the same SMT and coverage pass — they are VMS
    ([ADR 0009](../adr/0009-verifiable-template-dialects.md)), not `trust: author`
-   hatches. Only *out-of-dialect* Handlebars/Go stays unverified.
+   hatches. *Out-of-dialect* Handlebars/Go is **not accepted** in intEHRgrator
+   mappings (see [Out-of-dialect templates: not accepted](#out-of-dialect-templates-not-accepted)), so no
+   template text is left outside verification.
 
 ## Project context
 
@@ -88,6 +97,28 @@ environment (Defaults Map, Sheets), mapping, and target schema/template.
    (interop scenarios).
 7. **Robustness / definedness (crash-freedom)** — see below.
 8. **Metamorphic / sensitivity** — see below.
+
+**Coded elements are often deliberately translated, not preserved.** Mappings
+regularly swap terminology codes on purpose, e.g. a local code in the source becomes a
+SNOMED CT code in the target. So for coded elements, correctness **cannot** mean value
+preservation (and "semantic preservation" in (4) must not be read as "same code out as
+in"). It means the code translation **follows the declared mapping**, with source and
+target code systems treated as different. In intEHRgrator today that declared mapping is
+a Decision table, a static Sheet (`sheet_lookup`), a `maps_get` map or `term_pick`;
+convert-time lookups are the Defaults Map and static Sheets, not a live terminology
+service, and FHIR ConceptMap import is deferred. For verification this implies:
+
+- State properties **against the translation table**: for every source code, the output
+  code is the one the table/map assigns (Decision table rows and finite map literals are
+  already SMT-friendly; see [Sheets](#3-sheets-accessors-vs-mutators)).
+- **Coverage of source codes:** report source codes (from the Source Schema's enum / value
+  set, where one is declared) that no row or map entry handles, and whether they fall
+  through to a catch-all, an error row (Rejected) or `null` (a silent hole).
+- **Target validity:** every output code is valid in the **target** value set (e.g. the
+  OPT's code list), checked against the target, not the source; the
+  [spike](#what-it-checked-and-found) already proved this for one table (P2).
+- **Sensitivity** checks treat many-to-one code translations as declared equivalence
+  classes (open question 7), not as dead mappings.
 
 Full machine-checked proofs of (4)–(6) are hard in healthcare because source
 schemas are often partial and semantics under-specified. A practical goal is
@@ -163,9 +194,9 @@ fill the gaps between those points.
 
 | Formalism | Fit | Verification style |
 |-----------|-----|-------------------|
-| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)) in the web app; the official `z3-solver` package where the page is cross-origin isolated. Generate SMT from the Mapping Model; run in a Web Worker on request. | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
+| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)), the [same build in every variant](#same-z3-build-in-every-variant-reproducibility) (web app, desktop app, headless / CI). Generate SMT from the Mapping Model; run in a Web Worker while authoring (on request, or debounced if the [live mode](#design-suggestions-future-decision-live-test--validation) is adopted). | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
 | **Mapping Contract DSL** (custom) | High — generated from Mapping Model + source/target schemas; the human-readable twin of the SMT | Documentation + CI; Z3 consumes the same invariants |
-| **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers, out-of-dialect templates marked `trust: author`) | Falsification with generated sources; shrink into Example Instances |
+| **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers) | Falsification with generated sources; shrink into Example Instances |
 | **Chunk-level test suite** in the chosen Conversion script language | High — same language as Generated Export; one suite per Decision table / Blockly Function / loop grain | Regression tests others run later; avoids cartesian explosion (see below) |
 | **Schematron** (XML) / **JSON Schema `if/then`** (JSON) | Medium — output-side rules from mapping + constraints | Declarative validation of produced instances |
 
@@ -188,7 +219,7 @@ invariants:
 |-----------|-------|
 | **Dafny** | `requires` / `ensures` on generated `convert`; still Z3-backed, but a **second** codegen for critical slices (units, doses, identifiers). Not needed for the interactive web app path now that Z3 WASM is first-class. |
 | **OCL / MDE postconditions** | Classic model-transformation contracts; good inspiration for Mapping Contract DSL even if OCL is not adopted literally. |
-| **Rosette / CrossHair** | Alternative bounded symbolic engines. Prefer Z3 WASM so the web app, desktop app, and evidence pack share one solver. |
+| **Rosette / CrossHair** | Alternative bounded symbolic engines; not used. Every variant and the evidence pack use the [same pinned Z3 build](#same-z3-build-in-every-variant-reproducibility). |
 
 ### Tier 3 — Weaker or heavier fit
 
@@ -215,12 +246,12 @@ The product has six coupled slices (see [#41](https://github.com/regionstockholm
 
 | Slice | What the informatician sees |
 |-------|-----------------------------|
-| **A. Verify mapping** | In-app Z3 check, **started by the informatician** (Verify mapping button / menu item) and on deliberate save and export; never on every edit. Z3 is lazy-loaded and runs off the UI thread. Not a Conversion script language. |
+| **A. Verify mapping** | In-app Z3 check used **interactively while authoring**. First release: started by the informatician (Verify mapping button / menu item) and on deliberate save and export; a debounced live mode with a pause toggle is a [future decision](#design-suggestions-future-decision-live-test--validation). Z3 is lazy-loaded and runs off the UI thread. Not a Conversion script language. |
 | **B. Coverage + counterexamples** | Unread Source Schema nodes highlighted; a sat model shown as a loadable Example Instance. |
 | **C. Verification evidence pack** | Downloadable bundle of SMT, Z3 version, sat/unsat, counterexamples, coverage, VMS lint — for MDR/IVDR technical files. |
 | **D. Chunk-level test suite** | Generated tests in the **same Conversion script language** as Output mode, one suite per mapping chunk (including in-dialect template snippets). |
 | **E. Convert-time throws** | VMS `error(message)` / Throw block, plus Decision table **error rows** and catch-all throws. |
-| **F. In-dialect templates** | Lower **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** into the same SMT and coverage overlay as Mapping Expressions. Out-of-dialect remains `trust: author`. |
+| **F. In-dialect templates** | Lower **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** into the same SMT and coverage overlay as Mapping Expressions. Out-of-dialect templates are [not accepted](#out-of-dialect-templates-not-accepted). |
 
 Phased delivery:
 
@@ -230,7 +261,7 @@ Phased delivery:
 | **R1** | Start with **Decision tables**: the [spike](#spike-z3-wasm-on-real-fixtures) showed that dead-row, no-match and output-value-set checks already run in milliseconds on real fixtures. Then generate SMT + mapping-contract from VMS Mapping Model **including lowered VMS-Hbs / VMS-Go / VMS-Mustache**; Z3 WASM Worker; Verify mapping action; counterexample → Example Instance; Source Schema coverage overlay (template paths count as reads). |
 | **R2** | Verification evidence pack export (queries + results + coverage + solver identity + dialect ASTs). |
 | **R3** | Chunk-level test suite export in the chosen Conversion script language (Decision table rules, snippet interpolations, Blockly Functions, loop grain). **Differential test vectors:** each Z3 model (one per reachable path / Decision table row) becomes a fixture replayed on Mapping preview **and** every generated Conversion script language, so codegen divergences (empty sequence vs `null` vs `undefined`, 0- vs 1-based indexing, numeric coercion) surface without symbolic execution of TS/Java/XQuery. PBT overlay for unspecified inputs and `regexReplaceAll`. |
-| **R4** | Optional Dafny slice for nominated critical slots; CI replay of the evidence pack’s SMT with the same Z3 version. |
+| **R4** | Optional Dafny slice for nominated critical slots; CI replay of the evidence pack’s SMT with the [same pinned z3-wasm-singlethread build](#same-z3-build-in-every-variant-reproducibility) (same WASM SHA-256 and settings). |
 
 ## Architecture (target)
 
@@ -293,21 +324,27 @@ property, a prose counterexample, and “Load as Example Instance”.
   static assets. The download is a 21.9 MB WASM (6.1 MB gzipped) plus 85 KB of JS
   (v0.1.0; see [Hosting](#hosting-without-coopcoep-github-pages)).
   Users who never press Verify mapping never download it.
-- **Explicit triggers only:**
-  1. **Verify mapping** button / menu item, the primary way.
+- **Triggers in the first release:**
+  1. **Verify mapping** button / menu item, the primary way to get interactive
+     feedback while authoring.
   2. **Deliberate save** (Save / Save as of the Project Bundle, not autosave or
      the desktop sync's background writes).
   3. **Export** (Generated Export, evidence pack).
-  **Never on every edit.** There is no debounced background run.
+  The first release does not re-run on every edit. A **debounced live mode**
+  (re-check shortly after edits, with a pause toggle shared with Test Run
+  Auto-run) is proposed in
+  [Design suggestions (future decision)](#design-suggestions-future-decision-live-test--validation).
 - **Non-blocking and cancellable.** Solving runs in a Worker. A progress indicator
   with **Cancel** is shown. Cancel terminates the Worker (the pending check rejects at
   once as cancelled) and starts a fresh one, which was ready again in 18–23 ms in
-  Chromium with v0.1.0. A per-query `:timeout` resolves `unknown` instead.
+  Chromium with v0.1.0. A per-query `:timeout` resolves `unknown` instead (see
+  [reproducibility](#same-z3-build-in-every-variant-reproducibility) for why a wall-clock limit alone is a problem for evidence).
   Save and export **do not wait** for Verify mapping. They start it in the background
   and complete normally.
 - **Results are findings.** They appear in the same findings / Constraint warning
   surface as other validation, marked with the Mapping Model hash they were computed
-  for. Editing the mapping marks them **stale**; it does not re-run them.
+  for. Editing the mapping marks them **stale**; in the first release it does not
+  re-run them (the proposed live mode would).
 - **Export proceeds with a warning, not a block** (failing or stale verification is
   listed in the export summary and the evidence pack). Whether some projects should
   be able to **require** a passing verification before export is open question 18.
@@ -332,20 +369,34 @@ WASM hosting constraints (implementation, not product language; measured with
   solver identity in the evidence pack.
 - Time-box checks; show partial results.
 
-Where **`z3-solver`** (the official, threaded bindings; 35.4 MB WASM) is used instead, e.g.
-as a drop-in on the desktop app, `deno task dev` or a CI replay, these apply (measured in
-the [spike](#spike-z3-wasm-on-real-fixtures) with 5.3.2):
+#### Same Z3 build in every variant (reproducibility)
 
-- It needs `SharedArrayBuffer` (Emscripten pthreads), which browsers only provide on a
-  **cross-origin isolated** page (**COOP** `same-origin` + **COEP** `require-corp` /
-  `credentialless`). This is **not a CORS problem**, and serving the library from the same
-  origin does not remove it. Without the headers `init()` still *resolves* and the first
-  `check()` throws `thread constructor failed`, so gate it on `self.crossOriginIsolated`,
-  never on a successful `init()`, and never silently no-op.
-- Its browser entry is CommonJS and reads `global.initZ3`, and `z3-built.js` must be its
-  own `<script>` (it spawns workers from itself); do not inline it.
-- In Deno, `import { init } from "npm:z3-solver"` works as is; call `killThreads(api.em)`
-  when done, or the worker threads keep the process alive.
+**Policy:** every intEHRgrator variant (web app, desktop app including its headless Agent
+API / MCP, and CI replay) runs Verify mapping with the **same Z3 build as the web app**:
+[z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0),
+the same pinned WASM artefact (SHA-256 `228258f7…3f84`, see open question 19), the same
+solver options and the same limits. **Reason (MDR/IVDR):** a verification result in a
+technical file must be the same whichever variant produced it. Under Deno the same package
+runs via `init()` from `index.mjs` (see the API note above), so no other build is needed.
+
+- **Record the solver identity** in every result and in the evidence pack: release tag,
+  `version()` string (Z3 version plus upstream commit), WASM SHA-256 and attestation.
+- **Make results comparable:** record the options and limits used per query next to the
+  verdict, plus the SMT-LIB text and Mapping Model hash, so a replay in another variant is
+  a byte-for-byte rerun of the same query on the same solver. A different solver identity
+  or option set means "not comparable", not "passed".
+- **Limits (proposal):** a wall-clock `:timeout` depends on machine speed, so the same
+  query could be `unknown` on a slow laptop and `unsat` in CI. Proposed: for evidence, use
+  a deterministic Z3 resource limit (`rlimit`) instead of, or in addition to, the
+  wall-clock time box, fix any random-seed options, and record both. Not yet tried with
+  the v0.1.0 build; confirm in the spike before relying on it.
+
+**Considered and rejected:** the official threaded `z3-solver` bindings (35.4 MB WASM;
+need COOP/COEP, i.e. cross-origin isolation, which is not a CORS problem; measured in the [spike](#spike-z3-wasm-on-real-fixtures)) as a drop-in for
+the desktop app, `deno task dev` or CI; a native `z3` binary; other SMT solvers (e.g. cvc5).
+All rejected for product use for the same reason: results must not depend on the variant.
+`z3-solver` remains only as the spike's reference (the v0.1.0 build agreed on 225/225
+queries).
 
 ### B. Source Schema overlay and counterexamples
 
@@ -378,7 +429,8 @@ the `.intehrgrator` by default, same policy as Generated Export):
 - Project identity (template id, Source Schema hash, Mapping Model hash, VMS
   lint)
 - Generated mapping-contract + SMT-LIB (including lowered VMS-Hbs / VMS-Go / VMS-Mustache)
-- Dialect ASTs + lint (in-dialect vs `trust: author` out-of-dialect)
+- Dialect ASTs + lint result (a pack is only produced for in-dialect templates;
+  out-of-dialect text is [not accepted](#out-of-dialect-templates-not-accepted))
 - Solver identity (release tag, Z3 version string with upstream commit, WASM SHA-256,
   provenance attestation)
 - Per-property results (`unsat` / `sat` + model / timeout / skipped hatch)
@@ -475,8 +527,6 @@ What stays out of SMT (PBT / gold strings, still in the evidence pack):
 
 - `regexReplaceAll` / character-class sanitizers (`cleanAndQuoteFreeTextInput`)
 - Clinical *meaning* of narrative prose
-- **Out-of-dialect** Handlebars/Go (`lookup`, `#with`, `call`, Sprig, …) —
-  `trust: author` hatch, skipped or marked, never silently treated as VMS
 
 Canvas `text_handlebars` is the VMS-Hbs specification
 (`ProjectBundle.mapping.blocklyState`). Verify mapping must walk it with
@@ -545,8 +595,9 @@ and it is why `variables_set` needs `let`/SSA lowering (below).
    counterexample is `""` (absent optional source), which is usually by design.
    Absent vs present-but-unknown should be two separate properties.
 5. **SMT-LIB text is a workable artefact.** `solver.toString()` emits it,
-   `fromString` replays it, and a native `z3` (or `cvc5`, if we stay inside
-   standard theories) can re-check the `.smt2` in CI. This supports slice C.
+   `fromString` replays it, and the text can be replayed in CI. This supports
+   slice C. The product replays it on the
+   [same pinned build](#same-z3-build-in-every-variant-reproducibility), not on a native `z3` or another solver.
 6. **`z3-solver`'s hosting caveats** (COOP/COEP gating, CommonJS browser entry, a
    separate `z3-built.js`, `killThreads` in Deno) did not block the spike, and the
    single-threaded v0.1.0 build has none of them.
@@ -554,7 +605,7 @@ and it is why `variables_set` needs `let`/SSA lowering (below).
 ### Hosting without COOP/COEP (GitHub Pages)
 
 The question: can Verify mapping run on the GitHub Pages web app, which cannot send
-COOP/COEP? (It is cross-origin isolation, not CORS; see A.)
+COOP/COEP? (It is cross-origin isolation, not CORS.)
 [`experiments/z3-spike/hosting_check.ts`](../../experiments/z3-spike/hosting_check.ts)
 serves pages from a static `localhost` server that sends **no isolation headers**,
 and loads them in headless Chromium (Playwright 1.51). Each variant replays the same
@@ -599,8 +650,9 @@ Not done:
    it was the fastest variant on these queries, it is cancellable, and it behaves the same
    in Deno.
 2. Keep the solver behind a small interface (`init`, `checkSmtLib(text) → verdict + model
-   text`, `cancel`), so `z3-solver` remains a drop-in where isolation is available
-   (desktop, `deno task dev`, CI replay).
+   text`, `cancel`), but with **one** implementation: the same pinned build in every
+   variant (desktop, `deno task dev`, CI replay included;
+   see [Same Z3 build in every variant](#same-z3-build-in-every-variant-reproducibility)).
 3. **Do not add `coi-serviceworker`** to the web app. It forces a reload, did not always
    isolate the first visit, and puts the whole app (fonts, popups, future embeds) under
    COEP for one optional feature. It would also have to be merged into `web/sw.js`.
@@ -718,16 +770,22 @@ the mapping specification.
 - Treating Dafny as a prerequisite for in-app checks — Z3 WASM is enough for the interactive slice.
 - Treating **in-dialect** VMS-Hbs / VMS-Go / VMS-Mustache as `trust: author`
   hatches — those dialects exist so SMT and coverage can see their path sets
-  and `if`/`eq` trees. Only *out-of-dialect* templates skip proof.
+  and `if`/`eq` trees.
+- Accepting *out-of-dialect* templates as a `trust: author` hatch that skips proof.
+  intEHRgrator does not accept them; legacy examples are translated to VMS-Hbs /
+  VMS-Go first ([policy](#out-of-dialect-templates-not-accepted)).
 - Generating a cartesian **whole-convert** test matrix as the default suite — explode on source fields; emit **chunk** tests (collapsed Decision table rules, functions, grain).
 - Leaving Decision table no-match as `null` while calling convert crash-free — that is a silent hole, not Rejected.
-- Running Verify mapping **on every edit** (debounced background runs): the 22 MB (6 MB gzipped) solver download and
-  the CPU cost are only paid when the informatician asks, or on deliberate save / export.
+- Running Verify mapping **on every keystroke, undebounced and uncancellable**, or downloading the 22 MB
+  (6 MB gzipped) solver for users who never verify. A debounced live mode that cancels stale runs and only
+  starts once the informatician has opted in is a separate, open
+  [design suggestion](#design-suggestions-future-decision-live-test--validation), not an anti-pattern.
 - Putting Z3 in the main bundle or loading it from a third-party CDN: load it with a dynamic `import()`
   from the app's own origin, on the first Verify mapping only.
-- Using the threaded `z3-solver` on GitHub Pages, or letting Verify mapping **silently no-op** where it
-  cannot run. (`z3-solver`'s `init()` succeeds without COOP/COEP; only `check()` fails. Use the
-  single-threaded build there, and gate any `z3-solver` path on `crossOriginIsolated`.)
+- Using any other Z3 build, binding or version in some variant (the threaded `z3-solver`, a native
+  `z3`, another SMT solver): results would then depend on which variant ran
+  ([policy](#same-z3-build-in-every-variant-reproducibility)).
+- Letting Verify mapping **silently no-op** where it cannot run.
 - Reporting "proved for all inputs" without the **encoded source domain** (integer vs JSON `number`,
   present vs absent, enum vs free string). The same table can be complete in one and broken in the other.
 - Encoding reassignment (`variables_set`) as repeated assertions on one SMT constant. It prunes branches
@@ -745,7 +803,7 @@ extractor (`workspaceToModelJson`), and codegen adapters (`xquery.ts`,
 | Category | Effect on XQuery / declarative export | Effect on formal verification |
 |----------|--------------------------------------|------------------------------|
 | **Canvas vs Mapping Model gap** | Medium — Mapping Model has `loops[]` / `targetSignature`; XQuery loop emit landed with [#39](https://github.com/regionstockholm/intehrgrator/issues/39) | Low–medium — preview vs TypeScript golden oracles landed ([#38](https://github.com/regionstockholm/intehrgrator/issues/38)); SMT still needs the same IR |
-| **Template dialects (ADR 0009)** | Medium — XQuery still stubs some `handlebars()` literals; in-dialect AST is available from lint | **Positive** for VMS-Hbs / VMS-Go / VMS-Mustache (lower to SMT). High only for *out-of-dialect* leftovers |
+| **Template dialects (ADR 0009)** | Medium — XQuery still stubs some `handlebars()` literals; in-dialect AST is available from lint | **Positive** for VMS-Hbs / VMS-Go / VMS-Mustache (lower to SMT). Out-of-dialect is [not accepted](#out-of-dialect-templates-not-accepted), so there is no residual template risk |
 | **Sheet mutators** | **Removed** from toolbox (VMS); not in Mapping Model expressions | High if re-enabled — imperative convert-time state |
 | **Stock imperative Blockly** | **Removed** from toolbox (VMS) | High if re-enabled — unbounded / non-deterministic / stateful |
 | **Dynamic source paths** | Medium — literal paths compile; dynamic paths need runtime helpers | Medium — symbolic XPath over JSON/XML is hard to bound |
@@ -804,7 +862,7 @@ from the Code text LANG dropdown.
 | `text_code` LANG=`handlebars` | Same VMS-Hbs lowering. LANG is product semantics (not UI-only). |
 | `text_code` LANG=`go-template` | **VMS-Go** — lower `if`/`index`/`range`/curated FuncMap; inline acyclic `define`. |
 | Decision table snippet cells | **VMS-Mustache** — interpolation + sections; branching stays in the table. |
-| Out-of-dialect leftovers (`lookup`, `#with`, `call`, Sprig, …) | Hatch — `trust: author`; lint already warns; skip proof obligations. |
+| Out-of-dialect text (`lookup`, `#with`, `call`, Sprig, …) | **Not accepted** in intEHRgrator mappings. Convert already fails closed (ADR 0009); lint warns today and should reject (proposal, see [policy](#out-of-dialect-templates-not-accepted)). No proof obligations are skipped for it. |
 
 **Why the old “opaque string” story is wrong now:** unrestricted Handlebars.js /
 Sprig *would* be `string × context → string`. The closed dialects are a **fixed
@@ -824,7 +882,9 @@ encode it; prefer reauthoring to Decision tables for humans, not for the solver.
 4. Treat `regexReplaceAll` as an uninterpreted string function in SMT; pin
    behaviour with gold strings / PBT (as the snippet investigation already
    states).
-5. Only mark a slot `trust: author` when lint reports **out-of-dialect**.
+5. Do not mark template slots `trust: author`. Out-of-dialect text is rejected,
+   not exempted ([policy](#out-of-dialect-templates-not-accepted)); `trust: author` stays for the remaining non-template
+   hatches listed under [Implemented VMS](#implemented-vms-verifiable-mapping-subset).
 
 ### 3. Sheets: accessors vs mutators
 
@@ -926,8 +986,7 @@ rules; JSON-LD / SHACL / description-logic approaches want a fixed target schema
 **Suggestions:**
 
 1. For verification track: prefer **`target_structure` / `target_value`** slots
-   tied to the loaded schema; treat generic `json_object` as an escape hatch
-   (out-of-dialect templates, not in-dialect VMS-Hbs/VMS-Go).
+   tied to the loaded schema; treat generic `json_object` as an escape hatch.
 2. When Source Schema and Target Schema are both loaded, auto-generate
    **path correspondence** candidates for the contract.
 
@@ -970,13 +1029,15 @@ VMS allowed (implement fully, including Mapping Model + all exporters):
   VMS-Mustache snippet cells, in-dialect VMS-Hbs and VMS-Go (lower to SMT)
 
 VMS escape hatch (keep in toolbox; mark unverified):
-  out-of-dialect Handlebars or Go template, ad-hoc json_object / xml_element trees,
+  ad-hoc json_object / xml_element trees,
   dynamic (non-literal) source paths, procedures_defreturn (until function
   harness lands)
 
 VMS-Hbs / VMS-Go / VMS-Mustache:
   in-dialect per ADR 0009 — **include in Verify mapping**; not a hatch.
-  Out-of-dialect leftovers stay `trust: author`.
+
+Not accepted (not a hatch):
+  out-of-dialect Handlebars or Go template (see policy below)
 
 
 VMS remove from toolbox (do not implement):
@@ -987,11 +1048,103 @@ VMS remove from toolbox (do not implement):
 ```
 
 A workspace linter ([#40](https://github.com/regionstockholm/intehrgrator/issues/40))
-warns on leftover Blockly hatches and on **out-of-dialect** Handlebars / Go template.
+warns on leftover Blockly hatches and (today, at warning severity) on **out-of-dialect**
+Handlebars / Go template; see the proposal below to reject it.
 In-dialect **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** is VMS
 ([ADR 0009](../adr/0009-verifiable-template-dialects.md),
 [proposal](../proposals/verifiable-template-snippets.md)) and is **in scope**
 for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues/41).
+
+### Out-of-dialect templates: not accepted
+
+**intEHRgrator does not accept out-of-dialect Handlebars or Go template text** in
+mappings. VMS-Hbs, VMS-Go and VMS-Mustache are the only template languages; there is
+no `trust: author` exemption for templates.
+
+- **Already enforced at convert:** ADR 0009's hard gate (`knownHelpersOnly` against the
+  VMS-Hbs whitelist; Go parse + curated FuncMap) means out-of-dialect text does not run.
+- **Proposal, mechanism not decided:** today the editor lint (#40, ADR 0009 "soft gate")
+  only **warns**. Raise out-of-dialect findings to **error** severity, and have
+  Verify mapping, Generated Export and the evidence pack report them as a failing
+  finding rather than a skipped hatch. Open: whether save / Project Bundle load should
+  also refuse it, or load it flagged so the author can fix it.
+- **Legacy examples:** older mapping examples that use out-of-dialect constructs are
+  kept only as **comparative material for one-off tests**, after translation to the
+  current VMS-Hbs / VMS-Go (or Decision tables with VMS-Mustache cells). They are not a
+  supported input and not part of the regression or verification suite in their
+  original form.
+- [ADR 0009](../adr/0009-verifiable-template-dialects.md) is amended accordingly
+  ([Amendment 2026-10-29](../adr/0009-verifiable-template-dialects.md#amendment-2026-10-29)):
+  the "hatch warning" for out-of-dialect text is gone; the lint severity change is
+  recorded there as a proposal.
+
+## Design suggestions (future decision): live Test & Validation
+
+**Status:** proposals for Erik to decide; nothing here is implemented or
+committed to. Raised because the [Idea](#idea) names interactive checking while
+the informatician authors as a primary purpose, while the first release only
+verifies on explicit triggers.
+
+**What exists today (checked in code, `fv-gemini-z3-spike`):** Conversion Test
+Run(s) already re-run automatically. `WorkbenchController.scheduleTestRun()`
+re-runs all test files after a fixed **500 ms** debounce (hard-coded) when
+**Auto-run** (`settings.autoplay`) is on. Auto-run is **on by default**; the
+**Pause / ▶ Auto-run** button in the Conversion Test Run(s) header turns it off,
+and a paused state is remembered per machine (`localStorage`
+`intehrgrator.autoRunPaused`), not taken from Project Bundles. **Run Test** runs
+on demand. VMS-Hbs / VMS-Go template lint is also debounced (600 ms,
+`template_lint.ts`). Verify mapping does not exist yet.
+
+Suggestions:
+
+1. **Debounced live Verify mapping.** When live mode is on, re-run Verify
+   mapping after the mapping has been quiet for a debounce interval, so findings
+   follow the informatician's edits the way Test Run output already does.
+2. **No UI lag.**
+   - Debounce, and **cancel stale runs**: a new edit terminates the running
+     Worker check (Cancel already restarts a Worker in about 20 ms in the
+     spike) instead of queueing it.
+   - Keep Z3 off the UI thread (already the design); consider whether Test
+     Runs over large example sets should also move to a Worker.
+   - **Incremental checks:** re-check only the properties whose Mapping Model
+     chunk changed (per Decision table, Blockly Function, slot), keyed by a
+     chunk hash, and reuse earlier results for the rest. Decision table checks
+     already run in milliseconds in the spike, so they are the natural first
+     live slice.
+   - A visible status per kind: **up to date / validating… / stale / paused /
+     timed out**, using the existing Mapping Model hash and stale marking.
+   - Do not trigger the 6 MB (gzipped) solver download from live mode until
+     the user has started Verify mapping once or switched live validation on.
+3. **One play/pause toggle per kind.** Give formal validation the same
+   Auto-run / Pause control Test Run has, so slow computers or big mappings can
+   pause either one independently and fall back to Run Test / Verify mapping.
+4. **A combined "Test & Validation" menu.** Move Run Test, Verify mapping and
+   their toggles into one new menu (or panel header), e.g.:
+   - ☑ Auto-run example Test Runs · Run now
+   - ☐ Live formal validation (Z3) · Verify now
+   - Debounce: example tests ___ ms · formal validation ___ ms
+5. **Configurable debounce.** Make the debounce a setting instead of the
+   hard-coded 500 ms, probably with **separate limits per kind**, since a Z3
+   pass can cost far more than a Test Run (e.g. keep ~500 ms for tests, start
+   formal validation at a longer delay or after a pause in typing). Store it per
+   machine like the Auto-run pause, not in the Project Bundle.
+
+Open questions for this suggestion:
+
+- **Defaults:** live formal validation off by default (download and CPU cost)
+  or on after the first manual Verify mapping? Should Test Run Auto-run stay on
+  by default?
+- **Default debounce values** per kind, and whether to adapt them to measured
+  run time (back off when checks are slow).
+- **How results are shown** while editing: inline in the findings / Constraint
+  warning surface only, or also on Blockly blocks and Decision table rows; how
+  to avoid flicker when findings appear and disappear between edits.
+- **Packaged evidence:** live results are transient. Should export always run a
+  fresh full (non-incremental) check for the evidence pack, or may it reuse a
+  non-stale live result with the same Mapping Model hash? (Relates to open
+  question 18, the export gate.)
+- **Scope of the merged menu:** also include template lint and
+  `TemplateValidator` output validation, or only Test Run and Verify mapping?
 
 ## Open questions
 
@@ -1049,7 +1202,8 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
     cadence (each Z3 release, or security fixes only)? Upstream's or native wasm
     exceptions? Whether the web app fetches the pinned asset at build time or vendors it
     in the repo (both checked against the same SHA-256)? How is the WASM SHA-256 and
-    provenance attestation recorded in the evidence pack?
+    provenance attestation recorded in the evidence pack? Every variant consumes this
+    same pinned asset ([policy](#same-z3-build-in-every-variant-reproducibility)).
 
 ## Related
 
@@ -1066,7 +1220,7 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 - [ADR 0009](../adr/0009-verifiable-template-dialects.md) — VMS-Hbs / VMS-Go / VMS-Mustache; in-dialect snippets are VMS
 - [verifiable-template-snippets.md](../proposals/verifiable-template-snippets.md) — dialect investigation; `regexReplaceAll` not SMT-proved
 - [z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0) — the single-threaded Z3 WASM build Verify mapping uses (no COOP/COEP)
-- [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official, threaded JS/TS bindings; needs a cross-origin isolated page
+- [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official, threaded JS/TS bindings; needs a cross-origin isolated page. Spike reference only; not used by any intEHRgrator variant
 - [experiments/z3-spike](../../experiments/z3-spike/README.md) — throwaway Z3 WASM spike (Deno + Chromium) with recorded results
 - [Autonoma: What Is Decision Table Testing?](https://getautonoma.com/blog/decision-table-testing) — collapse don’t-cares, then one parameterised test per remaining rule (comment on [#41](https://github.com/regionstockholm/intehrgrator/issues/41))
 
@@ -1077,9 +1231,9 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 - Verifiable declarative mappings (RML → OCaml + Gospel/Cameleer): [Towards Verifiable Declarative Mappings](https://edkamb.github.io/files/kgcw2026.pdf)
 - Grain correctness in data pipelines: [Grain Theory (arXiv:2601.00995)](https://arxiv.org/abs/2601.00995)
 - Metamorphic testing of transformations (relations between paired runs, no gold output per input): Chen et al., *Metamorphic Testing: A Review of Challenges and Opportunities*
-- Z3 JavaScript/WASM: [z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread) (ours, single-threaded); [z3-solver](https://www.npmjs.com/package/z3-solver) (official; `SharedArrayBuffer` / COOP-COEP notes in its README)
+- Z3 JavaScript/WASM: [z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread) (ours, single-threaded); [z3-solver](https://www.npmjs.com/package/z3-solver) (official; `SharedArrayBuffer` / COOP-COEP notes in its README; spike reference only)
 - Decision-table test collapsing: [Autonoma](https://getautonoma.com/blog/decision-table-testing)
-- SMT-LIB v2 standard (portable `.smt2` for replay with Z3 or cvc5): [smt-lib.org](https://smt-lib.org/)
+- SMT-LIB v2 standard (the portable `.smt2` format of the evidence pack): [smt-lib.org](https://smt-lib.org/)
 - Whitebox test generation background (from the AI conversation; analyse *code*, not specs):
   [SAGE: Automated Whitebox Fuzz Testing](https://www.microsoft.com/en-us/research/publication/automated-whitebox-fuzz-testing/),
   [Pex and Moles](https://www.microsoft.com/en-us/research/project/pex-and-moles-isolation-and-white-box-unit-testing-for-net/)
@@ -1100,8 +1254,8 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 >
 > **Question (updated):** How should a **generated SMT encoding** of a VMS
 > Mapping Model — **including lowered VMS-Hbs / VMS-Go / VMS-Mustache dialect
-> ASTs** — be scoped so Z3 WASM can run on request (seconds, not
-> minutes) while still producing (a) source-coverage overlays that count
+> ASTs** — be scoped so Z3 WASM can run interactively while authoring
+> (seconds, not minutes; on request or debounced after edits) while still producing (a) source-coverage overlays that count
 > template paths as reads, (b) concrete counterexample instances, (c) an
 > MDR/IVDR-style evidence pack, and (d) a **chunk-level** test suite in the
 > same Conversion script language? Compare encoding Mapping Expression
@@ -1109,4 +1263,5 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 > vs treating XPath as uninterpreted vs bounding collections. Where must we
 > fall back to property-based testing (`regexReplaceAll`, unbounded trees)?
 > How should authored `error(…)` / Decision table error rows appear in the
-> SMT (Rejected vs Erroneous)? Out-of-dialect templates stay `trust: author`.
+> SMT (Rejected vs Erroneous)? Out-of-dialect templates are not accepted, so
+> they need no encoding.

@@ -33,7 +33,9 @@ Timings are from that box. Treat them as orders of magnitude, not benchmarks.
 
 **[z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0)**,
 a single-threaded build of upstream Z3 5.3.2 from a pinned tag, reproducible and attested. It runs in a
-plain Worker without COOP/COEP. `z3-josh` appears here only as a measured alternative; it is rejected
+plain Worker without COOP/COEP. Every intEHRgrator variant (web app, desktop app, headless / CI) uses this
+same build, so verification results do not depend on the variant; `z3-solver` and a native `z3` appear here
+only as spike references. `z3-josh` appears here only as a measured alternative; it is rejected
 because its provenance cannot be established. The pins live in `release_check.ts` (`Z3_RELEASE`):
 
 - tarball [`z3-wasm-singlethread-v0.1.0.tar.gz`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/z3-wasm-singlethread-v0.1.0.tar.gz): `76afbdd80edcfc37e87e3fe751cf6e98f6db0e7ed1c85e410075c461345fe5fb`
