@@ -95,6 +95,28 @@ environment (Defaults Map, Sheets), mapping, and target schema/template.
 7. **Robustness / definedness (crash-freedom)** — see below.
 8. **Metamorphic / sensitivity** — see below.
 
+**Coded elements are often deliberately translated, not preserved.** Mappings
+regularly swap terminology codes on purpose, e.g. a local code in the source becomes a
+SNOMED CT code in the target. So for coded elements, correctness **cannot** mean value
+preservation (and "semantic preservation" in (4) must not be read as "same code out as
+in"). It means the code translation **follows the declared mapping**, with source and
+target code systems treated as different. In intEHRgrator today that declared mapping is
+a Decision table, a static Sheet (`sheet_lookup`), a `maps_get` map or `term_pick`;
+convert-time lookups are the Defaults Map and static Sheets, not a live terminology
+service, and FHIR ConceptMap import is deferred. For verification this implies:
+
+- State properties **against the translation table**: for every source code, the output
+  code is the one the table/map assigns (Decision table rows and finite map literals are
+  already SMT-friendly; see [Sheets](#3-sheets-accessors-vs-mutators)).
+- **Coverage of source codes:** report source codes (from the Source Schema's enum / value
+  set, where one is declared) that no row or map entry handles, and whether they fall
+  through to a catch-all, an error row (Rejected) or `null` (a silent hole).
+- **Target validity:** every output code is valid in the **target** value set (e.g. the
+  OPT's code list), checked against the target, not the source; the
+  [spike](#what-it-checked-and-found) already proved this for one table (P2).
+- **Sensitivity** checks treat many-to-one code translations as declared equivalence
+  classes (open question 7), not as dead mappings.
+
 Full machine-checked proofs of (4)–(6) are hard in healthcare because source
 schemas are often partial and semantics under-specified. A practical goal is
 **strong falsification** (counterexamples) plus **contract documentation**, with
