@@ -872,6 +872,11 @@ function setupUiLanguageMenu(locale: IntehrLocale): void {
       changeLocaleAndReload(next);
       return;
     }
+    if (controller.usesHostSaveState()) {
+      // VS Code file project: the document buffer already holds the edits; no workspaceState copy.
+      changeLocaleAndReload(next, Blockly.serialization.workspaces.save(workspace));
+      return;
+    }
     void host.saveAutosave(bundle).finally(() => {
       markLocaleReloadAutosave();
       changeLocaleAndReload(next, Blockly.serialization.workspaces.save(workspace));
@@ -1580,8 +1585,10 @@ function refreshUndoButtons(): void {
   const undoBtn = document.getElementById("btn-undo") as HTMLButtonElement | null;
   const redoBtn = document.getElementById("btn-redo") as HTMLButtonElement | null;
   if (!workspace || !undoBtn || !redoBtn) return;
-  undoBtn.disabled = !workspaceCanUndo(workspace);
-  redoBtn.disabled = !workspaceCanRedo(workspace);
+  // VS Code file projects: the buttons run VS Code's undo/redo, whose stack the webview cannot see.
+  const hostUndo = controller.usesHostSaveState();
+  undoBtn.disabled = !hostUndo && !workspaceCanUndo(workspace);
+  redoBtn.disabled = !hostUndo && !workspaceCanRedo(workspace);
   const messages = uiChrome();
   const hint = messages.undoHistoryHint;
   undoBtn.title = undoBtn.disabled ? hint : `${hint} ${messages.undoLastEdit}`;
@@ -4922,8 +4929,8 @@ async function main(): Promise<void> {
   historyPanel = installHistoryPanel({
     panel: requireEl("history-panel"),
     load: loadHistoryRows,
-    undoTo: historyUndoTo,
-    revert: historyRevert,
+    // One undo history in VS Code file projects: VS Code's. Other hosts keep Undo to here / Revert.
+    ...(controller.usesHostSaveState() ? {} : { undoTo: historyUndoTo, revert: historyRevert }),
   });
   const historyButton = document.getElementById("btn-history");
   historyButton?.addEventListener("click", () => {

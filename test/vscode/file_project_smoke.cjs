@@ -8,6 +8,15 @@ const waitFor = async (check, description) => {
   while (Date.now() < deadline) { try { if (check()) return; } catch {} await new Promise(r => setTimeout(r, 200)); }
   throw new Error('Timed out: ' + description);
 };
+// Opening does not regenerate output, so rewrite an input until the editor (once ready) reacts to it.
+const writeUntil = async (file, content, check, description) => {
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    fs.writeFileSync(file, content);
+    for (let i = 0; i < 15; i++) { try { if (check()) return; } catch {} await new Promise(r => setTimeout(r, 200)); }
+  }
+  throw new Error('Timed out: ' + description);
+};
 const openWorkbench = async () => {
   let timer;
   try {
@@ -36,14 +45,13 @@ exports.run = async () => {
       steps.push('Open Workbench resumes the same project after a full VS Code restart');
       const result = path.join(root, 'output/examples/person-01.json');
       const source = path.join(root, 'source/person-01.json');
-      fs.writeFileSync(source, JSON.stringify({id:'RESTARTED-ID',displayName:'After restart'}));
-      await waitFor(() => JSON.parse(fs.readFileSync(result,'utf8')).identifier === 'RESTARTED-ID', 'restored view reads examples from disk');
+      await writeUntil(source, JSON.stringify({id:'RESTARTED-ID',displayName:'After restart'}), () => JSON.parse(fs.readFileSync(result,'utf8')).identifier === 'RESTARTED-ID', 'restored view reads examples from disk');
       steps.push('restored project reloads source data from disk');
       await vscode.window.tabGroups.close(restoredTab());
       fs.unlinkSync(result);
-      fs.writeFileSync(source, JSON.stringify({id:'REOPENED-ID',displayName:'After reopening'}));
       await openWorkbench();
-      await waitFor(() => JSON.parse(fs.readFileSync(result,'utf8')).identifier === 'REOPENED-ID', 'reopening after restart rebinds the file project');
+      await waitFor(() => Boolean(restoredTab()), 'reopened file project tab');
+      await writeUntil(source, JSON.stringify({id:'REOPENED-ID',displayName:'After reopening'}), () => JSON.parse(fs.readFileSync(result,'utf8')).identifier === 'REOPENED-ID', 'reopening after restart rebinds the file project');
       steps.push('reopening after restart resumes the same file project');
       fs.writeFileSync(reportPath, JSON.stringify({ok:true,steps},null,2));
       return;
@@ -65,8 +73,11 @@ exports.run = async () => {
 
     await vscode.commands.executeCommand('intehrgrator.openFileProject', vscode.Uri.file(path.join(root, 'intehrgrator.json')));
     const result = path.join(root, 'output/examples/person-01.json');
-    await waitFor(() => JSON.parse(fs.readFileSync(result, 'utf8')).identifier === 'EXAMPLE-12345', 'webview boot and initial output');
-    steps.push('custom editor booted and generated initial output');
+    await new Promise(r => setTimeout(r, 3000));
+    if (JSON.parse(fs.readFileSync(result, 'utf8')).identifier !== 'NOT-REGENERATED') {
+      throw new Error('Opening the file project rewrote committed output');
+    }
+    steps.push('custom editor booted without rewriting committed output');
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(root, 'mapping/main.mapping.json')));
     const original = document.getText();
     const mapping = JSON.parse(original);

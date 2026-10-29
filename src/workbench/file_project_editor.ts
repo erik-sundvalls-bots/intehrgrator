@@ -23,7 +23,9 @@ export type ProjectHostMessage =
     manifestVersion?: number;
     generation: number;
   }
-  | { type: "intehrgrator:project-error"; error: string };
+  | { type: "intehrgrator:project-error"; error: string }
+  /** VS Code's unsaved state for the mapping or manifest document. */
+  | { type: "intehrgrator:project-dirty"; dirty: boolean };
 
 export type ProjectEditorMessage =
   | { type: "intehrgrator:project-ready" }
@@ -104,8 +106,12 @@ export function connectFileProjectEditor(
       generation,
     });
   };
+  // VS Code owns saving: no autosave or workspaceState copy; unsaved state comes from VS Code.
+  controller.useHostSaveState();
   const unsubscribeMessages = connection.onProjectMessage((message) => {
-    if (message.type === "intehrgrator:project-error") {
+    if (message.type === "intehrgrator:project-dirty") {
+      controller.setHostDirty(message.dirty);
+    } else if (message.type === "intehrgrator:project-error") {
       controller.setStatusMessage(`File project: ${message.error}`);
     } else if (message.type === "intehrgrator:project-load") {
       clearTimeout(timer);
@@ -244,11 +250,31 @@ export function connectFileProjectEditor(
     flush();
   };
   globalThis.addEventListener("keydown", onKey, true);
+  // Toolbar Undo/Redo run VS Code's undo/redo, so there is one history (VS Code's).
+  const undoButtons: Array<[Element, (event: Event) => void]> = [];
+  if (typeof document !== "undefined") {
+    for (const [id, command] of [["btn-undo", "undo"], ["btn-redo", "redo"]] as const) {
+      const button = document.getElementById(id);
+      if (!button) continue;
+      const onClick = (event: Event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!ready) return;
+        commands.push(command);
+        flush();
+      };
+      button.addEventListener("click", onClick, true);
+      undoButtons.push([button, onClick]);
+    }
+  }
   connection.postProjectMessage({ type: "intehrgrator:project-ready" });
   return () => {
     clearTimeout(timer);
     unsubscribeMessages();
     unsubscribeController();
     globalThis.removeEventListener("keydown", onKey, true);
+    for (const [button, onClick] of undoButtons) {
+      button.removeEventListener("click", onClick, true);
+    }
   };
 }

@@ -165,7 +165,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "UI green-path: file project opens, visually removes an identifier, saves results, and keeps text undo local",
+    "UI green-path: file project opens, visually removes an identifier, saves results, keeps text undo local, and leaves undo and saving to VS Code",
   sanitizeResources: false,
   sanitizeOps: false,
   async fn() {
@@ -191,6 +191,7 @@ Deno.test({
     });
     const page = await context.newPage();
     const commands: string[] = [];
+    const hostCommands: string[] = [];
     let version = 1;
     let savedResult: unknown;
     const post = (data: unknown) =>
@@ -239,6 +240,7 @@ Deno.test({
               );
             }
           } else if (message.type === "intehrgrator:host-request") {
+            hostCommands.push(String(message.command));
             let result: unknown = null;
             if (message.command === "fetchTextUrl" && message.payload?.url) {
               result = {
@@ -349,6 +351,32 @@ Deno.test({
         "Ctrl+Z in a text field must not undo the mapping document",
       );
       await input.press("Escape");
+      // One undo history: the toolbar buttons run VS Code's undo/redo, not Blockly's stack.
+      await page.locator("#btn-undo").click();
+      await page.locator("#btn-redo").click();
+      for (let i = 0; i < 50 && !commands.includes("redo"); i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      assertEquals(commands.filter((c) => c === "undo" || c === "redo"), [
+        "undo",
+        "redo",
+      ]);
+      // VS Code owns saving: its dirty state drives the status line; nothing is autosaved.
+      await post({ type: "intehrgrator:project-dirty", dirty: true });
+      await page.waitForFunction(() =>
+        document.getElementById("status-save")?.className.includes("unsaved")
+      );
+      await post({ type: "intehrgrator:project-dirty", dirty: false });
+      await page.waitForFunction(() =>
+        !document.getElementById("status-save")?.className.includes("unsaved")
+      );
+      assertEquals(
+        hostCommands.filter((c) => c === "saveAutosave" || c === "saveManualSave"),
+        [],
+        "file projects must not copy the bundle into workspaceState",
+      );
+      await page.locator("#btn-history").click();
+      assertEquals(await page.locator(".history-undo-to, .history-revert").count(), 0);
     } catch (error) {
       await page.screenshot({ path: ".local/file-project-ui.png", fullPage: true });
       throw error;

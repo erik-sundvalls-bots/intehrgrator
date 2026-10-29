@@ -46,7 +46,11 @@ const project = await Deno.makeTempDir({
   prefix: "vscode-file-project-",
 });
 await copy(join(root, "examples/file-project"), project, { overwrite: true });
-await Deno.remove(join(project, "output/examples/person-01.json"));
+// Opening a project must not rewrite committed artifacts; only Save does.
+await Deno.writeTextFile(
+  join(project, "output/examples/person-01.json"),
+  '{"identifier":"NOT-REGENERATED"}\n',
+);
 const profile = await Deno.makeTempDir({
   dir: join(root, ".local"),
   prefix: "vscode-profile-",

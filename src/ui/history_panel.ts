@@ -30,8 +30,9 @@ export interface HistoryPanelRow {
 export interface HistoryPanelOptions {
   panel: HTMLElement;
   load: () => Promise<HistoryPanelRow[]>;
-  undoTo: (row: HistoryPanelRow) => Promise<void>;
-  revert: (row: HistoryPanelRow) => Promise<void>;
+  /** Omitted where the host owns undo (VS Code file projects): rows are read-only. */
+  undoTo?: (row: HistoryPanelRow) => Promise<void>;
+  revert?: (row: HistoryPanelRow) => Promise<void>;
 }
 
 export interface HistoryPanelHandle {
@@ -167,6 +168,12 @@ export function installHistoryPanel(
         className: "history-summary",
         text: row.summary,
       });
+      if (!options.undoTo || !options.revert) {
+        item.append(meta, summary);
+        list.append(item);
+        continue;
+      }
+      const { undoTo: undoToRow, revert: revertRow } = options;
       const actions = el("div", { className: "history-actions" });
       const undoTo = el("button", {
         className: "pane-btn history-undo-to",
@@ -176,7 +183,7 @@ export function installHistoryPanel(
       undoTo.disabled = row.seq === newest;
       undoTo.addEventListener(
         "click",
-        () => void run(() => options.undoTo(row)),
+        () => void run(() => undoToRow(row)),
       );
       const revert = el("button", {
         className: "pane-btn history-revert",
@@ -186,7 +193,7 @@ export function installHistoryPanel(
       revert.disabled = Boolean(row.undone);
       revert.addEventListener(
         "click",
-        () => void run(() => options.revert(row)),
+        () => void run(() => revertRow(row)),
       );
       actions.append(undoTo, revert);
       item.append(meta, summary, actions);
