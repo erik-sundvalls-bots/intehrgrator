@@ -5,10 +5,10 @@
   "wasm_sha256": "228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84",
   "attestation_checked": true,
   "deno": "2.9.7",
-  "init_ms": 74,
+  "init_ms": 77,
   "queries": 225,
   "agree_with_z3_solver": 225,
   "mismatches": [],
-  "replay_total_ms": 749,
-  "max_query_ms": 61
+  "replay_total_ms": 639,
+  "max_query_ms": 59
 }

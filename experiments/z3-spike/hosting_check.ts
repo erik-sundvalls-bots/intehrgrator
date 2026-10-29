@@ -7,10 +7,13 @@
  *      Side-effect probes: a Google Fonts stylesheet (like web/index.html), an <img> from
  *      another localhost origin without CORP, and a CORS fetch to that origin.
  *   B. z3-josh 0.1.2 (single-threaded Z3 WASM, solves in a plain Worker; no SharedArrayBuffer).
+ *   C. regionstockholm/z3-wasm-singlethread v0.1.0, the pinned release intEHRgrator uses
+ *      (`browser.mjs` → `createZ3Worker()`; plain Worker, no SharedArrayBuffer). Uses the package
+ *      that `deno task release` downloaded and checked; its wasm must match release_results.json.
  *
- * Both replay every query in queries.json (SMT-LIB text dumped by spike.ts) in headless Chromium.
+ * All replay every query in queries.json (SMT-LIB text dumped by spike.ts) in headless Chromium.
  *
- *   cd experiments/z3-spike && deno task spike && deno task hosting
+ *   cd experiments/z3-spike && deno task spike && deno task release && deno task hosting
  *
  * Needs `npm` (to fetch the two packages into /tmp) and Playwright Chromium. Writes hosting_results.json.
  */
@@ -44,6 +47,54 @@ const bundled = await new Deno.Command(Deno.execPath(), {
 }).output();
 if (!bundled.success) throw new Error(new TextDecoder().decode(bundled.stderr));
 const queries = Deno.readTextFileSync(new URL("queries.json", here));
+
+// C: the release package checked by release_check.ts (tarball + wasm SHA-256 pins, SHA256SUMS).
+const releaseInfo = JSON.parse(Deno.readTextFileSync(new URL("release_results.json", here))) as {
+  release: string;
+  wasm_sha256: string;
+};
+const releasePkg = `/tmp/z3-wasm-singlethread-${releaseInfo.release.split("@")[1]}/pkg/`;
+{
+  const digest = await crypto.subtle.digest("SHA-256", await Deno.readFile(releasePkg + "z3-built.wasm"));
+  const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+  if (hex !== releaseInfo.wasm_sha256) throw new Error(`${releasePkg}z3-built.wasm is not the checked release; run deno task release`);
+}
+
+/** Bench for C: same steps as `bench`, through the package's Worker API (evalSmtlib2 / cancel). */
+const releaseBench = `
+  const out = { crossOriginIsolated: self.crossOriginIsolated, sab: typeof SharedArrayBuffer };
+  try {
+    const t0 = performance.now();
+    const { createZ3Worker } = await import("/release/browser.mjs");
+    const z3 = await createZ3Worker();
+    out.init_ms = Math.round(performance.now() - t0);
+    out.z3_version = z3.version();
+    const qs = await (await fetch("/queries.json")).json();
+    let agree = 0; const t1 = performance.now(); let max = 0;
+    for (const q of qs) {
+      const a = performance.now();
+      const r = (await z3.evalSmtlib2(q.smt + "\\n(check-sat)\\n")).trim().split("\\n").pop();
+      max = Math.max(max, performance.now() - a);
+      if (r === q.verdict) agree++;
+    }
+    out.queries = qs.length; out.agree_with_deno_z3_solver = agree;
+    out.replay_total_ms = Math.round(performance.now() - t1); out.max_query_ms = Math.round(max);
+    // Cancellation: same hard query, cancelled at 300 ms (terminates the worker and starts a fresh one).
+    const c0 = performance.now();
+    const pending = z3.evalSmtlib2("(declare-const x Int)(declare-const y Int)(declare-const z Int)(assert (= (+ (* x x x) (* y y y) (* z z z)) 42))(assert (> x 1000))(check-sat)")
+      .then((r) => "answered: " + r, (e) => String(e.message));
+    let cancelled;
+    setTimeout(() => { cancelled = z3.cancel(); }, 300);
+    const timeout = new Promise((res) => setTimeout(() => res("no answer after 10 s"), 10000));
+    out.cancel_verdict = await Promise.race([pending, timeout]);
+    out.cancel_resolved_ms = Math.round(performance.now() - c0);
+    const r0 = performance.now();
+    await cancelled;
+    out.fresh_worker_after_cancel_ms = Math.round(performance.now() - r0);
+    out.after_cancel_check = (await z3.evalSmtlib2(qs[0].smt + "\\n(check-sat)\\n")).trim().split("\\n").pop() === qs[0].verdict;
+    z3.terminate();
+  } catch (e) { out.error = String(e && e.message || e); }
+  window.__z3 = out;`;
 
 /** Shared in-page bench: init, then replay every SMT-LIB query; report timings and verdict agreement. */
 const bench = (importLine: string, initExpr: string) => `
@@ -95,15 +146,20 @@ ${probes("http://127.0.0.1:8783")}
   "/josh/": `<!doctype html><meta charset="utf-8">
 ${probes("http://127.0.0.1:8783")}
 <script type="module">${bench('const { init } = await import("/josh/dist/index.js");', "init()")}</script>`,
+  "/release/": `<!doctype html><meta charset="utf-8">
+${probes("http://127.0.0.1:8783")}
+<script type="module">${releaseBench}</script>`,
 };
 
-const types: Record<string, string> = { js: "text/javascript", wasm: "application/wasm", json: "application/json" };
+const types: Record<string, string> = { js: "text/javascript", mjs: "text/javascript", wasm: "application/wasm", json: "application/json" };
 const fileFor = (path: string): string | null => {
   if (path === "/coi-serviceworker.js") return coi + "coi-serviceworker.js";
   if (path === "/z3-built.js" || path === "/z3-built.wasm") return z3solver + "build" + path;
   if (path === "/z3-solver-bundle.js") return `${tmp}/z3-solver-bundle.js`;
   const m = /^\/josh\/(dist\/[\w./-]+)$/.exec(path);
   if (m && !m[1].includes("..")) return z3josh + m[1];
+  const r = /^\/release\/([\w.-]+\.(?:mjs|wasm))$/.exec(path);
+  if (r) return releasePkg + r[1];
   return null;
 };
 const requests: string[] = [];
@@ -131,7 +187,7 @@ const other = Deno.serve({ port: 8783, hostname: "127.0.0.1", onListen() {} }, (
 
 const results: Record<string, unknown> = {};
 const browser = await chromium.launch();
-for (const variant of ["coi", "josh"] as const) {
+for (const variant of ["coi", "josh", "release"] as const) {
   const ctx = await browser.newContext();
   for (const visit of ["first_visit", "second_visit"] as const) {
     const page = await ctx.newPage();
@@ -179,6 +235,8 @@ results.sizes = {
   z3_josh_wasm: size(z3josh + "dist/z3-built.wasm"),
   z3_josh_index_js: size(z3josh + "dist/index.js"),
   z3_josh_worker_js: size(z3josh + "dist/z3-worker.js"),
+  release_wasm: size(releasePkg + "z3-built.wasm"),
+  release_js: ["z3-built.mjs", "index.mjs", "browser.mjs", "worker.mjs"].reduce((n, f) => n + size(releasePkg + f), 0),
 };
 Deno.writeTextFileSync(new URL("hosting_results.json", here), JSON.stringify(results, null, 2) + "\n");
 console.log(JSON.stringify(results, null, 2));

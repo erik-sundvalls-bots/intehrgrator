@@ -1,27 +1,25 @@
 # Formal verification export
 
-**Status:** Proposal — investigation captured 2026-09-05; **revised 2026-09-15**
-after confirming Microsoft **Z3** ships as a **WASM** package (`z3-solver`) that
-the web app can load. No verification codegen or UI yet. **Verifiable Mapping
-Subset (VMS)** profile landed in PR #58 (closed
+**Status:** Proposal. No verification codegen or UI yet; tracked in
+[#41](https://github.com/regionstockholm/intehrgrator/issues/41). Already in place:
+the **Verifiable Mapping Subset (VMS)** profile (PR #58, closed
 [#35](https://github.com/regionstockholm/intehrgrator/issues/35) /
-[#37](https://github.com/regionstockholm/intehrgrator/issues/37)); preview vs
-TypeScript golden oracles landed with
-[#38](https://github.com/regionstockholm/intehrgrator/issues/38). **VMS-Hbs**,
-**VMS-Go**, and **VMS-Mustache** dialects landed in
-[ADR 0009](../adr/0009-verifiable-template-dialects.md) (closed
-[#40](https://github.com/regionstockholm/intehrgrator/issues/40)). Interactive Z3,
-including those in-dialect snippets, evidence-pack export, chunk-level test
-suites, and convert-time throws are
-[#41](https://github.com/regionstockholm/intehrgrator/issues/41).
-**Revised 2026-10-27:** a throwaway **Z3 WASM spike** on real fixture Decision tables
-(Deno + headless Chromium; see [Spike](#spike-z3-wasm-on-real-fixtures-2026-10-27)) and a
-critical read of an **AI conversation (Gemini) Erik shared** on #41
-(see [Input from an AI conversation](#input-from-an-ai-conversation-gemini-shared-on-41)).
-**Revised 2026-10-28** after Erik's review on PR #300: Verify mapping is **lazy-loaded
-and explicitly triggered** (button / menu, deliberate save, export; never on every edit),
-and a second experiment measured how to run Z3 on a **static host without COOP/COEP**
-(see [Hosting without COOP/COEP](#hosting-without-coopcoep-github-pages-2026-10-28)).
+[#37](https://github.com/regionstockholm/intehrgrator/issues/37)), preview vs
+TypeScript golden oracles ([#38](https://github.com/regionstockholm/intehrgrator/issues/38)),
+and the **VMS-Hbs**, **VMS-Go** and **VMS-Mustache** dialects
+([ADR 0009](../adr/0009-verifiable-template-dialects.md), closed
+[#40](https://github.com/regionstockholm/intehrgrator/issues/40)). #41 covers interactive
+Z3 (including those in-dialect snippets), evidence-pack export, chunk-level test suites
+and convert-time throws.
+
+Verify mapping is **lazy-loaded and explicitly triggered** (button / menu, deliberate
+save, export; never on every edit). The solver is a **single-threaded Z3 WASM build**,
+[z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0),
+which runs in a plain Worker and needs no COOP/COEP headers, so it works on GitHub Pages
+(see [Provenance and the build we use](#provenance-and-the-build-we-use)). A throwaway
+[spike](#spike-z3-wasm-on-real-fixtures) on real fixture Decision tables backs the
+design, and an [AI conversation (Gemini) shared on #41](#input-from-an-ai-conversation-gemini-shared-on-41)
+was checked claim by claim.
 
 ## Idea
 
@@ -165,7 +163,7 @@ fill the gaps between those points.
 
 | Formalism | Fit | Verification style |
 |-----------|-----|-------------------|
-| **Z3 (WASM)** via `z3-solver` | **High — in-app.** Microsoft Z3 ships as WASM + TypeScript bindings. Generate SMT from the Mapping Model; run in a Web Worker during authoring. | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
+| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)) in the web app; the official `z3-solver` package where the page is cross-origin isolated. Generate SMT from the Mapping Model; run in a Web Worker on request. | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
 | **Mapping Contract DSL** (custom) | High — generated from Mapping Model + source/target schemas; the human-readable twin of the SMT | Documentation + CI; Z3 consumes the same invariants |
 | **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers, out-of-dialect templates marked `trust: author`) | Falsification with generated sources; shrink into Example Instances |
 | **Chunk-level test suite** in the chosen Conversion script language | High — same language as Generated Export; one suite per Decision table / Blockly Function / loop grain | Regression tests others run later; avoids cartesian explosion (see below) |
@@ -229,7 +227,7 @@ Phased delivery:
 | Phase | Deliverable |
 |-------|-------------|
 | **R0** | Convert-time throws: Mapping Expression `error(message)`, Blockly Throw block, Decision table error output / catch-all throw. Needed so Rejected vs Erroneous is distinguishable before Z3. |
-| **R1** | Start with **Decision tables**: the [spike](#spike-z3-wasm-on-real-fixtures-2026-10-27) showed that dead-row, no-match and output-value-set checks already run in milliseconds on real fixtures. Then generate SMT + mapping-contract from VMS Mapping Model **including lowered VMS-Hbs / VMS-Go / VMS-Mustache**; Z3 WASM Worker; Verify mapping action; counterexample → Example Instance; Source Schema coverage overlay (template paths count as reads). |
+| **R1** | Start with **Decision tables**: the [spike](#spike-z3-wasm-on-real-fixtures) showed that dead-row, no-match and output-value-set checks already run in milliseconds on real fixtures. Then generate SMT + mapping-contract from VMS Mapping Model **including lowered VMS-Hbs / VMS-Go / VMS-Mustache**; Z3 WASM Worker; Verify mapping action; counterexample → Example Instance; Source Schema coverage overlay (template paths count as reads). |
 | **R2** | Verification evidence pack export (queries + results + coverage + solver identity + dialect ASTs). |
 | **R3** | Chunk-level test suite export in the chosen Conversion script language (Decision table rules, snippet interpolations, Blockly Functions, loop grain). **Differential test vectors:** each Z3 model (one per reachable path / Decision table row) becomes a fixture replayed on Mapping preview **and** every generated Conversion script language, so codegen divergences (empty sequence vs `null` vs `undefined`, 0- vs 1-based indexing, numeric coercion) surface without symbolic execution of TS/Java/XQuery. PBT overlay for unspecified inputs and `regexReplaceAll`. |
 | **R4** | Optional Dafny slice for nominated critical slots; CI replay of the evidence pack’s SMT with the same Z3 version. |
@@ -262,8 +260,9 @@ Mapping Model (slots[], loops, expressions, decision tables, unsupported)
 **Verify mapping** is an authoring action in the web app (and desktop app),
 not an Output mode and not a Conversion script language. It compiles the VMS
 slice of the Mapping Model plus Source Schema / target signature into SMT-LIB,
-then runs [z3-solver](https://www.npmjs.com/package/z3-solver) (Z3 as WASM +
-TypeScript bindings) in a **Web Worker**. In-dialect **VMS-Hbs** / **VMS-Go** /
+then runs Z3 compiled to WASM
+([z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0))
+in a **Web Worker**. In-dialect **VMS-Hbs** / **VMS-Go** /
 **VMS-Mustache** snippets are part of that VMS slice (see F); they are lowered
 from dialect AST, not skipped.
 
@@ -291,8 +290,8 @@ property, a prose counterexample, and “Load as Example Instance”.
   session, from the **same origin** as the app (part of the Pages / desktop build, not
   a CDN). The browser HTTP cache keeps them; the PWA service worker
   (`web/sw.js`) may also cache them cache-first, the same way it treats other
-  static assets. The size is 16.9 MB (single-threaded build) or 35.4 MB (`z3-solver`)
-  of WASM; see [Hosting](#hosting-without-coopcoep-github-pages-2026-10-28).
+  static assets. The download is a 21.9 MB WASM (6.1 MB gzipped) plus 85 KB of JS
+  (v0.1.0; see [Hosting](#hosting-without-coopcoep-github-pages)).
   Users who never press Verify mapping never download it.
 - **Explicit triggers only:**
   1. **Verify mapping** button / menu item, the primary way.
@@ -301,8 +300,9 @@ property, a prose counterexample, and “Load as Example Instance”.
   3. **Export** (Generated Export, evidence pack).
   **Never on every edit.** There is no debounced background run.
 - **Non-blocking and cancellable.** Solving runs in a Worker. A progress indicator
-  with **Cancel** is shown; cancel calls `interrupt()`, and the check resolves
-  `unknown`, which was measured at about 300 ms after an interrupt in both builds.
+  with **Cancel** is shown. Cancel terminates the Worker (the pending check rejects at
+  once as cancelled) and starts a fresh one, which was ready again in 18–23 ms in
+  Chromium with v0.1.0. A per-query `:timeout` resolves `unknown` instead.
   Save and export **do not wait** for Verify mapping. They start it in the background
   and complete normally.
 - **Results are findings.** They appear in the same findings / Constraint warning
@@ -312,34 +312,40 @@ property, a prose counterexample, and “Load as Example Instance”.
   listed in the export summary and the evidence pack). Whether some projects should
   be able to **require** a passing verification before export is open question 18.
 
-WASM hosting constraints (implementation, not product language; numbers measured
-in the [spike](#spike-z3-wasm-on-real-fixtures-2026-10-27) with `z3-solver` 5.3.2):
+WASM hosting constraints (implementation, not product language; measured with
+[z3-wasm-singlethread v0.1.0](#provenance-and-the-build-we-use) unless noted):
 
-- `z3-built.wasm` is **35.4 MB** (8.1 MB with `gzip -9`) plus `z3-built.js`
-  0.36 MB. Lazy-load on first Verify mapping; keep it off the Mapping Editor
-  critical path.
-- `z3-solver` needs `SharedArrayBuffer` (Emscripten pthreads), and browsers only
-  provide that in a **cross-origin isolated** page, i.e. one served with
-  **COOP** `same-origin` + **COEP** `require-corp` / `credentialless` headers.
-  This is **not a CORS problem**. Hosting the library on the same origin as the
-  app (e.g. the same GitHub Pages site) does **not** remove the requirement; the
-  *document* must carry the headers, and GitHub Pages cannot set custom response
-  headers. `deno task dev` and the desktop app can send them. On Pages the options
-  are a header-injecting service worker or a single-threaded Z3 build; both were
-  measured, see [Hosting](#hosting-without-coopcoep-github-pages-2026-10-28).
-  Do not silently no-op. **Measured:** without the headers `init()` still
-  *resolves*, and the first `check()` then throws `thread constructor failed`. So
-  with `z3-solver`, gate the feature on `self.crossOriginIsolated`, not on a
-  successful `init()`.
-- The **browser** entry of `z3-solver` is CommonJS and reads `global.initZ3`, and
-  `z3-built.js` must be loaded as its own `<script>` (it spawns workers from
-  itself). The spike needed a small `deno bundle` shim plus a separate script tag.
-  The web app's esbuild build must do the same; do not inline `z3-built.js`.
-- Deno: `import { init } from "npm:z3-solver"` works as is (no `locateFile` was
-  needed with Deno 2.9.7). Call `killThreads(api.em)` when done, or the worker
-  threads keep the process alive (matters for `deno test` and a replay CLI).
-  Pin the solver **version** in the evidence pack.
-- Run Z3 off the UI thread. Time-box checks; show partial results.
+- `z3-built.wasm` is **21.9 MB** (21,895,178 bytes; 6.1 MB with `gzip -9`) plus
+  85 KB of ES-module JS (`z3-built.mjs`, `index.mjs`, `browser.mjs`, `worker.mjs`).
+  Lazy-load it on the first Verify mapping and keep it off the Mapping Editor critical path.
+- It needs **no `SharedArrayBuffer`** and therefore no COOP/COEP headers:
+  `createZ3Worker()` from `browser.mjs` runs Z3 in a plain dedicated Worker on a page
+  with `crossOriginIsolated: false`. This works on GitHub Pages, which cannot set custom
+  response headers.
+- The package is pure ESM; the WASM and the worker script are resolved with
+  `new URL(…, import.meta.url)`. The web app's esbuild build must copy them as assets
+  (not yet tried).
+- API: `evalSmtlib2(text)` in a fresh context per call, `version()` (Z3 version plus
+  upstream commit hash, e.g. `5.3.2.0 b411c902…`), `cancel()`, `terminate()`. Under Deno,
+  `init()` from `index.mjs` works directly, with no worker threads to kill.
+- Pin the release, the WASM SHA-256 and the attestation (open question 19), and record the
+  solver identity in the evidence pack.
+- Time-box checks; show partial results.
+
+Where **`z3-solver`** (the official, threaded bindings; 35.4 MB WASM) is used instead, e.g.
+as a drop-in on the desktop app, `deno task dev` or a CI replay, these apply (measured in
+the [spike](#spike-z3-wasm-on-real-fixtures) with 5.3.2):
+
+- It needs `SharedArrayBuffer` (Emscripten pthreads), which browsers only provide on a
+  **cross-origin isolated** page (**COOP** `same-origin` + **COEP** `require-corp` /
+  `credentialless`). This is **not a CORS problem**, and serving the library from the same
+  origin does not remove it. Without the headers `init()` still *resolves* and the first
+  `check()` throws `thread constructor failed`, so gate it on `self.crossOriginIsolated`,
+  never on a successful `init()`, and never silently no-op.
+- Its browser entry is CommonJS and reads `global.initZ3`, and `z3-built.js` must be its
+  own `<script>` (it spawns workers from itself); do not inline it.
+- In Deno, `import { init } from "npm:z3-solver"` works as is; call `killThreads(api.em)`
+  when done, or the worker threads keep the process alive.
 
 ### B. Source Schema overlay and counterexamples
 
@@ -373,7 +379,8 @@ the `.intehrgrator` by default, same policy as Generated Export):
   lint)
 - Generated mapping-contract + SMT-LIB (including lowered VMS-Hbs / VMS-Go / VMS-Mustache)
 - Dialect ASTs + lint (in-dialect vs `trust: author` out-of-dialect)
-- Solver identity (`z3-solver` / Z3 version, WASM hash)
+- Solver identity (release tag, Z3 version string with upstream commit, WASM SHA-256,
+  provenance attestation)
 - Per-property results (`unsat` / `sat` + model / timeout / skipped hatch)
 - Counterexample instances
 - Source coverage report (mapped / ignored / unread)
@@ -475,7 +482,7 @@ Canvas `text_handlebars` is the VMS-Hbs specification
 (`ProjectBundle.mapping.blocklyState`). Verify mapping must walk it with
 the same VMS-Hbs lowering, not only Blockly slots.
 
-## Spike: Z3 WASM on real fixtures (2026-10-27)
+## Spike: Z3 WASM on real fixtures
 
 A throwaway experiment in
 [`experiments/z3-spike/`](../../experiments/z3-spike/README.md) (own `deno.json`, not
@@ -483,11 +490,14 @@ imported by the app or tests). It **hand-encodes** Decision tables from
 `test/fixtures/**` into SMT, mirroring `src/core/sheets/decision_table.ts`: FIRST hit
 policy, a catch-all row matches only when no earlier row matched, don't-care glyphs,
 numeric predicates `a..b` / `>= n` / `< n`, and otherwise string equality. It solves
-them with `npm:z3-solver` 5.3.2 under Deno 2.9.7 and replays every counterexample on the
+them with `npm:z3-solver` 5.3.2 (the official, threaded build) under Deno 2.9.7, and replays every counterexample on the
 app's own `evaluateDecisionTable`, the Test Run oracle. The encoder is **not** generated
-from the Mapping Model; generating it is the actual work of #41.
+from the Mapping Model; generating it is the actual work of #41. The same 225 SMT-LIB
+queries (`queries.json`) are replayed with the v0.1.0 build in
+[Hosting](#hosting-without-coopcoep-github-pages) and
+[Provenance](#provenance-and-the-build-we-use); every verdict agrees.
 
-### Measurements (Linux x86-64 box, 8 vCPU; orders of magnitude, not benchmarks)
+### Measurements with `z3-solver` 5.3.2 (Linux x86-64 box, 8 vCPU; orders of magnitude, not benchmarks)
 
 | What | Result |
 |------|--------|
@@ -500,7 +510,7 @@ from the Mapping Model; generating it is the actual work of #41.
 | Headless Chromium, **without** COOP/COEP | `init()` resolves (185–449 ms), then `check()` throws `thread constructor failed: Resource temporarily unavailable` |
 
 Browser numbers are from `localhost`; they do not include downloading 35 MB over a real
-network.
+network. The same measurements for v0.1.0 are in the Hosting table (column C).
 
 ### What it checked and found
 
@@ -537,14 +547,14 @@ and it is why `variables_set` needs `let`/SSA lowering (below).
 5. **SMT-LIB text is a workable artefact.** `solver.toString()` emits it,
    `fromString` replays it, and a native `z3` (or `cvc5`, if we stay inside
    standard theories) can re-check the `.smt2` in CI. This supports slice C.
-6. **Hosting caveats are real but manageable** (COOP/COEP gating, CommonJS browser
-   entry, a separate `z3-built.js`, `killThreads` in Deno). None of them blocked
-   the spike.
+6. **`z3-solver`'s hosting caveats** (COOP/COEP gating, CommonJS browser entry, a
+   separate `z3-built.js`, `killThreads` in Deno) did not block the spike, and the
+   single-threaded v0.1.0 build has none of them.
 
-### Hosting without COOP/COEP (GitHub Pages, 2026-10-28)
+### Hosting without COOP/COEP (GitHub Pages)
 
 The question: can Verify mapping run on the GitHub Pages web app, which cannot send
-COOP/COEP? (It is cross-origin isolation, not CORS; see A.) The experiment in
+COOP/COEP? (It is cross-origin isolation, not CORS; see A.)
 [`experiments/z3-spike/hosting_check.ts`](../../experiments/z3-spike/hosting_check.ts)
 serves pages from a static `localhost` server that sends **no isolation headers**,
 and loads them in headless Chromium (Playwright 1.51). Each variant replays the same
@@ -555,112 +565,84 @@ probes on every page:
 - an `<img>` from another origin without a CORP header;
 - a CORS `fetch` to that origin.
 
-The ranges cover five runs on the same box (plus one extra run for the cancel row).
+Ranges cover five runs on the same box, first and second visit
+([`hosting_results.json`](../../experiments/z3-spike/hosting_results.json) holds the last).
 
-| | **A. `z3-solver` 5.3.2 + `coi-serviceworker` 0.1.7** | **B. `z3-josh` 0.1.2 (single-threaded Z3)** |
-|---|---|---|
-| How | A service worker re-serves same-origin responses with COOP/COEP, then reloads the page once | Z3 compiled **without pthreads**; solving runs in a plain dedicated Worker; no `SharedArrayBuffer` |
-| Works without headers? | **Yes, after a forced reload**: `crossOriginIsolated: true`, 225/225 verdicts agree | **Yes, directly**: `crossOriginIsolated: false`, 225/225 verdicts agree |
-| WASM size | 35.4 MB (8.1 MB `gzip -9`) + 0.36 MB JS | **16.9 MB** (5.2 MB `gzip -9`) + 0.45 MB entry + 0.28 MB worker JS |
-| `init()` in Chromium | 222–323 ms | 129–152 ms |
-| Replaying the 225 queries | 0.97–1.24 s (slowest query 66–78 ms) | 0.76–0.86 s (slowest query 45–55 ms) |
-| Cancel at 300 ms (`interrupt()` on x³+y³+z³ = 42, x > 1000) | resolves `unknown` after ≈305 ms | resolves `unknown` after ≈301 ms (per its README, by terminating and respawning its worker) |
-| First visit | **2 navigations** (forced reload); ≈1.9–2.2 s to results | 1 navigation; ≈1.5–1.9 s to results |
-| Deno | works (see the spike) | works: `init` ≈100 ms, the 225 queries in ≈0.7 s, 225/225 agree ([`josh_deno_check.ts`](../../experiments/z3-spike/josh_deno_check.ts)) |
-| Side effects on the page | COEP applies to the **whole app**. coi-serviceworker uses `require-corp` when the page has `window.chrome`/`window.netscape` (real Chrome and Firefox), and here also on the first, reloaded document. It uses `credentialless` on later visits in headless Chromium. Under `require-corp` the cross-origin `<img>` without CORP was blocked in 4 of 5 first-visit runs; under `credentialless` it loaded. Google Fonts CSS and the CORS fetch worked in every run. | **None measured**: no headers, no service worker, all probes loaded |
-| App fit | `web/sw.js` already owns the scope (one service worker per scope), so the header rewriting would have to be merged into it rather than added as a second worker. The same-origin `better-form-viewer.html` popup / `postMessage` bridge and any future cross-origin embeds would then run under COOP/COEP. **Not tested:** hard reload (bypasses the service worker), private windows, Safari. | Pure ESM; WASM and worker are resolved with `new URL(…, import.meta.url)`, so a bundler should be able to copy them as assets (not yet tried with the app's esbuild build), and a dynamic `import()` gives the lazy load directly |
-| Provenance | Official Z3 bindings (Microsoft), plus a small, widely used helper that has not been published since 2023 | **Single maintainer, first published 2026-07, no public source repository found** (npm lists none; `github.com/joshuahhh/z3-josh` returns 404). The README documents the build recipe: Z3 4.16.0, `mk_make.py --single-threaded`, `-DPOLLING_TIMER`, `-fwasm-exceptions`. |
+| | **A. `z3-solver` 5.3.2 + `coi-serviceworker` 0.1.7** | **B. `z3-josh` 0.1.2** | **C. z3-wasm-singlethread v0.1.0 (the build we use)** |
+|---|---|---|---|
+| How | A service worker re-serves same-origin responses with COOP/COEP, then reloads the page once | Third-party single-threaded Z3 in a plain Worker | Our single-threaded build of upstream Z3 5.3.2; `createZ3Worker()` in a plain Worker |
+| Works without headers? | **After a forced reload**: `crossOriginIsolated: true`, 225/225 agree. In 1 of 5 runs the first visit was not isolated within 20 s and `check()` threw `thread constructor failed` | **Yes, directly**: `crossOriginIsolated: false`, 225/225 agree | **Yes, directly**: `crossOriginIsolated: false`, 225/225 agree |
+| WASM size | 35.4 MB (8.1 MB `gzip -9`) + 0.36 MB JS | 16.9 MB (5.2 MB `gzip -9`) + 0.73 MB JS | **21.9 MB (6.1 MB `gzip -9`) + 85 KB JS** |
+| Start (`init()` / `createZ3Worker()`) in Chromium | 231–265 ms (one cold outlier 416 ms) | 126–186 ms | 98–130 ms |
+| Replaying the 225 queries | 0.98–1.29 s (slowest query 63–72 ms) | 0.75–0.84 s (slowest 43–58 ms) | 0.71–0.76 s (slowest 50–57 ms) |
+| Cancel at 300 ms (x³+y³+z³ = 42, x > 1000) | `interrupt()` → `unknown` after ≈305 ms | `unknown` after ≈301 ms (terminates and respawns its worker) | `cancel()` → pending call rejects after ≈301 ms; fresh worker ready in 18–23 ms and answers the next query correctly |
+| First visit | **2 navigations** (forced reload); ≈2.2–2.5 s to results | 1 navigation; ≈1.8–1.9 s | 1 navigation; ≈1.8 s |
+| Deno | works (see the spike) | works ([`josh_deno_check.ts`](../../experiments/z3-spike/josh_deno_check.ts)) | works: `init` 71–77 ms warm, the 225 queries in 0.64–0.67 s, 225/225 agree ([`release_results.json`](../../experiments/z3-spike/release_results.json)) |
+| Side effects on the page | COEP applies to the **whole app**. coi-serviceworker uses `require-corp` when the page has `window.chrome`/`window.netscape` (real Chrome and Firefox), and here also on the first, reloaded document; `credentialless` on later visits in headless Chromium. Under `require-corp` the cross-origin `<img>` without CORP was blocked in some first-visit runs. Google Fonts CSS and the CORS fetch always worked. | None measured | **None measured**: no headers, no service worker, all probes loaded |
+| App fit | `web/sw.js` already owns the scope (one service worker per scope), so the header rewriting would have to be merged into it. The `better-form-viewer.html` popup / `postMessage` bridge and any future cross-origin embeds would run under COOP/COEP. **Not tested:** hard reload, private windows, Safari. | Pure ESM | Pure ESM; WASM and worker resolved with `new URL(…, import.meta.url)`, so a bundler can copy them as assets (not yet tried with the app's esbuild build); a dynamic `import()` gives the lazy load directly |
+| Provenance | Official Z3 bindings (Microsoft), plus a small helper not published since 2023 | **Rejected**: no public source, no attestation (see below) | Public recipe, pinned upstream tag, reproducible, attested release (see below) |
 
-`z3-josh`'s API differs from `z3-solver` in a few ways (from its README; not all were
-exercised here):
-- model lookups are `async`;
-- `unsatCore()` throws;
-- `solver.set(…)` parameters do not reach the worker;
-- `Optimize` and tactics run on the main thread.
-
-None of these blocked the replay, which only uses `fromString` + `check()`.
+`z3-josh` and the v0.1.0 build expose different APIs from `z3-solver`: the spike's replay
+uses SMT-LIB text only (`fromString` + `check()`, or `evalSmtlib2`). The v0.1.0 build has
+no object API (no `Context`, models, `Optimize` or tactics); results come back as SMT-LIB
+text, which is what the SMT emitter produces anyway.
 
 Not done:
+- Download time over a real network (everything was served from `localhost`).
 - No other maintained single-threaded build or alternative solver was found on npm.
-  `@yowasp/boolector` exists but has no strings or reals, and `@cooljapan/oxiz` was
-  not evaluated.
-- Building Z3 ourselves with the same recipe was not attempted. z3-josh's README puts
-  it at about 15 minutes.
-- Download time over a real network was not measured (everything was served from
-  `localhost`).
+  `@yowasp/boolector` has no strings or reals; `@cooljapan/oxiz` was not evaluated.
 
 **Recommendation**
 
-1. **Single-threaded Z3 in a plain Worker** is the better fit for the Pages web app.
-   It needs no headers and no service worker, the download is half the size, and it
-   was as fast or faster on these queries. It is cancellable and behaves the same in
-   Deno.
-2. **Do not depend on `z3-josh` as published.** Either build the same
-   configuration ourselves from tagged upstream Z3 (pinned, reproducible, with the
-   WASM hash recorded in the evidence pack), or adopt `z3-josh` only once its source
-   is public and pinned by hash (done: see *Follow-up* below). Keep the solver behind a small interface (`init`,
-   `checkSmtLib(text) → verdict + model text`, `interrupt`), so `z3-solver` remains a
-   drop-in where isolation is available (desktop, `deno task dev`, CI replay).
-3. **Do not add `coi-serviceworker`** to the web app. It works, but it forces a
-   reload, and it puts the whole app (fonts, popups, future embeds) under COEP for one
-   optional feature. It would also have to be merged into `web/sw.js`. Keep it only as
-   a fallback if a single-threaded build turns out to be too slow on large mappings.
-4. Whichever build is used: lazy `import()` on the first Verify mapping, same-origin
-   assets, a Worker, Cancel, and results shown as findings, as described in A.
+1. **Use z3-wasm-singlethread v0.1.0 in a plain Worker** for the web app. It needs no
+   headers and no service worker, it is smaller than `z3-solver` (6.1 vs 8.1 MB gzipped),
+   it was the fastest variant on these queries, it is cancellable, and it behaves the same
+   in Deno.
+2. Keep the solver behind a small interface (`init`, `checkSmtLib(text) → verdict + model
+   text`, `cancel`), so `z3-solver` remains a drop-in where isolation is available
+   (desktop, `deno task dev`, CI replay).
+3. **Do not add `coi-serviceworker`** to the web app. It forces a reload, did not always
+   isolate the first visit, and puts the whole app (fonts, popups, future embeds) under
+   COEP for one optional feature. It would also have to be merged into `web/sw.js`.
+4. Lazy `import()` on the first Verify mapping, same-origin assets, a Worker, Cancel, and
+   results shown as findings, as described in A.
 
-### Follow-up: provenance check and our own build (2026-10-28)
+### Provenance and the build we use
 
-**`z3-josh` provenance: not satisfactory.** Still no public source repository (npm
-metadata has no `repository`/`homepage`; nothing under the maintainer's 113 public
-repositories or in GitHub code search), no npm provenance attestation (the registry's
-attestations endpoint returns 404; `npm audit signatures` shows only the registry
-signature), no LICENSE file and no build scripts in the tarball. The WASM reports
-`Z3 4.16.0.0` without a git hash, so it cannot be tied to an upstream commit
-(wasm SHA-256 `5bb1ada8…6747`).
+**`z3-josh` is rejected on provenance.** It has no public source repository (npm
+metadata has no `repository`/`homepage`; nothing under the maintainer's public
+repositories or in GitHub code search), no npm provenance attestation, no LICENSE file
+and no build scripts in the tarball. Its WASM reports `Z3 4.16.0.0` without a git hash,
+so it cannot be tied to an upstream commit.
 
 **Official upstream:** `z3-solver` is Z3's own build (`src/api/js/scripts/build-wasm.ts`),
-published by Z3's public `wasm-release.yml` with an npm token. It has **no npm
-provenance attestation** either, but the 5.3.2 tarball shasum printed in that workflow's
-public log (run 40199605963, commit `b411c902`) equals the registry's. Upstream already
-compiles the solver with `-DZ3_SINGLE_THREADED=ON`; the pthreads (and therefore COOP/COEP)
-come only from the JS bindings, which run `check()` and similar on a `std::thread`.
-Z3's GitHub releases contain **no WASM artefact**, threaded or not.
+published by Z3's public `wasm-release.yml`. It has no npm provenance attestation, but the
+5.3.2 tarball shasum in that workflow's public log (commit `b411c902`) equals the
+registry's. Upstream already compiles the solver with `-DZ3_SINGLE_THREADED=ON`; the
+pthreads (and therefore COOP/COEP) come only from the JS bindings, which run `check()` on
+a `std::thread`. Z3's GitHub releases contain **no WASM artefact**.
 
 **Our build:** [regionstockholm/z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)
-(its permanent home; first created under the bot account, now removed there)
-follows upstream's `build-wasm.ts` at tag `z3-5.3.2` (commit `b411c902`, verified against
-the remote tag) with the same emsdk 3.1.73, removing only the threading flags and adding
-`-DZ3_POLLING_TIMER=ON` (needed for timeouts without threads). Every deviation is listed in
-its `BUILD-DIFF.md`, and the build stops if upstream's recipe changes. The API is
-three functions (evaluate SMT-LIB2 text in a fresh context, version, free) plus a Worker
-wrapper with cancel. The version string carries the upstream commit hash.
-
-CI uses SHA-pinned actions and runs the Node and Deno smoke tests. The first run on `main`,
-[40667619572](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40667619572),
-passed and produced a SLSA build-provenance attestation. `gh attestation verify --repo
-regionstockholm/z3-wasm-singlethread` succeeds on the downloaded files. The attestation names
-`regionstockholm/z3-wasm-singlethread`, `refs/heads/main` at `135c08b` and
-`.github/workflows/build.yml`. `z3-built.wasm` is SHA-256
-`b66e26677b74bc82536196968f03202f34e3c7158def2c7bee679c53466f566a` (21.9 MB, 6.1 MB
-gzipped). The downloaded artefact also passed the 225 queries below.
-
-That first wasm contained the CI checkout path.
-[z3-wasm-singlethread#1](https://github.com/regionstockholm/z3-wasm-singlethread/pull/1)
-removed it, so the hash no longer depends on the build directory: two local builds in different
-directories and the pull request's CI build
-([run 40748561434](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40748561434))
-all produced the same `z3-built.wasm`. Nothing is published to npm.
+follows upstream's `build-wasm.ts` at tag `z3-5.3.2` (commit `b411c902`) with the same
+emsdk 3.1.73, removing only the threading flags and adding `-DZ3_POLLING_TIMER=ON` (needed
+for timeouts without threads). Every deviation is listed in its `BUILD-DIFF.md`, and the
+build stops if upstream's recipe changes. The API is three functions (evaluate SMT-LIB2
+text in a fresh context, version, free) plus a Worker wrapper with cancel. The version
+string carries the upstream commit hash. CI uses SHA-pinned actions, runs Node and Deno
+smoke tests, and attests what it builds (SLSA v1 build provenance). The build is
+**reproducible**: the wasm does not depend on the build directory, and two local builds
+plus a CI build produced the same bytes. Nothing is published to npm.
 
 **Release to use: [v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0)**
-(published 2026-10-29; tag `v0.1.0` at commit `f7913333`, Z3 5.3.2 at `b411c902`, emsdk 3.1.73).
-Built and attested by
-[run 40828961612](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40828961612)
-from the tag. Pin these two files:
+(tag `v0.1.0` at commit `f7913333`, Z3 5.3.2 at `b411c902`, emsdk 3.1.73, upstream's JS
+exception model). Built and attested from the tag by
+[run 40828961612](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40828961612).
+Pin these two files:
 
 | Asset | SHA-256 | Size |
 |-------|---------|------|
 | [`z3-wasm-singlethread-v0.1.0.tar.gz`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/z3-wasm-singlethread-v0.1.0.tar.gz) (all files below plus `SHA256SUMS`, `BUILDINFO`, licences) | `76afbdd80edcfc37e87e3fe751cf6e98f6db0e7ed1c85e410075c461345fe5fb` | 6.1 MB |
-| [`z3-built.wasm`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/z3-built.wasm) | `228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84` | 21.9 MB (6.1 MB gzipped) |
+| [`z3-built.wasm`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/z3-built.wasm) | `228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84` | 21.9 MB (21,895,178 bytes; 6,071,890 with `gzip -9`) |
 
 The other files (`z3-built.mjs`, `index.mjs`/`.d.ts`, `browser.mjs`/`.d.ts`, `worker.mjs`) are
 listed with their SHA-256 in the release's
@@ -675,20 +657,17 @@ gh attestation verify z3-built.wasm -R regionstockholm/z3-wasm-singlethread --so
 ```
 
 Both verify (SLSA v1 provenance, signer `.github/workflows/build.yml@refs/tags/v0.1.0`, source
-commit `f7913333`). The same wasm also has attestations from earlier `main` builds; the
-`--source-ref` flag restricts the check to the tag build. `deno task release` in
+commit `f7913333`). Because the build is reproducible, the same wasm also has attestations
+from `main` builds; `--source-ref` restricts the check to the tag build. `deno task release` in
 [experiments/z3-spike](../../experiments/z3-spike/README.md) downloads the tarball, refuses to run
 unless both pinned SHA-256s and the bundled `SHA256SUMS` match (`--attest` also runs the
-`gh attestation verify` above), and replays the 225 queries: 225/225 agree with `z3-solver`,
-≈75 ms init, ≈0.75 s for all queries under Deno 2.9.7
+`gh attestation verify` above), and replays the 225 queries: 225/225 agree with `z3-solver`
 ([`release_results.json`](../../experiments/z3-spike/release_results.json)).
 
-Local measurements (box, not CI; same 225 queries, fresh context per query):
-21.9 MB wasm (6.1 MB gzipped) and 0.53–0.74 s with upstream's exception model;
-16.8 MB (5.4 MB) and 0.33–0.52 s with `-fwasm-exceptions`. Both had 0 verdict
-mismatches. In headless Chromium without COOP/COEP (`crossOriginIsolated=false`) the
-Worker started in 134 ms, `:timeout` returned `unknown`, and `cancel()` gave a fresh
-worker in 22 ms. The recommendation above stands, with this build in place of `z3-josh`.
+**Exception model (open question 19).** Local builds of the same recipe (box, not CI; same
+225 queries, fresh context per query, both 0 mismatches): upstream's JS exception model,
+as in v0.1.0, gives 21.9 MB (6.1 MB gzipped) and 0.53–0.74 s; `-fwasm-exceptions` gives
+16.8 MB (5.4 MB) and 0.33–0.52 s.
 
 ## Input from an AI conversation (Gemini, shared on #41)
 
@@ -703,7 +682,7 @@ running them in the spike before anything was adopted.
 | Idea | Status in this note |
 |------|---------------------|
 | Verify **upstream of codegen** (Blockly / Mapping Model → SMT) rather than symbolically executing generated TypeScript, Java, XQuery, Go and Handlebars | Already the direction (slice A). The conversation's reason (one encoding vs one symbolic engine per target language) is sound. |
-| Emit standard **SMT-LIB v2 text** as the artefact | Adopted for slice C. The spike confirmed the `toString` / `fromString` round trip in `z3-solver`. |
+| Emit standard **SMT-LIB v2 text** as the artefact | Adopted for slice C. The spike confirmed the `toString` / `fromString` round trip in `z3-solver`, and the v0.1.0 build takes SMT-LIB text as its only input. |
 | **Expression-oriented lowering** (`if`/`switch`/ternary → `ite`) and **let/SSA** for reassignment | Adopted. VMS already removed statement `controls_if`. `variables_set` in a `for_each_*` grain needs `let`/SSA (pitfall reproduced above). |
 | **Differential test vectors**: Z3 models → language-agnostic fixtures → run on every generated Conversion script language | Adopted into R3 / slice D. Expected outputs should come from Mapping preview (ADR 0003 oracle) **and** the Z3 model; a disagreement is an encoder or codegen bug. |
 | **Negated postcondition query** Φ_source(S) ∧ T = M(S) ∧ ¬Φ_target(T), with a subset of OPT / Web Template constraints compiled to SMT (occurrences, code lists, quantity ranges/units) | Adopted as the query shape (P2 is a small instance). `TemplateValidator` stays the authoritative postcondition; counterexamples must still be replayed through it. The RM invariants cited, DV_PROPORTION `Valid_denominator: denominator /= 0.0` and Interval `Limits_consistent`, are in the openEHR RM / BASE specs. |
@@ -742,12 +721,13 @@ the mapping specification.
   and `if`/`eq` trees. Only *out-of-dialect* templates skip proof.
 - Generating a cartesian **whole-convert** test matrix as the default suite — explode on source fields; emit **chunk** tests (collapsed Decision table rules, functions, grain).
 - Leaving Decision table no-match as `null` while calling convert crash-free — that is a silent hole, not Rejected.
-- Running Verify mapping **on every edit** (debounced background runs): the 17–35 MB solver download and
+- Running Verify mapping **on every edit** (debounced background runs): the 22 MB (6 MB gzipped) solver download and
   the CPU cost are only paid when the informatician asks, or on deliberate save / export.
 - Putting Z3 in the main bundle or loading it from a third-party CDN: load it with a dynamic `import()`
   from the app's own origin, on the first Verify mapping only.
-- Shipping Verify mapping that **silently no-ops** on GitHub Pages because COOP/COEP is missing.
-  (`init()` succeeds without the headers; only `check()` fails, so gate on `crossOriginIsolated`.)
+- Using the threaded `z3-solver` on GitHub Pages, or letting Verify mapping **silently no-op** where it
+  cannot run. (`z3-solver`'s `init()` succeeds without COOP/COEP; only `check()` fails. Use the
+  single-threaded build there, and gate any `z3-solver` path on `crossOriginIsolated`.)
 - Reporting "proved for all inputs" without the **encoded source domain** (integer vs JSON `number`,
   present vs absent, enum vs free string). The same table can be complete in one and broken in the other.
 - Encoding reassignment (`variables_set`) as repeated assertions on one SMT constant. It prunes branches
@@ -1021,7 +1001,7 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 5. **Execution oracle** — Verify mapping checks the Mapping Model / generated SMT; ADR 0003 still requires preview ≡ TypeScript on VMS. Counterexamples should be replayed on both oracles.
 6. **Robustness generators** — how complete must Source Schema be before PBT/Z3 can claim “no valid source crashes convert”?
 7. **Sensitivity vs equivalence classes** — when `switch` or a Decision table maps many codes to one target, how to declare that class so sensitivity checks do not false-fail.
-8. **GitHub Pages + SharedArrayBuffer** — *measured 2026-10-28*: both `coi-serviceworker` and a single-threaded Z3 build work without headers. The recommendation is a single-threaded build in a plain Worker (see [Hosting](#hosting-without-coopcoep-github-pages-2026-10-28)). Still open: who builds and pins it (open question 19).
+8. **GitHub Pages + SharedArrayBuffer** — *answered*: the single-threaded z3-wasm-singlethread v0.1.0 build runs in a plain Worker without COOP/COEP; `coi-serviceworker` is not used (see [Hosting](#hosting-without-coopcoep-github-pages)). Supply and pinning: open question 19.
 9. **Evidence pack layout** — sidecar zip vs optional Project Bundle section; whether replay is `deno task verify` or checked-in SMT + CI.
 10. **Decision table no-match** — breaking change to throw vs opt-in table flag vs Verify mapping warning until a catch-all error row exists. Recommend: warn in R0, throw only when an error row / flag is set, so existing tables keep returning `null` until authors opt in.
 11. **Template SMT bound** — how deep to encode nested `#if` / `{{if}}` before
@@ -1057,8 +1037,8 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 19. **Single-threaded Z3 supply** — decided: we build it ourselves in
     [regionstockholm/z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)
     (Z3's own recipe at a pinned tag, minus threads; CI with build-provenance
-    attestation; `z3-josh` rejected, see *Follow-up: provenance check and our own
-    build*). **Consumption — decided:** pin the
+    attestation; `z3-josh` rejected, see
+    [Provenance and the build we use](#provenance-and-the-build-we-use)). **Consumption — decided:** pin the
     [v0.1.0 GitHub release](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0)
     asset by SHA-256 (tarball `76afbdd8…e5fb`, wasm `228258f7…3f84`), check
     `SHA256SUMS`, and verify the attestation with `gh attestation verify … -R
@@ -1084,7 +1064,8 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 - [ADR 0003](../adr/0003-mapping-preview-vs-generated-script.md) — preview vs generated script
 - [ADR 0009](../adr/0009-verifiable-template-dialects.md) — VMS-Hbs / VMS-Go / VMS-Mustache; in-dialect snippets are VMS
 - [verifiable-template-snippets.md](../proposals/verifiable-template-snippets.md) — dialect investigation; `regexReplaceAll` not SMT-proved
-- [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official JS/TS bindings; Z3 distributed as WASM
+- [z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0) — the single-threaded Z3 WASM build Verify mapping uses (no COOP/COEP)
+- [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official, threaded JS/TS bindings; needs a cross-origin isolated page
 - [experiments/z3-spike](../../experiments/z3-spike/README.md) — throwaway Z3 WASM spike (Deno + Chromium) with recorded results
 - [Autonoma: What Is Decision Table Testing?](https://getautonoma.com/blog/decision-table-testing) — collapse don’t-cares, then one parameterised test per remaining rule (comment on [#41](https://github.com/regionstockholm/intehrgrator/issues/41))
 
@@ -1095,7 +1076,7 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 - Verifiable declarative mappings (RML → OCaml + Gospel/Cameleer): [Towards Verifiable Declarative Mappings](https://edkamb.github.io/files/kgcw2026.pdf)
 - Grain correctness in data pipelines: [Grain Theory (arXiv:2601.00995)](https://arxiv.org/abs/2601.00995)
 - Metamorphic testing of transformations (relations between paired runs, no gold output per input): Chen et al., *Metamorphic Testing: A Review of Challenges and Opportunities*
-- Z3 JavaScript/WASM: [z3-solver](https://www.npmjs.com/package/z3-solver); browser `SharedArrayBuffer` / COOP-COEP notes in that package README
+- Z3 JavaScript/WASM: [z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread) (ours, single-threaded); [z3-solver](https://www.npmjs.com/package/z3-solver) (official; `SharedArrayBuffer` / COOP-COEP notes in its README)
 - Decision-table test collapsing: [Autonoma](https://getautonoma.com/blog/decision-table-testing)
 - SMT-LIB v2 standard (portable `.smt2` for replay with Z3 or cvc5): [smt-lib.org](https://smt-lib.org/)
 - Whitebox test generation background (from the AI conversation; analyse *code*, not specs):
@@ -1113,11 +1094,12 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 > canonical; a derived Mapping Model drives Test Run, validation, and codegen.
 > We export TypeScript, Java, Handlebars, XQuery, and Go template, and validate
 > openEHR output on example instances — not over all inputs. Microsoft Z3 is
-> available in-process as WASM (`z3-solver`).
+> available in-process as WASM (a single-threaded build that runs in a plain
+> Web Worker, loaded on demand).
 >
 > **Question (updated):** How should a **generated SMT encoding** of a VMS
 > Mapping Model — **including lowered VMS-Hbs / VMS-Go / VMS-Mustache dialect
-> ASTs** — be scoped so Z3 WASM can run interactively (seconds, not
+> ASTs** — be scoped so Z3 WASM can run on request (seconds, not
 > minutes) while still producing (a) source-coverage overlays that count
 > template paths as reads, (b) concrete counterexample instances, (c) an
 > MDR/IVDR-style evidence pack, and (d) a **chunk-level** test suite in the
