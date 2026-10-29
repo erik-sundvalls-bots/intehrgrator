@@ -40,6 +40,8 @@ export interface FileProjectTarget extends FileProjectFile {
 export interface FileProjectMetadata {
   target?: FileLanguageSettings;
   sourceSchema?: FileLanguageSettings;
+  /** Source languages and label language when there is no Source Schema (`source.languageSettings`). */
+  source?: FileLanguageSettings;
 }
 
 /** Paths are relative to the folder containing intehrgrator.json. */
@@ -47,7 +49,12 @@ export interface FileProjectManifest {
   version: 1;
   mapping: string;
   target: string | FileProjectTarget;
-  source: { examples: string; schema?: FileProjectReference };
+  source: {
+    examples: string;
+    schema?: FileProjectReference;
+    /** Used only without a Source Schema; with a schema the settings live on `source.schema`. */
+    languageSettings?: FileLanguageSettings;
+  };
   output: {
     directory: string;
     script: { language: ConversionScriptLanguage; path: string };
@@ -84,6 +91,15 @@ export function projectPath(value: unknown): string {
     throw new Error(`Path leaves the project: ${value}`);
   }
   return parts.join("/");
+}
+
+/** Paths the runner writes: no `.git`, `.vscode` or other dot-folders/files. */
+function writablePath(value: unknown): string {
+  const path = projectPath(value);
+  if (path.split("/").some((part) => part.startsWith("."))) {
+    throw new Error(`Generated and mapping files cannot be in a dot-folder: ${path}`);
+  }
+  return path;
 }
 
 export function projectFilePath(file: FileProjectReference): string {
@@ -148,7 +164,7 @@ export function parseFileProject(text: string): FileProjectManifest {
       "Choose an output.script.language supported by intEHRgrator",
     );
   }
-  const mapping = projectPath(raw.mapping);
+  const mapping = writablePath(raw.mapping);
   const target = parseReference(raw.target);
   if (typeof target !== "string" && raw.target.files !== undefined) {
     if (!Array.isArray(raw.target.files)) {
@@ -174,12 +190,15 @@ export function parseFileProject(text: string): FileProjectManifest {
       ...(raw.source?.schema
         ? { schema: parseReference(raw.source.schema) }
         : {}),
+      ...(raw.source?.languageSettings !== undefined
+        ? { languageSettings: languageSettings(raw.source.languageSettings) }
+        : {}),
     },
     output: {
-      directory: projectPath(raw.output.directory),
+      directory: writablePath(raw.output.directory),
       script: {
         language: raw.output.script.language,
-        path: projectPath(raw.output.script.path),
+        path: writablePath(raw.output.script.path),
       },
     },
     ...(raw.previewDefaults ? { previewDefaults: raw.previewDefaults } : {}),
@@ -282,6 +301,9 @@ export async function loadFileProject(
       sourceSchema: typeof manifest.source.schema === "object"
         ? manifest.source.schema.languageSettings
         : undefined,
+      source: manifest.source.schema
+        ? undefined
+        : manifest.source.languageSettings,
     };
     restoreProjectMetadata(controller, metadata);
     applyProjectMapping(
@@ -402,11 +424,18 @@ function restoreProjectMetadata(
     ...(metadata.target?.labelLanguage
       ? { targetLabelLang: metadata.target.labelLanguage }
       : {}),
-    ...(metadata.sourceSchema?.labelLanguage
-      ? { sourceLabelLang: metadata.sourceSchema.labelLanguage }
+    ...((metadata.sourceSchema ?? metadata.source)?.labelLanguage
+      ? {
+        sourceLabelLang: (metadata.sourceSchema ?? metadata.source)!
+          .labelLanguage,
+      }
       : {}),
   };
   delete snapshot.settings.sourceLanguages;
+  // Without a Source Schema, the user's source.lang.N order is kept in source.languageSettings.
+  if (!snapshot.sourceSchema && metadata.source?.languages.length) {
+    snapshot.settings.sourceLanguages = [...metadata.source.languages];
+  }
   controller.restoreDocumentSnapshot(snapshot);
 }
 
@@ -418,6 +447,19 @@ export function projectMetadata(bundle: ProjectBundle): FileProjectMetadata {
     ...(bundle.sourceSchema?.languageSettings
       ? { sourceSchema: bundle.sourceSchema.languageSettings }
       : {}),
+    ...(!bundle.sourceSchema ? exampleSourceSettings(bundle) : {}),
+  };
+}
+
+/** Only explicit choices are stored; detected source languages stay automatic. */
+function exampleSourceSettings(
+  bundle: ProjectBundle,
+): Pick<FileProjectMetadata, "source"> {
+  const languages = bundle.settings.sourceLanguages ?? [];
+  const label = bundle.settings.display?.sourceLabelLang;
+  if (!languages.length && !label) return {};
+  return {
+    source: { languages: [...languages], ...(label ? { labelLanguage: label } : {}) },
   };
 }
 
@@ -452,6 +494,11 @@ export function updateProjectManifest(
       metadata.sourceSchema,
       previous.sourceSchema,
     );
+  } else if (projectJson(metadata.source) !== projectJson(previous.source)) {
+    changed = true;
+    if (metadata.source) {
+      raw.source.languageSettings = languageSettings(metadata.source);
+    } else delete raw.source.languageSettings;
   }
   return changed ? projectJson(raw) : text;
 }

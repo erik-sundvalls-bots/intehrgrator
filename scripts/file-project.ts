@@ -5,6 +5,7 @@ import {
   loadFileProject,
   updateFileProject,
 } from "../src/workbench/file_project.ts";
+import { assertInsideProject } from "../src/workbench/file_project_paths.ts";
 
 const args = Deno.args.filter((arg) => arg !== "--check");
 if (args.length !== 1) {
@@ -15,6 +16,25 @@ if (args.length !== 1) {
 }
 const manifestPath = resolve(args[0]);
 const root = dirname(manifestPath);
+const realPathFs = {
+  join,
+  realPath: async (path: string) => {
+    try {
+      return await Deno.realPath(path);
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) return null;
+      throw error;
+    }
+  },
+  isSymlink: async (path: string) => {
+    try {
+      return (await Deno.lstat(path)).isSymlink;
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) return false;
+      throw error;
+    }
+  },
+};
 const files = {
   readText: (path: string) => Deno.readTextFile(join(root, path)),
   listExamples: async (directory: string) => {
@@ -30,6 +50,7 @@ const files = {
     return paths.sort();
   },
   writeText: async (path: string, text: string) => {
+    await assertInsideProject(root, path, realPathFs);
     const file = join(root, path);
     await Deno.mkdir(dirname(file), { recursive: true });
     let current: string | undefined;
@@ -41,6 +62,7 @@ const files = {
     if (current !== text) await Deno.writeTextFile(file, text);
   },
   remove: async (path: string) => {
+    await assertInsideProject(root, path, realPathFs);
     try {
       await Deno.remove(join(root, path));
     } catch (error) {

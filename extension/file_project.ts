@@ -1,4 +1,7 @@
 import * as vscode from "vscode";
+import { lstat, realpath } from "node:fs/promises";
+import { join as joinFsPath } from "node:path";
+import { assertInsideProject } from "../src/workbench/file_project_paths.ts";
 import {
   loadFileProject,
   parseFileProject,
@@ -215,6 +218,7 @@ export function registerFileProjects(
         }
         for (const name of files) {
           const uri = vscode.Uri.joinPath(root, name);
+          await assertWritable(destination, name);
           await vscode.workspace.fs.createDirectory(
             vscode.Uri.joinPath(uri, ".."),
           );
@@ -235,8 +239,8 @@ export function registerFileProjects(
             {},
           ),
         );
-        await write(
-          resolve(manifestUri, project.manifest.mapping),
+        await outputFiles(manifestUri).writeText(
+          project.manifest.mapping,
           projectMapping(project.bundle),
         );
         await writeProjectArtifacts(project, outputFiles(manifestUri));
@@ -299,6 +303,12 @@ export function registerFileProjects(
             error: error instanceof Error ? error.message : String(error),
           });
         };
+        const postDirty = () =>
+          panel.webview.postMessage({
+            type: "intehrgrator:project-dirty",
+            dirty: document.isDirty ||
+              (!manifestDocument.isClosed && manifestDocument.isDirty),
+          });
         const reload = async (
           reason: "initial" | "inputs" | "document" = "document",
         ) => {
@@ -325,6 +335,7 @@ export function registerFileProjects(
               generation: current,
               reason,
             });
+            await postDirty();
           } catch (error) {
             await report(error);
           }
@@ -361,16 +372,37 @@ export function registerFileProjects(
               },
             ) => {
               if (message?.type === "intehrgrator:host-request") {
+                const command = (message as { command?: unknown }).command;
+                if (
+                  command === "saveAutosave" || command === "saveManualSave"
+                ) {
+                  // File projects are saved through VS Code documents, never copied into workspaceState.
+                  void panel.webview.postMessage({
+                    type: "intehrgrator:host-response",
+                    id: (message as { id?: unknown }).id,
+                    ...(command === "saveAutosave" ? { result: null } : {
+                      error: "Use Save (Ctrl+S) to save a file project",
+                    }),
+                  });
+                  return;
+                }
                 void legacyRequest(panel.webview, message);
               } else if (message?.type === "intehrgrator:project-ready") {
                 ready = true;
+                // Opening never rewrites committed artifacts; Save and project:run do (#305 review).
                 void reload("initial");
-                if (!document.isDirty) void regenerate();
               } else if (message?.type === "intehrgrator:project-conflict") {
+                let conflictMapping: unknown;
+                try {
+                  conflictMapping = JSON.parse(message.mapping);
+                } catch (error) {
+                  void report(error);
+                  return;
+                }
                 void vscode.workspace.openTextDocument({
                   language: "json",
                   content: projectJson({
-                    mapping: JSON.parse(message.mapping),
+                    mapping: conflictMapping,
                     languageSettings: message.metadata,
                   }),
                 }).then((backup) => vscode.window.showTextDocument(backup));
@@ -428,6 +460,7 @@ export function registerFileProjects(
                     manifestVersion: manifestDocument.version,
                     generation: message.generation,
                   });
+                  await postDirty();
                 }).catch(report);
               } else if (message?.type === "intehrgrator:project-command") {
                 edits = edits.then(async () => {
@@ -445,6 +478,11 @@ export function registerFileProjects(
           ),
         );
         disposables.push(vscode.workspace.onDidChangeTextDocument((event) => {
+          const changed = event.document.uri.toString();
+          if (
+            changed === document.uri.toString() ||
+            changed === manifestUri.toString()
+          ) void postDirty();
           if (
             input(event.document.uri) &&
             !applying && ready
@@ -485,6 +523,10 @@ export function registerFileProjects(
           })());
         }));
         disposables.push(vscode.workspace.onDidSaveTextDocument((saved) => {
+          const path = saved.uri.toString();
+          if (
+            path === document.uri.toString() || path === manifestUri.toString()
+          ) void postDirty();
           if (!savingProject && input(saved.uri)) {
             void regenerate();
           }
@@ -626,11 +668,59 @@ async function load(uri: vscode.Uri, document?: vscode.TextDocument) {
   return project;
 }
 
+/** Generated files must resolve inside the project folder, also through symlinks. */
+async function assertWritable(manifest: vscode.Uri, path: string): Promise<void> {
+  const root = vscode.Uri.joinPath(manifest, "..");
+  if (root.scheme === "file") {
+    await assertInsideProject(root.fsPath, projectPath(path), {
+      join: joinFsPath,
+      realPath: async (p) => {
+        try {
+          return await realpath(p);
+        } catch (error) {
+          if ((error as { code?: string }).code === "ENOENT") return null;
+          throw error;
+        }
+      },
+      isSymlink: async (p) => {
+        try {
+          return (await lstat(p)).isSymbolicLink();
+        } catch (error) {
+          if ((error as { code?: string }).code === "ENOENT") return false;
+          throw error;
+        }
+      },
+    });
+    return;
+  }
+  // Virtual/remote file systems: refuse any symlink between the root and the file.
+  let current = root;
+  for (const part of projectPath(path).split("/")) {
+    current = vscode.Uri.joinPath(current, part);
+    try {
+      const stat = await vscode.workspace.fs.stat(current);
+      if (stat.type & vscode.FileType.SymbolicLink) {
+        throw new Error(`Refusing to write through a symlink: ${path}`);
+      }
+    } catch (error) {
+      if (
+        error instanceof vscode.FileSystemError &&
+        error.code === "FileNotFound"
+      ) return;
+      throw error;
+    }
+  }
+}
+
 function outputFiles(uri: vscode.Uri) {
   return {
     readText: (path: string) => read(resolve(uri, path)),
-    writeText: (path: string, text: string) => write(resolve(uri, path), text),
+    writeText: async (path: string, text: string) => {
+      await assertWritable(uri, path);
+      await write(resolve(uri, path), text);
+    },
     remove: async (path: string) => {
+      await assertWritable(uri, path);
       try {
         await vscode.workspace.fs.delete(resolve(uri, path));
       } catch (error) {
