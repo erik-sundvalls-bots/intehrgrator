@@ -292,7 +292,13 @@ Deno.test({
       );
       assert(rect);
       await page.mouse.click(rect.x + rect.width / 2, rect.y + 5);
-      assertEquals((await getSnapshot(page)).selectedBlockId, identifier.id);
+      // Blockly dispatches the click event on a later rendering frame.
+      await page.waitForFunction(
+        (id) =>
+          (globalThis as unknown as { intehrgratorTestApi: IntehrgratorTestApi })
+            .intehrgratorTestApi.getSnapshot().selectedBlockId === id,
+        identifier.id,
+      );
       await page.keyboard.press("Delete");
       await page.waitForFunction(() =>
         !(globalThis as unknown as { intehrgratorTestApi: IntehrgratorTestApi })
