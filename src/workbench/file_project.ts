@@ -1,9 +1,19 @@
-import type { ConversionScriptLanguage, ProjectBundle } from "../types/mod.ts";
+import type {
+  ConversionScriptLanguage,
+  FileLanguageSettings,
+  ProjectBundle,
+} from "../types/mod.ts";
 import { isConversionScriptLanguage } from "../types/mod.ts";
 import { createFsHostAdapter } from "../host/fs_adapter.ts";
 import { generate } from "../core/codegen/mod.ts";
 import { runTest } from "../core/test_runner/mod.ts";
 import { detectSourceFormat } from "../core/source/mod.ts";
+import {
+  idLanguageChoices,
+  normalizeIdLanguage,
+  PRIMARY_ID_LANGUAGE,
+} from "../core/target/id_language.ts";
+import { targetOriginalLanguage } from "../core/languages.ts";
 import {
   instanceShapeForEncoding,
   preferredInstanceEncoding,
@@ -15,12 +25,29 @@ import {
   scaffoldBlocklyFromSkeleton,
 } from "./blockly_sync.ts";
 
+export interface FileProjectFile {
+  path: string;
+  languageSettings?: FileLanguageSettings;
+}
+
+export type FileProjectReference = string | FileProjectFile;
+
+export interface FileProjectTarget extends FileProjectFile {
+  /** Complete local closure, including path itself. */
+  files?: string[];
+}
+
+export interface FileProjectMetadata {
+  target?: FileLanguageSettings;
+  sourceSchema?: FileLanguageSettings;
+}
+
 /** Paths are relative to the folder containing intehrgrator.json. */
 export interface FileProjectManifest {
   version: 1;
   mapping: string;
-  target: string;
-  source: { examples: string; schema?: string };
+  target: string | FileProjectTarget;
+  source: { examples: string; schema?: FileProjectReference };
   output: {
     directory: string;
     script: { language: ConversionScriptLanguage; path: string };
@@ -37,6 +64,7 @@ export interface FileProjectFiles {
 export interface FileProject {
   manifest: FileProjectManifest;
   bundle: ProjectBundle;
+  targetWarnings?: string[];
 }
 
 export interface ProjectArtifact {
@@ -58,6 +86,58 @@ export function projectPath(value: unknown): string {
   return parts.join("/");
 }
 
+export function projectFilePath(file: FileProjectReference): string {
+  return typeof file === "string" ? file : file.path;
+}
+
+export function projectTargetPaths(
+  target: FileProjectManifest["target"],
+): string[] {
+  return typeof target === "string" ? [target] : target.files ?? [target.path];
+}
+
+function languageSettings(value: unknown): FileLanguageSettings | undefined {
+  if (value === undefined) return undefined;
+  if (
+    !value || typeof value !== "object" || !("languages" in value) ||
+    !Array.isArray(value.languages) ||
+    value.languages.some((l) => typeof l !== "string" || !l)
+  ) {
+    throw new Error(
+      "languageSettings.languages must be an array of language codes",
+    );
+  }
+  const optional = (name: "idLanguage" | "labelLanguage") => {
+    if (!(name in value)) return {};
+    const entry: unknown = Reflect.get(value, name);
+    if (typeof entry !== "string" || !entry) {
+      throw new Error(`Invalid languageSettings.${name}`);
+    }
+    return { [name]: entry };
+  };
+  return {
+    languages: [...value.languages],
+    ...optional("idLanguage"),
+    ...optional("labelLanguage"),
+  };
+}
+
+function parseReference(value: unknown): FileProjectReference {
+  if (typeof value === "string") return projectPath(value);
+  if (!value || typeof value !== "object" || !("path" in value)) {
+    throw new Error(
+      "Expected a project file path or { path, languageSettings }",
+    );
+  }
+  const settings = languageSettings(
+    "languageSettings" in value ? value.languageSettings : undefined,
+  );
+  return {
+    path: projectPath(value.path),
+    ...(settings ? { languageSettings: settings } : {}),
+  };
+}
+
 export function parseFileProject(text: string): FileProjectManifest {
   const raw = JSON.parse(text);
   if (raw?.version !== 1) {
@@ -69,13 +149,31 @@ export function parseFileProject(text: string): FileProjectManifest {
     );
   }
   const mapping = projectPath(raw.mapping);
+  const target = parseReference(raw.target);
+  if (typeof target !== "string" && raw.target.files !== undefined) {
+    if (!Array.isArray(raw.target.files)) {
+      throw new Error("target.files must list the complete target fileset");
+    }
+    const paths = raw.target.files.map(projectPath);
+    if (
+      !paths.includes(target.path) ||
+      new Set(paths.map((p: string) => p.toLowerCase())).size !== paths.length
+    ) {
+      throw new Error(
+        "target.files must include its root path and contain no duplicate paths",
+      );
+    }
+    (target as FileProjectTarget).files = paths;
+  }
   const manifest: FileProjectManifest = {
     version: 1,
     mapping,
-    target: projectPath(raw.target),
+    target,
     source: {
       examples: projectPath(raw.source?.examples),
-      ...(raw.source?.schema ? { schema: projectPath(raw.source.schema) } : {}),
+      ...(raw.source?.schema
+        ? { schema: parseReference(raw.source.schema) }
+        : {}),
     },
     output: {
       directory: projectPath(raw.output.directory),
@@ -89,8 +187,10 @@ export function parseFileProject(text: string): FileProjectManifest {
   const inputs = [
     "intehrgrator.json",
     mapping,
-    manifest.target,
-    manifest.source.schema,
+    ...projectTargetPaths(manifest.target),
+    manifest.source.schema
+      ? projectFilePath(manifest.source.schema)
+      : undefined,
   ]
     .filter((path): path is string => Boolean(path));
   const output = manifest.output.directory.toLowerCase();
@@ -135,14 +235,26 @@ export async function loadFileProject(
   const controller = new WorkbenchController(createFsHostAdapter());
   if (controller.getState().settings.autoplay) controller.toggleAutoplay();
   try {
-    controller.loadTemplateContent(
-      manifest.target,
-      await files.readText(manifest.target),
-    );
+    let targetWarnings: string[] = [];
+    if (typeof manifest.target === "object" && manifest.target.files) {
+      const targetFiles = [];
+      for (const path of manifest.target.files) {
+        targetFiles.push({ path, content: await files.readText(path) });
+      }
+      targetWarnings = controller.loadTargetFileset({
+        rootPath: manifest.target.path,
+        files: targetFiles,
+      });
+    } else {
+      controller.loadTemplateContent(
+        projectFilePath(manifest.target),
+        await files.readText(projectFilePath(manifest.target)),
+      );
+    }
     if (manifest.source.schema) {
       controller.loadSchemaContent(
-        manifest.source.schema,
-        await files.readText(manifest.source.schema),
+        projectFilePath(manifest.source.schema),
+        await files.readText(projectFilePath(manifest.source.schema)),
       );
       if (controller.getState().schemaError) {
         throw new Error(controller.getState().schemaError!);
@@ -163,13 +275,30 @@ export async function loadFileProject(
         format: detectSourceFormat(name, content),
       });
     }
-    applyProjectMapping(controller, await files.readText(manifest.mapping));
+    const metadata: FileProjectMetadata = {
+      target: typeof manifest.target === "string"
+        ? undefined
+        : manifest.target.languageSettings,
+      sourceSchema: typeof manifest.source.schema === "object"
+        ? manifest.source.schema.languageSettings
+        : undefined,
+    };
+    restoreProjectMetadata(controller, metadata);
+    applyProjectMapping(
+      controller,
+      await files.readText(manifest.mapping),
+      metadata.target?.idLanguage,
+    );
     const bundle = controller.exportDocumentSnapshot();
     bundle.examples = examples;
     bundle.activeExampleId = examples[0]?.id ?? null;
     // Session ids, timestamps and history do not belong in the mapping file.
     bundle.projectId = manifest.mapping;
-    return { manifest, bundle };
+    return {
+      manifest,
+      bundle,
+      ...(targetWarnings.length ? { targetWarnings } : {}),
+    };
   } finally {
     controller.newProject();
   }
@@ -178,6 +307,7 @@ export async function loadFileProject(
 function applyProjectMapping(
   controller: WorkbenchController,
   text: string,
+  idLanguage?: string,
 ): void {
   const state = controller.getState();
   const document = JSON.parse(text);
@@ -188,13 +318,29 @@ function applyProjectMapping(
     throw new Error("Unsupported mapping document version");
   }
   const mapping = document.blocklyState ?? document;
-  const { blocklyState, extract } = Object.keys(mapping).length
+  const hasMapping = Object.keys(mapping).length > 0;
+  const target = state.target;
+  const primary = target ? targetOriginalLanguage(target) : undefined;
+  const wantedIdLanguage = idLanguage === undefined
+    ? undefined
+    : normalizeIdLanguage(idLanguage, primary);
+  if (
+    wantedIdLanguage && wantedIdLanguage !== PRIMARY_ID_LANGUAGE &&
+    !idLanguageChoices(target).includes(wantedIdLanguage)
+  ) {
+    throw new Error(`Target does not support id language: ${idLanguage}`);
+  }
+  if (hasMapping) alignIdLanguage(mapping, wantedIdLanguage, primary, true);
+  const { blocklyState, extract } = hasMapping
     ? adoptBlocklyState(mapping, state.skeleton, {
       targetFormat: state.target?.format,
     })
     : scaffoldBlocklyFromSkeleton(state.skeleton, state.model, {
       targetFormat: state.target?.format,
     });
+  if (!hasMapping) {
+    alignIdLanguage(blocklyState, wantedIdLanguage, primary, false);
+  }
   controller.syncFromBlockly(
     blocklyState,
     extract.slots,
@@ -212,16 +358,116 @@ function applyProjectMapping(
   controller.replaceSheets(document.sheets ?? []);
 }
 
+function alignIdLanguage(
+  value: unknown,
+  wanted: string | undefined,
+  primary: string | undefined,
+  check: boolean,
+): void {
+  if (!wanted || !value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    for (const entry of value) alignIdLanguage(entry, wanted, primary, check);
+    return;
+  }
+  const block = value as { type?: string; fields?: Record<string, unknown> };
+  if (block.type === "composition") {
+    const current = block.fields?.ID_LANGUAGE;
+    if (
+      check && typeof current === "string" &&
+      normalizeIdLanguage(current, primary) !== wanted
+    ) {
+      throw new Error(
+        "Target id language conflicts with the mapping's ID_LANGUAGE; update both choices together",
+      );
+    }
+    block.fields = { ...block.fields, ID_LANGUAGE: wanted };
+  }
+  for (const child of Object.values(value)) {
+    alignIdLanguage(child, wanted, primary, check);
+  }
+}
+
+function restoreProjectMetadata(
+  controller: WorkbenchController,
+  metadata: FileProjectMetadata,
+): void {
+  const snapshot = controller.exportDocumentSnapshot();
+  if (snapshot.target && metadata.target) {
+    snapshot.target.languageSettings = metadata.target;
+  }
+  if (snapshot.sourceSchema && metadata.sourceSchema) {
+    snapshot.sourceSchema.languageSettings = metadata.sourceSchema;
+  }
+  snapshot.settings.display = {
+    ...(metadata.target?.labelLanguage
+      ? { targetLabelLang: metadata.target.labelLanguage }
+      : {}),
+    ...(metadata.sourceSchema?.labelLanguage
+      ? { sourceLabelLang: metadata.sourceSchema.labelLanguage }
+      : {}),
+  };
+  delete snapshot.settings.sourceLanguages;
+  controller.restoreDocumentSnapshot(snapshot);
+}
+
+export function projectMetadata(bundle: ProjectBundle): FileProjectMetadata {
+  return {
+    ...(bundle.target?.languageSettings
+      ? { target: bundle.target.languageSettings }
+      : {}),
+    ...(bundle.sourceSchema?.languageSettings
+      ? { sourceSchema: bundle.sourceSchema.languageSettings }
+      : {}),
+  };
+}
+
+/** Update only metadata that changed in the editor; preserve unrelated manifest entries. */
+export function updateProjectManifest(
+  text: string,
+  metadata: FileProjectMetadata,
+  previous: FileProjectMetadata,
+): string {
+  parseFileProject(text);
+  const raw = JSON.parse(text);
+  let changed = false;
+  const update = (
+    reference: unknown,
+    next: FileLanguageSettings | undefined,
+    before: FileLanguageSettings | undefined,
+  ) => {
+    if (projectJson(next) === projectJson(before)) return reference;
+    changed = true;
+    const file = parseReference(reference);
+    const entry = typeof file === "string"
+      ? { path: file }
+      : { ...reference as FileProjectFile };
+    if (next) entry.languageSettings = languageSettings(next);
+    else delete entry.languageSettings;
+    return entry;
+  };
+  raw.target = update(raw.target, metadata.target, previous.target);
+  if (raw.source.schema) {
+    raw.source.schema = update(
+      raw.source.schema,
+      metadata.sourceSchema,
+      previous.sourceSchema,
+    );
+  }
+  return changed ? projectJson(raw) : text;
+}
+
 /** Preserve pending canvas edits when source/target files refresh. */
 export function rebaseProjectMapping(
   bundle: ProjectBundle,
   text: string,
+  metadata: FileProjectMetadata = projectMetadata(bundle),
 ): ProjectBundle {
   const controller = new WorkbenchController(createFsHostAdapter());
   if (controller.getState().settings.autoplay) controller.toggleAutoplay();
   try {
     controller.restoreDocumentSnapshot(bundle);
-    applyProjectMapping(controller, text);
+    restoreProjectMetadata(controller, metadata);
+    applyProjectMapping(controller, text, metadata.target?.idLanguage);
     return controller.exportDocumentSnapshot();
   } finally {
     controller.newProject();
@@ -256,6 +502,10 @@ export function generateProjectArtifacts(
   const { model, blocklyState, sheets } = bundle.mapping;
   const artifacts: ProjectArtifact[] = [];
   const diagnostics: Record<string, unknown> = {
+    execution: "mapping-preview",
+    ...(project.targetWarnings?.length
+      ? { targetWarnings: project.targetWarnings }
+      : {}),
     mappingIssues: validateModel(model, bundle.target?.skeleton ?? []),
     examples: {},
   };

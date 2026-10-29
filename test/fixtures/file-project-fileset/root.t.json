@@ -1,0 +1,27 @@
+{
+  "@type": "TEMPLATE",
+  "templateId": "FileProjectVitals",
+  "archetypeId": {
+    "@type": "ARCHETYPE_HRID",
+    "value": "openEHR-EHR-COMPOSITION.file_project.v1"
+  },
+  "definition": {
+    "@type": "C_COMPLEX_OBJECT",
+    "rmTypeName": "COMPOSITION",
+    "nodeId": "at0000",
+    "attributes": [
+      {
+        "@type": "C_ATTRIBUTE",
+        "rmAttributeName": "content",
+        "children": [{
+          "@type": "C_ARCHETYPE_ROOT",
+          "rmTypeName": "CLUSTER",
+          "nodeId": "at0001",
+          "archetypeRef": "FileProjectDetails",
+          "referenceType": "templateId",
+          "occurrences": "0..1"
+        }]
+      }
+    ]
+  }
+}

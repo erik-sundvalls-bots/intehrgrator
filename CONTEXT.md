@@ -379,8 +379,11 @@ _Avoid_: anonymous agent rows when registration is available
 _Avoid_: auto-scrolling the main canvas by default while a human is editing elsewhere
 
 **Conversion script language** (older docs said Export dialect / Export Target; code key `exportTarget` was a persisted setting — no longer saved):
-An **Output mode** value that generates a Conversion Script (`typescript` | `java` | `handlebars` | `xquery`). Downstream of the Mapping Model — Blockly blocks and mappings are language-agnostic. Distinct from Target instance format and from Mapping preview. Not stored in the Project Bundle.
+An **Output mode** value that generates a Conversion Script (`typescript` | `java` | `handlebars` | `xquery`). Downstream of the Mapping Model — Blockly blocks and mappings are language-agnostic. A File project's generation language is a persistent choice for its generated review artifacts; the workbench's Output mode remains a session choice. Distinct from Target instance format and from Mapping preview. Not stored in the Project Bundle.
 _Avoid_: Export dialect, Export Target (prefer this term), Target language alone, conflating with Target instance format or Mapping preview
+
+**File project**:
+A project whose canonical Mapping Specification, Sheets, source files, target files and per-file language settings are stored as separate, Git-reviewable workspace files. Generated Conversion Scripts, mapping-preview results and diagnostics are review artifacts rebuilt from those files; undo history and other session data remain local.
 
 **UI language**:
 The application locale for Blockly messages and the rest of the web app chrome (toolbar setting). ISO 639-1 codes (`en`, `sv`, `de`, `es`, `ca`, `fr`). Distinct from **model language** (ontology labels in **Target & Previews**) and from composition language on a **default context map** — a factory openEHR map may copy UI language into **runtime key** `language` (scaffold target `*.language`) once, when the factory instance is created, and does not rewrite it if the toolbar locale later changes.

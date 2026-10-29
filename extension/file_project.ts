@@ -2,10 +2,19 @@ import * as vscode from "vscode";
 import {
   loadFileProject,
   parseFileProject,
+  projectFilePath,
+  projectJson,
   projectMapping,
+  projectMetadata,
   projectPath,
+  projectTargetPaths,
   updateFileProject,
+  updateProjectManifest,
   writeProjectArtifacts,
+} from "../src/workbench/file_project.ts";
+import type {
+  FileProjectManifest,
+  FileProjectMetadata,
 } from "../src/workbench/file_project.ts";
 import type { ProjectEditorMessage } from "../src/workbench/file_project_editor.ts";
 
@@ -219,6 +228,14 @@ export function registerFileProjects(
         const manifestUri = vscode.Uri.joinPath(root, "intehrgrator.json");
         const project = await load(manifestUri);
         await write(
+          manifestUri,
+          updateProjectManifest(
+            await read(manifestUri),
+            projectMetadata(project.bundle),
+            {},
+          ),
+        );
+        await write(
           resolve(manifestUri, project.manifest.mapping),
           projectMapping(project.bundle),
         );
@@ -237,6 +254,17 @@ export function registerFileProjects(
         knownProjects.set(document.uri.toString(), manifestUri);
         await rememberProject(manifestUri);
         const root = vscode.Uri.joinPath(manifestUri, "..");
+        let manifestDocument = await vscode.workspace.openTextDocument(
+          manifestUri,
+        );
+        const openManifest = async () => {
+          if (manifestDocument.isClosed) {
+            manifestDocument = await vscode.workspace.openTextDocument(
+              manifestUri,
+            );
+          }
+          return manifestDocument;
+        };
         const disposables: vscode.Disposable[] = [];
         let generation = 0;
         let applying = false;
@@ -244,6 +272,21 @@ export function registerFileProjects(
         let ready = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
         let edits = Promise.resolve();
+        let savingProject = false;
+        let metadata: FileProjectMetadata = {};
+        let currentManifest = parseFileProject(manifestDocument.getText());
+        const input = (uri: vscode.Uri) => {
+          try {
+            if (!manifestDocument.isClosed) {
+              currentManifest = parseFileProject(manifestDocument.getText());
+            }
+          } catch { /* Keep watching while JSON is being edited. */ }
+          return isProjectInput(manifestUri, uri, currentManifest);
+        };
+        const hasDirtyInputs = () =>
+          vscode.workspace.textDocuments.some((doc) =>
+            doc.isDirty && input(doc.uri)
+          );
         panel.webview.options = {
           enableScripts: true,
           localResourceRoots: [
@@ -261,17 +304,24 @@ export function registerFileProjects(
         ) => {
           const current = ++generation;
           try {
+            await openManifest();
             const version = document.version;
+            const manifestVersion = manifestDocument.version;
             const project = await load(manifestUri, document);
             if (disposed || current !== generation) return;
-            if (document.version !== version) {
+            if (
+              document.version !== version ||
+              manifestDocument.version !== manifestVersion
+            ) {
               await reload(reason);
               return;
             }
+            metadata = projectMetadata(project.bundle);
             await panel.webview.postMessage({
               type: "intehrgrator:project-load",
               bundle: project.bundle,
               version,
+              manifestVersion,
               generation: current,
               reason,
             });
@@ -281,6 +331,8 @@ export function registerFileProjects(
         };
         const regenerate = () =>
           enqueue(manifestUri, async () => {
+            await openManifest();
+            if (disposed || savingProject || hasDirtyInputs()) return;
             await updateFileProject(await read(manifestUri), {
               ...outputFiles(manifestUri),
               listExamples: async (path) =>
@@ -289,6 +341,18 @@ export function registerFileProjects(
                 ),
             });
           });
+        const saveProject = async () => {
+          await openManifest();
+          savingProject = true;
+          try {
+            if (!await manifestDocument.save() || !await document.save()) {
+              throw new Error("The file project could not be saved");
+            }
+          } finally {
+            savingProject = false;
+          }
+          await regenerate();
+        };
         disposables.push(
           panel.webview.onDidReceiveMessage(
             (
@@ -305,19 +369,25 @@ export function registerFileProjects(
               } else if (message?.type === "intehrgrator:project-conflict") {
                 void vscode.workspace.openTextDocument({
                   language: "json",
-                  content: message.mapping,
+                  content: projectJson({
+                    mapping: JSON.parse(message.mapping),
+                    languageSettings: message.metadata,
+                  }),
                 }).then((backup) => vscode.window.showTextDocument(backup));
                 void vscode.window.showWarningMessage(
-                  "intEHRgrator: an external mapping edit conflicted with pending canvas changes. Your canvas version is preserved in a separate unsaved JSON editor.",
+                  "intEHRgrator: external changes conflicted with pending edits. Your mapping and file-language settings are preserved in a separate unsaved JSON editor.",
                 );
               } else if (message?.type === "intehrgrator:project-edit") {
                 edits = edits.then(async () => {
+                  await openManifest();
                   if (
                     message.version !== document.version ||
+                    message.manifestVersion !== manifestDocument.version ||
                     message.generation !== generation
                   ) {
                     await reload(
-                      message.version === document.version
+                      message.version === document.version &&
+                        message.manifestVersion === manifestDocument.version
                         ? "inputs"
                         : "document",
                     );
@@ -325,12 +395,24 @@ export function registerFileProjects(
                   }
                   // Do not accept arbitrary output paths or filesystem commands from the webview.
                   JSON.parse(message.mapping);
+                  const manifestText = updateProjectManifest(
+                    manifestDocument.getText(),
+                    message.metadata,
+                    metadata,
+                  );
                   const edit = new vscode.WorkspaceEdit();
                   edit.replace(
                     document.uri,
                     new vscode.Range(0, 0, document.lineCount, 0),
                     message.mapping,
                   );
+                  if (manifestText !== manifestDocument.getText()) {
+                    edit.replace(
+                      manifestUri,
+                      new vscode.Range(0, 0, manifestDocument.lineCount, 0),
+                      manifestText,
+                    );
+                  }
                   applying = true;
                   try {
                     if (!await vscode.workspace.applyEdit(edit)) {
@@ -339,15 +421,17 @@ export function registerFileProjects(
                   } finally {
                     applying = false;
                   }
+                  metadata = message.metadata;
                   await panel.webview.postMessage({
                     type: "intehrgrator:project-ack",
                     version: document.version,
+                    manifestVersion: manifestDocument.version,
                     generation: message.generation,
                   });
                 }).catch(report);
               } else if (message?.type === "intehrgrator:project-command") {
                 edits = edits.then(async () => {
-                  if (message.command === "save") await document.save();
+                  if (message.command === "save") await saveProject();
                   else if (message.command === "configure") {
                     await vscode.window.showTextDocument(
                       await vscode.workspace.openTextDocument(manifestUri),
@@ -362,15 +446,46 @@ export function registerFileProjects(
         );
         disposables.push(vscode.workspace.onDidChangeTextDocument((event) => {
           if (
-            event.document.uri.toString() === document.uri.toString() &&
+            input(event.document.uri) &&
             !applying && ready
           ) {
-            void reload();
-            if (!document.isDirty) void regenerate();
+            const path = event.document.uri.toString();
+            void reload(
+              path === document.uri.toString() ||
+                path === manifestUri.toString()
+                ? "document"
+                : "inputs",
+            );
+            if (!hasDirtyInputs()) void regenerate();
           }
         }));
+        disposables.push(vscode.workspace.onWillSaveTextDocument((event) => {
+          const path = event.document.uri.toString();
+          if (
+            savingProject ||
+            (path !== document.uri.toString() &&
+              path !== manifestUri.toString())
+          ) return;
+          event.waitUntil((async () => {
+            await edits;
+            if (savingProject) return [];
+            savingProject = true;
+            try {
+              await openManifest();
+              const other = path === document.uri.toString()
+                ? manifestDocument
+                : document;
+              if (other.isDirty && !await other.save()) {
+                throw new Error("Could not save the related project document");
+              }
+              return [];
+            } finally {
+              savingProject = false;
+            }
+          })());
+        }));
         disposables.push(vscode.workspace.onDidSaveTextDocument((saved) => {
-          if (saved.uri.toString() === document.uri.toString()) {
+          if (!savingProject && input(saved.uri)) {
             void regenerate();
           }
         }));
@@ -378,28 +493,21 @@ export function registerFileProjects(
           new vscode.RelativePattern(root, "**/*"),
         );
         const changed = (uri: vscode.Uri) => {
-          if (!ready || uri.toString() === document.uri.toString()) return;
+          if (
+            !ready || uri.toString() === document.uri.toString()
+          ) return;
           void (async () => {
             try {
-              const manifest = parseFileProject(await read(manifestUri));
-              const paths = [
-                manifestUri,
-                resolve(manifestUri, manifest.target),
-                ...(manifest.source.schema
-                  ? [resolve(manifestUri, manifest.source.schema)]
-                  : []),
-              ];
-              const examples = resolve(manifestUri, manifest.source.examples)
-                .toString();
-              if (
-                !paths.some((path) => path.toString() === uri.toString()) &&
-                uri.toString() !== examples &&
-                !uri.toString().startsWith(examples + "/")
-              ) return;
+              await openManifest();
+              if (!input(uri)) return;
               clearTimeout(timer);
               timer = setTimeout(() => {
-                void reload("inputs");
-                if (!document.isDirty) void regenerate();
+                void reload(
+                  uri.toString() === manifestUri.toString()
+                    ? "document"
+                    : "inputs",
+                );
+                if (!hasDirtyInputs()) void regenerate();
               }, 200);
             } catch (error) {
               await report(error);
@@ -438,6 +546,32 @@ async function read(uri: vscode.Uri): Promise<string> {
   return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
 }
 
+function readInput(uri: vscode.Uri): Promise<string> {
+  const document = vscode.workspace.textDocuments.find((doc) =>
+    doc.uri.toString() === uri.toString()
+  );
+  return document ? Promise.resolve(document.getText()) : read(uri);
+}
+
+function isProjectInput(
+  manifestUri: vscode.Uri,
+  uri: vscode.Uri,
+  manifest: FileProjectManifest,
+): boolean {
+  const path = uri.toString();
+  const paths = [
+    manifest.mapping,
+    ...projectTargetPaths(manifest.target),
+    ...(manifest.source.schema
+      ? [projectFilePath(manifest.source.schema)]
+      : []),
+  ];
+  const examples = resolve(manifestUri, manifest.source.examples).toString();
+  return path === manifestUri.toString() ||
+    paths.some((p) => resolve(manifestUri, p).toString() === path) ||
+    path === examples || path.startsWith(examples + "/");
+}
+
 async function write(uri: vscode.Uri, text: string): Promise<void> {
   let previous: string | undefined;
   try {
@@ -469,24 +603,27 @@ async function listFiles(root: vscode.Uri, prefix = ""): Promise<string[]> {
 }
 
 async function load(uri: vscode.Uri, document?: vscode.TextDocument) {
+  const manifestText = await readInput(uri);
   if (document) {
-    const manifest = parseFileProject(await read(uri));
+    const manifest = parseFileProject(manifestText);
     if (resolve(uri, manifest.mapping).toString() !== document.uri.toString()) {
       throw new Error(
         "The mapping path changed. Reopen intehrgrator.json with Open File Project.",
       );
     }
   }
-  return await loadFileProject(await read(uri), {
+  const project = await loadFileProject(manifestText, {
     readText: (path) =>
       document && resolve(uri, path).toString() === document.uri.toString()
         ? Promise.resolve(document.getText())
-        : read(resolve(uri, path)),
+        : readInput(resolve(uri, path)),
     listExamples: async (path) =>
       (await listFiles(resolve(uri, path))).filter((name) =>
         /\.(json|xml)$/i.test(name)
       ),
   });
+  project.bundle.projectId = uri.toString();
+  return project;
 }
 
 function outputFiles(uri: vscode.Uri) {

@@ -1,25 +1,43 @@
 import type { ProjectBundle } from "../types/mod.ts";
 import type { WorkbenchController } from "./controller.ts";
-import { projectMapping, rebaseProjectMapping } from "./file_project.ts";
+import {
+  type FileProjectMetadata,
+  projectJson,
+  projectMapping,
+  projectMetadata,
+  rebaseProjectMapping,
+} from "./file_project.ts";
 
 export type ProjectHostMessage =
   | {
     type: "intehrgrator:project-load";
     bundle: ProjectBundle;
     version: number;
+    manifestVersion?: number;
     generation: number;
     reason?: "initial" | "inputs" | "document";
   }
-  | { type: "intehrgrator:project-ack"; version: number; generation: number }
+  | {
+    type: "intehrgrator:project-ack";
+    version: number;
+    manifestVersion?: number;
+    generation: number;
+  }
   | { type: "intehrgrator:project-error"; error: string };
 
 export type ProjectEditorMessage =
   | { type: "intehrgrator:project-ready" }
-  | { type: "intehrgrator:project-conflict"; mapping: string }
+  | {
+    type: "intehrgrator:project-conflict";
+    mapping: string;
+    metadata: FileProjectMetadata;
+  }
   | {
     type: "intehrgrator:project-edit";
     mapping: string;
+    metadata: FileProjectMetadata;
     version: number;
+    manifestVersion: number;
     generation: number;
   }
   | {
@@ -32,24 +50,42 @@ export interface ProjectEditorConnection {
   onProjectMessage(listener: (message: ProjectHostMessage) => void): () => void;
 }
 
+interface ProjectEditorSnapshot {
+  mapping: string;
+  metadata: FileProjectMetadata;
+}
+
+function sameSnapshot(
+  a: ProjectEditorSnapshot | undefined,
+  b: ProjectEditorSnapshot | undefined,
+): boolean {
+  return a === b ||
+    (a !== undefined && b !== undefined && projectJson(a) === projectJson(b));
+}
+
 /** Synchronize the canvas with the extension's TextDocument, including external edits and undo. */
 export function connectFileProjectEditor(
   controller: WorkbenchController,
   connection: ProjectEditorConnection,
 ): () => void {
   let version = 0;
+  let manifestVersion = 0;
   let generation = 0;
   let ready = false;
   let restoring = false;
   let inFlight = false;
   const commands: Array<"save" | "undo" | "redo"> = [];
-  let baseline = "";
-  let pending = "";
+  let baseline: ProjectEditorSnapshot | undefined;
+  let pending: ProjectEditorSnapshot | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let controlsInstalled = false;
+  const snapshot = (bundle: ProjectBundle): ProjectEditorSnapshot => ({
+    mapping: projectMapping(bundle),
+    metadata: projectMetadata(bundle),
+  });
   const flush = () => {
     if (!ready || inFlight) return;
-    if (!pending || pending === baseline) {
+    if (!pending || sameSnapshot(pending, baseline)) {
       for (const command of commands.splice(0)) {
         connection.postProjectMessage({
           type: "intehrgrator:project-command",
@@ -62,8 +98,9 @@ export function connectFileProjectEditor(
     inFlight = true;
     connection.postProjectMessage({
       type: "intehrgrator:project-edit",
-      mapping: baseline,
+      ...baseline,
       version,
+      manifestVersion,
       generation,
     });
   };
@@ -72,32 +109,39 @@ export function connectFileProjectEditor(
       controller.setStatusMessage(`File project: ${message.error}`);
     } else if (message.type === "intehrgrator:project-load") {
       clearTimeout(timer);
-      const hostMapping = projectMapping(message.bundle);
+      const hostMapping = snapshot(message.bundle);
       const localMapping = ready
-        ? projectMapping(controller.exportDocumentSnapshot())
+        ? snapshot(controller.exportDocumentSnapshot())
         : pending;
-      const unsent = ready && (inFlight || localMapping !== baseline) &&
-        localMapping !== hostMapping;
-      const preserve = unsent && (hostMapping === baseline ||
-        (message.reason === "inputs" && message.version === version));
-      if (unsent && !preserve) {
+      const unsent = ready && localMapping !== undefined &&
+        (inFlight || !sameSnapshot(localMapping, baseline)) &&
+        !sameSnapshot(localMapping, hostMapping);
+      const preserve = unsent && (sameSnapshot(hostMapping, baseline) ||
+        (message.reason === "inputs" && message.version === version &&
+          (message.manifestVersion ?? 0) === manifestVersion));
+      if (unsent && localMapping && !preserve) {
         commands.length = 0;
         connection.postProjectMessage({
           type: "intehrgrator:project-conflict",
-          mapping: localMapping,
+          ...localMapping,
         });
       }
       restoring = true;
       ready = false;
       try {
         controller.restoreDocumentSnapshot(
-          preserve
-            ? rebaseProjectMapping(message.bundle, localMapping)
+          preserve && localMapping
+            ? rebaseProjectMapping(
+              message.bundle,
+              localMapping.mapping,
+              localMapping.metadata,
+            )
             : message.bundle,
         );
-        pending = projectMapping(controller.exportDocumentSnapshot());
+        pending = snapshot(controller.exportDocumentSnapshot());
         baseline = preserve ? hostMapping : pending;
         version = message.version;
+        manifestVersion = message.manifestVersion ?? 0;
         generation = message.generation;
         inFlight = false;
         ready = true;
@@ -163,13 +207,14 @@ export function connectFileProjectEditor(
       flush();
     } else if (message.generation === generation) {
       version = message.version;
+      manifestVersion = message.manifestVersion ?? manifestVersion;
       inFlight = false;
       flush();
     }
   });
   const unsubscribeController = controller.subscribe(() => {
     if (!ready || restoring) return;
-    pending = projectMapping(controller.exportDocumentSnapshot());
+    pending = snapshot(controller.exportDocumentSnapshot());
     clearTimeout(timer);
     timer = setTimeout(flush, 100);
   });

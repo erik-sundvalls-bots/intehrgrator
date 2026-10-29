@@ -7,10 +7,11 @@ Install the intEHRgrator VSIX using **Extensions: Install from VSIX…**, then r
 You can also right-click that file in Explorer.
 
 **intEHRgrator: Open Integration Workbench** resumes the most recently opened
-file project in the workspace. It reloads schema, examples and mapping from disk
+file project in the workspace. It reloads schema, examples and mapping from workspace files
 when the view is reopened. If there is no previous project, it finds project
-files in the workspace or offers Create / Open. Only project URIs are remembered
-in VS Code storage; project contents remain in the repository.
+files in the workspace or offers Create / Open. Project URIs are remembered
+locally; authored project content lives in the repository. Unsaved documents are
+restored by VS Code, and chat history and credentials remain local to each project.
 
 ```text
 intehrgrator.json
@@ -24,11 +25,13 @@ output/status.json
 ```
 
 The mapping opens in the visual Mapping Editor. **Ctrl+S** (Cmd+S on macOS) saves
-its JSON document and regenerates the conversion code and a result for every
+the mapping and manifest metadata and regenerates the conversion code and a result for every
 JSON/XML Example Instance in the source folder, including subfolders. Saved
 changes to examples, the Source Schema or the target also refresh the project.
 VS Code's document model handles unsaved changes, undo/redo and external mapping
-edits. Use **File → Edit file project configuration** to change file paths.
+edits, including file-language choices. Open input documents are read from their
+buffers; review artifacts are regenerated when the project inputs are saved.
+Use **File → Edit file project configuration** to change file paths.
 
 ## Project configuration
 
@@ -59,13 +62,37 @@ also accepted when opening an existing mapping. Keep defaults and lookup tables
 with the mapping. An optional `previewDefaults` object supplies fixed runtime
 defaults for result generation.
 
+Target and Source Schema entries also accept `{ "path": "…", "languageSettings": { … } }`.
+`languageSettings.languages` stores the language order; `labelLanguage` stores the
+pane's chosen language. The target also supports `idLanguage` (`"primary"` or a
+language code), which determines Web Template ids and Simplified FLAT paths.
+Changing the Ids dropdown updates its mapping field and manifest metadata together.
+Conflicting explicit choices are reported rather than silently changing output paths.
+
+For an existing multi-file target, list the complete closure, including the root:
+
+```json
+{
+  "path": "targets/root.t.json",
+  "files": ["targets/root.t.json", "targets/details.t.json"],
+  "languageSettings": { "languages": ["en", "sv"], "idLanguage": "sv" }
+}
+```
+
+Use this object as `target`. All listed files are local project paths and are
+watched for changes. Derived skeletons and Web Templates are rebuilt on load.
+
 ## Reviewing results in Git
 
 Commit the project configuration, inputs, mapping, generated code and example
 results. Result files show the **current mapping**, including incomplete work:
 removing an identifier mapping removes that identifier from the example result.
 Missing mandatory mappings and conversion diagnostics are recorded in
-`output/status.json`. Conversion failures replace the corresponding result with
+`output/status.json`, labelled `execution: "mapping-preview"`. These results
+evaluate the mapping; they do not execute the generated script in an external
+engine. `output.script.language` persistently selects the generated script's
+language, independently of the workbench's session-only Output mode.
+Conversion failures replace the corresponding result with
 an error; unreadable project inputs mark the run as failed and remove previously
 indexed results. Removed examples remove their previously generated results.
 
@@ -95,6 +122,6 @@ File-menu Save and text-field undo. To test the real extension host, set
 `VSCODE_EXECUTABLE` to a VS Code executable (`Code.exe` on Windows) and run
 `deno task test:vscode`. The test uses synthetic files and an isolated profile.
 
-Pending canvas edits survive source/target refreshes. If an external mapping edit
-conflicts with them, the local version opens in a separate unsaved JSON editor
+Pending canvas and language edits survive source/target refreshes. If an external edit
+conflicts with them, the local mapping and language settings open in a separate unsaved JSON editor
 so you can resolve the conflict without losing either version.

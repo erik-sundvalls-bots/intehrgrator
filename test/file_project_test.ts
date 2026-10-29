@@ -12,7 +12,9 @@ import {
   parseFileProject,
   projectJson,
   projectMapping,
+  projectMetadata,
   updateFileProject,
+  updateProjectManifest,
   writeProjectArtifacts,
 } from "../src/workbench/file_project.ts";
 
@@ -108,6 +110,173 @@ Deno.test("file project: repeat runs and mapping roundtrips preserve results wit
       name: "Another Person",
     },
   );
+});
+
+Deno.test("file project: per-file languages rebuild translated ids and descriptions on reopen", async () => {
+  const { manifest, contents, files } = await fixture();
+  contents.set(
+    "targets/vitals.opt",
+    await Deno.readTextFile(
+      join(import.meta.dirname!, "fixtures/simple-diagnose-and-vitals.opt"),
+    ),
+  );
+  contents.set(
+    "schemas/referral.xsd",
+    await Deno.readTextFile(
+      join(import.meta.dirname!, "fixtures/multilingual-referral/referral.xsd"),
+    ),
+  );
+  contents.set("mapping/main.mapping.json", "{}");
+  const config = JSON.parse(manifest);
+  config.target = {
+    path: "targets/vitals.opt",
+    languageSettings: {
+      languages: ["en", "sv", "de"],
+      idLanguage: "sv",
+      labelLanguage: "de",
+    },
+  };
+  config.source.schema = {
+    path: "schemas/referral.xsd",
+    languageSettings: { languages: ["sv", "en"], labelLanguage: "sv" },
+  };
+  const first = await loadFileProject(JSON.stringify(config), files);
+  assertEquals(
+    first.bundle.target?.languageSettings,
+    config.target.languageSettings,
+  );
+  assertEquals(first.bundle.target?.idLanguage, "sv");
+  assertEquals(
+    first.bundle.sourceSchema?.languageSettings,
+    config.source.schema.languageSettings,
+  );
+  assertStringIncludes(
+    first.bundle.target!.webTemplateJson!,
+    '"id":"problem_diagnos"',
+  );
+  contents.set("mapping/main.mapping.json", projectMapping(first.bundle));
+  const reopened = await loadFileProject(JSON.stringify(config), files);
+  assertEquals(
+    reopened.bundle.target?.webTemplateJson,
+    first.bundle.target?.webTemplateJson,
+  );
+  assertEquals(
+    reopened.bundle.target?.languageSettings,
+    config.target.languageSettings,
+  );
+  assertEquals(
+    reopened.bundle.sourceSchema?.languageSettings,
+    config.source.schema.languageSettings,
+  );
+  delete config.target.languageSettings;
+  const legacy = await loadFileProject(JSON.stringify(config), files);
+  assertEquals(
+    legacy.bundle.target?.idLanguage,
+    "sv",
+    "Legacy manifests keep the canonical Blockly id choice",
+  );
+  config.target.languageSettings = {
+    languages: ["en", "sv", "de"],
+    idLanguage: "primary",
+  };
+  await assertRejects(
+    () => loadFileProject(JSON.stringify(config), files),
+    Error,
+    "conflicts",
+  );
+});
+
+Deno.test("file project: metadata-only saves preserve file paths and unrelated configuration", async () => {
+  const { manifest, files } = await fixture();
+  const project = await loadFileProject(manifest, files);
+  const before = projectMetadata(project.bundle);
+  const next = structuredClone(before);
+  next.sourceSchema!.labelLanguage = "sv";
+  const text = updateProjectManifest(manifest, next, before);
+  const saved = JSON.parse(text);
+  assertEquals(saved.target, "targets/person.schema.json");
+  assertEquals(saved.source.schema, {
+    path: "schemas/person.schema.json",
+    languageSettings: { languages: [], labelLanguage: "sv" },
+  });
+  assertEquals(saved.output.script, {
+    language: "typescript",
+    path: "output/conversion.ts",
+  });
+  assertEquals(updateProjectManifest(text, next, next), text);
+});
+
+Deno.test("file project: local target filesets rebuild dependent labels and report missing files", async () => {
+  const { manifest, contents, files } = await fixture();
+  for (const name of ["root.t.json", "details.t.json"]) {
+    contents.set(
+      `targets/${name}`,
+      await Deno.readTextFile(
+        join(import.meta.dirname!, "fixtures/file-project-fileset", name),
+      ),
+    );
+  }
+  contents.set("mapping/main.mapping.json", "{}");
+  const config = JSON.parse(manifest);
+  config.target = {
+    path: "targets/root.t.json",
+    files: ["targets/root.t.json", "targets/details.t.json"],
+  };
+  const load = () =>
+    loadFileProject(JSON.stringify(config), {
+      ...files,
+      listExamples: () => Promise.resolve([]),
+    });
+  const initial = await load();
+  assertEquals(initial.bundle.target?.targetId, "FileProjectVitals");
+  assertEquals(initial.bundle.target?.fileset?.files.length, 2);
+  assertStringIncludes(
+    JSON.stringify(initial.bundle.target?.skeleton),
+    "Known question",
+  );
+  contents.set(
+    "targets/details.t.json",
+    contents.get("targets/details.t.json")!.replace(
+      "Known question",
+      "Changed question",
+    ),
+  );
+  const refreshed = await load();
+  assertStringIncludes(
+    JSON.stringify(refreshed.bundle.target?.skeleton),
+    "Changed question",
+  );
+  config.target.languageSettings = {
+    languages: ["en", "sv"],
+    idLanguage: "sv",
+  };
+  const swedish = await load();
+  assertStringIncludes(
+    swedish.bundle.target!.webTemplateJson!,
+    '"id":"känd_fråga"',
+  );
+  contents.set(
+    "targets/details.t.json",
+    contents.get("targets/details.t.json")!.replace(
+      "Känd fråga",
+      "Uppdaterad fråga",
+    ),
+  );
+  const updated = await load();
+  assertStringIncludes(
+    updated.bundle.target!.webTemplateJson!,
+    '"id":"uppdaterad_fråga"',
+  );
+  delete config.target.languageSettings;
+  config.target.files = ["targets/root.t.json"];
+  const incomplete = await load();
+  const diagnostic = generateProjectArtifacts(incomplete).find((artifact) =>
+    artifact.path === "output/status.json"
+  )!;
+  assertStringIncludes(diagnostic.content, "FileProjectDetails");
+  config.target.files = ["targets/root.t.json", "targets/details.t.json"];
+  contents.delete("targets/details.t.json");
+  await assertRejects(load, Error, "Missing targets/details.t.json");
 });
 
 Deno.test("file project: a conversion failure replaces old output and records the error", async () => {

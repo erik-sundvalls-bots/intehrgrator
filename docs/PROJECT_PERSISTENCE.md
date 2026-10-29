@@ -15,7 +15,7 @@ The web app persists projects in IndexedDB and can export/import the same data a
 | Settings | Theme, validation, shown target / source languages (`display`, #279; older bundles' `modelLanguage` becomes the target choice), `sourceLanguages`, `aiContextLanguages`. **Output mode** is session-only and is not restored |
 | Metadata | Project id, app version, created/updated timestamps |
 
-Generated Export and Test Run output are **not** stored — they are rebuilt from the Mapping Specification after load.
+Generated Export and Test Run output are **not** stored in a Project Bundle — they are rebuilt from the Mapping Specification after load. VS Code [file projects](VS_CODE.md) additionally save generated scripts, mapping-preview results and diagnostics as Git-reviewable files. Their manifest stores the generation language and per-file language settings; Output mode remains session-only. The ProjectBundle and `.intehrgrator` export format are unchanged.
 
 ## Mapping serialization
 

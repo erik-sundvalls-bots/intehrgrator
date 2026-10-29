@@ -1,4 +1,5 @@
 import type {
+  ClinicalModelFileset,
   ImportSuggestionsReport,
   MappingLoop,
   MappingModel,
@@ -112,6 +113,7 @@ import {
 import {
   isGitHubClinicalModelUrl,
   loadGitHubClinicalModel,
+  scaffoldClinicalModelFileset,
   type GitHubClinicalModelLoadResult,
 } from "../core/clinical_model/github_template.ts";
 import { loadGitHubExampleDirectory } from "../core/source/github_examples.ts";
@@ -414,6 +416,23 @@ export class WorkbenchController {
   /** Load a target file (OPT, schema, or free-form). Used by the Workbench Test API. */
   loadTemplateContent(filename: string, content: string): void {
     this.loadTargetContent(filename, content);
+  }
+
+  /** Load an existing clinical-model closure from local project files. */
+  loadTargetFileset(fileset: ClinicalModelFileset): string[] {
+    const loaded = scaffoldClinicalModelFileset(fileset, this.settings.display?.targetLabelLang);
+    this.applyLoadedTarget(this.inDisplayLanguage({
+      format: "openehr-template",
+      filename: fileset.rootPath,
+      targetId: loaded.templateId,
+      content: loaded.optXml,
+      skeleton: loaded.skeleton,
+      webTemplateJson: loaded.webTemplateJson,
+      language: loaded.language,
+      languages: loaded.languages,
+      fileset,
+    }), "replace");
+    return loaded.warnings;
   }
 
   /** Load an openEHR Template, JSON Schema, XML Schema, or free-form target. */

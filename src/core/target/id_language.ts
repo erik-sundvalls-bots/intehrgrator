@@ -26,7 +26,7 @@ export const ID_LANGUAGE_FIELD = "ID_LANGUAGE";
 // deno-lint-ignore no-explicit-any
 type AmObject = any;
 
-let cached: { key: string; opt: AmObject } | null = null;
+let cached: { key: string | NonNullable<TargetDefinition["fileset"]>; opt: AmObject } | null = null;
 
 /** The OPERATIONAL_TEMPLATE behind a target, when ids can be rebuilt (not for Web Template JSON input). */
 function operationalOf(target: TargetDefinition): AmObject | undefined {
@@ -34,9 +34,8 @@ function operationalOf(target: TargetDefinition): AmObject | undefined {
     ? target.fileset
     : undefined;
   if (!fileset && !target.content.trimStart().startsWith("<")) return undefined;
-  const key = fileset
-    ? `fileset:${fileset.rootPath}:${fileset.files.length}`
-    : target.content;
+  // A local dependency can change without changing the root path or file count.
+  const key = fileset ?? target.content;
   if (cached?.key === key) return cached.opt;
   try {
     const opt = fileset
