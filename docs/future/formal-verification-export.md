@@ -762,9 +762,9 @@ still exist only in the full Blockly walk:
 | Feature | In Mapping Model? | Codegen today |
 |---------|-------------------|---------------|
 | Value-slot expressions (`source_query`, `maps_get`, …) | Yes (`slots[].expression`) | All adapters |
-| `for_each_source` | Yes (`loops[]`) | TypeScript canvas; **not** XQuery slots export |
+| `for_each_source` | Yes (`loops[]`) | TypeScript canvas; XQuery from `loops[]` (`compileLoopSequence`) |
 | RM / schema tree shape | Partially (`optionalRm[]`, block types on canvas) | TypeScript canvas; XQuery Model B slot manifest only |
-| `lists_getIndex`, `lists_create_with` | **No** | TypeScript canvas only (`emitListsGetIndex`) |
+| `lists_getIndex`, `lists_create_with` | **No** | TypeScript and Java canvas walks |
 | Sheet **mutator** statements | **No** (removed from toolbox) | Blockly JS generator stubs only |
 | Stock `controls_whileUntil`, `controls_repeat_ext`, `controls_forEach` | **No** | Toolbox only; TS codegen → `undefined` |
 | `controls_if` | **No** | Go template JSON walk only |
@@ -833,7 +833,8 @@ and Test Run (`evalSheetCall`). **Mutators** (`sheet_set_*`, `sheet_insert_row`,
 `sheet_delete_*`, …) mutate a convert-time `SheetBag` (`applySheetMutator`) and
 are **statement blocks**, not slot expressions.
 
-XQuery export currently stubs all sheet calls as `(: … :) ()`.
+XQuery export reads Sheets and Decision tables from a convert-time `$sheets` map
+(`src/core/codegen/xquery_sheets.ts`, #76).
 
 **Why it hurts:** Mutators introduce **imperative state** and order dependence.
 `sheet_lookup` depends on tabular data that may be edited outside the mapping;
