@@ -644,16 +644,44 @@ regionstockholm/z3-wasm-singlethread` succeeds on the downloaded files. The atte
 `b66e26677b74bc82536196968f03202f34e3c7158def2c7bee679c53466f566a` (21.9 MB, 6.1 MB
 gzipped). The downloaded artefact also passed the 225 queries below.
 
-That wasm still contains the CI checkout path. A pending pull request
-([z3-wasm-singlethread#1](https://github.com/regionstockholm/z3-wasm-singlethread/pull/1))
-removes it so the hash no longer depends on the build directory; two local builds in
-different directories and the pull request's CI build
+That first wasm contained the CI checkout path.
+[z3-wasm-singlethread#1](https://github.com/regionstockholm/z3-wasm-singlethread/pull/1)
+removed it, so the hash no longer depends on the build directory: two local builds in different
+directories and the pull request's CI build
 ([run 40748561434](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40748561434))
-all produced the same `z3-built.wasm`, SHA-256
-`228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84`. The same pull request prepares a
-**v0.1.0 GitHub release** with attested assets and a changelog. A maintainer still has to
-add the tag/release trigger to the workflow before the release can be cut. Nothing is
-published to npm.
+all produced the same `z3-built.wasm`. Nothing is published to npm.
+
+**Release to use: [v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0)**
+(published 2026-10-29; tag `v0.1.0` at commit `f7913333`, Z3 5.3.2 at `b411c902`, emsdk 3.1.73).
+Built and attested by
+[run 40828961612](https://github.com/regionstockholm/z3-wasm-singlethread/actions/runs/40828961612)
+from the tag. Pin these two files:
+
+| Asset | SHA-256 | Size |
+|-------|---------|------|
+| [`z3-wasm-singlethread-v0.1.0.tar.gz`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/z3-wasm-singlethread-v0.1.0.tar.gz) (all files below plus `SHA256SUMS`, `BUILDINFO`, licences) | `76afbdd80edcfc37e87e3fe751cf6e98f6db0e7ed1c85e410075c461345fe5fb` | 6.1 MB |
+| [`z3-built.wasm`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/z3-built.wasm) | `228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84` | 21.9 MB (6.1 MB gzipped) |
+
+The other files (`z3-built.mjs`, `index.mjs`/`.d.ts`, `browser.mjs`/`.d.ts`, `worker.mjs`) are
+listed with their SHA-256 in the release's
+[`SHA256SUMS`](https://github.com/regionstockholm/z3-wasm-singlethread/releases/download/v0.1.0/SHA256SUMS).
+Check provenance with:
+
+```sh
+gh release download v0.1.0 -R regionstockholm/z3-wasm-singlethread -p z3-built.wasm -p 'z3-wasm-singlethread-v0.1.0.tar.gz'
+sha256sum z3-built.wasm z3-wasm-singlethread-v0.1.0.tar.gz
+gh attestation verify z3-wasm-singlethread-v0.1.0.tar.gz -R regionstockholm/z3-wasm-singlethread --source-ref refs/tags/v0.1.0
+gh attestation verify z3-built.wasm -R regionstockholm/z3-wasm-singlethread --source-ref refs/tags/v0.1.0
+```
+
+Both verify (SLSA v1 provenance, signer `.github/workflows/build.yml@refs/tags/v0.1.0`, source
+commit `f7913333`). The same wasm also has attestations from earlier `main` builds; the
+`--source-ref` flag restricts the check to the tag build. `deno task release` in
+[experiments/z3-spike](../../experiments/z3-spike/README.md) downloads the tarball, refuses to run
+unless both pinned SHA-256s and the bundled `SHA256SUMS` match (`--attest` also runs the
+`gh attestation verify` above), and replays the 225 queries: 225/225 agree with `z3-solver`,
+≈75 ms init, ≈0.75 s for all queries under Deno 2.9.7
+([`release_results.json`](../../experiments/z3-spike/release_results.json)).
 
 Local measurements (box, not CI; same 225 queries, fresh context per query):
 21.9 MB wasm (6.1 MB gzipped) and 0.53–0.74 s with upstream's exception model;
@@ -1030,11 +1058,17 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
     [regionstockholm/z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)
     (Z3's own recipe at a pinned tag, minus threads; CI with build-provenance
     attestation; `z3-josh` rejected, see *Follow-up: provenance check and our own
-    build*). Still open: who reviews Z3/emsdk bumps, and on what cadence (each Z3
-    release, or security fixes only)? Upstream's or native wasm exceptions? How does
-    intEHRgrator consume it (release asset from v0.1.0 onwards, vendored with a checked
-    SHA-256, or npm)? How is the WASM SHA-256 and provenance attestation recorded in the
-    evidence pack?
+    build*). **Consumption — decided:** pin the
+    [v0.1.0 GitHub release](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0)
+    asset by SHA-256 (tarball `76afbdd8…e5fb`, wasm `228258f7…3f84`), check
+    `SHA256SUMS`, and verify the attestation with `gh attestation verify … -R
+    regionstockholm/z3-wasm-singlethread --source-ref refs/tags/v0.1.0`
+    (`experiments/z3-spike/release_check.ts` does this); not npm. A version bump means
+    a new release and new pins. Still open: who reviews Z3/emsdk bumps, and on what
+    cadence (each Z3 release, or security fixes only)? Upstream's or native wasm
+    exceptions? Whether the web app fetches the pinned asset at build time or vendors it
+    in the repo (both checked against the same SHA-256)? How is the WASM SHA-256 and
+    provenance attestation recorded in the evidence pack?
 
 ## Related
 

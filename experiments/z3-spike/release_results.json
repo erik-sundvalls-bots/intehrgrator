@@ -1,0 +1,14 @@
+{
+  "release": "regionstockholm/z3-wasm-singlethread@v0.1.0",
+  "z3_version": "5.3.2.0 b411c90217766c924e6ea3d0b51f452a89fd8fc2",
+  "tarball_sha256": "76afbdd80edcfc37e87e3fe751cf6e98f6db0e7ed1c85e410075c461345fe5fb",
+  "wasm_sha256": "228258f7523f47b9d50486736a98f3902b7851478056f646a1602b6341453f84",
+  "attestation_checked": true,
+  "deno": "2.9.7",
+  "init_ms": 74,
+  "queries": 225,
+  "agree_with_z3_solver": 225,
+  "mismatches": [],
+  "replay_total_ms": 749,
+  "max_query_ms": 61
+}
