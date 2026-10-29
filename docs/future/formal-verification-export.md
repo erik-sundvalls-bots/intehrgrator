@@ -12,8 +12,12 @@ and the **VMS-Hbs**, **VMS-Go** and **VMS-Mustache** dialects
 Z3 (including those in-dialect snippets), evidence-pack export, chunk-level test suites
 and convert-time throws.
 
-Verify mapping is **lazy-loaded and explicitly triggered** (button / menu, deliberate
-save, export; never on every edit). The solver is a **single-threaded Z3 WASM build**,
+Verify mapping serves two purposes: **interactive feedback while the informatician
+authors** and **packaged evidence afterwards**. In the first release it is
+**lazy-loaded and explicitly triggered** (button / menu, deliberate save, export);
+a debounced live mode, paired with the existing Test Run Auto-run, is a
+[design suggestion for a future decision](#design-suggestions-future-decision-live-test--validation).
+The solver is a **single-threaded Z3 WASM build**,
 [z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0),
 which runs in a plain Worker and needs no COOP/COEP headers, so it works on GitHub Pages
 (see [Provenance and the build we use](#provenance-and-the-build-we-use)). A throwaway
@@ -163,7 +167,7 @@ fill the gaps between those points.
 
 | Formalism | Fit | Verification style |
 |-----------|-----|-------------------|
-| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)) in the web app; the official `z3-solver` package where the page is cross-origin isolated. Generate SMT from the Mapping Model; run in a Web Worker on request. | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
+| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)) in the web app; the official `z3-solver` package where the page is cross-origin isolated. Generate SMT from the Mapping Model; run in a Web Worker while authoring (on request, or debounced if the [live mode](#design-suggestions-future-decision-live-test--validation) is adopted). | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
 | **Mapping Contract DSL** (custom) | High — generated from Mapping Model + source/target schemas; the human-readable twin of the SMT | Documentation + CI; Z3 consumes the same invariants |
 | **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers, out-of-dialect templates marked `trust: author`) | Falsification with generated sources; shrink into Example Instances |
 | **Chunk-level test suite** in the chosen Conversion script language | High — same language as Generated Export; one suite per Decision table / Blockly Function / loop grain | Regression tests others run later; avoids cartesian explosion (see below) |
@@ -215,7 +219,7 @@ The product has six coupled slices (see [#41](https://github.com/regionstockholm
 
 | Slice | What the informatician sees |
 |-------|-----------------------------|
-| **A. Verify mapping** | In-app Z3 check, **started by the informatician** (Verify mapping button / menu item) and on deliberate save and export; never on every edit. Z3 is lazy-loaded and runs off the UI thread. Not a Conversion script language. |
+| **A. Verify mapping** | In-app Z3 check used **interactively while authoring**. First release: started by the informatician (Verify mapping button / menu item) and on deliberate save and export; a debounced live mode with a pause toggle is a [future decision](#design-suggestions-future-decision-live-test--validation). Z3 is lazy-loaded and runs off the UI thread. Not a Conversion script language. |
 | **B. Coverage + counterexamples** | Unread Source Schema nodes highlighted; a sat model shown as a loadable Example Instance. |
 | **C. Verification evidence pack** | Downloadable bundle of SMT, Z3 version, sat/unsat, counterexamples, coverage, VMS lint — for MDR/IVDR technical files. |
 | **D. Chunk-level test suite** | Generated tests in the **same Conversion script language** as Output mode, one suite per mapping chunk (including in-dialect template snippets). |
@@ -293,12 +297,16 @@ property, a prose counterexample, and “Load as Example Instance”.
   static assets. The download is a 21.9 MB WASM (6.1 MB gzipped) plus 85 KB of JS
   (v0.1.0; see [Hosting](#hosting-without-coopcoep-github-pages)).
   Users who never press Verify mapping never download it.
-- **Explicit triggers only:**
-  1. **Verify mapping** button / menu item, the primary way.
+- **Triggers in the first release:**
+  1. **Verify mapping** button / menu item, the primary way to get interactive
+     feedback while authoring.
   2. **Deliberate save** (Save / Save as of the Project Bundle, not autosave or
      the desktop sync's background writes).
   3. **Export** (Generated Export, evidence pack).
-  **Never on every edit.** There is no debounced background run.
+  The first release does not re-run on every edit. A **debounced live mode**
+  (re-check shortly after edits, with a pause toggle shared with Test Run
+  Auto-run) is proposed in
+  [Design suggestions (future decision)](#design-suggestions-future-decision-live-test--validation).
 - **Non-blocking and cancellable.** Solving runs in a Worker. A progress indicator
   with **Cancel** is shown. Cancel terminates the Worker (the pending check rejects at
   once as cancelled) and starts a fresh one, which was ready again in 18–23 ms in
@@ -307,7 +315,8 @@ property, a prose counterexample, and “Load as Example Instance”.
   and complete normally.
 - **Results are findings.** They appear in the same findings / Constraint warning
   surface as other validation, marked with the Mapping Model hash they were computed
-  for. Editing the mapping marks them **stale**; it does not re-run them.
+  for. Editing the mapping marks them **stale**; in the first release it does not
+  re-run them (the proposed live mode would).
 - **Export proceeds with a warning, not a block** (failing or stale verification is
   listed in the export summary and the evidence pack). Whether some projects should
   be able to **require** a passing verification before export is open question 18.
@@ -721,8 +730,10 @@ the mapping specification.
   and `if`/`eq` trees. Only *out-of-dialect* templates skip proof.
 - Generating a cartesian **whole-convert** test matrix as the default suite — explode on source fields; emit **chunk** tests (collapsed Decision table rules, functions, grain).
 - Leaving Decision table no-match as `null` while calling convert crash-free — that is a silent hole, not Rejected.
-- Running Verify mapping **on every edit** (debounced background runs): the 22 MB (6 MB gzipped) solver download and
-  the CPU cost are only paid when the informatician asks, or on deliberate save / export.
+- Running Verify mapping **on every keystroke, undebounced and uncancellable**, or downloading the 22 MB
+  (6 MB gzipped) solver for users who never verify. A debounced live mode that cancels stale runs and only
+  starts once the informatician has opted in is a separate, open
+  [design suggestion](#design-suggestions-future-decision-live-test--validation), not an anti-pattern.
 - Putting Z3 in the main bundle or loading it from a third-party CDN: load it with a dynamic `import()`
   from the app's own origin, on the first Verify mapping only.
 - Using the threaded `z3-solver` on GitHub Pages, or letting Verify mapping **silently no-op** where it
@@ -993,6 +1004,74 @@ In-dialect **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** is VMS
 [proposal](../proposals/verifiable-template-snippets.md)) and is **in scope**
 for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues/41).
 
+## Design suggestions (future decision): live Test & Validation
+
+**Status:** proposals for Erik to decide; nothing here is implemented or
+committed to. Raised because the [Idea](#idea) names interactive checking while
+the informatician authors as a primary purpose, while the first release only
+verifies on explicit triggers.
+
+**What exists today (checked in code, `fv-gemini-z3-spike`):** Conversion Test
+Run(s) already re-run automatically. `WorkbenchController.scheduleTestRun()`
+re-runs all test files after a fixed **500 ms** debounce (hard-coded) when
+**Auto-run** (`settings.autoplay`) is on. Auto-run is **on by default**; the
+**Pause / ▶ Auto-run** button in the Conversion Test Run(s) header turns it off,
+and a paused state is remembered per machine (`localStorage`
+`intehrgrator.autoRunPaused`), not taken from Project Bundles. **Run Test** runs
+on demand. VMS-Hbs / VMS-Go template lint is also debounced (600 ms,
+`template_lint.ts`). Verify mapping does not exist yet.
+
+Suggestions:
+
+1. **Debounced live Verify mapping.** When live mode is on, re-run Verify
+   mapping after the mapping has been quiet for a debounce interval, so findings
+   follow the informatician's edits the way Test Run output already does.
+2. **No UI lag.**
+   - Debounce, and **cancel stale runs**: a new edit terminates the running
+     Worker check (Cancel already restarts a Worker in about 20 ms in the
+     spike) instead of queueing it.
+   - Keep Z3 off the UI thread (already the design); consider whether Test
+     Runs over large example sets should also move to a Worker.
+   - **Incremental checks:** re-check only the properties whose Mapping Model
+     chunk changed (per Decision table, Blockly Function, slot), keyed by a
+     chunk hash, and reuse earlier results for the rest. Decision table checks
+     already run in milliseconds in the spike, so they are the natural first
+     live slice.
+   - A visible status per kind: **up to date / validating… / stale / paused /
+     timed out**, using the existing Mapping Model hash and stale marking.
+   - Do not trigger the 6 MB (gzipped) solver download from live mode until
+     the user has started Verify mapping once or switched live validation on.
+3. **One play/pause toggle per kind.** Give formal validation the same
+   Auto-run / Pause control Test Run has, so slow computers or big mappings can
+   pause either one independently and fall back to Run Test / Verify mapping.
+4. **A combined "Test & Validation" menu.** Move Run Test, Verify mapping and
+   their toggles into one new menu (or panel header), e.g.:
+   - ☑ Auto-run example Test Runs · Run now
+   - ☐ Live formal validation (Z3) · Verify now
+   - Debounce: example tests ___ ms · formal validation ___ ms
+5. **Configurable debounce.** Make the debounce a setting instead of the
+   hard-coded 500 ms, probably with **separate limits per kind**, since a Z3
+   pass can cost far more than a Test Run (e.g. keep ~500 ms for tests, start
+   formal validation at a longer delay or after a pause in typing). Store it per
+   machine like the Auto-run pause, not in the Project Bundle.
+
+Open questions for this suggestion:
+
+- **Defaults:** live formal validation off by default (download and CPU cost)
+  or on after the first manual Verify mapping? Should Test Run Auto-run stay on
+  by default?
+- **Default debounce values** per kind, and whether to adapt them to measured
+  run time (back off when checks are slow).
+- **How results are shown** while editing: inline in the findings / Constraint
+  warning surface only, or also on Blockly blocks and Decision table rows; how
+  to avoid flicker when findings appear and disappear between edits.
+- **Packaged evidence:** live results are transient. Should export always run a
+  fresh full (non-incremental) check for the evidence pack, or may it reuse a
+  non-stale live result with the same Mapping Model hash? (Relates to open
+  question 18, the export gate.)
+- **Scope of the merged menu:** also include template lint and
+  `TemplateValidator` output validation, or only Test Run and Verify mapping?
+
 ## Open questions
 
 1. **Contract language surface** — YAML vs JSON vs a dedicated `.mapping-contract` extension; alignment with [AI_SUGGESTION_FORMAT.md](../AI_SUGGESTION_FORMAT.md). SMT-LIB is generated either way.
@@ -1100,8 +1179,8 @@ for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues
 >
 > **Question (updated):** How should a **generated SMT encoding** of a VMS
 > Mapping Model — **including lowered VMS-Hbs / VMS-Go / VMS-Mustache dialect
-> ASTs** — be scoped so Z3 WASM can run on request (seconds, not
-> minutes) while still producing (a) source-coverage overlays that count
+> ASTs** — be scoped so Z3 WASM can run interactively while authoring
+> (seconds, not minutes; on request or debounced after edits) while still producing (a) source-coverage overlays that count
 > template paths as reads, (b) concrete counterexample instances, (c) an
 > MDR/IVDR-style evidence pack, and (d) a **chunk-level** test suite in the
 > same Conversion script language? Compare encoding Mapping Expression
