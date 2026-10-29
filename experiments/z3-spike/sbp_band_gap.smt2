@@ -1,0 +1,6 @@
+(declare-fun sbp_num () Real)
+(assert (not (or (and true (< sbp_num 90.0))
+         (and true (>= sbp_num 90.0) (<= sbp_num 139.0))
+         (and true (>= sbp_num 140.0)))))
+(check-sat)
+(get-model)
