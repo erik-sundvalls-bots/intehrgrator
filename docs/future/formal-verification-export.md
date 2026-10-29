@@ -20,7 +20,10 @@ a debounced live mode, paired with the existing Test Run Auto-run, is a
 The solver is a **single-threaded Z3 WASM build**,
 [z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0),
 which runs in a plain Worker and needs no COOP/COEP headers, so it works on GitHub Pages
-(see [Provenance and the build we use](#provenance-and-the-build-we-use)). A throwaway
+(see [Provenance and the build we use](#provenance-and-the-build-we-use)). **Every
+intEHRgrator variant uses this same build** (same WASM, pinned version and settings),
+so verification results do not depend on which variant ran
+([Same Z3 build in every variant](#same-z3-build-in-every-variant-reproducibility)). A throwaway
 [spike](#spike-z3-wasm-on-real-fixtures) on real fixture Decision tables backs the
 design, and an [AI conversation (Gemini) shared on #41](#input-from-an-ai-conversation-gemini-shared-on-41)
 was checked claim by claim.
@@ -191,7 +194,7 @@ fill the gaps between those points.
 
 | Formalism | Fit | Verification style |
 |-----------|-----|-------------------|
-| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)) in the web app; the official `z3-solver` package where the page is cross-origin isolated. Generate SMT from the Mapping Model; run in a Web Worker while authoring (on request, or debounced if the [live mode](#design-suggestions-future-decision-live-test--validation) is adopted). | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
+| **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)), the [same build in every variant](#same-z3-build-in-every-variant-reproducibility) (web app, desktop app, headless / CI). Generate SMT from the Mapping Model; run in a Web Worker while authoring (on request, or debounced if the [live mode](#design-suggestions-future-decision-live-test--validation) is adopted). | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
 | **Mapping Contract DSL** (custom) | High — generated from Mapping Model + source/target schemas; the human-readable twin of the SMT | Documentation + CI; Z3 consumes the same invariants |
 | **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers) | Falsification with generated sources; shrink into Example Instances |
 | **Chunk-level test suite** in the chosen Conversion script language | High — same language as Generated Export; one suite per Decision table / Blockly Function / loop grain | Regression tests others run later; avoids cartesian explosion (see below) |
@@ -216,7 +219,7 @@ invariants:
 |-----------|-------|
 | **Dafny** | `requires` / `ensures` on generated `convert`; still Z3-backed, but a **second** codegen for critical slices (units, doses, identifiers). Not needed for the interactive web app path now that Z3 WASM is first-class. |
 | **OCL / MDE postconditions** | Classic model-transformation contracts; good inspiration for Mapping Contract DSL even if OCL is not adopted literally. |
-| **Rosette / CrossHair** | Alternative bounded symbolic engines. Prefer Z3 WASM so the web app, desktop app, and evidence pack share one solver. |
+| **Rosette / CrossHair** | Alternative bounded symbolic engines; not used. Every variant and the evidence pack use the [same pinned Z3 build](#same-z3-build-in-every-variant-reproducibility). |
 
 ### Tier 3 — Weaker or heavier fit
 
@@ -258,7 +261,7 @@ Phased delivery:
 | **R1** | Start with **Decision tables**: the [spike](#spike-z3-wasm-on-real-fixtures) showed that dead-row, no-match and output-value-set checks already run in milliseconds on real fixtures. Then generate SMT + mapping-contract from VMS Mapping Model **including lowered VMS-Hbs / VMS-Go / VMS-Mustache**; Z3 WASM Worker; Verify mapping action; counterexample → Example Instance; Source Schema coverage overlay (template paths count as reads). |
 | **R2** | Verification evidence pack export (queries + results + coverage + solver identity + dialect ASTs). |
 | **R3** | Chunk-level test suite export in the chosen Conversion script language (Decision table rules, snippet interpolations, Blockly Functions, loop grain). **Differential test vectors:** each Z3 model (one per reachable path / Decision table row) becomes a fixture replayed on Mapping preview **and** every generated Conversion script language, so codegen divergences (empty sequence vs `null` vs `undefined`, 0- vs 1-based indexing, numeric coercion) surface without symbolic execution of TS/Java/XQuery. PBT overlay for unspecified inputs and `regexReplaceAll`. |
-| **R4** | Optional Dafny slice for nominated critical slots; CI replay of the evidence pack’s SMT with the same Z3 version. |
+| **R4** | Optional Dafny slice for nominated critical slots; CI replay of the evidence pack’s SMT with the [same pinned z3-wasm-singlethread build](#same-z3-build-in-every-variant-reproducibility) (same WASM SHA-256 and settings). |
 
 ## Architecture (target)
 
@@ -334,7 +337,8 @@ property, a prose counterexample, and “Load as Example Instance”.
 - **Non-blocking and cancellable.** Solving runs in a Worker. A progress indicator
   with **Cancel** is shown. Cancel terminates the Worker (the pending check rejects at
   once as cancelled) and starts a fresh one, which was ready again in 18–23 ms in
-  Chromium with v0.1.0. A per-query `:timeout` resolves `unknown` instead.
+  Chromium with v0.1.0. A per-query `:timeout` resolves `unknown` instead (see
+  [reproducibility](#same-z3-build-in-every-variant-reproducibility) for why a wall-clock limit alone is a problem for evidence).
   Save and export **do not wait** for Verify mapping. They start it in the background
   and complete normally.
 - **Results are findings.** They appear in the same findings / Constraint warning
@@ -365,20 +369,34 @@ WASM hosting constraints (implementation, not product language; measured with
   solver identity in the evidence pack.
 - Time-box checks; show partial results.
 
-Where **`z3-solver`** (the official, threaded bindings; 35.4 MB WASM) is used instead, e.g.
-as a drop-in on the desktop app, `deno task dev` or a CI replay, these apply (measured in
-the [spike](#spike-z3-wasm-on-real-fixtures) with 5.3.2):
+#### Same Z3 build in every variant (reproducibility)
 
-- It needs `SharedArrayBuffer` (Emscripten pthreads), which browsers only provide on a
-  **cross-origin isolated** page (**COOP** `same-origin` + **COEP** `require-corp` /
-  `credentialless`). This is **not a CORS problem**, and serving the library from the same
-  origin does not remove it. Without the headers `init()` still *resolves* and the first
-  `check()` throws `thread constructor failed`, so gate it on `self.crossOriginIsolated`,
-  never on a successful `init()`, and never silently no-op.
-- Its browser entry is CommonJS and reads `global.initZ3`, and `z3-built.js` must be its
-  own `<script>` (it spawns workers from itself); do not inline it.
-- In Deno, `import { init } from "npm:z3-solver"` works as is; call `killThreads(api.em)`
-  when done, or the worker threads keep the process alive.
+**Policy:** every intEHRgrator variant (web app, desktop app including its headless Agent
+API / MCP, and CI replay) runs Verify mapping with the **same Z3 build as the web app**:
+[z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0),
+the same pinned WASM artefact (SHA-256 `228258f7…3f84`, see open question 19), the same
+solver options and the same limits. **Reason (MDR/IVDR):** a verification result in a
+technical file must be the same whichever variant produced it. Under Deno the same package
+runs via `init()` from `index.mjs` (see the API note above), so no other build is needed.
+
+- **Record the solver identity** in every result and in the evidence pack: release tag,
+  `version()` string (Z3 version plus upstream commit), WASM SHA-256 and attestation.
+- **Make results comparable:** record the options and limits used per query next to the
+  verdict, plus the SMT-LIB text and Mapping Model hash, so a replay in another variant is
+  a byte-for-byte rerun of the same query on the same solver. A different solver identity
+  or option set means "not comparable", not "passed".
+- **Limits (proposal):** a wall-clock `:timeout` depends on machine speed, so the same
+  query could be `unknown` on a slow laptop and `unsat` in CI. Proposed: for evidence, use
+  a deterministic Z3 resource limit (`rlimit`) instead of, or in addition to, the
+  wall-clock time box, fix any random-seed options, and record both. Not yet tried with
+  the v0.1.0 build; confirm in the spike before relying on it.
+
+**Considered and rejected:** the official threaded `z3-solver` bindings (35.4 MB WASM;
+need COOP/COEP, i.e. cross-origin isolation, which is not a CORS problem; measured in the [spike](#spike-z3-wasm-on-real-fixtures)) as a drop-in for
+the desktop app, `deno task dev` or CI; a native `z3` binary; other SMT solvers (e.g. cvc5).
+All rejected for product use for the same reason: results must not depend on the variant.
+`z3-solver` remains only as the spike's reference (the v0.1.0 build agreed on 225/225
+queries).
 
 ### B. Source Schema overlay and counterexamples
 
@@ -577,8 +595,9 @@ and it is why `variables_set` needs `let`/SSA lowering (below).
    counterexample is `""` (absent optional source), which is usually by design.
    Absent vs present-but-unknown should be two separate properties.
 5. **SMT-LIB text is a workable artefact.** `solver.toString()` emits it,
-   `fromString` replays it, and a native `z3` (or `cvc5`, if we stay inside
-   standard theories) can re-check the `.smt2` in CI. This supports slice C.
+   `fromString` replays it, and the text can be replayed in CI. This supports
+   slice C. The product replays it on the
+   [same pinned build](#same-z3-build-in-every-variant-reproducibility), not on a native `z3` or another solver.
 6. **`z3-solver`'s hosting caveats** (COOP/COEP gating, CommonJS browser entry, a
    separate `z3-built.js`, `killThreads` in Deno) did not block the spike, and the
    single-threaded v0.1.0 build has none of them.
@@ -586,7 +605,7 @@ and it is why `variables_set` needs `let`/SSA lowering (below).
 ### Hosting without COOP/COEP (GitHub Pages)
 
 The question: can Verify mapping run on the GitHub Pages web app, which cannot send
-COOP/COEP? (It is cross-origin isolation, not CORS; see A.)
+COOP/COEP? (It is cross-origin isolation, not CORS.)
 [`experiments/z3-spike/hosting_check.ts`](../../experiments/z3-spike/hosting_check.ts)
 serves pages from a static `localhost` server that sends **no isolation headers**,
 and loads them in headless Chromium (Playwright 1.51). Each variant replays the same
@@ -631,8 +650,9 @@ Not done:
    it was the fastest variant on these queries, it is cancellable, and it behaves the same
    in Deno.
 2. Keep the solver behind a small interface (`init`, `checkSmtLib(text) → verdict + model
-   text`, `cancel`), so `z3-solver` remains a drop-in where isolation is available
-   (desktop, `deno task dev`, CI replay).
+   text`, `cancel`), but with **one** implementation: the same pinned build in every
+   variant (desktop, `deno task dev`, CI replay included;
+   see [Same Z3 build in every variant](#same-z3-build-in-every-variant-reproducibility)).
 3. **Do not add `coi-serviceworker`** to the web app. It forces a reload, did not always
    isolate the first visit, and puts the whole app (fonts, popups, future embeds) under
    COEP for one optional feature. It would also have to be merged into `web/sw.js`.
@@ -762,9 +782,10 @@ the mapping specification.
   [design suggestion](#design-suggestions-future-decision-live-test--validation), not an anti-pattern.
 - Putting Z3 in the main bundle or loading it from a third-party CDN: load it with a dynamic `import()`
   from the app's own origin, on the first Verify mapping only.
-- Using the threaded `z3-solver` on GitHub Pages, or letting Verify mapping **silently no-op** where it
-  cannot run. (`z3-solver`'s `init()` succeeds without COOP/COEP; only `check()` fails. Use the
-  single-threaded build there, and gate any `z3-solver` path on `crossOriginIsolated`.)
+- Using any other Z3 build, binding or version in some variant (the threaded `z3-solver`, a native
+  `z3`, another SMT solver): results would then depend on which variant ran
+  ([policy](#same-z3-build-in-every-variant-reproducibility)).
+- Letting Verify mapping **silently no-op** where it cannot run.
 - Reporting "proved for all inputs" without the **encoded source domain** (integer vs JSON `number`,
   present vs absent, enum vs free string). The same table can be complete in one and broken in the other.
 - Encoding reassignment (`variables_set`) as repeated assertions on one SMT constant. It prunes branches
@@ -1181,7 +1202,8 @@ Open questions for this suggestion:
     cadence (each Z3 release, or security fixes only)? Upstream's or native wasm
     exceptions? Whether the web app fetches the pinned asset at build time or vendors it
     in the repo (both checked against the same SHA-256)? How is the WASM SHA-256 and
-    provenance attestation recorded in the evidence pack?
+    provenance attestation recorded in the evidence pack? Every variant consumes this
+    same pinned asset ([policy](#same-z3-build-in-every-variant-reproducibility)).
 
 ## Related
 
@@ -1198,7 +1220,7 @@ Open questions for this suggestion:
 - [ADR 0009](../adr/0009-verifiable-template-dialects.md) — VMS-Hbs / VMS-Go / VMS-Mustache; in-dialect snippets are VMS
 - [verifiable-template-snippets.md](../proposals/verifiable-template-snippets.md) — dialect investigation; `regexReplaceAll` not SMT-proved
 - [z3-wasm-singlethread v0.1.0](https://github.com/regionstockholm/z3-wasm-singlethread/releases/tag/v0.1.0) — the single-threaded Z3 WASM build Verify mapping uses (no COOP/COEP)
-- [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official, threaded JS/TS bindings; needs a cross-origin isolated page
+- [z3-solver (npm)](https://www.npmjs.com/package/z3-solver) — official, threaded JS/TS bindings; needs a cross-origin isolated page. Spike reference only; not used by any intEHRgrator variant
 - [experiments/z3-spike](../../experiments/z3-spike/README.md) — throwaway Z3 WASM spike (Deno + Chromium) with recorded results
 - [Autonoma: What Is Decision Table Testing?](https://getautonoma.com/blog/decision-table-testing) — collapse don’t-cares, then one parameterised test per remaining rule (comment on [#41](https://github.com/regionstockholm/intehrgrator/issues/41))
 
@@ -1209,9 +1231,9 @@ Open questions for this suggestion:
 - Verifiable declarative mappings (RML → OCaml + Gospel/Cameleer): [Towards Verifiable Declarative Mappings](https://edkamb.github.io/files/kgcw2026.pdf)
 - Grain correctness in data pipelines: [Grain Theory (arXiv:2601.00995)](https://arxiv.org/abs/2601.00995)
 - Metamorphic testing of transformations (relations between paired runs, no gold output per input): Chen et al., *Metamorphic Testing: A Review of Challenges and Opportunities*
-- Z3 JavaScript/WASM: [z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread) (ours, single-threaded); [z3-solver](https://www.npmjs.com/package/z3-solver) (official; `SharedArrayBuffer` / COOP-COEP notes in its README)
+- Z3 JavaScript/WASM: [z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread) (ours, single-threaded); [z3-solver](https://www.npmjs.com/package/z3-solver) (official; `SharedArrayBuffer` / COOP-COEP notes in its README; spike reference only)
 - Decision-table test collapsing: [Autonoma](https://getautonoma.com/blog/decision-table-testing)
-- SMT-LIB v2 standard (portable `.smt2` for replay with Z3 or cvc5): [smt-lib.org](https://smt-lib.org/)
+- SMT-LIB v2 standard (the portable `.smt2` format of the evidence pack): [smt-lib.org](https://smt-lib.org/)
 - Whitebox test generation background (from the AI conversation; analyse *code*, not specs):
   [SAGE: Automated Whitebox Fuzz Testing](https://www.microsoft.com/en-us/research/publication/automated-whitebox-fuzz-testing/),
   [Pex and Moles](https://www.microsoft.com/en-us/research/project/pex-and-moles-isolation-and-white-box-unit-testing-for-net/)
