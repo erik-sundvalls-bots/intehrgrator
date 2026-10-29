@@ -1,17 +1,31 @@
 # VS Code file projects
 
-Keep source examples, the mapping and generated output together in a Git repository.
+intEHRgrator is available as a web app, a desktop app, a headless runner and a VS Code
+extension (see [README.md](../README.md)). All of them use the same Mapping Editor.
+The web and desktop apps keep projects as Project Bundles (browser storage, `.intehrgrator`
+export); that does not change. In VS Code, a project is instead a **file project**: a set of
+files in your repository, so source examples, the mapping and generated output can be
+reviewed together in Git. A `project:run` command checks the same files in CI.
+
+The VSIX is built locally for now (see [Building and testing the extension](#building-and-testing-the-extension)).
 Install the intEHRgrator VSIX using **Extensions: Install from VSIX…**, then run
 **intEHRgrator: Create File Project** to create a synthetic starter project, or
 **intEHRgrator: Open File Project** to open an existing `intehrgrator.json`.
 You can also right-click that file in Explorer.
 
+In VS Code, the workbench always works on a file project.
 **intEHRgrator: Open Integration Workbench** resumes the most recently opened
 file project in the workspace. It reloads schema, examples and mapping from workspace files
 when the view is reopened. If there is no previous project, it finds project
 files in the workspace or offers Create / Open. Project URIs are remembered
 locally; authored project content lives in the repository. Unsaved documents are
 restored by VS Code, and chat history and credentials remain local to each project.
+
+Earlier development builds of the extension opened a standalone workbench that kept
+projects in VS Code's extension storage. That view is replaced by file projects, and
+projects saved there are no longer listed. To keep one, export it as `.intehrgrator`
+with the earlier build before upgrading, then open it in the web or desktop app, or
+create a file project with the same target, Source Schema and examples.
 
 ```text
 intehrgrator.json
@@ -28,8 +42,13 @@ The mapping opens in the visual Mapping Editor. **Ctrl+S** (Cmd+S on macOS) save
 the mapping and manifest metadata and regenerates the conversion code and a result for every
 JSON/XML Example Instance in the source folder, including subfolders. Saved
 changes to examples, the Source Schema or the target also refresh the project.
+Opening a project never rewrites the committed output; only saving and `project:run` do.
 VS Code's document model handles unsaved changes, undo/redo and external mapping
-edits, including file-language choices. Open input documents are read from their
+edits, including file-language choices. In a file project there is one undo
+history, VS Code's: the toolbar Undo/Redo run VS Code's undo/redo, the History panel
+lists changes without **Undo to here**/**Revert**, and there is no autosave (VS Code
+keeps unsaved changes, including after a restart). The web and desktop apps keep
+their own undo, History actions and autosave. Open input documents are read from their
 buffers; review artifacts are regenerated when the project inputs are saved.
 Use **File → Edit file project configuration** to change file paths.
 
@@ -37,6 +56,9 @@ Use **File → Edit file project configuration** to change file paths.
 
 Paths use `/`, are relative to the directory containing `intehrgrator.json`, and
 stay within that directory. Keep generated output separate from source files.
+The mapping, `output.directory` and the script path cannot be in a dot-folder such as
+`.git` or `.vscode`, and generated files are never written through a symlink that
+leads outside the project folder.
 For a ready-to-run example, see [examples/file-project](../examples/file-project/).
 
 ```json
@@ -64,7 +86,9 @@ defaults for result generation.
 
 Target and Source Schema entries also accept `{ "path": "…", "languageSettings": { … } }`.
 `languageSettings.languages` stores the language order; `labelLanguage` stores the
-pane's chosen language. The target also supports `idLanguage` (`"primary"` or a
+pane's chosen language. Without a Source Schema, the source languages and pane
+language are stored as `source.languageSettings` (`{ "languages": […], "labelLanguage": "…" }`)
+next to `source.examples`. The target also supports `idLanguage` (`"primary"` or a
 language code), which determines Web Template ids and Simplified FLAT paths.
 Changing the Ids dropdown updates its mapping field and manifest metadata together.
 Conflicting explicit choices are reported rather than silently changing output paths.

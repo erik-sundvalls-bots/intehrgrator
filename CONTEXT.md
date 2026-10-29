@@ -304,7 +304,7 @@ The same workbench, packaged with `deno desktop` as a native window (OS webview)
 _Avoid_: Electron, ehrtslib CLI release, treating the desktop binary as a different mapping engine
 
 **VS Code / Cursor Host**:
-Second Host adapter (`VsCodeWebviewHostAdapter` + `extension/`) packaging the same Mapping Editor webview bundle; workspace FS and extension storage replace IndexedDB/file picker.
+Second Host adapter (`VsCodeWebviewHostAdapter` + `extension/`) packaging the same Mapping Editor webview bundle. Its projects are **File projects** in the workspace, saved and undone through VS Code documents; the web and desktop hosts keep Project Bundles in IndexedDB.
 _Avoid_: Separate fork of the workbench
 
 **AI Assist**:
@@ -383,7 +383,7 @@ An **Output mode** value that generates a Conversion Script (`typescript` | `jav
 _Avoid_: Export dialect, Export Target (prefer this term), Target language alone, conflating with Target instance format or Mapping preview
 
 **File project**:
-A project whose canonical Mapping Specification, Sheets, source files, target files and per-file language settings are stored as separate, Git-reviewable workspace files. Generated Conversion Scripts, mapping-preview results and diagnostics are review artifacts rebuilt from those files; undo history and other session data remain local.
+A project whose canonical Mapping Specification, Sheets, source files, target files and per-file language settings are stored as separate, Git-reviewable workspace files. Generated Conversion Scripts, mapping-preview results (see **Mapping preview**) and diagnostics are review artifacts rebuilt from those files; undo history and other session data remain local. An alternative to the **Project Bundle**, used by the VS Code host and `deno task project:run`; the Project Bundle and `.intehrgrator` export remain the format of the web and desktop apps.
 
 **UI language**:
 The application locale for Blockly messages and the rest of the web app chrome (toolbar setting). ISO 639-1 codes (`en`, `sv`, `de`, `es`, `ca`, `fr`). Distinct from **model language** (ontology labels in **Target & Previews**) and from composition language on a **default context map** — a factory openEHR map may copy UI language into **runtime key** `language` (scaffold target `*.language`) once, when the factory instance is created, and does not rewrite it if the toolbar locale later changes.

@@ -6,10 +6,6 @@ For terms and definitions used in this repo, including in this readme, see [CONT
 
 **End-user docs:** [README.md](README.md) · [docs/TUTORIAL.md](docs/TUTORIAL.md)
 
-## VS Code file projects
-
-The extension can open a Git-backed project with separate source, mapping and output files. See [VS Code file projects](docs/VS_CODE.md) for setup, reviewable results and the CI runner.
-
 ## Project persistence
 
 The web app stores mapping projects in its **IndexedDB** storage.
@@ -17,6 +13,11 @@ The web app stores mapping projects in its **IndexedDB** storage.
 The desktop app also saves data using IndexedDB, through its embedded browser engine (OS webview).
 
 Saves are done as debounced **autosave** (~10 s after edits) plus named **Save as** snapshots. Details: [docs/PROJECT_PERSISTENCE.md](docs/PROJECT_PERSISTENCE.md) and [Autosave & Status Bar](docs/UI_ARCHITECTURE.md#autosave--status-bar) in `docs/UI_ARCHITECTURE.md`. Portable backup is the `.intehrgrator` export/import path.
+
+
+## VS Code file projects
+
+In addition to the web and desktop storage above, the VS Code extension works on file projects: a Git-backed project with separate source, mapping and output files. The same files can be checked headlessly with `deno task project:run`. See [VS Code file projects](docs/VS_CODE.md) for setup, reviewable results and the CI runner.
 
 ## Prerequisites
 
