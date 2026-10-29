@@ -1030,8 +1030,10 @@ no `trust: author` exemption for templates.
   current VMS-Hbs / VMS-Go (or Decision tables with VMS-Mustache cells). They are not a
   supported input and not part of the regression or verification suite in their
   original form.
-- This amends ADR 0009, which still describes out-of-dialect text as keeping "a hatch
-  warning"; the ADR should be updated if this is accepted.
+- [ADR 0009](../adr/0009-verifiable-template-dialects.md) is amended accordingly
+  ([Amendment 2026-10-29](../adr/0009-verifiable-template-dialects.md#amendment-2026-10-29)):
+  the "hatch warning" for out-of-dialect text is gone; the lint severity change is
+  recorded there as a proposal.
 
 ## Design suggestions (future decision): live Test & Validation
 
