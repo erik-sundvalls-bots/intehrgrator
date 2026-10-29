@@ -3,6 +3,7 @@
  * `DOMParser` in Deno) and XSD read as a schema rather than an instance.
  */
 import { assert, assertEquals, assertRejects } from "@std/assert";
+import { join } from "@std/path";
 import { WorkbenchService } from "../src/workbench/service.ts";
 import { callAgentTool } from "../src/agent/tools.ts";
 import { loadXmlSourceSchema, loadXsdSchemaTree } from "../src/core/source/schema_loader.ts";
@@ -11,9 +12,10 @@ import { parseXsd } from "../src/core/xsd/xsd_model.ts";
 import { sourceTreeOutline } from "../src/agent/inspect.ts";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
 
-const dir = new URL("./fixtures/multilingual-referral/", import.meta.url);
-const xsdPath = new URL("referral.xsd", dir).pathname;
-const examplePath = new URL("referral-example.xml", dir).pathname;
+// URL.pathname is `/C:/...` on Windows, which Deno.readTextFile rejects (os error 123).
+const dir = join(import.meta.dirname!, "fixtures", "multilingual-referral");
+const xsdPath = join(dir, "referral.xsd");
+const examplePath = join(dir, "referral-example.xml");
 
 function find(node: SchemaTreeNode, path: string): SchemaTreeNode | undefined {
   if (node.path === path) return node;
