@@ -54,7 +54,9 @@ instances (`TemplateValidator`) and warns on unmapped mandatory slots. That is
 7. **Include in-dialect template snippets** (**VMS-Hbs**, **VMS-Go**,
    **VMS-Mustache**) in the same SMT and coverage pass — they are VMS
    ([ADR 0009](../adr/0009-verifiable-template-dialects.md)), not `trust: author`
-   hatches. Only *out-of-dialect* Handlebars/Go stays unverified.
+   hatches. *Out-of-dialect* Handlebars/Go is **not accepted** in intEHRgrator
+   mappings (see [Out-of-dialect templates: not accepted](#out-of-dialect-templates-not-accepted)), so no
+   template text is left outside verification.
 
 ## Project context
 
@@ -169,7 +171,7 @@ fill the gaps between those points.
 |-----------|-----|-------------------|
 | **Z3 (WASM)** | **High — in-app.** Upstream Z3 compiled to WASM: our single-threaded build ([z3-wasm-singlethread](https://github.com/regionstockholm/z3-wasm-singlethread)) in the web app; the official `z3-solver` package where the page is cross-origin isolated. Generate SMT from the Mapping Model; run in a Web Worker while authoring (on request, or debounced if the [live mode](#design-suggestions-future-decision-live-test--validation) is adopted). | Bounded SMT: sat → counterexample; unsat → proof of the encoded property on the VMS slice |
 | **Mapping Contract DSL** (custom) | High — generated from Mapping Model + source/target schemas; the human-readable twin of the SMT | Documentation + CI; Z3 consumes the same invariants |
-| **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers, out-of-dialect templates marked `trust: author`) | Falsification with generated sources; shrink into Example Instances |
+| **Property-based testing export** (fast-check, Hypothesis, QuickCheck) | High — covers what SMT cannot bound (XPath over unbounded trees, `regexReplaceAll` sanitizers) | Falsification with generated sources; shrink into Example Instances |
 | **Chunk-level test suite** in the chosen Conversion script language | High — same language as Generated Export; one suite per Decision table / Blockly Function / loop grain | Regression tests others run later; avoids cartesian explosion (see below) |
 | **Schematron** (XML) / **JSON Schema `if/then`** (JSON) | Medium — output-side rules from mapping + constraints | Declarative validation of produced instances |
 
@@ -224,7 +226,7 @@ The product has six coupled slices (see [#41](https://github.com/regionstockholm
 | **C. Verification evidence pack** | Downloadable bundle of SMT, Z3 version, sat/unsat, counterexamples, coverage, VMS lint — for MDR/IVDR technical files. |
 | **D. Chunk-level test suite** | Generated tests in the **same Conversion script language** as Output mode, one suite per mapping chunk (including in-dialect template snippets). |
 | **E. Convert-time throws** | VMS `error(message)` / Throw block, plus Decision table **error rows** and catch-all throws. |
-| **F. In-dialect templates** | Lower **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** into the same SMT and coverage overlay as Mapping Expressions. Out-of-dialect remains `trust: author`. |
+| **F. In-dialect templates** | Lower **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** into the same SMT and coverage overlay as Mapping Expressions. Out-of-dialect templates are [not accepted](#out-of-dialect-templates-not-accepted). |
 
 Phased delivery:
 
@@ -387,7 +389,8 @@ the `.intehrgrator` by default, same policy as Generated Export):
 - Project identity (template id, Source Schema hash, Mapping Model hash, VMS
   lint)
 - Generated mapping-contract + SMT-LIB (including lowered VMS-Hbs / VMS-Go / VMS-Mustache)
-- Dialect ASTs + lint (in-dialect vs `trust: author` out-of-dialect)
+- Dialect ASTs + lint result (a pack is only produced for in-dialect templates;
+  out-of-dialect text is [not accepted](#out-of-dialect-templates-not-accepted))
 - Solver identity (release tag, Z3 version string with upstream commit, WASM SHA-256,
   provenance attestation)
 - Per-property results (`unsat` / `sat` + model / timeout / skipped hatch)
@@ -484,8 +487,6 @@ What stays out of SMT (PBT / gold strings, still in the evidence pack):
 
 - `regexReplaceAll` / character-class sanitizers (`cleanAndQuoteFreeTextInput`)
 - Clinical *meaning* of narrative prose
-- **Out-of-dialect** Handlebars/Go (`lookup`, `#with`, `call`, Sprig, …) —
-  `trust: author` hatch, skipped or marked, never silently treated as VMS
 
 Canvas `text_handlebars` is the VMS-Hbs specification
 (`ProjectBundle.mapping.blocklyState`). Verify mapping must walk it with
@@ -727,7 +728,10 @@ the mapping specification.
 - Treating Dafny as a prerequisite for in-app checks — Z3 WASM is enough for the interactive slice.
 - Treating **in-dialect** VMS-Hbs / VMS-Go / VMS-Mustache as `trust: author`
   hatches — those dialects exist so SMT and coverage can see their path sets
-  and `if`/`eq` trees. Only *out-of-dialect* templates skip proof.
+  and `if`/`eq` trees.
+- Accepting *out-of-dialect* templates as a `trust: author` hatch that skips proof.
+  intEHRgrator does not accept them; legacy examples are translated to VMS-Hbs /
+  VMS-Go first ([policy](#out-of-dialect-templates-not-accepted)).
 - Generating a cartesian **whole-convert** test matrix as the default suite — explode on source fields; emit **chunk** tests (collapsed Decision table rules, functions, grain).
 - Leaving Decision table no-match as `null` while calling convert crash-free — that is a silent hole, not Rejected.
 - Running Verify mapping **on every keystroke, undebounced and uncancellable**, or downloading the 22 MB
@@ -756,7 +760,7 @@ extractor (`workspaceToModelJson`), and codegen adapters (`xquery.ts`,
 | Category | Effect on XQuery / declarative export | Effect on formal verification |
 |----------|--------------------------------------|------------------------------|
 | **Canvas vs Mapping Model gap** | Medium — Mapping Model has `loops[]` / `targetSignature`; XQuery loop emit landed with [#39](https://github.com/regionstockholm/intehrgrator/issues/39) | Low–medium — preview vs TypeScript golden oracles landed ([#38](https://github.com/regionstockholm/intehrgrator/issues/38)); SMT still needs the same IR |
-| **Template dialects (ADR 0009)** | Medium — XQuery still stubs some `handlebars()` literals; in-dialect AST is available from lint | **Positive** for VMS-Hbs / VMS-Go / VMS-Mustache (lower to SMT). High only for *out-of-dialect* leftovers |
+| **Template dialects (ADR 0009)** | Medium — XQuery still stubs some `handlebars()` literals; in-dialect AST is available from lint | **Positive** for VMS-Hbs / VMS-Go / VMS-Mustache (lower to SMT). Out-of-dialect is [not accepted](#out-of-dialect-templates-not-accepted), so there is no residual template risk |
 | **Sheet mutators** | **Removed** from toolbox (VMS); not in Mapping Model expressions | High if re-enabled — imperative convert-time state |
 | **Stock imperative Blockly** | **Removed** from toolbox (VMS) | High if re-enabled — unbounded / non-deterministic / stateful |
 | **Dynamic source paths** | Medium — literal paths compile; dynamic paths need runtime helpers | Medium — symbolic XPath over JSON/XML is hard to bound |
@@ -815,7 +819,7 @@ from the Code text LANG dropdown.
 | `text_code` LANG=`handlebars` | Same VMS-Hbs lowering. LANG is product semantics (not UI-only). |
 | `text_code` LANG=`go-template` | **VMS-Go** — lower `if`/`index`/`range`/curated FuncMap; inline acyclic `define`. |
 | Decision table snippet cells | **VMS-Mustache** — interpolation + sections; branching stays in the table. |
-| Out-of-dialect leftovers (`lookup`, `#with`, `call`, Sprig, …) | Hatch — `trust: author`; lint already warns; skip proof obligations. |
+| Out-of-dialect text (`lookup`, `#with`, `call`, Sprig, …) | **Not accepted** in intEHRgrator mappings. Convert already fails closed (ADR 0009); lint warns today and should reject (proposal, see [policy](#out-of-dialect-templates-not-accepted)). No proof obligations are skipped for it. |
 
 **Why the old “opaque string” story is wrong now:** unrestricted Handlebars.js /
 Sprig *would* be `string × context → string`. The closed dialects are a **fixed
@@ -835,7 +839,9 @@ encode it; prefer reauthoring to Decision tables for humans, not for the solver.
 4. Treat `regexReplaceAll` as an uninterpreted string function in SMT; pin
    behaviour with gold strings / PBT (as the snippet investigation already
    states).
-5. Only mark a slot `trust: author` when lint reports **out-of-dialect**.
+5. Do not mark template slots `trust: author`. Out-of-dialect text is rejected,
+   not exempted ([policy](#out-of-dialect-templates-not-accepted)); `trust: author` stays for the remaining non-template
+   hatches listed under [Implemented VMS](#implemented-vms-verifiable-mapping-subset).
 
 ### 3. Sheets: accessors vs mutators
 
@@ -937,8 +943,7 @@ rules; JSON-LD / SHACL / description-logic approaches want a fixed target schema
 **Suggestions:**
 
 1. For verification track: prefer **`target_structure` / `target_value`** slots
-   tied to the loaded schema; treat generic `json_object` as an escape hatch
-   (out-of-dialect templates, not in-dialect VMS-Hbs/VMS-Go).
+   tied to the loaded schema; treat generic `json_object` as an escape hatch.
 2. When Source Schema and Target Schema are both loaded, auto-generate
    **path correspondence** candidates for the contract.
 
@@ -981,13 +986,15 @@ VMS allowed (implement fully, including Mapping Model + all exporters):
   VMS-Mustache snippet cells, in-dialect VMS-Hbs and VMS-Go (lower to SMT)
 
 VMS escape hatch (keep in toolbox; mark unverified):
-  out-of-dialect Handlebars or Go template, ad-hoc json_object / xml_element trees,
+  ad-hoc json_object / xml_element trees,
   dynamic (non-literal) source paths, procedures_defreturn (until function
   harness lands)
 
 VMS-Hbs / VMS-Go / VMS-Mustache:
   in-dialect per ADR 0009 — **include in Verify mapping**; not a hatch.
-  Out-of-dialect leftovers stay `trust: author`.
+
+Not accepted (not a hatch):
+  out-of-dialect Handlebars or Go template (see policy below)
 
 
 VMS remove from toolbox (do not implement):
@@ -998,11 +1005,33 @@ VMS remove from toolbox (do not implement):
 ```
 
 A workspace linter ([#40](https://github.com/regionstockholm/intehrgrator/issues/40))
-warns on leftover Blockly hatches and on **out-of-dialect** Handlebars / Go template.
+warns on leftover Blockly hatches and (today, at warning severity) on **out-of-dialect**
+Handlebars / Go template; see the proposal below to reject it.
 In-dialect **VMS-Hbs** / **VMS-Go** / **VMS-Mustache** is VMS
 ([ADR 0009](../adr/0009-verifiable-template-dialects.md),
 [proposal](../proposals/verifiable-template-snippets.md)) and is **in scope**
 for SMT lowering on [#41](https://github.com/regionstockholm/intehrgrator/issues/41).
+
+### Out-of-dialect templates: not accepted
+
+**intEHRgrator does not accept out-of-dialect Handlebars or Go template text** in
+mappings. VMS-Hbs, VMS-Go and VMS-Mustache are the only template languages; there is
+no `trust: author` exemption for templates.
+
+- **Already enforced at convert:** ADR 0009's hard gate (`knownHelpersOnly` against the
+  VMS-Hbs whitelist; Go parse + curated FuncMap) means out-of-dialect text does not run.
+- **Proposal, mechanism not decided:** today the editor lint (#40, ADR 0009 "soft gate")
+  only **warns**. Raise out-of-dialect findings to **error** severity, and have
+  Verify mapping, Generated Export and the evidence pack report them as a failing
+  finding rather than a skipped hatch. Open: whether save / Project Bundle load should
+  also refuse it, or load it flagged so the author can fix it.
+- **Legacy examples:** older mapping examples that use out-of-dialect constructs are
+  kept only as **comparative material for one-off tests**, after translation to the
+  current VMS-Hbs / VMS-Go (or Decision tables with VMS-Mustache cells). They are not a
+  supported input and not part of the regression or verification suite in their
+  original form.
+- This amends ADR 0009, which still describes out-of-dialect text as keeping "a hatch
+  warning"; the ADR should be updated if this is accepted.
 
 ## Design suggestions (future decision): live Test & Validation
 
@@ -1188,4 +1217,5 @@ Open questions for this suggestion:
 > vs treating XPath as uninterpreted vs bounding collections. Where must we
 > fall back to property-based testing (`regexReplaceAll`, unbounded trees)?
 > How should authored `error(…)` / Decision table error rows appear in the
-> SMT (Rejected vs Erroneous)? Out-of-dialect templates stay `trust: author`.
+> SMT (Rejected vs Erroneous)? Out-of-dialect templates are not accepted, so
+> they need no encoding.
