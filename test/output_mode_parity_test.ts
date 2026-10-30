@@ -74,3 +74,35 @@ for (const setId of ["Simple-vitals", "Simple-vitals-series"]) {
     }
   });
 }
+
+Deno.test("free text mapped to a coded slot gets the code and template rubric in both modes (#309)", async () => {
+  const service = new WorkbenchService();
+  await callAgentTool(service, "load_example_set", {
+    catalogPath,
+    setId: "Simple-vitals-unmapped",
+    includeMapping: false,
+  });
+  await callAgentTool(service, "map_slot", {
+    slotId: `${EVENT}/state/at0007/items/at0008/value/DV_CODED_TEXT/value`,
+    path: "$.bodyPosition",
+  });
+  await callAgentTool(service, "map_slot", {
+    slotId: `${EVENT}/data/at0003/items/at0004/value/value/value`,
+    path: "$.systolic",
+  });
+  const { preview, typescript } = await runBoth(service);
+  const p = asJson(preview.testResult.output);
+  const t = asJson(typescript.testResult.output);
+  assertEquals(t, p);
+  const position = find(p, (r) => r.archetype_node_id === "at0008")[0]?.value as Record<string, unknown>;
+  assertEquals(position?.value, "Sitting");
+  assertEquals((position?.defining_code as { code_string?: string })?.code_string, "at1001");
+  // The unmapped set leaves only the RM-mandatory EVENT_CONTEXT.setting open.
+  for (const result of [preview, typescript]) {
+    assertEquals(
+      (result.testResult.outputValidation?.messages ?? []).map((m) => m.message),
+      ["EVENT_CONTEXT.setting is required by RM specification"],
+      messages(result),
+    );
+  }
+});

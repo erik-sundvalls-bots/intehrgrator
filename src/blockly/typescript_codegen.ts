@@ -690,6 +690,18 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
   }
   // A quantity without a magnitude is only scaffolding (e.g. fixed units): prune it like the preview does.
   if (rmType === "DV_QUANTITY" && !props.some((p) => p[0] === "magnitude")) return "";
+  if (
+    rmType === "DV_CODED_TEXT" && props.length === 1 && props[0]![0] === "value"
+  ) {
+    const choices = codedChoices(ctx, String(block.getFieldValue("SLOT_ID") ?? "").trim());
+    if (choices.length) {
+      // Free text into a coded slot: look the text up in the template value set
+      // so the output carries defining_code and the template rubric (#309, #310).
+      ctx.types.add("DV_CODED_TEXT");
+      ctx.helpers.add("coded");
+      return `codedText(${props[0]![1]}, ${JSON.stringify(choices)})`;
+    }
+  }
   if (rmType === "DV_TEXT" && props.length === 1 && props[0]![0] === "value") {
     ctx.types.add("DV_TEXT");
     return `new DV_TEXT(${props[0]![1]})`;
@@ -743,6 +755,18 @@ function emitTermPick(block: Block, ctx: TsEmitContext): string {
 /** LOCATABLE.name is mandatory, also when it repeats the RM type (e.g. HISTORY "history"). */
 function shouldEmitLocatableName(rmType: string, _name: string): boolean {
   return rmType === "COMPOSITION" || LOCATABLE_TYPES.has(rmType);
+}
+
+/** `[code, rubric, terminology]` rows of a coded slot's template value set. */
+function codedChoices(ctx: TsEmitContext, slotId: string): Array<[string, string, string]> {
+  if (!slotId) return [];
+  const node = ctx.skeletonNodes?.get(slotId) ??
+    ctx.skeletonNodes?.get(slotId.replace(/\/value$/, "")) ??
+    ctx.skeletonNodes?.get(slotId.replace(/\/DV_CODED_TEXT\/value$/, ""));
+  const allowed = node?.allowedValues ?? [];
+  return allowed
+    .filter((row) => row.code)
+    .map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
 }
 
 function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string {

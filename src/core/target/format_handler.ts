@@ -754,7 +754,8 @@ function fillCodedValueFromAllowed(
     Object.assign(output, codePhrase);
     return;
   }
-  if (output.value == null || String(output.value).trim() === "") output.value = chosen.label;
+  // The template rubric, not the source spelling, once the code is known (#309).
+  output.value = chosen.label;
   output.defining_code = codePhrase;
 }
 

@@ -54,7 +54,7 @@ export interface TsEmitContext {
   /** When set, relative source paths evaluate against this loop node. */
   loopVar?: string;
   types: Set<string>;
-  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "party">;
+  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party">;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
   archetypeRootIds?: Map<string, string>;
   /** Skeleton nodes by slot id: output names of blocks not renamed by the user. */
@@ -348,7 +348,7 @@ export interface TypeScriptModuleParts {
   templateId: string;
   body: string;
   types: Set<string>;
-  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "party">;
+  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party">;
   rootType?: string;
   /** Where the RM tree was walked from. */
   source?: "blockly" | "skeleton" | "slots";
@@ -422,6 +422,10 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
   }
   if (parts.helpers.has("party")) {
     lines.push(...indentLines(partyValueHelper(), 1));
+    lines.push("");
+  }
+  if (parts.helpers.has("coded")) {
+    lines.push(...indentLines(codedTextHelper(), 1));
     lines.push("");
   }
   if (parts.helpers.has("handlebars")) {
@@ -807,6 +811,30 @@ function partyValueHelper(): string[] {
     "  const { rmType, ...rest } = v as Record<string, unknown>;",
     "  const type = typeof rmType === \"string\" && rmType !== \"PARTY_PROXY\" ? rmType : fallback;",
     "  return { _type: type, ...rest };",
+    "}",
+  ];
+}
+
+/**
+ * Free text into a coded slot: match code or rubric (case-insensitive) in the
+ * template value set. A unique match gives defining_code and the template
+ * rubric; otherwise the text is kept and validation reports the missing code.
+ */
+function codedTextHelper(): string[] {
+  return [
+    "function codedText(text: unknown, choices: Array<[string, string, string]>) {",
+    "  const s = String(text ?? \"\").trim();",
+    "  if (!s) return undefined;",
+    "  const k = s.toLowerCase();",
+    "  const hits = choices.filter(([code, rubric]) =>",
+    "    code.trim().toLowerCase() === k || rubric.trim().toLowerCase() === k",
+    "  );",
+    "  if (hits.length !== 1) return new DV_CODED_TEXT({ value: s });",
+    "  const [code, rubric, terminology] = hits[0]!;",
+    "  return new DV_CODED_TEXT({",
+    "    value: rubric,",
+    "    defining_code: { terminology_id: terminology, code_string: code },",
+    "  });",
     "}",
   ];
 }
