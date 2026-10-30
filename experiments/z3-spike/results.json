@@ -1,0 +1,428 @@
+{
+  "z3_solver": "5.3.2",
+  "deno": "2.9.7",
+  "wasm_bytes": 35418833,
+  "timings": {
+    "import_ms": 14,
+    "init_wasm_ms": 177.9,
+    "p1_sbp_band_gap_ms": 103.2,
+    "p1_sbp_band_gap_int_ms": 34.6,
+    "p2_ism_valueset_ms": 4.6,
+    "p2_ism_sensitivity_ms": 22.6,
+    "p2_ism_row1_reachable_ms": 5.9,
+    "p2_ism_row2_reachable_ms": 3.6,
+    "p2_ism_row3_reachable_ms": 2.9,
+    "p2_ism_row4_reachable_ms": 4.4,
+    "p2_ism_row5_reachable_ms": 31.1
+  },
+  "results": {
+    "p1_sbp_band": {
+      "path": "test/fixtures/dummy-json-vitals/mapping/ai-created-sbp-band.decision-table.json",
+      "srcType": "number",
+      "bandRequired": true,
+      "verdict": "sat",
+      "solve_ms": 103.2,
+      "counterexample": {
+        "sbp": "(/ 279.0 2.0)",
+        "sbp_decimal": 139.5
+      },
+      "replay_evaluateDecisionTable": null,
+      "smtlib_bytes": 174,
+      "verdict_if_integer": "unsat",
+      "smtlib_roundtrip": {
+        "verdict": "sat",
+        "parse_and_solve_ms": 12.7
+      }
+    },
+    "p2_medication_ism": {
+      "allowedCurrentState": [
+        "532"
+      ],
+      "allowedCareflow": [
+        "at0007"
+      ],
+      "allowedStateLabels": [
+        "completed"
+      ],
+      "allowedCareflowLabels": [
+        "Fullföljd läkemedelsbehandling"
+      ],
+      "verdict_outputs_outside_opt": "unsat",
+      "verdict_outputs_depend_on_inputs": "unsat",
+      "dead_rows": []
+    },
+    "p3_all_tables": {
+      "tables": 30,
+      "queries": 216,
+      "total_ms": 1481.3,
+      "max_query_ms": 24.7,
+      "findings": [
+        {
+          "file": "test/fixtures/Obstetrix-MHV1/mapping/mapping.sheets.json",
+          "table": "lifestyle_code",
+          "rows": 3,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": {
+            "counterexample": {
+              "code": "0"
+            },
+            "replay": null
+          },
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/Obstetrix-MHV1/mapping/obx-mhv1.sheets.json",
+          "table": "lifestyle_code",
+          "rows": 3,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": {
+            "counterexample": {
+              "code": "0"
+            },
+            "replay": null
+          },
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/karda-admin.sheets.json",
+          "table": "medication_ism",
+          "rows": 5,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": "completed"
+        },
+        {
+          "file": "test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json",
+          "table": "medication_ism",
+          "rows": 5,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": "completed"
+        },
+        {
+          "file": "test/fixtures/dummy-json-vitals/mapping/ai-created-sbp-band.decision-table.json",
+          "table": "sbp_band",
+          "rows": 3,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": {
+            "counterexample": {
+              "sbp": 139.5
+            },
+            "replay": null
+          },
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/legacy-simulated-json/mapping/body_position.decision-table.json",
+          "table": "body_position",
+          "rows": 3,
+          "source_schema_precondition": {
+            "position": [
+              "sitting",
+              "lying",
+              "standing"
+            ]
+          },
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "unsat",
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/legacy-simulated-json/mapping/bp-series.sheets.json",
+          "table": "body_position",
+          "rows": 5,
+          "source_schema_precondition": {
+            "position": [
+              "sitting",
+              "lying",
+              "standing"
+            ]
+          },
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [
+            4,
+            5
+          ],
+          "no_match": "has catch-all",
+          "absent_input_replay": "at1001"
+        },
+        {
+          "file": "test/fixtures/legacy-simulated-json/mapping/bp-series.sheets.json",
+          "table": "icd10_display",
+          "rows": 4,
+          "source_schema_precondition": {
+            "code": [
+              "S06.0",
+              "S42.0",
+              "S52.5",
+              "S72.0"
+            ]
+          },
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "unsat",
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/legacy-simulated-json/mapping/mapping-series.sheets.json",
+          "table": "body_position",
+          "rows": 5,
+          "source_schema_precondition": {
+            "position": [
+              "sitting",
+              "lying",
+              "standing"
+            ]
+          },
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [
+            4,
+            5
+          ],
+          "no_match": "has catch-all",
+          "absent_input_replay": "at1001"
+        },
+        {
+          "file": "test/fixtures/legacy-simulated-json/mapping/mapping-series.sheets.json",
+          "table": "icd10_display",
+          "rows": 4,
+          "source_schema_precondition": {
+            "code": [
+              "S06.0",
+              "S42.0",
+              "S52.5",
+              "S72.0"
+            ]
+          },
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "unsat",
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/legacy-simulated-json/mapping/simple-vitals.sheets.json",
+          "table": "body_position",
+          "rows": 4,
+          "source_schema_precondition": {
+            "position": [
+              "sitting",
+              "lying",
+              "standing"
+            ]
+          },
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [
+            4
+          ],
+          "no_match": "unsat",
+          "absent_input_replay": null
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "imaging_term",
+          "rows": 3,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": 59
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "imaging_note",
+          "rows": 1,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "smoking_note",
+          "rows": 2,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": " ()\n"
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "regimen_phrase",
+          "rows": 7,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "dose_phrase",
+          "rows": 4,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "chemoradiation_form",
+          "rows": 2,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "follow_glue",
+          "rows": 4,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": "Patienten rekommenderas"
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "relation_tail",
+          "rows": 4,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": "Relation till huvudbehandling: ."
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "huvud_relation_tail",
+          "rows": 4,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "intention_closing",
+          "rows": 2,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": "  behandling."
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "treatment_frame",
+          "rows": 16,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+          "table": "treatment_note",
+          "rows": 1,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/karda-ord.sheets.json",
+          "table": "beredningsform",
+          "rows": 9,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/karda-ord.sheets.json",
+          "table": "administreringsvag",
+          "rows": 33,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json",
+          "table": "beredningsform",
+          "rows": 9,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json",
+          "table": "administreringsvag",
+          "rows": 33,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.sheets.json",
+          "table": "fatigue_note",
+          "rows": 2,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ""
+        },
+        {
+          "file": "test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.sheets.json",
+          "table": "swelling_note",
+          "rows": 2,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": ". Patientens kommentar angående lokalisation: \"\"."
+        },
+        {
+          "file": "test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.sheets.json",
+          "table": "itch_note",
+          "rows": 2,
+          "source_schema_precondition": null,
+          "dead_rows": [],
+          "dead_rows_given_source_schema": [],
+          "no_match": "has catch-all",
+          "absent_input_replay": "."
+        }
+      ]
+    },
+    "pitfall_naive_reassignment": {
+      "whole_query": "sat",
+      "when_src_unit_is_mmHg": "unsat"
+    }
+  }
+}

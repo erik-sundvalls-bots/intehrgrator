@@ -1,6 +1,6 @@
 {
   "name": "@regionstockholm/intehrgrator",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "exports": "./src/mod.ts",
   "nodeModulesDir": "auto",
   "compilerOptions": {
@@ -40,20 +40,15 @@
     "@blockly/workspace-minimap": "npm:@blockly/workspace-minimap@0.2.16",
     "@blockly/toolbox-search": "npm:@blockly/toolbox-search@2.0.16",
     "fflate": "npm:fflate@^0.8.2",
-    "fast-xml-parser": "npm:fast-xml-parser@^4.5.6",
-    "handlebars": "npm:handlebars@^4.7.9",
+    "fast-xml-parser": "npm:fast-xml-parser@^5.11.2",
+    "handlebars": "npm:handlebars@^4.7.10",
     "jspreadsheet-ce": "npm:jspreadsheet-ce@5.0.4",
     "jsuites": "npm:jsuites@5.13.4",
     "yaml": "npm:yaml@^2.9.0",
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.5.1/"
-  },
-  "scopes": {
-    "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.5.1/": {
-      "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.5.1/validation/template_validator.ts": "./vendor/ehrtslib-overrides/validation/template_validator.ts"
-    }
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.7/"
   },
   "tasks": {
     "vendor": "deno run -A scripts/vendor-ehrtslib.ts",
@@ -72,6 +67,7 @@
     "compile:ehrtslib": "deno run -A scripts/compile-ehrtslib.ts",
     "release": "deno run -A scripts/release.ts",
     "release:no-test": "deno run -A scripts/release.ts --no-test",
+    "measure:context": "deno run -A --no-check scripts/measure_slot_context.ts",
     "mcp": "deno run -A src/agent/mcp_stdio.ts",
     "generate:function-library": "deno run -A --no-check scripts/generate-function-library.ts"
   },

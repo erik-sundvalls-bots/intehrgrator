@@ -10,6 +10,7 @@ import { aiChatActor, type HistoryActor, USER_ACTOR } from "./actor.ts";
 import {
   AgentRevisionConflictError,
   AgentSlotLeasedError,
+  HumanEditedSlotError,
   WorkbenchService,
 } from "../workbench/service.ts";
 import { agentApiUnauthorized } from "./auth.ts";
@@ -114,8 +115,10 @@ export function createAgentApiHandler(
       const tool = findAgentToolForHttp(req.method, path);
       if (!tool) return json({ error: "Not found" }, 404);
 
-      service.setActorFromHeaders(req.headers);
       const args = await argsFromHttpRequest(req, tool, url, revisionHeader);
+      // Set the actor after the body is read, right before the call: two
+      // agents' requests can interleave at that await.
+      service.setActorFromHeaders(req.headers);
       const result = await callAgentTool(service, tool, args);
       return json(result);
     } catch (err) {
@@ -126,10 +129,14 @@ export function createAgentApiHandler(
           expectedRevision: err.expectedRevision,
         }, 409);
       }
+      if (err instanceof HumanEditedSlotError) {
+        return json({ error: err.message, humanWins: true, slotIds: err.slotIds }, 409);
+      }
       if (err instanceof AgentSlotLeasedError) {
         return json({
           error: err.message,
           holder: err.holder,
+          ...(err.slotIds.length ? { slotIds: err.slotIds } : {}),
         }, 409);
       }
       const message = err instanceof Error ? err.message : String(err);

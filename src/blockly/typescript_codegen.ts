@@ -54,7 +54,12 @@ import {
   type TsEmitContext,
 } from "../core/codegen/typescript.ts";
 import { registerExportTargetAdapter } from "../core/codegen/mod.ts";
-import { archetypeRootIdBySlot, propsLackClinicalContent } from "../core/openehr/rm_archetype_node_id.ts";
+import {
+  archetypeRootIdBySlot,
+  outputLocatableName,
+  propsLackClinicalContent,
+} from "../core/openehr/rm_archetype_node_id.ts";
+import { labelSlotId, walkSkeleton } from "./block_labels.ts";
 import { runWithoutBlocklyEvents } from "./blockly_events.ts";
 import { isLoopBlockType, loopIndexBinderName, loopLengthBinderName, sourcePathFromLoopList } from "./loop_block.ts";
 import { migrateForEachSourceState } from "./migrate_for_each_source.ts";
@@ -123,7 +128,11 @@ export function generateTypeScriptFromWorkspace(
   skeleton?: import("../types/mod.ts").SkeletonNode[],
 ): string | null {
   const ctx = createTsEmitContext("sourceCtx.data", model.functions);
-  if (skeleton?.length) ctx.archetypeRootIds = archetypeRootIdBySlot(skeleton);
+  if (skeleton?.length) {
+    ctx.archetypeRootIds = archetypeRootIdBySlot(skeleton);
+    ctx.skeletonNodes = new Map();
+    walkSkeleton(skeleton, (node) => ctx.skeletonNodes!.set(node.slotId, node));
+  }
   const instanceRoot = findInstanceRootUnderStart(workspace);
   const roots = workspace.getTopBlocks(true).filter((block) =>
     block.type !== DEFAULTS_BLOCK_TYPE &&
@@ -363,8 +372,11 @@ function collectRmProps(
 ): Array<[string, string]> {
   const rmType = rmTypeOf(block);
   const props: Array<[string, string]> = [];
-  const name = String(block.getFieldValue("NAME") ?? "").trim();
   const slotId = String(block.getFieldValue("SLOT_ID") ?? "").trim();
+  const name = outputLocatableName(
+    String(block.getFieldValue("NAME") ?? "").trim(),
+    ctx.skeletonNodes?.get(labelSlotId(block)),
+  );
   const nodeId = ctx.archetypeRootIds?.get(slotId) ||
     String(block.getFieldValue("ARCHETYPE_NODE_ID") ?? "").trim();
   if (name && shouldEmitLocatableName(rmType, name)) {

@@ -54,10 +54,24 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "list_slots",
     description:
-      "Target value slots (id, mapped, valueType, pathLabel, multiplicity, attachSlotId for loops, parentRmType of the nearest COMPOSITION/SECTION/ENTRY, unitsFixed/allowedUnits, codeFixed/allowedValues, expression) plus repeatable containers. Filter with unmappedOnly and/or query (substring of slotId, label or pathLabel).",
+      "Target value slots as the compact slot tree: groups (repeating container with loop: true, or archetype / parent node) with rows {id, type, label, mult, mandatory, fixed, units, values, expr when mapped}. A slot id is group + row id; full ids work too. Filter with unmappedOnly and/or query (substring of slot id, label or path label). view: \"rows\" returns the older flat rows with full slotId, pathLabel, attachSlotId plus repeatable containers. get_slot gives one slot in full.",
     inputSchema: {
       type: "object",
-      properties: { unmappedOnly: { type: "boolean" }, query: { type: "string" } },
+      properties: {
+        unmappedOnly: { type: "boolean" },
+        query: { type: "string" },
+        view: { type: "string", enum: ["tree", "rows"] },
+      },
+    },
+  },
+  {
+    name: "get_slot",
+    description:
+      "One Target slot in full: id (any form from list_slots / the slot tree), documentation, all value set entries and ordinals, fixed values, the constraint from the target file (JSON Schema subschema, XSD element/attribute, template node), current mapping and lease.",
+    inputSchema: {
+      type: "object",
+      required: ["id"],
+      properties: { id: { type: "string" } },
     },
   },
   {
@@ -76,8 +90,12 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "get_source_tree",
-    description: "Compact Source Schema and Active Example trees (paths for Click-to-Map / source_query).",
-    inputSchema: { type: "object", properties: {} },
+    description:
+      "Compact Source Schema and Active Example trees (paths for Click-to-Map / source_query), with each node's full description. descriptionLanguage is the language of the descriptions (source.lang.1 when the schema has it); a node has lang only when its text is in another language. sourceLanguages / schemaLanguages list the source's languages; pass language (e.g. \"en\") for the descriptions in another schema language. A node deeper than 64 levels is cut with childrenOmitted (count).",
+    inputSchema: {
+      type: "object",
+      properties: { language: { type: "string", description: "ISO 639-1 code of one of schemaLanguages" } },
+    },
   },
   {
     name: "get_sheets",
@@ -317,25 +335,29 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "lease_slot",
-    description: "Advisory lease on a Target value slot while this agent is mapping it (S-15).",
+    description:
+      "Advisory lease while this agent works (S-15): on one Target value slotId, or with subtree: true on a node path (a slotId prefix from list_slots, e.g. …//context/EVENT_CONTEXT) covering every slot below it. Other MCP agents then cannot change what it covers (their writes, undo and revert there fail with the holder); the person in the UI sees the lease on the canvas and is asked before changing what it covers, but may go ahead; if they do, your next write to such a slot fails once (the person wins), so read it again. Fails when it overlaps another agent's lease. Renew by calling again before ttlSec (default 120, max 3600) runs out. Call register_agent first so the lease shows your name and colour.",
     inputSchema: {
       type: "object",
       required: ["slotId"],
-      properties: { slotId: { type: "string" }, ttlSec: { type: "number" } },
+      properties: {
+        slotId: { type: "string", description: "Value slot id, or a node path with subtree: true" },
+        subtree: { type: "boolean" },
+        ttlSec: { type: "number" },
+      },
     },
   },
   {
     name: "release_slot",
-    description: "Release a slot lease held by this agent.",
+    description: "Release a lease this agent holds (slotId, as leased), or all: true for every lease this agent holds. Release when done.",
     inputSchema: {
       type: "object",
-      required: ["slotId"],
-      properties: { slotId: { type: "string" } },
+      properties: { slotId: { type: "string" }, subtree: { type: "boolean" }, all: { type: "boolean" } },
     },
   },
   {
     name: "list_leases",
-    description: "List active advisory slot leases.",
+    description: "List active leases: slotId (or node path when subtree), holder name, colour and expiry.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -431,6 +453,7 @@ export const AGENT_TOOL_HTTP: Record<string, AgentToolHttp> = {
   register_agent: { method: "POST", path: "/register-agent", body: "json" },
   get_snapshot: { method: "GET", path: "/snapshot", body: "none" },
   list_slots: { method: "GET", path: "/slots", body: "none" },
+  get_slot: { method: "GET", path: "/slot", body: "none" },
   list_examples: { method: "GET", path: "/examples", body: "none" },
   get_example: { method: "GET", path: "/example", body: "none" },
   get_source_tree: { method: "GET", path: "/source-tree", body: "none" },
@@ -478,11 +501,34 @@ export function findAgentToolForHttp(method: string, path: string): string | und
   return undefined;
 }
 
+/**
+ * Slot ids in tool arguments may be the compact slot-tree form (#277): turn
+ * them into skeleton ids before the tool runs. A lease subtree is a prefix.
+ */
+function withResolvedSlotRefs(
+  service: WorkbenchService,
+  name: string,
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const subtree = args.subtree === true || args.subtree === "true";
+  const out = { ...args };
+  if (typeof args.slotId === "string" && args.slotId) {
+    out.slotId = subtree && (name === "lease_slot" || name === "release_slot")
+      ? service.resolveSlotPrefix(args.slotId)
+      : service.resolveSlotRef(args.slotId);
+  }
+  if (typeof args.parentSlotId === "string" && args.parentSlotId) {
+    out.parentSlotId = service.resolveSlotRef(args.parentSlotId);
+  }
+  return out;
+}
+
 export async function callAgentTool(
   service: WorkbenchService,
   name: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
+  args = withResolvedSlotRefs(service, name, args);
   const revision = args.revision as string | undefined;
   const ctx = mutationContextFromArgs(args);
   if (ctx?.actor) service.setActor(ctx.actor);
@@ -501,17 +547,22 @@ export async function callAgentTool(
     case "get_snapshot":
       return service.getSnapshot();
     case "list_slots":
-      return {
-        revision: service.getRevision(),
-        slots: filterSlotRows(service.listSlots(), args),
-        repeatable: service.listRepeatable(),
-      };
+      if (args.view === "rows") {
+        return {
+          revision: service.getRevision(),
+          slots: filterSlotRows(service.listSlots(), args),
+          repeatable: service.listRepeatable(),
+        };
+      }
+      return { revision: service.getRevision(), groups: service.listSlotTree(args) };
+    case "get_slot":
+      return { revision: service.getRevision(), slot: service.getSlot(String(args.id ?? args.slotId ?? "")) };
     case "list_examples":
       return { revision: service.getRevision(), examples: listExamplesInspect(service.getExampleState()) };
     case "get_example":
       return { revision: service.getRevision(), ...getExampleInspect(service.getExampleState(), args) };
     case "get_source_tree":
-      return { revision: service.getRevision(), ...service.getSourceTree() };
+      return { revision: service.getRevision(), ...service.getSourceTree(args) };
     case "get_sheets":
       return { revision: service.getRevision(), ...service.getSheets() };
     case "get_product_stack":
@@ -663,13 +714,25 @@ export async function callAgentTool(
       service.setInstanceEncoding(encoding, Number(args.rootIndex ?? 0), revision, ctx);
       return { revision: service.getRevision(), stack: service.getProductStack() };
     }
-    case "lease_slot":
+    case "lease_slot": {
+      const slotId = String(args.slotId ?? "").trim();
+      if (!slotId) throw new Error("lease_slot requires slotId");
       return {
-        lease: service.leaseSlot(String(args.slotId), Number(args.ttlSec ?? 120), ctx),
+        lease: service.leaseSlot(slotId, Number(args.ttlSec ?? 120), ctx, args.subtree === true || args.subtree === "true"),
         revision: service.getRevision(),
       };
-    case "release_slot":
-      return { ok: service.releaseSlot(String(args.slotId), ctx), revision: service.getRevision() };
+    }
+    case "release_slot": {
+      const released = service.releaseSlot(
+        typeof args.slotId === "string" ? args.slotId : undefined,
+        ctx,
+        {
+          subtree: args.subtree === undefined ? undefined : args.subtree === true || args.subtree === "true",
+          all: args.all === true || args.all === "true",
+        },
+      );
+      return { ok: released > 0, released, revision: service.getRevision() };
+    }
     case "list_leases":
       return { leases: service.leases.list(), revision: service.getRevision() };
     case "run_test": {

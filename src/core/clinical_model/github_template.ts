@@ -14,8 +14,8 @@ import { OptXmlSerializer } from "ehrtslib/generation/opt_xml_serializer.ts";
 import { buildWebTemplate } from "ehrtslib/serialization/simplified/web_template_builder.ts";
 import { generateSkeletonFromOperational } from "../skeleton/generate_skeleton.ts";
 import {
+  availableOptLanguages,
   availableWebTemplateLanguages,
-  buildWebTemplateTermsIndex,
   orderLanguages,
   resolveOptLanguage,
 } from "../skeleton/template_terms.ts";
@@ -109,6 +109,17 @@ export function scaffoldClinicalModelFileset(
   return scaffoldWorkspace(workspace, fileset.rootPath, language);
 }
 
+/** The OPERATIONAL_TEMPLATE of a stored closure (#289: Web Template ids in another language). */
+export function operationalFromFileset(fileset: ClinicalModelFileset): unknown {
+  const workspace = new ClinicalModelWorkspace();
+  workspace.addFiles(fileset.files);
+  if (fileset.rootPath) {
+    workspace.setGenerationRootPath(fileset.rootPath);
+    workspace.setActivePath(fileset.rootPath);
+  }
+  return workspace.resolveOperational().operationalTemplate;
+}
+
 function scaffoldWorkspace(
   workspace: ClinicalModelWorkspace,
   rootPath: string,
@@ -124,13 +135,13 @@ function scaffoldWorkspace(
     ? rootFile.content
     : new OptXmlSerializer().serialize(opt);
   const ontologyLanguage = resolveOptLanguage(opt, preferredLanguage);
-  const webTemplate = buildWebTemplate(opt, { defaultLanguage: ontologyLanguage });
-  const generated = generateSkeletonFromOperational(
-    opt,
-    optXml,
-    buildWebTemplateTermsIndex(webTemplate, ontologyLanguage),
-    { language: ontologyLanguage },
-  );
+  const webTemplate = buildWebTemplate(opt, {
+    languages: [ontologyLanguage, ...availableOptLanguages(opt).filter((l) => l !== ontologyLanguage)],
+    // Ids (Simplified FLAT paths) from the primary language (ehrtslib: `original_language`),
+    // whatever 💬 shows; #289's Ids dropdown re-ids them (core/target/id_language.ts).
+    idLanguage: "original",
+  });
+  const generated = generateSkeletonFromOperational(opt, undefined, { language: ontologyLanguage });
   const templateId = generated.templateId !== "unknown"
     ? generated.templateId
     : webTemplate.templateId || basename(rootPath);

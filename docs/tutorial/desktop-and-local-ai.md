@@ -42,6 +42,7 @@ npx skills@latest add regionstockholm/intehrgrator --agent cursor --skill intehr
 - Inspect slots, source trees, sheets, decision tables, and constraint warnings
 - Run tests, export a project or a conversion script, undo and redo
 - **Open observer** shows a live timeline of agent edits
+- Several agents at once, each leasing its own slots or subtrees: [Parallel IDE agents](parallel-agents.md)
 
 Headless, with no window:
 

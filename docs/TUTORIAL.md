@@ -15,7 +15,8 @@ Start with the basic lecture, then open the one that matches what you are trying
 | [Tests and export](tutorial/tests-and-export.md) | Conversion Test Run, then download a conversion script |
 | [AI in the web app](tutorial/ai-in-the-web-app.md) | Copy a prompt and import the reply, or call an AI with your own credentials |
 | [Desktop and a local IDE](tutorial/desktop-and-local-ai.md) | Downloaded app, start/stop the local MCP server, and connect Cursor or another IDE |
+| [Parallel IDE agents](tutorial/parallel-agents.md) | Two or three agents on one canvas, leases on slots and subtrees, and who leases what |
 
-Formal verification of a mapping (in-app checks that support inspection) is not written yet. It waits on [issue 41](https://github.com/regionstockholm/intehrgrator/issues/41).
+Formal verification of a mapping (**Verify mapping**, in-app checks that support inspection) is not in the app yet, so it has no chapter. The design is in [formal-verification-export.md](future/formal-verification-export.md), and the work is [issue 41](https://github.com/regionstockholm/intehrgrator/issues/41).
 
 The toolbar **Help** menu opens this page. **ⓘ** next to a pane header explains the formats that pane accepts.

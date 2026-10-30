@@ -34,9 +34,24 @@ export function isRmBoilerplateAttribute(name: string): boolean {
     name === "composer";
 }
 
-/** Template name constraint when the OPT fixes LOCATABLE.name, otherwise the term label. */
-export function rmLocatableName(node: { nameConstraint?: string; label?: string }): string {
-  return node.nameConstraint?.trim() || node.label?.trim() || "";
+/**
+ * The output LOCATABLE.name of a node the user has not renamed: the template's
+ * name constraint when there is one, otherwise the term in the primary
+ * language. Never the display (UI / 💬) language.
+ */
+export function rmLocatableName(node: { nameConstraint?: string; primaryName?: string; label?: string }): string {
+  return node.nameConstraint?.trim() || node.primaryName?.trim() || node.label?.trim() || "";
+}
+
+/**
+ * Output name of a block named `shown`: a block still showing its node's label
+ * (not renamed by the user) gets `rmLocatableName`; a renamed one keeps its name.
+ */
+export function outputLocatableName(
+  shown: string,
+  node: { nameConstraint?: string; primaryName?: string; label?: string } | undefined,
+): string {
+  return node && shown === (node.label?.trim() ?? "") ? rmLocatableName(node) || shown : shown;
 }
 
 /** True when every emitted field is identity or RM boilerplate. */

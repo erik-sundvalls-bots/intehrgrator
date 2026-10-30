@@ -34,7 +34,7 @@ const SCENARIOS = {
   },
 } as const;
 
-async function tokenCounter(estimate: boolean): Promise<{ count: (text: string) => number; label: string }> {
+export async function tokenCounter(estimate: boolean): Promise<{ count: (text: string) => number; label: string }> {
   if (!estimate) {
     try {
       // Variable specifiers keep this optional dependency out of `deno check` / the lockfile graph.
@@ -109,6 +109,7 @@ async function scriptedTurn(
     prompt,
     history,
     executeTool: (name, args) => executeMappingAgentTool(c, name, args),
+    systemPrefix: c.buildAiSystemPrefix("api"),
     fetch: fetchStub,
   });
   return { bodies, result };
@@ -135,7 +136,7 @@ if (import.meta.main) {
 
     // Growth: list_slots + get_source_tree, three map_slot, run_test, list_slots again, answer.
     const c2 = await load(sc);
-    const slots = ((await executeMappingAgentTool(c2, "list_slots", { unmappedOnly: true })) as {
+    const slots = ((await executeMappingAgentTool(c2, "list_slots", { view: "rows", unmappedOnly: true })) as {
       slots: Array<{ slotId: string }>;
     }).slots.slice(0, 3);
     const turn1 = await scriptedTurn(

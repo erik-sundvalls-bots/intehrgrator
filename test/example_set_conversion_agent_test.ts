@@ -107,7 +107,7 @@ function assertExecuted(result: TestResult, label: string): void {
 Deno.test("Agent API map_slot on dummy-json-vitals then TypeScript and XQuery Test Run", async () => {
   const service = await agent("dummy-map");
   await loadSet(service, "dummy-json-vitals", false);
-  const listed = await callAgentTool(service, "list_slots", {}) as { slots: SlotRow[] };
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as { slots: SlotRow[] };
   const byName = (part: string) => listed.slots.find((row) => row.slotId.includes(part))?.slotId;
   const systolic = byName("systolic");
   const diastolic = byName("diastolic");
@@ -122,7 +122,7 @@ Deno.test("Agent API map_slot on dummy-json-vitals then TypeScript and XQuery Te
   ] as const) {
     await callAgentTool(service, "map_slot", { slotId, path, format: "json" });
   }
-  const after = await callAgentTool(service, "list_slots", {}) as { slots: SlotRow[] };
+  const after = await callAgentTool(service, "list_slots", { view: "rows" }) as { slots: SlotRow[] };
   assertEquals(after.slots.filter((row) => row.mapped).length >= 3, true);
 
   const ts = await runMode(service, "typescript");
@@ -162,7 +162,7 @@ Deno.test("Agent API load dummy-json-vitals-mapped and TypeScript Test Run all i
   const service = await agent("dummy-mapped");
   const snap = await loadSet(service, "dummy-json-vitals-mapped", true);
   assertEquals(snap.exampleCount, 3);
-  const listed = await callAgentTool(service, "list_slots", {}) as { slots: SlotRow[] };
+  const listed = await callAgentTool(service, "list_slots", { view: "rows" }) as { slots: SlotRow[] };
   assertEquals(listed.slots.filter((row) => row.mapped).length >= 3, true);
   const tree = await callAgentTool(service, "get_source_tree", {}) as {
     examples: Array<{ id: string; filename: string }>;

@@ -176,7 +176,7 @@ Worth doing even if function tables slip:
 | **Snippet tests** for `text_code` / Handlebars / Go fragments | Same harness grain as statement functions; gold string, whitespace-normalized. |
 | **Coverage** | Which slots / functions have ≥1 case; yellow **Constraint warning** family for “extracted but untested”. |
 | **Agent API** | `run_function_test` / `run_slot` for mapping agents (today they only `run_test`). |
-| **PBT overlay** | Generate extra source documents (formal-verification R1) and assert function cases still hold, or assert mapping-decision-table UNIQUE. Tables = specified points; PBT = the gaps. |
+| **PBT overlay** | Generate extra source documents (formal-verification R3) and assert function cases still hold, or assert mapping-decision-table UNIQUE. Tables = specified points; PBT = the gaps. |
 
 ---
 
@@ -238,7 +238,7 @@ Tests: function evaluator through the public `evaluateFunction` (behaviour), not
 8. **Slot inspector**.
 9. **Statement / snippet harness** for Go template and Handlebars helpers.
 10. **Agent API** + CI loader for `functionTests`.
-11. Optional **PBT** using table rows as seeds (ties to formal-verification R1).
+11. Optional **PBT** using table rows as seeds (ties to formal-verification R3).
 
 ---
 

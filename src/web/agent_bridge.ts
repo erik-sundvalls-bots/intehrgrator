@@ -12,10 +12,18 @@
 
 import type { WorkbenchController } from "../workbench/controller.ts";
 import type { ProjectBundle } from "../types/mod.ts";
+import type { SlotLease } from "../agent/leases.ts";
+import type { HumanWinsNotice } from "../agent/types.ts";
 
 export interface AgentBridgeOptions {
   controller: WorkbenchController;
   onActivity?: (activity: AgentActivityPayload | null) => void;
+  /**
+   * Active agent leases after each poll (S-15), for the canvas markers and the
+   * lease warning; `humanWins` lists agent writes refused because you edited
+   * the slot during their lease (newest last).
+   */
+  onLeases?: (leases: SlotLease[], humanWins: HumanWinsNotice[]) => void;
   /**
    * Commit any local change the session has not seen yet (called before a
    * sync). Resolves when the commit is done.
@@ -125,7 +133,7 @@ export function installAgentBridge(options: AgentBridgeOptions): void {
   if (typeof globalThis.fetch !== "function") return;
   if (!isDesktopEnvironment()) return;
 
-  const { controller, onActivity, flushLocal, applyRemote, onBaseline } = options;
+  const { controller, onActivity, onLeases, flushLocal, applyRemote, onBaseline } = options;
   let polled = false;
   let syncing = false;
   let lastActivityAt = "";
@@ -145,7 +153,10 @@ export function installAgentBridge(options: AgentBridgeOptions): void {
         return;
       }
       if (disposition === "pause") return;
-      const snap = await snapRes.json() as { revision: string; templateId?: string };
+      type Snap = { revision: string; templateId?: string; leases?: SlotLease[]; humanWins?: HumanWinsNotice[] };
+      const snap = await snapRes.json() as Snap;
+      let leases = snap.leases ?? [];
+      let humanWins = snap.humanWins ?? [];
       const isFirstPoll = !polled;
       polled = true;
       const uiEmpty = !controller.getState().templateId;
@@ -163,10 +174,14 @@ export function installAgentBridge(options: AgentBridgeOptions): void {
         await commitsSettled();
         const current = await fetch("/api/v1/snapshot");
         if (current.ok) {
-          const now = await current.json() as { revision: string };
+          const now = await current.json() as Snap;
+          leases = now.leases ?? leases;
+          humanWins = now.humanWins ?? humanWins;
           if (now.revision !== syncedRevision) await pullBundle(false);
         }
       }
+
+      onLeases?.(leases, humanWins);
 
       const actRes = await fetch("/api/v1/activity");
       if (actRes.ok) {

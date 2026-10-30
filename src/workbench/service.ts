@@ -21,10 +21,11 @@ import {
   isConversionScriptLanguage,
   isInstanceEncoding,
 } from "../types/mod.ts";
-import { actorFromHeaders, type HistoryActor, USER_ACTOR } from "../agent/actor.ts";
+import { actorFromHeaders, actorOrigin, type HistoryActor, USER_ACTOR } from "../agent/actor.ts";
+import { changedTargetIds } from "../agent/lease_guard.ts";
 import { AgentRegistry } from "../agent/registry.ts";
 import { bundleRevision } from "../agent/revision.ts";
-import type { AgentSnapshot } from "../agent/types.ts";
+import type { AgentSnapshot, HumanWinsNotice } from "../agent/types.ts";
 import {
   compactSourceTree,
   constraintWarningsInspect,
@@ -33,7 +34,10 @@ import {
   productStackInspect,
   sheetSummaries,
 } from "../agent/inspect.ts";
-import { SlotLeaseRegistry, type SlotLease } from "../agent/leases.ts";
+import { leaseCovers, SlotLeaseRegistry, type SlotLease } from "../agent/leases.ts";
+import { filterSlotRows } from "../agent/inspect.ts";
+import { slotDetail } from "../agent/slot_detail.ts";
+import { buildSlotTree, resolveSlotPrefix, resolveSlotRef } from "../core/ai/slot_tree.ts";
 import { importBundle, exportBundle as zipBundle, validateBundle } from "../core/persistence/mod.ts";
 import type { ExampleSet } from "../core/example_sets/mod.ts";
 import type {
@@ -105,6 +109,10 @@ export class WorkbenchService {
   readonly registry = new AgentRegistry();
   readonly history: HistoryLog;
   readonly leases = new SlotLeaseRegistry();
+  /** Per agent: slots the person edited during that agent's lease (refused once on its next write). */
+  private readonly humanTook = new Map<string, Set<string>>();
+  private readonly humanWins: HumanWinsNotice[] = [];
+  private humanWinsSeq = 0;
   private revision = "r0";
   private currentActor: HistoryActor = USER_ACTOR;
 
@@ -180,6 +188,7 @@ export class WorkbenchService {
       sheetNames: s.sheets.map((sheet) => sheet.name),
       productStack: productStackInspect(s.blocklyState),
       leases: this.leases.list(),
+      humanWins: this.humanWins.slice(-5),
       exampleCount: s.examples.length,
       activeExample: s.activeExample?.filename ?? null,
       constraintWarningCount: constraintWarnings.length,
@@ -187,7 +196,9 @@ export class WorkbenchService {
   }
 
   registerAgent(options?: { agentId?: string; displayName?: string; color?: string }) {
-    return this.registry.register(options);
+    const reg = this.registry.register(options);
+    this.leases.renameAgent(reg.agentId, reg.displayName, reg.color);
+    return reg;
   }
 
   setActorFromHeaders(headers: Headers): HistoryActor {
@@ -243,6 +254,7 @@ export class WorkbenchService {
     }
     const before = this.exportBundle();
     this.controller.restoreDocumentSnapshot(structuredClone(bundle));
+    if (!options.actor || options.actor.kind === "user") this.noteHumanEditsInLeases(before, bundle);
     this.recordMutation(before, {
       actor: options.actor ?? USER_ACTOR,
       summary,
@@ -275,6 +287,9 @@ export class WorkbenchService {
     this.mutate(() => {
       this.controller.loadSchemaContent(filename, content);
     }, { ...ctx, kind: "load_bundle", summary: ctx?.summary ?? `Load schema ${filename}` });
+    // A file that could not be read is a tool error, not a silent empty Source pane (#278).
+    const error = this.controller.getState().schemaError;
+    if (error) throw new Error(error);
   }
 
   addExampleContent(filename: string, content: string, ctx?: MutationContext): void {
@@ -304,16 +319,24 @@ export class WorkbenchService {
           format: state.target?.format ?? state.model.targetFormat ?? "openehr-template",
         },
       });
-      const foreign = this.leases.foreignHeld(payload.suggestions.map((s) => s.slotId), actorId);
-      if (foreign.length) {
-        const blocked = new Set(foreign.map((row) => row.slotId));
+      const foreign = this.leases.foreignHolders(payload.suggestions.map((s) => s.slotId), actorId);
+      const actor = ctx?.actor ?? this.currentActor;
+      const edited = new Set(
+        actorId && actor.kind === "agent" && actorOrigin(actor) === "mcp"
+          ? this.takeHumanEdited(actor, payload.suggestions.map((s) => s.slotId).filter((id) => !foreign.has(id)))
+          : [],
+      );
+      if (foreign.size || edited.size) {
         const filtered = {
           ...payload,
-          suggestions: payload.suggestions.filter((s) => !blocked.has(s.slotId)),
+          suggestions: payload.suggestions.filter((s) => !foreign.has(s.slotId) && !edited.has(s.slotId)),
         };
         toImport = JSON.stringify(filtered);
-        for (const row of foreign) {
-          leaseErrors.push(`${row.slotId}: leased by ${row.displayName} (${row.agentId})`);
+        for (const [slotId, row] of foreign) {
+          leaseErrors.push(`${slotId}: leased by ${row.displayName} (${row.agentId})`);
+        }
+        for (const slotId of edited) {
+          leaseErrors.push(`${slotId}: edited by the person during your lease (the person wins); read it again`);
         }
       }
     } catch {
@@ -447,6 +470,8 @@ export class WorkbenchService {
    * (ADR 0014). Appends an `undo` entry; the history is never rewritten.
    */
   undo(ctx?: MutationContext): UndoResult | null {
+    const target = this.history.undoTarget();
+    if (target) this.assertLeasesAllow(this.exportBundle(), target.beforeBundle, ctx?.actor ?? this.currentActor);
     const result = this.history.undo(this.exportBundle(), ctx?.actor ?? this.currentActor);
     if (!result) return null;
     this.controller.restoreDocumentSnapshot(result.bundle);
@@ -456,6 +481,8 @@ export class WorkbenchService {
 
   /** Go back to just after history entry `seq` ("Undo to here"), as one appended entry. */
   undoTo(seq: number, ctx?: MutationContext): UndoResult | null {
+    const to = this.history.get(seq);
+    if (to) this.assertLeasesAllow(this.exportBundle(), to.afterBundle, ctx?.actor ?? this.currentActor);
     const result = this.history.undoTo(seq, this.exportBundle(), ctx?.actor ?? this.currentActor);
     if (!result) return null;
     this.controller.restoreDocumentSnapshot(result.bundle);
@@ -469,6 +496,8 @@ export class WorkbenchService {
   }
 
   redo(ctx?: MutationContext): boolean {
+    const next = this.history.redoTarget();
+    if (next) this.assertLeasesAllow(this.exportBundle(), next.afterBundle, ctx?.actor ?? this.currentActor);
     const result = this.history.redo(this.exportBundle(), ctx?.actor ?? this.currentActor);
     if (!result) return false;
     this.controller.restoreDocumentSnapshot(result.bundle);
@@ -569,16 +598,84 @@ export class WorkbenchService {
     return listRepeatableInspect(s.skeleton);
   }
 
+  /** Every skeleton node id (value slots and containers). */
+  private nodeIds(): Set<string> {
+    return new Set(collectAllSlotIds(this.controller.getState().skeleton));
+  }
+
+  /**
+   * A slot reference from an agent (full id, compact slot-tree id, or a unique
+   * tail) as the skeleton id; unchanged when nothing matches (#277).
+   */
+  resolveSlotRef(ref: string): string {
+    return resolveSlotRef(ref, this.nodeIds()) ?? ref;
+  }
+
+  /** A lease `subtree` node path given in compact form, as the full prefix. */
+  resolveSlotPrefix(ref: string): string {
+    return resolveSlotPrefix(ref, this.nodeIds());
+  }
+
+  /** `list_slots` default view: the compact slot tree with mapping expressions (#277). */
+  listSlotTree(args: Record<string, unknown> = {}) {
+    const s = this.controller.getState();
+    const keep = new Set(filterSlotRows(listSlotsInspect(s.skeleton, s.model), args).map((r) => r.slotId));
+    // Labels in `target.lang.1` (+ `labels` in the other AI languages), whatever the panes show (#279).
+    return buildSlotTree(this.controller.getAiSkeleton(), {
+      include: (slot) => keep.has(slot.slotId),
+      model: s.model,
+      info: this.controller.getSlotInfoIndex(),
+      extraLabels: this.controller.getAiExtraLabels(),
+    });
+  }
+
+  /** `get_slot`: full details of one slot (#277 §3). */
+  getSlot(ref: string) {
+    const s = this.controller.getState();
+    const slotId = this.resolveSlotRef(ref);
+    const lease = this.leases.list().find((l) => leaseCovers(l, slotId));
+    const detail = slotDetail(
+      this.controller.getAiSkeleton(),
+      s.model,
+      slotId,
+      this.controller.getTargetSource(),
+      this.controller.getSlotInfoIndex(),
+      lease
+        ? {
+          agentId: lease.agentId,
+          displayName: lease.displayName,
+          expiresAt: new Date(lease.expiresAt).toISOString(),
+          ...(lease.subtree ? { subtree: true } : {}),
+        }
+        : undefined,
+    );
+    if (!detail) throw new Error(`Unknown slotId: ${ref}`);
+    return detail;
+  }
+
   /** Examples + Active Example tree for `list_examples` / `get_example` (shared with AI chat). */
   getExampleState() {
     const s = this.controller.getState();
     return { examples: s.examples, activeExample: s.activeExample, exampleTree: s.exampleTree };
   }
 
-  getSourceTree() {
+  /**
+   * `get_source_tree`: descriptions in `language` when given (one of the
+   * schema's languages), else in the AI's source language (#277 §5).
+   */
+  getSourceTree(args: { language?: unknown } = {}) {
     const s = this.controller.getState();
+    const schemaLanguages = this.controller.getSourceSchemaLanguages();
+    const asked = typeof args.language === "string" ? args.language.trim() : "";
+    const descriptionLanguage = asked
+      ? (schemaLanguages.find((l) => l.toLowerCase() === asked.toLowerCase()) ?? asked)
+      : this.controller.getAiSourceDescriptionLanguage();
+    const sourceLanguages = this.controller.getSourceLanguages();
     return {
-      schema: compactSourceTree(s.schemaTree),
+      schema: compactSourceTree(this.controller.getSourceTreeIn(descriptionLanguage), 0, undefined, descriptionLanguage),
+      ...(descriptionLanguage && s.schemaTree ? { descriptionLanguage } : {}),
+      ...(sourceLanguages.length ? { sourceLanguages } : {}),
+      ...(schemaLanguages.length ? { schemaLanguages } : {}),
       schemaFormat: s.schemaFormat,
       schemaFilename: s.schemaFilename,
       example: compactSourceTree(s.exampleTree ?? null),
@@ -739,21 +836,85 @@ export class WorkbenchService {
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? `Instance encoding ${encoding}` });
   }
 
-  leaseSlot(slotId: string, ttlSec = 120, ctx?: MutationContext) {
+  /**
+   * Lease a slot, or with `subtree` a node path and every slot below it
+   * (S-15). Blocked (AgentSlotLeasedError) when it overlaps another agent's
+   * lease. `covers` is how many Target value slots the lease covers now.
+   */
+  leaseSlot(slotId: string, ttlSec = 120, ctx?: MutationContext, subtree = false) {
     const actor = ctx?.actor ?? this.currentActor;
     const agentId = actor.kind === "agent" ? actor.id : actor.id || "user";
+    const slotIds = this.listSlots().map((r) => r.slotId);
+    const covers = slotIds.filter((id) => id === slotId || (subtree && id.startsWith(`${slotId}/`))).length;
+    if (subtree && slotIds.length && !covers) {
+      throw new Error(`No Target value slots under ${slotId}; pass a node path that is a prefix of slot ids (list_slots)`);
+    }
+    const reg = actor.kind === "agent" ? this.registry.get(agentId) : undefined;
     const result = this.leases.acquire(slotId, {
       agentId,
       displayName: actor.displayName,
-    }, ttlSec);
+      color: reg?.color ?? actor.color,
+    }, ttlSec, subtree);
     if (!result.ok) throw new AgentSlotLeasedError(result.holder);
-    return result.lease;
+    return { ...result.lease, covers };
   }
 
-  releaseSlot(slotId: string, ctx?: MutationContext): boolean {
+  /** Release one of this agent's leases, or with `all` every one. Returns how many were released. */
+  releaseSlot(slotId: string | undefined, ctx?: MutationContext, opts: { subtree?: boolean; all?: boolean } = {}): number {
     const actor = ctx?.actor ?? this.currentActor;
     const agentId = actor.kind === "agent" ? actor.id : undefined;
-    return this.leases.release(slotId, agentId);
+    if (opts.all) return agentId ? this.leases.releaseAll(agentId) : 0;
+    if (!slotId) return 0;
+    return this.leases.release(slotId, agentId, opts.subtree) ? 1 : 0;
+  }
+
+  /**
+   * An MCP agent may not change what another agent leases (S-15). The person
+   * in the UI and the in-app AI chat are not checked: the person wins (ADR
+   * 0014) and sees the lease on the canvas.
+   */
+  private assertLeasesAllow(before: ProjectBundle, after: ProjectBundle, actor: HistoryActor): void {
+    if (actor.kind !== "agent" || actorOrigin(actor) !== "mcp") return;
+    const taken = this.humanTook.get(actor.id);
+    if (!this.leases.list().length && !taken?.size) return;
+    const changed = changedTargetIds(before, after);
+    const holders = this.leases.foreignHolders(changed, actor.id);
+    const first = holders.values().next().value;
+    if (first) throw new AgentSlotLeasedError(first, [...holders.keys()]);
+    const edited = this.takeHumanEdited(actor, changed);
+    if (edited.length) throw new HumanEditedSlotError(actor.displayName, edited);
+  }
+
+  /**
+   * The person edited slots inside an agent's lease (after the canvas warning,
+   * "Edit anyway"). The person wins (ADR 0014): that agent's next write to
+   * those slots is refused once, so it re-reads instead of overwriting.
+   */
+  private noteHumanEditsInLeases(before: ProjectBundle, after: ProjectBundle): void {
+    if (!this.leases.list().length) return;
+    for (const [slotId, lease] of this.leases.foreignHolders(changedTargetIds(before, after), undefined)) {
+      const set = this.humanTook.get(lease.agentId) ?? new Set<string>();
+      set.add(slotId);
+      this.humanTook.set(lease.agentId, set);
+    }
+  }
+
+  /** Slots among `slotIds` the person edited during `actor`'s lease; consumed and reported to the UI. */
+  private takeHumanEdited(actor: HistoryActor, slotIds: string[]): string[] {
+    const taken = this.humanTook.get(actor.id);
+    if (!taken?.size) return [];
+    const hit = slotIds.filter((id) => taken.has(id));
+    if (!hit.length) return [];
+    for (const id of hit) taken.delete(id);
+    this.humanWins.push({
+      seq: ++this.humanWinsSeq,
+      agentId: actor.id,
+      agent: actor.displayName.replace(/^MCP:\s*/, ""),
+      slotIds: hit,
+      at: Date.now(),
+    });
+    if (this.humanWins.length > 20) this.humanWins.splice(0, this.humanWins.length - 20);
+    return hit;
   }
 
   private agentIdForLeases(): string | undefined {
@@ -855,6 +1016,13 @@ export class WorkbenchService {
     } finally {
       this.mutating = false;
     }
+    try {
+      this.assertLeasesAllow(before, this.exportBundle(), ctx.actor ?? this.currentActor);
+    } catch (err) {
+      // Put the project back as it was; nothing is recorded.
+      this.controller.restoreDocumentSnapshot(before);
+      throw err;
+    }
     this.recordMutation(before, ctx);
   }
 
@@ -903,9 +1071,22 @@ export class AgentRevisionConflictError extends Error {
   }
 }
 
+export class HumanEditedSlotError extends Error {
+  constructor(readonly agent: string, readonly slotIds: string[]) {
+    super(
+      `The person edited ${slotIds.join(", ")} while ${agent} held the lease; the person wins, so this change was not applied. Read the slot again (get_slot) and decide whether it still needs your change.`,
+    );
+    this.name = "HumanEditedSlotError";
+  }
+}
+
 export class AgentSlotLeasedError extends Error {
-  constructor(readonly holder: SlotLease) {
-    super(`Slot leased by ${holder.displayName} (${holder.agentId}) until ${holder.expiresAt}`);
+  constructor(readonly holder: SlotLease, readonly slotIds: string[] = []) {
+    super(
+      `${holder.subtree ? "Subtree" : "Slot"} ${holder.slotId} leased by ${holder.displayName} (${holder.agentId}) until ${
+        new Date(holder.expiresAt).toISOString()
+      }${slotIds.length ? `; blocked slots: ${slotIds.join(", ")}` : ""}. Work on other slots, or wait and retry.`,
+    );
     this.name = "AgentSlotLeasedError";
   }
 }

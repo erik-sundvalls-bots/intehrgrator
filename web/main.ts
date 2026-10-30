@@ -2,6 +2,9 @@ import * as Blockly from "blockly/core";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
 import { WorkbenchController } from "../src/workbench/controller.ts";
+import { setIdLanguageChangeGuard, setIdLanguageChoices } from "../src/blockly/field_id_language.ts";
+import { ID_LANGUAGE_FIELD, PRIMARY_ID_LANGUAGE } from "../src/core/target/id_language.ts";
+import { mappedSourcePathsFromExpressions } from "../src/core/target/refresh_diff.ts";
 import { TASK_PROGRESS_OVERLAY_ID, taskProgressInnerHtml } from "../src/workbench/task_progress.ts";
 import { ensureGoTemplateWasm } from "../src/core/output/go_template_runtime.ts";
 import {
@@ -111,6 +114,8 @@ import {
 } from "../src/blockly/mod.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
 import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
+import { installCodedTextMenu } from "../src/blockly/coded_text_menu.ts";
+import { allowsCodedText } from "../src/core/openehr/coded_text.ts";
 import { APP_VERSION } from "../src/core/persistence/mod.ts";
 import {
   blockOwnClientRect,
@@ -196,6 +201,18 @@ import {
   slotFingerprints,
   writeAiAuthor,
 } from "../src/blockly/ai_author.ts";
+import { leaseColor, leaseTargetBlock, renderLeaseMarkers } from "../src/blockly/lease_markers.ts";
+import type { SlotLease } from "../src/agent/leases.ts";
+import type { HumanWinsNotice } from "../src/agent/types.ts";
+import { changedTargetIds } from "../src/agent/lease_guard.ts";
+import {
+  formatCountdown,
+  type LeaseHit,
+  leaseHits,
+  leaseKey,
+  pruneAcknowledged,
+  remainingByHit,
+} from "../src/web/lease_warning.ts";
 import { slotExpressionBlocks } from "../src/blockly/mapping_ir.ts";
 import {
   commitsSettled,
@@ -243,6 +260,7 @@ import {
   runSuggestionsChatTurn,
   SUGGESTIONS_FALLBACK_INSTRUCTION,
 } from "../src/core/ai/mapping_agent.ts";
+import { pinnedDocUrl } from "../src/core/ai/pinned_links.ts";
 import { DEFAULT_GITHUB_TEMPLATE_URL } from "../src/core/clinical_model/github_template.ts";
 import { DEFAULT_GITHUB_EXAMPLES_URL } from "../src/core/source/github_examples.ts";
 import {
@@ -263,6 +281,8 @@ import {
   type WorkbenchTestSnapshot,
 } from "../src/ui_test/test_api.ts";
 import { maybeShowRecommendedVersionPopup } from "../src/ui/recommended_version_popup.ts";
+import { createLanguageWidget, type LanguageWidget } from "../src/ui/language_widget.ts";
+import { isKnownLanguage, parseLanguageList } from "../src/core/languages.ts";
 
 const host = createHostAdapter();
 const controller = new WorkbenchController(host, { urlStorage: localStorage });
@@ -506,6 +526,14 @@ let suppressBlocklyModelSync = false;
 let applyingDocumentUndo = false;
 /** Desktop: fingerprint of the document last committed to / synced from the Agent API. */
 let committedDocSignature = "";
+/** Desktop: the document as last committed / synced, for the lease warning (what your edit changed, Cancel). */
+let committedSnapshot: DocumentSnapshot | null = null;
+
+/** The document as it is now is what the session has: no pending local change. */
+function markCommitted(signature = documentCommitSignature()): void {
+  committedDocSignature = signature;
+  if (isDesktopEnvironment()) committedSnapshot = controller.exportDocumentSnapshot();
+}
 /** True while a bundle written by an agent is being applied (not a local change). */
 let applyingAgentBundle = false;
 /** Summary for the next commit of a controller-originated change. */
@@ -587,7 +615,7 @@ function applyAiAuthorMarks(blocks = workspace ? slotExpressionBlocks(workspace)
   // Keep the marks in the saved Blockly JSON (save and export carry them)
   // without making the mark itself a change in the history.
   persistBlocklyCanvas({ notify: false });
-  committedDocSignature = documentCommitSignature();
+  markCommitted();
   chatServiceInstance?.acceptLiveState();
 }
 
@@ -612,7 +640,7 @@ function turnSlots(origin: UiCommitOrigin): Set<string> | undefined {
 
 /** Start the one history once the start-up project is loaded (web app: in the browser). */
 function startHistory(): void {
-  committedDocSignature = documentCommitSignature();
+  markCommitted();
   committedSlots = slotFingerprints(controller.getState().model.slots);
   adoptAiAuthorMarks();
   if (!isDesktopEnvironment()) chatService();
@@ -653,7 +681,7 @@ async function historyUndoTo(row: HistoryPanelRow): Promise<void> {
     absorbTrailingRender();
     result = await withUndoableDocumentReplace(() => chatService().undoTo(row.seq, { actor: USER_ACTOR }), group);
     absorbTrailingRender();
-    committedDocSignature = documentCommitSignature();
+    markCommitted();
     updateAiAuthorMarks("keep");
     render();
   }
@@ -682,7 +710,7 @@ async function historyRevert(row: HistoryPanelRow): Promise<void> {
     absorbTrailingRender();
     result = await withUndoableDocumentReplace(() => chatService().revert(row.seq, { actor: USER_ACTOR }), group);
     absorbTrailingRender();
-    committedDocSignature = documentCommitSignature();
+    markCommitted();
     updateAiAuthorMarks("keep");
     render();
   }
@@ -849,39 +877,158 @@ function setupUiLanguageMenu(locale: IntehrLocale): void {
   });
 }
 
-function setupModelLanguageMenu(): void {
-  const wrap = document.getElementById("model-language-wrap");
-  const labelEl = document.getElementById("model-language-label");
-  const select = document.getElementById("model-language-dropdown") as HTMLSelectElement | null;
-  if (!wrap || !select) return;
-  if (labelEl) labelEl.textContent = msg(blocklyLocale).MODEL_LANGUAGE_LABEL;
-  select.addEventListener("change", () => {
-    controller.setModelLanguage(select.value);
+let targetLangWidget: LanguageWidget | null = null;
+let sourceLangWidget: LanguageWidget | null = null;
+
+/** 💬 widgets on the target and source panes (#279). */
+function setupLanguageWidgets(): void {
+  const targetRoot = document.getElementById("target-lang-widget");
+  if (targetRoot) {
+    targetLangWidget = createLanguageWidget(targetRoot, {
+      nameOf: displayLanguageName,
+      isKnown: isKnownLanguage,
+      onPick: (code) => code ? controller.setModelLanguage(code) : controller.clearTargetDisplayLanguage(),
+      texts: () => ({
+        aria: uiChrome().langWidgetTargetAria,
+        title: uiChrome().langWidgetTitle,
+        follow: uiChrome().langWidgetFollow,
+        chosen: uiChrome().langWidgetChosen,
+        unknown: uiChrome().langWidgetUnknown,
+      }),
+    });
+  }
+  const sourceRoot = document.getElementById("source-lang-widget");
+  if (sourceRoot) {
+    sourceLangWidget = createLanguageWidget(sourceRoot, {
+      nameOf: displayLanguageName,
+      isKnown: isKnownLanguage,
+      onPick: (code) => controller.setSourceDisplayLanguage(code),
+      texts: () => ({
+        aria: uiChrome().langWidgetSourceAria,
+        title: uiChrome().langWidgetTitle,
+        follow: uiChrome().langWidgetFollow,
+        chosen: uiChrome().langWidgetChosen,
+        unknown: uiChrome().langWidgetUnknown,
+      }),
+    });
+  }
+}
+
+let idLanguageChoicesKey = "";
+
+/** Id-language dropdowns on COMPOSITION roots follow the target's languages (#289). */
+function syncIdLanguageFields(s: ReturnType<WorkbenchController["getState"]>): void {
+  const key = s.targetIdLanguages.join(",");
+  if (key === idLanguageChoicesKey) return;
+  idLanguageChoicesKey = key;
+  setIdLanguageChoices(s.targetIdLanguages);
+  const ws = Blockly.getMainWorkspace?.();
+  for (const block of ws?.getBlocksByType("composition", false) ?? []) {
+    const field = block.getField(ID_LANGUAGE_FIELD) as unknown as
+      | { doValueUpdate_(v: string): void; getValue(): string; forceRerender(): void }
+      | null;
+    if (!field) continue;
+    field.doValueUpdate_(field.getValue());
+    field.forceRerender();
+  }
+}
+
+/**
+ * Changing the id language keeps every mapping (slot ids are archetype paths)
+ * but changes the target's Simplified FLAT paths, so ask once mappings exist.
+ */
+function confirmIdLanguageChange(from: string, to: string): boolean {
+  const s = controller.getState();
+  // Template defaults (context map, fixed codes) are not mappings; source-bound slots are.
+  if (!mappedSourcePathsFromExpressions(s.model.slots.map((slot) => slot.expression ?? "")).length) return true;
+  const code = (v: string) => v === PRIMARY_ID_LANGUAGE ? (s.targetIdLanguages[0] ?? "lang.1") : v;
+  return globalThis.confirm(formatMessage(msg(detectLocale()).ID_LANGUAGE_CONFIRM, { from: code(from), to: code(to) }));
+}
+setIdLanguageChangeGuard(confirmIdLanguageChange);
+
+function syncLanguageWidgets(s: ReturnType<WorkbenchController["getState"]>): void {
+  syncIdLanguageFields(s);
+  targetLangWidget?.update({
+    languages: s.modelLanguages.length > 1 ? s.targetLanguages : [],
+    current: s.modelLanguage,
+    chosen: s.targetDisplayChosen,
+  });
+  sourceLangWidget?.update({
+    languages: s.sourceSchemaLanguages,
+    current: s.sourceDisplayLanguage,
+    chosen: Boolean(s.settings.display?.sourceLabelLang),
   });
 }
 
-function syncModelLanguageMenu(s: ReturnType<WorkbenchController["getState"]>): void {
-  const wrap = document.getElementById("model-language-wrap");
-  const select = document.getElementById("model-language-dropdown") as HTMLSelectElement | null;
-  if (!wrap || !select) return;
-  const languages = s.modelLanguages ?? [];
-  const multilingual = languages.length > 1;
-  wrap.hidden = !multilingual;
-  if (!multilingual) return;
-  const current = s.modelLanguage ?? languages[0] ?? "";
-  const same =
-    select.options.length === languages.length &&
-    languages.every((lang, i) => select.options[i]?.value === lang) &&
-    select.value === current;
-  if (same) return;
-  select.replaceChildren();
-  for (const lang of languages) {
-    const opt = document.createElement("option");
-    opt.value = lang;
-    opt.textContent = displayLanguageName(lang);
-    if (lang === current) opt.selected = true;
-    select.appendChild(opt);
+let targetHoverCache: { key: string; byLang: Array<[string, Map<string, string>]> } | null = null;
+
+/** Hover text on target tree rows: the label in the target's other languages (#279). */
+function targetAltLabels(s: ReturnType<WorkbenchController["getState"]>): ((slotId: string) => string | undefined) | undefined {
+  if (s.modelLanguages.length < 2) return undefined;
+  const key = `${s.templateId}|${s.modelLanguage}|${s.targetLanguages.join(",")}`;
+  if (targetHoverCache?.key !== key) {
+    const others = s.targetLanguages.filter((l) => l !== s.modelLanguage);
+    targetHoverCache = { key, byLang: others.map((l) => [l, controller.getTargetLabels(l)]) };
   }
+  const byLang = targetHoverCache.byLang;
+  return (slotId) => {
+    const parts = byLang.map(([l, m]) => (m.get(slotId) ? `${l}: ${m.get(slotId)}` : "")).filter(Boolean);
+    return parts.length ? parts.join("\n") : undefined;
+  };
+}
+
+/** AI menu → Languages…: `source.lang.N` and which target labels go to the AI (#279). */
+function openAiLanguagesDialog(): void {
+  const dialog = document.getElementById("dialog-ai-languages") as HTMLDialogElement | null;
+  const input = document.getElementById("ai-source-languages") as HTMLInputElement | null;
+  const hint = document.getElementById("ai-source-languages-hint");
+  const preview = document.getElementById("ai-languages-preview");
+  if (!dialog || !input) return;
+  const current = controller.getLanguageSettings();
+  input.value = current.sourceLanguages?.join(", ") ?? "";
+  input.placeholder = current.detectedSourceLanguages.join(", ") || "sv, en";
+  dialog.querySelectorAll<HTMLInputElement>("input[name=ai-context-languages]").forEach((r) => {
+    r.checked = r.value === current.aiContextLanguages;
+  });
+  const refresh = () => {
+    const t = uiChrome();
+    const typed = parseLanguageList(input.value);
+    const unknown = typed.filter((c) => !isKnownLanguage(c));
+    const detected = current.detectedSourceLanguages;
+    if (hint) {
+      hint.textContent = unknown.length
+        ? t.aiSourceLanguagesInvalid.replace("{codes}", unknown.join(", "))
+        : detected.length
+        ? t.aiSourceLanguagesDetected.replace("{langs}", detected.join(", "))
+        : t.aiSourceLanguagesNone;
+      hint.classList.toggle("is-error", unknown.length > 0);
+    }
+    const mode = (dialog.querySelector<HTMLInputElement>("input[name=ai-context-languages]:checked")?.value ??
+      "matched") as "matched" | "lang1" | "all";
+    const { target: order, ai } = controller.previewLanguages(typed.filter(isKnownLanguage), mode);
+    if (preview) {
+      preview.textContent = order.length
+        ? t.aiLanguagesPreview.replace("{order}", order.join(", ")).replace("{ai}", ai.join(", "))
+        : "";
+    }
+  };
+  input.oninput = refresh;
+  dialog.querySelectorAll<HTMLInputElement>("input[name=ai-context-languages]").forEach((r) => (r.onchange = refresh));
+  refresh();
+  const cancel = document.getElementById("ai-languages-cancel");
+  if (cancel) cancel.onclick = () => dialog.close("cancel");
+  dialog.returnValue = "cancel";
+  dialog.onclose = () => {
+    if (dialog.returnValue !== "confirm") return;
+    const mode = (dialog.querySelector<HTMLInputElement>("input[name=ai-context-languages]:checked")?.value ??
+      "matched") as "matched" | "lang1" | "all";
+    controller.setLanguageSettings({
+      sourceLanguages: parseLanguageList(input.value).filter(isKnownLanguage),
+      aiContextLanguages: mode,
+    });
+  };
+  dialog.showModal();
+  input.focus();
 }
 
 function displayLanguageName(code: string): string {
@@ -904,10 +1051,11 @@ async function projectForLocaleReload(): Promise<ProjectBundle | null> {
 async function bootBlockly(): Promise<void> {
   const locale = detectLocale();
   blocklyLocale = locale;
+  controller.setUiLanguage(locale);
   await loadBlocklyLocale(locale);
   initBlocklyGenerators();
   setupUiLanguageMenu(locale);
-  setupModelLanguageMenu();
+  setupLanguageWidgets();
 
   workspace = Blockly.inject(blocklyMount, {
     theme: createModestTheme(),
@@ -941,6 +1089,11 @@ async function bootBlockly(): Promise<void> {
       confidence: () => uiChrome().aiReviewConfidence,
     },
     onChange: () => persistBlocklyCanvas({ summary: "Mark AI suggestion reviewed" }),
+  });
+  installCodedTextMenu({
+    labels: { useCodedText: () => uiChrome().useCodedText, usePlainText: () => uiChrome().usePlainText },
+    isTextSlot: (slotId) => allowsCodedText(findSkeletonNodeIn(controller.getState().skeleton, slotId)),
+    onChange: () => persistBlocklyCanvas({ summary: "Switch DV_TEXT / DV_CODED_TEXT" }),
   });
   installFunctionLibraryMenus(workspace, {
     save: (name) => functionLibraryUi?.saveNamed(name),
@@ -1172,7 +1325,11 @@ async function bootBlockly(): Promise<void> {
     flushLocal: () => commitPendingUiChange(),
     applyRemote: applyAgentBundle,
     onBaseline: () => {
-      committedDocSignature = documentCommitSignature();
+      markCommitted();
+    },
+    onLeases: (leases, humanWins) => {
+      showLeases(leases);
+      showHumanWins(humanWins);
     },
     onActivity: (activity) => {
       if (activity?.displayName) lastAgentAuthor = activity.displayName;
@@ -1182,6 +1339,8 @@ async function bootBlockly(): Promise<void> {
     },
   });
 
+  installLeaseChip();
+  installLeaseWarning();
   const followCheckbox = document.getElementById("chk-follow-agent") as HTMLInputElement | null;
   if (followCheckbox) {
     followCheckbox.checked = followActiveAgent;
@@ -1321,13 +1480,23 @@ function commitPendingUiChange(
   }
   const signature = documentCommitSignature();
   if (signature === committedDocSignature && !options.force) return Promise.resolve();
-  committedDocSignature = signature;
-  if (absorbingRender && !options.ai && !options.force && aiWriteDepth === 0) {
+  // A lease warning is open: your change waits for Edit anyway / Cancel / the lease to end.
+  if (leaseHold) return Promise.resolve();
+  const absorbing = absorbingRender && !options.ai && !options.force && aiWriteDepth === 0;
+  const ai = options.ai ?? aiWriteInProgress();
+  if (desktop && !absorbing && !ai && committedSnapshot && currentLeases.length) {
+    const hits = leaseWarningHits(committedSnapshot);
+    if (hits.length) {
+      openLeaseWarning(hits, committedSnapshot, summary);
+      return Promise.resolve();
+    }
+  }
+  markCommitted(signature);
+  if (absorbing) {
     updateAiAuthorMarks("keep");
     chatServiceInstance?.acceptLiveState();
     return Promise.resolve();
   }
-  const ai = options.ai ?? aiWriteInProgress();
   const origin = ai?.origin;
   const text = ai
     ? `AI chat: ${ai.notices.slice(-6).join("; ") || "edit"}`
@@ -1387,7 +1556,7 @@ async function applyAgentBundle(bundle: DocumentSnapshot, initial: boolean): Pro
   } finally {
     applyingAgentBundle = false;
   }
-  committedDocSignature = documentCommitSignature();
+  markCommitted();
   if (initial) {
     committedSlots = slotFingerprints(controller.getState().model.slots);
     adoptAiAuthorMarks();
@@ -1415,6 +1584,195 @@ function refreshUndoButtons(): void {
   const hint = messages.undoHistoryHint;
   undoBtn.title = undoBtn.disabled ? hint : `${hint} ${messages.undoLastEdit}`;
   redoBtn.title = redoBtn.disabled ? hint : `${hint} ${messages.redoLastEdit}`;
+}
+
+let currentLeases: SlotLease[] = [];
+let leaseChipIndex = 0;
+
+function leaseTexts() {
+  const m = uiChrome();
+  return {
+    label: (l: SlotLease) => (l.subtree ? `${l.displayName} · ${m.leaseSubtree}` : l.displayName),
+    title: (l: SlotLease) =>
+      formatMessage(m.leaseTitle, {
+        agent: l.displayName,
+        time: new Date(l.expiresAt).toLocaleTimeString(),
+        what: l.subtree ? m.leaseWhatSubtree : m.leaseWhatSlot,
+      }),
+  };
+}
+
+/** Lease markers on the canvas and the per-agent chip in the Mapping Editors header (S-15). */
+function showLeases(leases: SlotLease[]): void {
+  currentLeases = leases;
+  if (workspace) renderLeaseMarkers(workspace, leases, leaseTexts());
+  const chip = document.getElementById("lease-chip");
+  if (!chip) return;
+  chip.hidden = !leases.length;
+  if (!leases.length) {
+    chip.replaceChildren();
+    return;
+  }
+  const byAgent = new Map<string, { name: string; color: string; n: number }>();
+  for (const l of leases) {
+    const row = byAgent.get(l.agentId) ?? { name: l.displayName, color: leaseColor(l), n: 0 };
+    row.n++;
+    byAgent.set(l.agentId, row);
+  }
+  const parts: Node[] = [document.createTextNode(`🔒 `)];
+  for (const row of byAgent.values()) {
+    const dot = document.createElement("span");
+    dot.className = "lease-dot";
+    dot.style.background = row.color;
+    parts.push(dot, document.createTextNode(` ${row.name} ${row.n} `));
+  }
+  chip.replaceChildren(...parts);
+  chip.title = `${uiChrome().leasesChipTitle}\n${leases.map((l) => `${l.displayName}: ${l.slotId.split("//").pop()}${l.subtree ? "/…" : ""}`).join("\n")}`;
+}
+
+/**
+ * Lease warning (S-15, ADR 0014): before your change to something an MCP
+ * agent leases reaches the shared project, ask. The change stays on screen
+ * but is held. "Edit anyway" commits it and stops asking about that lease
+ * until it ends; "Cancel" takes it back; when the lease ends meanwhile the
+ * change is committed without asking. Asked when a change is committed (end
+ * of a drag or field edit), never per keystroke.
+ */
+const acknowledgedLeases = new Set<string>();
+let leaseHold: {
+  hits: LeaseHit[];
+  before: DocumentSnapshot;
+  summary?: string;
+  timer: number;
+} | null = null;
+
+function leaseWarningHits(before: DocumentSnapshot): LeaseHit[] {
+  const now = Date.now();
+  pruneAcknowledged(acknowledgedLeases, currentLeases, now);
+  const changed = changedTargetIds(before, controller.exportDocumentSnapshot());
+  return leaseHits(changed, currentLeases, acknowledgedLeases, now);
+}
+
+function leaseHitSlots(hit: LeaseHit): string {
+  const names = hit.slotIds.map((id) => describeSlotForNotes(id) ?? id.split("/").filter(Boolean).slice(-4).join("/"));
+  return names.slice(0, 3).join(", ") + (names.length > 3 ? ` (+${names.length - 3})` : "");
+}
+
+function leaseAgents(hits: LeaseHit[]): string {
+  return [...new Set(hits.map((h) => h.lease.displayName))].join(", ");
+}
+
+function openLeaseWarning(hits: LeaseHit[], before: DocumentSnapshot, summary?: string): void {
+  const dialog = document.getElementById("dialog-lease-warning") as HTMLDialogElement | null;
+  const list = document.getElementById("lease-warning-list");
+  const intro = document.getElementById("lease-warning-intro");
+  if (!dialog || !list || !intro) return;
+  const m = uiChrome();
+  intro.textContent = formatMessage(m.leaseWarningIntro, { agent: leaseAgents(hits) });
+  list.replaceChildren(...hits.map((hit) => {
+    const li = document.createElement("li");
+    const dot = document.createElement("span");
+    dot.className = "lease-dot";
+    dot.style.background = leaseColor(hit.lease);
+    const what = document.createElement("span");
+    what.textContent = ` ${hit.lease.displayName}${hit.lease.subtree ? ` · ${m.leaseSubtree}` : ""}: ${leaseHitSlots(hit)} `;
+    const left = document.createElement("span");
+    left.className = "lease-countdown";
+    li.append(dot, what, left);
+    return li;
+  }));
+  const tick = () => {
+    if (!leaseHold) return;
+    const left = remainingByHit(leaseHold.hits, currentLeases, Date.now());
+    list.querySelectorAll<HTMLElement>(".lease-countdown").forEach((el, i) => {
+      el.textContent = left[i] > 0
+        ? formatMessage(uiChrome().leaseWarningEndsIn, { time: formatCountdown(left[i]) })
+        : uiChrome().leaseWarningEnded;
+    });
+    if (left.every((ms) => ms <= 0)) closeLeaseWarning("ended");
+  };
+  leaseHold = { hits, before, summary, timer: globalThis.setInterval(tick, 250) };
+  tick();
+  if (leaseHold && !dialog.open) dialog.showModal();
+}
+
+function closeLeaseWarning(choice: "edit" | "cancel" | "ended"): void {
+  const hold = leaseHold;
+  if (!hold) return;
+  globalThis.clearInterval(hold.timer);
+  leaseHold = null;
+  const dialog = document.getElementById("dialog-lease-warning") as HTMLDialogElement | null;
+  if (dialog?.open) dialog.close();
+  const m = uiChrome();
+  const agent = leaseAgents(hold.hits);
+  const slots = hold.hits.map(leaseHitSlots).join("; ");
+  if (choice === "cancel") {
+    const group = `lease-cancel:${crypto.randomUUID()}`;
+    undoGroupAuthors.set(group, USER_ACTOR.displayName);
+    void withUndoableDocumentReplace(() => controller.restoreDocumentSnapshot(hold.before), group).then(() => {
+      markCommitted();
+      controller.setStatusMessage(formatMessage(m.leaseWarningCancelled, { agent, slots }));
+    });
+    return;
+  }
+  if (choice === "edit") for (const hit of hold.hits) acknowledgedLeases.add(leaseKey(hit.lease));
+  void commitPendingUiChange(hold.summary).then(() => {
+    controller.setStatusMessage(
+      formatMessage(choice === "edit" ? m.leaseWarningEdited : m.leaseWarningExpired, { agent, slots }),
+    );
+  });
+}
+
+function installLeaseWarning(): void {
+  const dialog = document.getElementById("dialog-lease-warning") as HTMLDialogElement | null;
+  document.getElementById("lease-warning-edit")?.addEventListener("click", () => closeLeaseWarning("edit"));
+  document.getElementById("lease-warning-cancel")?.addEventListener("click", () => closeLeaseWarning("cancel"));
+  // Escape is Cancel.
+  dialog?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeLeaseWarning("cancel");
+  });
+}
+
+/** Agent writes refused because you changed those slots during their lease: say so once each. */
+let humanWinsSeen = -1;
+function showHumanWins(notices: HumanWinsNotice[]): void {
+  const newest = notices.at(-1)?.seq ?? 0;
+  if (humanWinsSeen < 0) {
+    humanWinsSeen = newest;
+    return;
+  }
+  const fresh = notices.filter((n) => n.seq > humanWinsSeen);
+  humanWinsSeen = Math.max(humanWinsSeen, newest);
+  const last = fresh.at(-1);
+  if (!last) return;
+  const slots = last.slotIds.map((id) => describeSlotForNotes(id) ?? id).join(", ");
+  controller.setStatusMessage(formatMessage(uiChrome().leaseHumanWins, { agent: last.agent, slots }));
+}
+
+function installLeaseChip(): void {
+  const chip = document.getElementById("lease-chip");
+  chip?.addEventListener("click", () => {
+    if (!workspace || !currentLeases.length) return;
+    const lease = currentLeases[leaseChipIndex++ % currentLeases.length]!;
+    const block = leaseTargetBlock(workspace.getAllBlocks(false), lease.slotId) as Blockly.BlockSvg | undefined;
+    if (!block) return;
+    const scale = workspace.getScale();
+    const view = workspace.getMetrics();
+    if (block.height * scale < view.viewHeight * 0.8 && block.width * scale < view.viewWidth * 0.8) {
+      workspace.centerOnBlock(block.id, true);
+    } else {
+      // A big subtree: show its top-left corner with the name tag.
+      const xy = block.getRelativeToSurfaceXY();
+      workspace.scroll(-(xy.x * scale - 40), -(xy.y * scale - 40));
+    }
+  });
+  // Pulled bundles rebuild blocks: draw the markers again on the new blocks.
+  workspace?.addChangeListener((event) => {
+    if (event.type === Blockly.Events.FINISHED_LOADING && currentLeases.length) {
+      queueMicrotask(() => renderLeaseMarkers(workspace, currentLeases, leaseTexts()));
+    }
+  });
 }
 
 function pulseAgentActivity(activity: {
@@ -2037,7 +2395,7 @@ const importAiDialog = installImportAiDialog({
   clipboard: requireEl<HTMLButtonElement>("import-ai-clipboard"),
   copyErrors: requireEl<HTMLButtonElement>("import-ai-copy-errors"),
   openButton: requireEl<HTMLButtonElement>("btn-import-ai"),
-  formatDocUrl: host.resolveAppUrl("docs/AI_SUGGESTION_FORMAT.md"),
+  formatDocUrl: pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md"),
   readClipboard: () => controller.readClipboardText(),
   copyToClipboard: (text) => host.copyToClipboard(text),
   // A pasted AI answer is an AI change too (ADR 0014), with its own undo step.
@@ -2076,12 +2434,15 @@ aiChat = installAiChatPanel({
   buildProjectContext: (delivery) => controller.buildAiPromptText(delivery ?? lastAiDelivery()),
   getDelivery: () => lastAiDelivery(),
   setDelivery: (delivery) => localStorage.setItem("intehrgrator.aiDelivery", delivery),
+  getAttachOriginalTarget: () => controller.getAiAttachOriginalTarget(),
+  setAttachOriginalTarget: (on) => controller.setAiAttachOriginalTarget(on),
   copyToClipboard: (text) => host.copyToClipboard(text),
   pickTextFile: () => host.pickTextFile(".md,.txt,.json,text/markdown,text/plain,application/json"),
   fetchText: async (url) => (await host.fetchTextUrl(url)).text,
   downloadText: (filename, text) => void host.downloadText(filename, text, "application/json"),
   openImportDialog: (text) => void importAiDialog.open(text),
   runTurn: (request) => runAiChatTurn(request),
+  model: () => loadAiCredentials(localStorage)?.model ?? "",
   setStatus: (message) => controller.setStatusMessage(message),
   formatError: (err) => formatCallAiError(err),
   describeSlot: (slotId) => describeSlotForNotes(slotId),
@@ -2194,9 +2555,20 @@ function installCopyAiMenu(): void {
         openAiCredentialsDialog();
       } else if (action === "local-mcp") {
         openLocalMcpDialog();
+      } else if (action === "languages") {
+        openAiLanguagesDialog();
       }
     });
   });
+
+  // #277: raw target file in copy & paste prompts only on request (saved per project).
+  const attachTarget = document.getElementById("menu-ai-attach-target");
+  if (attachTarget instanceof HTMLInputElement) {
+    attachTarget.addEventListener("change", () => controller.setAiAttachOriginalTarget(attachTarget.checked));
+    document.getElementById("btn-copy-ai")?.addEventListener("click", () => {
+      attachTarget.checked = controller.getAiAttachOriginalTarget();
+    });
+  }
 
   menu.querySelectorAll<HTMLButtonElement>("[data-ai-delivery]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -3538,6 +3910,7 @@ async function runSuggestionsFallbackTurn(
     credentials: creds,
     prompt: `${request.prompt}\n\n${SUGGESTIONS_FALLBACK_INSTRUCTION}${excerpt}`,
     history: request.history,
+    systemPrefix: controller.buildAiSystemPrefix("copy"),
     proxyUrl,
     signal: request.signal,
     onEvent: request.onEvent,
@@ -3565,6 +3938,7 @@ async function runSuggestionsFallbackTurn(
     messages: result.messages,
     toolCalls: [],
     mappings,
+    usage: result.usage,
     note: notes.join(" "),
   };
 }
@@ -3630,9 +4004,11 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       credentials: creds,
       prompt: request.prompt,
       history: request.history,
+      systemPrefix: controller.buildAiSystemPrefix("api"),
       proxyUrl,
       signal: request.signal,
       onEvent: request.onEvent,
+      tokenBudget: request.tokenBudget,
       onAfterMutation: () => {
         persistBlocklyCanvas({ summary: "AI chat" });
         render();
@@ -3654,6 +4030,8 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       suggestionNotes: result.suggestionNotes,
       mappings: result.mappingNotices,
       ...(result.stopped ? { stopped: true } : {}),
+      usage: result.usage,
+      ...(result.budgetReached ? { budgetReached: true } : {}),
       note: result.truncated
         ? uiChrome().aiChatTruncated
         : result.stepLimitReached
@@ -3978,7 +4356,7 @@ function render(): void {
     taskProgressOverlay.hidden = true;
   }
 
-  syncModelLanguageMenu(s);
+  syncLanguageWidgets(s);
 
   if (s.schemaTree) {
     renderSchemaTree(
@@ -4003,7 +4381,7 @@ function render(): void {
 
   renderTargetSchemaTree(
     targetSchemaTreeEl,
-    s.skeleton.length ? targetSchemaTreeFromSkeleton(s.skeleton) : [],
+    s.skeleton.length ? targetSchemaTreeFromSkeleton(s.skeleton, targetAltLabels(s)) : [],
     undefined,
     uiChrome().loadTargetEmpty,
   );

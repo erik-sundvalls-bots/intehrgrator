@@ -9,6 +9,7 @@ import {
   generateTypeScriptFromSlots,
 } from "./typescript.ts";
 import { generateJava } from "./java.ts";
+import { applyCodedTextSlots } from "../openehr/coded_text.ts";
 
 export {
   compileLiteralPath,
@@ -137,5 +138,7 @@ export function generate(
   target: ExportTarget,
   options?: ExportGenerationOptions,
 ): string {
-  return getExportTargetAdapter(target).generate(model, options);
+  // DV_TEXT nodes mapped as DV_CODED_TEXT generate as the subclass (#274).
+  const skeleton = options?.skeleton && applyCodedTextSlots(options.skeleton, model.slots);
+  return getExportTargetAdapter(target).generate(model, skeleton ? { ...options, skeleton } : options);
 }

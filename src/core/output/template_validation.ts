@@ -29,13 +29,19 @@ function ensureRmTypeRegistry(): void {
   rmTypeRegistryReady = true;
 }
 
+// UCUM unit checks are on since ehrtslib v0.7 (#199): rate units such as
+// `/min` and `{beats}/min` pass. `initialize()` loads ucum-lhc (already in
+// the bundle) for full checks; it falls back to ehrtslib's syntax check if
+// ucum-lhc cannot load.
 const validator = new TemplateValidator({
   failFast: false,
-  validateUnits: false,
+  validateUnits: true,
   validateTerminology: true,
   validateRMSpecification: true,
   validateInvariants: true,
 });
+
+await validator.initialize();
 
 export interface ValidateConvertedOutputOptions {
   deserializeMode?: OpenEhrJsonDeserializeMode;
