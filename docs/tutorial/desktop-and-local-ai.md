@@ -6,7 +6,7 @@ Back to the [tutorial index](../TUTORIAL.md). Calling a model from inside the ap
 
 ## Start or stop the local MCP server
 
-1. Install and run a [desktop release](https://github.com/regionstockholm/intehrgrator/releases).
+1. Install and run a [desktop release](https://github.com/regionstockholm/intehrgrator/releases). On Linux the AppImage needs WebKitGTK 4.1 on the system (`sudo apt install libwebkit2gtk-4.1-0` on Debian/Ubuntu, `sudo dnf install webkit2gtk4.1` on Fedora), also when started with `--headless`.
 2. Open **AI → Desktop → Local MCP server…**. This item is not in the web app on GitHub Pages.
 3. The panel shows **Running** or **Stopped**, the Agent API URL, a token if you started the app with one, and an `mcp.json` snippet.
 4. **Stop** makes agent tools refuse new calls. **Start** allows them again. Call AI and your own edits keep working either way.
