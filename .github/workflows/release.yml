@@ -97,6 +97,10 @@ jobs:
             echo "- **This version:** [${PAGES_URL}](${PAGES_URL})"
             echo "- **Bleeding edge (main) always aveilable at:** https://regionstockholm.github.io/intehrgrator/"
             echo
+            echo "### Linux"
+            echo
+            echo "The AppImage uses the system WebKitGTK 4.1 (with libsoup 3), also with \`--headless\`. If it fails with \`libwebkit2gtk-4.1.so.0: cannot open shared object file\`, install it: \`sudo apt install libwebkit2gtk-4.1-0\` (Debian/Ubuntu) or \`sudo dnf install webkit2gtk4.1\` (Fedora)."
+            echo
             echo "### What's new"
             echo
             echo "See [CHANGELOG.md](https://github.com/regionstockholm/intehrgrator/blob/${TAG}/CHANGELOG.md) for the changes in this and previous releases."

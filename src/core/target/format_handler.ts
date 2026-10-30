@@ -28,7 +28,7 @@ import { loadJsonSchema } from "../source/schema_loader.ts";
 import { isWebTemplateJson } from "ehrtslib/serialization/simplified/mod.ts";
 import { isTemplateJson } from "ehrtslib/parser/mod.ts";
 import { scaffoldClinicalModelFileset } from "../clinical_model/github_template.ts";
-import { isAutoFixedValueSlot } from "../rm_mandatory.ts";
+import { isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
 import { assignSchemaBlockTypes } from "./schema_block_ids.ts";
 
 export interface TargetDefinition {
@@ -501,16 +501,22 @@ function renderOpenEhrNodeOnce(
     const output: Record<string, unknown> = { _type: node.rmType };
     assignDataValueFields(output, node.rmType, value);
     applyFixedDataValueFields(output, node.rmType, node.fixedFields);
+    if (node.rmType === "CODE_PHRASE") completeCodePhrase(output, node);
     fillCodedValueFromAllowed(output, node);
     return output;
   }
 
   const output: Record<string, unknown> = { _type: node.rmType };
-  const nodeId = rmArchetypeNodeId(node, parentArchetypeRef);
+  // archetype_node_id and name exist on LOCATABLE only (not EVENT_CONTEXT, ISM_TRANSITION, …).
+  const locatable = !NON_LOCATABLE_RM_TYPES.has(node.rmType);
+  const nodeId = locatable ? rmArchetypeNodeId(node, parentArchetypeRef) : undefined;
   if (nodeId) output.archetype_node_id = nodeId;
   const childArchetypeRef = node.archetypeRef ?? parentArchetypeRef;
   const locatableName = rmLocatableName(node);
-  if (locatableName && node.rmType !== "COMPOSITION" && !isPartyIdentityRmType(node.rmType)) {
+  if (
+    locatable && locatableName && node.rmType !== "COMPOSITION" &&
+    !isPartyIdentityRmType(node.rmType)
+  ) {
     output.name = { _type: "DV_TEXT", value: locatableName };
   }
   if (isPartyIdentityRmType(node.rmType) && Object.hasOwn(values, node.slotId)) {
@@ -534,7 +540,10 @@ function renderOpenEhrNodeOnce(
     }
     grouped.set(attribute, list);
   }
-  if (grouped.size === 0 && node.rmType !== "COMPOSITION" && output.identifiers == null) {
+  if (
+    grouped.size === 0 && node.rmType !== "COMPOSITION" && output.identifiers == null &&
+    !(isPartyIdentityRmType(node.rmType) && output.name != null)
+  ) {
     return undefined;
   }
   for (const [attribute, valuesForAttribute] of grouped) {
@@ -542,7 +551,52 @@ function renderOpenEhrNodeOnce(
       ? valuesForAttribute
       : valuesForAttribute[0];
   }
+  // COMPOSITION.name is mandatory: a mapped name slot wins, else the template name (as TypeScript mode).
+  if (node.rmType === "COMPOSITION" && output.name == null && locatableName) {
+    output.name = { _type: "DV_TEXT", value: locatableName };
+  }
+  // ENTRY.subject is mandatory; unmapped it is the record's owner (#310).
+  if (ENTRY_RM_TYPES.has(node.rmType) && output.subject == null) {
+    output.subject = { _type: "PARTY_SELF" };
+  }
+  if (output._type === "PARTY_PROXY") {
+    output._type = output.name != null || output.identifiers != null ? "PARTY_IDENTIFIED" : "PARTY_SELF";
+  }
   return output;
+}
+
+const ENTRY_RM_TYPES = new Set(["OBSERVATION", "EVALUATION", "INSTRUCTION", "ACTION", "ADMIN_ENTRY"]);
+
+
+/** Default terminology of a CODE_PHRASE RM attribute when the value is only a code. */
+const CODE_PHRASE_ATTR_TERMINOLOGY: Record<string, string> = {
+  language: "ISO_639-1",
+  territory: "ISO_3166-1",
+  encoding: "IANA_character-sets",
+};
+
+/**
+ * A scalar CODE_PHRASE value ("en" or "ISO_639-1::en") becomes canonical
+ * `terminology_id` + `code_string` rather than a stray `value` (#310).
+ */
+function completeCodePhrase(output: Record<string, unknown>, node: SkeletonNode): void {
+  if (output.value === undefined) return;
+  const raw = String(output.value ?? "").trim();
+  delete output.value;
+  if (output.code_string == null || String(output.code_string) === "") {
+    const sep = raw.lastIndexOf("::");
+    if (sep > 0) {
+      output.terminology_id ??= { _type: "TERMINOLOGY_ID", value: raw.slice(0, sep) };
+      output.code_string = raw.slice(sep + 2);
+    } else {
+      output.code_string = raw;
+    }
+  }
+  if (output.terminology_id == null) {
+    const attr = node.rmAttribute ?? node.label;
+    const term = CODE_PHRASE_ATTR_TERMINOLOGY[attr];
+    if (term) output.terminology_id = { _type: "TERMINOLOGY_ID", value: term };
+  }
 }
 
 function repeatingInstanceCount(
@@ -700,7 +754,8 @@ function fillCodedValueFromAllowed(
     Object.assign(output, codePhrase);
     return;
   }
-  if (output.value == null || String(output.value).trim() === "") output.value = chosen.label;
+  // The template rubric, not the source spelling, once the code is known (#309).
+  output.value = chosen.label;
   output.defining_code = codePhrase;
 }
 
@@ -738,8 +793,13 @@ function asStringKeyedRecord(value: unknown): Record<string, unknown> | null {
 function assignPartyIdentityFields(output: Record<string, unknown>, value: unknown): void {
   const record = asStringKeyedRecord(value);
   if (!record) {
-    if (value != null && String(value) !== "") output.name = String(value);
+    // "PARTY_SELF" is the factory subject sentinel, not a name.
+    if (value === "PARTY_SELF") output._type = "PARTY_SELF";
+    else if (value != null && String(value) !== "") output.name = String(value);
     return;
+  }
+  if (typeof record._type === "string" && record._type.startsWith("PARTY_")) {
+    output._type = record._type;
   }
   const name = record.name ?? record.value;
   if (name != null && String(name) !== "") output.name = String(name);

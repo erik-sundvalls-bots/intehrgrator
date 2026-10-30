@@ -523,7 +523,8 @@ Deno.test("typescript codegen from Blockly canvas updates when a source query is
     assertStringIncludes(before, "new COMPOSITION({");
     assertEquals(before.includes("$.systolic"), false);
     assertStringIncludes(before, "Blockly canvas");
-    assertStringIncludes(before, "mm[Hg]");
+    // A units-only DV_QUANTITY is scaffolding, not output (#310).
+    assertEquals(before.includes("mm[Hg]"), false);
     assertStringIncludes(before, "new DV_CODED_TEXT");
     assertStringIncludes(before, "at1001");
 
@@ -538,6 +539,7 @@ Deno.test("typescript codegen from Blockly canvas updates when a source query is
     assertStringIncludes(after, "xpathNumber");
     assertStringIncludes(after, "$.systolic");
     assertStringIncludes(after, "DV_QUANTITY");
+    assertStringIncludes(after, "mm[Hg]");
     assertEquals(after.includes("void evalExpr"), false);
 
     const saved = Blockly.serialization.workspaces.save(workspace);

@@ -7,6 +7,6 @@
   "imports": {
     "@std/path": "jsr:@std/path@1",
     "@std/fs": "jsr:@std/fs@1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.7/"
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.8/"
   }
 }

@@ -59,7 +59,8 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/load-target` | `load_target` | Target OPT / schema (`content` / `path` / `url`) |
 | POST | `/load-source-schema` | `load_source_schema` | Source Schema |
 | POST | `/add-example` | `add_example` | Example Instance |
-| POST | `/load-example-set` | `load_example_set` | Catalogued Example Set (`catalogPath` or `catalogUrl` + `setId`; `includeMapping` default true) |
+| GET | `/example-sets` | `list_example_sets` | Catalogued Example Sets `{ catalogUrl, sets: [{ id, title, description, mapped }] }` (`catalogPath` / `catalogUrl`; default the bundled catalog) |
+| POST | `/load-example-set` | `load_example_set` | Catalogued Example Set (`setId`; `catalogPath` or `catalogUrl`, default the bundled catalog; `includeMapping` default true) |
 | GET | `/function-library` | `list_function_library` | Curated Blockly Function catalog (`catalogPath` / `catalogUrl`; default in-repo `function-library/`) |
 | POST | `/load-function` | `load_function` | Merge a Function (`functionId` / `path` / `bundle`) onto the canvas; `clash` `rename` (default) or `replace` |
 | POST | `/set-active-example` | `set_active_example` | `{ id }` |
@@ -68,16 +69,16 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | POST | `/import-suggestions` | `import_suggestions` | Apply `intehrgrator-suggestions` JSON (body = text) |
 | POST | `/build-prompt` | `build_prompt` | Copy AI Prompt markdown |
 | POST | `/patch-prompt` | `build_patch_prompt` | `{ targetSeq }` → patch-undo prompt |
-| POST | `/map-slot` | `map_slot` | `{ slotId, path, format?, note?, confidence? }` (`confidence`: integer 0–100) |
+| POST | `/map-slot` | `map_slot` | `{ slotId, path \| value, format?, note?, confidence? }`: `path` maps a source field, `value` (string, number or boolean) a constant; `confidence` is an integer 0–100. A coded slot returns a `warning` with its value set |
 | PUT | `/blockly` | `put_blockly` | Replace workspace JSON (escape hatch) |
 | POST | `/optional-rm/add` | `optional_rm_add` | `{ parentSlotId, rmType, attributeName }` |
 | POST | `/optional-rm/remove` | `optional_rm_remove` | `{ parentSlotId, attributeName }` |
 | POST | `/set-instance-encoding` | `set_instance_encoding` | `{ encoding, rootIndex? }` |
 | POST | `/lease-slot` | `lease_slot` | `{ slotId, subtree?, ttlSec? }`: a slot, or with `subtree: true` a node path and every slot below it; 409 with `holder` when it overlaps another agent's lease |
 | POST | `/release-slot` | `release_slot` | `{ slotId, subtree? }` or `{ all: true }`; returns `released` |
-| POST | `/run-test` | `run_test` | Conversion Test Run (full `TestResult`) |
+| POST | `/run-test` | `run_test` | Conversion Test Run: full `TestResult` plus top-level `valid` (run ok and Output validation passed). `outputMode` (`preview`, `typescript`, …) is sticky; check both, neither is the reference |
 | POST | `/generate-script` | `generate_script` | `{ language, path? }` Conversion Script |
-| POST | `/export-bundle` | `export_bundle` | `{ format: json\|zip, path? }` |
+| POST | `/export-bundle` | `export_bundle` | `{ format: json\|zip, path? }`; with `path` it returns only `{ format, path, bytes, revision }` |
 | POST | `/undo` | `undo` | `{ toSeq? }` take back the newest change (or all after `toSeq`), whoever made it; appends an `undo` entry and returns `author` |
 | POST | `/revert` | `revert` | `{ seq }` take back one entry as a new change; slots changed later are skipped and listed (`skipped`) |
 | POST | `/redo` | `redo` | Redo service history |
@@ -88,7 +89,7 @@ Mutating requests accept **`If-Match: <revision>`** from the last snapshot. On c
 
 ### Example Set load
 
-`load_example_set` **`includeMapping` defaults to true**: a mapped catalog set **adopts** its Blockly canvas, Sheets, and loops. `get_snapshot.appliedSlots` is the mapped slot count and is greater than 0 after that adopt. **`includeMapping: false`** loads the target, schema, and examples and **scaffolds** an empty Mapping Model from the Template Skeleton (no saved expressions).
+`list_example_sets` lists the catalogued sets (`mapped` says whether a set has a mapping). Without `catalogPath` / `catalogUrl`, both tools use the catalog bundled with the app. `load_example_set` **`includeMapping` defaults to true**: a mapped catalog set **adopts** its Blockly canvas, Sheets, and loops. `get_snapshot.appliedSlots` counts every slot with an expression and is greater than 0 after that adopt: `mappedSlots` are mapped from the source or a constant, `defaultedSlots` only read the default context map. **`includeMapping: false`** loads the target, schema, and examples and **scaffolds** an empty Mapping Model from the Template Skeleton (no saved expressions).
 
 `list_slots` groups name their archetype / parent node in `label` and `within`; `loop: true` marks a repeating container whose `group` is the `attachSlotId` for `loops[]`. Call `get_slot` for one slot's full detail instead of loading the target file. In `view: "rows"`, `parentRmType` is the nearest COMPOSITION, SECTION, or ENTRY ancestor (`ACTION` vs `EVALUATION` when sibling content shares `at0000`). Pair it with `pathLabel` and `attachSlotId`; do not parse raw Blockly to tell those slots apart.
 
@@ -131,7 +132,7 @@ The UI polls `/api/v1/snapshot` and reloads the bundle when revision changes (li
 deno task mcp
 ```
 
-Set **`INTEHR_AGENT_URL=http://127.0.0.1:<port>`** to proxy tools to a running desktop session (recommended for GUI). Set **`INTEHR_AGENT_TOKEN`** when the desktop requires a token. Without `INTEHR_AGENT_URL`, MCP embeds a headless `WorkbenchService` (filesystem host: load from path/url, write export `path`s).
+Set **`INTEHR_AGENT_URL=http://127.0.0.1:<port>`** to proxy tools to a running desktop session (recommended for GUI). Set **`INTEHR_AGENT_TOKEN`** when the desktop requires a token. Set **`INTEHR_AGENT_ID`** and **`INTEHR_AGENT_NAME`** to keep one agent identity (history attribution, leases, observer colour) across MCP restarts and separate clients; without them each process registers a new agent. Without `INTEHR_AGENT_URL`, MCP embeds a headless `WorkbenchService` (filesystem host: load from path/url, write export `path`s).
 
 ### Desktop panel
 

@@ -33,6 +33,28 @@ function stubHost(overrides: Partial<HostAdapter> = {}): HostAdapter {
 
 const bpOptPath = join(import.meta.dirname!, "fixtures", "blood_pressure.opt");
 
+/**
+ * An empty mapping leaves COMPOSITION language, territory and composer unset:
+ * strict RM validation reports exactly those, and no template errors.
+ */
+const UNMAPPED_COMPOSITION_MANDATORY = [
+  "COMPOSITION.language is required by RM specification",
+  "COMPOSITION.territory is required by RM specification",
+  "COMPOSITION.composer is required by RM specification",
+];
+
+function assertOnlyUnmappedMandatory(
+  validation: { valid: boolean; messages: Array<{ message: string }> } | undefined,
+  label = "",
+): void {
+  assertEquals(validation?.valid, false, label);
+  assertEquals(
+    [...new Set((validation?.messages ?? []).map((m) => m.message))].sort(),
+    [...UNMAPPED_COMPOSITION_MANDATORY].sort(),
+    label,
+  );
+}
+
 Deno.test("validateConvertedOutput deserializes preview JSON and reports template errors", async () => {
   const opt = await Deno.readTextFile(bpOptPath);
   const { skeleton } = generateSkeleton(opt);
@@ -49,7 +71,7 @@ Deno.test("validateConvertedOutput deserializes preview JSON and reports templat
   });
   const empty = validateConvertedOutput(output, target, { deserializeMode: "hybrid" });
   assert(empty.applicable);
-  assertEquals(empty.valid, true, empty.messages.map((m) => m.message).join("; "));
+  assertOnlyUnmappedMandatory(empty);
   const bad = {
     ...(output as Record<string, unknown>),
     category: { _type: "DV_CODED_TEXT", value: "not-a-code" },
@@ -146,8 +168,7 @@ Deno.test("validateConvertedOutput defaults to canonical-strict deserialization"
   const model = createEmptyModel("openEHR-EHR-COMPOSITION.sample_encounter.v1");
   const result = runTest(model, example, "json", { target, outputMode: "preview" });
   assert(result.outputValidation?.applicable);
-  assertEquals(result.outputValidation?.valid, true, (result.outputValidation?.messages ?? []).map((m) => m.message).join("; "));
-  assertEquals(result.outputValidation?.messages.length ?? 0, 0);
+  assertOnlyUnmappedMandatory(result.outputValidation);
 });
 
 Deno.test("runTest preview on BP target with legacy JSON instance collects output validation", async () => {
@@ -169,11 +190,7 @@ Deno.test("runTest preview on BP target with legacy JSON instance collects outpu
     outputMode: "preview",
   });
   assert(result.outputValidation?.applicable);
-  assertEquals(
-    result.outputValidation?.valid,
-    true,
-    (result.outputValidation?.messages ?? []).map((m) => m.message).join("; "),
-  );
+  assertOnlyUnmappedMandatory(result.outputValidation);
 });
 
 Deno.test("runAllTests validates every loaded example for autoplay", async () => {
@@ -194,11 +211,7 @@ Deno.test("runAllTests validates every loaded example for autoplay", async () =>
   for (const ex of state.examples) {
     const validation = state.outputValidations[ex.id];
     assert(validation?.applicable, `expected validation for ${ex.filename}`);
-    assertEquals(
-      validation?.valid,
-      true,
-      `${ex.filename}: ${(validation?.messages ?? []).map((m) => m.message).join("; ")}`,
-    );
+    assertOnlyUnmappedMandatory(validation, ex.filename);
   }
 });
 
@@ -226,4 +239,35 @@ Deno.test("classifyOpenEhrValidationMessage splits Simple-vitals leftover kinds"
     "archetype-sibling",
   );
   assertEquals(classifyOpenEhrValidationMessage("unexpected RM invariant"), "other");
+});
+
+Deno.test("FLAT output: coded text mismatches from ehrtslib v0.8 are output validation errors", async () => {
+  const opt = await Deno.readTextFile(bpOptPath);
+  const target = getTargetFormatHandler("openehr-template").load("blood_pressure.opt", opt);
+  const cuff = "ehrbase_blood_pressure_simple.de.v0/blood_pressure_training_sample/cuff_size";
+  const flat = (value: string) => ({
+    "ctx/language": "en",
+    "ctx/territory": "SE",
+    "ctx/composer_name": "Test",
+    [`${cuff}|code`]: "at0015",
+    [`${cuff}|value`]: value,
+  });
+  const coded = (value: string) =>
+    validateConvertedOutput(flat(value), target).messages.filter((m) =>
+      m.message.includes("codedTextMismatch")
+    );
+
+  // Library defaults: codedTextMismatch "reject", codedTextDisplayValue "keep".
+  assertEquals(coded("Adult"), []);
+  assertEquals(coded("Wide cuff"), [], "a valid code with display text is kept");
+
+  const caseOnly = validateConvertedOutput(flat("adult"), target);
+  assertEquals(caseOnly.valid, false);
+  const [caseMsg] = caseOnly.messages.filter((m) => m.message.includes("codedTextMismatch"));
+  assertEquals(caseMsg?.severity, "error");
+  assert(caseMsg.message.includes('"Adult"'), caseMsg.message);
+
+  const conflict = coded("Large Adult");
+  assertEquals(conflict.length, 1);
+  assert(conflict[0].message.includes("at0016"), conflict[0].message);
 });

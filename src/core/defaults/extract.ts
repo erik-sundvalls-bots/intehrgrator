@@ -136,7 +136,8 @@ function literalFromInput(
     return !code || code === TERM_PICK_NONE ? "" : code;
   }
   if (block.type === "party_self") {
-    return { rmType: "PARTY_SELF" };
+    // Canonical openEHR JSON (`_type`), so a Conversion Script can assign it as is (#310).
+    return { _type: "PARTY_SELF" };
   }
   if (block.type === "party_identified" || block.type === "party_related" || block.type === "party_proxy") {
     return partyLiteral(block);
@@ -156,7 +157,7 @@ function partyLiteral(block: BlocklyBlockJson): Record<string, unknown> {
       block.type?.replace(/^party_/, "PARTY_").toUpperCase() ??
       "PARTY_IDENTIFIED",
   );
-  const out: Record<string, unknown> = { rmType };
+  const out: Record<string, unknown> = { _type: rmType };
   const name = literalFromInput(block.inputs?.ATTR_name);
   if (name != null && name !== "") out.name = name;
   const identifiersRaw = block.inputs?.ATTR_identifiers?.block ??
@@ -167,6 +168,8 @@ function partyLiteral(block: BlocklyBlockJson): Record<string, unknown> {
       .map(identifierFromUnknown)
       .filter((row): row is Record<string, unknown> => row != null);
   }
+  // PARTY_PROXY is abstract: a named one is PARTY_IDENTIFIED, an empty one the record's subject.
+  if (rmType === "PARTY_PROXY") out._type = out.name != null || out.identifiers ? "PARTY_IDENTIFIED" : "PARTY_SELF";
   return out;
 }
 
@@ -193,7 +196,7 @@ function listFromCreateWith(block: BlocklyBlockJson | undefined): unknown[] {
 function identifierLiteralFromBlock(block: BlocklyBlockJson): Record<string, unknown> | null {
   const id = literalFromInput(block.inputs?.FLD_id ?? block.inputs?.ATTR_id);
   if (id == null || id === "") return null;
-  const row: Record<string, unknown> = { id: String(id) };
+  const row: Record<string, unknown> = { _type: "DV_IDENTIFIER", id: String(id) };
   const type = literalFromInput(block.inputs?.OPTFLD_type ?? block.inputs?.FLD_type);
   const issuer = literalFromInput(block.inputs?.OPTFLD_issuer ?? block.inputs?.FLD_issuer);
   const assigner = literalFromInput(block.inputs?.OPTFLD_assigner ?? block.inputs?.FLD_assigner);
@@ -209,11 +212,11 @@ function identifierFromUnknown(value: unknown): Record<string, unknown> | null {
     const rec = value as Record<string, unknown>;
     const id = rec.id ?? rec.value;
     if (id == null || id === "") return null;
-    const row: Record<string, unknown> = { id: String(id) };
+    const row: Record<string, unknown> = { _type: "DV_IDENTIFIER", id: String(id) };
     if (rec.type != null && rec.type !== "") row.type = String(rec.type);
     if (rec.issuer != null && rec.issuer !== "") row.issuer = String(rec.issuer);
     if (rec.assigner != null && rec.assigner !== "") row.assigner = String(rec.assigner);
     return row;
   }
-  return { id: String(value) };
+  return { _type: "DV_IDENTIFIER", id: String(value) };
 }

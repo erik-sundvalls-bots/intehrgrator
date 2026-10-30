@@ -7,7 +7,12 @@ import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
 import { getSharedWorkbenchService } from "./http.ts";
 import { APP_VERSION } from "../core/persistence/mod.ts";
 import { AGENT_TOOLS } from "./tools.ts";
-import { type AgentClient, HttpAgentClient, LocalAgentClient as BaseLocalAgentClient } from "./client.ts";
+import {
+  type AgentClient,
+  type AgentIdentity,
+  HttpAgentClient,
+  LocalAgentClient as BaseLocalAgentClient,
+} from "./client.ts";
 import type { WorkbenchService } from "../workbench/service.ts";
 
 type JsonRpcId = string | number | null;
@@ -19,13 +24,25 @@ export interface JsonRpcRequest {
   params?: Record<string, unknown>;
 }
 
-export { type AgentClient, HttpAgentClient } from "./client.ts";
+export { type AgentClient, type AgentIdentity, HttpAgentClient } from "./client.ts";
 
 /** In-process client on the embedded (or shared desktop) WorkbenchService. */
 export class LocalAgentClient extends BaseLocalAgentClient {
-  constructor(service: WorkbenchService = getSharedWorkbenchService()) {
-    super(service);
+  constructor(service: WorkbenchService = getSharedWorkbenchService(), identity?: AgentIdentity) {
+    super(service, identity);
   }
+}
+
+/**
+ * `INTEHR_AGENT_ID` / `INTEHR_AGENT_NAME`: a client that sets them keeps one
+ * agent (id, colour, history attribution) across MCP processes (#312).
+ */
+export function mcpIdentityFromEnv(
+  env: (key: string) => string | undefined = (key) => Deno.env.get(key),
+): AgentIdentity | undefined {
+  const agentId = env("INTEHR_AGENT_ID")?.trim().slice(0, 120) || undefined;
+  const displayName = env("INTEHR_AGENT_NAME")?.trim().slice(0, 120) || undefined;
+  return agentId || displayName ? { ...(agentId ? { agentId } : {}), ...(displayName ? { displayName } : {}) } : undefined;
 }
 
 export function createMcpAgentClient(): AgentClient {
@@ -34,9 +51,10 @@ export function createMcpAgentClient(): AgentClient {
     return new HttpAgentClient(
       base.replace(/\/$/, ""),
       Deno.env.get("INTEHR_AGENT_TOKEN")?.trim() || undefined,
+      mcpIdentityFromEnv(),
     );
   }
-  return new LocalAgentClient(getSharedWorkbenchService());
+  return new LocalAgentClient(getSharedWorkbenchService(), mcpIdentityFromEnv());
 }
 
 /**
@@ -112,7 +130,8 @@ export function takeMessages(buffer: Uint8Array): {
 export function mcpInstructions(): string {
   return [
     "intEHRgrator maps a source (JSON / XML, with schema and examples) onto a target (openEHR template, JSON Schema, XSD) on one shared canvas.",
-    "Workflow: register_agent (name yourself) → list_slots (compact slot tree; a slot id is group + row id) and get_source_tree → get_slot for one slot's full detail → lease_slot what you will edit when other agents work in parallel → map_slot / import_suggestions → run_test → release_slot. Every change is in the shared history (undo / revert).",
+    "Example Sets: list_example_sets lists the bundled catalog (also served at <agent_url>/examples/example-sets.json); load_example_set {setId, includeMapping: false} loads one to map yourself.",
+    "Workflow: register_agent (name yourself) → list_slots (compact slot tree; a slot id is group + row id) and get_source_tree → get_slot for one slot's full detail → lease_slot what you will edit when other agents work in parallel → map_slot (a source path, or value for a constant) / import_suggestions (loops, Decision tables, Sheet lookups) → run_test with outputMode preview and typescript (valid is the result; the TypeScript Conversion Script is what runs in production) → release_slot. Every change is in the shared history (undo / revert).",
     "The person in the app always wins: a refused write (humanWins, or a slot leased by another agent) is a tool error to react to, not to retry blindly.",
     `Full guide (fetch only if needed): ${pinnedDocUrl("docs/AGENT_WORKFLOW.md")} · suggestion format: ${pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md")}`,
   ].join("\n");
