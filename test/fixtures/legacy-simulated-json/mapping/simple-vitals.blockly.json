@@ -272,27 +272,24 @@
               },
               "ATTR_composer": {
                 "block": {
-                  "type": "party_identified",
+                  "type": "maps_get",
                   "id": "N0T@0)~`Zg{oZ2!Z2Vk8",
-                  "extraState": {
-                    "extras": [],
-                    "attrs": [
-                      "external_ref",
-                      "identifiers",
-                      "name"
-                    ],
-                    "rmType": "PARTY_IDENTIFIED",
-                    "prohibited": [],
-                    "slotCards": {},
-                    "rmCards": {}
-                  },
                   "fields": {
-                    "NAME": "composer",
+                    "NAME": "defaults",
                     "SLOT_ID": "simple-diagnose-and-vitals//composer",
-                    "RM_TYPE": "PARTY_IDENTIFIED",
-                    "MANDATORY": "1",
-                    "ARCHETYPE_NODE_ID": "",
-                    "ARCHETYPE_CTX": "encounter"
+                    "RM_TYPE": "PARTY_IDENTIFIED"
+                  },
+                  "inputs": {
+                    "KEY": {
+                      "shadow": {
+                        "type": "text",
+                        "id": "N0T@0)~`Zg{oZ2!Z2Vk8k",
+                        "inline": false,
+                        "fields": {
+                          "TEXT": "composer"
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -3771,7 +3768,7 @@
                         "fields": {
                           "NAME": "built-in",
                           "SET": "openehr:setting",
-                          "CODE": "__none__",
+                          "CODE": "238",
                           "SLOT_ID": "simple-diagnose-and-vitals//context/EVENT_CONTEXT/setting/value",
                           "RM_TYPE": "DV_CODED_TEXT",
                           "MANDATORY": "1"

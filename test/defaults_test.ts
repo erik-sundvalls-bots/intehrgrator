@@ -394,9 +394,10 @@ Deno.test("namedMapsFromBlocklyState reads party name and identifiers from Defau
     },
   });
   assertEquals(maps[DEFAULTS_MAP_NAME]?.["composer"], {
-    rmType: "PARTY_IDENTIFIED",
+    _type: "PARTY_IDENTIFIED",
     name: "Dr. Who Demo",
     identifiers: [{
+      _type: "DV_IDENTIFIER",
       id: "9876543210",
       type: "Professional Registration Number",
       issuer: "General Medical Council",

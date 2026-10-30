@@ -33,6 +33,28 @@ function stubHost(overrides: Partial<HostAdapter> = {}): HostAdapter {
 
 const bpOptPath = join(import.meta.dirname!, "fixtures", "blood_pressure.opt");
 
+/**
+ * An empty mapping leaves COMPOSITION language, territory and composer unset:
+ * strict RM validation reports exactly those, and no template errors.
+ */
+const UNMAPPED_COMPOSITION_MANDATORY = [
+  "COMPOSITION.language is required by RM specification",
+  "COMPOSITION.territory is required by RM specification",
+  "COMPOSITION.composer is required by RM specification",
+];
+
+function assertOnlyUnmappedMandatory(
+  validation: { valid: boolean; messages: Array<{ message: string }> } | undefined,
+  label = "",
+): void {
+  assertEquals(validation?.valid, false, label);
+  assertEquals(
+    [...new Set((validation?.messages ?? []).map((m) => m.message))].sort(),
+    [...UNMAPPED_COMPOSITION_MANDATORY].sort(),
+    label,
+  );
+}
+
 Deno.test("validateConvertedOutput deserializes preview JSON and reports template errors", async () => {
   const opt = await Deno.readTextFile(bpOptPath);
   const { skeleton } = generateSkeleton(opt);
@@ -49,7 +71,7 @@ Deno.test("validateConvertedOutput deserializes preview JSON and reports templat
   });
   const empty = validateConvertedOutput(output, target, { deserializeMode: "hybrid" });
   assert(empty.applicable);
-  assertEquals(empty.valid, true, empty.messages.map((m) => m.message).join("; "));
+  assertOnlyUnmappedMandatory(empty);
   const bad = {
     ...(output as Record<string, unknown>),
     category: { _type: "DV_CODED_TEXT", value: "not-a-code" },
@@ -146,8 +168,7 @@ Deno.test("validateConvertedOutput defaults to canonical-strict deserialization"
   const model = createEmptyModel("openEHR-EHR-COMPOSITION.sample_encounter.v1");
   const result = runTest(model, example, "json", { target, outputMode: "preview" });
   assert(result.outputValidation?.applicable);
-  assertEquals(result.outputValidation?.valid, true, (result.outputValidation?.messages ?? []).map((m) => m.message).join("; "));
-  assertEquals(result.outputValidation?.messages.length ?? 0, 0);
+  assertOnlyUnmappedMandatory(result.outputValidation);
 });
 
 Deno.test("runTest preview on BP target with legacy JSON instance collects output validation", async () => {
@@ -169,11 +190,7 @@ Deno.test("runTest preview on BP target with legacy JSON instance collects outpu
     outputMode: "preview",
   });
   assert(result.outputValidation?.applicable);
-  assertEquals(
-    result.outputValidation?.valid,
-    true,
-    (result.outputValidation?.messages ?? []).map((m) => m.message).join("; "),
-  );
+  assertOnlyUnmappedMandatory(result.outputValidation);
 });
 
 Deno.test("runAllTests validates every loaded example for autoplay", async () => {
@@ -194,11 +211,7 @@ Deno.test("runAllTests validates every loaded example for autoplay", async () =>
   for (const ex of state.examples) {
     const validation = state.outputValidations[ex.id];
     assert(validation?.applicable, `expected validation for ${ex.filename}`);
-    assertEquals(
-      validation?.valid,
-      true,
-      `${ex.filename}: ${(validation?.messages ?? []).map((m) => m.message).join("; ")}`,
-    );
+    assertOnlyUnmappedMandatory(validation, ex.filename);
   }
 });
 

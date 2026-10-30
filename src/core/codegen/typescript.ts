@@ -54,7 +54,7 @@ export interface TsEmitContext {
   /** When set, relative source paths evaluate against this loop node. */
   loopVar?: string;
   types: Set<string>;
-  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic">;
+  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "party">;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
   archetypeRootIds?: Map<string, string>;
   /** Skeleton nodes by slot id: output names of blocks not renamed by the user. */
@@ -348,7 +348,7 @@ export interface TypeScriptModuleParts {
   templateId: string;
   body: string;
   types: Set<string>;
-  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic">;
+  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "party">;
   rootType?: string;
   /** Where the RM tree was walked from. */
   source?: "blockly" | "skeleton" | "slots";
@@ -418,6 +418,10 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
   }
   if (parts.helpers.has("rm")) {
     lines.push(...indentLines(rmHelper(), 1));
+    lines.push("");
+  }
+  if (parts.helpers.has("party")) {
+    lines.push(...indentLines(partyValueHelper(), 1));
     lines.push("");
   }
   if (parts.helpers.has("handlebars")) {
@@ -782,6 +786,27 @@ function handlebarsHelper(): string[] {
     "    toUpperCase: (v: unknown) => v == null ? v : String(v).toUpperCase(),",
     "  });",
     "  return engine.compile(template, { noEscape: true })(context ?? {});",
+    "}",
+  ];
+}
+
+/**
+ * A party Default point as canonical openEHR JSON: a name string becomes
+ * PARTY_IDENTIFIED ("PARTY_SELF" is the subject sentinel), an old
+ * `{ rmType }` literal gets `_type`, and a missing subject is PARTY_SELF.
+ */
+function partyValueHelper(): string[] {
+  return [
+    "function partyValue(v: unknown, fallback: string): unknown {",
+    "  if (v == null || v === \"\") return fallback === \"PARTY_SELF\" ? { _type: \"PARTY_SELF\" } : undefined;",
+    "  if (typeof v === \"string\") {",
+    "    return v === \"PARTY_SELF\" ? { _type: \"PARTY_SELF\" } : { _type: \"PARTY_IDENTIFIED\", name: v };",
+    "  }",
+    "  if (typeof v !== \"object\" || Array.isArray(v) || \"_type\" in v) return v;",
+    "  if (Object.getPrototypeOf(v) !== Object.prototype) return v;",
+    "  const { rmType, ...rest } = v as Record<string, unknown>;",
+    "  const type = typeof rmType === \"string\" && rmType !== \"PARTY_PROXY\" ? rmType : fallback;",
+    "  return { _type: type, ...rest };",
     "}",
   ];
 }

@@ -34,7 +34,7 @@ import {
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
 import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
-import { LOCATABLE_TYPES } from "../core/rm_mandatory.ts";
+import { LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
 import type { InstanceEncoding, MappingModel } from "../types/mod.ts";
 import {
   asStringExpr,
@@ -362,7 +362,22 @@ function emitRmContainer(block: Block, ctx: TsEmitContext, indent: number): stri
     }
     return "";
   }
+  if (ENTRY_RM_TYPES.has(rmType)) ensureEntrySubject(props, ctx);
   return formatRmConstruct(rmType, props, indent, ctx);
+}
+
+/** RM ENTRY subtypes: `subject` is mandatory (RM 1.1 ENTRY). */
+const ENTRY_RM_TYPES = new Set(["OBSERVATION", "EVALUATION", "INSTRUCTION", "ACTION", "ADMIN_ENTRY"]);
+
+/**
+ * ENTRY.subject is mandatory. Without a mapping the subject is the record's
+ * owner (PARTY_SELF), as in the preview output; a Default point that may be
+ * missing at run time falls back to PARTY_SELF too (#310).
+ */
+function ensureEntrySubject(props: Array<[string, string]>, ctx: TsEmitContext): void {
+  if (props.some(([key]) => key === "subject")) return;
+  ctx.types.add("PARTY_SELF");
+  props.push(["subject", "new PARTY_SELF()"]);
 }
 
 function collectRmProps(
@@ -387,7 +402,9 @@ function collectRmProps(
         : (ctx.types.add("DV_TEXT"), `new DV_TEXT(${JSON.stringify(name)})`),
     ]);
   }
-  if (nodeId) props.push(["archetype_node_id", JSON.stringify(nodeId)]);
+  if (nodeId && !NON_LOCATABLE_RM_TYPES.has(rmType)) {
+    props.push(["archetype_node_id", JSON.stringify(nodeId)]);
+  }
 
   if (block.type === "element") {
     const value = block.getInputTargetBlock("VALUE");
@@ -445,7 +462,28 @@ function emitAttribute(
   if (simplified) return simplified;
   let code = emitBlock(target, ctx, indent + 1);
   code = wrapCodePhraseAttributeEmit(attr, parentRmType, target, code);
+  code = wrapPartyDefaultEmit(attr, parentRmType, code, ctx);
   return isBlankGeneratedExpr(code) ? null : code;
+}
+
+/**
+ * A party Default point (`defaults["composer"]`) may hold a name string, an
+ * old `{ rmType }` literal or a canonical `{ _type }` object: normalise it to
+ * canonical openEHR JSON at run time (#310).
+ */
+function wrapPartyDefaultEmit(
+  attr: string,
+  parentRmType: string,
+  code: string,
+  ctx: TsEmitContext,
+): string {
+  if (isBlankGeneratedExpr(code) || !/^defaults\[[^\]]+\]$/.test(code.trim())) return code;
+  const attrMeta = attributesFor(parentRmType).find((item) => item.name === attr);
+  const attrType = attrMeta?.typeName ? baseRmTypeName(attrMeta.typeName) : "";
+  if (!attrType.startsWith("PARTY_")) return code;
+  ctx.helpers.add("party");
+  const fallback = attr === "subject" ? "PARTY_SELF" : "PARTY_IDENTIFIED";
+  return `partyValue(${code}, ${JSON.stringify(fallback)})`;
 }
 
 function wrapCodePhraseSlotEmit(block: Block, code: string): string {
@@ -478,7 +516,7 @@ function wrapCodePhraseValue(code: string, slotId: string, attrName = ""): strin
 function codePhraseTerminology(slotId: string, attrName: string): string | null {
   if (slotId.includes("//language/") || attrName === "language") return "ISO_639-1";
   if (slotId.includes("//territory/") || attrName === "territory") return "ISO_3166-1";
-  if (slotId.includes("//encoding/") || attrName === "encoding") return "Unicode";
+  if (slotId.includes("//encoding/") || attrName === "encoding") return "IANA_character-sets";
   return null;
 }
 
@@ -512,7 +550,8 @@ function emitSimplifiedParty(
   const parts: string[] = [];
   if (name) parts.push(`name: ${asStringExpr(name)}`);
   if (identifiers) parts.push(`identifiers: ${identifiers}`);
-  return `{ ${parts.join(", ")} }`;
+  // Canonical `_type` so ehrtslib builds a PARTY_IDENTIFIED for the abstract PARTY_PROXY slot.
+  return `{ _type: "PARTY_IDENTIFIED", ${parts.join(", ")} }`;
 }
 
 function emitStatementList(
@@ -649,6 +688,8 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
       props.push(["units", JSON.stringify(units)]);
     }
   }
+  // A quantity without a magnitude is only scaffolding (e.g. fixed units): prune it like the preview does.
+  if (rmType === "DV_QUANTITY" && !props.some((p) => p[0] === "magnitude")) return "";
   if (rmType === "DV_TEXT" && props.length === 1 && props[0]![0] === "value") {
     ctx.types.add("DV_TEXT");
     return `new DV_TEXT(${props[0]![1]})`;
@@ -699,11 +740,9 @@ function emitTermPick(block: Block, ctx: TsEmitContext): string {
   return emitCodePhraseLiteral(terminology, code);
 }
 
-function shouldEmitLocatableName(rmType: string, name: string): boolean {
-  if (rmType === "COMPOSITION") return true;
-  if (!LOCATABLE_TYPES.has(rmType)) return false;
-  const generic = name.replace(/[_-]/g, " ").toUpperCase();
-  return generic !== rmType && generic.replace(/\s+/g, "_") !== rmType;
+/** LOCATABLE.name is mandatory, also when it repeats the RM type (e.g. HISTORY "history"). */
+function shouldEmitLocatableName(rmType: string, _name: string): boolean {
+  return rmType === "COMPOSITION" || LOCATABLE_TYPES.has(rmType);
 }
 
 function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string {

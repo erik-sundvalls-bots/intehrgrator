@@ -52,6 +52,18 @@ export const LOCATABLE_TYPES = new Set([
   "ACTIVITY",
 ]);
 
+/** Template-skeleton RM types that are not LOCATABLE: no name / archetype_node_id (#310). */
+export const NON_LOCATABLE_RM_TYPES = new Set([
+  "EVENT_CONTEXT",
+  "ISM_TRANSITION",
+  "INSTRUCTION_DETAILS",
+  "PARTICIPATION",
+  "FEEDER_AUDIT",
+  "FEEDER_AUDIT_DETAILS",
+  "AUDIT_DETAILS",
+  "LINK",
+]);
+
 export function mandatoryAttributesFor(rmType: string): string[] {
   const attrs = new Set<string>();
   for (const [type, names] of Object.entries(MANDATORY_RM_ATTRIBUTES)) {
