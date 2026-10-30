@@ -692,8 +692,12 @@ function assignDataValueFields(
   }
   if (rmType === "DV_CODED_TEXT") {
     if (record) {
-      if (record.value !== undefined) output.value = record.value;
       const phrase = codedPhraseFromRecord(record);
+      if (record.value !== undefined && record.value !== null && String(record.value) !== "") {
+        output.value = record.value;
+      } else if (!phrase) {
+        output.value = "";
+      }
       if (phrase) output.defining_code = phrase;
     } else {
       output.value = value;
@@ -841,9 +845,13 @@ function dvIdentifierFromParts(
 function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, unknown> | null {
   const nested = record.defining_code;
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const inner = nested as Record<string, unknown>;
+    const innerCode = inner.code_string ?? inner.code;
+    if (innerCode == null || String(innerCode).trim() === "") return null;
     const phrase: Record<string, unknown> = {
       _type: "CODE_PHRASE",
-      ...(nested as Record<string, unknown>),
+      ...inner,
+      code_string: String(innerCode).trim(),
     };
     const term = phrase.terminology_id;
     if (typeof term === "string" || typeof term === "number") {
@@ -854,14 +862,16 @@ function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, 
   const code = record.code_string ?? record.code ??
     (typeof nested === "string" || typeof nested === "number" ? nested : undefined);
   const term = record.terminology_id ?? record.terminology;
-  if (code == null && term == null) return null;
-  const phrase: Record<string, unknown> = { _type: "CODE_PHRASE" };
+  // A terminology id with no code is not a CODE_PHRASE. TypeScript drops that
+  // shape (ehrtslib omits an empty code_string); preview must match (#320).
+  const codeText = code == null ? "" : String(code).trim();
+  if (!codeText) return null;
+  const phrase: Record<string, unknown> = { _type: "CODE_PHRASE", code_string: codeText };
   if (term != null) {
     phrase.terminology_id = typeof term === "object"
       ? term
       : { _type: "TERMINOLOGY_ID", value: String(term) };
   }
-  if (code != null) phrase.code_string = String(code);
   return phrase;
 }
 
