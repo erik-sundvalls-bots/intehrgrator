@@ -115,7 +115,9 @@ Deno.test("map_slot sets a constant with value, and warns on a coded slot mapped
   }) as { mapped: boolean; value: string };
   assertEquals(setting.value, "home");
   const row = service.listSlots().find((r) => r.slotId.endsWith("//context/EVENT_CONTEXT/setting/value"));
-  assertEquals(row?.expression, '"home"');
+  // A coded constant carries its code: "home" is openEHR setting 225.
+  assertStringIncludes(row?.expression ?? "", '"225"');
+  assertStringIncludes(row?.expression ?? "", '"home"');
 
   const position = await callAgentTool(service, "map_slot", { slotId: POSITION, path: "$.bodyPosition" }) as {
     warning?: string;
@@ -178,4 +180,49 @@ Deno.test("INTEHR_AGENT_ID keeps one agent across MCP processes (#312)", async (
   } finally {
     await server.shutdown();
   }
+});
+
+Deno.test("map_slot value on a coded slot writes code and text (setting, value set) or explains the form", async () => {
+  const service = await loadedVitals();
+  await callAgentTool(service, "map_slot", {
+    slotId: "/context/EVENT_CONTEXT/setting/value",
+    value: "openehr::238|other care|",
+  });
+  await callAgentTool(service, "map_slot", { slotId: POSITION, value: "Sitting" });
+  for (const outputMode of ["preview", "typescript"]) {
+    const run = await callAgentTool(service, "run_test", { outputMode }) as {
+      testResult: { output: unknown; outputValidation?: { messages: Array<{ message: string }> } };
+    };
+    const out = typeof run.testResult.output === "string"
+      ? JSON.parse(run.testResult.output)
+      : run.testResult.output as Record<string, unknown>;
+    const setting = (out.context as { setting?: { value?: string; defining_code?: { code_string?: string } } })
+      .setting;
+    assertEquals(setting?.value, "other care", outputMode);
+    assertEquals(setting?.defining_code?.code_string, "238", outputMode);
+    const text = JSON.stringify(out);
+    assertStringIncludes(text, '"code_string":"at1001"');
+    const messages = (run.testResult.outputValidation?.messages ?? []).map((m) => m.message).join("\n");
+    assert(!messages.includes("setting"), messages);
+  }
+  let error = "";
+  try {
+    await callAgentTool(service, "map_slot", { slotId: "/context/EVENT_CONTEXT/setting/value", value: "somewhere" });
+  } catch (e) {
+    error = String(e);
+  }
+  assertStringIncludes(error, "terminology::code|text|");
+});
+
+Deno.test("import_suggestions minimal envelope from the tool description has no schema issues", async () => {
+  const service = await loadedVitals();
+  const result = await callAgentTool(service, "import_suggestions", {
+    text: JSON.stringify({
+      format: "intehrgrator-suggestions",
+      version: "2",
+      suggestions: [{ slotId: SYSTOLIC, block: { type: "source_query_number", fields: { EXPRESSION: "$.systolic" } } }],
+    }),
+  }) as { report: { applied: number; schemaIssues: unknown[] } };
+  assertEquals(result.report.applied, 1);
+  assertEquals(result.report.schemaIssues, []);
 });

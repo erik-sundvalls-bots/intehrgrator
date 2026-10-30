@@ -1736,7 +1736,18 @@ export class WorkbenchController {
     }
     let schemaIssues: SchemaIssue[] = [];
     try {
-      schemaIssues = validateSuggestionEnvelope(extractSuggestionsJson(text));
+      // `format` and `target` may be left out (the loaded target is used), so do
+      // not report them as missing (AI_SUGGESTION_FORMAT.md).
+      const envelope = extractSuggestionsJson(text);
+      if (envelope && typeof envelope === "object" && !Array.isArray(envelope)) {
+        const rec = envelope as Record<string, unknown>;
+        rec.format ??= "intehrgrator-suggestions";
+        rec.target ??= {
+          targetId: this.templateId,
+          format: this.target?.format ?? this.model.targetFormat ?? "openehr-template",
+        };
+      }
+      schemaIssues = validateSuggestionEnvelope(envelope);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       schemaIssues = [{ path: "$", message }];

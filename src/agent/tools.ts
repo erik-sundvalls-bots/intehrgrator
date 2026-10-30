@@ -4,7 +4,8 @@
 
 import { applySuggestionReviewDefaults, parseAiConfidence, slotReviewFrom, TOOL_REVIEW_PARAMS } from "../core/ai/mod.ts";
 import { isSourceFormatId } from "../core/source/format_handler.ts";
-import { filterSlotRows, getExampleInspect, listExamplesInspect } from "./inspect.ts";
+import { filterSlotRows, getExampleInspect, listExamplesInspect, type SlotInspectRow } from "./inspect.ts";
+import { termSetForRmAttribute } from "../core/openehr_term_catalog.ts";
 import { basename, dirname, fromFileUrl, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
 import type { MutationContext, WorkbenchService } from "../workbench/service.ts";
@@ -297,7 +298,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "map_slot",
     description:
-      "Map a source path (from get_source_tree, e.g. $.systolic) to a target value slotId (group + row id from list_slots). Or set a constant: pass value instead of path (e.g. a context/setting code, a fixed name). Coded slots (DV_CODED_TEXT, CODE_PHRASE: list_slots shows values): the source value must equal a code or a text from values; preview and the generated script then write that code and its text. Other source values (\"sitting\" for a local code with a different text, codes from another system) need a Decision table or a Sheet lookup: list_function_library, import_suggestions. Optional note (risks only) and confidence (0–100 %).",
+      "Map a source path (from get_source_tree, e.g. $.systolic) to a target value slotId (group + row id from list_slots). Or set a constant: pass value instead of path (e.g. a fixed name; for a coded slot a code or text from values, or terse \"terminology::code|text|\" such as context/setting \"openehr::238|other care|\"; for openEHR groups such as setting the text alone, e.g. \"home\", also works). Coded slots (DV_CODED_TEXT, CODE_PHRASE: list_slots shows values): the source value must equal a code or a text from values; preview and the generated script then write that code and its text. Other source values (\"sitting\" for a local code with a different text, codes from another system) need a Decision table or a Sheet lookup: list_function_library, import_suggestions. Optional note (risks only) and confidence (0–100 %).",
     inputSchema: {
       type: "object",
       required: ["slotId"],
@@ -727,7 +728,9 @@ export async function callAgentTool(
             version: "2",
             suggestions: [{
               slotId,
-              block: constantBlock(args.value as string | number | boolean),
+              block: row.valueType === "DV_CODED_TEXT"
+                ? codedConstantBlock(row, args.value as string | number | boolean)
+                : constantBlock(args.value as string | number | boolean),
               ...(typeof args.note === "string" && args.note ? { note: args.note } : {}),
               ...(args.confidence !== undefined ? { confidence: args.confidence } : {}),
             }],
@@ -1039,6 +1042,57 @@ function constantBlock(value: string | number | boolean): Record<string, unknown
   if (typeof value === "number") return { type: "math_number", fields: { NUM: value } };
   if (typeof value === "boolean") return { type: "logic_boolean", fields: { BOOL: value ? "TRUE" : "FALSE" } };
   return { type: "text", fields: { TEXT: value } };
+}
+
+/**
+ * A map_slot constant on a DV_CODED_TEXT slot needs a code, not only a text:
+ * a code or text from the value set, or terse `terminology::code|text|`.
+ */
+function codedConstantBlock(row: SlotInspectRow, value: string | number | boolean): Record<string, unknown> {
+  const raw = String(value).trim();
+  let code = "";
+  let text = "";
+  let terminology = row.terminologyFixed ?? "";
+  const terse = /^([^:|]+)::([^|]+)(?:\|([^|]*)\|?)?$/.exec(raw);
+  if (terse) {
+    terminology = terse[1]!.trim();
+    code = terse[2]!.trim();
+    text = (terse[3] ?? "").trim();
+  }
+  const values: Array<{ code: string; label?: string; terminologyId?: string }> = row.allowedValues?.length
+    ? row.allowedValues
+    : openEhrTermValues(row.slotId);
+  const key = (code || raw).toLowerCase();
+  const hits = values.filter((v) => v.code.toLowerCase() === key || (!code && (v.label ?? "").toLowerCase() === key));
+  if (hits.length === 1) {
+    code = hits[0]!.code;
+    text ||= hits[0]!.label || code;
+    terminology = hits[0]!.terminologyId || terminology;
+  }
+  if (!code && row.codeFixed && (!values.length)) code = row.codeFixed;
+  if (!code || !text || !terminology) {
+    const sample = values.slice(0, 6).map((v) => `${v.code} (${v.label ?? ""})`).join(", ");
+    throw new Error(
+      `Coded slot ${row.slotId}: a constant needs a code and its text. Pass ${
+        values.length ? `a code or text of its value set (${sample}${values.length > 6 ? ", …" : ""}), or ` : ""
+      }terse "terminology::code|text|", e.g. "${terminology || "openehr"}::238|other care|".`,
+    );
+  }
+  const textBlock = (t: string) => ({ block: { type: "text", fields: { TEXT: t } } });
+  return {
+    type: "maps_create_with",
+    extraState: { itemCount: 3 },
+    fields: { KEY0: "value", KEY1: "code_string", KEY2: "terminology_id" },
+    inputs: { VAL0: textBlock(text), VAL1: textBlock(code), VAL2: textBlock(terminology) },
+  };
+}
+
+/** openEHR terminology group of an RM attribute slot (`…/EVENT_CONTEXT/setting/value` → setting codes). */
+function openEhrTermValues(slotId: string): Array<{ code: string; label: string; terminologyId: string }> {
+  const m = /\/([A-Z][A-Z_]+)\/([a-z_]+)\/value$/.exec(slotId);
+  const set = m ? termSetForRmAttribute(m[1]!, m[2]!) : undefined;
+  if (!set || set.valueRmType !== "DV_CODED_TEXT") return [];
+  return set.codes.map((c) => ({ code: c.code, label: c.rubric, terminologyId: set.terminologyId }));
 }
 
 /** map_slot from a source path onto a coded slot: say what the source value must be (#309, #313). */
