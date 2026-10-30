@@ -28,7 +28,7 @@ A source checkout, instead of the release binary, gets a Deno command in that sa
 }
 ```
 
-Replace the URL with the one the panel shows. If the panel lists a token, the snippet includes `INTEHR_AGENT_TOKEN`.
+Replace the URL with the one the panel shows. If the panel lists a token, the snippet includes `INTEHR_AGENT_TOKEN`. Add `INTEHR_AGENT_ID` and `INTEHR_AGENT_NAME` to `env` if you want the agent to keep one name and colour in the observer across restarts.
 
 The mapping skill, from a clone:
 
