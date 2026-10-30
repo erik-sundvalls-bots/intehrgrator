@@ -240,3 +240,34 @@ Deno.test("classifyOpenEhrValidationMessage splits Simple-vitals leftover kinds"
   );
   assertEquals(classifyOpenEhrValidationMessage("unexpected RM invariant"), "other");
 });
+
+Deno.test("FLAT output: coded text mismatches from ehrtslib v0.8 are output validation errors", async () => {
+  const opt = await Deno.readTextFile(bpOptPath);
+  const target = getTargetFormatHandler("openehr-template").load("blood_pressure.opt", opt);
+  const cuff = "ehrbase_blood_pressure_simple.de.v0/blood_pressure_training_sample/cuff_size";
+  const flat = (value: string) => ({
+    "ctx/language": "en",
+    "ctx/territory": "SE",
+    "ctx/composer_name": "Test",
+    [`${cuff}|code`]: "at0015",
+    [`${cuff}|value`]: value,
+  });
+  const coded = (value: string) =>
+    validateConvertedOutput(flat(value), target).messages.filter((m) =>
+      m.message.includes("codedTextMismatch")
+    );
+
+  // Library defaults: codedTextMismatch "reject", codedTextDisplayValue "keep".
+  assertEquals(coded("Adult"), []);
+  assertEquals(coded("Wide cuff"), [], "a valid code with display text is kept");
+
+  const caseOnly = validateConvertedOutput(flat("adult"), target);
+  assertEquals(caseOnly.valid, false);
+  const [caseMsg] = caseOnly.messages.filter((m) => m.message.includes("codedTextMismatch"));
+  assertEquals(caseMsg?.severity, "error");
+  assert(caseMsg.message.includes('"Adult"'), caseMsg.message);
+
+  const conflict = coded("Large Adult");
+  assertEquals(conflict.length, 1);
+  assert(conflict[0].message.includes("at0016"), conflict[0].message);
+});
