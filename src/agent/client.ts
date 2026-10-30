@@ -7,6 +7,12 @@ import { AGENT_TOOL_HTTP, callAgentTool } from "./tools.ts";
 import type { WorkbenchService } from "../workbench/service.ts";
 import { type HistoryActor, USER_ACTOR } from "./actor.ts";
 
+/** Fixed agent identity for an MCP process (`INTEHR_AGENT_ID` / `INTEHR_AGENT_NAME`, #312). */
+export interface AgentIdentity {
+  agentId?: string;
+  displayName?: string;
+}
+
 export interface AgentClient {
   callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
   registerAgent?(args: Record<string, unknown>): Promise<{ agentId: string; displayName: string; color: string }>;
@@ -20,7 +26,7 @@ export class LocalAgentClient implements AgentClient {
   /** Fixed actor for every call (the in-app AI chat); overrides the MCP session. */
   private actor: HistoryActor | null = null;
 
-  constructor(private readonly service: WorkbenchService) {}
+  constructor(private readonly service: WorkbenchService, private readonly identity?: AgentIdentity) {}
 
   setClientName(name: string): void {
     this.clientName = name.trim().slice(0, 80);
@@ -32,7 +38,7 @@ export class LocalAgentClient implements AgentClient {
   }
 
   async registerAgent(args: Record<string, unknown>) {
-    const reg = await callAgentTool(this.service, "register_agent", args) as {
+    const reg = await callAgentTool(this.service, "register_agent", withIdentity(args, this.identity)) as {
       agentId: string;
       displayName: string;
       color: string;
@@ -75,6 +81,9 @@ export class LocalAgentClient implements AgentClient {
         this.service.setActor(USER_ACTOR);
       }
     }
+    if (!this.session && this.identity?.agentId) {
+      await this.registerAgent({ displayName: this.identity.displayName || this.clientName || undefined });
+    }
     if (this.session) this.service.setActor(this.sessionActor(this.session));
     return await callAgentTool(this.service, name, this.actorArgs(args));
   }
@@ -91,12 +100,15 @@ export class HttpAgentClient implements AgentClient {
   constructor(
     private readonly baseUrl: string,
     private readonly token?: string,
+    private readonly identity?: AgentIdentity,
   ) {}
 
   async registerAgent(args: Record<string, unknown>) {
     // Registering again (after the automatic registration on the first write)
     // renames this agent instead of creating a second one.
-    const body = this.session && !args.agentId ? { ...args, agentId: this.session.agentId } : args;
+    const body = this.session && !args.agentId
+      ? { ...args, agentId: this.session.agentId }
+      : withIdentity(args, this.identity);
     const json = await this.request("POST", "/api/v1/register-agent", body) as {
       agentId: string;
       displayName: string;
@@ -146,7 +158,7 @@ export class HttpAgentClient implements AgentClient {
     // first write or lease when the agent did not, so two chats from the same
     // IDE get separate leases, names and colours instead of sharing "MCP: cursor".
     if (!this.session && route.method !== "GET") {
-      await this.registerAgent({ displayName: this.clientName || "MCP agent" });
+      await this.registerAgent({ displayName: this.identity?.displayName || this.clientName || "MCP agent" });
     }
     const revision = args.revision as string | undefined;
     const rest = { ...args };
@@ -173,4 +185,18 @@ export class HttpAgentClient implements AgentClient {
     }
     return this.request(route.method, `/api/v1${route.path}`, rest, revision);
   }
+}
+
+/**
+ * register_agent arguments with the process identity filled in: the fixed
+ * agentId (so a new MCP process keeps the same agent, colour and history
+ * attribution) and the name when the call gives none.
+ */
+function withIdentity(args: Record<string, unknown>, identity?: AgentIdentity): Record<string, unknown> {
+  if (!identity) return args;
+  return {
+    ...args,
+    ...(identity.agentId && !args.agentId ? { agentId: identity.agentId } : {}),
+    ...(identity.displayName && !args.displayName ? { displayName: identity.displayName } : {}),
+  };
 }

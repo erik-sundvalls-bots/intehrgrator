@@ -144,7 +144,9 @@ export function resolveSlotRef(ref: string, known: ReadonlySet<string>): string 
   if (known.has(trimmed)) return trimmed;
   const key = collapse(trimmed);
   const index = refIndex(known);
-  const hit = index.full.get(key) ?? index.compact.get(key);
+  const hit = index.full.get(key) ?? index.compact.get(key) ??
+    // A root-group row id ("context/…", without the group's "/").
+    (/^[A-Za-z_]/.test(key) ? index.compact.get(`/${key}`) : undefined);
   if (hit) return hit;
   // A tail of one compact id, starting at a path step.
   if (!/^[/.[@]/.test(key) || key === "/" || key === ".") return null;
@@ -176,7 +178,8 @@ export function resolveSlotPrefix(ref: string, known: ReadonlySet<string>): stri
 }
 
 function tailAfter(compact: string, group: string): string {
-  if (group === "/" && compact.startsWith("/")) return compact;
+  // Root group "/": rows are "context/…", so group + id is "/context/…", not "//context/…" (#312).
+  if (group === "/" && compact.startsWith("/")) return compact.slice(1);
   if (group && compact.startsWith(group) && compact.length > group.length) {
     const rest = compact.slice(group.length);
     if (/^[/.[@]/.test(rest)) return rest;
@@ -372,4 +375,4 @@ export function formatSlotTree(groups: SlotTreeGroup[]): string {
 
 /** Slot-tree reading guide, shared by the prompt and the tool description. */
 export const SLOT_TREE_GUIDE =
-  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";
+  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`; the root group `/` + `context/start_time/value` → `/context/start_time/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";

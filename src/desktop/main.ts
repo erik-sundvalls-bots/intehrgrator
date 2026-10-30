@@ -12,7 +12,7 @@
  */
 import { resolveWebRoot } from "./web_root.ts";
 import { errorPageHandler, workbenchHandler } from "./serve.ts";
-import { HttpAgentClient, runMcpStdio } from "../agent/mcp_stdio.ts";
+import { HttpAgentClient, mcpIdentityFromEnv, runMcpStdio } from "../agent/mcp_stdio.ts";
 import { composeWorkbenchHandler, getSharedWorkbenchService } from "../agent/http.ts";
 import {
   bindRequiresTokenMessage,
@@ -129,7 +129,7 @@ if (import.meta.main) {
       );
       Deno.exit(1);
     }
-    await runMcpStdio(new HttpAgentClient(base.replace(/\/$/, ""), opts.token));
+    await runMcpStdio(new HttpAgentClient(base.replace(/\/$/, ""), opts.token, mcpIdentityFromEnv()));
     // stdin closed (the IDE stopped the server): exit even though the desktop
     // runtime would keep the process alive.
     Deno.exit(0);

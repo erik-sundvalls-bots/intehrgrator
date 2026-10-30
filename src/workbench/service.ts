@@ -174,11 +174,16 @@ export class WorkbenchService {
     const slots = listSlotsInspect(s.skeleton, s.model);
     const unmapped = slots.filter((row) => !row.mapped && row.mandatory).map((row) => row.slotId);
     const constraintWarnings = this.listConstraintWarnings();
+    const applied = slots.filter((row) => row.mapped);
+    // A Default point the scaffold wired is not a mapping yet (#312).
+    const defaulted = applied.filter((row) => /^maps_get\(\s*"defaults"\s*,/.test(row.expression ?? "")).length;
     return {
       revision: this.revision,
       templateId: s.templateId,
       projectId: s.projectId,
-      appliedSlots: slots.filter((row) => row.mapped).length,
+      appliedSlots: applied.length,
+      mappedSlots: applied.length - defaulted,
+      defaultedSlots: defaulted,
       loops: s.model.loops?.length ?? 0,
       unmappedMandatory: s.unmappedMandatory,
       statusMessage: s.statusMessage,

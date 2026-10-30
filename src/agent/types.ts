@@ -6,7 +6,12 @@ export interface AgentSnapshot {
   revision: string;
   templateId: string;
   projectId: string;
+  /** Slots with an expression (source, constant or Default point). */
   appliedSlots: number;
+  /** appliedSlots minus defaultedSlots: mapped from the source or a constant. */
+  mappedSlots: number;
+  /** Slots that only read the default context map (`maps_get("defaults", …)`). */
+  defaultedSlots: number;
   loops: number;
   unmappedMandatory: number;
   statusMessage: string;
