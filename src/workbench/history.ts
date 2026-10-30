@@ -33,6 +33,38 @@ export interface HistoryEntry {
   undone?: boolean;
 }
 
+/**
+ * MCP / Agent API history query (#316). The listing omits Project Bundles
+ * unless `includeBundles` is set. `seq` fetches that one entry, with bundles.
+ * `sinceSeq` keeps entries after that seq (oldest first); `limit` then keeps
+ * the first page of those, or the newest `limit` entries when paging from the tail.
+ */
+export interface HistoryQuery {
+  includeBundles?: boolean;
+  limit?: number;
+  sinceSeq?: number;
+  seq?: number;
+}
+
+/** Compact history for MCP. The GUI reads `HistoryLog.list()` and does not use this. */
+export function projectHistory(entries: readonly HistoryEntry[], query: HistoryQuery = {}): unknown[] {
+  let rows = [...entries];
+  const one = query.seq != null && Number.isFinite(query.seq);
+  if (one) rows = rows.filter((entry) => entry.seq === query.seq);
+  else if (query.sinceSeq != null && Number.isFinite(query.sinceSeq)) {
+    rows = rows.filter((entry) => entry.seq > query.sinceSeq!);
+  }
+  if (!one && query.limit != null && Number.isFinite(query.limit) && query.limit >= 0) {
+    rows = query.sinceSeq == null ? rows.slice(-query.limit) : rows.slice(0, query.limit);
+  }
+  const withBundles = query.includeBundles === true || one;
+  return rows.map((entry) => {
+    if (withBundles) return entry;
+    const { beforeBundle: _before, afterBundle: _after, ...rest } = entry;
+    return rest;
+  });
+}
+
 export interface AgentActivity {
   agentId: string;
   displayName: string;
