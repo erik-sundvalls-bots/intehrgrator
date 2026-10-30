@@ -526,7 +526,8 @@ Deno.test("typescript codegen from Blockly canvas updates when a source query is
     // A units-only DV_QUANTITY is scaffolding, not output (#310).
     assertEquals(before.includes("mm[Hg]"), false);
     assertStringIncludes(before, "new DV_CODED_TEXT");
-    assertStringIncludes(before, "at1001");
+    // A value-set picker on an unmapped coded leaf is not a mapping (#320).
+    assertEquals(before.includes("at1001"), false);
 
     const mapped = applyExpressionEdit(empty, systolic.slotId, 'xpathNumber("$.systolic")', {
       rmType: systolic.rmType,

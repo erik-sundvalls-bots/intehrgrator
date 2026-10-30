@@ -134,6 +134,7 @@ export function mcpInstructions(): string {
     "Workflow: register_agent (name yourself) → list_slots (compact slot tree; a slot id is group + row id) and get_source_tree → get_slot for one slot's full detail → lease_slot what you will edit when other agents work in parallel → map_slot (a source path, or value for a constant) / import_suggestions (loops, Decision tables, Sheet lookups) → run_test with outputMode preview and typescript (valid is the result; the TypeScript Conversion Script is what runs in production) → release_slot. Every change is in the shared history (undo / revert).",
     "The person in the app always wins: a refused write (humanWins, or a slot leased by another agent) is a tool error to react to, not to retry blindly.",
     `Full guide (fetch only if needed): ${pinnedDocUrl("docs/AGENT_WORKFLOW.md")} · suggestion format: ${pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md")}`,
+    `Those links are pinned to this app version (${APP_VERSION}). A build newer than the published pages — this tree before the next release — is described by the same files on the default branch: https://github.com/regionstockholm/intehrgrator/blob/main/docs/AGENT_WORKFLOW.md and https://github.com/regionstockholm/intehrgrator/blob/main/docs/AI_SUGGESTION_FORMAT.md`,
   ].join("\n");
 }
 

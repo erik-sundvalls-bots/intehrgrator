@@ -315,6 +315,9 @@ export function emitBlockForVmsTest(
 
 function emitBlock(block: Block, ctx: TsEmitContext, indent: number): string {
   if (block.type === TERM_PICK_BLOCK_TYPE) return emitTermPick(block, ctx);
+  // A scaffolded value-set picker (first coded choice, e.g. Position = Standing)
+  // is not a mapping. Preview omits it; emitting it invents clinical data (#320).
+  if (isScaffoldedValueSetPicker(block)) return "";
   const fromExpr = emitExpressionBlock(block, ctx);
   if (fromExpr !== null) return wrapCodePhraseSlotEmit(block, fromExpr);
 
@@ -790,6 +793,38 @@ function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string 
   }
   if (!props.length) return "";
   return formatRmConstruct("PARTY_REF", props, indent, ctx);
+}
+
+/**
+ * `lists_getIndex` over a list of literal coded/text choices, indexed by a
+ * constant. The skeleton attaches this so the canvas shows the value set.
+ * A source-driven index is a real mapping and is kept.
+ */
+function isScaffoldedValueSetPicker(block: Block): boolean {
+  if (block.type !== "lists_getIndex") return false;
+  const at = block.getInputTargetBlock("AT");
+  if (at && at.type !== "math_number") return false;
+  const list = block.getInputTargetBlock("VALUE");
+  if (!list || list.type !== "lists_create_with") return false;
+  const count = Number((list as Block & { itemCount_?: number }).itemCount_ ?? 0);
+  if (count < 1) return false;
+  for (let i = 0; i < count; i++) {
+    const item = list.getInputTargetBlock(`ADD${i}`);
+    if (!item || !isLiteralRmChoice(item)) return false;
+  }
+  return true;
+}
+
+function isLiteralRmChoice(block: Block): boolean {
+  if (block.type === "text" || block.type === "math_number" || block.type === "logic_boolean") return true;
+  if (block.type === "code_phrase" || isDataValueBlock(block)) {
+    for (const input of block.inputList) {
+      const child = block.getInputTargetBlock(input.name);
+      if (child && !isLiteralRmChoice(child)) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 function emitListsGetIndex(block: Block, ctx: TsEmitContext): string {

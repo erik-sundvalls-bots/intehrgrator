@@ -5,7 +5,7 @@
  */
 import type { MappingModel, SkeletonNode } from "../types/mod.ts";
 import { findSkeletonTrail, nearestContentAncestor, nearestRepeatingContainer, pathLabelFromTrail } from "../core/skeleton/generate_skeleton.ts";
-import { compactSlotIdMap } from "../core/ai/slot_tree.ts";
+import { compactSlotIdMap, terminologyValuesForSlot } from "../core/ai/slot_tree.ts";
 import { parseXsd, type XsdNode } from "../core/xsd/xsd_model.ts";
 import { type SlotInfo, slotInfoFor, type SlotInfoIndex } from "../core/ai/slot_info.ts";
 
@@ -153,6 +153,12 @@ export function slotDetail(
   const slotInfo = info ? slotInfoFor(info, slotId) : undefined;
   const groupNode = [...trail].reverse().find((n) => n !== node && info?.groups.get(n.slotId)?.description);
   const groupText = groupNode ? info?.groups.get(groupNode.slotId)?.description : undefined;
+  const rmValues = node.allowedValues?.length ? undefined : terminologyValuesForSlot(slotId);
+  const valueSet = node.allowedValues?.length
+    ? node.allowedValues.map((v) => ({ ...v }))
+    : rmValues
+    ? rmValues.values.map((v) => ({ code: v.code, label: v.text, terminologyId: rmValues.terminologyId }))
+    : undefined;
   return {
     slotId,
     id: compact,
@@ -170,7 +176,7 @@ export function slotDetail(
     ...(node.nameConstraint ? { nameConstraint: node.nameConstraint } : {}),
     ...(node.fixedFields && Object.keys(node.fixedFields).length ? { fixed: { ...node.fixedFields } } : {}),
     ...(node.allowedUnits?.length ? { units: [...node.allowedUnits] } : {}),
-    ...(node.allowedValues?.length ? { values: node.allowedValues.map((v) => ({ ...v })) } : {}),
+    ...(valueSet ? { values: valueSet } : {}),
     ...(node.allowedOrdinals?.length ? { ordinals: node.allowedOrdinals.map((v) => ({ ...v })) } : {}),
     ...(constraint ? { constraint } : {}),
     ...(slotInfo ? { info: slotInfo } : {}),

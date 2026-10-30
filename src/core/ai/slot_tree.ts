@@ -12,6 +12,7 @@
  * compact id, a unique tail), so tools keep accepting today's slot ids.
  */
 import { applyCodedTextSlots } from "../openehr/coded_text.ts";
+import { termSetForRmAttribute } from "../openehr_term_catalog.ts";
 import type { MappingModel, SkeletonNode } from "../../types/mod.ts";
 import {
   collectValueSlots,
@@ -187,6 +188,24 @@ function tailAfter(compact: string, group: string): string {
   return compact;
 }
 
+/**
+ * Codes of an openEHR RM terminology attribute (`…/EVENT_CONTEXT/setting/value`
+ * → setting 225 home, 227 emergency care, …) when the template node itself
+ * has no value set (#320).
+ */
+export function terminologyValuesForSlot(
+  slotId: string,
+): { terminologyId: string; values: Array<{ code: string; text: string }> } | undefined {
+  const match = /\/([A-Z][A-Z0-9_]+)\/([a-z_]+)\/value$/.exec(slotId);
+  if (!match) return undefined;
+  const set = termSetForRmAttribute(match[1]!, match[2]!);
+  if (!set?.codes.length) return undefined;
+  return {
+    terminologyId: set.terminologyId,
+    values: set.codes.map((code) => ({ code: code.code, text: code.rubric })),
+  };
+}
+
 function valueSetRows(node: SkeletonNode): Pick<SlotTreeRow, "values" | "terminology"> {
   const values = node.allowedValues ?? [];
   if (!values.length) return {};
@@ -232,6 +251,10 @@ function rowFor(
   const vd = info?.valueDescriptions ?? {};
   let rowValues = values.values;
   if (!rowValues && info?.enum?.length) rowValues = info.enum.map((e) => ({ code: e.code, ...(e.text ? { text: e.text } : {}) }));
+  if (!rowValues) {
+    const fromRm = terminologyValuesForSlot(node.slotId);
+    if (fromRm?.values.length) rowValues = fromRm.values;
+  }
   if (rowValues && Object.keys(vd).length) {
     rowValues = rowValues.map((v) => vd[v.code] ? { ...v, description: shortText(vd[v.code], 100) } : v);
   }
