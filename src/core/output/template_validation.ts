@@ -6,6 +6,7 @@ import { parseTemplateInput } from "ehrtslib/parser/mod.ts";
 import {
   CodedTextMismatchError,
   deserializeFromFlatWithIssues,
+  deserializeFromStructuredWithIssues,
   type FlatPayload,
   type FlatRmDefaultIssue,
   parseWebTemplate,
@@ -174,13 +175,17 @@ function rmFromFlatDocument(
   target: TargetDefinition,
 ): { composition: unknown; messages: OutputValidationMessage[] } | null {
   const json = flatCompositionJson(output);
-  if (!json || !target.webTemplateJson?.trim()) return null;
+  const structured = json ? null : structuredCompositionJson(output);
+  if ((!json && !structured) || !target.webTemplateJson?.trim()) return null;
   try {
     ensureRmTypeRegistry();
-    const { composition, issues } = deserializeFromFlatWithIssues(
-      JSON.parse(json) as FlatPayload,
-      parseWebTemplate(target.webTemplateJson),
-    );
+    const webTemplate = parseWebTemplate(target.webTemplateJson);
+    const { composition, issues } = json
+      ? deserializeFromFlatWithIssues(JSON.parse(json) as FlatPayload, webTemplate)
+      : deserializeFromStructuredWithIssues(
+        JSON.parse(structured!) as Parameters<typeof deserializeFromStructuredWithIssues>[0],
+        webTemplate,
+      );
     return { composition, messages: flatIssueMessages(issues) };
   } catch (err) {
     // deserializeFromFlatWithIssues collects mismatches as issues; if one is
@@ -224,6 +229,30 @@ function flatCompositionJson(output: unknown): string | null {
   if ("_type" in record || "archetype_node_id" in record) return null;
   const keys = Object.keys(record);
   if (!keys.some((key) => key.startsWith("ctx/") || key.includes("/"))) return null;
+  return JSON.stringify(record);
+}
+
+/**
+ * Simplified STRUCTURED: one key (the template id) holding the nested tree.
+ * ehrtslib reads it back through FLAT, so its issues use FLAT paths.
+ */
+function structuredCompositionJson(output: unknown): string | null {
+  let value: unknown = output;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("{")) return null;
+    try {
+      value = JSON.parse(trimmed) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (keys.length !== 1 || keys[0]!.startsWith("_") || keys[0]!.includes("/")) return null;
+  const tree = record[keys[0]!];
+  if (!tree || typeof tree !== "object") return null;
   return JSON.stringify(record);
 }
 
