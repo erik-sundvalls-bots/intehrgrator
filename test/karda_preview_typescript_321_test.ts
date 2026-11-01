@@ -1,6 +1,6 @@
 /**
  * Karda example sets: Mapping preview and the TypeScript Conversion Script
- * give the same FLAT repeats and coded values (#321, ehrtslib v0.9 output flavour).
+ * give the same FLAT repeats and coded values (#321, ehrtslib output flavour).
  */
 import { assert, assertEquals } from "@std/assert";
 import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
@@ -92,6 +92,8 @@ Deno.test("Karda order: the nested Vårdgivare cluster and the identifier type r
   for (const [mode, flat] of [["preview", order.preview], ["typescript", order.typescript]] as const) {
     assertEquals(value(flat, "/context/vårdenhet/vårdgivare/namn"), "PDL-vårdgivare SLL IdP TEST", mode);
     assertEquals(value(flat, "/context/vårdenhet/identifierare|type"), "urn:oid:1.2.752.29.4.19", mode);
+    // Since ehrtslib v0.10 FLAT keeps name-constrained siblings (ehrtslib#250).
+    assertEquals(value(flat, "/context/vårdenhet/vårdgivare/organisationsnummer|id"), "2321000016", mode);
   }
 });
 
@@ -111,11 +113,22 @@ Deno.test("Karda order: the nested Vårdgivare organisation number keeps its tem
     }
     return undefined;
   };
-  // FLAT in ehrtslib v0.9 drops name-constrained siblings, so check canonical JSON.
   for (const outputMode of ["typescript", "preview"] as const) {
-    const run = await callAgentTool(service, "run_test", { outputMode }) as { testResult: { output: unknown } };
+    const run = await callAgentTool(service, "run_test", { outputMode }) as {
+      testResult: { output: unknown; outputValidation?: { valid?: boolean; messages?: Array<{ message: string }> } };
+    };
     const output = run.testResult.output;
     const composition = typeof output === "string" ? JSON.parse(output) : output;
+    // Each sibling is checked against its own name (ehrtslib#250), and every
+    // ACTIVITY has its RM-mandatory action_archetype_id.
+    assertEquals(
+      run.testResult.outputValidation?.valid,
+      true,
+      `${outputMode}: ${run.testResult.outputValidation?.messages?.map((m) => m.message).join("; ")}`,
+    );
+    const activities = (composition.content[0].items[0].activities ?? []) as Array<{ action_archetype_id?: string }>;
+    assert(activities.length > 0, outputMode);
+    assertEquals(activities.map((a) => a.action_archetype_id), activities.map(() => "/.*/"), outputMode);
     const vardgivare = find(composition, "Vårdgivare");
     assert(vardgivare, outputMode);
     const ids = vardgivare.items!.filter((item) => item.archetype_node_id === "at0003")

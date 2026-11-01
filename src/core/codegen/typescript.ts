@@ -15,7 +15,7 @@
 import type { MappingFunction, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
-import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import {
   propsLackClinicalContent,
   rmArchetypeNodeId,
@@ -1213,6 +1213,9 @@ function skeletonContainerProps(
     } else {
       props.push([attr, codes[0]!]);
     }
+  }
+  if (node.rmType === "ACTIVITY" && !props.some(([attr]) => attr === "action_archetype_id")) {
+    props.push(["action_archetype_id", JSON.stringify(DEFAULT_ACTION_ARCHETYPE_ID)]);
   }
   return props;
 }

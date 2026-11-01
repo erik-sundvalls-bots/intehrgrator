@@ -28,7 +28,7 @@ import { loadJsonSchema } from "../source/schema_loader.ts";
 import { isWebTemplateJson } from "ehrtslib/serialization/simplified/mod.ts";
 import { isTemplateJson } from "ehrtslib/parser/mod.ts";
 import { scaffoldClinicalModelFileset } from "../clinical_model/github_template.ts";
-import { isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
 import { assignSchemaBlockTypes } from "./schema_block_ids.ts";
 import { terminologyValuesForSlot } from "../ai/slot_tree.ts";
 
@@ -562,6 +562,9 @@ function renderOpenEhrNodeOnce(
   // ENTRY.subject is mandatory; unmapped it is the record's owner (#310).
   if (ENTRY_RM_TYPES.has(node.rmType) && output.subject == null) {
     output.subject = { _type: "PARTY_SELF" };
+  }
+  if (node.rmType === "ACTIVITY" && output.action_archetype_id == null) {
+    output.action_archetype_id = DEFAULT_ACTION_ARCHETYPE_ID;
   }
   if (output._type === "PARTY_PROXY") {
     output._type = output.name != null || output.identifiers != null ? "PARTY_IDENTIFIED" : "PARTY_SELF";

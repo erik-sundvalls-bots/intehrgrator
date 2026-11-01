@@ -35,7 +35,7 @@ import {
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
 import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
-import { LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
 import type { InstanceEncoding, MappingModel } from "../types/mod.ts";
 import {
   asStringExpr,
@@ -435,6 +435,9 @@ function collectRmProps(
     seen.add(attr);
     const code = emitAttribute(block, input.name, attr, rmType, ctx, indent);
     if (code && !isBlankGeneratedExpr(code)) props.push([attr, code]);
+  }
+  if (rmType === "ACTIVITY" && !props.some(([attr]) => attr === "action_archetype_id")) {
+    props.push(["action_archetype_id", JSON.stringify(DEFAULT_ACTION_ARCHETYPE_ID)]);
   }
   return props;
 }
