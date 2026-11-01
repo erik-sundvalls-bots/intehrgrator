@@ -449,9 +449,16 @@ export function astToExpressionBlock(
     }
     if (ast.name === "if" && ast.args.length >= 3) {
       const block = workspace.newBlock("logic_ternary") as BlockSvg;
-      block.getInput("IF")!.connection!.connect(
-        astToExpressionBlock(workspace, ast.args[0]!, "boolean", finalize).outputConnection!,
-      );
+      const ifInput = block.getInput("IF")!.connection!;
+      const cond = astToExpressionBlock(workspace, ast.args[0]!, "boolean", finalize);
+      ifInput.connect(cond.outputConnection!);
+      if (cond.getParent() !== block) {
+        // A text or number condition (a source value) does not fit the Boolean
+        // IF input: test it as "is not empty", as preview reads it (F-M9).
+        cond.dispose(false);
+        const notEmpty: ExprAst = { kind: "call", name: "ne", args: [ast.args[0]!, { kind: "literal", value: "" }] };
+        ifInput.connect(astToExpressionBlock(workspace, notEmpty, "boolean", finalize).outputConnection!);
+      }
       block.getInput("THEN")!.connection!.connect(
         astToExpressionBlock(workspace, ast.args[1]!, returnType, finalize).outputConnection!,
       );
