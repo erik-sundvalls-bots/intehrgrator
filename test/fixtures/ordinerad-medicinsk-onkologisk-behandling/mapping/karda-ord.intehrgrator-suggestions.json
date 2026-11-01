@@ -227,24 +227,46 @@
     {
       "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0003/value/DV_IDENTIFIER/value",
       "block": {
-        "type": "text_join",
+        "type": "maps_create_with",
         "extraState": {
           "itemCount": 2
         },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
         "inputs": {
-          "ADD0": {
+          "VAL0": {
             "block": {
-              "type": "text",
-              "fields": {
-                "TEXT": "SE2321000016-"
+              "type": "text_join",
+              "extraState": {
+                "itemCount": 2
+              },
+              "inputs": {
+                "ADD0": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "SE2321000016-"
+                    }
+                  }
+                },
+                "ADD1": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "$.PDL_enhet_HSAID"
+                    }
+                  }
+                }
               }
             }
           },
-          "ADD1": {
+          "VAL1": {
             "block": {
-              "type": "source_query",
+              "type": "text",
               "fields": {
-                "EXPRESSION": "$.PDL_enhet_HSAID"
+                "TEXT": "urn:oid:1.2.752.29.4.19"
               }
             }
           }
@@ -303,18 +325,62 @@
     {
       "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
       "block": {
-        "type": "source_query",
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
         "fields": {
-          "EXPRESSION": "$.PDL_vardgivare_HSAID"
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.PDL_vardgivare_HSAID"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
         }
       }
     },
     {
       "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
       "block": {
-        "type": "text",
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
         "fields": {
-          "TEXT": "2321000016"
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "2321000016"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:2.5.4.97"
+              }
+            }
+          }
         }
       },
       "note": "Region Stockholm organisation number (constant)"

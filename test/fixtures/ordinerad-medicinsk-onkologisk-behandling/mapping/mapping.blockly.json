@@ -4,7 +4,7 @@
     "blocks": [
       {
         "type": "default_context_map",
-        "id": "pk`iVHahuExPN}aPaQ7B",
+        "id": ".lDMlqBwl}frG*lriNy~",
         "x": 20,
         "y": 20,
         "deletable": false,
@@ -64,14 +64,14 @@
           "VAL0": {
             "shadow": {
               "type": "text",
-              "id": "oW;V?A0/DGRZ-{,K8NE=",
+              "id": ")N0W@Su~]j$zG}V}q$L@",
               "fields": {
                 "TEXT": "sv"
               }
             },
             "block": {
               "type": "term_pick",
-              "id": "CD.tWV;t4~]lyHV9K0m^",
+              "id": "L;?MG94VKS=lV{)DTkMb",
               "inline": false,
               "fields": {
                 "NAME": "built-in",
@@ -86,14 +86,14 @@
           "VAL1": {
             "shadow": {
               "type": "text",
-              "id": "?AS=q%.B!Iqli-akI,vo",
+              "id": "3}?/qrU%k[3{sMpDzQn~",
               "fields": {
                 "TEXT": "SE"
               }
             },
             "block": {
               "type": "term_pick",
-              "id": "]@IvL6~{dsQSaSLrFu?M",
+              "id": "vI,nAuie#1roz7//;4Oo",
               "inline": false,
               "fields": {
                 "NAME": "built-in",
@@ -108,14 +108,14 @@
           "VAL2": {
             "shadow": {
               "type": "text",
-              "id": "D4OS82{}z:(C=N[0lJh}",
+              "id": "o`;G]bfn(w^lEJK}FmUe",
               "fields": {
                 "TEXT": "UTF-8"
               }
             },
             "block": {
               "type": "term_pick",
-              "id": "UQlTv5El%grCOe{G1R:d",
+              "id": "=;Z;R+OL0v_i^%QgLK`g",
               "inline": false,
               "fields": {
                 "NAME": "built-in",
@@ -130,7 +130,7 @@
           "VAL3": {
             "shadow": {
               "type": "text",
-              "id": ";~X_1e_;:M59NciH[wXT",
+              "id": "e#!KONi7y7FEMpVXUQWL",
               "inline": false,
               "fields": {
                 "TEXT": "2026-08-01T09:13:58+02:00"
@@ -140,7 +140,7 @@
           "VAL4": {
             "shadow": {
               "type": "text",
-              "id": "e$^_iCvTAzmtfC:Tmd~:",
+              "id": "gXH:xjV.2X_IZZ:F7[86",
               "inline": false,
               "fields": {
                 "TEXT": "2026-08-01T09:13:58+02:00"
@@ -150,7 +150,7 @@
           "VAL5": {
             "shadow": {
               "type": "text",
-              "id": "F8T?G_T!vd50S]bT`xff",
+              "id": "r`;!_d;B_hSt|D3^ltYF",
               "inline": false,
               "fields": {
                 "TEXT": "2026-08-01T09:13:58+02:00"
@@ -160,14 +160,14 @@
           "VAL6": {
             "shadow": {
               "type": "text",
-              "id": "z)Gak;y/?M;QYC/VMZdT",
+              "id": "EJ63+HsBr[(k)FFIsi8p",
               "fields": {
                 "TEXT": "Dr. Who Demo"
               }
             },
             "block": {
               "type": "party_identified",
-              "id": "X%3o!CwyEHek#E9aK+3.",
+              "id": "AO2~bD;C/vYaMI%`[.KQ",
               "extraState": {
                 "extras": [],
                 "attrs": [
@@ -192,7 +192,7 @@
                 "ATTR_identifiers": {
                   "block": {
                     "type": "lists_create_with",
-                    "id": "IZc!`2Jg818sM:y@/AKo",
+                    "id": "39Z;GR58h+j+6SJ4RMw{",
                     "extraState": {
                       "itemCount": 1
                     },
@@ -200,7 +200,7 @@
                       "ADD0": {
                         "block": {
                           "type": "dv_identifier",
-                          "id": "JEB.#ZY]QahM2D;78RDf",
+                          "id": "H71_zz|@Rh~HQ[e%,S/}",
                           "extraState": {
                             "fields": [
                               "issuer",
@@ -218,7 +218,7 @@
                             "FLD_id": {
                               "block": {
                                 "type": "text",
-                                "id": "?UMa~,)CI51YR5TI`-:a",
+                                "id": "MVbck3c=p(u%2nw~)H`5",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "9876543210"
@@ -228,7 +228,7 @@
                             "OPTFLD_issuer": {
                               "block": {
                                 "type": "text",
-                                "id": "MQ,./P!|NQi]%!_Cc`Z?",
+                                "id": "*G7~H4xRF=$!q}CAb)3j",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "General Medical Council"
@@ -238,7 +238,7 @@
                             "OPTFLD_assigner": {
                               "block": {
                                 "type": "text",
-                                "id": "D][56,$N2y]SDwxDt()`",
+                                "id": "/sIQO.9Xv!qQjyVmSFXP",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "GMC"
@@ -248,7 +248,7 @@
                             "OPTFLD_type": {
                               "block": {
                                 "type": "text",
-                                "id": "T6K/2:Q:GUM={QULp*t@",
+                                "id": "Ld5`GYBoH43[/Zyefl31",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "Professional Registration Number"
@@ -264,7 +264,7 @@
                 "ATTR_name": {
                   "block": {
                     "type": "text",
-                    "id": "0ZvxKlydqD/w(/J-DFDq",
+                    "id": "6tB*GRcIOl*XSYGDa_z#",
                     "inline": false,
                     "fields": {
                       "TEXT": "Dr. Who Demo"
@@ -277,14 +277,14 @@
           "VAL7": {
             "shadow": {
               "type": "text",
-              "id": "EEADFE-Z`xHxYuEN:e%y",
+              "id": "wke.L}FDVZaO-xz~?$!)",
               "fields": {
                 "TEXT": "St. Dummy Demo Hospital"
               }
             },
             "block": {
               "type": "party_identified",
-              "id": "*Orp%@`FVIqse=[t~Jau",
+              "id": "^uN2KLtq*X3u,c*l`pjk",
               "extraState": {
                 "extras": [],
                 "attrs": [
@@ -309,7 +309,7 @@
                 "ATTR_name": {
                   "block": {
                     "type": "text",
-                    "id": "#b+A}=HM@+X|cyuZ*D_=",
+                    "id": "cl?PMiFI0.gVZC6%}6j$",
                     "inline": false,
                     "fields": {
                       "TEXT": "St. Dummy Demo Hospital"
@@ -322,14 +322,14 @@
           "VAL8": {
             "shadow": {
               "type": "text",
-              "id": "6#lF44F?oJ}aE~-ebHW6",
+              "id": "jel+Gx4Fwo^3DDZTznJl",
               "fields": {
                 "TEXT": ""
               }
             },
             "block": {
               "type": "party_self",
-              "id": "7lW_k4AE):YeRDQ-zt@*",
+              "id": "]mp3W1Nu{xq:mOzq_9Ea",
               "extraState": {
                 "extras": [],
                 "attrs": [],
@@ -352,14 +352,14 @@
       },
       {
         "type": "conversion_start",
-        "id": "U(.:TTMVkksU+gBu6*?k",
+        "id": ")[qah,Duq5g$LCr.Ut83",
         "x": 20,
         "y": 196,
         "inline": false,
         "next": {
           "block": {
             "type": "composition",
-            "id": "%3zARkKmq17xIr9TrA!T",
+            "id": "_R-VZ57IVB^$nPYnCk(a",
             "extraState": {
               "extras": [],
               "attrs": [
@@ -439,7 +439,7 @@
               "ATTR_category": {
                 "block": {
                   "type": "term_pick",
-                  "id": "|(NAC1e,M(`xp5r0Lvs=",
+                  "id": "-3ZjB0*%gq5oU5F@#%4(",
                   "inline": false,
                   "fields": {
                     "NAME": "built-in",
@@ -453,21 +453,85 @@
               },
               "ATTR_composer": {
                 "block": {
-                  "type": "maps_get",
-                  "id": "xPGVVDWO8!E/)M^dv}46",
+                  "type": "party_identified",
+                  "id": "F`woQD!Du/6_csCnkH`e",
+                  "extraState": {
+                    "extras": [],
+                    "attrs": [
+                      "external_ref",
+                      "identifiers",
+                      "name"
+                    ],
+                    "rmType": "PARTY_IDENTIFIED",
+                    "prohibited": [],
+                    "slotCards": {},
+                    "rmCards": {}
+                  },
                   "fields": {
-                    "NAME": "defaults",
+                    "NAME": "composer",
                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//composer",
-                    "RM_TYPE": "PARTY_IDENTIFIED"
+                    "RM_TYPE": "PARTY_IDENTIFIED",
+                    "MANDATORY": "1",
+                    "ARCHETYPE_NODE_ID": "",
+                    "ARCHETYPE_CTX": "prescription"
                   },
                   "inputs": {
-                    "KEY": {
-                      "shadow": {
-                        "type": "text",
-                        "id": "Mg{iJ@I`UUO?l2@NWmW5",
-                        "inline": false,
+                    "ATTR_identifiers": {
+                      "block": {
+                        "type": "lists_create_with",
+                        "id": ")cxX!Mv/:[m4$)`}rOhD",
+                        "extraState": {
+                          "itemCount": 1
+                        },
+                        "inputs": {
+                          "ADD0": {
+                            "block": {
+                              "type": "dv_identifier",
+                              "id": "k[jXfE5^|C{1)kvCL3P!",
+                              "extraState": {
+                                "fields": [
+                                  "type"
+                                ]
+                              },
+                              "fields": {
+                                "NAME": "Identifier",
+                                "SLOT_ID": "",
+                                "RM_TYPE": "DV_IDENTIFIER",
+                                "MANDATORY": ""
+                              },
+                              "inputs": {
+                                "FLD_id": {
+                                  "block": {
+                                    "type": "source_query",
+                                    "id": ";W~vwLZz?QgP^C%~;bd/",
+                                    "fields": {
+                                      "EXPRESSION": "$.SignatureUser_UserName",
+                                      "RETURN_TYPE": "string"
+                                    }
+                                  }
+                                },
+                                "OPTFLD_type": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "LIFS4^Zzs{Vn0az~}k)^",
+                                    "fields": {
+                                      "TEXT": "urn:oid:1.2.752.29.4.19"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ATTR_name": {
+                      "block": {
+                        "type": "source_query",
+                        "id": "/;Y~(9]^{`IGo$=9vdUs",
                         "fields": {
-                          "TEXT": "composer"
+                          "EXPRESSION": "$.SignatureUser_Fullname",
+                          "RETURN_TYPE": "string"
                         }
                       }
                     }
@@ -477,7 +541,7 @@
               "ATTR_language": {
                 "block": {
                   "type": "maps_get",
-                  "id": "h*(a2wr+kaHrfl{iHgtr",
+                  "id": "In+Ij!@W.N(a+qZcT18H",
                   "fields": {
                     "NAME": "defaults",
                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//language/value",
@@ -487,7 +551,7 @@
                     "KEY": {
                       "shadow": {
                         "type": "text",
-                        "id": ",}]ipZq%QOJ)AbRz*{6t",
+                        "id": "^4Eu8l=M#{W5r!pZrRT:",
                         "inline": false,
                         "fields": {
                           "TEXT": "language"
@@ -500,7 +564,7 @@
               "ATTR_territory": {
                 "block": {
                   "type": "maps_get",
-                  "id": "0Sa,-!_(Z$`X*RB/C}:?",
+                  "id": ";S@P[~~2C5!=XhhwDR/+",
                   "fields": {
                     "NAME": "defaults",
                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//territory/value",
@@ -510,7 +574,7 @@
                     "KEY": {
                       "shadow": {
                         "type": "text",
-                        "id": "+|Nq)de8n/o)b)@Y[Q2n",
+                        "id": "YA]X[!A;CM3aXSehAmIO",
                         "inline": false,
                         "fields": {
                           "TEXT": "territory"
@@ -523,7 +587,7 @@
               "ATTR_content": {
                 "block": {
                   "type": "for_each_list",
-                  "id": "Dr4~Ov9[Z*`Y70+I%le/",
+                  "id": ",8*?[[Pa}rRz%6E]!PIE",
                   "fields": {
                     "VAR": "dag"
                   },
@@ -531,7 +595,7 @@
                     "LIST": {
                       "block": {
                         "type": "source_query_node",
-                        "id": "AkB.Sl?z_e5b%107xmnS",
+                        "id": "l7x(FT)pF7j;F*AZp{G=",
                         "fields": {
                           "EXPRESSION": "$.KurDagar"
                         }
@@ -540,7 +604,7 @@
                     "DO": {
                       "block": {
                         "type": "section",
-                        "id": "0-FG1x9:iVDZp%*@=eIG",
+                        "id": "Ctf6nK^kbzW25`@xm*mE",
                         "extraState": {
                           "extras": [],
                           "attrs": [
@@ -582,7 +646,7 @@
                           "ATTR_name": {
                             "block": {
                               "type": "dv_text",
-                              "id": "{)+a[]7%/PqL53C!im#g",
+                              "id": "p99e}q%$2ToHNNtSLk:I",
                               "extraState": {
                                 "fields": []
                               },
@@ -597,7 +661,7 @@
                           "ATTR_items": {
                             "block": {
                               "type": "instruction",
-                              "id": "OW_@Zy^3d?TpK.?1yr[t",
+                              "id": "Ar#42k8Oj}3_8#:bETep",
                               "extraState": {
                                 "extras": [],
                                 "attrs": [
@@ -684,7 +748,7 @@
                                 "ATTR_name": {
                                   "block": {
                                     "type": "dv_text",
-                                    "id": "3+[rD8s(Wp#@JG9phc@M",
+                                    "id": "XHKy!ys4P^4|hr^oi)*V",
                                     "extraState": {
                                       "fields": []
                                     },
@@ -699,7 +763,7 @@
                                 "ATTR_narrative": {
                                   "block": {
                                     "type": "dv_text",
-                                    "id": ";wmC2I1r(6xbHhYp4,RS",
+                                    "id": "afXa,sGGI=pvbv^r+1@Z",
                                     "extraState": {
                                       "fields": []
                                     },
@@ -713,7 +777,7 @@
                                       "FLD_value": {
                                         "block": {
                                           "type": "source_query",
-                                          "id": "05LB{|r+,4WTW]qYy/V1",
+                                          "id": "@vAftb,S!{*(6HmTx9]A",
                                           "fields": {
                                             "EXPRESSION": "$.KurdefinisjonNavn",
                                             "RETURN_TYPE": "string"
@@ -726,7 +790,7 @@
                                 "ATTR_protocol": {
                                   "block": {
                                     "type": "item_tree",
-                                    "id": "roXly+N3];P@80:RWqL/",
+                                    "id": "MTO/|a07%9(.%/To60ym",
                                     "extraState": {
                                       "extras": [],
                                       "attrs": [
@@ -759,7 +823,7 @@
                                       "ATTR_items": {
                                         "block": {
                                           "type": "element",
-                                          "id": "gxlpFawpJ9/o*5ETIH3k",
+                                          "id": "K6dYnD@=dv!tRdIwG4XM",
                                           "extraState": {
                                             "extras": [],
                                             "attrs": [],
@@ -782,7 +846,7 @@
                                             "VALUE": {
                                               "block": {
                                                 "type": "dv_identifier",
-                                                "id": "iKohR-[|q!@uIy+09B6b",
+                                                "id": ";|6Y0[V@ZsqzAJ0])K1Q",
                                                 "extraState": {
                                                   "fields": []
                                                 },
@@ -796,7 +860,7 @@
                                                   "FLD_id": {
                                                     "block": {
                                                       "type": "source_query",
-                                                      "id": "Q?da2s#IV4b4%DlmVx.~",
+                                                      "id": "ynS;5I8sB|@a~601#]=$",
                                                       "fields": {
                                                         "EXPRESSION": "$.RekvisisjonId",
                                                         "RETURN_TYPE": "string"
@@ -810,7 +874,7 @@
                                           "next": {
                                             "block": {
                                               "type": "cluster",
-                                              "id": ")=v0nskSp}tM42%Q6.Zv",
+                                              "id": "UU38EJjNp$tSlaX~a/4*",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -843,7 +907,7 @@
                                                 "ATTR_items": {
                                                   "block": {
                                                     "type": "element",
-                                                    "id": "J/ZRN{IqH}D/-I+1W_s8",
+                                                    "id": "@,w*^~2uoD#EN/(f!E0?",
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [],
@@ -866,7 +930,7 @@
                                                       "VALUE": {
                                                         "block": {
                                                           "type": "dv_count",
-                                                          "id": "*=9{.RatGqL3K_eg2uK,",
+                                                          "id": ";hsEn,pKaVUPp5F1U6F:",
                                                           "extraState": {
                                                             "fields": []
                                                           },
@@ -880,7 +944,7 @@
                                                             "FLD_magnitude": {
                                                               "block": {
                                                                 "type": "source_query_number",
-                                                                "id": "ijYzAUpLcj#)6dp48G1~",
+                                                                "id": "yWz/C/b2B,*[U(]YT/l*",
                                                                 "fields": {
                                                                   "EXPRESSION": "Dognnummer"
                                                                 }
@@ -903,7 +967,7 @@
                                 "ATTR_activities": {
                                   "block": {
                                     "type": "for_each_list",
-                                    "id": "e9DJEzWHl[Q`doVInXpJ",
+                                    "id": "d3][od^NPi4/2TaSv/-O",
                                     "fields": {
                                       "VAR": "substans"
                                     },
@@ -911,7 +975,7 @@
                                       "LIST": {
                                         "block": {
                                           "type": "source_query_node",
-                                          "id": "VCVti35I;ZK%5Th:GSV_",
+                                          "id": "M`E0B8+*pZVv%v2C4AKl",
                                           "fields": {
                                             "EXPRESSION": "$.KurDagar[*].Substanser[*]"
                                           }
@@ -920,7 +984,7 @@
                                       "DO": {
                                         "block": {
                                           "type": "activity",
-                                          "id": "$`lZm^)h?,GgrBg:NIy:",
+                                          "id": "Af(ew[*a_t|!tDH76{+T",
                                           "extraState": {
                                             "extras": [],
                                             "attrs": [
@@ -962,7 +1026,7 @@
                                             "ATTR_name": {
                                               "block": {
                                                 "type": "dv_text",
-                                                "id": ",jpmGl90j_:iy(v*S^1%",
+                                                "id": "#CoLw^|E@.zg|Z2!#pY%",
                                                 "extraState": {
                                                   "fields": []
                                                 },
@@ -977,7 +1041,7 @@
                                             "ATTR_description": {
                                               "block": {
                                                 "type": "item_tree",
-                                                "id": "bUs1+|*~,%CtX8DhcIBZ",
+                                                "id": "D#x]V^uD2z8OjN`(^9[E",
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [
@@ -1010,7 +1074,7 @@
                                                   "ATTR_items": {
                                                     "block": {
                                                       "type": "element",
-                                                      "id": "eMiwi9!c%KVWbqa6D[?@",
+                                                      "id": ".I3epqZajxE.T97}0SIo",
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [],
@@ -1033,7 +1097,7 @@
                                                         "VALUE": {
                                                           "block": {
                                                             "type": "dv_text",
-                                                            "id": "d`UCIg;A:[t3F*7u!5Bc",
+                                                            "id": "zwyg[Jo$W#j=d]WNvrPs",
                                                             "extraState": {
                                                               "fields": []
                                                             },
@@ -1047,7 +1111,7 @@
                                                               "FLD_value": {
                                                                 "block": {
                                                                   "type": "source_query",
-                                                                  "id": "arbBtEU=WAbPnJ+q`?Pu",
+                                                                  "id": "xOuLq2:jIy!xjFyMf!xq",
                                                                   "fields": {
                                                                     "EXPRESSION": "Innholdstoff_Navn",
                                                                     "RETURN_TYPE": "string"
@@ -1061,7 +1125,7 @@
                                                       "next": {
                                                         "block": {
                                                           "type": "cluster",
-                                                          "id": "~o)5X9,GNrD@f:0Ic#TB",
+                                                          "id": "O!ys-]=@3jShyHPaW-g^",
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [
@@ -1103,7 +1167,7 @@
                                                             "ATTR_name": {
                                                               "block": {
                                                                 "type": "dv_text",
-                                                                "id": "{+EK_S%=DYg1WYu!U:h.",
+                                                                "id": "KTgx(jDz$o50/lH8Kd4%",
                                                                 "extraState": {
                                                                   "fields": []
                                                                 },
@@ -1118,7 +1182,7 @@
                                                             "ATTR_items": {
                                                               "block": {
                                                                 "type": "element",
-                                                                "id": "VEAwv2@[syt:Fvj2_GJ=",
+                                                                "id": "{RCDXUb|-_K=U)j3IMA9",
                                                                 "extraState": {
                                                                   "extras": [],
                                                                   "attrs": [],
@@ -1141,7 +1205,7 @@
                                                                   "VALUE": {
                                                                     "block": {
                                                                       "type": "dv_coded_text",
-                                                                      "id": "JXQ.B3Q4n-P{iP$Rb6H-",
+                                                                      "id": ",EA=W*H,#h^+RWSbxiZc",
                                                                       "extraState": {
                                                                         "fields": []
                                                                       },
@@ -1155,7 +1219,7 @@
                                                                         "FLD_value": {
                                                                           "block": {
                                                                             "type": "source_query",
-                                                                            "id": "3;vQts)%~jr2WShg+1L8",
+                                                                            "id": "F?;s6`p=JrR:_gW5vS8g",
                                                                             "data": "{\"aiReview\":{\"note\":\"ATC (OID 2.16.840.1.113883.6.73)\"}}",
                                                                             "icons": {
                                                                               "comment": {
@@ -1174,7 +1238,7 @@
                                                                         "FLD_defining_code": {
                                                                           "block": {
                                                                             "type": "code_phrase",
-                                                                            "id": "uyKhxFn^R14$j}*cx8ZU",
+                                                                            "id": "bp6rA!qFd}L]J3T4z^p{",
                                                                             "fields": {
                                                                               "NAME": "Code Phrase",
                                                                               "RM_TYPE": "CODE_PHRASE",
@@ -1184,7 +1248,7 @@
                                                                               "FLD_code_string": {
                                                                                 "block": {
                                                                                   "type": "source_query",
-                                                                                  "id": "dE-e5I]M2)^pDin4V,]^",
+                                                                                  "id": "}+cupCWA7KE+hj,Cewq=",
                                                                                   "fields": {
                                                                                     "EXPRESSION": "Innholdstoff_ATC",
                                                                                     "RETURN_TYPE": "string"
@@ -1194,7 +1258,7 @@
                                                                               "FLD_terminology_id": {
                                                                                 "block": {
                                                                                   "type": "text",
-                                                                                  "id": "#@VL$e{TMLB~6dN}CWuf",
+                                                                                  "id": "fyHKU!9CFH?Y)C0y1d[]",
                                                                                   "fields": {
                                                                                     "TEXT": "2.16.840.1.113883.6.73"
                                                                                   }
@@ -1210,7 +1274,7 @@
                                                                 "next": {
                                                                   "block": {
                                                                     "type": "element",
-                                                                    "id": "t:7+7A9^+3?o6TjkjPA~",
+                                                                    "id": "a-OAi{K[w-Q)tWXgrJt~",
                                                                     "extraState": {
                                                                       "extras": [],
                                                                       "attrs": [],
@@ -1233,7 +1297,7 @@
                                                                       "VALUE": {
                                                                         "block": {
                                                                           "type": "dv_coded_text",
-                                                                          "id": "fccZQ-3w3MsAdlVv:Rc;",
+                                                                          "id": "aTEZ3g8f,mV$d1{F9q;@",
                                                                           "extraState": {
                                                                             "fields": []
                                                                           },
@@ -1247,7 +1311,7 @@
                                                                             "FLD_value": {
                                                                               "block": {
                                                                                 "type": "sheet_lookup",
-                                                                                "id": "}gmxu}-KibHGa@jrgiEF",
+                                                                                "id": "wfJ)KUg]M/hYs4[h_19[",
                                                                                 "data": "{\"aiReview\":{\"note\":\"Sheet beredningsform: Cytodos form code (2.0000) to the template code (2)\"}}",
                                                                                 "icons": {
                                                                                   "comment": {
@@ -1264,7 +1328,7 @@
                                                                                   "MATCH_COL": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "Vkqjf}_/8W|XgSg1[z|1",
+                                                                                      "id": "c;Ts2Zgjvr]HG(o7sp@d",
                                                                                       "fields": {
                                                                                         "TEXT": "Form_CodeValue"
                                                                                       }
@@ -1273,7 +1337,7 @@
                                                                                   "MATCH_VAL": {
                                                                                     "block": {
                                                                                       "type": "source_query",
-                                                                                      "id": "Ik{0.#}hcm[H6Rhox3k{",
+                                                                                      "id": "?yQP(zJH6Gw,%vodlvb5",
                                                                                       "fields": {
                                                                                         "EXPRESSION": "Form_CodeValue",
                                                                                         "RETURN_TYPE": "string"
@@ -1283,7 +1347,7 @@
                                                                                   "RETURN_COL": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "QuHN+]Ld3n(2XG4J^|nd",
+                                                                                      "id": "n403Ym$Y52Z782K}(}?O",
                                                                                       "fields": {
                                                                                         "TEXT": "text"
                                                                                       }
@@ -1295,7 +1359,7 @@
                                                                             "FLD_defining_code": {
                                                                               "block": {
                                                                                 "type": "code_phrase",
-                                                                                "id": "=~imj`|06T*]BCNV:R9F",
+                                                                                "id": "Q@/zmH1jB}O1=}:2%H$s",
                                                                                 "fields": {
                                                                                   "NAME": "Code Phrase",
                                                                                   "RM_TYPE": "CODE_PHRASE",
@@ -1305,7 +1369,7 @@
                                                                                   "FLD_code_string": {
                                                                                     "block": {
                                                                                       "type": "sheet_lookup",
-                                                                                      "id": "+4hQU4LpJ/I]u+Y3ZYsL",
+                                                                                      "id": "M*!*siZ8;Io)P7CC75BR",
                                                                                       "fields": {
                                                                                         "NAME": "beredningsform"
                                                                                       },
@@ -1313,7 +1377,7 @@
                                                                                         "MATCH_COL": {
                                                                                           "block": {
                                                                                             "type": "text",
-                                                                                            "id": "m+Ud175i6R@NTE`yhRKm",
+                                                                                            "id": "P!ScH.^Y/tm0`ahx}~y(",
                                                                                             "fields": {
                                                                                               "TEXT": "Form_CodeValue"
                                                                                             }
@@ -1322,7 +1386,7 @@
                                                                                         "MATCH_VAL": {
                                                                                           "block": {
                                                                                             "type": "source_query",
-                                                                                            "id": "!WDNS1W5c)`jn29o+tWo",
+                                                                                            "id": "F~4X!Urs;sEe-/(%_|5P",
                                                                                             "fields": {
                                                                                               "EXPRESSION": "Form_CodeValue",
                                                                                               "RETURN_TYPE": "string"
@@ -1332,7 +1396,7 @@
                                                                                         "RETURN_COL": {
                                                                                           "block": {
                                                                                             "type": "text",
-                                                                                            "id": "fJAxl~p|UTHXBKuVOJJ-",
+                                                                                            "id": "]*73Uf*nT@gr,?_to4jK",
                                                                                             "fields": {
                                                                                               "TEXT": "code"
                                                                                             }
@@ -1344,7 +1408,7 @@
                                                                                   "FLD_terminology_id": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "BO8vgiuGrInX)=*@I#o3",
+                                                                                      "id": ":cd5n^HfNE.a(h-F11FV",
                                                                                       "fields": {
                                                                                         "TEXT": "Cytodos value set"
                                                                                       }
@@ -1360,7 +1424,7 @@
                                                                     "next": {
                                                                       "block": {
                                                                         "type": "cluster",
-                                                                        "id": "+LWhA9CqduaB2lw}z0Q|",
+                                                                        "id": ":Gmn=VHz!L5PYqA^M.ff",
                                                                         "extraState": {
                                                                           "extras": [],
                                                                           "attrs": [
@@ -1393,7 +1457,7 @@
                                                                           "ATTR_items": {
                                                                             "block": {
                                                                               "type": "element",
-                                                                              "id": "0y!(}e@?VWFPXNeN30z`",
+                                                                              "id": "`*O)k4]{,Z%d):ryM2~M",
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [],
@@ -1418,7 +1482,7 @@
                                                                         "next": {
                                                                           "block": {
                                                                             "type": "element",
-                                                                            "id": "(|W]+,LMc?GtoXaxxwd/",
+                                                                            "id": "BpSge#B|y/:.E(-~4Vh!",
                                                                             "extraState": {
                                                                               "extras": [],
                                                                               "attrs": [],
@@ -1441,7 +1505,7 @@
                                                                               "VALUE": {
                                                                                 "block": {
                                                                                   "type": "dv_quantity",
-                                                                                  "id": "1`MYxpkJlbB?c3:vcePU",
+                                                                                  "id": "UKjtt/54XF[ouc}mklRl",
                                                                                   "extraState": {
                                                                                     "fields": []
                                                                                   },
@@ -1455,7 +1519,7 @@
                                                                                     "FLD_magnitude": {
                                                                                       "block": {
                                                                                         "type": "source_query_number",
-                                                                                        "id": "=c|ls4B3_9IA1@BZq[P5",
+                                                                                        "id": "Fd~m[UU5B~5A{@njwfyj",
                                                                                         "fields": {
                                                                                           "EXPRESSION": "Doseberegnet"
                                                                                         }
@@ -1464,7 +1528,7 @@
                                                                                     "FLD_units": {
                                                                                       "block": {
                                                                                         "type": "source_query",
-                                                                                        "id": "e_wWheHJ0j*Y,Rc-}[;F",
+                                                                                        "id": "![whOq-RcS6d+E_]*[)z",
                                                                                         "fields": {
                                                                                           "EXPRESSION": "UnitCode",
                                                                                           "RETURN_TYPE": "string"
@@ -1478,7 +1542,7 @@
                                                                             "next": {
                                                                               "block": {
                                                                                 "type": "cluster",
-                                                                                "id": "Akwu=Xf7O*]|F}3PS%9U",
+                                                                                "id": "QLQ|+]zq1T[:y^NAm,1R",
                                                                                 "extraState": {
                                                                                   "extras": [],
                                                                                   "attrs": [
@@ -1511,7 +1575,7 @@
                                                                                   "ATTR_items": {
                                                                                     "block": {
                                                                                       "type": "element",
-                                                                                      "id": "2WUd=(Hg[C7Hn*~))zdq",
+                                                                                      "id": ".q;ud;[I1z[P8u5Dx@QN",
                                                                                       "extraState": {
                                                                                         "extras": [],
                                                                                         "attrs": [],
@@ -1547,7 +1611,7 @@
                                                           "next": {
                                                             "block": {
                                                               "type": "element",
-                                                              "id": "#$6o.Xlf{7$^2m2qb+2q",
+                                                              "id": "[!LBO,uAokqL8|!+}cbO",
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
@@ -1570,7 +1634,7 @@
                                                                 "VALUE": {
                                                                   "block": {
                                                                     "type": "dv_coded_text",
-                                                                    "id": "z#$zUupOLt=h%Yz/5T:x",
+                                                                    "id": "3W[W(6i:4/rgRzftO~[~",
                                                                     "extraState": {
                                                                       "fields": []
                                                                     },
@@ -1584,7 +1648,7 @@
                                                                       "FLD_value": {
                                                                         "block": {
                                                                           "type": "sheet_lookup",
-                                                                          "id": "_ARb`:K=+CH/@kjA9Sgh",
+                                                                          "id": "l6+6OU?W^fvWM_MP_Q-*",
                                                                           "data": "{\"aiReview\":{\"note\":\"Sheet administreringsvag: Cytodos route code (3.0000) to the template code (3)\"}}",
                                                                           "icons": {
                                                                             "comment": {
@@ -1601,7 +1665,7 @@
                                                                             "MATCH_COL": {
                                                                               "block": {
                                                                                 "type": "text",
-                                                                                "id": "XZ,/wS_OR}^%`Unz61c4",
+                                                                                "id": "*/a(FB9,4u_]L_JUsz*8",
                                                                                 "fields": {
                                                                                   "TEXT": "Route_CodeValue"
                                                                                 }
@@ -1610,7 +1674,7 @@
                                                                             "MATCH_VAL": {
                                                                               "block": {
                                                                                 "type": "source_query",
-                                                                                "id": "{CR@.Xb-Sf+Pnpg*GE8T",
+                                                                                "id": ":5}kOmJZ7y1AdQdMSp%;",
                                                                                 "fields": {
                                                                                   "EXPRESSION": "Route_CodeValue",
                                                                                   "RETURN_TYPE": "string"
@@ -1620,7 +1684,7 @@
                                                                             "RETURN_COL": {
                                                                               "block": {
                                                                                 "type": "text",
-                                                                                "id": "}h{TXoDTgOnuqdmr0VH/",
+                                                                                "id": "br?@Q5aRJP}opxFZ.*/}",
                                                                                 "fields": {
                                                                                   "TEXT": "text"
                                                                                 }
@@ -1632,7 +1696,7 @@
                                                                       "FLD_defining_code": {
                                                                         "block": {
                                                                           "type": "code_phrase",
-                                                                          "id": ".eoz?1%IipYD%1R$c@6|",
+                                                                          "id": "?H9x?Aqhl6~jJ]su;F2?",
                                                                           "fields": {
                                                                             "NAME": "Code Phrase",
                                                                             "RM_TYPE": "CODE_PHRASE",
@@ -1642,7 +1706,7 @@
                                                                             "FLD_code_string": {
                                                                               "block": {
                                                                                 "type": "sheet_lookup",
-                                                                                "id": "!zzP(v^$zasF!!ZR5%Vt",
+                                                                                "id": "Lafj]+pDotR37)@R]1Yb",
                                                                                 "fields": {
                                                                                   "NAME": "administreringsvag"
                                                                                 },
@@ -1650,7 +1714,7 @@
                                                                                   "MATCH_COL": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "yu=|9%zF7/Pmy;H8:}zU",
+                                                                                      "id": "AMVy~,AdSp3(Qdt+Nh`F",
                                                                                       "fields": {
                                                                                         "TEXT": "Route_CodeValue"
                                                                                       }
@@ -1659,7 +1723,7 @@
                                                                                   "MATCH_VAL": {
                                                                                     "block": {
                                                                                       "type": "source_query",
-                                                                                      "id": "}_#4ea,M,55z`Y,JgM3,",
+                                                                                      "id": "FslQ?@VmrhrX*tS/5M$~",
                                                                                       "fields": {
                                                                                         "EXPRESSION": "Route_CodeValue",
                                                                                         "RETURN_TYPE": "string"
@@ -1669,7 +1733,7 @@
                                                                                   "RETURN_COL": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "t@1r#8.T/lke^6_W.t0u",
+                                                                                      "id": "my7=Vdmc-AJ:6X8|7;Go",
                                                                                       "fields": {
                                                                                         "TEXT": "code"
                                                                                       }
@@ -1681,7 +1745,7 @@
                                                                             "FLD_terminology_id": {
                                                                               "block": {
                                                                                 "type": "text",
-                                                                                "id": "f#|S`AAy)z3VY77~Q6_Q",
+                                                                                "id": "FoG62{Tn=mg{4kPaDMWU",
                                                                                 "fields": {
                                                                                   "TEXT": "Cytodos value set"
                                                                                 }
@@ -1697,7 +1761,7 @@
                                                               "next": {
                                                                 "block": {
                                                                   "type": "cluster",
-                                                                  "id": "jw.!RKO8RJ2Duo)z98yC",
+                                                                  "id": "}-x185##3#4tsD*VrmO7",
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [
@@ -1730,7 +1794,7 @@
                                                                     "ATTR_items": {
                                                                       "block": {
                                                                         "type": "element",
-                                                                        "id": "B^c4oz!5v^s-QKR:_%a-",
+                                                                        "id": "y3!DVBJe1]x_R)N.g,cE",
                                                                         "extraState": {
                                                                           "extras": [],
                                                                           "attrs": [],
@@ -1755,7 +1819,7 @@
                                                                   "next": {
                                                                     "block": {
                                                                       "type": "cluster",
-                                                                      "id": "^2II0Y7.9GJF%`q9p!JG",
+                                                                      "id": "t^G]1I:H.vwFqwtb#.VE",
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [
@@ -1788,7 +1852,7 @@
                                                                         "ATTR_items": {
                                                                           "block": {
                                                                             "type": "element",
-                                                                            "id": "`FR;)0P#th7wlVn}3$WI",
+                                                                            "id": "PIQJ;eJVI!:Y;O55f[aA",
                                                                             "extraState": {
                                                                               "extras": [],
                                                                               "attrs": [],
@@ -1813,7 +1877,7 @@
                                                                       "next": {
                                                                         "block": {
                                                                           "type": "cluster",
-                                                                          "id": "g-p6h2JC86Yb1rESHfrL",
+                                                                          "id": "fIk;91sP^nVqK?U~uCCb",
                                                                           "extraState": {
                                                                             "extras": [],
                                                                             "attrs": [
@@ -1846,7 +1910,7 @@
                                                                             "ATTR_items": {
                                                                               "block": {
                                                                                 "type": "element",
-                                                                                "id": "ja7Fn8F*.)C%|!tIO*g^",
+                                                                                "id": "2YmwYVKyP[M3ko8;][RQ",
                                                                                 "extraState": {
                                                                                   "extras": [],
                                                                                   "attrs": [],
@@ -1871,7 +1935,7 @@
                                                                           "next": {
                                                                             "block": {
                                                                               "type": "cluster",
-                                                                              "id": "Y5eS=5u.wzX-A4~3XeE{",
+                                                                              "id": "}04rg-0)HWi!9rLGhl`}",
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [
@@ -1904,7 +1968,7 @@
                                                                                 "ATTR_items": {
                                                                                   "block": {
                                                                                     "type": "cluster",
-                                                                                    "id": "iwEY1LF+9)vU$4NyE2)P",
+                                                                                    "id": "XI_r?FZrU602_l0daQBu",
                                                                                     "extraState": {
                                                                                       "extras": [],
                                                                                       "attrs": [
@@ -1937,7 +2001,7 @@
                                                                                       "ATTR_items": {
                                                                                         "block": {
                                                                                           "type": "element",
-                                                                                          "id": "Y_)OU-;$.M/)2yMW#F_j",
+                                                                                          "id": "Q0{hZ*Do0{}I`QdU|_hJ",
                                                                                           "extraState": {
                                                                                             "extras": [],
                                                                                             "attrs": [],
@@ -1962,7 +2026,7 @@
                                                                                     "next": {
                                                                                       "block": {
                                                                                         "type": "cluster",
-                                                                                        "id": "@,@?u2rtJ~}13r+/clHY",
+                                                                                        "id": "H6#j3pA!Ovq?$TXpgHl@",
                                                                                         "extraState": {
                                                                                           "extras": [],
                                                                                           "attrs": [
@@ -1995,7 +2059,7 @@
                                                                                           "ATTR_items": {
                                                                                             "block": {
                                                                                               "type": "element",
-                                                                                              "id": "cl%*gO#{fBZJ`4|8yyye",
+                                                                                              "id": "f6ez@h;nuvw=,tVaJ%AA",
                                                                                               "extraState": {
                                                                                                 "extras": [],
                                                                                                 "attrs": [],
@@ -2020,7 +2084,7 @@
                                                                                         "next": {
                                                                                           "block": {
                                                                                             "type": "cluster",
-                                                                                            "id": "0zTRqN7sWA3H4A75e2oN",
+                                                                                            "id": "+@.74Vk!m{B9(B,Qo_Q_",
                                                                                             "extraState": {
                                                                                               "extras": [],
                                                                                               "attrs": [
@@ -2053,7 +2117,7 @@
                                                                                               "ATTR_items": {
                                                                                                 "block": {
                                                                                                   "type": "element",
-                                                                                                  "id": "$R3b%rn.3Z?kO54ln.-j",
+                                                                                                  "id": "YQ,3t;qy8l%qJ!*l,szS",
                                                                                                   "extraState": {
                                                                                                     "extras": [],
                                                                                                     "attrs": [],
@@ -2085,7 +2149,7 @@
                                                                               "next": {
                                                                                 "block": {
                                                                                   "type": "element",
-                                                                                  "id": "V{4c#o0]hZ?(b$?xEWr6",
+                                                                                  "id": "X#2z%L=hLC$FFkWtA9bb",
                                                                                   "extraState": {
                                                                                     "extras": [],
                                                                                     "attrs": [],
@@ -2108,7 +2172,7 @@
                                                                                     "VALUE": {
                                                                                       "block": {
                                                                                         "type": "dv_text",
-                                                                                        "id": "Afwj2a];-L1Rz4n5,1Rd",
+                                                                                        "id": "rg`v6D).hgoYxroA]5mZ",
                                                                                         "extraState": {
                                                                                           "fields": []
                                                                                         },
@@ -2124,7 +2188,7 @@
                                                                                   "next": {
                                                                                     "block": {
                                                                                       "type": "cluster",
-                                                                                      "id": "+GlLC8s%JI+dvVqO0:8%",
+                                                                                      "id": "n.dE#/^H=;]c@z+-rb1X",
                                                                                       "extraState": {
                                                                                         "extras": [],
                                                                                         "attrs": [
@@ -2157,7 +2221,7 @@
                                                                                         "ATTR_items": {
                                                                                           "block": {
                                                                                             "type": "element",
-                                                                                            "id": "wBgkhWKoUYOBfZ!Fg%iV",
+                                                                                            "id": "E$JALW[B+s1NWeV(A#er",
                                                                                             "extraState": {
                                                                                               "extras": [],
                                                                                               "attrs": [],
@@ -2180,7 +2244,7 @@
                                                                                               "VALUE": {
                                                                                                 "block": {
                                                                                                   "type": "dv_date_time",
-                                                                                                  "id": "n$W#oo`B#/Ks7sh=Gr!*",
+                                                                                                  "id": "!/Hv$I)3fSLmRnq$[$dc",
                                                                                                   "extraState": {
                                                                                                     "fields": []
                                                                                                   },
@@ -2194,7 +2258,7 @@
                                                                                                     "FLD_value": {
                                                                                                       "block": {
                                                                                                         "type": "source_query",
-                                                                                                        "id": "aKO;h4R+[aq_ZzdXUoOl",
+                                                                                                        "id": "g:}_.B}!AowI[YPF^wc!",
                                                                                                         "data": "{\"aiReview\":{\"note\":\"Start time of the treatment day. Karda sends one day per message; uses the first day because a day-loop path inside the substance loop is not supported yet (findings F-M9)\"}}",
                                                                                                         "icons": {
                                                                                                           "comment": {
@@ -2217,7 +2281,7 @@
                                                                                             "next": {
                                                                                               "block": {
                                                                                                 "type": "cluster",
-                                                                                                "id": "@+u{.m$iPP9wBAdU6~nL",
+                                                                                                "id": "B+tF0bnYrHcG43P|gr6Z",
                                                                                                 "extraState": {
                                                                                                   "extras": [],
                                                                                                   "attrs": [
@@ -2250,7 +2314,7 @@
                                                                                                   "ATTR_items": {
                                                                                                     "block": {
                                                                                                       "type": "element",
-                                                                                                      "id": ".e6H?{NiPt`D%u)~Tu0X",
+                                                                                                      "id": "xRK5*!Q,$R6W~ZP3J+(k",
                                                                                                       "extraState": {
                                                                                                         "extras": [],
                                                                                                         "attrs": [],
@@ -2280,7 +2344,7 @@
                                                                                       "next": {
                                                                                         "block": {
                                                                                           "type": "cluster",
-                                                                                          "id": "9!%z$#FzPDegFN]/ajgf",
+                                                                                          "id": "9N5kI%IgB}}uf2wqJen{",
                                                                                           "extraState": {
                                                                                             "extras": [],
                                                                                             "attrs": [
@@ -2313,7 +2377,7 @@
                                                                                             "ATTR_items": {
                                                                                               "block": {
                                                                                                 "type": "element",
-                                                                                                "id": "G2Z4Qc}[ei|pGX-NmKWN",
+                                                                                                "id": "60@GxytI6o;9,%`heyGf",
                                                                                                 "extraState": {
                                                                                                   "extras": [],
                                                                                                   "attrs": [],
@@ -2338,7 +2402,7 @@
                                                                                           "next": {
                                                                                             "block": {
                                                                                               "type": "cluster",
-                                                                                              "id": "@8yBQT=uTwhs]jdH$RUk",
+                                                                                              "id": "Ln(6{%U^8l*~xZ{pQs#D",
                                                                                               "extraState": {
                                                                                                 "extras": [],
                                                                                                 "attrs": [
@@ -2371,7 +2435,7 @@
                                                                                                 "ATTR_items": {
                                                                                                   "block": {
                                                                                                     "type": "cluster",
-                                                                                                    "id": "7OJ;X}WbX@#J|kw(QDfZ",
+                                                                                                    "id": "BPkOk8a`e7hRhkIx{UW+",
                                                                                                     "extraState": {
                                                                                                       "extras": [],
                                                                                                       "attrs": [
@@ -2404,7 +2468,7 @@
                                                                                                       "ATTR_items": {
                                                                                                         "block": {
                                                                                                           "type": "element",
-                                                                                                          "id": "`]tmjCYVDc~~a~*/G24b",
+                                                                                                          "id": "-+(R-P)ot.kx#h8tNoFC",
                                                                                                           "extraState": {
                                                                                                             "extras": [],
                                                                                                             "attrs": [],
@@ -2429,7 +2493,7 @@
                                                                                                     "next": {
                                                                                                       "block": {
                                                                                                         "type": "cluster",
-                                                                                                        "id": "*$TWMy5qcwBol{97E4,U",
+                                                                                                        "id": "LPau9BYUgIzHFvN|rVy*",
                                                                                                         "extraState": {
                                                                                                           "extras": [],
                                                                                                           "attrs": [
@@ -2462,7 +2526,7 @@
                                                                                                           "ATTR_items": {
                                                                                                             "block": {
                                                                                                               "type": "element",
-                                                                                                              "id": "?XqP}J@-cE$PW*CJJQGZ",
+                                                                                                              "id": "F4O]I5[U`gA!6#:aq[#z",
                                                                                                               "extraState": {
                                                                                                                 "extras": [],
                                                                                                                 "attrs": [],
@@ -2492,7 +2556,7 @@
                                                                                               "next": {
                                                                                                 "block": {
                                                                                                   "type": "cluster",
-                                                                                                  "id": "7_2yP^s;t$S_b/mY:a~G",
+                                                                                                  "id": "@iQ6EGet5?5}kc8c!T2c",
                                                                                                   "extraState": {
                                                                                                     "extras": [],
                                                                                                     "attrs": [
@@ -2525,7 +2589,7 @@
                                                                                                     "ATTR_items": {
                                                                                                       "block": {
                                                                                                         "type": "element",
-                                                                                                        "id": "aY-|*fANwq,hva4I/[G=",
+                                                                                                        "id": "[r0@n,+6.TV!*K[$hU]8",
                                                                                                         "extraState": {
                                                                                                           "extras": [],
                                                                                                           "attrs": [],
@@ -2583,7 +2647,7 @@
                                 "ATTR_subject": {
                                   "block": {
                                     "type": "party_proxy",
-                                    "id": "l]UV?)49sB}jM0rLi`Xl",
+                                    "id": "D6FLCRfK#+pM$UA!{Q5*",
                                     "collapsed": true,
                                     "extraState": {
                                       "extras": [],
@@ -2605,7 +2669,7 @@
                                       "KIND": {
                                         "block": {
                                           "type": "maps_get",
-                                          "id": ")lmZIi+}:mOF2s_dvNA5",
+                                          "id": "Nq;nS@Wr$~^!gq#sF6{]",
                                           "fields": {
                                             "NAME": "defaults",
                                             "SLOT_ID": "",
@@ -2615,7 +2679,7 @@
                                             "KEY": {
                                               "shadow": {
                                                 "type": "text",
-                                                "id": "FvfV-Y$Y+:n7Ct/%tVaE",
+                                                "id": "Jl$By~_.}ldp2@,go.qe",
                                                 "inline": false,
                                                 "fields": {
                                                   "TEXT": "subject"
@@ -2631,7 +2695,7 @@
                                 "ATTR_language": {
                                   "block": {
                                     "type": "maps_get",
-                                    "id": "u+X+;%F`8?N5e@!J5??$",
+                                    "id": "lr0ozd;l1o(spU+SHAVi",
                                     "collapsed": true,
                                     "fields": {
                                       "NAME": "defaults",
@@ -2642,7 +2706,7 @@
                                       "KEY": {
                                         "shadow": {
                                           "type": "text",
-                                          "id": "m5IgtkZq$W9wz(VMsQVk",
+                                          "id": "uyhnF/gNq+lIBAl0^)]E",
                                           "inline": false,
                                           "fields": {
                                             "TEXT": "language"
@@ -2655,7 +2719,7 @@
                                 "ATTR_encoding": {
                                   "block": {
                                     "type": "maps_get",
-                                    "id": "~[8D)kU9|4xSF/([0]i=",
+                                    "id": "I[y7U9w/PE;6y|5Q$k|U",
                                     "collapsed": true,
                                     "fields": {
                                       "NAME": "defaults",
@@ -2666,7 +2730,7 @@
                                       "KEY": {
                                         "shadow": {
                                           "type": "text",
-                                          "id": "/1;x?iFfJ,!Fx|3DKGL7",
+                                          "id": "B=KL3uzo^nK=Y%Ipi6P2",
                                           "inline": false,
                                           "fields": {
                                             "TEXT": "encoding"
@@ -2680,7 +2744,7 @@
                               "next": {
                                 "block": {
                                   "type": "for_each_list",
-                                  "id": "9y494?^Xp6Ok7xcs3([+",
+                                  "id": "PyjBuZw1(ap=1e9CXj{^",
                                   "fields": {
                                     "VAR": "substans"
                                   },
@@ -2688,7 +2752,7 @@
                                     "LIST": {
                                       "block": {
                                         "type": "source_query_node",
-                                        "id": "L~BDONDlplt:OWHPOS1W",
+                                        "id": ":K5Gb_/+9zrvKHeD+s6.",
                                         "fields": {
                                           "EXPRESSION": "$.KurDagar[*].Substanser[*]"
                                         }
@@ -2697,7 +2761,7 @@
                                     "DO": {
                                       "block": {
                                         "type": "action",
-                                        "id": "hZ}*@W,xspZk9V,Mxl}d",
+                                        "id": "9lZ9zZ{#I$]0.LD4;L}|",
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [
@@ -2793,7 +2857,7 @@
                                           "ATTR_name": {
                                             "block": {
                                               "type": "dv_text",
-                                              "id": "CX|UIX_//pKrHfN~Xz|S",
+                                              "id": "}~M~r|xv?qT,l2jrR%N:",
                                               "extraState": {
                                                 "fields": []
                                               },
@@ -2808,7 +2872,7 @@
                                           "ATTR_description": {
                                             "block": {
                                               "type": "item_tree",
-                                              "id": "H5pNv`++l}dyVcl4r0}J",
+                                              "id": "wVMO;mc!P(mj1Id7M$a!",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -2841,7 +2905,7 @@
                                                 "ATTR_items": {
                                                   "block": {
                                                     "type": "cluster",
-                                                    "id": "{L8dcJPh=(1`/|IA2MBO",
+                                                    "id": "pSkhk`T`1:+nK3$/=TF!",
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [
@@ -2883,7 +2947,7 @@
                                                       "ATTR_name": {
                                                         "block": {
                                                           "type": "dv_text",
-                                                          "id": "n#;?O#5[)+;k+KI_32-y",
+                                                          "id": "1@T~nM{R!*inLSZzLJ;J",
                                                           "extraState": {
                                                             "fields": []
                                                           },
@@ -2898,7 +2962,7 @@
                                                       "ATTR_items": {
                                                         "block": {
                                                           "type": "element",
-                                                          "id": "sIi!MphNRU6}A#,J{~A=",
+                                                          "id": "EeP?adoZT@.^ks^*YZiE",
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [],
@@ -2921,7 +2985,7 @@
                                                             "VALUE": {
                                                               "block": {
                                                                 "type": "dv_coded_text",
-                                                                "id": "BACvr(`+raP`7T??wGBL",
+                                                                "id": "Cw7b7JIKMpt%SwRF0k`6",
                                                                 "extraState": {
                                                                   "fields": []
                                                                 },
@@ -2935,7 +2999,7 @@
                                                                   "FLD_value": {
                                                                     "block": {
                                                                       "type": "source_query",
-                                                                      "id": "32%H7c0u%YkH3DNZ*,f3",
+                                                                      "id": "Jxb8AZ#`P_-OmNdPA*Bn",
                                                                       "fields": {
                                                                         "EXPRESSION": "Innholdstoff_Navn",
                                                                         "RETURN_TYPE": "string"
@@ -2945,7 +3009,7 @@
                                                                   "FLD_defining_code": {
                                                                     "block": {
                                                                       "type": "code_phrase",
-                                                                      "id": "|Pkcj-1U,khtSUb(.Yb`",
+                                                                      "id": "C9kwBr]wbod9+wu=W=3L",
                                                                       "fields": {
                                                                         "NAME": "Code Phrase",
                                                                         "RM_TYPE": "CODE_PHRASE",
@@ -2955,7 +3019,7 @@
                                                                         "FLD_code_string": {
                                                                           "block": {
                                                                             "type": "source_query",
-                                                                            "id": "69U)Lf#;t{D.]Mfi;+_H",
+                                                                            "id": "2K4u*{fVn-f,s.w)WwO8",
                                                                             "fields": {
                                                                               "EXPRESSION": "Innholdstoff_ATC",
                                                                               "RETURN_TYPE": "string"
@@ -2965,7 +3029,7 @@
                                                                         "FLD_terminology_id": {
                                                                           "block": {
                                                                             "type": "text",
-                                                                            "id": "06,*h5mV@|0`e`2U342a",
+                                                                            "id": ",53hxvZ,Tn:GcJPNfJ/$",
                                                                             "fields": {
                                                                               "TEXT": "2.16.840.1.113883.6.73"
                                                                             }
@@ -2981,7 +3045,7 @@
                                                           "next": {
                                                             "block": {
                                                               "type": "cluster",
-                                                              "id": "g4bk)bv+I$xAu-?0(YK!",
+                                                              "id": "zry*D%GPg?Jr8.24=aNZ",
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [
@@ -3014,7 +3078,7 @@
                                                                 "ATTR_items": {
                                                                   "block": {
                                                                     "type": "element",
-                                                                    "id": "TQs3E{fj$@Fc9km^-s~h",
+                                                                    "id": "H-lzeCPf[;}[;DRl5),g",
                                                                     "extraState": {
                                                                       "extras": [],
                                                                       "attrs": [],
@@ -3039,7 +3103,7 @@
                                                               "next": {
                                                                 "block": {
                                                                   "type": "cluster",
-                                                                  "id": "EDYbOFoP2]R{9m:N`zsH",
+                                                                  "id": "YgZTbLSw?j~dP7B3AN-I",
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [
@@ -3072,7 +3136,7 @@
                                                                     "ATTR_items": {
                                                                       "block": {
                                                                         "type": "element",
-                                                                        "id": "rr,3k`.xt3w:``Cm;QC-",
+                                                                        "id": "VG+iWUUmE#pOvntRX@ek",
                                                                         "extraState": {
                                                                           "extras": [],
                                                                           "attrs": [],
@@ -3109,7 +3173,7 @@
                                           "ATTR_ism_transition": {
                                             "block": {
                                               "type": "ism_transition",
-                                              "id": "H1VrNiL%|+uUed9/||My",
+                                              "id": "[au]RbSfuzO7z#Td_UPS",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -3151,7 +3215,7 @@
                                                 "ATTR_current_state": {
                                                   "block": {
                                                     "type": "term_pick",
-                                                    "id": "qVV_ZDEO#sYFh1yOB`Dz",
+                                                    "id": "6i+$McbNs)tQ{5UWe2i-",
                                                     "inline": false,
                                                     "fields": {
                                                       "NAME": "built-in",
@@ -3166,7 +3230,7 @@
                                                 "ATTR_careflow_step": {
                                                   "block": {
                                                     "type": "dv_coded_text",
-                                                    "id": "D}c6!w(/NGne:.cLNKaK",
+                                                    "id": "b0o.Xl)hnzQ=Dk@9=G1X",
                                                     "extraState": {
                                                       "fields": []
                                                     },
@@ -3180,7 +3244,7 @@
                                                       "FLD_value": {
                                                         "block": {
                                                           "type": "text",
-                                                          "id": "2r2B;B,*T`(je?.[xvyW",
+                                                          "id": "/d]BS8aacMuL|JmVI7DH",
                                                           "fields": {
                                                             "TEXT": "Läkemedlets startdatum eller startvillkor inställt"
                                                           }
@@ -3189,7 +3253,7 @@
                                                       "FLD_defining_code": {
                                                         "block": {
                                                           "type": "code_phrase",
-                                                          "id": "pGsbG{CV_iW2CO6B-TBM",
+                                                          "id": "G=_V{aa:=:wU=imKE.pq",
                                                           "fields": {
                                                             "NAME": "Code Phrase",
                                                             "RM_TYPE": "CODE_PHRASE",
@@ -3199,7 +3263,7 @@
                                                             "FLD_code_string": {
                                                               "shadow": {
                                                                 "type": "text",
-                                                                "id": "q99PqjvF#JU8r$cn).9V",
+                                                                "id": ",pGy|A~$#)SltSn;%E_b",
                                                                 "inline": false,
                                                                 "fields": {
                                                                   "TEXT": "at0016"
@@ -3207,7 +3271,7 @@
                                                               },
                                                               "block": {
                                                                 "type": "text",
-                                                                "id": "-x{@39$O$G1y/|C#~x@v",
+                                                                "id": "=oxL:G[=Yx:TU;qDfC7b",
                                                                 "fields": {
                                                                   "TEXT": "at0016"
                                                                 }
@@ -3216,7 +3280,7 @@
                                                             "FLD_terminology_id": {
                                                               "shadow": {
                                                                 "type": "text",
-                                                                "id": "aeZT-)AKAsS]*f~JIZOw",
+                                                                "id": "x;J*Xme;aqm$TKwwG7O)",
                                                                 "inline": false,
                                                                 "fields": {
                                                                   "TEXT": "local"
@@ -3224,7 +3288,7 @@
                                                               },
                                                               "block": {
                                                                 "type": "text",
-                                                                "id": "!5sXPP/lq~3dS[cvCxsP",
+                                                                "id": "a%KM4vE9ZABc|LAYfp{d",
                                                                 "fields": {
                                                                   "TEXT": "local"
                                                                 }
@@ -3242,7 +3306,7 @@
                                           "ATTR_time": {
                                             "block": {
                                               "type": "dv_date_time",
-                                              "id": "b1/iR-lG5G~l?AZnYc~N",
+                                              "id": "S),B}vp_sXS88cwcG8bb",
                                               "extraState": {
                                                 "fields": []
                                               },
@@ -3256,7 +3320,7 @@
                                                 "FLD_value": {
                                                   "block": {
                                                     "type": "source_query",
-                                                    "id": "1Jq,MVS$5FrVOn[,=k$t",
+                                                    "id": "f|6R2F-c3RyU=-yho0m,",
                                                     "fields": {
                                                       "EXPRESSION": "$.SignatureDate",
                                                       "RETURN_TYPE": "string"
@@ -3269,7 +3333,7 @@
                                           "ATTR_protocol": {
                                             "block": {
                                               "type": "item_tree",
-                                              "id": "=R:tb2f;H0As$1qG^=5u",
+                                              "id": "!7hX}HVuzbY(/lE(o#)?",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -3302,7 +3366,7 @@
                                                 "ATTR_items": {
                                                   "block": {
                                                     "type": "element",
-                                                    "id": "R?yO$,qmOkYg~x4DIg(S",
+                                                    "id": "gyI8_{c:xk=4jmq0QyMJ",
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [],
@@ -3325,7 +3389,7 @@
                                                       "VALUE": {
                                                         "block": {
                                                           "type": "dv_identifier",
-                                                          "id": "3qi/_p;ePM#/gV~H0,/X",
+                                                          "id": "j{M/~sE;sex@[Fx~2GK|",
                                                           "extraState": {
                                                             "fields": []
                                                           },
@@ -3339,7 +3403,7 @@
                                                             "FLD_id": {
                                                               "block": {
                                                                 "type": "source_query",
-                                                                "id": "}r)[E@N]m)TzF5Z=lhSp",
+                                                                "id": "QH=sFb,]Q,?a*gI^iaE)",
                                                                 "fields": {
                                                                   "EXPRESSION": "$.RekvisisjonId",
                                                                   "RETURN_TYPE": "string"
@@ -3353,7 +3417,7 @@
                                                     "next": {
                                                       "block": {
                                                         "type": "cluster",
-                                                        "id": "rvJ?J~t`8S$l=+ps/8}s",
+                                                        "id": "YK{bW11qrYCqrb5:Latw",
                                                         "extraState": {
                                                           "extras": [],
                                                           "attrs": [
@@ -3386,7 +3450,7 @@
                                                           "ATTR_items": {
                                                             "block": {
                                                               "type": "element",
-                                                              "id": "zp^.%S=D|!+Td4xNQL]n",
+                                                              "id": "oN23S-/s[A1`[Sxuek]2",
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
@@ -3418,7 +3482,7 @@
                                           "ATTR_subject": {
                                             "block": {
                                               "type": "party_proxy",
-                                              "id": "?e;kgDlIh[,i.cZn:}Px",
+                                              "id": "p.U5S#^:AO0]HaJ7Pk^G",
                                               "collapsed": true,
                                               "extraState": {
                                                 "extras": [],
@@ -3440,7 +3504,7 @@
                                                 "KIND": {
                                                   "block": {
                                                     "type": "maps_get",
-                                                    "id": "T28|MWZ1~_kP7N#NfJ?g",
+                                                    "id": "I_xr2{bsn)r;`NtzU#S*",
                                                     "fields": {
                                                       "NAME": "defaults",
                                                       "SLOT_ID": "",
@@ -3450,7 +3514,7 @@
                                                       "KEY": {
                                                         "shadow": {
                                                           "type": "text",
-                                                          "id": "#^[AWuK!w.o:_Y]F2|o5",
+                                                          "id": "vrfm)+%Ucua}#9+j%C*N",
                                                           "inline": false,
                                                           "fields": {
                                                             "TEXT": "subject"
@@ -3466,7 +3530,7 @@
                                           "ATTR_language": {
                                             "block": {
                                               "type": "maps_get",
-                                              "id": "x;Pmd^ZaYOnTRd~|+}pY",
+                                              "id": "9rLY{urnE/6pUI(yf6mb",
                                               "collapsed": true,
                                               "fields": {
                                                 "NAME": "defaults",
@@ -3477,7 +3541,7 @@
                                                 "KEY": {
                                                   "shadow": {
                                                     "type": "text",
-                                                    "id": "+sb_|c]uH.g%v(u*J|_K",
+                                                    "id": "qezkZ@EoM2M!Y:+h07C~",
                                                     "inline": false,
                                                     "fields": {
                                                       "TEXT": "language"
@@ -3490,7 +3554,7 @@
                                           "ATTR_encoding": {
                                             "block": {
                                               "type": "maps_get",
-                                              "id": "Px;N?p#*{k;CX$+AA@bs",
+                                              "id": "[W=Dh:+?ac`Y(bf7hlP7",
                                               "collapsed": true,
                                               "fields": {
                                                 "NAME": "defaults",
@@ -3501,7 +3565,7 @@
                                                 "KEY": {
                                                   "shadow": {
                                                     "type": "text",
-                                                    "id": "d@K]c)X9eq2+7/noqOpo",
+                                                    "id": "bQ8OyZ=U*GaCFk/8K|#z",
                                                     "inline": false,
                                                     "fields": {
                                                       "TEXT": "encoding"
@@ -3528,7 +3592,7 @@
               "ATTR_context": {
                 "block": {
                   "type": "event_context",
-                  "id": "_hB?YeTT,c1c:zn{/{MC",
+                  "id": "Yiy0]B58Ry8PUjE]]?A]",
                   "extraState": {
                     "extras": [
                       "health_care_facility"
@@ -3581,7 +3645,7 @@
                     "ATTR_setting": {
                       "block": {
                         "type": "dv_coded_text",
-                        "id": "VuTplB^`I.,?!O0+Zv*b",
+                        "id": "zkJg^2NH3DL}tlq+bq_x",
                         "extraState": {
                           "fields": []
                         },
@@ -3595,7 +3659,7 @@
                           "FLD_value": {
                             "block": {
                               "type": "text",
-                              "id": "PhN2gvr1q#!s`EM[rH7E",
+                              "id": "$h!E:MmAWJiAzuFLF6`I",
                               "fields": {
                                 "TEXT": "other care"
                               }
@@ -3604,7 +3668,7 @@
                           "FLD_defining_code": {
                             "block": {
                               "type": "code_phrase",
-                              "id": "*(eJGboeT_|P!zF4xt:m",
+                              "id": "1KE2;S~I^$xyBxDjj18K",
                               "fields": {
                                 "NAME": "Code Phrase",
                                 "RM_TYPE": "CODE_PHRASE",
@@ -3614,7 +3678,7 @@
                                 "FLD_code_string": {
                                   "block": {
                                     "type": "text",
-                                    "id": "GgieIFS;Cx#I.X~JYyj-",
+                                    "id": "?:oz[2R;*pesSFOuGcj/",
                                     "fields": {
                                       "TEXT": "238"
                                     }
@@ -3623,14 +3687,14 @@
                                 "FLD_terminology_id": {
                                   "shadow": {
                                     "type": "text",
-                                    "id": "M}sthD%Ado%*-C%u4:0m",
+                                    "id": "%8FhVQ])9z_Mh[_Oo4B4",
                                     "fields": {
                                       "TEXT": "openehr"
                                     }
                                   },
                                   "block": {
                                     "type": "text",
-                                    "id": "OxpQviDoJ3OK?nHTiycI",
+                                    "id": "]7l#{|fVmU0Ol._;x0.`",
                                     "fields": {
                                       "TEXT": "openehr"
                                     }
@@ -3645,7 +3709,7 @@
                     "ATTR_start_time": {
                       "block": {
                         "type": "dv_date_time",
-                        "id": "tki]XNX6^BufE_x@mBNC",
+                        "id": "ij+*E60e+~VVO5Z[5:oN",
                         "extraState": {
                           "fields": []
                         },
@@ -3659,7 +3723,7 @@
                           "FLD_value": {
                             "block": {
                               "type": "source_query",
-                              "id": "SzhEUw%MrRl=3KjBo:65",
+                              "id": "^#)6vW/%*aCgZKcp!%=P",
                               "fields": {
                                 "EXPRESSION": "$.SignatureDate",
                                 "RETURN_TYPE": "string"
@@ -3672,7 +3736,7 @@
                     "ATTR_other_context": {
                       "block": {
                         "type": "item_tree",
-                        "id": "1NFsG++6-x.$[?,J}G],",
+                        "id": "UkAI+=IZ0!}3Ff,(|1:*",
                         "extraState": {
                           "extras": [],
                           "attrs": [
@@ -3705,7 +3769,7 @@
                           "ATTR_items": {
                             "block": {
                               "type": "cluster",
-                              "id": "-?Ch{^knch5/T$91--Nw",
+                              "id": "xKV6,j0?Y@oN(}z.K$0=",
                               "extraState": {
                                 "extras": [],
                                 "attrs": [
@@ -3747,7 +3811,7 @@
                                 "ATTR_name": {
                                   "block": {
                                     "type": "dv_text",
-                                    "id": "2+=PBz_QF_Az;~es]sy}",
+                                    "id": "#**GvS(r?A(Xa0WTR4@?",
                                     "extraState": {
                                       "fields": []
                                     },
@@ -3762,7 +3826,7 @@
                                 "ATTR_items": {
                                   "block": {
                                     "type": "element",
-                                    "id": "J/$=GkPW`mMD;/[A_!c2",
+                                    "id": "S2Rs8[NTmOl4PD`sN/ek",
                                     "extraState": {
                                       "extras": [],
                                       "attrs": [],
@@ -3785,7 +3849,7 @@
                                       "VALUE": {
                                         "block": {
                                           "type": "dv_text",
-                                          "id": "zopi8MQ{8Gvvk/%CI:S)",
+                                          "id": "hM20H8q~*J+t~{t7T2y,",
                                           "extraState": {
                                             "fields": []
                                           },
@@ -3799,7 +3863,7 @@
                                             "FLD_value": {
                                               "block": {
                                                 "type": "source_query",
-                                                "id": "MjhS_SC)j[JoEtl.`sS5",
+                                                "id": "kn03fHB=]fjc#EnDjaiW",
                                                 "fields": {
                                                   "EXPRESSION": "$.PDL_enhet_Namn",
                                                   "RETURN_TYPE": "string"
@@ -3813,7 +3877,7 @@
                                     "next": {
                                       "block": {
                                         "type": "element",
-                                        "id": "W,NP,i61.xum4`.q_%R^",
+                                        "id": ",sWE@ywWTV;!]A%U2PR`",
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
@@ -3836,9 +3900,11 @@
                                           "VALUE": {
                                             "block": {
                                               "type": "dv_identifier",
-                                              "id": "~@vo8%O*],Z;cRjdE/4]",
+                                              "id": "P]1|vTxo1_,pW0l#fieU",
                                               "extraState": {
-                                                "fields": []
+                                                "fields": [
+                                                  "type"
+                                                ]
                                               },
                                               "fields": {
                                                 "NAME": "Identifier",
@@ -3850,7 +3916,7 @@
                                                 "FLD_id": {
                                                   "block": {
                                                     "type": "text_join",
-                                                    "id": "8#[)Fw#v4Dr7tNZ/gOo$",
+                                                    "id": "Je.oO_!fLo,Q;`E(9yCt",
                                                     "extraState": {
                                                       "itemCount": 2
                                                     },
@@ -3858,7 +3924,7 @@
                                                       "ADD0": {
                                                         "block": {
                                                           "type": "text",
-                                                          "id": "%d_ElOdw3+i2*)])`+H`",
+                                                          "id": "pFx!#U6t}2fs6FDrKYJT",
                                                           "fields": {
                                                             "TEXT": "SE2321000016-"
                                                           }
@@ -3867,13 +3933,22 @@
                                                       "ADD1": {
                                                         "block": {
                                                           "type": "source_query",
-                                                          "id": "s}.8@86{KU`K(KDtJ+Za",
+                                                          "id": "7hal9W1ALWt=[@vVK?4+",
                                                           "fields": {
                                                             "EXPRESSION": "$.PDL_enhet_HSAID",
                                                             "RETURN_TYPE": "string"
                                                           }
                                                         }
                                                       }
+                                                    }
+                                                  }
+                                                },
+                                                "OPTFLD_type": {
+                                                  "block": {
+                                                    "type": "text",
+                                                    "id": "mA;gx[VW)8w=}%9wY9c-",
+                                                    "fields": {
+                                                      "TEXT": "urn:oid:1.2.752.29.4.19"
                                                     }
                                                   }
                                                 }
@@ -3884,7 +3959,7 @@
                                         "next": {
                                           "block": {
                                             "type": "element",
-                                            "id": "UhZYV4`LSkG-XK%BZ}ZF",
+                                            "id": "XP-YMfXHlTn1_CuUD?[F",
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
@@ -3907,7 +3982,7 @@
                                               "VALUE": {
                                                 "block": {
                                                   "type": "dv_coded_text",
-                                                  "id": "t]ZwSG8iF0`Zi|WFe3?@",
+                                                  "id": "ywPP:%R.v=GCJ)(-yF-w",
                                                   "extraState": {
                                                     "fields": []
                                                   },
@@ -3921,7 +3996,7 @@
                                                     "FLD_value": {
                                                       "block": {
                                                         "type": "text",
-                                                        "id": "[g_w^KbM3D?8H-|YcPaQ",
+                                                        "id": "Q9gbs=/O?{r#Hr:{Dg!w",
                                                         "fields": {
                                                           "TEXT": "vårdenhet"
                                                         }
@@ -3930,7 +4005,7 @@
                                                     "FLD_defining_code": {
                                                       "block": {
                                                         "type": "code_phrase",
-                                                        "id": "eY5gY:$uPG;[%7[07GGr",
+                                                        "id": "djHHa8d@F:Al|it]4?l2",
                                                         "fields": {
                                                           "NAME": "Code Phrase",
                                                           "RM_TYPE": "CODE_PHRASE",
@@ -3940,7 +4015,7 @@
                                                           "FLD_code_string": {
                                                             "shadow": {
                                                               "type": "text",
-                                                              "id": "YOxt@VS^r}*t79MJZGP=",
+                                                              "id": ":uE~/Tyg$f!f2$SyQ)W2",
                                                               "inline": false,
                                                               "fields": {
                                                                 "TEXT": "43741000"
@@ -3948,7 +4023,7 @@
                                                             },
                                                             "block": {
                                                               "type": "text",
-                                                              "id": "D-FJr~Y7kuFIz);Ja3WJ",
+                                                              "id": "uhxP8P3.pxK_9yv}H#AH",
                                                               "fields": {
                                                                 "TEXT": "43741000"
                                                               }
@@ -3957,7 +4032,7 @@
                                                           "FLD_terminology_id": {
                                                             "shadow": {
                                                               "type": "text",
-                                                              "id": "PE0JWp,UYm+kDqMF5-k-",
+                                                              "id": "p023^,Hkpj`v4[]w9~3;",
                                                               "inline": false,
                                                               "fields": {
                                                                 "TEXT": "http://snomed.info/sct/900000000000207008"
@@ -3965,7 +4040,7 @@
                                                             },
                                                             "block": {
                                                               "type": "text",
-                                                              "id": "b=v%av`%|oHHzh+,T@VB",
+                                                              "id": "2k%*`DvSa%G[(w%o6$cy",
                                                               "fields": {
                                                                 "TEXT": "http://snomed.info/sct/900000000000207008"
                                                               }
@@ -3981,7 +4056,7 @@
                                             "next": {
                                               "block": {
                                                 "type": "cluster",
-                                                "id": "Do]LgC6~^]`WlkQH]ckP",
+                                                "id": "Ta?6~y)P,A_EM#G/QE@X",
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [
@@ -4014,7 +4089,7 @@
                                                   "ATTR_items": {
                                                     "block": {
                                                       "type": "element",
-                                                      "id": "!J(r;Cf49!VQ@UT9wx4x",
+                                                      "id": "f;B#i306JP)RW/R5`M8C",
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [],
@@ -4039,7 +4114,7 @@
                                                 "next": {
                                                   "block": {
                                                     "type": "cluster",
-                                                    "id": "@w?5M:7d#1%iNef@O.Jj",
+                                                    "id": "NqN{*3hn,P@70_L:N3mH",
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [
@@ -4072,7 +4147,7 @@
                                                       "ATTR_items": {
                                                         "block": {
                                                           "type": "element",
-                                                          "id": "3%;NsE+E^@to6;Zj~TC`",
+                                                          "id": "3I{3|i[]4PT5xs(cWeI4",
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [],
@@ -4097,7 +4172,7 @@
                                                     "next": {
                                                       "block": {
                                                         "type": "cluster",
-                                                        "id": "dE@_5|,}PT_k+i.MRHVg",
+                                                        "id": "84aQhm.)86;,Tc}?KcPk",
                                                         "extraState": {
                                                           "extras": [],
                                                           "attrs": [
@@ -4130,7 +4205,7 @@
                                                           "ATTR_items": {
                                                             "block": {
                                                               "type": "element",
-                                                              "id": "5eXsXgNg!k8Bg^dMojfj",
+                                                              "id": "|e-Jr#Q-GgC!q%)7#M3U",
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [],
@@ -4155,7 +4230,7 @@
                                                         "next": {
                                                           "block": {
                                                             "type": "cluster",
-                                                            "id": "g-q1Yo!GI%(l(#71P2r/",
+                                                            "id": "yT8PhCLht|lU-r#d`_5g",
                                                             "extraState": {
                                                               "extras": [],
                                                               "attrs": [
@@ -4197,7 +4272,7 @@
                                                               "ATTR_name": {
                                                                 "block": {
                                                                   "type": "dv_text",
-                                                                  "id": ".g^ycE2$!%0YRlGwMB*S",
+                                                                  "id": "8+s4%eTZwPtoOJ)}i!sd",
                                                                   "extraState": {
                                                                     "fields": []
                                                                   },
@@ -4212,7 +4287,7 @@
                                                               "ATTR_items": {
                                                                 "block": {
                                                                   "type": "element",
-                                                                  "id": "j6hYyG:{Z)2Rl!~qkPHH",
+                                                                  "id": "J1NUm#;mb^]%IIT[4:yA",
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [],
@@ -4235,7 +4310,7 @@
                                                                     "VALUE": {
                                                                       "block": {
                                                                         "type": "dv_text",
-                                                                        "id": "Z=1fKl4c0t-^NiCT;~;`",
+                                                                        "id": "v$njBJz_h6r3~:!65XN#",
                                                                         "extraState": {
                                                                           "fields": []
                                                                         },
@@ -4249,7 +4324,7 @@
                                                                           "FLD_value": {
                                                                             "block": {
                                                                               "type": "source_query",
-                                                                              "id": "8WSP0`.nK{DdRIMU:o@G",
+                                                                              "id": "LC,GE:hD=^pgJ`zM8r6Z",
                                                                               "fields": {
                                                                                 "EXPRESSION": "$.PDL_vardgivare_Namn",
                                                                                 "RETURN_TYPE": "string"
@@ -4263,7 +4338,7 @@
                                                                   "next": {
                                                                     "block": {
                                                                       "type": "element",
-                                                                      "id": "j{Z;S=`L~O]4B+x_ifS:",
+                                                                      "id": "BYbY^[Q?S!M5Lqe}@^k9",
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
@@ -4286,9 +4361,11 @@
                                                                         "VALUE": {
                                                                           "block": {
                                                                             "type": "dv_identifier",
-                                                                            "id": "|haM[8E5K8eT,WtVAEY4",
+                                                                            "id": "ifWfUpA!r9Ujx}471PG3",
                                                                             "extraState": {
-                                                                              "fields": []
+                                                                              "fields": [
+                                                                                "type"
+                                                                              ]
                                                                             },
                                                                             "fields": {
                                                                               "NAME": "Identifier",
@@ -4300,10 +4377,19 @@
                                                                               "FLD_id": {
                                                                                 "block": {
                                                                                   "type": "source_query",
-                                                                                  "id": "090@tm6}yUpFRW5s3VXl",
+                                                                                  "id": "JU]tNOWHttFvYd:J0cC#",
                                                                                   "fields": {
                                                                                     "EXPRESSION": "$.PDL_vardgivare_HSAID",
                                                                                     "RETURN_TYPE": "string"
+                                                                                  }
+                                                                                }
+                                                                              },
+                                                                              "OPTFLD_type": {
+                                                                                "block": {
+                                                                                  "type": "text",
+                                                                                  "id": "3Xqp?J/Dck0lT~gzkSix",
+                                                                                  "fields": {
+                                                                                    "TEXT": "urn:oid:1.2.752.29.4.19"
                                                                                   }
                                                                                 }
                                                                               }
@@ -4314,7 +4400,7 @@
                                                                       "next": {
                                                                         "block": {
                                                                           "type": "element",
-                                                                          "id": "z_fCL)xD~/zLdBUW]N1@",
+                                                                          "id": ".BCBW4Z1#d*b7qhH4lTh",
                                                                           "extraState": {
                                                                             "extras": [],
                                                                             "attrs": [],
@@ -4337,9 +4423,11 @@
                                                                             "VALUE": {
                                                                               "block": {
                                                                                 "type": "dv_identifier",
-                                                                                "id": "sN1@4GV2~8Dos?@iG/^J",
+                                                                                "id": "6wVfDD0s0[W3S8VL#_E6",
                                                                                 "extraState": {
-                                                                                  "fields": []
+                                                                                  "fields": [
+                                                                                    "type"
+                                                                                  ]
                                                                                 },
                                                                                 "fields": {
                                                                                   "NAME": "Identifier",
@@ -4351,7 +4439,7 @@
                                                                                   "FLD_id": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "JounD!Mv+MWj@LYXUzYR",
+                                                                                      "id": "pBuH]W+H,-$f_mveSf^*",
                                                                                       "data": "{\"aiReview\":{\"note\":\"Region Stockholm organisation number (constant)\"}}",
                                                                                       "icons": {
                                                                                         "comment": {
@@ -4365,6 +4453,15 @@
                                                                                         "TEXT": "2321000016"
                                                                                       }
                                                                                     }
+                                                                                  },
+                                                                                  "OPTFLD_type": {
+                                                                                    "block": {
+                                                                                      "type": "text",
+                                                                                      "id": "Z%/kE2yKk4jKi0QhDW^A",
+                                                                                      "fields": {
+                                                                                        "TEXT": "urn:oid:2.5.4.97"
+                                                                                      }
+                                                                                    }
                                                                                   }
                                                                                 }
                                                                               }
@@ -4373,7 +4470,7 @@
                                                                           "next": {
                                                                             "block": {
                                                                               "type": "element",
-                                                                              "id": "QJs%7+FW#=]*f4@KC|?w",
+                                                                              "id": "S^+I*j!/$zncW@%@NY;)",
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [],
@@ -4396,7 +4493,7 @@
                                                                                 "VALUE": {
                                                                                   "block": {
                                                                                     "type": "dv_coded_text",
-                                                                                    "id": "#0G95+nb,kE+:|6K8A6Q",
+                                                                                    "id": "|zTK[|s.CLcmLyma0,~}",
                                                                                     "extraState": {
                                                                                       "fields": []
                                                                                     },
@@ -4410,7 +4507,7 @@
                                                                                       "FLD_value": {
                                                                                         "block": {
                                                                                           "type": "text",
-                                                                                          "id": "ZV*DqU*,p8Cp9y9P)$6`",
+                                                                                          "id": "6GOWKoyo5Z#lAIcm:y:v",
                                                                                           "fields": {
                                                                                             "TEXT": "vårdgivare"
                                                                                           }
@@ -4419,7 +4516,7 @@
                                                                                       "FLD_defining_code": {
                                                                                         "block": {
                                                                                           "type": "code_phrase",
-                                                                                          "id": "IwcP{o#t|FyhW}LES?vA",
+                                                                                          "id": ".u$up%7_S0{WUlA/T!K~",
                                                                                           "fields": {
                                                                                             "NAME": "Code Phrase",
                                                                                             "RM_TYPE": "CODE_PHRASE",
@@ -4429,7 +4526,7 @@
                                                                                             "FLD_code_string": {
                                                                                               "shadow": {
                                                                                                 "type": "text",
-                                                                                                "id": "|#J-}Tz}FELl4Y@e30+a",
+                                                                                                "id": "9imb,RZb/ul@vGI0r~[$",
                                                                                                 "inline": false,
                                                                                                 "fields": {
                                                                                                   "TEXT": "143591000052106"
@@ -4437,7 +4534,7 @@
                                                                                               },
                                                                                               "block": {
                                                                                                 "type": "text",
-                                                                                                "id": "inwjqY4(D@2Scwhj[5q,",
+                                                                                                "id": "XwUZHT(u1aIe5GuoN(]:",
                                                                                                 "fields": {
                                                                                                   "TEXT": "143591000052106"
                                                                                                 }
@@ -4446,7 +4543,7 @@
                                                                                             "FLD_terminology_id": {
                                                                                               "shadow": {
                                                                                                 "type": "text",
-                                                                                                "id": "6EHCn=5-A/u-`1{o!Dr|",
+                                                                                                "id": "[19$j`3u{co[$YJO?gCI",
                                                                                                 "inline": false,
                                                                                                 "fields": {
                                                                                                   "TEXT": "http://snomed.info/sct/45991000052106"
@@ -4454,7 +4551,7 @@
                                                                                               },
                                                                                               "block": {
                                                                                                 "type": "text",
-                                                                                                "id": "c_{!9l,PTjz_cgZ/~6+/",
+                                                                                                "id": "SSu:8`tj03r?lej5;j7t",
                                                                                                 "fields": {
                                                                                                   "TEXT": "http://snomed.info/sct/45991000052106"
                                                                                                 }
@@ -4470,7 +4567,7 @@
                                                                               "next": {
                                                                                 "block": {
                                                                                   "type": "cluster",
-                                                                                  "id": "7cpz96?A^)M?TH|I#jH/",
+                                                                                  "id": "xDn~irGt{b5n_XkW,^|N",
                                                                                   "extraState": {
                                                                                     "extras": [],
                                                                                     "attrs": [
@@ -4503,7 +4600,7 @@
                                                                                     "ATTR_items": {
                                                                                       "block": {
                                                                                         "type": "element",
-                                                                                        "id": "k1?(@yY8eL6.OSL@MJ]d",
+                                                                                        "id": "^ZTBjU~e]Y3aa?^KQ/s~",
                                                                                         "extraState": {
                                                                                           "extras": [],
                                                                                           "attrs": [],
@@ -4528,7 +4625,7 @@
                                                                                   "next": {
                                                                                     "block": {
                                                                                       "type": "cluster",
-                                                                                      "id": "4@z_QF?LuasKasd@$p?T",
+                                                                                      "id": ":gu[fxb+J9U1VT.-@|i2",
                                                                                       "extraState": {
                                                                                         "extras": [],
                                                                                         "attrs": [
@@ -4561,7 +4658,7 @@
                                                                                         "ATTR_items": {
                                                                                           "block": {
                                                                                             "type": "element",
-                                                                                            "id": "nfFZ~oKy#?FF@Rm5qa@X",
+                                                                                            "id": "-oe[^|Eh:2Qm/6NP|2)8",
                                                                                             "extraState": {
                                                                                               "extras": [],
                                                                                               "attrs": [],
@@ -4586,7 +4683,7 @@
                                                                                       "next": {
                                                                                         "block": {
                                                                                           "type": "cluster",
-                                                                                          "id": "}9cd~noAyVHC8Oeb:vx{",
+                                                                                          "id": "=}lk@mioaK^TKNMZohY)",
                                                                                           "extraState": {
                                                                                             "extras": [],
                                                                                             "attrs": [
@@ -4619,7 +4716,7 @@
                                                                                             "ATTR_items": {
                                                                                               "block": {
                                                                                                 "type": "element",
-                                                                                                "id": "BVkCt/[H^ixC_K?u~Q7!",
+                                                                                                "id": "N1lFLYRxztJ-a{*{@kT)",
                                                                                                 "extraState": {
                                                                                                   "extras": [],
                                                                                                   "attrs": [],
@@ -4644,7 +4741,7 @@
                                                                                           "next": {
                                                                                             "block": {
                                                                                               "type": "cluster",
-                                                                                              "id": "0kBrP[]4%L{_uArPH_*t",
+                                                                                              "id": "]/sJqA/=ayYK-kIIaYO$",
                                                                                               "extraState": {
                                                                                                 "extras": [],
                                                                                                 "attrs": [
@@ -4677,7 +4774,7 @@
                                                                                                 "ATTR_items": {
                                                                                                   "block": {
                                                                                                     "type": "element",
-                                                                                                    "id": "=EX#V-0xeuNYxWMU16_U",
+                                                                                                    "id": "O~z9{}h4{~N0ooOUn4n?",
                                                                                                     "extraState": {
                                                                                                       "extras": [],
                                                                                                       "attrs": [],
@@ -4702,7 +4799,7 @@
                                                                                               "next": {
                                                                                                 "block": {
                                                                                                   "type": "cluster",
-                                                                                                  "id": "F?jEIxnXL[+gi%Ad!7FG",
+                                                                                                  "id": "r^l_]S^R:h:GoL45QwhM",
                                                                                                   "extraState": {
                                                                                                     "extras": [],
                                                                                                     "attrs": [
@@ -4735,7 +4832,7 @@
                                                                                                     "ATTR_items": {
                                                                                                       "block": {
                                                                                                         "type": "element",
-                                                                                                        "id": "4@nlV7xQOrwp(]_m_5]u",
+                                                                                                        "id": "j]5qj*lQ~SVU9zyaHh-^",
                                                                                                         "extraState": {
                                                                                                           "extras": [],
                                                                                                           "attrs": [],
@@ -4779,7 +4876,7 @@
                                                             "next": {
                                                               "block": {
                                                                 "type": "cluster",
-                                                                "id": "6=3vP1kI)i=/^wd`pzL0",
+                                                                "id": "WOV8s{2o+.@fMTC+y98t",
                                                                 "extraState": {
                                                                   "extras": [],
                                                                   "attrs": [
@@ -4812,7 +4909,7 @@
                                                                   "ATTR_items": {
                                                                     "block": {
                                                                       "type": "element",
-                                                                      "id": "T@WMMtv;=Y*Q98v[bEY+",
+                                                                      "id": "MKP|]U^SEK`-Y;;KcGv2",
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
@@ -4854,7 +4951,7 @@
                               "next": {
                                 "block": {
                                   "type": "cluster",
-                                  "id": "Joa9p1YeS4m:PsBIi3K|",
+                                  "id": "Wne}`ue)yeiHzb~O4+rh",
                                   "extraState": {
                                     "extras": [],
                                     "attrs": [
@@ -4887,7 +4984,7 @@
                                     "ATTR_items": {
                                       "block": {
                                         "type": "element",
-                                        "id": "F^/e{Ci[NzbkQ]X}uVZp",
+                                        "id": "Y1:Biga/13n(OI?L3-~E",
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
@@ -4910,7 +5007,7 @@
                                           "VALUE": {
                                             "block": {
                                               "type": "dv_text",
-                                              "id": "U3%`eoCgNL)C*Zrj[d0=",
+                                              "id": "B{f4QmS=uH:QwDD;Vj@[",
                                               "extraState": {
                                                 "fields": []
                                               },
@@ -4924,7 +5021,7 @@
                                                 "FLD_value": {
                                                   "block": {
                                                     "type": "source_query",
-                                                    "id": "eHVSQ!TC+~N^^QB*W$7I",
+                                                    "id": "@36_yA7mxW5`*I5}.1(Q",
                                                     "fields": {
                                                       "EXPRESSION": "$.KurdefinisjonNavn",
                                                       "RETURN_TYPE": "string"
@@ -4938,7 +5035,7 @@
                                         "next": {
                                           "block": {
                                             "type": "element",
-                                            "id": "5_[Qk;_K4L?:}@:[(UHj",
+                                            "id": "8Mm:{k@}cSu3K6Tyep$G",
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
@@ -4961,7 +5058,7 @@
                                               "VALUE": {
                                                 "block": {
                                                   "type": "dv_text",
-                                                  "id": "g2BQp1K^U+dVcZfdBTrS",
+                                                  "id": "02T-@645m7FQ|===ou6]",
                                                   "extraState": {
                                                     "fields": []
                                                   },
@@ -4977,7 +5074,7 @@
                                             "next": {
                                               "block": {
                                                 "type": "element",
-                                                "id": "MBBHX*:xe1fy/0A@VN;]",
+                                                "id": "hwPqn()qnXM?N]@TK8g|",
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [],
@@ -5000,7 +5097,7 @@
                                                   "VALUE": {
                                                     "block": {
                                                       "type": "dv_count",
-                                                      "id": "YZjRfkFH[JLaT0uKoqI@",
+                                                      "id": "gqR5R^DC_x,9IS[ouE6b",
                                                       "extraState": {
                                                         "fields": []
                                                       },
@@ -5014,7 +5111,7 @@
                                                         "FLD_magnitude": {
                                                           "block": {
                                                             "type": "logic_ternary",
-                                                            "id": "ZOng,t)A[?NwH6nGqxDF",
+                                                            "id": "zoe6B]-Ij8B~iZaquolv",
                                                             "data": "{\"aiReview\":{\"note\":\"Only when the course number is known\"}}",
                                                             "icons": {
                                                               "comment": {
@@ -5028,7 +5125,7 @@
                                                               "IF": {
                                                                 "block": {
                                                                   "type": "logic_compare",
-                                                                  "id": "eb@[6^{v4G#@+-5{YTz.",
+                                                                  "id": "H0c@@9},1JEuRw]2ZmD#",
                                                                   "fields": {
                                                                     "OP": "GT"
                                                                   },
@@ -5036,7 +5133,7 @@
                                                                     "A": {
                                                                       "block": {
                                                                         "type": "source_query_number",
-                                                                        "id": "Uj7AR`o`?)mBfd3oV!G^",
+                                                                        "id": "]H7iPFY^HKO=DH{9VN}O",
                                                                         "fields": {
                                                                           "EXPRESSION": "$.PasientKurnummer"
                                                                         }
@@ -5045,7 +5142,7 @@
                                                                     "B": {
                                                                       "block": {
                                                                         "type": "math_number",
-                                                                        "id": "c;Iq?d2GejssP3M[9jH~",
+                                                                        "id": "/yY!-t1L^4[aP8QL9*s!",
                                                                         "fields": {
                                                                           "NUM": 0
                                                                         }
@@ -5057,7 +5154,7 @@
                                                               "THEN": {
                                                                 "block": {
                                                                   "type": "source_query_number",
-                                                                  "id": "C!=]Zb-1vw]GspGlNIo0",
+                                                                  "id": "B[T8dC$@H|9tbY@:}Snm",
                                                                   "fields": {
                                                                     "EXPRESSION": "$.PasientKurnummer"
                                                                   }
@@ -5066,7 +5163,7 @@
                                                               "ELSE": {
                                                                 "block": {
                                                                   "type": "source_query",
-                                                                  "id": "w%hKDbx3T!gj^M_QGgh!",
+                                                                  "id": "([NG$7E9f7fM!qeX@zH4",
                                                                   "fields": {
                                                                     "EXPRESSION": "$.PasientKurnummer",
                                                                     "RETURN_TYPE": "string"
@@ -5090,7 +5187,7 @@
                                   "next": {
                                     "block": {
                                       "type": "cluster",
-                                      "id": "qLrDl]O|{$@Xj[{C^K;2",
+                                      "id": "7_HnfwBO!HR5+=XZ)m]!",
                                       "extraState": {
                                         "extras": [],
                                         "attrs": [
@@ -5123,7 +5220,7 @@
                                         "ATTR_items": {
                                           "block": {
                                             "type": "element",
-                                            "id": "*$@S/OIj[ys__*GT?fpg",
+                                            "id": "0_I(hh6*3N)XJP9o:U5C",
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
@@ -5146,7 +5243,7 @@
                                               "VALUE": {
                                                 "block": {
                                                   "type": "dv_boolean",
-                                                  "id": "SvAVj~D/%u~]16X=;oM_",
+                                                  "id": "hgs+^ZCHTbb}R.h;MF9C",
                                                   "fields": {
                                                     "NAME": "Boolean",
                                                     "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0005/value/DV_BOOLEAN/value",
@@ -5157,7 +5254,7 @@
                                                     "FLD_value": {
                                                       "block": {
                                                         "type": "source_query_boolean",
-                                                        "id": "vfgC0Aa0Io+v~Vzkw1h:",
+                                                        "id": "rao[V`MzkQ;SHeq:=^m/",
                                                         "data": "{\"aiReview\":{\"note\":\"PasientenDeltarIStudie 1 = yes, 0 = no\"}}",
                                                         "icons": {
                                                           "comment": {
@@ -5179,7 +5276,7 @@
                                             "next": {
                                               "block": {
                                                 "type": "element",
-                                                "id": "hkzEGMM^LGp;QFPM;75a",
+                                                "id": "(=N9pBv?g5My%w/FeJwy",
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [],
@@ -5202,7 +5299,7 @@
                                                   "VALUE": {
                                                     "block": {
                                                       "type": "dv_text",
-                                                      "id": "e{fcQj=Tyr5~6v;62v3f",
+                                                      "id": "b/6`Qt+,ggtT,G]AJ1sp",
                                                       "extraState": {
                                                         "fields": []
                                                       },
@@ -5216,7 +5313,7 @@
                                                         "FLD_value": {
                                                           "block": {
                                                             "type": "logic_ternary",
-                                                            "id": "F]SV~2i33+D8C}3QVIdz",
+                                                            "id": "Xh%vC%v5X%,*(a$$Al)e",
                                                             "data": "{\"aiReview\":{\"note\":\"Only when a trial id is given\"}}",
                                                             "icons": {
                                                               "comment": {
@@ -5230,7 +5327,7 @@
                                                               "IF": {
                                                                 "block": {
                                                                   "type": "logic_compare",
-                                                                  "id": "EFqb=Gf0Xp+.cH5ZY1tf",
+                                                                  "id": "(Pn~GMneo34;HV:|OQ+V",
                                                                   "fields": {
                                                                     "OP": "NEQ"
                                                                   },
@@ -5238,7 +5335,7 @@
                                                                     "A": {
                                                                       "block": {
                                                                         "type": "source_query",
-                                                                        "id": "`L@!2H)yZ*kmbxerSs:q",
+                                                                        "id": "e-*pQc@Q.=qqGPG|O[vX",
                                                                         "fields": {
                                                                           "EXPRESSION": "$.StudieId",
                                                                           "RETURN_TYPE": "string"
@@ -5248,7 +5345,7 @@
                                                                     "B": {
                                                                       "block": {
                                                                         "type": "text",
-                                                                        "id": "MNYc/e#,lWyZ3gt@/E`?",
+                                                                        "id": "`9=+$Z,wgQ5p6Qzft-la",
                                                                         "fields": {
                                                                           "TEXT": ""
                                                                         }
@@ -5260,7 +5357,7 @@
                                                               "THEN": {
                                                                 "block": {
                                                                   "type": "source_query",
-                                                                  "id": "N!$@x-_eamFu~{^=7h@k",
+                                                                  "id": "a7Lf+N{[CfkRi@-|=8`~",
                                                                   "fields": {
                                                                     "EXPRESSION": "$.StudieId",
                                                                     "RETURN_TYPE": "string"
@@ -5270,7 +5367,7 @@
                                                               "ELSE": {
                                                                 "block": {
                                                                   "type": "source_query",
-                                                                  "id": "7y3BO*,rF{}#lwhjY4q.",
+                                                                  "id": "GG(ydBy-Ow=xNQ0x)9m/",
                                                                   "fields": {
                                                                     "EXPRESSION": "$.StudieId",
                                                                     "RETURN_TYPE": "string"
@@ -5300,30 +5397,105 @@
                     },
                     "OPT_health_care_facility": {
                       "block": {
-                        "type": "maps_get",
-                        "id": "kd_y45b$}d}OTZ7i^svg",
-                        "data": "{\"aiReview\":{\"note\":\"PDL unit; the Vardenhet_* fields are empty in all examples\"}}",
-                        "icons": {
-                          "comment": {
-                            "text": "AI suggestion — PDL unit; the Vardenhet_* fields are empty in all examples\nEdit the block or right-click → Mark as reviewed to clear.",
-                            "pinned": false,
-                            "height": 80,
-                            "width": 160
-                          }
+                        "type": "party_identified",
+                        "id": "v:RWN.mt3QSF;ffd,rRk",
+                        "extraState": {
+                          "extras": [],
+                          "attrs": [
+                            "external_ref",
+                            "identifiers",
+                            "name"
+                          ],
+                          "rmType": "PARTY_IDENTIFIED",
+                          "prohibited": [],
+                          "slotCards": {},
+                          "rmCards": {}
                         },
                         "fields": {
-                          "NAME": "defaults",
+                          "NAME": "health_care_facility",
                           "SLOT_ID": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/health_care_facility",
-                          "RM_TYPE": "PARTY_IDENTIFIED"
+                          "RM_TYPE": "PARTY_IDENTIFIED",
+                          "MANDATORY": "",
+                          "ARCHETYPE_NODE_ID": "",
+                          "ARCHETYPE_CTX": ""
                         },
                         "inputs": {
-                          "KEY": {
-                            "shadow": {
-                              "type": "text",
-                              "id": "pjS%_UMflFBzbNq~WyP^",
-                              "inline": false,
+                          "ATTR_identifiers": {
+                            "block": {
+                              "type": "lists_create_with",
+                              "id": "XN3x^X~6bD6OtT3tErLj",
+                              "extraState": {
+                                "itemCount": 1
+                              },
+                              "inputs": {
+                                "ADD0": {
+                                  "block": {
+                                    "type": "dv_identifier",
+                                    "id": ":Ot-j$$?/ACd+WZJn2=s",
+                                    "extraState": {
+                                      "fields": [
+                                        "type"
+                                      ]
+                                    },
+                                    "fields": {
+                                      "NAME": "Identifier",
+                                      "SLOT_ID": "",
+                                      "RM_TYPE": "DV_IDENTIFIER",
+                                      "MANDATORY": ""
+                                    },
+                                    "inputs": {
+                                      "FLD_id": {
+                                        "block": {
+                                          "type": "text_join",
+                                          "id": "/v`C=BzumiWc7MX}XbGZ",
+                                          "extraState": {
+                                            "itemCount": 2
+                                          },
+                                          "inputs": {
+                                            "ADD0": {
+                                              "block": {
+                                                "type": "text",
+                                                "id": "vn%K9p2u}m.5J+EH8g/?",
+                                                "fields": {
+                                                  "TEXT": "SE2321000016-"
+                                                }
+                                              }
+                                            },
+                                            "ADD1": {
+                                              "block": {
+                                                "type": "source_query",
+                                                "id": "7N2_?HT%U9uSD)N7pWJW",
+                                                "fields": {
+                                                  "EXPRESSION": "$.PDL_enhet_HSAID",
+                                                  "RETURN_TYPE": "string"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "OPTFLD_type": {
+                                        "block": {
+                                          "type": "text",
+                                          "id": "lE.HC7SUudG323S,A0f(",
+                                          "fields": {
+                                            "TEXT": "urn:oid:1.2.752.29.4.19"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "ATTR_name": {
+                            "block": {
+                              "type": "source_query",
+                              "id": "(G=Tk*k?Duj@Xyr/zyAr",
                               "fields": {
-                                "TEXT": "facility"
+                                "EXPRESSION": "$.PDL_enhet_Namn",
+                                "RETURN_TYPE": "string"
                               }
                             }
                           }

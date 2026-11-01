@@ -453,21 +453,85 @@
               },
               "ATTR_composer": {
                 "block": {
-                  "type": "maps_get",
-                  "id": "0|af/*HA~VukMus+kpj=",
+                  "type": "party_identified",
+                  "id": "B7D*mplsSaCI#/y[-Wb;",
+                  "extraState": {
+                    "extras": [],
+                    "attrs": [
+                      "external_ref",
+                      "identifiers",
+                      "name"
+                    ],
+                    "rmType": "PARTY_IDENTIFIED",
+                    "prohibited": [],
+                    "slotCards": {},
+                    "rmCards": {}
+                  },
                   "fields": {
-                    "NAME": "defaults",
+                    "NAME": "composer",
                     "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//composer",
-                    "RM_TYPE": "PARTY_IDENTIFIED"
+                    "RM_TYPE": "PARTY_IDENTIFIED",
+                    "MANDATORY": "1",
+                    "ARCHETYPE_NODE_ID": "",
+                    "ARCHETYPE_CTX": "encounter"
                   },
                   "inputs": {
-                    "KEY": {
-                      "shadow": {
-                        "type": "text",
-                        "id": ",TKFvr09I|$.*HJ:2)gM",
-                        "inline": false,
+                    "ATTR_identifiers": {
+                      "block": {
+                        "type": "lists_create_with",
+                        "id": "c71aFLQHQ6-!*s3CtMrj",
+                        "extraState": {
+                          "itemCount": 1
+                        },
+                        "inputs": {
+                          "ADD0": {
+                            "block": {
+                              "type": "dv_identifier",
+                              "id": "E4wTw`=2.O/;yK`Bj$8$",
+                              "extraState": {
+                                "fields": [
+                                  "type"
+                                ]
+                              },
+                              "fields": {
+                                "NAME": "Identifier",
+                                "SLOT_ID": "",
+                                "RM_TYPE": "DV_IDENTIFIER",
+                                "MANDATORY": ""
+                              },
+                              "inputs": {
+                                "FLD_id": {
+                                  "block": {
+                                    "type": "source_query",
+                                    "id": "*|=Ij0}#0o@PFy0%fTgt",
+                                    "fields": {
+                                      "EXPRESSION": "$.SignatureUser_UserName",
+                                      "RETURN_TYPE": "string"
+                                    }
+                                  }
+                                },
+                                "OPTFLD_type": {
+                                  "block": {
+                                    "type": "text",
+                                    "id": "%uX(OgxU_[`y9$1]ku*h",
+                                    "fields": {
+                                      "TEXT": "urn:oid:1.2.752.29.4.19"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ATTR_name": {
+                      "block": {
+                        "type": "source_query",
+                        "id": "yD6S.Txm9wyEhGjD99]?",
                         "fields": {
-                          "TEXT": "composer"
+                          "EXPRESSION": "$.SignatureUser_FullName",
+                          "RETURN_TYPE": "string"
                         }
                       }
                     }
@@ -3128,30 +3192,105 @@
                     },
                     "OPT_health_care_facility": {
                       "block": {
-                        "type": "maps_get",
-                        "id": "P}f)?5PEEhS2,DjssB,N",
-                        "data": "{\"aiReview\":{\"note\":\"Care unit (Vardenhet_*), HSA-id with the Region Stockholm prefix\"}}",
-                        "icons": {
-                          "comment": {
-                            "text": "AI suggestion — Care unit (Vardenhet_*), HSA-id with the Region Stockholm prefix\nEdit the block or right-click → Mark as reviewed to clear.",
-                            "pinned": false,
-                            "height": 80,
-                            "width": 160
-                          }
+                        "type": "party_identified",
+                        "id": "E3KlC`T/$4:/#eN%i[Jd",
+                        "extraState": {
+                          "extras": [],
+                          "attrs": [
+                            "external_ref",
+                            "identifiers",
+                            "name"
+                          ],
+                          "rmType": "PARTY_IDENTIFIED",
+                          "prohibited": [],
+                          "slotCards": {},
+                          "rmCards": {}
                         },
                         "fields": {
-                          "NAME": "defaults",
+                          "NAME": "health_care_facility",
                           "SLOT_ID": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/health_care_facility",
-                          "RM_TYPE": "PARTY_IDENTIFIED"
+                          "RM_TYPE": "PARTY_IDENTIFIED",
+                          "MANDATORY": "",
+                          "ARCHETYPE_NODE_ID": "",
+                          "ARCHETYPE_CTX": ""
                         },
                         "inputs": {
-                          "KEY": {
-                            "shadow": {
-                              "type": "text",
-                              "id": "/y3fhyFu6M2MdLPCMG7d",
-                              "inline": false,
+                          "ATTR_identifiers": {
+                            "block": {
+                              "type": "lists_create_with",
+                              "id": "P_bfPhlpGclV?G_1Tr%W",
+                              "extraState": {
+                                "itemCount": 1
+                              },
+                              "inputs": {
+                                "ADD0": {
+                                  "block": {
+                                    "type": "dv_identifier",
+                                    "id": "6Y{#3;|%Pcr=@b=CWNW^",
+                                    "extraState": {
+                                      "fields": [
+                                        "type"
+                                      ]
+                                    },
+                                    "fields": {
+                                      "NAME": "Identifier",
+                                      "SLOT_ID": "",
+                                      "RM_TYPE": "DV_IDENTIFIER",
+                                      "MANDATORY": ""
+                                    },
+                                    "inputs": {
+                                      "FLD_id": {
+                                        "block": {
+                                          "type": "text_join",
+                                          "id": "I7ww^h)O!Qz7y_vw?Als",
+                                          "extraState": {
+                                            "itemCount": 2
+                                          },
+                                          "inputs": {
+                                            "ADD0": {
+                                              "block": {
+                                                "type": "text",
+                                                "id": "3RK$]2NmlXp7+9C.MyY{",
+                                                "fields": {
+                                                  "TEXT": "SE2321000016-"
+                                                }
+                                              }
+                                            },
+                                            "ADD1": {
+                                              "block": {
+                                                "type": "source_query",
+                                                "id": "#t/tJ-*J|9|gexDuc|hO",
+                                                "fields": {
+                                                  "EXPRESSION": "$.Vardenhet_HSAID",
+                                                  "RETURN_TYPE": "string"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "OPTFLD_type": {
+                                        "block": {
+                                          "type": "text",
+                                          "id": "tqKr7UzjvIkeXrBD.Lai",
+                                          "fields": {
+                                            "TEXT": "urn:oid:1.2.752.29.4.19"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "ATTR_name": {
+                            "block": {
+                              "type": "source_query",
+                              "id": ";cFHU:iANipHT`dko(jh",
                               "fields": {
-                                "TEXT": "facility"
+                                "EXPRESSION": "$.Vardenhet_namn",
+                                "RETURN_TYPE": "string"
                               }
                             }
                           }
