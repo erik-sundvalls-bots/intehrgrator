@@ -278,7 +278,7 @@
     {
       "id": "karda-administreringsdata-to-openehr-flat",
       "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
-      "description": "AdministrationRCCV1 Avro source schema (aligned with JSON Schema, including PDL vårdgivare name/HSAID) and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Blockly mapping from the Go text/template artefact uses a Decision table for ISM states.",
+      "description": "AdministrationRCCV1 Avro source schema (aligned with JSON Schema, including PDL vårdgivare name/HSAID) and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Mapping is direct source paths and constants: the template only allows the completed / at0007 state, so no table is needed. TypeScript Conversion Script Test Run is the check.",
       "source": {
         "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
         "instances": [
@@ -290,8 +290,7 @@
         ]
       },
       "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
-      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
-      "sheets": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
+      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json"
     }
   ]
 }
