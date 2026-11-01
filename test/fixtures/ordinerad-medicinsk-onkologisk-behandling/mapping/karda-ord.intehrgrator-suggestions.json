@@ -37,13 +37,13 @@
             "block": {
               "type": "source_query_node",
               "fields": {
-                "EXPRESSION": "$.KurDagar[*].Substanser[*]"
+                "EXPRESSION": "Substanser"
               }
             }
           }
         }
       },
-      "note": "Absolute path: a relative 'Substanser' inside the day loop gives no rows (app limitation, see findings F-M7)"
+      "note": "Substances of the current treatment day"
     },
     {
       "attachSlotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]",
@@ -57,13 +57,13 @@
             "block": {
               "type": "source_query_node",
               "fields": {
-                "EXPRESSION": "$.KurDagar[*].Substanser[*]"
+                "EXPRESSION": "Substanser"
               }
             }
           }
         }
       },
-      "note": "Absolute path: a relative 'Substanser' inside the day loop gives no rows (app limitation, see findings F-M7)"
+      "note": "Substances of the current treatment day"
     }
   ],
   "suggestions": [
@@ -437,53 +437,12 @@
     {
       "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0027/value/DV_COUNT/value",
       "block": {
-        "type": "logic_ternary",
-        "inputs": {
-          "IF": {
-            "block": {
-              "type": "logic_compare",
-              "fields": {
-                "OP": "GT"
-              },
-              "inputs": {
-                "A": {
-                  "block": {
-                    "type": "source_query_number",
-                    "fields": {
-                      "EXPRESSION": "$.PasientKurnummer"
-                    }
-                  }
-                },
-                "B": {
-                  "block": {
-                    "type": "math_number",
-                    "fields": {
-                      "NUM": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "THEN": {
-            "block": {
-              "type": "source_query_number",
-              "fields": {
-                "EXPRESSION": "$.PasientKurnummer"
-              }
-            }
-          },
-          "ELSE": {
-            "block": {
-              "type": "source_query",
-              "fields": {
-                "EXPRESSION": "$.PasientKurnummer"
-              }
-            }
-          }
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.PasientKurnummer"
         }
       },
-      "note": "Only when the course number is known"
+      "note": "Left out when the course number is missing"
     },
     {
       "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0005/value/DV_BOOLEAN/value",
@@ -498,53 +457,12 @@
     {
       "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/value/DV_TEXT/value",
       "block": {
-        "type": "logic_ternary",
-        "inputs": {
-          "IF": {
-            "block": {
-              "type": "logic_compare",
-              "fields": {
-                "OP": "NEQ"
-              },
-              "inputs": {
-                "A": {
-                  "block": {
-                    "type": "source_query",
-                    "fields": {
-                      "EXPRESSION": "$.StudieId"
-                    }
-                  }
-                },
-                "B": {
-                  "block": {
-                    "type": "text",
-                    "fields": {
-                      "TEXT": ""
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "THEN": {
-            "block": {
-              "type": "source_query",
-              "fields": {
-                "EXPRESSION": "$.StudieId"
-              }
-            }
-          },
-          "ELSE": {
-            "block": {
-              "type": "source_query",
-              "fields": {
-                "EXPRESSION": "$.StudieId"
-              }
-            }
-          }
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.StudieId"
         }
       },
-      "note": "Only when a trial id is given"
+      "note": "Left out when there is no trial id"
     },
     {
       "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0004/value/DV_IDENTIFIER/value",
@@ -856,7 +774,7 @@
           "EXPRESSION": "$.KurDagar[1].StartTid"
         }
       },
-      "note": "Start time of the treatment day. Karda sends one day per message; uses the first day because a day-loop path inside the substance loop is not supported yet (findings F-M9)"
+      "note": "Start time of the treatment day. Karda sends one day per message; an absolute path because a slot inside the substance loop cannot read the day loop's item yet (findings F-M8)"
     },
     {
       "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0016/careflow_step/DV_CODED_TEXT/value",
@@ -959,16 +877,6 @@
         }
       },
       "loopVar": "substans"
-    },
-    {
-      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Studie"
-        }
-      },
-      "note": "Name required by the template"
     }
   ]
 }
