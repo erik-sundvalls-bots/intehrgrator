@@ -242,7 +242,7 @@
     {
       "id": "karda-ordinationsdata-to-openehr-flat",
       "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
-      "description": "OrdinationRCCV1 JSON Schema (aligned with Avro, including PDL vårdgivare name/HSAID) and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. Blockly mapping from the Go text/template artefact uses Decision tables for form/route; TypeScript Conversion Script Test Run is the check.",
+      "description": "OrdinationRCCV1 JSON Schema (aligned with Avro, including PDL vårdgivare name/HSAID) and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. Mapping uses two lookup Sheets (beredningsform, administreringsvag) to translate Cytodos form/route codes to the template codes; dose carries its unit from UnitCode. TypeScript Conversion Script Test Run is the check.",
       "source": {
         "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
         "instances": [
