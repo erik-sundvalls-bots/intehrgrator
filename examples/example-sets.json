@@ -50,7 +50,7 @@
     {
       "id": "Simple-vitals",
       "title": "Dummy vitals (JSON Schema → openEHR Template) — mapped",
-      "description": "Minimal JSON Schema source, valid instances plus one named-invalid instance, mapped to the simple-diagnose-and-vitals OPT. Blood-pressure Position uses a Decision table. Uses the operational template (.opt), which is self-contained; the sibling .t.json is a differential Archetype Designer file that needs overlay parent ADLs to flatten.",
+      "description": "Minimal JSON Schema source, valid instances plus one named-invalid instance, mapped to the simple-diagnose-and-vitals OPT. Blood pressure, pulse and their times come straight from the source. Position is mapped directly: the source words (sitting, standing, lying) match the template's value-set texts, so the at-code is filled in and an unknown word (the invalid instance's flying) fails validation. Uses the operational template (.opt), which is self-contained; the sibling .t.json is a differential Archetype Designer file that needs overlay parent ADLs to flatten.",
       "source": {
         "schema": "../test/fixtures/legacy-simulated-json/bp-schema.json",
         "instances": [
@@ -61,8 +61,7 @@
         ]
       },
       "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
-      "mapping": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.blockly.json",
-      "sheets": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.sheets.json"
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.blockly.json"
     },
     {
       "id": "Simple-vitals-series-unmapped",
@@ -82,7 +81,7 @@
     {
       "id": "Simple-vitals-series",
       "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — mapped",
-      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). Mapping uses a Decision table for diagnosis and a for_each_list over measurements.",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). One for_each_list over measurements fills the blood-pressure events; the diagnosis is DV_CODED_TEXT (ICD10 code + display). Pulse is not mapped yet: a measurement without pulse would give an empty event.",
       "source": {
         "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
         "instances": [
@@ -93,8 +92,7 @@
         ]
       },
       "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
-      "mapping": "../test/fixtures/legacy-simulated-json/mapping/bp-series.blockly.json",
-      "sheets": "../test/fixtures/legacy-simulated-json/mapping/bp-series.sheets.json"
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/bp-series.blockly.json"
     },
     {
       "id": "obx-mhv1-unmapped-json-to-openehr",

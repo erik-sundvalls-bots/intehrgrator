@@ -191,12 +191,6 @@ Deno.test("Agent API import_suggestions maps Simple-vitals-unmapped (local OPT)"
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { revision: string };
   await maybeFacility(service, snap.revision);
-  const rawSheets = JSON.parse(
-    await Deno.readTextFile(
-      join(fixtures, "legacy-simulated-json", "mapping", "simple-vitals.sheets.json"),
-    ),
-  );
-  await callAgentTool(service, "replace_sheets", { sheets: sheetsArg(rawSheets) });
   const envelope = await Deno.readTextFile(
     join(fixtures, "legacy-simulated-json", "mapping", "simple-vitals.intehrgrator-suggestions.json"),
   );
@@ -249,12 +243,6 @@ Deno.test("Agent API import_suggestions maps Simple-vitals-series-unmapped (loca
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { revision: string };
   await maybeFacility(service, snap.revision);
-  const rawSheets = JSON.parse(
-    await Deno.readTextFile(
-      join(fixtures, "legacy-simulated-json", "mapping", "bp-series.sheets.json"),
-    ),
-  );
-  await callAgentTool(service, "replace_sheets", { sheets: sheetsArg(rawSheets) });
   const envelope = await Deno.readTextFile(
     join(fixtures, "legacy-simulated-json", "mapping", "bp-series.intehrgrator-suggestions.json"),
   );

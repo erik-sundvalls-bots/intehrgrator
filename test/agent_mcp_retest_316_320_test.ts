@@ -244,7 +244,7 @@ Deno.test("unmapped coded pickers, script path, setting codes, flying, and mappe
     positions.push(findNode(asRecord(run.testResult.output), "at0008")?.value);
     codeMessages.push(messages.filter((message) => /defining_code|code_string/.test(message)).sort());
   }
-  assertEquals(positions[0], { _type: "DV_CODED_TEXT", value: "" });
+  assertEquals(positions[0], { _type: "DV_CODED_TEXT", value: "flying" });
   assertEquals(positions[1], positions[0]);
   assertEquals(codeMessages[0], codeMessages[1]);
 
