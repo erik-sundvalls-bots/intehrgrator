@@ -112,7 +112,7 @@
     {
       "id": "obx-mhv1-mapped-json-to-openehr",
       "title": "OBX MHV1 (JSON → openEHR) — mapped",
-      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. Lifestyle codes use a Decision table. The template is a GitHub .t.json (dependencies fetched from the same branch).",
+      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. Partial, not demo-ready: the bundled OPT has no archetype roots or term definitions, so slots show at-codes, and only part of the source is mapped. The TypeScript Test Run currently fails (see docs/agents/example-sets-audit.md).",
       "source": {
         "schema": "../test/fixtures/Obstetrix-MHV1/source-schema/obx-mhv1.review-1.schema.json",
         "instances": [

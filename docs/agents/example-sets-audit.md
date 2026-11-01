@@ -96,10 +96,26 @@ AI-generated envelopes (`pass-*-ai.*`, `ai-created-*`) stay on disk and are not 
 
 | Set ID | Mapping | Sheets |
 | --- | --- | --- |
-| Simple-vitals | `simple-vitals.blockly.json` | `simple-vitals.sheets.json` |
-| Simple-vitals-series | `bp-series.blockly.json` | `bp-series.sheets.json` |
-| obx-mhv1-unmapped-json-to-openehr | `Obstetrix-MHV1/mapping/mapping.blockly.json` | `mapping.sheets.json` |
-| karda-ordinationsdata-to-openehr-flat | `mapping.blockly.json` | `mapping.sheets.json` |
-| karda-administreringsdata-to-openehr-flat | `mapping.blockly.json` | `mapping.sheets.json` |
+| Simple-vitals | `simple-vitals.blockly.json` | — |
+| Simple-vitals-series | `bp-series.blockly.json` | — |
+| obx-mhv1-mapped-json-to-openehr | `Obstetrix-MHV1/mapping/mapping.blockly.json` | `mapping.sheets.json` |
+| karda-ordinationsdata-to-openehr-flat | `mapping.blockly.json` | `mapping.sheets.json` (lookup Sheets beredningsform, administreringsvag) |
+| karda-administreringsdata-to-openehr-flat | `mapping.blockly.json` | — |
 
 Unchanged manual mappings: chemo, lung-MDT, dummy-json-vitals-mapped.
+
+## MCP remap on ehrtslib v0.9 (2026-11-01)
+
+The Simple-vitals, series and both Karda mappings were redone through the headless MCP tools (`load_example_set` with `includeMapping: false`, `import_suggestions`, `run_test` in preview and TypeScript). Each `*.intehrgrator-suggestions.json` next to the Blockly file is the envelope that produced it.
+
+| Set | Preview | TypeScript | Known gaps |
+| --- | --- | --- | --- |
+| Simple-vitals | valid | valid | — |
+| Simple-vitals-series | valid | valid except `bp-series-inst-2` | Pulse left out; a row without position gives an empty ELEMENT in TypeScript |
+| karda-ordinationsdata-to-openehr-flat | invalid (nested loop values empty) | valid for instances with a trial id | Nested loops, empty optional text in TypeScript, Vårdgivare cluster missing, TypeScript composer/facility from defaults |
+| karda-administreringsdata-to-openehr-flat | valid | valid | Vårdgivare cluster missing, TypeScript composer/facility from defaults |
+| obx-mhv1-mapped-json-to-openehr | invalid | crashes | OPT without archetype roots or term definitions; mapping not redone |
+| chemo / lung-MDT (+ decision-table siblings) | valid | — (XML targets) | Kept as production-parity rebuilds |
+| dummy-json-vitals-mapped | valid | valid | — |
+
+App bugs behind the gaps are listed with repros in the 0.9 findings (F-M1 … F-M12).
