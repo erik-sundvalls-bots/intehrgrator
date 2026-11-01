@@ -44,7 +44,7 @@ const CODED_BLOCK = {
 
 type Report = { applied: number; skipped: number; errors: string[] };
 
-async function vitals(): Promise<WorkbenchService> {
+async function vitals(includeMapping = true): Promise<WorkbenchService> {
   const service = new WorkbenchService();
   await callAgentTool(service, "register_agent", {
     agentId: "coded-274",
@@ -53,7 +53,7 @@ async function vitals(): Promise<WorkbenchService> {
   await callAgentTool(service, "load_example_set", {
     catalogPath,
     setId: "Simple-vitals-series",
-    includeMapping: true,
+    includeMapping,
   });
   return service;
 }
@@ -285,7 +285,8 @@ Deno.test("#274 FLAT output carries the code and terminology of a coded DV_TEXT"
 });
 
 Deno.test("#274 the slot tree shows a coded DV_TEXT slot as DV_CODED_TEXT; the guide says so", async () => {
-  const service = await vitals();
+  // Unmapped start: the series gold now maps the diagnosis as DV_CODED_TEXT.
+  const service = await vitals(false);
   const typeOf = async () => {
     const listed = await callAgentTool(service, "list_slots", {
       query: "Problem/Diagnosis name",

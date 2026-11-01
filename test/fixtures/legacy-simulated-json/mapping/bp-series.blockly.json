@@ -4,7 +4,7 @@
     "blocks": [
       {
         "type": "default_context_map",
-        "id": "Z]%@%xhH]N=V=~w@7q3d",
+        "id": "TU2rk`^bQvq!YnED5_1T",
         "x": 20,
         "y": 20,
         "deletable": false,
@@ -64,14 +64,14 @@
           "VAL0": {
             "shadow": {
               "type": "text",
-              "id": "Gg-Qk1-62/8)4(%:-DXw",
+              "id": "ldq-WiqbdAfDT|qDfZgm",
               "fields": {
                 "TEXT": "en"
               }
             },
             "block": {
               "type": "term_pick",
-              "id": "Ws[%5OZA[cS[N/KU]+ZX",
+              "id": "mP(AEs2~]C3RcdYcyzVv",
               "inline": false,
               "fields": {
                 "NAME": "built-in",
@@ -86,14 +86,14 @@
           "VAL1": {
             "shadow": {
               "type": "text",
-              "id": "GWIQW1kl2jc)$tU+L]iO",
+              "id": "G[=B?k;ji1te63ks^%{r",
               "fields": {
                 "TEXT": "SE"
               }
             },
             "block": {
               "type": "term_pick",
-              "id": "35XLl]GR9OXE.!I/_%hn",
+              "id": "*}o$^[-,[s*E+~RHnX_(",
               "inline": false,
               "fields": {
                 "NAME": "built-in",
@@ -108,14 +108,14 @@
           "VAL2": {
             "shadow": {
               "type": "text",
-              "id": "nYDxi*FGxLY1Ro*SnMM5",
+              "id": "(nmkWm*fmvMN^=b3)TvL",
               "fields": {
                 "TEXT": "UTF-8"
               }
             },
             "block": {
               "type": "term_pick",
-              "id": "A;71G-$kr-!)8O-vm230",
+              "id": "zT-Mv`l.w)/jrwOvW1iP",
               "inline": false,
               "fields": {
                 "NAME": "built-in",
@@ -130,7 +130,7 @@
           "VAL3": {
             "shadow": {
               "type": "text",
-              "id": "#OvP-Z~|@mr4`@:{ENPB",
+              "id": "@XGUUx~!J)I|Wu7W4?${",
               "inline": false,
               "fields": {
                 "TEXT": "2026-08-01T09:13:58+02:00"
@@ -140,7 +140,7 @@
           "VAL4": {
             "shadow": {
               "type": "text",
-              "id": "})?x)?vxeEW(Pj=;a9ED",
+              "id": "BPY^jiJ_uC^Bp@a;`cQ=",
               "inline": false,
               "fields": {
                 "TEXT": "2026-08-01T09:13:58+02:00"
@@ -150,7 +150,7 @@
           "VAL5": {
             "shadow": {
               "type": "text",
-              "id": "~#@M8MMo)wK5BHuitr|x",
+              "id": "A7i:BzCYo=tLdJW.O-#C",
               "inline": false,
               "fields": {
                 "TEXT": "2026-08-01T09:13:58+02:00"
@@ -160,14 +160,14 @@
           "VAL6": {
             "shadow": {
               "type": "text",
-              "id": "z1K+qrcwm`p,}IuAt*mw",
+              "id": "`rkoIRt~SGYXFo]Z$/cR",
               "fields": {
                 "TEXT": "Dr. Who Demo"
               }
             },
             "block": {
               "type": "party_identified",
-              "id": "dnEH94W3$3G!bG:UJ*eb",
+              "id": "unw^2V#%XPI$#d4-Bu2G",
               "extraState": {
                 "extras": [],
                 "attrs": [
@@ -192,7 +192,7 @@
                 "ATTR_identifiers": {
                   "block": {
                     "type": "lists_create_with",
-                    "id": "X_}aRxg{5S.3g}~cJCSL",
+                    "id": "U5Y0mueFHs2=jxb;J%gW",
                     "extraState": {
                       "itemCount": 1
                     },
@@ -200,7 +200,7 @@
                       "ADD0": {
                         "block": {
                           "type": "dv_identifier",
-                          "id": "gG~M^Qu4*3(AWtg)h3?%",
+                          "id": "4ll4Nft-rL(OkzU|jIIG",
                           "extraState": {
                             "fields": [
                               "issuer",
@@ -218,7 +218,7 @@
                             "FLD_id": {
                               "block": {
                                 "type": "text",
-                                "id": "5;fpF~9o*`GP9^wzmv6N",
+                                "id": "T{j,39JdtqHl9Wx?`m:+",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "9876543210"
@@ -228,7 +228,7 @@
                             "OPTFLD_issuer": {
                               "block": {
                                 "type": "text",
-                                "id": "^]WwIn(iu5o1%nJ}DE4u",
+                                "id": "LkQnB.3n*Ra.9_y`zcQe",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "General Medical Council"
@@ -238,7 +238,7 @@
                             "OPTFLD_assigner": {
                               "block": {
                                 "type": "text",
-                                "id": "d4hxtcY^afs2?FJzO]o{",
+                                "id": "VYnNQpmR2Qa8:u|$}H2w",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "GMC"
@@ -248,7 +248,7 @@
                             "OPTFLD_type": {
                               "block": {
                                 "type": "text",
-                                "id": "_t@ql`4]^`9zPXQ+DDZL",
+                                "id": "{y}=VZ,.$p.@3s=/ds4J",
                                 "inline": false,
                                 "fields": {
                                   "TEXT": "Professional Registration Number"
@@ -264,7 +264,7 @@
                 "ATTR_name": {
                   "block": {
                     "type": "text",
-                    "id": "*^7]2=RqGpRU4`c9[_N=",
+                    "id": "xkw7qkCk%2oI}FAk=8z_",
                     "inline": false,
                     "fields": {
                       "TEXT": "Dr. Who Demo"
@@ -277,14 +277,14 @@
           "VAL7": {
             "shadow": {
               "type": "text",
-              "id": "n3@HHu6TD5OuW$YMub_T",
+              "id": "P{luSvx-xt$$s%3Y{ndt",
               "fields": {
                 "TEXT": "St. Dummy Demo Hospital"
               }
             },
             "block": {
               "type": "party_identified",
-              "id": "8a)Q1~XDY$;U$3Vy|vBU",
+              "id": "Xq|kV#_R7T?5FjN30)kU",
               "extraState": {
                 "extras": [],
                 "attrs": [
@@ -309,7 +309,7 @@
                 "ATTR_name": {
                   "block": {
                     "type": "text",
-                    "id": "2nu[gNA4wd;Vz_z+^.[u",
+                    "id": "8?7mX#CL/_(pa.GL==lx",
                     "inline": false,
                     "fields": {
                       "TEXT": "St. Dummy Demo Hospital"
@@ -322,14 +322,14 @@
           "VAL8": {
             "shadow": {
               "type": "text",
-              "id": "~qOGTmZvwwt/C?DQ=dCL",
+              "id": "%@V!$B%R!!|Vg^}A?/;G",
               "fields": {
                 "TEXT": ""
               }
             },
             "block": {
               "type": "party_self",
-              "id": "s8j/M!VGL:;-N7-e/YSX",
+              "id": "wU]v?U{KRU[AtK@yH(hK",
               "extraState": {
                 "extras": [],
                 "attrs": [],
@@ -352,14 +352,14 @@
       },
       {
         "type": "conversion_start",
-        "id": "l+?eDO`40IG6-K94i|Dg",
+        "id": "|Unj*]~rGiPcu(ivScab",
         "x": 20,
         "y": 196,
         "inline": false,
         "next": {
           "block": {
             "type": "composition",
-            "id": "03iK@21URb.J}Hl|jIle",
+            "id": "jr/@HJ5Gj*X%2Q.|:B)I",
             "extraState": {
               "extras": [],
               "attrs": [
@@ -439,7 +439,7 @@
               "ATTR_category": {
                 "block": {
                   "type": "term_pick",
-                  "id": "5px^Voa#NIbWbUleDfCy",
+                  "id": "(ctu?VNk:Xe7/d`IA}ks",
                   "inline": false,
                   "fields": {
                     "NAME": "built-in",
@@ -454,7 +454,7 @@
               "ATTR_composer": {
                 "block": {
                   "type": "maps_get",
-                  "id": "4PUoYVCdv,tCd}f|u[D0",
+                  "id": "`30k?gsRZHZiJ;#jh|p}",
                   "fields": {
                     "NAME": "defaults",
                     "SLOT_ID": "simple-diagnose-and-vitals//composer",
@@ -464,7 +464,7 @@
                     "KEY": {
                       "shadow": {
                         "type": "text",
-                        "id": "J,_meUaCrVxSH2vs.F1m",
+                        "id": "t)orOPG9_d9$2L542*n~",
                         "inline": false,
                         "fields": {
                           "TEXT": "composer"
@@ -477,7 +477,7 @@
               "ATTR_language": {
                 "block": {
                   "type": "maps_get",
-                  "id": "~?qgl4EYQVUau#.eZL--",
+                  "id": "Sx6hr87rQgg)h%sK0ma%",
                   "fields": {
                     "NAME": "defaults",
                     "SLOT_ID": "simple-diagnose-and-vitals//language/value",
@@ -487,7 +487,7 @@
                     "KEY": {
                       "shadow": {
                         "type": "text",
-                        "id": "YF6w|;_??Kjo,Mje{8.3",
+                        "id": "dhxC5w/LpFrBY2Aa]l2E",
                         "inline": false,
                         "fields": {
                           "TEXT": "language"
@@ -500,7 +500,7 @@
               "ATTR_territory": {
                 "block": {
                   "type": "maps_get",
-                  "id": "=r]xas0,4km,bP*HHi7N",
+                  "id": "MC1u*^hgn8_D,/y]CUDf",
                   "fields": {
                     "NAME": "defaults",
                     "SLOT_ID": "simple-diagnose-and-vitals//territory/value",
@@ -510,7 +510,7 @@
                     "KEY": {
                       "shadow": {
                         "type": "text",
-                        "id": "hUqCB/=v(|[yImEaB+jP",
+                        "id": "){vGFD*bJxl1q44qpBa|",
                         "inline": false,
                         "fields": {
                           "TEXT": "territory"
@@ -523,7 +523,7 @@
               "ATTR_content": {
                 "block": {
                   "type": "evaluation",
-                  "id": "F{hpzktvhB*VO9HeO)i$",
+                  "id": "t`$4T+-,0nKWxCoQ2Ivm",
                   "extraState": {
                     "extras": [],
                     "attrs": [
@@ -592,7 +592,7 @@
                     "ATTR_data": {
                       "block": {
                         "type": "item_tree",
-                        "id": "=8bHEFGWUQ1dV3uM2[2C",
+                        "id": "mM8;Ht.P{r,#nF$I)Rm4",
                         "extraState": {
                           "extras": [],
                           "attrs": [
@@ -625,7 +625,7 @@
                           "ATTR_items": {
                             "block": {
                               "type": "element",
-                              "id": "LGr.~0-(~^S60_2D(A:T",
+                              "id": "t$kEwZsc3f%;(EaW;yMk",
                               "extraState": {
                                 "extras": [],
                                 "attrs": [],
@@ -648,7 +648,7 @@
                                 "VALUE": {
                                   "block": {
                                     "type": "dv_coded_text",
-                                    "id": "Gt|-iLh)m?;n@AL=WkJb",
+                                    "id": "~Zz#Dp7f[muPCWb4GdTf",
                                     "extraState": {
                                       "fields": []
                                     },
@@ -662,7 +662,7 @@
                                       "FLD_value": {
                                         "block": {
                                           "type": "source_query",
-                                          "id": "wZG~_wBK*zPG@UgkKpZ@",
+                                          "id": "ASwW83#+#*IB8gM%#EI)",
                                           "data": "{\"aiReview\":{\"note\":\"Coded as DV_CODED_TEXT; terminology_id ICD10 (openEHR external terminology id) instead of the source label 'ICD-10'.\"}}",
                                           "icons": {
                                             "comment": {
@@ -681,7 +681,7 @@
                                       "FLD_defining_code": {
                                         "block": {
                                           "type": "code_phrase",
-                                          "id": "tQ{wm,3Wp_n?t1}XLl#-",
+                                          "id": "}{gT`;KQxKiQ|T`8Q.qk",
                                           "fields": {
                                             "NAME": "Code Phrase",
                                             "RM_TYPE": "CODE_PHRASE",
@@ -691,7 +691,7 @@
                                             "FLD_code_string": {
                                               "block": {
                                                 "type": "source_query",
-                                                "id": "j)ZY|P_NLtBDWH9FzWp,",
+                                                "id": "wiP:YrkuN,P{Ia4,w_d]",
                                                 "fields": {
                                                   "EXPRESSION": "$.diagnosis.code",
                                                   "RETURN_TYPE": "string"
@@ -701,7 +701,7 @@
                                             "FLD_terminology_id": {
                                               "block": {
                                                 "type": "text",
-                                                "id": "0h1pO+-6}jmQDZMZDsG@",
+                                                "id": "b^*F[eyk?`Z3m^M%d4Ja",
                                                 "fields": {
                                                   "TEXT": "ICD10"
                                                 }
@@ -717,7 +717,7 @@
                               "next": {
                                 "block": {
                                   "type": "cluster",
-                                  "id": "4`(d}Su3MFUb3x2Nt^#J",
+                                  "id": "r%V98TDem=49PR8FKs}[",
                                   "extraState": {
                                     "extras": [],
                                     "attrs": [
@@ -750,7 +750,7 @@
                                     "ATTR_items": {
                                       "block": {
                                         "type": "element",
-                                        "id": "YNA.VV05^x*/Dol/0%ts",
+                                        "id": "n/4wbyfy;.:j!|Jk9h{O",
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [],
@@ -775,7 +775,7 @@
                                   "next": {
                                     "block": {
                                       "type": "cluster",
-                                      "id": "2[KBO$Gi95)aj,sr_nyF",
+                                      "id": "2yzi,KLvPBsgK:T)NvbY",
                                       "extraState": {
                                         "extras": [],
                                         "attrs": [
@@ -808,7 +808,7 @@
                                         "ATTR_items": {
                                           "block": {
                                             "type": "element",
-                                            "id": "b-sM1m+/Hh79?ZDG5A{]",
+                                            "id": "%0r{vJgh{*V4n*r:PcvK",
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [],
@@ -833,7 +833,7 @@
                                       "next": {
                                         "block": {
                                           "type": "cluster",
-                                          "id": "goX6B]K91F0|Pl_BR2]Z",
+                                          "id": "u)Gbqt%g8}7Ay!=$iWZa",
                                           "extraState": {
                                             "extras": [],
                                             "attrs": [
@@ -866,7 +866,7 @@
                                             "ATTR_items": {
                                               "block": {
                                                 "type": "element",
-                                                "id": "([60jAh#M]5iG|.D9:nP",
+                                                "id": "Kygtez1pV;!Pybit=eg1",
                                                 "extraState": {
                                                   "extras": [],
                                                   "attrs": [],
@@ -902,7 +902,7 @@
                     "ATTR_protocol": {
                       "block": {
                         "type": "item_tree",
-                        "id": "=,F@a9KLVJKT@(r3,vcV",
+                        "id": "Cr`SQs!s|@nCe`(?_KFn",
                         "extraState": {
                           "extras": [],
                           "attrs": [
@@ -926,7 +926,7 @@
                     "ATTR_subject": {
                       "block": {
                         "type": "party_proxy",
-                        "id": "$;;_PZ@1_D?ay?S]!${U",
+                        "id": "Y*HyGXK.{;_UogvJ#r=n",
                         "collapsed": true,
                         "extraState": {
                           "extras": [],
@@ -948,7 +948,7 @@
                           "KIND": {
                             "block": {
                               "type": "maps_get",
-                              "id": "bxBEKA8p!04u5W]2K{/g",
+                              "id": "qp71==UVABz{bcSgs_,8",
                               "fields": {
                                 "NAME": "defaults",
                                 "SLOT_ID": "",
@@ -958,7 +958,7 @@
                                 "KEY": {
                                   "shadow": {
                                     "type": "text",
-                                    "id": "tLl47P[q`thF,i+IEP2W",
+                                    "id": "/MFC%{,@Xi2ucD*e9jTd",
                                     "inline": false,
                                     "fields": {
                                       "TEXT": "subject"
@@ -974,7 +974,7 @@
                     "ATTR_language": {
                       "block": {
                         "type": "maps_get",
-                        "id": "829=7Ks.,1E!8*${43PH",
+                        "id": "WDa1QVy13bvp1:%7kBJN",
                         "collapsed": true,
                         "fields": {
                           "NAME": "defaults",
@@ -985,7 +985,7 @@
                           "KEY": {
                             "shadow": {
                               "type": "text",
-                              "id": "@(#BQdRq{^6$]}1iN1_p",
+                              "id": "yir0fvU.wDAC;=_$YIp]",
                               "inline": false,
                               "fields": {
                                 "TEXT": "language"
@@ -998,7 +998,7 @@
                     "ATTR_encoding": {
                       "block": {
                         "type": "maps_get",
-                        "id": "rltbg,qFuJx5zv7vWUrr",
+                        "id": "%Djk]ykZcsFey,5S-$L;",
                         "collapsed": true,
                         "fields": {
                           "NAME": "defaults",
@@ -1009,7 +1009,7 @@
                           "KEY": {
                             "shadow": {
                               "type": "text",
-                              "id": "J-9h2nL6IuUxVt5vF=G1",
+                              "id": "4iJ6|NVzEF@s{~v3KKbP",
                               "inline": false,
                               "fields": {
                                 "TEXT": "encoding"
@@ -1023,7 +1023,7 @@
                   "next": {
                     "block": {
                       "type": "section",
-                      "id": "y2.{o=Ci7Y9+E+,cR1Mb",
+                      "id": "a`Z:MV*;1-Q?nmV.7N@Z",
                       "extraState": {
                         "extras": [],
                         "attrs": [
@@ -1065,7 +1065,7 @@
                         "ATTR_name": {
                           "block": {
                             "type": "dv_text",
-                            "id": "n;;uO?;GG?T2_M|s]{wM",
+                            "id": "__7L[VbY],}3P]Jieu/-",
                             "extraState": {
                               "fields": []
                             },
@@ -1079,7 +1079,7 @@
                               "FLD_value": {
                                 "block": {
                                   "type": "text",
-                                  "id": "v42}GUj^HN,b7jGWMA:d",
+                                  "id": "Gg;$xM!fklskVCinMGLR",
                                   "fields": {
                                     "TEXT": "Vital signs"
                                   }
@@ -1091,7 +1091,7 @@
                         "ATTR_items": {
                           "block": {
                             "type": "observation",
-                            "id": "r*HA*}e2#4ED?J}w!34`",
+                            "id": "g8dF}9no=#7HCJLvQU=G",
                             "extraState": {
                               "extras": [],
                               "attrs": [
@@ -1160,7 +1160,7 @@
                               "ATTR_data": {
                                 "block": {
                                   "type": "history",
-                                  "id": "y1K_C98hUSi^2eB)_h7L",
+                                  "id": "BO0]x4@2$-/TE-O=-G?7",
                                   "extraState": {
                                     "extras": [],
                                     "attrs": [
@@ -1202,7 +1202,7 @@
                                     "ATTR_events": {
                                       "block": {
                                         "type": "point_event",
-                                        "id": "RA00Ie`MoHEGu5hpR#1*",
+                                        "id": "`#oL%v]hz}cYEbK7KU=+",
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [
@@ -1253,7 +1253,7 @@
                                           "ATTR_data": {
                                             "block": {
                                               "type": "item_tree",
-                                              "id": "yX0.*1;:$]I*1A(5XC#]",
+                                              "id": "l!wA(}T2d/~=NS)K+^tL",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -1286,7 +1286,7 @@
                                                 "ATTR_items": {
                                                   "block": {
                                                     "type": "element",
-                                                    "id": "42}|QXq-[7UQ^-#R7.V9",
+                                                    "id": "wV/bwd{B`p{Ar{-x4u]?",
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [],
@@ -1309,7 +1309,7 @@
                                                       "VALUE": {
                                                         "block": {
                                                           "type": "dv_quantity",
-                                                          "id": "GT0HXyo80b`6;N}Gx$Z3",
+                                                          "id": "a3))yMZ6%4Qm@D[[!GP%",
                                                           "extraState": {
                                                             "fields": []
                                                           },
@@ -1323,7 +1323,7 @@
                                                             "FLD_units": {
                                                               "shadow": {
                                                                 "type": "text",
-                                                                "id": "@1Ug6mqAM{w!ckg48%,`",
+                                                                "id": ";yKKxdf#)eB%^{gk+.NE",
                                                                 "inline": false,
                                                                 "fields": {
                                                                   "TEXT": "/min"
@@ -1342,7 +1342,7 @@
                                           "ATTR_time": {
                                             "block": {
                                               "type": "dv_date_time",
-                                              "id": "/.?c43$)t2}|o8DV,ZL,",
+                                              "id": "CS+%|!FfR^$+MXEw`;S3",
                                               "extraState": {
                                                 "fields": []
                                               },
@@ -1356,7 +1356,7 @@
                                                 "FLD_value": {
                                                   "block": {
                                                     "type": "maps_get",
-                                                    "id": ")9@:|*G.jIL`4(_Yk3)R",
+                                                    "id": "![2`@eN^oU8d:=BFRfx@",
                                                     "fields": {
                                                       "NAME": "defaults",
                                                       "SLOT_ID": "",
@@ -1366,7 +1366,7 @@
                                                       "KEY": {
                                                         "shadow": {
                                                           "type": "text",
-                                                          "id": "/y3u.UM912{?Gc4:QYWe",
+                                                          "id": "b{i7[I]-u)M3}(fHqVFv",
                                                           "inline": false,
                                                           "fields": {
                                                             "TEXT": "time"
@@ -1382,7 +1382,7 @@
                                           "ATTR_state": {
                                             "block": {
                                               "type": "item_tree",
-                                              "id": "w^aL(7?menW`T65P@Mq7",
+                                              "id": "_kv:/H_[ZOg/?UVUoZV7",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -1409,7 +1409,7 @@
                                     "ATTR_origin": {
                                       "block": {
                                         "type": "dv_date_time",
-                                        "id": "ANpKCvI=^.=]:pIFc/w^",
+                                        "id": "Q7HK#0?#pTR!OHlT0Yqt",
                                         "extraState": {
                                           "fields": []
                                         },
@@ -1423,7 +1423,7 @@
                                           "FLD_value": {
                                             "block": {
                                               "type": "maps_get",
-                                              "id": "oppYT)L8s3F`5;2k{dc0",
+                                              "id": "rmdF;Z?Hv-Zf^YDPqt0@",
                                               "fields": {
                                                 "NAME": "defaults",
                                                 "SLOT_ID": "",
@@ -1433,7 +1433,7 @@
                                                 "KEY": {
                                                   "shadow": {
                                                     "type": "text",
-                                                    "id": "r_37xzJG`Z*]n2QpOV1+",
+                                                    "id": "|cu-JYN$I-dtfV_{74)0",
                                                     "inline": false,
                                                     "fields": {
                                                       "TEXT": "origin"
@@ -1452,7 +1452,7 @@
                               "ATTR_protocol": {
                                 "block": {
                                   "type": "item_tree",
-                                  "id": "~@4}J1j(4Lq8f{sX!XE9",
+                                  "id": "bR/%(g:mc8,i.a(%!|6(",
                                   "extraState": {
                                     "extras": [],
                                     "attrs": [
@@ -1476,7 +1476,7 @@
                               "ATTR_subject": {
                                 "block": {
                                   "type": "party_proxy",
-                                  "id": "X/40n1@(J%dYIIhXi-8!",
+                                  "id": "w,g`!kA`5H4@S6D)TKI6",
                                   "collapsed": true,
                                   "extraState": {
                                     "extras": [],
@@ -1498,7 +1498,7 @@
                                     "KIND": {
                                       "block": {
                                         "type": "maps_get",
-                                        "id": "aTs%M^T^cMOv)Ll;Qt/M",
+                                        "id": "612DxnasN.ivu+r2oARF",
                                         "fields": {
                                           "NAME": "defaults",
                                           "SLOT_ID": "",
@@ -1508,7 +1508,7 @@
                                           "KEY": {
                                             "shadow": {
                                               "type": "text",
-                                              "id": "Jf+k***bCRLW:WSA[5X|",
+                                              "id": "uSu.9?FkV0t4c!8YC)b#",
                                               "inline": false,
                                               "fields": {
                                                 "TEXT": "subject"
@@ -1524,7 +1524,7 @@
                               "ATTR_language": {
                                 "block": {
                                   "type": "maps_get",
-                                  "id": "lO,Ag}F!m;-/owzz_,PH",
+                                  "id": "oVbqK#B:Xif:/jDR()3r",
                                   "collapsed": true,
                                   "fields": {
                                     "NAME": "defaults",
@@ -1535,7 +1535,7 @@
                                     "KEY": {
                                       "shadow": {
                                         "type": "text",
-                                        "id": ";QQX%o;;W=ow.puv5g4P",
+                                        "id": "j2g#6DsUvJp@n5B_)8U)",
                                         "inline": false,
                                         "fields": {
                                           "TEXT": "language"
@@ -1548,7 +1548,7 @@
                               "ATTR_encoding": {
                                 "block": {
                                   "type": "maps_get",
-                                  "id": "eAd2C%cYCQZC`)ePkQ{T",
+                                  "id": "(EH9%b)O*zP)!?pHW_bG",
                                   "collapsed": true,
                                   "fields": {
                                     "NAME": "defaults",
@@ -1559,7 +1559,7 @@
                                     "KEY": {
                                       "shadow": {
                                         "type": "text",
-                                        "id": "k%a?z8F.|@_ld3Lfh~hv",
+                                        "id": "+`_`kKSV8ce]R+r.U[r!",
                                         "inline": false,
                                         "fields": {
                                           "TEXT": "encoding"
@@ -1573,7 +1573,7 @@
                             "next": {
                               "block": {
                                 "type": "observation",
-                                "id": "vvn@4@b=ha7Zcm1Spbpd",
+                                "id": "ink]D46AP[Z7vNHzrn62",
                                 "extraState": {
                                   "extras": [],
                                   "attrs": [
@@ -1642,7 +1642,7 @@
                                   "ATTR_data": {
                                     "block": {
                                       "type": "history",
-                                      "id": "+^SsiLQU0yr?RV?s/Y:?",
+                                      "id": "/gj0,u64uapz?kAXclN4",
                                       "extraState": {
                                         "extras": [],
                                         "attrs": [
@@ -1684,7 +1684,7 @@
                                         "ATTR_events": {
                                           "block": {
                                             "type": "point_event",
-                                            "id": "b/|=E#Sa:CPeu7RxeCja",
+                                            "id": "5HpiNEaDi4*dL9=.J`q]",
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [
@@ -1735,7 +1735,7 @@
                                               "ATTR_data": {
                                                 "block": {
                                                   "type": "item_tree",
-                                                  "id": ")_afNn^A9s?t%[UzcNyk",
+                                                  "id": "jgH_V5O,o+Nq!~)c?U3K",
                                                   "extraState": {
                                                     "extras": [],
                                                     "attrs": [
@@ -1768,7 +1768,7 @@
                                                     "ATTR_items": {
                                                       "block": {
                                                         "type": "element",
-                                                        "id": "bR+{nolvc;1}]|5|#aJh",
+                                                        "id": "m%3v`%gs6NObygxMThSc",
                                                         "extraState": {
                                                           "extras": [],
                                                           "attrs": [],
@@ -1791,7 +1791,7 @@
                                                           "VALUE": {
                                                             "block": {
                                                               "type": "dv_quantity",
-                                                              "id": "LFp.@J2`#yr5gcOc{qT$",
+                                                              "id": "#8t|7%pRs/d:JP4faxv4",
                                                               "extraState": {
                                                                 "fields": []
                                                               },
@@ -1805,7 +1805,7 @@
                                                                 "FLD_units": {
                                                                   "shadow": {
                                                                     "type": "text",
-                                                                    "id": "#iLQ~32CMGQbAl.O4C(1",
+                                                                    "id": "]mL?`{R6-C37%KP7:as6",
                                                                     "inline": false,
                                                                     "fields": {
                                                                       "TEXT": "/min"
@@ -1824,7 +1824,7 @@
                                               "ATTR_time": {
                                                 "block": {
                                                   "type": "dv_date_time",
-                                                  "id": "./T$_LdkUxj`.%OB*7BE",
+                                                  "id": "8iWk@wP|vz4AK56y?a|[",
                                                   "extraState": {
                                                     "fields": []
                                                   },
@@ -1838,7 +1838,7 @@
                                                     "FLD_value": {
                                                       "block": {
                                                         "type": "maps_get",
-                                                        "id": "8vmIu|v+YjOw8_){%HMm",
+                                                        "id": ")TonG|:RT,J|@r_D#Z.2",
                                                         "fields": {
                                                           "NAME": "defaults",
                                                           "SLOT_ID": "",
@@ -1848,7 +1848,7 @@
                                                           "KEY": {
                                                             "shadow": {
                                                               "type": "text",
-                                                              "id": "~GH*4A(E~;wwB=`RUb@f",
+                                                              "id": "BZE)G+HZU_p.Hp-=8v,^",
                                                               "inline": false,
                                                               "fields": {
                                                                 "TEXT": "time"
@@ -1864,7 +1864,7 @@
                                               "ATTR_state": {
                                                 "block": {
                                                   "type": "item_tree",
-                                                  "id": "spi/Boct}(cN_*cEAr5(",
+                                                  "id": "@87{tj,d-)a+9PyRi,Ws",
                                                   "extraState": {
                                                     "extras": [],
                                                     "attrs": [
@@ -1891,7 +1891,7 @@
                                         "ATTR_origin": {
                                           "block": {
                                             "type": "dv_date_time",
-                                            "id": "T3C6#a9imAn+z8f:k-RL",
+                                            "id": "Xb~r,,i:FUk.7fT|1lL?",
                                             "extraState": {
                                               "fields": []
                                             },
@@ -1905,7 +1905,7 @@
                                               "FLD_value": {
                                                 "block": {
                                                   "type": "maps_get",
-                                                  "id": "VKtI`H*F]q7$~B(u^0^u",
+                                                  "id": "E6Dm27YAWTRH[11W=nAK",
                                                   "fields": {
                                                     "NAME": "defaults",
                                                     "SLOT_ID": "",
@@ -1915,7 +1915,7 @@
                                                     "KEY": {
                                                       "shadow": {
                                                         "type": "text",
-                                                        "id": ".;}nMCuW^w97[.v!XR?)",
+                                                        "id": "B]vF*GA_n!qv1Td@gxE[",
                                                         "inline": false,
                                                         "fields": {
                                                           "TEXT": "origin"
@@ -1934,7 +1934,7 @@
                                   "ATTR_protocol": {
                                     "block": {
                                       "type": "item_tree",
-                                      "id": "Q|WJVsLxkckIz:137Wsf",
+                                      "id": "KE:W%?eYNk.RW=|Q?B/t",
                                       "extraState": {
                                         "extras": [],
                                         "attrs": [
@@ -1958,7 +1958,7 @@
                                   "ATTR_subject": {
                                     "block": {
                                       "type": "party_proxy",
-                                      "id": "9~6|P8gojug{4EVK~lfV",
+                                      "id": "#QXRKCIQ;0$7VJnC:7|V",
                                       "collapsed": true,
                                       "extraState": {
                                         "extras": [],
@@ -1980,7 +1980,7 @@
                                         "KIND": {
                                           "block": {
                                             "type": "maps_get",
-                                            "id": "x9zZUtm}^X#PZP$WsEuI",
+                                            "id": "G}]{ew78o[dm~oa[9v[b",
                                             "fields": {
                                               "NAME": "defaults",
                                               "SLOT_ID": "",
@@ -1990,7 +1990,7 @@
                                               "KEY": {
                                                 "shadow": {
                                                   "type": "text",
-                                                  "id": "u=iGnZ%J|Z2lm7M]$AiA",
+                                                  "id": "+[E;frKoi=Fy}lUwu6lj",
                                                   "inline": false,
                                                   "fields": {
                                                     "TEXT": "subject"
@@ -2006,7 +2006,7 @@
                                   "ATTR_language": {
                                     "block": {
                                       "type": "maps_get",
-                                      "id": "N+B+Fh73W]vJwU$V:Ogj",
+                                      "id": "GFs9O!FH2^05+lG*)/*J",
                                       "collapsed": true,
                                       "fields": {
                                         "NAME": "defaults",
@@ -2017,7 +2017,7 @@
                                         "KEY": {
                                           "shadow": {
                                             "type": "text",
-                                            "id": "5J[Vrzo*05AyGQF-~lW6",
+                                            "id": "YJ0bG-=aKzxI2(l_G-fs",
                                             "inline": false,
                                             "fields": {
                                               "TEXT": "language"
@@ -2030,7 +2030,7 @@
                                   "ATTR_encoding": {
                                     "block": {
                                       "type": "maps_get",
-                                      "id": "cTYy3|7tVr+eOD{7]h1h",
+                                      "id": "Q=S+yUXah+Bw!${E:J(2",
                                       "collapsed": true,
                                       "fields": {
                                         "NAME": "defaults",
@@ -2041,7 +2041,7 @@
                                         "KEY": {
                                           "shadow": {
                                             "type": "text",
-                                            "id": "zgPQf^M)rsZEvY9,{s;g",
+                                            "id": "F+/7r]0LPqIYPFp!R6)S",
                                             "inline": false,
                                             "fields": {
                                               "TEXT": "encoding"
@@ -2055,7 +2055,7 @@
                                 "next": {
                                   "block": {
                                     "type": "observation",
-                                    "id": "bBh?mcvTpLED2[qwz9G;",
+                                    "id": "aI9w]JnbJ|9qr{DkXdu,",
                                     "extraState": {
                                       "extras": [],
                                       "attrs": [
@@ -2124,7 +2124,7 @@
                                       "ATTR_data": {
                                         "block": {
                                           "type": "history",
-                                          "id": "e!jW[*wxf=VH4(9T9dVu",
+                                          "id": "-*.#.TKsv^Yq{i|46(Su",
                                           "extraState": {
                                             "extras": [],
                                             "attrs": [
@@ -2166,7 +2166,7 @@
                                             "ATTR_events": {
                                               "block": {
                                                 "type": "for_each_list",
-                                                "id": "@U}$M4_SLzeu}s_5#h~R",
+                                                "id": ")(dAMjI4rW(gx,B)u?*]",
                                                 "fields": {
                                                   "VAR": "measurement"
                                                 },
@@ -2174,7 +2174,7 @@
                                                   "LIST": {
                                                     "block": {
                                                       "type": "source_query_node",
-                                                      "id": "FSu3pc(X7L_!Ak6|k3+g",
+                                                      "id": "cl(w!*AQn=|W?t`F@92/",
                                                       "fields": {
                                                         "EXPRESSION": "$.measurements"
                                                       }
@@ -2183,7 +2183,7 @@
                                                   "DO": {
                                                     "block": {
                                                       "type": "point_event",
-                                                      "id": "Ia?L_T7r!38f{qRl_{:)",
+                                                      "id": "vS#OugN||%/Y)_2L2alA",
                                                       "extraState": {
                                                         "extras": [],
                                                         "attrs": [
@@ -2234,7 +2234,7 @@
                                                         "ATTR_data": {
                                                           "block": {
                                                             "type": "item_tree",
-                                                            "id": "EQy:};+t{L%]JC4GT+8+",
+                                                            "id": "#WU[e0]{[*qrVi~|{B7C",
                                                             "extraState": {
                                                               "extras": [],
                                                               "attrs": [
@@ -2267,7 +2267,7 @@
                                                               "ATTR_items": {
                                                                 "block": {
                                                                   "type": "element",
-                                                                  "id": "=d7~asey3{.ZprM6^]qv",
+                                                                  "id": "Oob9eJL`A{+%ReKz*vo6",
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [],
@@ -2290,7 +2290,7 @@
                                                                     "VALUE": {
                                                                       "block": {
                                                                         "type": "dv_quantity",
-                                                                        "id": "9u-;gT3i5[g~s1v{a*m_",
+                                                                        "id": "W[VzTrxr2Q!6M~Yxx-%G",
                                                                         "extraState": {
                                                                           "fields": []
                                                                         },
@@ -2304,7 +2304,7 @@
                                                                           "FLD_magnitude": {
                                                                             "block": {
                                                                               "type": "source_query_number",
-                                                                              "id": "W@_~Y1.n~jLX2{~/L.)8",
+                                                                              "id": "RQD=k+*Fjy3*v:@ul5Q)",
                                                                               "fields": {
                                                                                 "EXPRESSION": "systolic"
                                                                               }
@@ -2313,7 +2313,7 @@
                                                                           "FLD_units": {
                                                                             "shadow": {
                                                                               "type": "text",
-                                                                              "id": "^0nwk~UqL42M.GGTtG8N",
+                                                                              "id": "|xHy4K-]1}*7^_JObc0R",
                                                                               "inline": false,
                                                                               "fields": {
                                                                                 "TEXT": "mm[Hg]"
@@ -2327,7 +2327,7 @@
                                                                   "next": {
                                                                     "block": {
                                                                       "type": "element",
-                                                                      "id": "pgWeu5um6Lm^VKU3`lm}",
+                                                                      "id": "{i,l{|oUVY4%f+H$o*I@",
                                                                       "extraState": {
                                                                         "extras": [],
                                                                         "attrs": [],
@@ -2350,7 +2350,7 @@
                                                                         "VALUE": {
                                                                           "block": {
                                                                             "type": "dv_quantity",
-                                                                            "id": "8`|Y8luGK5[%j5L33~qn",
+                                                                            "id": "iV)ll6[bt87/CA)QwZ|g",
                                                                             "extraState": {
                                                                               "fields": []
                                                                             },
@@ -2364,7 +2364,7 @@
                                                                               "FLD_magnitude": {
                                                                                 "block": {
                                                                                   "type": "source_query_number",
-                                                                                  "id": "Aq-E^WA}@K~Yw#2Js)_K",
+                                                                                  "id": "Y[Z*nI!Z]x-Hla?$QC/`",
                                                                                   "fields": {
                                                                                     "EXPRESSION": "diastolic"
                                                                                   }
@@ -2373,7 +2373,7 @@
                                                                               "FLD_units": {
                                                                                 "shadow": {
                                                                                   "type": "text",
-                                                                                  "id": "y?6_R2G$%ice9*c@!uY9",
+                                                                                  "id": "vSMB6uzFk$m$6,d6YV+2",
                                                                                   "inline": false,
                                                                                   "fields": {
                                                                                     "TEXT": "mm[Hg]"
@@ -2394,7 +2394,7 @@
                                                         "ATTR_time": {
                                                           "block": {
                                                             "type": "dv_date_time",
-                                                            "id": "rR4=L+ctI*pQRe=GD+/h",
+                                                            "id": "2Rlui:hn~Zg#[,4(ows_",
                                                             "extraState": {
                                                               "fields": []
                                                             },
@@ -2408,7 +2408,7 @@
                                                               "FLD_value": {
                                                                 "block": {
                                                                   "type": "source_query",
-                                                                  "id": "aHlDh8:_8+O4i4:wd$JM",
+                                                                  "id": "EUqS7-a8a7JT{]PnsRKo",
                                                                   "fields": {
                                                                     "EXPRESSION": "timestamp",
                                                                     "RETURN_TYPE": "string"
@@ -2421,7 +2421,7 @@
                                                         "ATTR_state": {
                                                           "block": {
                                                             "type": "item_tree",
-                                                            "id": ":F8u{,33F0mG2atbG0dm",
+                                                            "id": "T$,tlA#szS7x4;1O#xYh",
                                                             "extraState": {
                                                               "extras": [],
                                                               "attrs": [
@@ -2454,7 +2454,7 @@
                                                               "ATTR_items": {
                                                                 "block": {
                                                                   "type": "element",
-                                                                  "id": "%`hS6zhl2^IYk#~eD(JX",
+                                                                  "id": "JP{RDR;_W]^M,FU^,6}A",
                                                                   "extraState": {
                                                                     "extras": [],
                                                                     "attrs": [],
@@ -2477,7 +2477,7 @@
                                                                     "VALUE": {
                                                                       "block": {
                                                                         "type": "dv_coded_text",
-                                                                        "id": "#8qjr{rA`6XsCI[)x;ML",
+                                                                        "id": "E:bg;d-n#0nb:},$n,6G",
                                                                         "extraState": {
                                                                           "fields": []
                                                                         },
@@ -2491,7 +2491,7 @@
                                                                           "FLD_value": {
                                                                             "block": {
                                                                               "type": "source_query",
-                                                                              "id": "HTQk%31|x0%Ir-67nb?7",
+                                                                              "id": "n%z9;;/YCWL3aX|IjQ@e",
                                                                               "data": "{\"aiReview\":{\"note\":\"Source wording equals the template value-set text (sitting/standing/lying vs Sitting/Standing/Lying); the coded slot writes the at-code. Other wording would need a Decision table.\"}}",
                                                                               "icons": {
                                                                                 "comment": {
@@ -2525,7 +2525,7 @@
                                             "ATTR_origin": {
                                               "block": {
                                                 "type": "dv_date_time",
-                                                "id": "JA*uTXL=4euSg],ff5v/",
+                                                "id": "=%]i:P1Nf){q|*9Eb?_5",
                                                 "extraState": {
                                                   "fields": []
                                                 },
@@ -2539,7 +2539,7 @@
                                                   "FLD_value": {
                                                     "block": {
                                                       "type": "source_query",
-                                                      "id": "5tjo)O9vri?+k|kU?u|]",
+                                                      "id": ")88Yo*;W@?Q!wjvvLq`r",
                                                       "fields": {
                                                         "EXPRESSION": "$.measurements[1].timestamp",
                                                         "RETURN_TYPE": "string"
@@ -2555,7 +2555,7 @@
                                       "ATTR_protocol": {
                                         "block": {
                                           "type": "item_tree",
-                                          "id": ";qD$^FN8SbGj)}W)eQlI",
+                                          "id": "Xrq8+VF%qf$Y-*Kp]B;C",
                                           "extraState": {
                                             "extras": [],
                                             "attrs": [
@@ -2579,7 +2579,7 @@
                                       "ATTR_subject": {
                                         "block": {
                                           "type": "party_proxy",
-                                          "id": "5SLL`ps9a!r:Tut@T{3X",
+                                          "id": "jLF4n5=jm6@9jm(JlTX6",
                                           "collapsed": true,
                                           "extraState": {
                                             "extras": [],
@@ -2601,7 +2601,7 @@
                                             "KIND": {
                                               "block": {
                                                 "type": "maps_get",
-                                                "id": "hD!ZD#RLZ_vh1_#r;4W~",
+                                                "id": "m1,_|R6.tSylisiN|f`X",
                                                 "fields": {
                                                   "NAME": "defaults",
                                                   "SLOT_ID": "",
@@ -2611,7 +2611,7 @@
                                                   "KEY": {
                                                     "shadow": {
                                                       "type": "text",
-                                                      "id": "nu[9YejuC_IT4]mq?`#r",
+                                                      "id": "=r#A-p+8#F;aZgMl#7i-",
                                                       "inline": false,
                                                       "fields": {
                                                         "TEXT": "subject"
@@ -2627,7 +2627,7 @@
                                       "ATTR_language": {
                                         "block": {
                                           "type": "maps_get",
-                                          "id": "fG:CR;}6Vdamu21J.W3f",
+                                          "id": "AVfcn(tp2QGu6yx=IcPU",
                                           "collapsed": true,
                                           "fields": {
                                             "NAME": "defaults",
@@ -2638,7 +2638,7 @@
                                             "KEY": {
                                               "shadow": {
                                                 "type": "text",
-                                                "id": "cJkj;PjJ}p_IuNYGG|?q",
+                                                "id": "T%;|(F(I!`#{!JoM7epm",
                                                 "inline": false,
                                                 "fields": {
                                                   "TEXT": "language"
@@ -2651,7 +2651,7 @@
                                       "ATTR_encoding": {
                                         "block": {
                                           "type": "maps_get",
-                                          "id": "DAlrkwEVD$+7jt;|oX@0",
+                                          "id": ";HU(;VG+#QHqvq@!bHs]",
                                           "collapsed": true,
                                           "fields": {
                                             "NAME": "defaults",
@@ -2662,7 +2662,7 @@
                                             "KEY": {
                                               "shadow": {
                                                 "type": "text",
-                                                "id": "m{,G^c?p`P`)yRy8.yy@",
+                                                "id": "`o*]q9RF`x7v]~biqNMe",
                                                 "inline": false,
                                                 "fields": {
                                                   "TEXT": "encoding"
@@ -2676,7 +2676,7 @@
                                     "next": {
                                       "block": {
                                         "type": "observation",
-                                        "id": "E*xk3]jRgS|h,]J%ygBv",
+                                        "id": "lS(_Gp@yowqoiT$Xdqb+",
                                         "extraState": {
                                           "extras": [],
                                           "attrs": [
@@ -2745,7 +2745,7 @@
                                           "ATTR_data": {
                                             "block": {
                                               "type": "history",
-                                              "id": ";vK-zbLK~aGgqKOo.er4",
+                                              "id": "O?~-[Q|_-d?k*s^pj4h*",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -2787,7 +2787,7 @@
                                                 "ATTR_events": {
                                                   "block": {
                                                     "type": "point_event",
-                                                    "id": "L_Ya]ST/CiP|)^~A#{{D",
+                                                    "id": "U`?:fJ2e-4+6yjdFeH:E",
                                                     "extraState": {
                                                       "extras": [],
                                                       "attrs": [
@@ -2838,7 +2838,7 @@
                                                       "ATTR_data": {
                                                         "block": {
                                                           "type": "item_tree",
-                                                          "id": "`Q9(~+1yJezhyr^h6M~W",
+                                                          "id": "zn097t7p/fMWM?M;6sp^",
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [
@@ -2871,7 +2871,7 @@
                                                             "ATTR_items": {
                                                               "block": {
                                                                 "type": "element",
-                                                                "id": "M)Kq7TTXrVfJQ4.ooMN^",
+                                                                "id": "SC[kSb4JFCWJxg|78aV~",
                                                                 "extraState": {
                                                                   "extras": [],
                                                                   "attrs": [],
@@ -2894,7 +2894,7 @@
                                                                   "VALUE": {
                                                                     "block": {
                                                                       "type": "dv_quantity",
-                                                                      "id": "fR?`ZAOXP10popCEI:bo",
+                                                                      "id": "4oG%52lpCt5|Rkz0nJLK",
                                                                       "extraState": {
                                                                         "fields": []
                                                                       },
@@ -2908,7 +2908,7 @@
                                                                         "FLD_units": {
                                                                           "block": {
                                                                             "type": "lists_getIndex",
-                                                                            "id": "8hpQ1Mnwpb`%5Sk=JAcW",
+                                                                            "id": "2rU=A=VGIdaH,TgPfroV",
                                                                             "fields": {
                                                                               "MODE": "GET",
                                                                               "WHERE": "FROM_START"
@@ -2917,7 +2917,7 @@
                                                                               "VALUE": {
                                                                                 "block": {
                                                                                   "type": "lists_create_with",
-                                                                                  "id": "x=cjhmA^D!.-a~W,;[z+",
+                                                                                  "id": "RLNARKBGN#h9idC)4Qi1",
                                                                                   "extraState": {
                                                                                     "itemCount": 2
                                                                                   },
@@ -2925,7 +2925,7 @@
                                                                                     "ADD0": {
                                                                                       "block": {
                                                                                         "type": "text",
-                                                                                        "id": "f!p|T]7^{3SpG7``l7D0",
+                                                                                        "id": "IfRcWaV@^lNy2|an*$)9",
                                                                                         "inline": false,
                                                                                         "fields": {
                                                                                           "TEXT": "Cel"
@@ -2935,7 +2935,7 @@
                                                                                     "ADD1": {
                                                                                       "block": {
                                                                                         "type": "text",
-                                                                                        "id": "T.dD[b]2MRr:]_f,aj9H",
+                                                                                        "id": "sj=g9y|JH7Dsnc49:y(,",
                                                                                         "inline": false,
                                                                                         "fields": {
                                                                                           "TEXT": "[degF]"
@@ -2948,7 +2948,7 @@
                                                                               "AT": {
                                                                                 "block": {
                                                                                   "type": "math_number",
-                                                                                  "id": "XH@t:}!e.YBC8wz]wuIV",
+                                                                                  "id": "10#7MY|s=jtA:.c0O]ro",
                                                                                   "inline": false,
                                                                                   "fields": {
                                                                                     "NUM": 1
@@ -2970,7 +2970,7 @@
                                                       "ATTR_time": {
                                                         "block": {
                                                           "type": "dv_date_time",
-                                                          "id": "V%;CBX;#z`[CqM?]JC;k",
+                                                          "id": ")OH_w?s6g1R9A{e,|.h6",
                                                           "extraState": {
                                                             "fields": []
                                                           },
@@ -2984,7 +2984,7 @@
                                                             "FLD_value": {
                                                               "block": {
                                                                 "type": "maps_get",
-                                                                "id": "RHVGXsuY;d?St;6LNY_v",
+                                                                "id": "06^LdtI^8(b!9h*2fKo6",
                                                                 "fields": {
                                                                   "NAME": "defaults",
                                                                   "SLOT_ID": "",
@@ -2994,7 +2994,7 @@
                                                                   "KEY": {
                                                                     "shadow": {
                                                                       "type": "text",
-                                                                      "id": "*MZudhHV.W3a`w5-L_LC",
+                                                                      "id": "p|.I`nWNXa)4+$b99h#Q",
                                                                       "inline": false,
                                                                       "fields": {
                                                                         "TEXT": "time"
@@ -3010,7 +3010,7 @@
                                                       "ATTR_state": {
                                                         "block": {
                                                           "type": "item_tree",
-                                                          "id": "L8vWlF4L#K3%}U(7S}aj",
+                                                          "id": ";^?[PIK}bT?*(B6!fSqh",
                                                           "extraState": {
                                                             "extras": [],
                                                             "attrs": [
@@ -3037,7 +3037,7 @@
                                                 "ATTR_origin": {
                                                   "block": {
                                                     "type": "dv_date_time",
-                                                    "id": "rs$$?,lPE**by6yu^y:N",
+                                                    "id": ".I)w=(Mb${Bu6pZh:SmS",
                                                     "extraState": {
                                                       "fields": []
                                                     },
@@ -3051,7 +3051,7 @@
                                                       "FLD_value": {
                                                         "block": {
                                                           "type": "maps_get",
-                                                          "id": "l`y0a38/I{Lv`F]i|!wt",
+                                                          "id": "Pz}cnmtb`yM=|8_6kNG[",
                                                           "fields": {
                                                             "NAME": "defaults",
                                                             "SLOT_ID": "",
@@ -3061,7 +3061,7 @@
                                                             "KEY": {
                                                               "shadow": {
                                                                 "type": "text",
-                                                                "id": "X{yo(~2UoXQ9$wsO2fa;",
+                                                                "id": "zW|J2JgeFm[@UJI$:Q[s",
                                                                 "inline": false,
                                                                 "fields": {
                                                                   "TEXT": "origin"
@@ -3080,7 +3080,7 @@
                                           "ATTR_protocol": {
                                             "block": {
                                               "type": "item_tree",
-                                              "id": "4NGKLg#Nd~y|NL;J))xU",
+                                              "id": "0JFakZDCe[wZh2iZT1cR",
                                               "extraState": {
                                                 "extras": [],
                                                 "attrs": [
@@ -3104,7 +3104,7 @@
                                           "ATTR_subject": {
                                             "block": {
                                               "type": "party_proxy",
-                                              "id": "H7%5tlhx98[duO]xDD%r",
+                                              "id": "93Z73j`,gdzE3@8cg5XC",
                                               "collapsed": true,
                                               "extraState": {
                                                 "extras": [],
@@ -3126,7 +3126,7 @@
                                                 "KIND": {
                                                   "block": {
                                                     "type": "maps_get",
-                                                    "id": "StZY:nTDy,#|uVi/x):m",
+                                                    "id": "f%{QRZ?.b=*)3^$S2_1Q",
                                                     "fields": {
                                                       "NAME": "defaults",
                                                       "SLOT_ID": "",
@@ -3136,7 +3136,7 @@
                                                       "KEY": {
                                                         "shadow": {
                                                           "type": "text",
-                                                          "id": ":;m[IYyXd(Rg{3vF?U]M",
+                                                          "id": "gR:n!B.ASHVF5KB_sN85",
                                                           "inline": false,
                                                           "fields": {
                                                             "TEXT": "subject"
@@ -3152,7 +3152,7 @@
                                           "ATTR_language": {
                                             "block": {
                                               "type": "maps_get",
-                                              "id": "RT^`q4uL`wLaJrp`zHmy",
+                                              "id": "a5SF~{cQ7Kk$kGv{|Z?*",
                                               "collapsed": true,
                                               "fields": {
                                                 "NAME": "defaults",
@@ -3163,7 +3163,7 @@
                                                 "KEY": {
                                                   "shadow": {
                                                     "type": "text",
-                                                    "id": "xtpdD7,}w$0qU;?%5@]9",
+                                                    "id": "?toj%$Zy^7l4tg-;Vs_b",
                                                     "inline": false,
                                                     "fields": {
                                                       "TEXT": "language"
@@ -3176,7 +3176,7 @@
                                           "ATTR_encoding": {
                                             "block": {
                                               "type": "maps_get",
-                                              "id": "#I^R%Y?zF%rXG#yyF4hP",
+                                              "id": ")(UY-;J2GZ7:J0aHA6){",
                                               "collapsed": true,
                                               "fields": {
                                                 "NAME": "defaults",
@@ -3187,7 +3187,7 @@
                                                 "KEY": {
                                                   "shadow": {
                                                     "type": "text",
-                                                    "id": "u@I939W~bw3sn:y|Wzb*",
+                                                    "id": "+3;6hLx%q*D1wp%!9x?[",
                                                     "inline": false,
                                                     "fields": {
                                                       "TEXT": "encoding"
@@ -3201,7 +3201,7 @@
                                         "next": {
                                           "block": {
                                             "type": "observation",
-                                            "id": "}9`R~q_H7c|_-(AcM(($",
+                                            "id": ":OxiV@A^TuwAEeHnccD)",
                                             "extraState": {
                                               "extras": [],
                                               "attrs": [
@@ -3270,7 +3270,7 @@
                                               "ATTR_data": {
                                                 "block": {
                                                   "type": "history",
-                                                  "id": "EQGpj:E?!Isw%kWXMbC`",
+                                                  "id": "$[.}3%-ij]!bLaSFxEl7",
                                                   "extraState": {
                                                     "extras": [],
                                                     "attrs": [
@@ -3312,7 +3312,7 @@
                                                     "ATTR_events": {
                                                       "block": {
                                                         "type": "point_event",
-                                                        "id": "N#/o7Mq}_IGd`c14i4p0",
+                                                        "id": ";[EFu-+O||e_Iz*;Hw3E",
                                                         "extraState": {
                                                           "extras": [],
                                                           "attrs": [
@@ -3363,7 +3363,7 @@
                                                           "ATTR_data": {
                                                             "block": {
                                                               "type": "item_tree",
-                                                              "id": "h5|e5q-j-z`u7wib$0PC",
+                                                              "id": "pjz8CO$!``#}W#yb@kch",
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [
@@ -3396,7 +3396,7 @@
                                                                 "ATTR_items": {
                                                                   "block": {
                                                                     "type": "element",
-                                                                    "id": "hlkx0bzC$*GvPiz,G];=",
+                                                                    "id": "+*(4pQ=;s^(lcB=b1Z,f",
                                                                     "extraState": {
                                                                       "extras": [],
                                                                       "attrs": [],
@@ -3419,7 +3419,7 @@
                                                                       "VALUE": {
                                                                         "block": {
                                                                           "type": "dv_proportion",
-                                                                          "id": "}P;]geZp@`Fvi7s?,y6S",
+                                                                          "id": "e$etf5T7OEPUN$]|}llD",
                                                                           "extraState": {
                                                                             "fields": []
                                                                           },
@@ -3440,7 +3440,7 @@
                                                           "ATTR_time": {
                                                             "block": {
                                                               "type": "dv_date_time",
-                                                              "id": "/D[w*8|ynUoCW3}@w6)-",
+                                                              "id": "HHHPGmyGtY0m9pAQ`1:l",
                                                               "extraState": {
                                                                 "fields": []
                                                               },
@@ -3454,7 +3454,7 @@
                                                                 "FLD_value": {
                                                                   "block": {
                                                                     "type": "maps_get",
-                                                                    "id": "-z:6_#f~3!/BiY;5.+?a",
+                                                                    "id": "/lc@XZNi.}8=aXu67M:!",
                                                                     "fields": {
                                                                       "NAME": "defaults",
                                                                       "SLOT_ID": "",
@@ -3464,7 +3464,7 @@
                                                                       "KEY": {
                                                                         "shadow": {
                                                                           "type": "text",
-                                                                          "id": "+]k]Ay/)y%3$s!YzxcbX",
+                                                                          "id": "qFe(G#QakhAxtm=z~-uA",
                                                                           "inline": false,
                                                                           "fields": {
                                                                             "TEXT": "time"
@@ -3480,7 +3480,7 @@
                                                           "ATTR_state": {
                                                             "block": {
                                                               "type": "item_tree",
-                                                              "id": "2XV2b=JYt4?OtwScd=Hd",
+                                                              "id": "9Z0{Y*_Knn97S{GIbMK{",
                                                               "extraState": {
                                                                 "extras": [],
                                                                 "attrs": [
@@ -3513,7 +3513,7 @@
                                                                 "ATTR_items": {
                                                                   "block": {
                                                                     "type": "cluster",
-                                                                    "id": "j1jn/6ElAb|fnQo`,DtQ",
+                                                                    "id": "b4$S4`HYdkgex8;Pr[/k",
                                                                     "extraState": {
                                                                       "extras": [],
                                                                       "attrs": [
@@ -3546,7 +3546,7 @@
                                                                       "ATTR_items": {
                                                                         "block": {
                                                                           "type": "element",
-                                                                          "id": "xg^heGpHuvTbc,x^.%My",
+                                                                          "id": "nm`4MY#uX}PRyS^2Rf3,",
                                                                           "extraState": {
                                                                             "extras": [],
                                                                             "attrs": [],
@@ -3569,7 +3569,7 @@
                                                                             "VALUE": {
                                                                               "block": {
                                                                                 "type": "dv_quantity",
-                                                                                "id": "ebWb9Y0}^|WcX{H[K=$Q",
+                                                                                "id": "4[qW7wgKC;6A+wl=`%HG",
                                                                                 "extraState": {
                                                                                   "fields": []
                                                                                 },
@@ -3583,7 +3583,7 @@
                                                                                   "FLD_units": {
                                                                                     "block": {
                                                                                       "type": "lists_getIndex",
-                                                                                      "id": "Njj9D1H$fSi`[!r/6[S~",
+                                                                                      "id": "W],Jf.0S{RT_eq.DXwcV",
                                                                                       "fields": {
                                                                                         "MODE": "GET",
                                                                                         "WHERE": "FROM_START"
@@ -3592,7 +3592,7 @@
                                                                                         "VALUE": {
                                                                                           "block": {
                                                                                             "type": "lists_create_with",
-                                                                                            "id": "(4%59/X`D.#iW.`Lk?C2",
+                                                                                            "id": "[{tRV6x3/e4D%M-(K18D",
                                                                                             "extraState": {
                                                                                               "itemCount": 2
                                                                                             },
@@ -3600,7 +3600,7 @@
                                                                                               "ADD0": {
                                                                                                 "block": {
                                                                                                   "type": "text",
-                                                                                                  "id": "]UgPA_x0dOpbhJx|Smt$",
+                                                                                                  "id": "q2:`=fHo@L*-Qf]9Oula",
                                                                                                   "inline": false,
                                                                                                   "fields": {
                                                                                                     "TEXT": "ml/min"
@@ -3610,7 +3610,7 @@
                                                                                               "ADD1": {
                                                                                                 "block": {
                                                                                                   "type": "text",
-                                                                                                  "id": "3ouUwTMg)=S0+dAL[_qb",
+                                                                                                  "id": "Wp+|Q{Xwk^2OG|ljt$!#",
                                                                                                   "inline": false,
                                                                                                   "fields": {
                                                                                                     "TEXT": "l/min"
@@ -3623,7 +3623,7 @@
                                                                                         "AT": {
                                                                                           "block": {
                                                                                             "type": "math_number",
-                                                                                            "id": "cv[59o^@E^0OZBKG}F$/",
+                                                                                            "id": "E_XV%W9gcdH+4rm]XMAC",
                                                                                             "inline": false,
                                                                                             "fields": {
                                                                                               "NUM": 1
@@ -3640,7 +3640,7 @@
                                                                           "next": {
                                                                             "block": {
                                                                               "type": "element",
-                                                                              "id": "-]S@_QW*.?vaeBa49-3K",
+                                                                              "id": "a{6Eo;w%ymM5xokN3M#v",
                                                                               "extraState": {
                                                                                 "extras": [],
                                                                                 "attrs": [],
@@ -3663,7 +3663,7 @@
                                                                                 "VALUE": {
                                                                                   "block": {
                                                                                     "type": "dv_boolean",
-                                                                                    "id": "zd{.uA--^REex-7J*(BI",
+                                                                                    "id": "=VmYn^S#ZiXIfV9$orYz",
                                                                                     "fields": {
                                                                                       "NAME": "Boolean",
                                                                                       "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse_oximetry.v1]/data/at0001/events/at0002/state/at0014/items/at0000/items/at0057/value/DV_BOOLEAN/value",
@@ -3676,7 +3676,7 @@
                                                                               "next": {
                                                                                 "block": {
                                                                                   "type": "cluster",
-                                                                                  "id": "Or{!qXLY#@I=K%dbtnzG",
+                                                                                  "id": "bUp(Buh96#_}g]%xWmD9",
                                                                                   "extraState": {
                                                                                     "extras": [],
                                                                                     "attrs": [
@@ -3709,7 +3709,7 @@
                                                                                     "ATTR_items": {
                                                                                       "block": {
                                                                                         "type": "element",
-                                                                                        "id": "@n+|hUM+={gj?9icvn]!",
+                                                                                        "id": "6jY{*,sN2UU3ZOVdKmt~",
                                                                                         "extraState": {
                                                                                           "extras": [],
                                                                                           "attrs": [],
@@ -3749,7 +3749,7 @@
                                                     "ATTR_origin": {
                                                       "block": {
                                                         "type": "dv_date_time",
-                                                        "id": "x(E*2kqH[$u-=CDj8`-@",
+                                                        "id": "7^djKkdG]f$n.oE8#M=1",
                                                         "extraState": {
                                                           "fields": []
                                                         },
@@ -3763,7 +3763,7 @@
                                                           "FLD_value": {
                                                             "block": {
                                                               "type": "maps_get",
-                                                              "id": "3g|X-nz=Bhs,Xn+H2L5J",
+                                                              "id": "n6Q98*{R0}GC{:H?s5Z?",
                                                               "fields": {
                                                                 "NAME": "defaults",
                                                                 "SLOT_ID": "",
@@ -3773,7 +3773,7 @@
                                                                 "KEY": {
                                                                   "shadow": {
                                                                     "type": "text",
-                                                                    "id": ";$G$pMvK3$3AHaq6cV}a",
+                                                                    "id": "!=T3MehfiR5%K`.~${!A",
                                                                     "inline": false,
                                                                     "fields": {
                                                                       "TEXT": "origin"
@@ -3792,7 +3792,7 @@
                                               "ATTR_protocol": {
                                                 "block": {
                                                   "type": "item_tree",
-                                                  "id": "prG7b]M83^=cKmd]$N8;",
+                                                  "id": "wA0])#zHr194rkNE$bm_",
                                                   "extraState": {
                                                     "extras": [],
                                                     "attrs": [
@@ -3816,7 +3816,7 @@
                                               "ATTR_subject": {
                                                 "block": {
                                                   "type": "party_proxy",
-                                                  "id": "?!ESM{U!^Wi_Ov8yTu]@",
+                                                  "id": "]Z2!!KHJKGtS5:C^7RHI",
                                                   "collapsed": true,
                                                   "extraState": {
                                                     "extras": [],
@@ -3838,7 +3838,7 @@
                                                     "KIND": {
                                                       "block": {
                                                         "type": "maps_get",
-                                                        "id": "HxnBns+(0}w-1N0%Wr`i",
+                                                        "id": "b|$jFa{[b_T,vD$*6gEJ",
                                                         "fields": {
                                                           "NAME": "defaults",
                                                           "SLOT_ID": "",
@@ -3848,7 +3848,7 @@
                                                           "KEY": {
                                                             "shadow": {
                                                               "type": "text",
-                                                              "id": ".Al*ip+tA_lJLxGI#Iby",
+                                                              "id": "fPR=!-#/;I5=G~b1dm3k",
                                                               "inline": false,
                                                               "fields": {
                                                                 "TEXT": "subject"
@@ -3864,7 +3864,7 @@
                                               "ATTR_language": {
                                                 "block": {
                                                   "type": "maps_get",
-                                                  "id": "w`5zw9idv9_zwudGp#Im",
+                                                  "id": "gta)A}cj*fz+zUB0uI^U",
                                                   "collapsed": true,
                                                   "fields": {
                                                     "NAME": "defaults",
@@ -3875,7 +3875,7 @@
                                                     "KEY": {
                                                       "shadow": {
                                                         "type": "text",
-                                                        "id": "U2BD?6=D+tZ%KN07~ObK",
+                                                        "id": "lY}MuxT;5|Y_OH~{Vpgv",
                                                         "inline": false,
                                                         "fields": {
                                                           "TEXT": "language"
@@ -3888,7 +3888,7 @@
                                               "ATTR_encoding": {
                                                 "block": {
                                                   "type": "maps_get",
-                                                  "id": "d;yN*]F?jhRuG{VVL65F",
+                                                  "id": "*-;(}7m{LokqA_6W_O37",
                                                   "collapsed": true,
                                                   "fields": {
                                                     "NAME": "defaults",
@@ -3899,7 +3899,7 @@
                                                     "KEY": {
                                                       "shadow": {
                                                         "type": "text",
-                                                        "id": "?)(Y]lrse|h[nc.A9/Ci",
+                                                        "id": "een%s/N*h{uilCEu6-9o",
                                                         "inline": false,
                                                         "fields": {
                                                           "TEXT": "encoding"
@@ -3928,7 +3928,7 @@
               "ATTR_context": {
                 "block": {
                   "type": "event_context",
-                  "id": "##H5P^pRIO=GvF9l0?qi",
+                  "id": ")rp^U%Si;tuwFS@e.;38",
                   "extraState": {
                     "extras": [
                       "health_care_facility"
@@ -3981,7 +3981,7 @@
                     "ATTR_setting": {
                       "block": {
                         "type": "dv_coded_text",
-                        "id": "O~9[}^}U@f2Ldu9F-n(a",
+                        "id": "13aB6M[TGIddP:TVYFQi",
                         "extraState": {
                           "fields": []
                         },
@@ -3995,7 +3995,7 @@
                           "FLD_value": {
                             "block": {
                               "type": "text",
-                              "id": "Kt]9o*YUOUQ0A:~c/rT/",
+                              "id": "f.1c1FX6pP_s9zXaGjFF",
                               "fields": {
                                 "TEXT": "other care"
                               }
@@ -4004,7 +4004,7 @@
                           "FLD_defining_code": {
                             "block": {
                               "type": "code_phrase",
-                              "id": "^n#zK=`bqPnx5Ed~MDj(",
+                              "id": "Vm#U0U;AL/;(9YP/{i7|",
                               "fields": {
                                 "NAME": "Code Phrase",
                                 "RM_TYPE": "CODE_PHRASE",
@@ -4014,7 +4014,7 @@
                                 "FLD_code_string": {
                                   "block": {
                                     "type": "text",
-                                    "id": "df+=.+Z09IF^|lKm8AQ6",
+                                    "id": "v0qwJP*J%VqZ$O}%4GES",
                                     "fields": {
                                       "TEXT": "238"
                                     }
@@ -4023,14 +4023,14 @@
                                 "FLD_terminology_id": {
                                   "shadow": {
                                     "type": "text",
-                                    "id": "FEzTZPacv58B)h]!?4N[",
+                                    "id": "_h1x$fKVRXl$y5|9s067",
                                     "fields": {
                                       "TEXT": "openehr"
                                     }
                                   },
                                   "block": {
                                     "type": "text",
-                                    "id": "f^Gf8z0SW=djVN}6}7pb",
+                                    "id": ",keLNaR+$}`*C/Y)^Rgm",
                                     "fields": {
                                       "TEXT": "openehr"
                                     }
@@ -4045,7 +4045,7 @@
                     "ATTR_start_time": {
                       "block": {
                         "type": "dv_date_time",
-                        "id": ")0Z^Z)N6;?;M~mCZ=CEL",
+                        "id": "4Aw[9o9r8GyPJ_0[)TVe",
                         "extraState": {
                           "fields": []
                         },
@@ -4059,7 +4059,7 @@
                           "FLD_value": {
                             "block": {
                               "type": "source_query",
-                              "id": "9#3lv`#vH6[QWW]8L(fI",
+                              "id": "jlDs#LLx@uDQj=}$0C$L",
                               "fields": {
                                 "EXPRESSION": "$.measurements[1].timestamp",
                                 "RETURN_TYPE": "string"
@@ -4072,7 +4072,7 @@
                     "ATTR_other_context": {
                       "block": {
                         "type": "item_tree",
-                        "id": "yZww7}9)o?LR8(uC2`hV",
+                        "id": "t-g5f[V1Z$7/,#Q].%#m",
                         "extraState": {
                           "extras": [],
                           "attrs": [
@@ -4096,7 +4096,7 @@
                     "OPT_health_care_facility": {
                       "block": {
                         "type": "maps_get",
-                        "id": "z?1F4]|dw65eRsKqlf_D",
+                        "id": "Mq}yGt8vg_Ee1reM1P4E",
                         "fields": {
                           "NAME": "defaults",
                           "SLOT_ID": "simple-diagnose-and-vitals//context/EVENT_CONTEXT/health_care_facility",
@@ -4106,7 +4106,7 @@
                           "KEY": {
                             "shadow": {
                               "type": "text",
-                              "id": "QFB(P00s$XZd`eQiQJoG",
+                              "id": "GA3$ME$:.W]B#[kzNCPB",
                               "inline": false,
                               "fields": {
                                 "TEXT": "facility"
