@@ -648,6 +648,7 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     return emitCodePhrase(block, ctx, indent);
   }
   const props: Array<[string, string]> = [];
+  let rawValue: string | undefined;
   for (const attr of attributesFor(rmType)) {
     if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") continue;
     const inputName = block.getInput(`FLD_${attr.name}`)
@@ -674,6 +675,7 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     }
     const code = emitBlock(child, ctx, indent + 1);
     if (isBlankGeneratedExpr(code)) continue;
+    if (attr.name === "value") rawValue = code;
     const wrapped = attr.name === "magnitude"
       ? code
       : (attr.typeName === "String" || attr.name === "value" || attr.name === "code_string" ||
@@ -698,12 +700,15 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     rmType === "DV_CODED_TEXT" && props.length === 1 && props[0]![0] === "value"
   ) {
     const choices = codedChoices(ctx, String(block.getFieldValue("SLOT_ID") ?? "").trim());
-    if (choices.length) {
+    // A value that can be a coded record ({ value, code_string, terminology_id }
+    // from an if/else or Decision table) must not be turned into "[object Object]".
+    const record = rawValue != null && /["']?code_string["']?\s*:/.test(rawValue);
+    if (choices.length || record) {
       // Free text into a coded slot: look the text up in the template value set
       // so the output carries defining_code and the template rubric (#309, #310).
       ctx.types.add("DV_CODED_TEXT");
       ctx.helpers.add("coded");
-      return `codedText(${props[0]![1]}, ${JSON.stringify(choices)})`;
+      return `codedText(${record ? rawValue : props[0]![1]}, ${JSON.stringify(choices)})`;
     }
   }
   if (rmType === "DV_TEXT" && props.length === 1 && props[0]![0] === "value") {

@@ -818,7 +818,8 @@ function partyValueHelper(): string[] {
 
 /**
  * Free text into a coded slot: match code or rubric (case-insensitive) in the
- * template value set. A unique match gives defining_code and the template
+ * template value set. A coded record (value, code_string, terminology_id) is
+ * used as it is. A unique match gives defining_code and the template
  * rubric; otherwise the text is kept and validation reports the missing code.
  */
 /** Value set of a coded node: the template list, else the openEHR RM terminology group. */
@@ -832,6 +833,16 @@ function codedChoicesForNode(node: SkeletonNode): Array<[string, string, string]
 function codedTextHelper(): string[] {
   return [
     "function codedText(text: unknown, choices: Array<[string, string, string]>) {",
+    "  if (text && typeof text === \"object\" && !Array.isArray(text)) {",
+    "    // A coded record from an if/else or Decision table: { value, code_string, terminology_id }.",
+    "    const r = text as any;",
+    "    const dc = r.defining_code ?? {};",
+    "    const code = String(r.code_string ?? dc.code_string ?? \"\").trim();",
+    "    const term = r.terminology_id ?? dc.terminology_id;",
+    "    const termId = String(term && typeof term === \"object\" ? term.value ?? \"\" : term ?? \"\").trim();",
+    "    if (code) return new DV_CODED_TEXT({ value: String(r.value ?? code), defining_code: { terminology_id: termId || \"local\", code_string: code } });",
+    "    text = r.value;",
+    "  }",
     "  const s = String(text ?? \"\").trim();",
     "  if (!s) return undefined;",
     "  const k = s.toLowerCase();",
