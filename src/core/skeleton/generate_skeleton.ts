@@ -105,13 +105,43 @@ export function generateSkeleton(
   };
 }
 
+/**
+ * Web Template → OPT. Since ehrtslib v0.9, `webTemplateToOpt` leaves out an
+ * EVENT_CONTEXT that has only RM attributes (`start_time`, `setting`, marked
+ * `inContext`). Put the bare EVENT_CONTEXT back so its RM-mandatory slots are
+ * scaffolded as for an OPT target.
+ */
+function optFromWebTemplate(webTemplate: ReturnType<typeof parseWebTemplate>): AmObject {
+  const opt = webTemplateToOpt(webTemplate) as AmObject;
+  const tree = (webTemplate as { tree?: { children?: Array<{ id?: string; rmType?: string; min?: number; max?: number }> } })
+    .tree;
+  const context = tree?.children?.find((child) => child.rmType === "EVENT_CONTEXT");
+  const root = opt.definition as AmObject | undefined;
+  if (!context || !root) return opt;
+  const attributes = ((root.attributes ?? []) as AmObject[]);
+  if (attributes.some((attr) => attr.rm_attribute_name === "context")) return opt;
+  const lower = context.min ?? 0;
+  attributes.push({
+    rm_attribute_name: "context",
+    existence: { lower, upper: 1, lower_included: true, upper_included: true },
+    children: [{
+      rm_type_name: "EVENT_CONTEXT",
+      node_id: "",
+      occurrences: { lower, upper: 1, lower_included: true, upper_included: true },
+      attributes: [],
+    }],
+  } as AmObject);
+  root.attributes = attributes;
+  return opt;
+}
+
 /** Convert a Web Template JSON document to the same OPERATIONAL_TEMPLATE walker. */
 export function generateSkeletonFromWebTemplate(
   source: string | unknown,
   options?: GenerateSkeletonOptions,
 ): GenerateSkeletonResult {
   const webTemplate = parseWebTemplate(source);
-  const opt = webTemplateToOpt(webTemplate) as AmObject;
+  const opt = optFromWebTemplate(webTemplate);
   const preferred = options?.language;
   const languages = availableWebTemplateLanguages(webTemplate);
   const language = preferred && languages.includes(preferred)
@@ -131,7 +161,7 @@ export function generateSkeletonFromWebTemplate(
   if (primary && primary !== language && languages.includes(primary)) {
     withPrimaryNames(
       generated.skeleton,
-      generateSkeletonFromOperational(webTemplateToOpt(webTemplate) as AmObject, buildWebTemplateTermsIndex(webTemplate, primary), {
+      generateSkeletonFromOperational(optFromWebTemplate(webTemplate), buildWebTemplateTermsIndex(webTemplate, primary), {
         language: primary,
       }).skeleton,
     );
