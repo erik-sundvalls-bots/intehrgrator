@@ -45,13 +45,16 @@ export function rmLocatableName(node: { nameConstraint?: string; primaryName?: s
 
 /**
  * Output name of a block named `shown`: a block still showing its node's label
- * (not renamed by the user) gets `rmLocatableName`; a renamed one keeps its name.
+ * or its primary-language term (not renamed by the user) gets
+ * `rmLocatableName`; a renamed one keeps its name.
  */
 export function outputLocatableName(
   shown: string,
   node: { nameConstraint?: string; primaryName?: string; label?: string } | undefined,
 ): string {
-  return node && shown === (node.label?.trim() ?? "") ? rmLocatableName(node) || shown : shown;
+  if (!node) return shown;
+  const own = [node.label, node.primaryName].map((x) => x?.trim() ?? "");
+  return own.includes(shown) ? rmLocatableName(node) || shown : shown;
 }
 
 /** True when every emitted field is identity or RM boilerplate. */

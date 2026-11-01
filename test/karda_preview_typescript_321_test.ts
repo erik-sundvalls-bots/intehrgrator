@@ -94,3 +94,35 @@ Deno.test("Karda order: the nested Vårdgivare cluster and the identifier type r
     assertEquals(value(flat, "/context/vårdenhet/identifierare|type"), "urn:oid:1.2.752.29.4.19", mode);
   }
 });
+
+Deno.test("Karda order: the nested Vårdgivare organisation number keeps its template name in canonical output (F-M12)", async () => {
+  const service = new WorkbenchService();
+  await callAgentTool(service, "load_example_set", { setId: "karda-ordinationsdata-to-openehr-flat" });
+  const listed = await callAgentTool(service, "list_examples", {}) as { examples: Array<{ id: string }> };
+  await callAgentTool(service, "set_active_example", { id: listed.examples[0]!.id });
+  await callAgentTool(service, "set_instance_encoding", { encoding: "canonical-json" });
+  type Node = { name?: { value?: string }; archetype_node_id?: string; items?: Node[]; value?: { id?: string; type?: string } };
+  const find = (node: unknown, name: string): Node | undefined => {
+    if (!node || typeof node !== "object") return undefined;
+    if ((node as Node).name?.value === name && Array.isArray((node as Node).items)) return node as Node;
+    for (const child of Object.values(node)) {
+      const hit = find(child, name);
+      if (hit) return hit;
+    }
+    return undefined;
+  };
+  // FLAT in ehrtslib v0.9 drops name-constrained siblings, so check canonical JSON.
+  for (const outputMode of ["typescript", "preview"] as const) {
+    const run = await callAgentTool(service, "run_test", { outputMode }) as { testResult: { output: unknown } };
+    const output = run.testResult.output;
+    const composition = typeof output === "string" ? JSON.parse(output) : output;
+    const vardgivare = find(composition, "Vårdgivare");
+    assert(vardgivare, outputMode);
+    const ids = vardgivare.items!.filter((item) => item.archetype_node_id === "at0003")
+      .map((item) => [item.name?.value, item.value?.id, item.value?.type]);
+    assertEquals(ids, [
+      ["Identifierare", "SE2321000016-I1MN", "urn:oid:1.2.752.29.4.19"],
+      ["Organisationsnummer", "2321000016", "urn:oid:2.5.4.97"],
+    ], outputMode);
+  }
+});
