@@ -171,14 +171,14 @@ Deno.test("FLAT preview and TypeScript validate the document they emit (#319)", 
     };
   }
   assertEquals(runs.typescript!.keys, runs.preview!.keys);
-  assertEquals(runs.typescript!.keys.length, 16);
+  // ehrtslib v0.9 writes the output flavour: every RM value at its own path, no ctx/ keys.
+  assert(runs.typescript!.keys.length > 16, String(runs.typescript!.keys.length));
+  assertEquals(runs.typescript!.keys.some((key) => key.startsWith("ctx/")), false);
   assertEquals(runs.preview!.valid, runs.typescript!.valid);
-  assertEquals(runs.preview!.valid, false);
   assertEquals(runs.preview!.messages, runs.typescript!.messages);
-  const joined = runs.preview!.messages.join("\n");
-  assertStringIncludes(joined, "LOCATABLE.name is required by RM specification");
-  assertStringIncludes(joined, "ENTRY.subject is required by RM specification");
-  assertStringIncludes(joined, "EVENT_CONTEXT.setting is required by RM specification");
+  // Since v0.9 the FLAT round trip keeps RM-mandatory fields (ehrtslib#239): the document is valid.
+  assertEquals(runs.preview!.messages, []);
+  assertEquals(runs.preview!.valid, true);
 });
 
 Deno.test("unmapped coded pickers, script path, setting codes, flying, and mappedSlots (#320)", async () => {
