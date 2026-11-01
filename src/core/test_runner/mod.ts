@@ -393,14 +393,16 @@ function evaluateSlotValues(
   const values: Record<string, unknown> = {};
   const handled = new Set<string>();
   if (skeleton.length && model.loops?.length && ctx.kind === "json") {
-    for (const loop of model.loops) {
-      evaluateLoopSlots(model, loop, handler, ctx, skeleton, values, handled, warnings);
+    const loops = model.loops;
+    for (const loop of loops) {
+      if (parentLoop(loop, loops)) continue;
+      evaluateLoopSlots(model, loop, loops, handler, ctx, ctx.json, skeleton, values, handled, warnings);
     }
   }
   for (const slot of model.slots) {
     if (handled.has(slot.slotId)) continue;
     try {
-      values[slot.slotId] = handler.evaluate(slot.expression, ctx, slot.returnType);
+      values[slot.slotId] = withSlotUnits(slot, handler.evaluate(slot.expression, ctx, slot.returnType), handler, ctx);
     } catch (e) {
       warnings.push(
         `${slot.slotId}: ${e instanceof Error ? e.message : String(e)}`,
@@ -410,11 +412,62 @@ function evaluateSlotValues(
   return values;
 }
 
+/** A DV_QUANTITY magnitude with the units mapped on the canvas, as TypeScript output writes it. */
+function withSlotUnits(
+  slot: MappingModel["slots"][number],
+  value: unknown,
+  handler: ReturnType<typeof getSourceFormatHandler>,
+  ctx: SourceContext,
+): unknown {
+  if (!slot.unitsExpression || slot.rmType !== "DV_QUANTITY") return value;
+  if (value == null || value === "" || (typeof value === "number" && Number.isNaN(value))) return value;
+  if (typeof value === "object" && (Array.isArray(value) || (value as Record<string, unknown>).units != null)) return value;
+  let units: unknown;
+  try {
+    units = handler.evaluate(slot.unitsExpression, ctx, "string");
+  } catch {
+    return value;
+  }
+  if (units == null || String(units).trim() === "") return value;
+  const base = typeof value === "object" ? value as Record<string, unknown> : { magnitude: value };
+  return { ...base, units: String(units) };
+}
+
+/** The innermost other loop whose container holds this loop's container. */
+function parentLoop(loop: MappingLoop, loops: readonly MappingLoop[]): MappingLoop | undefined {
+  let best: MappingLoop | undefined;
+  for (const other of loops) {
+    if (other === loop || other.attachSlotId === loop.attachSlotId) continue;
+    if (!loop.attachSlotId.startsWith(`${other.attachSlotId}/`)) continue;
+    if (!best || other.attachSlotId.length > best.attachSlotId.length) best = other;
+  }
+  return best;
+}
+
+/**
+ * Loop items as the TypeScript Conversion Script reads them: the path is walked
+ * from the document root, and a `[*]` step concatenates the arrays it reaches
+ * (`$.KurDagar[*].Substanser` is every substance, not one array per day) (#321).
+ */
+function loopItems(path: string, root: unknown): unknown[] {
+  const found = collectJsonNodes(path, root);
+  return /\[\s*\*\s*\]|\.\*/.test(path) ? found.flatMap((item) => Array.isArray(item) ? item : [item]) : found;
+}
+
+/**
+ * Evaluate the slots under a loop's container once per loop item. A loop nested
+ * in this container runs per item too, so its slots get one array per outer
+ * item (`[[substance 1, substance 2]]` for one treatment day). The renderer
+ * indexes each repeating container in turn, as the generated script nests its
+ * `.map` calls (#321).
+ */
 function evaluateLoopSlots(
   model: MappingModel,
   loop: MappingLoop,
+  loops: readonly MappingLoop[],
   handler: ReturnType<typeof getSourceFormatHandler>,
   ctx: SourceContext,
+  root: unknown,
   skeleton: TargetDefinition["skeleton"],
   values: Record<string, unknown>,
   handled: Set<string>,
@@ -424,21 +477,27 @@ function evaluateLoopSlots(
   const container = trail.at(-1);
   if (!container) return;
   const ids = new Set(collectAllSlotIds([container]));
-  const nodes = collectJsonNodes(loop.path, ctx.json);
+  const children = loops.filter((other) => parentLoop(other, loops) === loop);
+  const childIds = new Set(children.flatMap((child) => {
+    const node = findSkeletonTrail(skeleton, child.attachSlotId).at(-1);
+    return node ? collectAllSlotIds([node]) : [];
+  }));
+  const nodes = loopItems(loop.path, root);
+  const itemCtx = (node: unknown): SourceContext => ({
+    ...ctx,
+    json: node,
+    data: node,
+    vars: { ...(ctx.vars ?? {}), [loop.varName]: node },
+    namedMaps: ctx.namedMaps,
+  });
   for (const slot of model.slots) {
-    if (!ids.has(slot.slotId) || !expressionUsesRelativeSourcePath(slot.expression)) {
+    if (!ids.has(slot.slotId) || childIds.has(slot.slotId) || !expressionUsesRelativeSourcePath(slot.expression)) {
       continue;
     }
     handled.add(slot.slotId);
     try {
       values[slot.slotId] = nodes.map((node) =>
-        handler.evaluate(slot.expression, {
-          ...ctx,
-          json: node,
-          data: node,
-          vars: { ...(ctx.vars ?? {}), [loop.varName]: node },
-          namedMaps: ctx.namedMaps,
-        }, slot.returnType)
+        withSlotUnits(slot, handler.evaluate(slot.expression, itemCtx(node), slot.returnType), handler, itemCtx(node))
       );
     } catch (e) {
       warnings.push(
@@ -446,6 +505,16 @@ function evaluateLoopSlots(
       );
     }
   }
+  if (!children.length) return;
+  const perItem = nodes.map((node) => {
+    const inner: Record<string, unknown> = {};
+    for (const child of children) {
+      evaluateLoopSlots(model, child, loops, handler, itemCtx(node), root, skeleton, inner, handled, warnings);
+    }
+    return inner;
+  });
+  const innerIds = new Set(perItem.flatMap((inner) => Object.keys(inner)));
+  for (const slotId of innerIds) values[slotId] = perItem.map((inner) => inner[slotId]);
 }
 
 /**

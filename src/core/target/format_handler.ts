@@ -399,6 +399,9 @@ function renderOpenEhrNode(
       }
       return copies.length ? copies : undefined;
     }
+    // One loop item: unwrap the per-item arrays so a nested loop's arrays
+    // (one per outer item) reach the inner repeating container (#321).
+    if (count === 1) values = indexSlotValues(values, 0, node);
   }
   if (node.rmType !== "COMPOSITION" && !subtreeHasClinicalValue(node, values)) {
     return undefined;

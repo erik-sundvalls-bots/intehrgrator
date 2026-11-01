@@ -46,6 +46,7 @@ export interface MappingModelExtract {
     rmType: string;
     expression: string;
     hatch?: MappingSlotHatch;
+    unitsExpression?: string;
     review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
@@ -235,10 +236,26 @@ function collectSlots(workspace: Workspace): {
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
-      record(hatch ? { slotId, rmType, expression, hatch } : { slotId, rmType, expression }, exprBlock);
+      const unitsExpression = shellRm === "DV_QUANTITY" ? quantityUnitsExpression(shell!) : "";
+      record({ slotId, rmType, expression, ...(hatch ? { hatch } : {}), ...(unitsExpression ? { unitsExpression } : {}) }, exprBlock);
     }
   }
   return { slots, blocks };
+}
+
+/**
+ * Units of a DV_QUANTITY shell, as TypeScript output writes them: a mapped
+ * `units` input, else the unit dropdown as a string literal. Scaffolded unit
+ * pickers (list blocks) are not mappings.
+ */
+function quantityUnitsExpression(shell: Block): string {
+  const target = shell.getInputTargetBlock(dvFieldInputName("units")) ?? shell.getInputTargetBlock("OPTFLD_units");
+  if (target && !target.isShadow() && target.type !== "lists_getIndex" && target.type !== "lists_create_with") {
+    const expression = blockToExpression(target);
+    if (expression) return expression;
+  }
+  const field = shell.getField("UNITS") ? String(shell.getFieldValue("UNITS") ?? "").trim() : "";
+  return field ? JSON.stringify(field) : "";
 }
 
 /**

@@ -126,6 +126,12 @@ export interface MappingSlot {
   label?: string;
   mandatory?: boolean;
   hatch?: MappingSlotHatch;
+  /**
+   * DV_QUANTITY units on the canvas, as an expression: a mapped `units` input or
+   * the block's unit dropdown as a string literal. Mapping preview adds them to
+   * the magnitude, as TypeScript output does.
+   */
+  unitsExpression?: string;
   /** Unreviewed AI suggestion marker (note / confidence); cleared on edit or *Mark as reviewed*. */
   review?: MappingSlotReview;
 }

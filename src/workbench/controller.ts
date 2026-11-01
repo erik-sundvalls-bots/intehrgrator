@@ -1409,11 +1409,13 @@ export class WorkbenchController {
         label: targetSlot?.label,
         mandatory: targetSlot?.mandatory,
       });
-      if (item.hatch) {
+      if (item.hatch || item.unitsExpression) {
         next = {
           ...next,
           slots: next.slots.map((slot) =>
-            slot.slotId === item.slotId ? { ...slot, hatch: item.hatch } : slot
+            slot.slotId === item.slotId
+              ? { ...slot, ...(item.hatch ? { hatch: item.hatch } : {}), ...(item.unitsExpression ? { unitsExpression: item.unitsExpression } : {}) }
+              : slot
           ),
         };
       }
