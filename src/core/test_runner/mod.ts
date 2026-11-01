@@ -422,6 +422,7 @@ function withSlotUnits(
   handler: ReturnType<typeof getSourceFormatHandler>,
   ctx: SourceContext,
 ): unknown {
+  if (slot.fieldExpressions && slot.rmType === "DV_IDENTIFIER") return withIdentifierFields(slot, value, handler, ctx);
   if (!slot.unitsExpression || slot.rmType !== "DV_QUANTITY") return value;
   if (value == null || value === "" || (typeof value === "number" && Number.isNaN(value))) return value;
   if (typeof value === "object" && (Array.isArray(value) || (value as Record<string, unknown>).units != null)) return value;
@@ -434,6 +435,27 @@ function withSlotUnits(
   if (units == null || String(units).trim() === "") return value;
   const base = typeof value === "object" ? value as Record<string, unknown> : { magnitude: value };
   return { ...base, units: String(units) };
+}
+
+/** A DV_IDENTIFIER id with the type / issuer / assigner mapped on the canvas, as TypeScript writes it. */
+function withIdentifierFields(
+  slot: MappingModel["slots"][number],
+  value: unknown,
+  handler: ReturnType<typeof getSourceFormatHandler>,
+  ctx: SourceContext,
+): unknown {
+  if (value == null || value === "" || Array.isArray(value)) return value;
+  const base = typeof value === "object" ? { ...(value as Record<string, unknown>) } : { id: value };
+  for (const [attr, expression] of Object.entries(slot.fieldExpressions ?? {})) {
+    if (base[attr] != null) continue;
+    try {
+      const field = handler.evaluate(expression, ctx, "string");
+      if (field != null && String(field).trim() !== "") base[attr] = String(field);
+    } catch {
+      // A field that does not evaluate is left out, as in TypeScript output.
+    }
+  }
+  return base;
 }
 
 /** The innermost other loop whose container holds this loop's container. */

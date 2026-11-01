@@ -47,6 +47,7 @@ export interface MappingModelExtract {
     expression: string;
     hatch?: MappingSlotHatch;
     unitsExpression?: string;
+    fieldExpressions?: Record<string, string>;
     review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
@@ -237,7 +238,15 @@ function collectSlots(workspace: Workspace): {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
       const unitsExpression = shellRm === "DV_QUANTITY" ? quantityUnitsExpression(shell!) : "";
-      record({ slotId, rmType, expression, ...(hatch ? { hatch } : {}), ...(unitsExpression ? { unitsExpression } : {}) }, exprBlock);
+      const fieldExpressions = shellRm === "DV_IDENTIFIER" ? identifierFieldExpressions(shell!) : undefined;
+      record({
+        slotId,
+        rmType,
+        expression,
+        ...(hatch ? { hatch } : {}),
+        ...(unitsExpression ? { unitsExpression } : {}),
+        ...(fieldExpressions ? { fieldExpressions } : {}),
+      }, exprBlock);
     }
   }
   return { slots, blocks };
@@ -256,6 +265,18 @@ function quantityUnitsExpression(shell: Block): string {
   }
   const field = shell.getField("UNITS") ? String(shell.getFieldValue("UNITS") ?? "").trim() : "";
   return field ? JSON.stringify(field) : "";
+}
+
+/** DV_IDENTIFIER type / issuer / assigner mapped on the shell (F-M12 note). */
+function identifierFieldExpressions(shell: Block): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  for (const attr of ["type", "issuer", "assigner"]) {
+    const target = shell.getInputTargetBlock(dvFieldInputName(attr)) ?? shell.getInputTargetBlock(`OPTFLD_${attr}`);
+    if (!target || target.isShadow()) continue;
+    const expression = blockToExpression(target);
+    if (expression) out[attr] = expression;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
