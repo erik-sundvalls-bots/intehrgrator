@@ -25,6 +25,7 @@ import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locato
 import { attributesFor } from "../rm_meta.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
+import { terminologyValuesForSlot } from "../ai/slot_tree.ts";
 import {
   functionIdentMap,
   jsFunctionIdent,
@@ -820,6 +821,14 @@ function partyValueHelper(): string[] {
  * template value set. A unique match gives defining_code and the template
  * rubric; otherwise the text is kept and validation reports the missing code.
  */
+/** Value set of a coded node: the template list, else the openEHR RM terminology group. */
+function codedChoicesForNode(node: SkeletonNode): Array<[string, string, string]> {
+  const allowed = (node.allowedValues ?? []).filter((row) => row.code);
+  if (allowed.length) return allowed.map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
+  const rm = terminologyValuesForSlot(node.slotId);
+  return rm ? rm.values.map((row) => [row.code, row.text || row.code, rm.terminologyId]) : [];
+}
+
 function codedTextHelper(): string[] {
   return [
     "function codedText(text: unknown, choices: Array<[string, string, string]>) {",
@@ -1141,6 +1150,13 @@ function emitSkeletonValue(
     }
     if (expr) {
       ctx.types.add("DV_CODED_TEXT");
+      const choices = codedChoicesForNode(node);
+      if (choices.length) {
+        // Text into a coded slot: look it up in the value set so the output has
+        // defining_code (FLAT output has no ctx/ fallback since ehrtslib v0.9).
+        ctx.helpers.add("coded");
+        return `codedText(${expr}, ${JSON.stringify(choices)})`;
+      }
       return `new DV_CODED_TEXT({ value: String(${expr} ?? "") })`;
     }
     return null;

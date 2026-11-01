@@ -24,6 +24,7 @@ import { registerSchemaBlocksFromSkeleton } from "./schema_blocks.ts";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import { TERM_PICK_BLOCK_TYPE } from "./blocks/term_pick.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
+import { terminologyValuesForSlot } from "../core/ai/slot_tree.ts";
 import { DEFAULTS_BLOCK_TYPE } from "../core/defaults/extract.ts";
 import {
   CONVERSION_START_TYPE,
@@ -766,10 +767,11 @@ function codedChoices(ctx: TsEmitContext, slotId: string): Array<[string, string
   const node = ctx.skeletonNodes?.get(slotId) ??
     ctx.skeletonNodes?.get(slotId.replace(/\/value$/, "")) ??
     ctx.skeletonNodes?.get(slotId.replace(/\/DV_CODED_TEXT\/value$/, ""));
-  const allowed = node?.allowedValues ?? [];
-  return allowed
-    .filter((row) => row.code)
-    .map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
+  const allowed = (node?.allowedValues ?? []).filter((row) => row.code);
+  if (allowed.length) return allowed.map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
+  // No template list: an openEHR RM terminology attribute (category, setting, …).
+  const rm = terminologyValuesForSlot(slotId.endsWith("/value") ? slotId : `${slotId}/value`);
+  return rm ? rm.values.map((row) => [row.code, row.text || row.code, rm.terminologyId]) : [];
 }
 
 function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string {

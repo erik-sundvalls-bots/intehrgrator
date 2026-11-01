@@ -197,8 +197,10 @@ export function terminologyValuesForSlot(
   slotId: string,
 ): { terminologyId: string; values: Array<{ code: string; text: string }> } | undefined {
   const match = /\/([A-Z][A-Z0-9_]+)\/([a-z_]+)\/value$/.exec(slotId);
-  if (!match) return undefined;
-  const set = termSetForRmAttribute(match[1]!, match[2]!);
+  // COMPOSITION.category sits at the template root: `<tpl>//category/DV_CODED_TEXT/value`.
+  const category = !match && /^[^/]*\/\/category\/(?:DV_CODED_TEXT\/)?value$/.test(slotId);
+  if (!match && !category) return undefined;
+  const set = match ? termSetForRmAttribute(match[1]!, match[2]!) : termSetForRmAttribute("COMPOSITION", "category");
   if (!set?.codes.length) return undefined;
   return {
     terminologyId: set.terminologyId,
