@@ -30,6 +30,7 @@ import { isTemplateJson } from "ehrtslib/parser/mod.ts";
 import { scaffoldClinicalModelFileset } from "../clinical_model/github_template.ts";
 import { isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
 import { assignSchemaBlockTypes } from "./schema_block_ids.ts";
+import { terminologyValuesForSlot } from "../ai/slot_tree.ts";
 
 export interface TargetDefinition {
   format: TargetFormatId;
@@ -730,7 +731,11 @@ function fillCodedValueFromAllowed(
   output: Record<string, unknown>,
   node: SkeletonNode,
 ): void {
-  const choices = node.allowedValues;
+  // No template list: an openEHR RM terminology attribute (category, setting, ISM state).
+  const rm = node.allowedValues?.length || node.rmType !== "DV_CODED_TEXT" ? undefined : terminologyValuesForSlot(node.slotId);
+  const choices = node.allowedValues?.length
+    ? node.allowedValues
+    : rm?.values.map((row) => ({ code: row.code, label: row.text, terminologyId: rm.terminologyId }));
   if (!choices?.length) return;
   if (node.rmType !== "DV_CODED_TEXT" && node.rmType !== "CODE_PHRASE") return;
   const phrase = asStringKeyedRecord(output.defining_code);

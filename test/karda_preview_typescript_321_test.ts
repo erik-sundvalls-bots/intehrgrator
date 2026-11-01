@@ -72,3 +72,17 @@ Deno.test("Karda TypeScript FLAT codes category, ISM state and coded records; pr
   assertEquals(value(admin.typescript, "administrerad_läkemedelsbehandling:0/ism_transition/current_state|code"), "532");
   assertEquals(value(admin.preview, "administrerad_läkemedelsbehandling:0/detaljer_per_substans/administrerad_dos|unit"), "mg");
 });
+
+Deno.test("OBX mapped: preview and TypeScript output validate (DV_IDENTIFIER type, category code)", async () => {
+  const service = new WorkbenchService();
+  await callAgentTool(service, "load_example_set", { setId: "obx-mhv1-mapped-json-to-openehr", includeMapping: true });
+  for (const outputMode of ["preview", "typescript"] as const) {
+    const run = await callAgentTool(service, "run_test", { outputMode }) as {
+      valid: boolean;
+      testResult: { outputValidation?: { messages: Array<{ path: string; message: string }> } };
+    };
+    const messages = (run.testResult.outputValidation?.messages ?? []).map((m) => `${m.path}: ${m.message}`);
+    assertEquals(messages, [], `${outputMode}\n${messages.join("\n")}`);
+    assertEquals(run.valid, true, outputMode);
+  }
+});
