@@ -132,6 +132,11 @@ export interface MappingSlot {
    * the magnitude, as TypeScript output does.
    */
   unitsExpression?: string;
+  /**
+   * DV_IDENTIFIER type / issuer / assigner mapped on the canvas, as expressions.
+   * Mapping preview adds them to the id, as TypeScript output does.
+   */
+  fieldExpressions?: Record<string, string>;
   /** Unreviewed AI suggestion marker (note / confidence); cleared on edit or *Mark as reviewed*. */
   review?: MappingSlotReview;
 }

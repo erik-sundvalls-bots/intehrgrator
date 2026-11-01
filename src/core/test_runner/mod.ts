@@ -23,6 +23,7 @@ import {
   collectValueSlots,
   findSkeletonTrail,
 } from "../skeleton/generate_skeleton.ts";
+import { applyCodedTextSlots } from "../openehr/coded_text.ts";
 import { generateTypeScript, generate } from "../codegen/mod.ts";
 import {
   runGeneratedTypeScript,
@@ -112,9 +113,11 @@ export function runTest(
     const target = options.target
       ? {
         ...options.target,
-        skeleton: applyOptionalRmToSkeleton(
-          options.target.skeleton,
-          model.optionalRm ?? [],
+        // A DV_TEXT slot mapped as DV_CODED_TEXT renders as the subclass in
+        // every mode, also after a reload of the saved mapping (#274, F-M16).
+        skeleton: applyCodedTextSlots(
+          applyOptionalRmToSkeleton(options.target.skeleton, model.optionalRm ?? []),
+          model.slots,
         ),
       }
       : options.target;
@@ -419,6 +422,7 @@ function withSlotUnits(
   handler: ReturnType<typeof getSourceFormatHandler>,
   ctx: SourceContext,
 ): unknown {
+  if (slot.fieldExpressions && slot.rmType === "DV_IDENTIFIER") return withIdentifierFields(slot, value, handler, ctx);
   if (!slot.unitsExpression || slot.rmType !== "DV_QUANTITY") return value;
   if (value == null || value === "" || (typeof value === "number" && Number.isNaN(value))) return value;
   if (typeof value === "object" && (Array.isArray(value) || (value as Record<string, unknown>).units != null)) return value;
@@ -431,6 +435,27 @@ function withSlotUnits(
   if (units == null || String(units).trim() === "") return value;
   const base = typeof value === "object" ? value as Record<string, unknown> : { magnitude: value };
   return { ...base, units: String(units) };
+}
+
+/** A DV_IDENTIFIER id with the type / issuer / assigner mapped on the canvas, as TypeScript writes it. */
+function withIdentifierFields(
+  slot: MappingModel["slots"][number],
+  value: unknown,
+  handler: ReturnType<typeof getSourceFormatHandler>,
+  ctx: SourceContext,
+): unknown {
+  if (value == null || value === "" || Array.isArray(value)) return value;
+  const base = typeof value === "object" ? { ...(value as Record<string, unknown>) } : { id: value };
+  for (const [attr, expression] of Object.entries(slot.fieldExpressions ?? {})) {
+    if (base[attr] != null) continue;
+    try {
+      const field = handler.evaluate(expression, ctx, "string");
+      if (field != null && String(field).trim() !== "") base[attr] = String(field);
+    } catch {
+      // A field that does not evaluate is left out, as in TypeScript output.
+    }
+  }
+  return base;
 }
 
 /** The innermost other loop whose container holds this loop's container. */
@@ -449,6 +474,11 @@ function parentLoop(loop: MappingLoop, loops: readonly MappingLoop[]): MappingLo
  * from the document root, and a `[*]` step concatenates the arrays it reaches
  * (`$.KurDagar[*].Substanser` is every substance, not one array per day) (#321).
  */
+function isRelativeLoopPath(path: string): boolean {
+  const trimmed = path.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
+}
+
 function loopItems(path: string, root: unknown): unknown[] {
   const found = collectJsonNodes(path, root);
   return /\[\s*\*\s*\]|\.\*/.test(path) ? found.flatMap((item) => Array.isArray(item) ? item : [item]) : found;
@@ -482,7 +512,8 @@ function evaluateLoopSlots(
     const node = findSkeletonTrail(skeleton, child.attachSlotId).at(-1);
     return node ? collectAllSlotIds([node]) : [];
   }));
-  const nodes = loopItems(loop.path, root);
+  // A relative LIST inside an outer loop walks from the outer item (F-M7).
+  const nodes = loopItems(loop.path, isRelativeLoopPath(loop.path) ? ctx.json : root);
   const itemCtx = (node: unknown): SourceContext => ({
     ...ctx,
     json: node,

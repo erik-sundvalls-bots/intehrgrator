@@ -55,7 +55,7 @@ export interface TsEmitContext {
   /** When set, relative source paths evaluate against this loop node. */
   loopVar?: string;
   types: Set<string>;
-  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party">;
+  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party" | "prune">;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
   archetypeRootIds?: Map<string, string>;
   /** Skeleton nodes by slot id: output names of blocks not renamed by the user. */
@@ -349,7 +349,7 @@ export interface TypeScriptModuleParts {
   templateId: string;
   body: string;
   types: Set<string>;
-  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party">;
+  helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party" | "prune">;
   rootType?: string;
   /** Where the RM tree was walked from. */
   source?: "blockly" | "skeleton" | "slots";
@@ -427,6 +427,10 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
   }
   if (parts.helpers.has("coded")) {
     lines.push(...indentLines(codedTextHelper(), 1));
+    lines.push("");
+  }
+  if (parts.helpers.has("prune")) {
+    lines.push(...indentLines(pruneHelpers(), 1));
     lines.push("");
   }
   if (parts.helpers.has("handlebars")) {
@@ -859,6 +863,100 @@ function codedTextHelper(): string[] {
   ];
 }
 
+/**
+ * Run-time pruning so a missing source value leaves the ELEMENT out, as the
+ * preview does (F-M2, F-M10): an empty data value, an ELEMENT without value
+ * and an item structure without items are dropped.
+ */
+function pruneHelpers(): string[] {
+  return [
+    "function __blankValue(x: unknown): boolean {",
+    "  if (x == null) return true;",
+    "  if (typeof x === \"number\") return !Number.isFinite(x);",
+    "  return typeof x === \"string\" && !x.trim();",
+    "}",
+    "function __toNum(x: unknown): number {",
+    "  if (x == null || (typeof x === \"string\" && !x.trim())) return NaN;",
+    "  return Number(x);",
+    "}",
+    "function __num(x: unknown, make: any): unknown {",
+    "  const m = __toNum(x);",
+    "  return Number.isFinite(m) ? make(m) : undefined;",
+    "}",
+    "function __filled(v: unknown): unknown {",
+    "  if (v == null) return undefined;",
+    "  if (typeof v !== \"object\") return __blankValue(v) ? undefined : v;",
+    "  const o = v as any;",
+    "  if (\"magnitude\" in o && typeof o.magnitude === \"number\" && Number.isNaN(o.magnitude)) return undefined;",
+    "  // Coded text: codedText() already returns undefined for a missing value; a",
+    "  // built value with a blank rubric is kept so validation reports it (as preview).",
+    "  if (\"defining_code\" in o) return v;",
+    "  if (\"issuer\" in o && \"id\" in o) return __blankValue(o.id) ? undefined : v;",
+    "  if (\"value\" in o && !(\"magnitude\" in o) && __blankValue(o.value)) return undefined;",
+    "  return v;",
+    "}",
+    "function __el(e: unknown): unknown {",
+    "  const o = e as any;",
+    "  return o.value == null && o.null_flavour == null ? undefined : e;",
+    "}",
+    "function __tree(t: unknown): unknown {",
+    "  const items = (t as any).items;",
+    "  return Array.isArray(items) && !items.length ? undefined : t;",
+    "}",
+    "function __toBool(x: unknown): unknown {",
+    "  if (typeof x === \"boolean\" || x == null) return x;",
+    "  const t = String(x).trim().toLowerCase();",
+    "  if (!t) return undefined;",
+    "  if (t === \"true\" || t === \"false\") return t === \"true\";",
+    "  return typeof x === \"number\" ? x !== 0 : Boolean(x);",
+    "}",
+    "function __keep(items: unknown[]): unknown[] {",
+    "  return items.filter((x) => x !== undefined && x !== null);",
+    "}",
+  ];
+}
+
+const PRUNE_TREE_TYPES = new Set(["ITEM_TREE", "ITEM_LIST", "CLUSTER"]);
+
+/** Wrap a constructed RM node so it drops out at run time when it ends up empty. */
+export function wrapPruneNode(rmType: string, code: string, ctx: TsEmitContext): string {
+  if (rmType === "ELEMENT") return (ctx.helpers.add("prune"), `__el(${code})`);
+  if (PRUNE_TREE_TYPES.has(rmType)) return (ctx.helpers.add("prune"), `__tree(${code})`);
+  return code;
+}
+
+/** An ELEMENT value that is empty at run time is left out. */
+export function wrapPruneValue(code: string, ctx: TsEmitContext): string {
+  ctx.helpers.add("prune");
+  return `__filled(${code})`;
+}
+
+/** DV_BOOLEAN.value: a real boolean ("false" is false), not a string (F-M11). */
+export function wrapBooleanValue(code: string, ctx: TsEmitContext): string {
+  ctx.helpers.add("prune");
+  return `__toBool(${code})`;
+}
+
+/** A list attribute: drop entries that were pruned. */
+export function wrapPruneList(code: string, ctx: TsEmitContext): string {
+  ctx.helpers.add("prune");
+  return `__keep(${code})`;
+}
+
+/**
+ * Numeric data values (DV_COUNT throws on NaN): construct only when the
+ * magnitude is a finite number, else leave the value out.
+ */
+export function guardNumericConstruct(
+  magnitudeExpr: string,
+  build: (magnitudeIdent: string) => string,
+  ctx: TsEmitContext,
+): string {
+  if (/^-?\d+(\.\d+)?$/.test(magnitudeExpr.trim())) return build(magnitudeExpr.trim());
+  ctx.helpers.add("prune");
+  return `__num(${magnitudeExpr}, (__m) => ${build("__m")})`;
+}
+
 function rmHelper(): string[] {
   return [
     "/** Apply an init bag on RM classes that still use a zero-arg constructor. */",
@@ -1012,7 +1110,7 @@ function emitSkeletonNode(
   // Name and archetype id alone are not a mapping. Drop the shell, including
   // mandatory children of an optional subtree that has no clinical value.
   if (node.rmType !== "COMPOSITION" && propsLackClinicalContent(props)) return null;
-  return formatRmConstruct(node.rmType, props, indent, ctx);
+  return wrapPruneNode(node.rmType, formatRmConstruct(node.rmType, props, indent, ctx), ctx);
 }
 
 function emitSkeletonLoop(
@@ -1043,15 +1141,26 @@ function emitSkeletonLoop(
     indent + 1,
     parentArchetypeRef,
   );
-  const constructed = formatRmConstruct(node.rmType, props, indent + 1, innerCtx);
+  const constructed = wrapPruneNode(
+    node.rmType,
+    formatRmConstruct(node.rmType, props, indent + 1, innerCtx),
+    innerCtx,
+  );
   const bound =
     `(__vars[${JSON.stringify(loop.varName)}] = ${ident}, ` +
     `__vars[${JSON.stringify(loopIndexBinderName(loop.varName))}] = ${ident}_i, ` +
     `__vars[${JSON.stringify(loopLengthBinderName(loop.varName))}] = ${ident}_col.length, ` +
     `${constructed})`;
   return (
-    `...xpathNodes(${JSON.stringify(loop.path)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`
+    `...xpathNodes(${JSON.stringify(loop.path)}${relativeLoopScope(loop.path, ctx)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`
   );
+}
+
+/** A relative loop path inside an outer loop walks from the outer item (F-M7). */
+function relativeLoopScope(path: string, ctx: TsEmitContext): string {
+  const trimmed = path.trim();
+  const relative = trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
+  return relative && ctx.loopVar ? `, ${ctx.loopVar}` : "";
 }
 
 function skeletonContainerProps(
@@ -1098,7 +1207,9 @@ function skeletonContainerProps(
     const asList = listAttr || codes.some((c) => c.trimStart().startsWith("..."));
     if (asList) {
       const inner = codes.map((c) => indentTsBlock(c, indent + 2)).join(",\n");
-      props.push([attr, `[\n${inner},\n${"  ".repeat(indent + 1)}]`]);
+      props.push([attr, wrapPruneList(`[\n${inner},\n${"  ".repeat(indent + 1)}]`, ctx)]);
+    } else if (node.rmType === "ELEMENT" && attr === "value") {
+      props.push([attr, wrapPruneValue(codes[0]!, ctx)]);
     } else {
       props.push([attr, codes[0]!]);
     }
@@ -1175,19 +1286,26 @@ function emitSkeletonValue(
 
   if (rmType === "DV_QUANTITY") {
     if (!expr) return null;
-    const props: Array<[string, string]> = [["magnitude", asNumberExpr(expr)]];
-    if (fields.units) props.push(["units", JSON.stringify(fields.units)]);
-    return formatRmConstruct("DV_QUANTITY", props, indent, ctx);
+    return guardNumericConstruct(expr, (m) => {
+      const props: Array<[string, string]> = [["magnitude", m]];
+      if (fields.units) props.push(["units", JSON.stringify(fields.units)]);
+      return formatRmConstruct("DV_QUANTITY", props, indent, ctx);
+    }, ctx);
   }
 
   if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
-    return formatRmConstruct(rmType, [["magnitude", asNumberExpr(expr)]], indent, ctx);
+    return guardNumericConstruct(
+      expr,
+      (m) => formatRmConstruct(rmType, [["magnitude", m]], indent, ctx),
+      ctx,
+    );
   }
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
-    return formatRmConstruct("DV_BOOLEAN", [["value", asBooleanExpr(expr)]], indent, ctx);
+    const value = /^xpathBoolean\(/.test(expr) ? expr : wrapBooleanValue(expr, ctx);
+    return formatRmConstruct("DV_BOOLEAN", [["value", value]], indent, ctx);
   }
 
   if (

@@ -47,6 +47,11 @@ import {
   formatObjectLiteral,
   formatRmConstruct,
   generateTypeScriptFromSkeleton,
+  guardNumericConstruct,
+  wrapBooleanValue,
+  wrapPruneList,
+  wrapPruneNode,
+  wrapPruneValue,
   generateTypeScriptFromSlots,
   indentTsBlock,
   isBlankGeneratedExpr,
@@ -367,7 +372,7 @@ function emitRmContainer(block: Block, ctx: TsEmitContext, indent: number): stri
     return "";
   }
   if (ENTRY_RM_TYPES.has(rmType)) ensureEntrySubject(props, ctx);
-  return formatRmConstruct(rmType, props, indent, ctx);
+  return wrapPruneNode(rmType, formatRmConstruct(rmType, props, indent, ctx), ctx);
 }
 
 /** RM ENTRY subtypes: `subject` is mandatory (RM 1.1 ENTRY). */
@@ -414,7 +419,7 @@ function collectRmProps(
     const value = block.getInputTargetBlock("VALUE");
     if (value && !value.isShadow()) {
       const code = emitBlock(value, ctx, indent + 1);
-      if (!isBlankGeneratedExpr(code)) props.push(["value", code]);
+      if (!isBlankGeneratedExpr(code)) props.push(["value", wrapPruneValue(code, ctx)]);
     }
   }
 
@@ -460,7 +465,7 @@ function emitAttribute(
   if (isListAttribute(parentRmType, attr)) {
     const code = emitBlock(target, ctx, indent + 1);
     if (!code || isBlankGeneratedExpr(code)) return null;
-    return `[${code}]`;
+    return wrapPruneList(`[${code}]`, ctx);
   }
   const simplified = emitSimplifiedParty(attr, target, ctx, indent);
   if (simplified) return simplified;
@@ -563,6 +568,7 @@ function emitStatementList(
   asList: boolean,
   ctx: TsEmitContext,
   indent: number,
+  prune = true,
 ): string | null {
   const blocks: Block[] = [];
   let current = first;
@@ -587,7 +593,8 @@ function emitStatementList(
     if (!isBlankGeneratedExpr(code)) parts.push(indentTsBlock(code, indent + 2));
   }
   if (!parts.length) return null;
-  return `[\n${parts.join(",\n")},\n${"  ".repeat(indent + 1)}]`;
+  const list = `[\n${parts.join(",\n")},\n${"  ".repeat(indent + 1)}]`;
+  return prune ? wrapPruneList(list, ctx) : list;
 }
 
 function emitTsLoopBind(name: string, ident: string): string {
@@ -626,11 +633,18 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   const bound = `(${emitTsLoopBind(name, ident)} ${body})`;
   if (sourcePath) {
     ctx.helpers.add("nodes");
-    return `...xpathNodes(${JSON.stringify(sourcePath)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+    // A relative LIST inside an outer loop walks from the outer item (F-M7).
+    const scope = ctx.loopVar && isRelativeSourcePath(sourcePath) ? `, ${ctx.loopVar}` : "";
+    return `...xpathNodes(${JSON.stringify(sourcePath)}${scope}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
   }
   const listBlock = block.getInputTargetBlock("LIST");
   const list = listBlock ? emitBlock(listBlock, ctx, indent) : "[]";
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+}
+
+function isRelativeSourcePath(path: string): boolean {
+  const trimmed = path.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
 }
 
 function emitVariableSet(block: Block, ctx: TsEmitContext, indent: number): string {
@@ -678,6 +692,8 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     if (attr.name === "value") rawValue = code;
     const wrapped = attr.name === "magnitude"
       ? code
+      : rmType === "DV_BOOLEAN" && attr.name === "value"
+      ? wrapBooleanValue(code, ctx)
       : (attr.typeName === "String" || attr.name === "value" || attr.name === "code_string" ||
           attr.name === "units" || attr.name === "terminology_id")
       ? asStringExpr(code)
@@ -716,6 +732,14 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     return `new DV_TEXT(${props[0]![1]})`;
   }
   if (!props.length) return "";
+  const magnitudeAt = props.findIndex(([key]) => key === "magnitude");
+  if (magnitudeAt >= 0) {
+    // A missing number leaves the value out instead of NaN (DV_COUNT throws on NaN).
+    return guardNumericConstruct(props[magnitudeAt]![1], (m) => {
+      const guarded = props.map(([key, value]): [string, string] => [key, key === "magnitude" ? m : value]);
+      return formatRmConstruct(rmType, guarded, indent, ctx);
+    }, ctx);
+  }
   return formatRmConstruct(rmType, props, indent, ctx);
 }
 
@@ -870,7 +894,7 @@ function emitGeneric(block: Block, ctx: TsEmitContext, indent: number): string {
     if (!input.name.startsWith("TARGET_") && !input.name.startsWith("SCHEMA_OPT_")) continue;
     const attr = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
     if (input.type === STATEMENT_INPUT_TYPE) {
-      const code = emitStatementList(block.getInputTargetBlock(input.name), true, ctx, indent);
+      const code = emitStatementList(block.getInputTargetBlock(input.name), true, ctx, indent, false);
       if (code) props.push([attr, code]);
       continue;
     }

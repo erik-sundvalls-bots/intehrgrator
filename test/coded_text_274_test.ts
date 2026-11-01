@@ -75,7 +75,7 @@ async function suggest(
 
 async function run(
   service: WorkbenchService,
-  outputMode: "typescript" | "xquery",
+  outputMode: "preview" | "typescript" | "xquery",
 ): Promise<TestResult> {
   if (outputMode === "xquery") await ensureXQueryRuntime();
   return ((await callAgentTool(service, "run_test", { outputMode })) as {
@@ -310,4 +310,20 @@ Deno.test("#274 the slot tree shows a coded DV_TEXT slot as DV_CODED_TEXT; the g
       "map the slot as `DV_CODED_TEXT` (recommended)",
     );
   }
+});
+
+Deno.test("#274 a coded DV_TEXT slot stays DV_CODED_TEXT in preview after a bundle reload (F-M16)", async () => {
+  const service = await vitals();
+  const report = await suggest(service, { slotId: DIAGNOSIS, block: CODED_BLOCK });
+  assertEquals(report.applied, 1, JSON.stringify(report));
+  const exported = await callAgentTool(service, "export_bundle", { format: "zip" }) as { bytesBase64: string };
+  const reloaded = new WorkbenchService();
+  await callAgentTool(reloaded, "load_bundle", { bytesBase64: exported.bytesBase64 });
+  const values = [];
+  for (const mode of ["preview", "typescript"] as const) {
+    const value = diagnosisValue(await run(reloaded, mode));
+    assertEquals(value._type, "DV_CODED_TEXT", mode);
+    values.push((value.defining_code as { code_string: string }).code_string);
+  }
+  assertEquals(values, ["S06.0", "S06.0"]);
 });
