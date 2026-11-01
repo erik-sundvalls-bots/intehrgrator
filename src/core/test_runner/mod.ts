@@ -445,7 +445,9 @@ function withIdentifierFields(
   ctx: SourceContext,
 ): unknown {
   if (value == null || value === "" || Array.isArray(value)) return value;
-  const base = typeof value === "object" ? { ...(value as Record<string, unknown>) } : { id: value };
+  const base: Record<string, unknown> = typeof value === "object"
+    ? { ...(value as Record<string, unknown>) }
+    : { id: value };
   for (const [attr, expression] of Object.entries(slot.fieldExpressions ?? {})) {
     if (base[attr] != null) continue;
     try {

@@ -1363,6 +1363,8 @@ export class WorkbenchController {
       expression: string;
       hatch?: MappingSlotHatch;
       review?: MappingSlotReview;
+      unitsExpression?: string;
+      fieldExpressions?: Record<string, string>;
     }>,
     loops: MappingLoop[] = [],
     optionalRm?: MappingModel["optionalRm"],
