@@ -86,3 +86,11 @@ Deno.test("OBX mapped: preview and TypeScript output validate (DV_IDENTIFIER typ
     assertEquals(run.valid, true, outputMode);
   }
 });
+
+Deno.test("Karda order: the nested Vårdgivare cluster and the identifier type reach both outputs (F-M12)", async () => {
+  const order = (await runBoth("karda-ordinationsdata-to-openehr-flat"))[0]!;
+  for (const [mode, flat] of [["preview", order.preview], ["typescript", order.typescript]] as const) {
+    assertEquals(value(flat, "/context/vårdenhet/vårdgivare/namn"), "PDL-vårdgivare SLL IdP TEST", mode);
+    assertEquals(value(flat, "/context/vårdenhet/identifierare|type"), "urn:oid:1.2.752.29.4.19", mode);
+  }
+});
