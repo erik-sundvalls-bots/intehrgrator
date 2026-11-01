@@ -112,10 +112,12 @@ The Simple-vitals, series and both Karda mappings were redone through the headle
 | --- | --- | --- | --- |
 | Simple-vitals | valid | valid | — |
 | Simple-vitals-series | valid | valid except `bp-series-inst-2` | Pulse left out; a row without position gives an empty ELEMENT in TypeScript |
-| karda-ordinationsdata-to-openehr-flat | invalid (nested loop values empty) | valid for instances with a trial id | Nested loops, empty optional text in TypeScript, Vårdgivare cluster missing, TypeScript composer/facility from defaults |
-| karda-administreringsdata-to-openehr-flat | valid | valid | Vårdgivare cluster missing, TypeScript composer/facility from defaults |
-| obx-mhv1-mapped-json-to-openehr | invalid | crashes | OPT without archetype roots or term definitions; mapping not redone |
+| karda-ordinationsdata-to-openehr-flat | valid | valid for the 3 instances with a trial id | TypeScript writes an empty trial-name text when the source has none; preview drops DV_IDENTIFIER type; Vårdgivare cluster missing |
+| karda-administreringsdata-to-openehr-flat | valid | valid | Preview drops DV_IDENTIFIER type; Vårdgivare cluster missing |
+| obx-mhv1-mapped-json-to-openehr | valid | valid | Partial mapping; OPT without term definitions (at-code labels); mapping not redone |
 | chemo / lung-MDT (+ decision-table siblings) | valid | — (XML targets) | Kept as production-parity rebuilds |
 | dummy-json-vitals-mapped | valid | valid | — |
+
+Composer and health care facility are party blocks (name + identifier) on the canvas: a `map(...)` from `import_suggestions` on those slots is not kept in the saved Blockly. Interval validation is switched off in output validation (ehrtslib DV_IDENTIFIER workaround), so interval checks are not verified.
 
 App bugs behind the gaps are listed with repros in the 0.9 findings (F-M1 … F-M12).

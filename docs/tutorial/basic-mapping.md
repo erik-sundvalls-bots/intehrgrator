@@ -112,7 +112,7 @@ Named-invalid vitals instances (the filename contains `invalid` or `broken`) are
 
 The valid Simple-vitals and series instances show ✅ in **Mapping preview** and **TypeScript**. The clinical magnitudes `120` / `80` / `72` (series `138`) are present.
 
-Lung-MDT **Mapping preview** and **Handlebars** agree on evaluated TermId and Note pairs. Karda mapped sets emit Simplified FLAT; the medication treatment (administration) set shows ✅, and the open issues of each set are listed in [example-sets-audit.md](../agents/example-sets-audit.md). The OBX MHV1 mapped set is partial and not ready to demo.
+Lung-MDT **Mapping preview** and **Handlebars** agree on evaluated TermId and Note pairs. Karda mapped sets emit Simplified FLAT; the medication treatment (administration) set shows ✅, and the open issues of each set are listed in [example-sets-audit.md](../agents/example-sets-audit.md). The OBX MHV1 mapped set maps only part of the source.
 
 Lung-MDT Handlebars `@first` / `@last` is still open ([#135](https://github.com/regionstockholm/intehrgrator/issues/135)).
 
