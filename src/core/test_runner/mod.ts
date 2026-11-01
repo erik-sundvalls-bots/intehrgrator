@@ -23,6 +23,7 @@ import {
   collectValueSlots,
   findSkeletonTrail,
 } from "../skeleton/generate_skeleton.ts";
+import { applyCodedTextSlots } from "../openehr/coded_text.ts";
 import { generateTypeScript, generate } from "../codegen/mod.ts";
 import {
   runGeneratedTypeScript,
@@ -112,9 +113,11 @@ export function runTest(
     const target = options.target
       ? {
         ...options.target,
-        skeleton: applyOptionalRmToSkeleton(
-          options.target.skeleton,
-          model.optionalRm ?? [],
+        // A DV_TEXT slot mapped as DV_CODED_TEXT renders as the subclass in
+        // every mode, also after a reload of the saved mapping (#274, F-M16).
+        skeleton: applyCodedTextSlots(
+          applyOptionalRmToSkeleton(options.target.skeleton, model.optionalRm ?? []),
+          model.slots,
         ),
       }
       : options.target;
