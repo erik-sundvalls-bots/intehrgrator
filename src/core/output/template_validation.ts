@@ -40,12 +40,18 @@ function ensureRmTypeRegistry(): void {
 // `/min` and `{beats}/min` pass. `initialize()` loads ucum-lhc (already in
 // the bundle) for full checks; it falls back to ehrtslib's syntax check if
 // ucum-lhc cannot load.
+// ehrtslib v0.9's interval check reads `obj._type` as the RM type name, but
+// DV_IDENTIFIER keeps its `type` attribute in `_type` (a BASE String), so any
+// DV_IDENTIFIER with a type stopped validation with "obj._type?.includes is
+// not a function". Interval checks stay off until that is fixed in ehrtslib;
+// the RM invariants still cover DV_INTERVAL bounds.
 const validator = new TemplateValidator({
   failFast: false,
   validateUnits: true,
   validateTerminology: true,
   validateRMSpecification: true,
   validateInvariants: true,
+  validateIntervals: false,
 });
 
 await validator.initialize();
