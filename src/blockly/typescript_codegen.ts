@@ -48,6 +48,7 @@ import {
   formatRmConstruct,
   generateTypeScriptFromSkeleton,
   guardNumericConstruct,
+  wrapBooleanValue,
   wrapPruneList,
   wrapPruneNode,
   wrapPruneValue,
@@ -684,6 +685,8 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     if (attr.name === "value") rawValue = code;
     const wrapped = attr.name === "magnitude"
       ? code
+      : rmType === "DV_BOOLEAN" && attr.name === "value"
+      ? wrapBooleanValue(code, ctx)
       : (attr.typeName === "String" || attr.name === "value" || attr.name === "code_string" ||
           attr.name === "units" || attr.name === "terminology_id")
       ? asStringExpr(code)

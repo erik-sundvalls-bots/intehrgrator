@@ -903,6 +903,13 @@ function pruneHelpers(): string[] {
     "  const items = (t as any).items;",
     "  return Array.isArray(items) && !items.length ? undefined : t;",
     "}",
+    "function __toBool(x: unknown): unknown {",
+    "  if (typeof x === \"boolean\" || x == null) return x;",
+    "  const t = String(x).trim().toLowerCase();",
+    "  if (!t) return undefined;",
+    "  if (t === \"true\" || t === \"false\") return t === \"true\";",
+    "  return typeof x === \"number\" ? x !== 0 : Boolean(x);",
+    "}",
     "function __keep(items: unknown[]): unknown[] {",
     "  return items.filter((x) => x !== undefined && x !== null);",
     "}",
@@ -922,6 +929,12 @@ export function wrapPruneNode(rmType: string, code: string, ctx: TsEmitContext):
 export function wrapPruneValue(code: string, ctx: TsEmitContext): string {
   ctx.helpers.add("prune");
   return `__filled(${code})`;
+}
+
+/** DV_BOOLEAN.value: a real boolean ("false" is false), not a string (F-M11). */
+export function wrapBooleanValue(code: string, ctx: TsEmitContext): string {
+  ctx.helpers.add("prune");
+  return `__toBool(${code})`;
 }
 
 /** A list attribute: drop entries that were pruned. */
@@ -1284,7 +1297,8 @@ function emitSkeletonValue(
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
-    return formatRmConstruct("DV_BOOLEAN", [["value", asBooleanExpr(expr)]], indent, ctx);
+    const value = /^xpathBoolean\(/.test(expr) ? expr : wrapBooleanValue(expr, ctx);
+    return formatRmConstruct("DV_BOOLEAN", [["value", value]], indent, ctx);
   }
 
   if (

@@ -676,7 +676,7 @@ function assignDataValueFields(
     return;
   }
   if (rmType === "DV_BOOLEAN") {
-    output.value = record && "value" in record ? Boolean(record.value) : Boolean(value);
+    output.value = booleanValue(record && "value" in record ? record.value : value);
     return;
   }
   if (rmType === "DV_COUNT") {
@@ -881,6 +881,14 @@ function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, 
       : { _type: "TERMINOLOGY_ID", value: String(term) };
   }
   return phrase;
+}
+
+/** "false" is false, as in TypeScript mode (F-M11). */
+function booleanValue(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  const text = String(value ?? "").trim().toLowerCase();
+  if (text === "true" || text === "false") return text === "true";
+  return typeof value === "number" ? value !== 0 : Boolean(text);
 }
 
 function isAbsentValue(value: unknown): boolean {
