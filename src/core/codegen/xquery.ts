@@ -353,7 +353,7 @@ function emitLoop(
   baseEnv: XQueryEmitEnv = {},
 ): string[] {
   const ident = loopVarIdent(loop.varName);
-  const sequence = compileLoopSequence(loop);
+  const sequence = compileLoopSequence(loop, baseEnv.sourceVar);
   const env: XQueryEmitEnv = {
     ...baseEnv,
     sourceVar: `$${ident}`,
@@ -405,8 +405,12 @@ function loopVarIdent(varName: string): string {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(varName) ? varName : "item";
 }
 
-/** Compile a loop collection path to an XQuery sequence expression. */
-export function compileLoopSequence(loop: MappingLoop): string {
+/**
+ * Compile a loop collection path to an XQuery sequence expression. A relative
+ * path inside another loop (`Substanser` in the treatment-day loop) is read
+ * from the outer loop's item `scopeVar`, as preview and TypeScript do (F-M7).
+ */
+export function compileLoopSequence(loop: MappingLoop, scopeVar?: string): string {
   if (loop.kind === "list") {
     if (!loop.collection) {
       return "(: for_each_list without collection expression :) ()";
@@ -430,6 +434,11 @@ export function compileLoopSequence(loop: MappingLoop): string {
 
   if (path.startsWith("/")) {
     return `$source${path}`;
+  }
+
+  if (scopeVar && scopeVar !== "$source") {
+    const lookup = jsonDollarPathToLookup(`$.${path.replace(/\[\*\]$/, "")}`, scopeVar);
+    if (lookup) return `local:iterable-sequence(${lookup})`;
   }
 
   return `local:lookup-sequence($source, ${xqString(path)})`;
@@ -989,7 +998,7 @@ function emitSkelLoop(
   };
   const props = skelProps(node, inner, parentArchetypeRef);
   const constructed = formatSkelConstruct(node, props, inner, false);
-  const sequence = compileLoopSequence(loop);
+  const sequence = compileLoopSequence(loop, ctx.env.sourceVar);
   const flwor =
     `let $${ident}_col := ${sequence} ` +
     `for $${ident} at $${ident}_pos in $${ident}_col ` +

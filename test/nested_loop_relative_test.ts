@@ -1,10 +1,11 @@
 /**
  * A loop inside a loop may use a LIST path relative to the outer item
- * (`Substanser` inside the treatment-day loop), in preview and TypeScript (F-M7).
+ * (`Substanser` inside the treatment-day loop), in preview, TypeScript and XQuery (F-M7).
  */
 import { assert, assertEquals } from "@std/assert";
 import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
 import { callAgentTool } from "@intehrgrator/agent/tools.ts";
+import { ensureXQueryRuntime } from "@intehrgrator/core/codegen/run_xquery.ts";
 
 const DAY = "/content/at0000";
 const ACTIVITY = `${DAY}/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001`;
@@ -50,11 +51,13 @@ Deno.test("nested loop with a relative LIST walks from the outer item (F-M7)", a
   }) as { report: { applied: number; errors: string[]; loopsAccepted?: number } };
   assertEquals(imported.report.applied, 1, imported.report.errors.join("; "));
   assertEquals(imported.report.loopsAccepted, 2);
+  await ensureXQueryRuntime();
   const found = [];
-  for (const outputMode of ["preview", "typescript"] as const) {
+  for (const outputMode of ["preview", "typescript", "xquery"] as const) {
     const run = await callAgentTool(service, "run_test", { outputMode }) as { testResult: { output: unknown } };
     found.push(substances(run.testResult.output));
   }
   assert(found[0]!.length >= 2 && found[0]!.every((name) => name.trim()), JSON.stringify(found));
   assertEquals(found[1], found[0]);
+  assertEquals(found[2], found[0]);
 });
