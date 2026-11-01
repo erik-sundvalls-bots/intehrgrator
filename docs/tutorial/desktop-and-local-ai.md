@@ -41,7 +41,7 @@ npx skills@latest add regionstockholm/intehrgrator --agent cursor --skill intehr
 - Map **node by node** (`map_slot`), which is the transparent default while you watch the canvas, or apply a suggestion envelope (`import_suggestions`)
 - Inspect slots, source trees, sheets, decision tables, and constraint warnings
 - Run tests, export a project or a conversion script, undo and redo
-- **Open observer** shows a live timeline of agent edits
+- The **Open viewer window** button (icon in the Mapping Editor header) shows the live canvas, an agent legend and a timeline of agent edits
 - Several agents at once, each leasing its own slots or subtrees: [Parallel IDE agents](parallel-agents.md)
 
 Headless, with no window:
@@ -63,4 +63,4 @@ Full API reference: [AGENT_WORKFLOW.md](../AGENT_WORKFLOW.md).
 | **openEHR assistant** | Archetype and template lookup, terminology, spec guidance |
 | **DeepWiki** | Questions about ehrtslib and openEHR libraries |
 
-The web app does not expose this server. Use **Call AI** or copy-and-paste there, or install the desktop build.
+The web app does not expose this server. Use the **AI chat** panel (**Call AI**) or copy-and-paste there, or install the desktop build. The VS Code extension and the headless app (`intEHRgrator --headless`) are the other ways to run the workbench.
