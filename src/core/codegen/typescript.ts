@@ -1152,8 +1152,15 @@ function emitSkeletonLoop(
     `__vars[${JSON.stringify(loopLengthBinderName(loop.varName))}] = ${ident}_col.length, ` +
     `${constructed})`;
   return (
-    `...xpathNodes(${JSON.stringify(loop.path)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`
+    `...xpathNodes(${JSON.stringify(loop.path)}${relativeLoopScope(loop.path, ctx)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`
   );
+}
+
+/** A relative loop path inside an outer loop walks from the outer item (F-M7). */
+function relativeLoopScope(path: string, ctx: TsEmitContext): string {
+  const trimmed = path.trim();
+  const relative = trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
+  return relative && ctx.loopVar ? `, ${ctx.loopVar}` : "";
 }
 
 function skeletonContainerProps(

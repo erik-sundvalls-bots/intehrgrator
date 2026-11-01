@@ -474,6 +474,11 @@ function parentLoop(loop: MappingLoop, loops: readonly MappingLoop[]): MappingLo
  * from the document root, and a `[*]` step concatenates the arrays it reaches
  * (`$.KurDagar[*].Substanser` is every substance, not one array per day) (#321).
  */
+function isRelativeLoopPath(path: string): boolean {
+  const trimmed = path.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
+}
+
 function loopItems(path: string, root: unknown): unknown[] {
   const found = collectJsonNodes(path, root);
   return /\[\s*\*\s*\]|\.\*/.test(path) ? found.flatMap((item) => Array.isArray(item) ? item : [item]) : found;
@@ -507,7 +512,8 @@ function evaluateLoopSlots(
     const node = findSkeletonTrail(skeleton, child.attachSlotId).at(-1);
     return node ? collectAllSlotIds([node]) : [];
   }));
-  const nodes = loopItems(loop.path, root);
+  // A relative LIST inside an outer loop walks from the outer item (F-M7).
+  const nodes = loopItems(loop.path, isRelativeLoopPath(loop.path) ? ctx.json : root);
   const itemCtx = (node: unknown): SourceContext => ({
     ...ctx,
     json: node,

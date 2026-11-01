@@ -633,11 +633,18 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   const bound = `(${emitTsLoopBind(name, ident)} ${body})`;
   if (sourcePath) {
     ctx.helpers.add("nodes");
-    return `...xpathNodes(${JSON.stringify(sourcePath)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+    // A relative LIST inside an outer loop walks from the outer item (F-M7).
+    const scope = ctx.loopVar && isRelativeSourcePath(sourcePath) ? `, ${ctx.loopVar}` : "";
+    return `...xpathNodes(${JSON.stringify(sourcePath)}${scope}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
   }
   const listBlock = block.getInputTargetBlock("LIST");
   const list = listBlock ? emitBlock(listBlock, ctx, indent) : "[]";
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+}
+
+function isRelativeSourcePath(path: string): boolean {
+  const trimmed = path.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
 }
 
 function emitVariableSet(block: Block, ctx: TsEmitContext, indent: number): string {
