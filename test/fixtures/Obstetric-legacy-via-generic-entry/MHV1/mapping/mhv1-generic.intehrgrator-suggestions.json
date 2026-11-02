@@ -6,7 +6,7 @@
     "targetId": "MHV1- Prenatal visit.encounter.v1"
   },
   "notes": [
-    "Partial MHV1 mapping from the generic-entry FLAT composition. Include when omits an optional entry when its source value is missing. Lifestyle text is the generic *text field, not a code table. The source schema is the integration operational template. Examples are FLAT compositions."
+    "Partial MHV1 mapping from the generic-entry FLAT composition. Include when omits an optional entry when its source value is missing. Lifestyle text is the generic *text field, not a code table. The source schema is the integration operational template. Examples are FLAT compositions. Bp_comp is a date-time; in Swedish obstetrics bp can mean beräknad partum. These examples leave it empty, so EDD stays berakforsm."
   ],
   "includes": [
     {
