@@ -6,17 +6,17 @@
     "targetId": "MHV1- Prenatal visit.encounter.v1"
   },
   "notes": [
-    "Partial MHV1 mapping. Direct copies (category, setting, start time, care unit, LMP) have no confidence. Percents below are the chance that guess is the right slot or value. Bp_comp is a date-time; in Swedish obstetrics bp can mean beräknad partum, and these examples leave it empty."
+    "Partial MHV1 mapping. Direct copies (category, setting, start time, care unit, LMP) have no confidence. Percents below are the chance that guess is the right slot or value. BerakForSM, BerakForUL, and BerakForET are different delivery-date calculations: SM is senaste mens, UL is ultraljud. EDD uses berakforsm. Bp_comp is a separate date-time (bp can mean beräknad partum) and these examples leave it empty."
   ],
   "questions": [
     {
       "text": "Which source date should fill estimated date of delivery?",
       "options": [
         {
-          "text": "berakforsm, the cycle date",
+          "text": "berakforsm, calculated from senaste mens (SM)",
           "recommended": true
         },
-        "berakforul when present, otherwise berakforsm",
+        "berakforul (ultraljud) when present, otherwise berakforsm",
         "Also map berakforul and berakforet on their own date elements",
         "Leave EDD unmapped until bp_comp (beräknad partum) is defined"
       ]
@@ -84,7 +84,7 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/berakforsm\"]"
         }
       },
-      "note": "EDD evaluation only when berakforsm is present."
+      "note": "EDD evaluation only when berakforsm (senaste mens) is present."
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.10/items/at0005.2",
@@ -374,7 +374,7 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/berakforsm\"]"
         }
       },
-      "note": "Cycle date only. berakforul, berakforet, and bp_comp (beräknad partum) are unused.",
+      "note": "Delivery calculated from senaste mens (SM). Ultraljud (berakforul) and BerakForET are the other calculations and are unused.",
       "confidence": 60
     },
     {
