@@ -25,17 +25,14 @@ Deno.test("Simple-vitals: STRUCTURED output validates in preview and TypeScript"
   }
 });
 
-Deno.test("STRUCTURED output with an unknown field is an output validation error", async () => {
+Deno.test("Simple-vitals-series: a coded diagnosis on a DV_TEXT node validates in STRUCTURED", async () => {
   const service = new WorkbenchService();
   await callAgentTool(service, "load_example_set", { setId: "Simple-vitals-series" });
   await callAgentTool(service, "set_instance_encoding", { encoding: "structured-json" });
   const run = await callAgentTool(service, "run_test", { outputMode: "typescript" }) as {
     testResult: { outputValidation?: { valid?: boolean; messages?: Array<{ message: string }> } };
   };
-  // The diagnosis is coded on a DV_TEXT-only node; STRUCTURED has no field for its code.
-  assertEquals(run.testResult.outputValidation?.valid, false);
-  assertEquals(
-    run.testResult.outputValidation?.messages?.some((m) => m.message.includes('DV_TEXT has no FLAT field "|code"')),
-    true,
-  );
+  // ehrtslib#255: a coded text where the template allows plain text is read and written as coded text.
+  assertEquals(run.testResult.outputValidation?.messages ?? [], []);
+  assertEquals(run.testResult.outputValidation?.valid, true);
 });
