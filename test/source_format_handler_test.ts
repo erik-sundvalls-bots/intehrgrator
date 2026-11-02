@@ -2,6 +2,7 @@ import { assertEquals, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import {
   detectSourceFormat,
+  operationalTemplateSourceError,
   getSourceFormatHandler,
   isSourceFormatId,
   listSourceFormatIds,
@@ -34,6 +35,10 @@ Deno.test("detectSourceFormat from filename", () => {
     "openehr-flat-json",
   );
   assertEquals(detectSourceFormat("unknown.bin"), "json");
+  assertEquals(operationalTemplateSourceError("generic.opt")?.includes("targets"), true);
+  assertEquals(operationalTemplateSourceError("generic.opt2")?.includes("targets"), true);
+  assertEquals(operationalTemplateSourceError("generic.oet")?.includes("targets"), true);
+  assertEquals(operationalTemplateSourceError("flat.json"), null);
 });
 
 Deno.test("Avro .avsc record schema loads as field tree, not Avro meta document", async () => {

@@ -689,7 +689,7 @@ function emitXmlOrSchema(block: Block, ctx: GoEmitContext): string[] {
 
 function isStructureBlock(type: string): boolean {
   return type === XML_ELEMENT_TYPE || type.startsWith("schema_") || type === "controls_if" ||
-    type === "for_each_list";
+    type === "include_when" || type === "for_each_list";
 }
 
 function xmlTagName(block: Block): string {

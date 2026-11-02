@@ -14,6 +14,8 @@
 | openEHR STRUCTURED JSON as source | ✓ | `openehr-structured-json` | Same JSON evaluator; simplified-format leaf detection |
 | openEHR Web Template as Source Schema | ✓ | `openehr-web-template` | Tree from `templateId` + `tree` |
 
+An operational template (`.opt`, `.opt2`, `.oet`) is a target. Loading one as a source schema is rejected. The matching source is a FLAT, STRUCTURED, or canonical JSON composition, or a Web Template.
+
 ## Source Format Handler
 
 Callers (Click-to-Map, Test Run, instance validation, schema load) go through a small **Source Format Handler** interface instead of branching on `"json" | "xml"` in every module:

@@ -128,6 +128,17 @@ export function isSourceFormatId(value: string): value is SourceFormatId {
   return handlers.has(value);
 }
 
+const OPERATIONAL_TEMPLATE_FILE = /\.(?:opt2?|oet)$/i;
+
+/**
+ * Operational templates are targets. A source is a composition (FLAT,
+ * STRUCTURED, or canonical JSON) or a Web Template.
+ */
+export function operationalTemplateSourceError(filename: string): string | null {
+  if (!OPERATIONAL_TEMPLATE_FILE.test(filename)) return null;
+  return "operational templates are targets, not source schemas. Load this file as the target. A source is a FLAT, STRUCTURED, or canonical JSON composition, or a Web Template.";
+}
+
 /** Infer format from filename extension; defaults to JSON. */
 export function detectSourceFormat(filename: string, content?: string): SourceFormatId {
   const lower = filename.toLowerCase();

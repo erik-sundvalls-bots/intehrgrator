@@ -16,6 +16,7 @@ import {
 import type { MappingModelExtract } from "../blockly/mapping_ir.ts";
 import type { MappingModel, SkeletonNode, TargetFormatId } from "../types/mod.ts";
 import type { WorkspaceSvg } from "blockly/core";
+import { ensureRmBlockType } from "../blockly/blocks/rm_blocks.ts";
 let generatorsReady = false;
 
 function ensureGenerators(): void {
@@ -27,7 +28,28 @@ function ensureGenerators(): void {
 /** Register schema-generated block types (TakeCare XSD, JSON Schema, …) before load. */
 export function ensureSchemaBlocksForSkeleton(skeleton: SkeletonNode[]): void {
   ensureGenerators();
+  registerRmBlocksFromSkeleton(skeleton);
   if (skeleton.length) registerSchemaBlocksFromSkeleton(skeleton);
+}
+
+/**
+ * A saved canvas names every RM block (`entry`, `cluster`, …). Those types are
+ * defined while a skeleton is built, and a catalog load skips that build.
+ */
+function registerRmBlocksFromSkeleton(nodes: SkeletonNode[]): void {
+  const walk = (node: SkeletonNode) => {
+    if (node.rmType) {
+      const natural = node.rmType.toLowerCase();
+      const blockType = !node.blockType || node.blockType === "rm_structure"
+        ? natural
+        : node.blockType;
+      if (blockType === natural || blockType === "element") {
+        ensureRmBlockType(blockType, node.rmType);
+      }
+    }
+    for (const child of node.children) walk(child);
+  };
+  for (const node of nodes) walk(node);
 }
 
 /** Apply Mapping Model expressions and loops onto a Blockly workspace snapshot. */
