@@ -6,8 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
-- **Named loop items**: inside a nested **for each**, a source path can read an outer item by name (`dag.StartTid`). The planned administration date on Karda ordination no longer uses `$.KurDagar[1]`.
-- **Include when**: a wrapper in Loops & Logic emits an optional openEHR container only when a boolean condition is true, so a measurement without a pulse does not keep a time-only EVENT.
+- **Named loop items** ([#328](https://github.com/regionstockholm/intehrgrator/pull/328)): inside a nested **for each**, a source path can read an outer item by name (`dag.StartTid`). The planned administration date on Karda ordination no longer uses `$.KurDagar[1]`.
+- **Include when** ([#328](https://github.com/regionstockholm/intehrgrator/pull/328)): a wrapper in Loops & Logic emits an optional openEHR container only when a boolean condition is true, so a measurement without a pulse does not keep a time-only EVENT.
 
 ## [0.12.0] - 2026-11-02
 
