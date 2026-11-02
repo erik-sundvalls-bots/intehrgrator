@@ -195,7 +195,7 @@
     {
       "id": "lung-mdt-form-to-tc-xml",
       "title": "Lung MDT form (→ TakeCare XML) — mapped",
-      "description": "Rebuilds the production lung-MDT Handlebars mapping as Blockly using schema-generated TakeCare ProfdocHISMessage blocks (TakeCare-CasenoteWrite-edit01.xsd), not generic XML blocks. Header fields come from the default context map. Notes keep the original Handlebars. Mapping preview and Handlebars Output mode both evaluate nested Code text LANG=handlebars on this XML Schema canvas, so TermId and Note pairs agree. Set TemplateId/TemplateType to the casenote used in the target environment.",
+      "description": "Rebuilds the production lung-MDT Handlebars mapping as Blockly using schema-generated TakeCare ProfdocHISMessage blocks (TakeCare-CasenoteWrite-edit01.xsd), not generic XML blocks. Header fields come from the default context map. A Note that is only a path is a source path; branching Notes stay Handlebars. Include when omits an empty keyword. Path guards are boolean sources; `(eq)` / `(and)` / path-only `(or)` are compare, and, and any-of blocks. Mapping preview and Handlebars Output mode both evaluate nested Code text LANG=handlebars on this XML Schema canvas, so TermId and Note pairs agree. Set TemplateId/TemplateType to the casenote used in the target environment.",
       "source": {
         "instances": [
           "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
@@ -209,7 +209,7 @@
     {
       "id": "lung-mdt-form-to-tc-xml-decision-tables",
       "title": "Lung MDT form (→ TakeCare XML) — mapped, decision tables",
-      "description": "#70 sibling of lung-mdt-form-to-tc-xml. Same TakeCare XSD, Defaults Map, and PROD Handlebars gold. Imaging TermId, smoking Note, and treatment connector/regimen/dose phrases are Decision tables with VMS-Mustache snippets. Do not modify test/fixtures/lung-MDT-form/ mapping gold.",
+      "description": "#70 sibling of lung-mdt-form-to-tc-xml. Same TakeCare XSD, Defaults Map, and PROD Handlebars script. Imaging TermId, smoking Note, and treatment connector/regimen/dose phrases are Decision tables with VMS-Mustache snippets. Presence columns are boolean source paths. Include when omits an empty keyword. The production script file in test/fixtures/lung-MDT-form/mapping/ stays the output reference.",
       "source": {
         "instances": [
           "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
@@ -291,6 +291,35 @@
       },
       "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
       "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json"
+    },
+    {
+      "id": "mhv1-generic-entry-to-prenatal-visit-unmapped",
+      "title": "Obstetric MHV1 generic entry (FLAT → openEHR) — unmapped",
+      "description": "Four generic-obstetrix-mhv1-v1 FLAT compositions targeting the MHV1 prenatal-visit Web Template. No source schema: an operational template is a target, and this directory's OPT is not a source. No mapping.",
+      "source": {
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
+    },
+    {
+      "id": "mhv1-generic-entry-to-prenatal-visit",
+      "title": "Obstetric MHV1 generic entry (FLAT → openEHR) — mapped",
+      "description": "Partial mapping from the generic-entry FLAT composition onto MHV1- Prenatal visit.encounter.v1. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. The operational template is not loaded as a source schema. Canvas path labels on this Web Template are not the clinical names.",
+      "source": {
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+      "mapping": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/mapping/mapping.blockly.json"
     }
   ]
 }

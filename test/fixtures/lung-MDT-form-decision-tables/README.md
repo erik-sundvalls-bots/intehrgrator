@@ -27,8 +27,11 @@ holds the Note as a VMS-Mustache snippet (`{{#studies}}` walks bilddiagnostik).
 Long Handlebars `(or path path …)` gates are an any-of list restriction: any
 listed field filled. Display words (intention, type, relation, chemoradiation
 form) are folded with `text_changeCase` before they reach a snippet.
+Presence inputs (`has_intention`, `has_huvud`, …) are boolean source paths.
+A missing path is false, so those inputs are not wrapped in a true/false if.
 The treatment sentence reads the first `rekommenderad_behandlingsstrategi`.
-Passthrough keywords stay Handlebars on this sibling.
+Passthrough keywords that are a single `{{path}}` are source paths. Keywords
+that still branch stay Handlebars. **Include when** omits an empty keyword.
 
 JSONPath locals use the shared Example Instances in
 `../lung-MDT-form/source-instance/`.
