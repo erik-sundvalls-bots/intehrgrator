@@ -2,7 +2,6 @@ import { assertEquals, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import {
   detectSourceFormat,
-  operationalTemplateSourceError,
   getSourceFormatHandler,
   isSourceFormatId,
   listSourceFormatIds,
@@ -18,6 +17,7 @@ Deno.test("built-in format handlers are registered", () => {
   assertEquals(ids.includes("xml"), true);
   assertEquals(ids.includes("openehr-flat-json"), true);
   assertEquals(ids.includes("openehr-composition"), true);
+  assertEquals(ids.includes("openehr-operational-template"), true);
   assertEquals(isSourceFormatId("json"), true);
   assertEquals(isSourceFormatId("openehr-canonical-json"), true);
 });
@@ -35,10 +35,34 @@ Deno.test("detectSourceFormat from filename", () => {
     "openehr-flat-json",
   );
   assertEquals(detectSourceFormat("unknown.bin"), "json");
-  assertEquals(operationalTemplateSourceError("generic.opt")?.includes("targets"), true);
-  assertEquals(operationalTemplateSourceError("generic.opt2")?.includes("targets"), true);
-  assertEquals(operationalTemplateSourceError("generic.oet")?.includes("targets"), true);
-  assertEquals(operationalTemplateSourceError("flat.json"), null);
+  assertEquals(detectSourceFormat("generic.opt"), "openehr-operational-template");
+  assertEquals(detectSourceFormat("generic.OPT2"), "openehr-operational-template");
+  assertEquals(detectSourceFormat("generic.oet"), "openehr-operational-template");
+});
+
+Deno.test("an operational template loads as an openEHR source schema", () => {
+  const opt = Deno.readTextFileSync(
+    join(
+      import.meta.dirname!,
+      "fixtures",
+      "Obstetric-legacy-via-generic-entry",
+      "MHV1",
+      "source-schema",
+      "generic_obstetrix_mhv1_v1_TEMPLATE.opt",
+    ),
+  );
+  const handler = getSourceFormatHandler("openehr-operational-template");
+  const tree = handler.loadSchema(opt, "generic");
+  assertEquals(tree.name, "generic-obstetrix-mhv1-v1");
+  const names: string[] = [];
+  const walk = (node: { name: string; children: typeof tree.children }) => {
+    names.push(node.name);
+    for (const child of node.children) walk(child);
+  };
+  walk(tree);
+  assertEquals(names.includes("vikt"), true);
+  assertEquals(names.includes("senastmens"), true);
+  assertEquals(names.includes("bedomningtext"), true);
 });
 
 Deno.test("Avro .avsc record schema loads as field tree, not Avro meta document", async () => {

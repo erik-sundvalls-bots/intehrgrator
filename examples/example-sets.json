@@ -295,8 +295,9 @@
     {
       "id": "mhv1-generic-entry-to-prenatal-visit-unmapped",
       "title": "Obstetric MHV1 generic entry (FLAT → openEHR) — unmapped",
-      "description": "Four generic-obstetrix-mhv1-v1 FLAT compositions targeting the MHV1 prenatal-visit Web Template. No source schema: an operational template is a target, and this directory's OPT is not a source. No mapping.",
+      "description": "Integration archetype generic-obstetrix-mhv1-v1 (operational template) as the source schema, four FLAT compositions as the examples, prenatal-visit Web Template as the target. No mapping. The composition root offers Canonical JSON, Canonical XML, Simplified FLAT, and Simplified STRUCTURED.",
       "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
         "instances": [
           "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.json",
           "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.json",
@@ -309,8 +310,9 @@
     {
       "id": "mhv1-generic-entry-to-prenatal-visit",
       "title": "Obstetric MHV1 generic entry (FLAT → openEHR) — mapped",
-      "description": "Partial mapping from the generic-entry FLAT composition onto MHV1- Prenatal visit.encounter.v1. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. The operational template is not loaded as a source schema. Canvas path labels on this Web Template are not the clinical names.",
+      "description": "Partial mapping from the generic-entry operational template onto MHV1- Prenatal visit.encounter.v1. Examples are FLAT compositions. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. Saved as Simplified FLAT; the composition root still offers the other encodings. Canvas path labels on this Web Template are not the clinical names.",
       "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
         "instances": [
           "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.json",
           "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.json",

@@ -13,8 +13,7 @@
 | openEHR FLAT JSON as source | ✓ | `openehr-flat-json` | Bracketed path keys (`ctx/…`, `\|magnitude`) |
 | openEHR STRUCTURED JSON as source | ✓ | `openehr-structured-json` | Same JSON evaluator; simplified-format leaf detection |
 | openEHR Web Template as Source Schema | ✓ | `openehr-web-template` | Tree from `templateId` + `tree` |
-
-An operational template (`.opt`, `.opt2`, `.oet`) is a target. Loading one as a source schema is rejected. The matching source is a FLAT, STRUCTURED, or canonical JSON composition, or a Web Template.
+| openEHR operational template as Source Schema | ✓ | `openehr-operational-template` | `.opt`, `.opt2`, `.oet` read as that template's Web Template tree (integration archetype → another template). Example instances stay FLAT, STRUCTURED, or canonical compositions. |
 
 ## Source Format Handler
 

@@ -59,7 +59,6 @@ import { runTest } from "../core/test_runner/mod.ts";
 import {
   canonicalSyncPath,
   detectSourceFormat,
-  operationalTemplateSourceError,
   ExampleInstanceManager,
   findNodeBySyncPath,
   getSourceFormatHandler,
@@ -2129,8 +2128,6 @@ export class WorkbenchController {
     const previousFilename = this.schemaFilename;
     const previousContent = this.schemaContent;
     this.schemaError = null;
-    const rejected = operationalTemplateSourceError(filename);
-    if (rejected) throw new Error(rejected);
     this.schemaFilename = filename;
     this.schemaContent = content;
     this.schemaOriginUrl = null;

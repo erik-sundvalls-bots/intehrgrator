@@ -12,7 +12,6 @@ export {
   listSourceFormatIds,
   isSourceFormatId,
   detectSourceFormat,
-  operationalTemplateSourceError,
 } from "./format_handler.ts";
 
 export {

@@ -14,7 +14,7 @@ Also mapped, on the composition itself: category (openEHR 433 event), start time
 
 ## Not mapped, and why
 
-- The operational template in `../source-schema/` is a target format. It is not a source schema. The example set loads the FLAT instances only.
+- The source schema is `../source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt` (the integration archetype). The four examples are FLAT compositions of that template. The target is the CKM Web Template, and its composition root can emit Canonical JSON, Canonical XML, Simplified FLAT, or Simplified STRUCTURED. This mapping is saved as Simplified FLAT.
 - `anteckning` and `partogram` in the parent fixture have source OPTs and no instances, so there is nothing to map. Blood pressure lives in `anteckning`.
 - There is no personal identity number in the generic source.
 - Height (`langd`) has no writable quantity: the magnitude elements under the height observation are max 0.
