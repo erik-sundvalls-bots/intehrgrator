@@ -6,7 +6,6 @@ import {
 import { buildWebTemplate } from "ehrtslib/serialization/simplified/web_template_builder.ts";
 import {
   applyOperationalTemplateTermScopes,
-  TERM_ARCHETYPE_SCOPE_KEY,
   type TermScopeMeta,
 } from "ehrtslib/generation/term_scope.ts";
 import { readTemplateId } from "ehrtslib/am/util/ontology_merge.ts";
@@ -128,53 +127,13 @@ export function generateSkeleton(
 }
 
 /**
- * Since ehrtslib v0.10, `webTemplateToOpt` drops the name predicate of a path
- * segment (`content[openEHR-EHR-SECTION.adhoc.v1,'Vital signs']`) and adds no
- * name constraint, so same-archetype siblings such as two `SECTION.adhoc`
- * headings get the same node id and the first one's label. Keep the predicate
- * in the node id, as ehrtslib v0.9 did (`splitAqlStyleNodeId` reads it): a
- * trailing marker stops ehrtslib from splitting it off, and
- * `restoreNamePredicates` removes the marker again.
- */
-const NAME_PREDICATE_MARK = "\uE000";
-const NAME_PREDICATE_IN_PATH = /\[([^\[\]',]+?)\s*(?:,|\s+and\s+name\/value\s*=)\s*'([^']*)'\s*\]/g;
-
-function withNamePredicatesKept(webTemplate: ReturnType<typeof parseWebTemplate>): ReturnType<typeof parseWebTemplate> {
-  const copy = structuredClone(webTemplate) as { tree?: unknown };
-  const walk = (node: { aqlPath?: string; children?: unknown[] } | undefined) => {
-    if (!node) return;
-    if (typeof node.aqlPath === "string") {
-      node.aqlPath = node.aqlPath.replace(NAME_PREDICATE_IN_PATH, `[$1,'$2'${NAME_PREDICATE_MARK}]`);
-    }
-    for (const child of node.children ?? []) walk(child as { aqlPath?: string; children?: unknown[] });
-  };
-  walk(copy.tree as { aqlPath?: string; children?: unknown[] } | undefined);
-  return copy as ReturnType<typeof parseWebTemplate>;
-}
-
-function restoreNamePredicates(node: AmObject | undefined): void {
-  if (!node || typeof node !== "object") return;
-  const target = node as Record<string, unknown>;
-  for (const key of ["node_id", "archetype_ref", TERM_ARCHETYPE_SCOPE_KEY]) {
-    const value = target[key];
-    if (typeof value === "string" && value.includes(NAME_PREDICATE_MARK)) {
-      target[key] = value.replaceAll(NAME_PREDICATE_MARK, "");
-    }
-  }
-  for (const attr of (node.attributes ?? []) as AmObject[]) {
-    for (const child of (attr.children ?? []) as AmObject[]) restoreNamePredicates(child);
-  }
-}
-
-/**
  * Web Template → OPT. Since ehrtslib v0.9, `webTemplateToOpt` leaves out an
  * EVENT_CONTEXT that has only RM attributes (`start_time`, `setting`, marked
  * `inContext`). Put the bare EVENT_CONTEXT back so its RM-mandatory slots are
  * scaffolded as for an OPT target.
  */
 function optFromWebTemplate(webTemplate: ReturnType<typeof parseWebTemplate>): AmObject {
-  const opt = webTemplateToOpt(withNamePredicatesKept(webTemplate)) as AmObject;
-  restoreNamePredicates(opt.definition as AmObject | undefined);
+  const opt = webTemplateToOpt(webTemplate) as AmObject;
   const tree = (webTemplate as { tree?: { children?: Array<{ id?: string; rmType?: string; min?: number; max?: number }> } })
     .tree;
   const context = tree?.children?.find((child) => child.rmType === "EVENT_CONTEXT");
