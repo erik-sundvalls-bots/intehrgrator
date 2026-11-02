@@ -1059,13 +1059,18 @@ function resolveCatalogUrl(args: Record<string, unknown>): string {
 }
 
 /**
- * The catalog bundled with this build: next to the desktop workbench assets
- * (`src/desktop/www/`, compiled app), in `dist/`, or in the repo; then the
- * working directory; else the version-pinned GitHub Pages copy.
+ * The example-set catalog for this process.
+ *
+ * The repo catalog (`examples/example-sets.json`, two levels above this
+ * module) wins over `src/desktop/www/` and `dist/`. Those directories are
+ * gitignored build output; a previous `deno task build` would otherwise hide
+ * fixture updates from `deno task test` and from the Agent API. Staged copies
+ * are still used when this module is not sitting in a source checkout. Then
+ * the working directory, else the version-pinned GitHub Pages copy.
  */
 export function defaultExampleSetCatalogUrl(): string {
   const candidates: string[] = [];
-  for (const rel of ["../desktop/www/", "../../dist/", "../../"]) {
+  for (const rel of ["../../", "../desktop/www/", "../../dist/"]) {
     try {
       candidates.push(fromFileUrl(new URL(`${rel}${BUNDLED_EXAMPLE_SETS_PATH}`, import.meta.url)));
     } catch {

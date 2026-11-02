@@ -3,7 +3,7 @@
  * (#311 catalogUrl, #312 rough edges, #313 discoverability).
  */
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { join } from "@std/path";
+import { fromFileUrl, join } from "@std/path";
 import { serveDir } from "@std/http/file-server";
 import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
 import { createAgentApiHandler } from "@intehrgrator/agent/http.ts";
@@ -73,7 +73,10 @@ Deno.test("list_function_library and load_function read a catalogUrl over HTTP (
 });
 
 Deno.test("Example Sets are discoverable without a catalog argument (#313)", async () => {
-  assert(defaultExampleSetCatalogUrl().startsWith("file:"), defaultExampleSetCatalogUrl());
+  const catalogUrl = defaultExampleSetCatalogUrl();
+  assert(catalogUrl.startsWith("file:"), catalogUrl);
+  // A stale src/desktop/www or dist copy must not shadow the repo catalog.
+  assertEquals(fromFileUrl(catalogUrl), join(repo, "examples", "example-sets.json"));
   const names = AGENT_TOOLS.map((t) => t.name);
   assert(names.includes("list_example_sets"));
   const listed = await callAgentTool(new WorkbenchService(), "list_example_sets", {}) as { sets: Array<{ id: string }> };
