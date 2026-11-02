@@ -12,6 +12,19 @@ Instance encoding is Simplified FLAT. **Include when** emits an optional entry o
 
 Also mapped, on the composition itself: category (openEHR 433 event), start time, setting 229, composer name and midwife id, and the care unit name and HSA id.
 
+## Certainty
+
+Guesses carry `confidence` (percent) and a block comment. Direct copies (category, setting, start time, care unit, last menstrual period) have a comment and no percent.
+
+- **85** — weight units assumed kg (`vikt` is a bare number)
+- **75** — `bedomningtext` on the bedömning text element
+- **70** — composer id from `barnmorska`, identifier type `local`
+- **70** — both snus texts, placed by the Swedish names
+- **65** — weight event time and history origin reuse `context/start_time`
+- **60** — EDD is `berakforsm` only
+
+`mhv1-generic.intehrgrator-suggestions.json` has a question for each of those choices, with options. The recommended option is the mapping above.
+
 ## Not mapped, and why
 
 - The source schema is `../source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt` (the integration archetype). The four examples are FLAT compositions of that template. The target is the CKM Web Template, and its composition root can emit Canonical JSON, Canonical XML, Simplified FLAT, or Simplified STRUCTURED. This mapping is saved as Simplified FLAT.

@@ -6,7 +6,54 @@
     "targetId": "MHV1- Prenatal visit.encounter.v1"
   },
   "notes": [
-    "Partial MHV1 mapping from the generic-entry FLAT composition. Include when omits an optional entry when its source value is missing. Lifestyle text is the generic *text field, not a code table. The source schema is the integration operational template. Examples are FLAT compositions. Bp_comp is a date-time; in Swedish obstetrics bp can mean beräknad partum. These examples leave it empty, so EDD stays berakforsm."
+    "Partial MHV1 mapping. Direct copies (category, setting, start time, care unit, LMP) have no confidence. Percents below are the chance that guess is the right slot or value. Bp_comp is a date-time; in Swedish obstetrics bp can mean beräknad partum, and these examples leave it empty."
+  ],
+  "questions": [
+    {
+      "text": "Which source date should fill estimated date of delivery?",
+      "options": [
+        {
+          "text": "berakforsm, the cycle date",
+          "recommended": true
+        },
+        "berakforul when present, otherwise berakforsm",
+        "Also map berakforul and berakforet on their own date elements",
+        "Leave EDD unmapped until bp_comp (beräknad partum) is defined"
+      ]
+    },
+    {
+      "text": "How should the composer identifier be filled?",
+      "options": [
+        {
+          "text": "Name from composer, id from barnmorska, type local",
+          "recommended": true
+        },
+        "Name only",
+        "Leave the identifier empty"
+      ]
+    },
+    {
+      "text": "Weight has no unit and no measurement time. What should the observation use?",
+      "options": [
+        {
+          "text": "Units kg, and event time from context/start_time",
+          "recommended": true
+        },
+        "Magnitude only",
+        "Leave weight unmapped"
+      ]
+    },
+    {
+      "text": "Snus and assessment texts sit on elements whose English labels are unreliable. Keep this placement?",
+      "options": [
+        {
+          "text": "Keep both snus texts and bedomningtext",
+          "recommended": true
+        },
+        "Snus at enrolment only",
+        "Leave snus and assessment unmapped"
+      ]
+    }
   ],
   "includes": [
     {
@@ -210,7 +257,8 @@
           }
         }
       },
-      "note": "Midwife name already on the FLAT composer, staff id from barnmorska."
+      "note": "Name is the FLAT composer. The id is the barnmorska number and the identifier type \"local\" is a guess.",
+      "confidence": 70
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//context/EVENT_CONTEXT/health_care_facility",
@@ -283,7 +331,8 @@
           }
         }
       },
-      "note": "Enrolment weight. The canvas label on this quantity is not the clinical name."
+      "note": "vikt is a bare number (68–91). Units are assumed kg. The quantity's canvas label is not the clinical name.",
+      "confidence": 85
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.6/items/at0.2/data/at0002/events/at0003.1/time/value",
@@ -293,7 +342,8 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/start_time\"]"
         }
       },
-      "note": "Weight event time."
+      "note": "No weight timestamp on the generic entry. Event time reuses context/start_time.",
+      "confidence": 65
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.6/items/at0.2/data/at0002/origin/value",
@@ -303,7 +353,8 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/start_time\"]"
         }
       },
-      "note": "History origin, same instant as the event."
+      "note": "History origin reuses context/start_time, the same instant as the event.",
+      "confidence": 65
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.2/items/at0.2/data/at0001/items/at0002/value/value/value",
@@ -323,7 +374,8 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/berakforsm\"]"
         }
       },
-      "note": "EDD by cycle."
+      "note": "Cycle date only. berakforul, berakforet, and bp_comp (beräknad partum) are unused.",
+      "confidence": 60
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0064.1/items/at0081.1/value/value/value",
@@ -333,7 +385,8 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/snusforegravtext\"]"
         }
       },
-      "note": "Snus before pregnancy, generic text field."
+      "note": "Placed on the snus-summary text whose Swedish name is before pregnancy. English path labels on this template are not clinical.",
+      "confidence": 70
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0064.2/items/at0081.2/value/value/value",
@@ -343,7 +396,8 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/snusinskrtext\"]"
         }
       },
-      "note": "Snus at enrolment, generic text field."
+      "note": "Placed on the snus-summary text whose Swedish name is at enrolment. English path labels on this template are not clinical.",
+      "confidence": 70
     },
     {
       "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.37/items/at0.2/data/at0001/items/at0002.1/value/value/value",
@@ -353,7 +407,8 @@
           "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/bedomningtext\"]"
         }
       },
-      "note": "Assessment text (Basprogram / MHV3)."
+      "note": "Placed on the bedömning DV_TEXT. Sibling sections reuse the same node ids.",
+      "confidence": 75
     }
   ]
 }
