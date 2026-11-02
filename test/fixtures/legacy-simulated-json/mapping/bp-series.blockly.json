@@ -1683,205 +1683,238 @@
                                       "inputs": {
                                         "ATTR_events": {
                                           "block": {
-                                            "type": "point_event",
-                                            "id": "5HpiNEaDi4*dL9=.J`q]",
-                                            "extraState": {
-                                              "extras": [],
-                                              "attrs": [
-                                                "data",
-                                                "time",
-                                                "state"
-                                              ],
-                                              "rmType": "POINT_EVENT",
-                                              "prohibited": [],
-                                              "slotCards": {
-                                                "data": {
-                                                  "min": 1,
-                                                  "max": 1
-                                                },
-                                                "state": {
-                                                  "min": 0,
-                                                  "max": 1
-                                                },
-                                                "time": {
-                                                  "min": 1,
-                                                  "max": 1
-                                                }
-                                              },
-                                              "rmCards": {
-                                                "data": {
-                                                  "min": 1,
-                                                  "max": 1
-                                                },
-                                                "state": {
-                                                  "min": 0,
-                                                  "max": 1
-                                                },
-                                                "time": {
-                                                  "min": 1,
-                                                  "max": 1
-                                                }
-                                              }
-                                            },
+                                            "type": "for_each_list",
+                                            "id": "L+uSgKwdLXs5?mPiKNQ4",
                                             "fields": {
-                                              "RM_TYPE": "POINT_EVENT",
-                                              "NAME": "Any event",
-                                              "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
-                                              "MANDATORY": "1",
-                                              "ARCHETYPE_NODE_ID": "at0003",
-                                              "ARCHETYPE_CTX": "pulse"
+                                              "VAR": "measurement"
                                             },
                                             "inputs": {
-                                              "ATTR_data": {
+                                              "LIST": {
                                                 "block": {
-                                                  "type": "item_tree",
-                                                  "id": "jgH_V5O,o+Nq!~)c?U3K",
-                                                  "extraState": {
-                                                    "extras": [],
-                                                    "attrs": [
-                                                      "items"
-                                                    ],
-                                                    "rmType": "ITEM_TREE",
-                                                    "prohibited": [],
-                                                    "slotCards": {
-                                                      "items": {
-                                                        "min": 0,
-                                                        "max": null
+                                                  "type": "source_query_node",
+                                                  "id": "eD!4yR+`lBaHgNnD7/ac",
+                                                  "fields": {
+                                                    "EXPRESSION": "$.measurements"
+                                                  }
+                                                }
+                                              },
+                                              "DO": {
+                                                "block": {
+                                                  "type": "include_when",
+                                                  "id": "P(X:-}w85}{3!u?ylR21",
+                                                  "inputs": {
+                                                    "WHEN": {
+                                                      "block": {
+                                                        "type": "source_query_boolean",
+                                                        "id": "b)TdAzf^4IA*,,6qY2ig",
+                                                        "fields": {
+                                                          "EXPRESSION": "pulse"
+                                                        }
                                                       }
                                                     },
-                                                    "rmCards": {
-                                                      "items": {
-                                                        "min": 0,
-                                                        "max": null
-                                                      }
-                                                    }
-                                                  },
-                                                  "fields": {
-                                                    "RM_TYPE": "ITEM_TREE",
-                                                    "NAME": "structure",
-                                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001",
-                                                    "MANDATORY": "1",
-                                                    "ARCHETYPE_NODE_ID": "at0001",
-                                                    "ARCHETYPE_CTX": "pulse"
-                                                  },
-                                                  "inputs": {
-                                                    "ATTR_items": {
+                                                    "DO": {
                                                       "block": {
-                                                        "type": "element",
-                                                        "id": "m%3v`%gs6NObygxMThSc",
+                                                        "type": "point_event",
+                                                        "id": "5HpiNEaDi4*dL9=.J`q]",
                                                         "extraState": {
                                                           "extras": [],
-                                                          "attrs": [],
-                                                          "rmType": "ELEMENT",
+                                                          "attrs": [
+                                                            "data",
+                                                            "time",
+                                                            "state"
+                                                          ],
+                                                          "rmType": "POINT_EVENT",
                                                           "prohibited": [],
-                                                          "slotCards": {},
-                                                          "rmCards": {}
+                                                          "slotCards": {
+                                                            "data": {
+                                                              "min": 1,
+                                                              "max": 1
+                                                            },
+                                                            "state": {
+                                                              "min": 0,
+                                                              "max": 1
+                                                            },
+                                                            "time": {
+                                                              "min": 1,
+                                                              "max": 1
+                                                            }
+                                                          },
+                                                          "rmCards": {
+                                                            "data": {
+                                                              "min": 1,
+                                                              "max": 1
+                                                            },
+                                                            "state": {
+                                                              "min": 0,
+                                                              "max": 1
+                                                            },
+                                                            "time": {
+                                                              "min": 1,
+                                                              "max": 1
+                                                            }
+                                                          }
                                                         },
                                                         "fields": {
-                                                          "NAME": "Rate",
-                                                          "RM_TYPE": "ELEMENT",
-                                                          "VALUE_RM_TYPE": "DV_QUANTITY",
-                                                          "ELEMENT_SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004",
+                                                          "RM_TYPE": "POINT_EVENT",
+                                                          "NAME": "Any event",
+                                                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
                                                           "MANDATORY": "1",
-                                                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
-                                                          "ARCHETYPE_NODE_ID": "at0004",
+                                                          "ARCHETYPE_NODE_ID": "at0003",
                                                           "ARCHETYPE_CTX": "pulse"
                                                         },
                                                         "inputs": {
-                                                          "VALUE": {
+                                                          "ATTR_data": {
                                                             "block": {
-                                                              "type": "dv_quantity",
-                                                              "id": "#8t|7%pRs/d:JP4faxv4",
+                                                              "type": "item_tree",
+                                                              "id": "jgH_V5O,o+Nq!~)c?U3K",
                                                               "extraState": {
-                                                                "fields": []
+                                                                "extras": [],
+                                                                "attrs": [
+                                                                  "items"
+                                                                ],
+                                                                "rmType": "ITEM_TREE",
+                                                                "prohibited": [],
+                                                                "slotCards": {
+                                                                  "items": {
+                                                                    "min": 0,
+                                                                    "max": null
+                                                                  }
+                                                                },
+                                                                "rmCards": {
+                                                                  "items": {
+                                                                    "min": 0,
+                                                                    "max": null
+                                                                  }
+                                                                }
                                                               },
                                                               "fields": {
-                                                                "NAME": "Quantity",
-                                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
-                                                                "RM_TYPE": "DV_QUANTITY",
-                                                                "MANDATORY": ""
+                                                                "RM_TYPE": "ITEM_TREE",
+                                                                "NAME": "structure",
+                                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001",
+                                                                "MANDATORY": "1",
+                                                                "ARCHETYPE_NODE_ID": "at0001",
+                                                                "ARCHETYPE_CTX": "pulse"
                                                               },
                                                               "inputs": {
-                                                                "FLD_units": {
-                                                                  "shadow": {
-                                                                    "type": "text",
-                                                                    "id": "]mL?`{R6-C37%KP7:as6",
-                                                                    "inline": false,
+                                                                "ATTR_items": {
+                                                                  "block": {
+                                                                    "type": "element",
+                                                                    "id": "m%3v`%gs6NObygxMThSc",
+                                                                    "extraState": {
+                                                                      "extras": [],
+                                                                      "attrs": [],
+                                                                      "rmType": "ELEMENT",
+                                                                      "prohibited": [],
+                                                                      "slotCards": {},
+                                                                      "rmCards": {}
+                                                                    },
                                                                     "fields": {
-                                                                      "TEXT": "/min"
+                                                                      "NAME": "Rate",
+                                                                      "RM_TYPE": "ELEMENT",
+                                                                      "VALUE_RM_TYPE": "DV_QUANTITY",
+                                                                      "ELEMENT_SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004",
+                                                                      "MANDATORY": "1",
+                                                                      "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
+                                                                      "ARCHETYPE_NODE_ID": "at0004",
+                                                                      "ARCHETYPE_CTX": "pulse"
+                                                                    },
+                                                                    "inputs": {
+                                                                      "VALUE": {
+                                                                        "block": {
+                                                                          "type": "dv_quantity",
+                                                                          "id": "#8t|7%pRs/d:JP4faxv4",
+                                                                          "extraState": {
+                                                                            "fields": []
+                                                                          },
+                                                                          "fields": {
+                                                                            "NAME": "Quantity",
+                                                                            "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
+                                                                            "RM_TYPE": "DV_QUANTITY",
+                                                                            "MANDATORY": ""
+                                                                          },
+                                                                          "inputs": {
+                                                                            "FLD_magnitude": {
+                                                                              "block": {
+                                                                                "type": "source_query_number",
+                                                                                "id": "_c_Wut~D]e^9ViW+oX8k",
+                                                                                "fields": {
+                                                                                  "EXPRESSION": "pulse"
+                                                                                }
+                                                                              }
+                                                                            },
+                                                                            "FLD_units": {
+                                                                              "shadow": {
+                                                                                "type": "text",
+                                                                                "id": "]mL?`{R6-C37%KP7:as6",
+                                                                                "inline": false,
+                                                                                "fields": {
+                                                                                  "TEXT": "/min"
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
                                                                     }
                                                                   }
                                                                 }
                                                               }
                                                             }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              },
-                                              "ATTR_time": {
-                                                "block": {
-                                                  "type": "dv_date_time",
-                                                  "id": "8iWk@wP|vz4AK56y?a|[",
-                                                  "extraState": {
-                                                    "fields": []
-                                                  },
-                                                  "fields": {
-                                                    "NAME": "Date Time",
-                                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/time/value",
-                                                    "RM_TYPE": "DV_DATE_TIME",
-                                                    "MANDATORY": "1"
-                                                  },
-                                                  "inputs": {
-                                                    "FLD_value": {
-                                                      "block": {
-                                                        "type": "maps_get",
-                                                        "id": ")TonG|:RT,J|@r_D#Z.2",
-                                                        "fields": {
-                                                          "NAME": "defaults",
-                                                          "SLOT_ID": "",
-                                                          "RM_TYPE": ""
-                                                        },
-                                                        "inputs": {
-                                                          "KEY": {
-                                                            "shadow": {
-                                                              "type": "text",
-                                                              "id": "BZE)G+HZU_p.Hp-=8v,^",
-                                                              "inline": false,
+                                                          },
+                                                          "ATTR_time": {
+                                                            "block": {
+                                                              "type": "dv_date_time",
+                                                              "id": "8iWk@wP|vz4AK56y?a|[",
+                                                              "extraState": {
+                                                                "fields": []
+                                                              },
                                                               "fields": {
-                                                                "TEXT": "time"
+                                                                "NAME": "Date Time",
+                                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/time/value",
+                                                                "RM_TYPE": "DV_DATE_TIME",
+                                                                "MANDATORY": "1"
+                                                              },
+                                                              "inputs": {
+                                                                "FLD_value": {
+                                                                  "block": {
+                                                                    "type": "source_query",
+                                                                    "id": "X!uE@v8+tQEroc}Yq0Bf",
+                                                                    "fields": {
+                                                                      "EXPRESSION": "timestamp",
+                                                                      "RETURN_TYPE": "string"
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          },
+                                                          "ATTR_state": {
+                                                            "block": {
+                                                              "type": "item_tree",
+                                                              "id": "@87{tj,d-)a+9PyRi,Ws",
+                                                              "extraState": {
+                                                                "extras": [],
+                                                                "attrs": [
+                                                                  "name"
+                                                                ],
+                                                                "rmType": "ITEM_TREE",
+                                                                "prohibited": [],
+                                                                "slotCards": {},
+                                                                "rmCards": {}
+                                                              },
+                                                              "fields": {
+                                                                "RM_TYPE": "ITEM_TREE",
+                                                                "NAME": "List",
+                                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/state/at0012",
+                                                                "MANDATORY": "1",
+                                                                "ARCHETYPE_NODE_ID": "at0012",
+                                                                "ARCHETYPE_CTX": "pulse"
                                                               }
                                                             }
                                                           }
                                                         }
                                                       }
                                                     }
-                                                  }
-                                                }
-                                              },
-                                              "ATTR_state": {
-                                                "block": {
-                                                  "type": "item_tree",
-                                                  "id": "@87{tj,d-)a+9PyRi,Ws",
-                                                  "extraState": {
-                                                    "extras": [],
-                                                    "attrs": [
-                                                      "name"
-                                                    ],
-                                                    "rmType": "ITEM_TREE",
-                                                    "prohibited": [],
-                                                    "slotCards": {},
-                                                    "rmCards": {}
-                                                  },
-                                                  "fields": {
-                                                    "RM_TYPE": "ITEM_TREE",
-                                                    "NAME": "List",
-                                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/state/at0012",
-                                                    "MANDATORY": "1",
-                                                    "ARCHETYPE_NODE_ID": "at0012",
-                                                    "ARCHETYPE_CTX": "pulse"
                                                   }
                                                 }
                                               }

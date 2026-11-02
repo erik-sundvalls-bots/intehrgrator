@@ -7,6 +7,7 @@ import type { Workspace } from "blockly/core";
 import type { Block } from "blockly/core";
 import type {
   MappingFunction,
+  MappingInclude,
   MappingLoop,
   MappingSlotHatch,
   MappingUnsupportedBlock,
@@ -37,6 +38,7 @@ import { walkProductStack } from "./instance_root.ts";
 import { INSTANCE_ENCODING_FIELD, parseInstanceEncoding } from "../core/output/instance_encoding.ts";
 import type { InstanceEncoding } from "../types/mod.ts";
 import { isLoopBlockType, sourcePathFromLoopList } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { readAiReview } from "./ai_review.ts";
 import type { MappingSlotReview } from "../types/mod.ts";
 
@@ -51,6 +53,7 @@ export interface MappingModelExtract {
     review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
+  includes: MappingInclude[];
   optionalRm: OptionalRmInsertion[];
   targetSignature: TargetSignatureNode[];
   unsupported: MappingUnsupportedBlock[];
@@ -123,6 +126,7 @@ export function extractMappingIr(workspace: Workspace): MappingModelExtract {
   return {
     slots,
     loops: loopsFromWorkspace(workspace),
+    includes: includesFromWorkspace(workspace),
     optionalRm: optionalRmFromWorkspace(workspace),
     targetSignature: targetSignatureFromWorkspace(workspace),
     unsupported: unsupportedFromWorkspace(workspace, slots),
@@ -355,7 +359,10 @@ function loopsFromWorkspace(workspace: Workspace): MappingLoop[] {
 function firstSlotIdInStack(block: Block | null): string | null {
   let current = block;
   while (current) {
-    if (!LOOP_TYPES.has(current.type)) {
+    if (current.type === INCLUDE_WHEN_BLOCK) {
+      const nested = firstSlotIdInStack(current.getInputTargetBlock("DO"));
+      if (nested) return nested;
+    } else if (!LOOP_TYPES.has(current.type)) {
       const slotId = current.getFieldValue("SLOT_ID");
       if (slotId) return slotId;
     }
@@ -366,6 +373,46 @@ function firstSlotIdInStack(block: Block | null): string | null {
     current = current.getNextBlock();
   }
   return null;
+}
+
+function stackSlotIds(block: Block | null, into: string[] = []): string[] {
+  let current = block;
+  while (current) {
+    const slotId = current.getFieldValue("SLOT_ID");
+    if (slotId) into.push(String(slotId));
+    if (current.type === INCLUDE_WHEN_BLOCK || isLoopBlockType(current.type)) {
+      stackSlotIds(current.getInputTargetBlock("DO"), into);
+    }
+    for (const input of current.inputList) {
+      if (input.name === "DO" || input.name === "ELSE" || input.name === "LIST" || input.name === "WHEN") {
+        continue;
+      }
+      const child = current.getInputTargetBlock(input.name);
+      if (child && (isLoopBlockType(child.type) || child.type === INCLUDE_WHEN_BLOCK)) {
+        stackSlotIds(child, into);
+      }
+    }
+    current = current.getNextBlock();
+  }
+  return into;
+}
+
+function includesFromWorkspace(workspace: Workspace): MappingInclude[] {
+  const includes: MappingInclude[] = [];
+  for (const block of workspace.getAllBlocks(false)) {
+    if (block.type !== INCLUDE_WHEN_BLOCK) continue;
+    const slotId = firstSlotIdInStack(block.getInputTargetBlock("DO"));
+    if (!slotId) continue;
+    const whenBlock = block.getInputTargetBlock("WHEN");
+    const when = whenBlock ? blockToExpression(whenBlock) ?? "" : "";
+    const elseIds = stackSlotIds(block.getInputTargetBlock("ELSE"));
+    includes.push({
+      slotId,
+      when,
+      ...(elseIds.includes(slotId) ? { elseEmits: true } : {}),
+    });
+  }
+  return includes;
 }
 
 function targetSignatureFromWorkspace(workspace: Workspace): TargetSignatureNode[] {

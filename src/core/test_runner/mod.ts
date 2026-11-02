@@ -216,7 +216,7 @@ export function runTest(
           warnings,
         };
       }
-      const slotValues = evaluateSlotValues(model, handler, ctx, warnings, target?.skeleton ?? []);
+      const { values: slotValues } = evaluateSlotValues(model, handler, ctx, warnings, target?.skeleton ?? []);
       const output = renderHandlebars(template, ctx.data, { slots: slotValues });
       const outputValidation = validateConvertedOutput(output, target, {
         deserializeMode: options.openEhrJsonDeserializeMode,
@@ -263,7 +263,7 @@ export function runTest(
       }
     }
 
-    const slotValues = evaluateSlotValues(
+    const { values: slotValues, guards } = evaluateSlotValues(
       model,
       handler,
       ctx,
@@ -292,6 +292,7 @@ export function runTest(
         : getTargetFormatHandler(target.format).render({
           definition: target,
           slotValues,
+          guards,
         });
     } else {
       output = {
@@ -392,14 +393,29 @@ function evaluateSlotValues(
   ctx: SourceContext,
   warnings: string[],
   skeleton: TargetDefinition["skeleton"],
-): Record<string, unknown> {
+): { values: Record<string, unknown>; guards: Record<string, unknown> } {
   const values: Record<string, unknown> = {};
+  const guards: Record<string, unknown> = {};
   const handled = new Set<string>();
+  const handledIncludes = new Set<string>();
   if (skeleton.length && model.loops?.length && ctx.kind === "json") {
     const loops = model.loops;
     for (const loop of loops) {
       if (parentLoop(loop, loops)) continue;
-      evaluateLoopSlots(model, loop, loops, handler, ctx, ctx.json, skeleton, values, handled, warnings);
+      evaluateLoopSlots(
+        model,
+        loop,
+        loops,
+        handler,
+        ctx,
+        ctx.json,
+        skeleton,
+        values,
+        handled,
+        warnings,
+        guards,
+        handledIncludes,
+      );
     }
   }
   for (const slot of model.slots) {
@@ -412,7 +428,16 @@ function evaluateSlotValues(
       );
     }
   }
-  return values;
+  for (const inc of model.includes ?? []) {
+    if (handledIncludes.has(inc.slotId) || inc.elseEmits) continue;
+    try {
+      guards[inc.slotId] = conditionHolds(handler.evaluate(inc.when, ctx, "boolean"));
+    } catch (e) {
+      warnings.push(`${inc.slotId}: ${e instanceof Error ? e.message : String(e)}`);
+      guards[inc.slotId] = false;
+    }
+  }
+  return { values, guards };
 }
 
 /** A DV_QUANTITY magnitude with the units mapped on the canvas, as TypeScript output writes it. */
@@ -493,6 +518,10 @@ function loopItems(path: string, root: unknown): unknown[] {
  * indexes each repeating container in turn, as the generated script nests its
  * `.map` calls (#321).
  */
+function conditionHolds(value: unknown): boolean {
+  return value === true;
+}
+
 function evaluateLoopSlots(
   model: MappingModel,
   loop: MappingLoop,
@@ -504,6 +533,8 @@ function evaluateLoopSlots(
   values: Record<string, unknown>,
   handled: Set<string>,
   warnings: string[],
+  guards: Record<string, unknown>,
+  handledIncludes: Set<string>,
 ): void {
   const trail = findSkeletonTrail(skeleton, loop.attachSlotId);
   const container = trail.at(-1);
@@ -516,11 +547,13 @@ function evaluateLoopSlots(
   }));
   // A relative LIST inside an outer loop walks from the outer item (F-M7).
   const nodes = loopItems(loop.path, isRelativeLoopPath(loop.path) ? ctx.json : root);
+  const names = [...(ctx.loopNames ?? []), loop.varName];
   const itemCtx = (node: unknown): SourceContext => ({
     ...ctx,
     json: node,
     data: node,
     vars: { ...(ctx.vars ?? {}), [loop.varName]: node },
+    loopNames: names,
     namedMaps: ctx.namedMaps,
   });
   for (const slot of model.slots) {
@@ -538,16 +571,46 @@ function evaluateLoopSlots(
       );
     }
   }
+  const includesHere = (model.includes ?? []).filter((inc) =>
+    ids.has(inc.slotId) && !childIds.has(inc.slotId) && !inc.elseEmits
+  );
+  for (const inc of includesHere) {
+    handledIncludes.add(inc.slotId);
+    guards[inc.slotId] = nodes.map((node) => {
+      try {
+        return conditionHolds(handler.evaluate(inc.when, itemCtx(node), "boolean"));
+      } catch (e) {
+        warnings.push(`${inc.slotId}: ${e instanceof Error ? e.message : String(e)}`);
+        return false;
+      }
+    });
+  }
   if (!children.length) return;
   const perItem = nodes.map((node) => {
     const inner: Record<string, unknown> = {};
+    const innerGuards: Record<string, unknown> = {};
     for (const child of children) {
-      evaluateLoopSlots(model, child, loops, handler, itemCtx(node), root, skeleton, inner, handled, warnings);
+      evaluateLoopSlots(
+        model,
+        child,
+        loops,
+        handler,
+        itemCtx(node),
+        root,
+        skeleton,
+        inner,
+        handled,
+        warnings,
+        innerGuards,
+        handledIncludes,
+      );
     }
-    return inner;
+    return { inner, innerGuards };
   });
-  const innerIds = new Set(perItem.flatMap((inner) => Object.keys(inner)));
-  for (const slotId of innerIds) values[slotId] = perItem.map((inner) => inner[slotId]);
+  const innerIds = new Set(perItem.flatMap((item) => Object.keys(item.inner)));
+  for (const slotId of innerIds) values[slotId] = perItem.map((item) => item.inner[slotId]);
+  const guardIds = new Set(perItem.flatMap((item) => Object.keys(item.innerGuards)));
+  for (const slotId of guardIds) guards[slotId] = perItem.map((item) => item.innerGuards[slotId]);
 }
 
 /**

@@ -1,7 +1,8 @@
 import type { MappingModel, MappingSlot, OptionalRmInsertion, SkeletonNode } from "../../types/mod.ts";
 import { MODEL_VERSION } from "../../types/mod.ts";
-import { slotReturnType, collectValueSlots } from "../skeleton/generate_skeleton.ts";
+import { slotReturnType, collectValueSlots, findSkeletonTrail } from "../skeleton/generate_skeleton.ts";
 import { validateExpressionSource } from "../expression/mod.ts";
+import { parseCardinality } from "../cardinality.ts";
 
 export interface BlockWorkspaceSlot {
   slotId: string;
@@ -90,7 +91,44 @@ export function validateModel(
     }
   }
 
+  for (const inc of model.includes ?? []) {
+    if (!inc.when.trim()) {
+      issues.push({
+        slotId: inc.slotId,
+        message: "Include when needs a boolean condition",
+        severity: "error",
+      });
+      continue;
+    }
+    const err = validateExpressionSource(inc.when);
+    if (err) issues.push({ slotId: inc.slotId, message: err, severity: "error" });
+    if (/\bhandlebars\s*\(/.test(inc.when)) {
+      issues.push({
+        slotId: inc.slotId,
+        message: "Include when condition uses an escape block",
+        severity: "warning",
+      });
+    }
+    const node = findSkeletonTrail(skeleton, inc.slotId).at(-1);
+    const min = node ? occurrenceMin(node) : 0;
+    if (node && min > 0 && !inc.elseEmits) {
+      issues.push({
+        slotId: inc.slotId,
+        message:
+          `Include when wraps a required target node (${node.label}); template minimum is ${min}. An else branch must emit the same node.`,
+        severity: "warning",
+      });
+    }
+  }
+
   return issues;
+}
+
+function occurrenceMin(node: SkeletonNode): number {
+  const raw = node.multiplicity || node.slotCardinality || node.effectiveCardinality;
+  const parsed = parseCardinality(raw);
+  if (parsed) return parsed.min;
+  return node.mandatory ? 1 : 0;
 }
 
 export {

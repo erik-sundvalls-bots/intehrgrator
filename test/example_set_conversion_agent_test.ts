@@ -247,11 +247,13 @@ Deno.test("Agent API import_suggestions maps Simple-vitals-series-unmapped (loca
     join(fixtures, "legacy-simulated-json", "mapping", "bp-series.intehrgrator-suggestions.json"),
   );
   const imported = await callAgentTool(service, "import_suggestions", { text: envelope }) as {
-    report: { applied: number; errors: string[]; loopsAccepted?: number };
+    report: { applied: number; errors: string[]; loopsAccepted?: number; includesAccepted?: number };
   };
   assertEquals(imported.report.errors, [], imported.report.errors.join("; "));
   assertEquals(imported.report.applied >= 6, true, `applied ${imported.report.applied}`);
-  assertEquals(imported.report.loopsAccepted, 1);
+  // Blood pressure events, plus pulse events guarded by include-when.
+  assertEquals(imported.report.loopsAccepted, 2);
+  assertEquals(imported.report.includesAccepted, 1);
 
   const ts = await runMode(service, "typescript");
   assertExecuted(ts, "Simple-vitals-series inst typescript");

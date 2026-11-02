@@ -53,6 +53,10 @@ export interface IntehrMessages {
   FOR_EACH_SOURCE_DO: string;
   FOR_EACH_LIST_TOOLTIP: string;
   FOR_EACH_IN_TOOLTIP: string;
+  INCLUDE_WHEN: string;
+  INCLUDE_WHEN_DO: string;
+  INCLUDE_WHEN_ELSE: string;
+  INCLUDE_WHEN_TOOLTIP: string;
   LOGIC_ALL: string;
   LOGIC_ANY: string;
   LOGIC_NONE: string;
@@ -129,9 +133,14 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     FOR_EACH_SOURCE_IN: "in",
     FOR_EACH_SOURCE_DO: "do",
     FOR_EACH_LIST_TOOLTIP:
-      "Loop over every item in a list or every node from a source query. The named item, its 0-based index, and the collection length are visible to blocks in the body. No break or continue.",
+      "Loop over every item in a list or every node from a source query. The named item, its 0-based index, and the collection length are visible to blocks in the body. A source path can read any enclosing item by name (dag.StartTid). No break or continue.",
     FOR_EACH_IN_TOOLTIP:
       "Plug in a list (☰) or iterable source nodes (📂). Source queries in this slot iterate every matching node.",
+    INCLUDE_WHEN: "include when",
+    INCLUDE_WHEN_DO: "do",
+    INCLUDE_WHEN_ELSE: "else",
+    INCLUDE_WHEN_TOOLTIP:
+      "Emit the blocks inside only when the condition is true. The condition is a pure boolean (exists, compare, and/or). An empty else omits the structure. On an openEHR template the wrapped node must be optional unless else emits the same node.",
     LOGIC_ALL: "all",
     LOGIC_ANY: "any",
     LOGIC_NONE: "none",
@@ -211,9 +220,14 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     FOR_EACH_SOURCE_IN: "i",
     FOR_EACH_SOURCE_DO: "gör",
     FOR_EACH_LIST_TOOLTIP:
-      "Loopa över varje objekt i en lista eller varje nod från en källfråga. Aktuellt objekt lagras i den namngivna variabeln. Ingen break eller continue.",
+      "Loopa över varje objekt i en lista eller varje nod från en källfråga. Aktuellt objekt lagras i den namngivna variabeln. En källsökväg kan läsa ett yttre namngivet objekt (dag.StartTid). Ingen break eller continue.",
     FOR_EACH_IN_TOOLTIP:
       "Koppla in en lista (☰) eller itererbara källnoder (📂). En källfråga i denna lucka loopar över varje matchande nod.",
+    INCLUDE_WHEN: "ta med när",
+    INCLUDE_WHEN_DO: "gör",
+    INCLUDE_WHEN_ELSE: "annars",
+    INCLUDE_WHEN_TOOLTIP:
+      "Skriv ut blocken inuti bara när villkoret är sant. Villkoret är ett rent booleskt uttryck. Tom annars-gren utelämnar strukturen. I en openEHR-mall måste noden vara valfri om inte annars-grenen skriver samma nod.",
     LOGIC_ALL: "alla",
     LOGIC_ANY: "något",
     LOGIC_NONE: "inget",
@@ -296,6 +310,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
       "Schleife über jedes Element einer Liste oder jeden Knoten einer Quellenabfrage. Das aktuelle Element wird in der genannten Variable gespeichert. Kein break oder continue.",
     FOR_EACH_IN_TOOLTIP:
       "Eine Liste (☰) oder iterierbare Quellenknoten (📂) einstecken. Eine Quellenabfrage in diesem Slot iteriert jeden Treffer.",
+    INCLUDE_WHEN: "einschließen wenn",
+    INCLUDE_WHEN_DO: "mache",
+    INCLUDE_WHEN_ELSE: "sonst",
+    INCLUDE_WHEN_TOOLTIP:
+      "Emit the blocks inside only when the condition is true. The condition is a pure boolean. An empty else omits the structure. On an openEHR template the wrapped node must be optional unless else emits the same node.",
     LOGIC_ALL: "alle",
     LOGIC_ANY: "mindestens eines",
     LOGIC_NONE: "keines",
@@ -378,6 +397,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
       "Recorre cada elemento de una lista o cada nodo de una consulta de origen. El elemento actual se guarda en la variable indicada. Sin break ni continue.",
     FOR_EACH_IN_TOOLTIP:
       "Enchufe una lista (☰) o nodos de origen iterables (📂). Una consulta de origen en esta ranura recorre cada coincidencia.",
+    INCLUDE_WHEN: "incluir cuando",
+    INCLUDE_WHEN_DO: "hacer",
+    INCLUDE_WHEN_ELSE: "si no",
+    INCLUDE_WHEN_TOOLTIP:
+      "Emit the blocks inside only when the condition is true. The condition is a pure boolean. An empty else omits the structure. On an openEHR template the wrapped node must be optional unless else emits the same node.",
     LOGIC_ALL: "todos",
     LOGIC_ANY: "alguno",
     LOGIC_NONE: "ninguno",
@@ -460,6 +484,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
       "Recorre cada element d'una llista o cada node d'una consulta d'origen. L'element actual es desa a la variable indicada. Sense break ni continue.",
     FOR_EACH_IN_TOOLTIP:
       "Connecteu una llista (☰) o nodes d'origen iterables (📂). Una consulta d'origen en aquesta ranura recorre cada coincidència.",
+    INCLUDE_WHEN: "inclou quan",
+    INCLUDE_WHEN_DO: "fes",
+    INCLUDE_WHEN_ELSE: "si no",
+    INCLUDE_WHEN_TOOLTIP:
+      "Emit the blocks inside only when the condition is true. The condition is a pure boolean. An empty else omits the structure. On an openEHR template the wrapped node must be optional unless else emits the same node.",
     LOGIC_ALL: "tots",
     LOGIC_ANY: "algun",
     LOGIC_NONE: "cap",
@@ -542,6 +571,11 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
       "Boucle sur chaque élément d'une liste ou chaque nœud d'une requête source. L'élément courant est stocké dans la variable nommée. Pas de break ni continue.",
     FOR_EACH_IN_TOOLTIP:
       "Branchez une liste (☰) ou des nœuds source itérables (📂). Une requête source dans cette fente parcourt chaque nœud correspondant.",
+    INCLUDE_WHEN: "inclure quand",
+    INCLUDE_WHEN_DO: "faire",
+    INCLUDE_WHEN_ELSE: "sinon",
+    INCLUDE_WHEN_TOOLTIP:
+      "Emit the blocks inside only when the condition is true. The condition is a pure boolean. An empty else omits the structure. On an openEHR template the wrapped node must be optional unless else emits the same node.",
     LOGIC_ALL: "tous",
     LOGIC_ANY: "au moins un",
     LOGIC_NONE: "aucun",

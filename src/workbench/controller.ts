@@ -1375,6 +1375,7 @@ export class WorkbenchController {
       sheetNames?: string[];
       instanceEncodings?: InstanceEncoding[];
       functions?: MappingFunction[];
+      includes?: MappingModel["includes"];
     },
   ): void {
     if (!this.templateId) {
@@ -1393,6 +1394,7 @@ export class WorkbenchController {
     next.optionalRm = optionalRm ? [...optionalRm] : [...this.model.optionalRm];
     // Canvas is source of truth: empty `loops` means the loops were undone, not "keep previous".
     next.loops = [...loops];
+    next.includes = options?.includes ? [...options.includes] : [];
     next.targetSignature = options?.targetSignature ? [...options.targetSignature] : [];
     next.unsupported = options?.unsupported ? [...options.unsupported] : [];
     next.sheetNames = options?.sheetNames ? [...options.sheetNames] : [];

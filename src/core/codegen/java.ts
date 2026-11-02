@@ -17,6 +17,7 @@ import {
   rmLocatableName,
 } from "../openehr/rm_archetype_node_id.ts";
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
+import { namedLoopBinding } from "../named_loop_path.ts";
 import { isListAttribute } from "./typescript.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
@@ -124,6 +125,8 @@ export type JavaHelper =
 export interface JavaEmitContext {
   sourceVar: string;
   loopVar?: string;
+  /** Loop item name → Java ident. Inner names shadow. */
+  loopBindings?: Readonly<Record<string, string>>;
   types: Set<string>;
   helpers: Set<JavaHelper>;
   idents: Map<string, number>;
@@ -353,6 +356,11 @@ function emitXpathCall(
   ctx: JavaEmitContext,
 ): string {
   const path = pathAst?.kind === "literal" ? String(pathAst.value).trim() : "";
+  const named = path ? namedLoopBinding(path, ctx.loopBindings) : null;
+  if (named) {
+    const restCode = JSON.stringify(named.rest === "." ? "." : named.rest);
+    return `${fn}(${restCode}, ${named.ident})`;
+  }
   let code = pathCode;
   if (path && looksLikeOpenEhrLocator(path) && (path.startsWith("/") || path.startsWith("//"))) {
     code = JSON.stringify(compileAuthoringPath(path, "xml"));
@@ -374,7 +382,11 @@ function emitQuantifierJava(
   const predAst = card ? ast.args[3] : ast.args[2];
   const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
   const ident = javaIdent(varName, "_item");
-  const innerCtx: JavaEmitContext = { ...ctx, loopVar: ident };
+  const innerCtx: JavaEmitContext = {
+    ...ctx,
+    loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [varName]: ident },
+  };
   const predCode = predAst ? emitJavaExpression(predAst, innerCtx) : "true";
   const bind = `(vars.put(${JSON.stringify(varName)}, ${ident}), ${predCode})`;
   const arr = `asList(${listCode}).stream()`;
@@ -708,6 +720,7 @@ function emitSkeletonLoop(
     ...ctx,
     sourceVar: ident,
     loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [loop.varName]: ident },
     types: ctx.types,
     helpers: ctx.helpers,
     idents: ctx.idents,

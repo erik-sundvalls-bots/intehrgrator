@@ -771,10 +771,11 @@
       "block": {
         "type": "source_query",
         "fields": {
-          "EXPRESSION": "$.KurDagar[1].StartTid"
+          "EXPRESSION": "dag.StartTid"
         }
       },
-      "note": "Start time of the treatment day. Karda sends one day per message; an absolute path because a slot inside the substance loop cannot read the day loop's item yet (findings F-M8)"
+      "loopVar": "dag",
+      "note": "Start time of the treatment day, read from the day loop item (dag.StartTid), including from inside the substance loop."
     },
     {
       "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0016/careflow_step/DV_CODED_TEXT/value",

@@ -2269,7 +2269,7 @@
                                                                                                           }
                                                                                                         },
                                                                                                         "fields": {
-                                                                                                          "EXPRESSION": "$.KurDagar[1].StartTid",
+                                                                                                          "EXPRESSION": "dag.StartTid",
                                                                                                           "RETURN_TYPE": "string"
                                                                                                         }
                                                                                                       }

@@ -39,6 +39,7 @@ import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
+import { namedLoopRead } from "../named_loop_path.ts";
 
 /** Host-bound VMS-Hbs render (`run_xquery.ts` / BaseX external). */
 export const INTEHRGRATOR_XQUERY_NS = "http://intehrgrator.local/xquery";
@@ -708,10 +709,15 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
           return emitXPathCall("boolean-at", ast.args[0], env);
         case "xpathNode":
           if (ast.args[0]?.kind === "literal" && typeof ast.args[0].value === "string") {
-            const path = ast.args[0].value.trim();
-            if (path.startsWith("/")) return `(${sourceVar}${path})[1]`;
-            const lookup = compileRelativeLookup(path, sourceVar);
+            const scoped = scopeNamedPath(ast.args[0].value.trim(), env);
+            if (scoped.path === "." || scoped.path === "") return `(${scoped.sourceVar})[1]`;
+            if (scoped.path.startsWith("/")) return `(${scoped.sourceVar}${scoped.path})[1]`;
+            const lookup = compileRelativeLookup(scoped.path, scoped.sourceVar);
             if (lookup) return `(${lookup})[1]`;
+            if (scoped.path.startsWith("$")) {
+              const abs = jsonDollarPathToLookup(scoped.path, scoped.sourceVar);
+              if (abs) return `(${abs})[1]`;
+            }
           }
           return sourceVar;
         case "handlebars":
@@ -768,7 +774,7 @@ function emitXPathCall(
   const sourceVar = env.sourceVar ?? "$source";
   if (!pathAst) return "()";
   if (pathAst.kind === "literal" && typeof pathAst.value === "string") {
-    const compiled = compileLiteralPath(pathAst.value, helper, sourceVar);
+    const compiled = compileLiteralPath(pathAst.value, helper, sourceVar, env.bind);
     if (compiled) return compiled;
   }
   return `local:${helper}(${sourceVar}, ${emitXQueryExpr(pathAst, env)})`;
@@ -778,13 +784,32 @@ function emitXPathCall(
  * Compile a fontoxpath-authored literal path to inline XQuery when safe.
  * Falls back to local:*-at helpers for dynamic / complex paths.
  */
+function scopeNamedPath(
+  path: string,
+  env: XQueryEmitEnv,
+): { sourceVar: string; path: string } {
+  const sourceVar = env.sourceVar ?? "$source";
+  const named = namedLoopRead(path, Object.keys(env.bind ?? {}));
+  const ident = named ? env.bind?.[named.name] : undefined;
+  if (!named || !ident) return { sourceVar, path };
+  return { sourceVar: `$${ident}`, path: named.rest };
+}
+
 export function compileLiteralPath(
   path: string,
   helper: "string-at" | "number-at" | "boolean-at",
   sourceVar = "$source",
+  bind?: Record<string, string>,
 ): string | null {
   const trimmed = path.trim();
   if (!trimmed) return null;
+  if (bind) {
+    const named = namedLoopRead(trimmed, Object.keys(bind));
+    const ident = named ? bind[named.name] : undefined;
+    if (named && ident) {
+      return compileLiteralPath(named.rest, helper, `$${ident}`);
+    }
+  }
 
   const cast = helper === "number-at"
     ? "xs:decimal"
@@ -928,6 +953,7 @@ function emitMapLiteralXq(args: string[]): string {
 interface XqSkelCtx {
   slots: Map<string, MappingSlot>;
   loops: MappingLoop[];
+  includes: MappingModel["includes"];
   env: XQueryEmitEnv;
   shape: OpenEhrInstanceShape;
 }
@@ -941,6 +967,7 @@ function emitCompositionProduct(
   const ctx: XqSkelCtx = {
     slots: new Map(model.slots.map((slot) => [slot.slotId, slot])),
     loops: model.loops ?? [],
+    includes: model.includes,
     env,
     shape,
   };
@@ -972,7 +999,20 @@ function emitSkelNode(
 
   const props = skelProps(node, ctx, parentArchetypeRef);
   if (node.rmType !== "COMPOSITION" && propsLackClinicalContent(props)) return null;
-  return formatSkelConstruct(node, props, ctx, isRoot);
+  return guardSkelNode(node, formatSkelConstruct(node, props, ctx, isRoot), ctx);
+}
+
+/** `include_when` as XQuery `if (cond) then node else ()` (SMT `ite`). */
+function guardSkelNode(node: SkeletonNode, code: string, ctx: XqSkelCtx): string {
+  const inc = ctx.includes?.find((item) => item.slotId === node.slotId);
+  if (!inc?.when || inc.elseEmits) return code;
+  let cond = "false()";
+  try {
+    cond = emitXQueryExpr(parseExpression(inc.when), ctx.env);
+  } catch {
+    cond = "false()";
+  }
+  return `(if (${cond}) then ${code} else ())`;
 }
 
 function emitSkelLoop(
@@ -997,7 +1037,7 @@ function emitSkelLoop(
     },
   };
   const props = skelProps(node, inner, parentArchetypeRef);
-  const constructed = formatSkelConstruct(node, props, inner, false);
+  const constructed = guardSkelNode(node, formatSkelConstruct(node, props, inner, false), inner);
   const sequence = compileLoopSequence(loop, ctx.env.sourceVar);
   const flwor =
     `let $${ident}_col := ${sequence} ` +

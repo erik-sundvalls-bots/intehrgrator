@@ -13,7 +13,7 @@ import {
 import { parseExpression } from "../core/expression/mod.ts";
 import { skeletonNodeForOptionalRm, isRepeatingMultiplicity } from "../core/skeleton/generate_skeleton.ts";
 import { termSetById, termSetForMandatedCode, termSetForRmAttribute, TERM_PICK_NONE } from "../core/openehr_term_catalog.ts";
-import { astToExpressionBlock } from "./expression_serialize.ts";
+import { astToExpressionBlock, blockToExpression } from "./expression_serialize.ts";
 import { Blockly } from "./blockly_core.ts";
 import "blockly/blocks";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
@@ -41,6 +41,7 @@ import { createTermPickBlock, isTermPickBlock } from "./blocks/term_pick.ts";
 import { applySkeletonBlockLabels } from "./block_labels.ts";
 import { createSourceQueryBlock, isSourceQueryBlockType } from "./source_query.ts";
 import { FOR_EACH_LIST_BLOCK, isLoopBlockType } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import {
   attachDefaultPointLookups,
   captureDefaultsBlockState,
@@ -292,6 +293,7 @@ export function applyModelExpressions(
       }
     }
     applyModelLoops(workspace, model);
+    applyModelIncludes(workspace, model);
     applyModelOptionalSchemaFields(workspace as WorkspaceSvg, model);
     applyModelOptionalRmInsertions(workspace as WorkspaceSvg, model);
     if (model.slots.some((s) => s.review)) applySlotReviews(slotExpressionBlocks(workspace), model.slots);
@@ -336,9 +338,10 @@ function wrapBlockWithForEachList(
   loop: MappingLoop,
 ): void {
   const parent = inner.getParent();
-  if (parent?.type === FOR_EACH_LIST_BLOCK) {
-    parent.setFieldValue(loop.varName, "VAR");
-    attachLoopCollection(workspace, parent, loop);
+  const existing = enclosingForEach(inner);
+  if (existing) {
+    existing.setFieldValue(loop.varName, "VAR");
+    attachLoopCollection(workspace, existing, loop);
     return;
   }
 
@@ -375,6 +378,54 @@ function wrapBlockWithForEachList(
   if (typeof document !== "undefined" && typeof svg.render === "function") {
     svg.render();
   }
+}
+
+/** The for-each around this block, looking through an include-when wrapper. */
+function enclosingForEach(block: Blockly.Block): Blockly.Block | null {
+  let parent = block.getParent();
+  if (parent?.type === INCLUDE_WHEN_BLOCK) parent = parent.getParent();
+  return parent?.type === FOR_EACH_LIST_BLOCK ? parent : null;
+}
+
+function applyModelIncludes(workspace: Blockly.Workspace, model: MappingModel): void {
+  for (const inc of model.includes ?? []) {
+    if (!inc.when?.trim()) continue;
+    const inner = findAttachBlock(workspace, inc.slotId);
+    if (!inner) continue;
+    const parent = inner.getParent();
+    if (parent?.type === INCLUDE_WHEN_BLOCK && parent.getInputTargetBlock("DO") === inner) {
+      setIncludeCondition(workspace, parent, inc.when);
+      continue;
+    }
+    const wrap = workspace.newBlock(INCLUDE_WHEN_BLOCK);
+    const svg = wrap as BlockSvg;
+    if (typeof document !== "undefined" && typeof svg.initSvg === "function") svg.initSvg();
+    setIncludeCondition(workspace, wrap, inc.when);
+    const prevTarget = inner.previousConnection?.targetConnection ?? null;
+    const nextBlock = inner.getNextBlock();
+    if (inner.previousConnection?.isConnected()) inner.previousConnection.disconnect();
+    if (inner.nextConnection?.isConnected()) inner.nextConnection.disconnect();
+    const doConn = wrap.getInput("DO")?.connection;
+    if (doConn && inner.previousConnection) doConn.connect(inner.previousConnection);
+    if (prevTarget && wrap.previousConnection) prevTarget.connect(wrap.previousConnection);
+    if (nextBlock?.previousConnection && wrap.nextConnection) {
+      wrap.nextConnection.connect(nextBlock.previousConnection);
+    }
+    if (typeof document !== "undefined" && typeof svg.render === "function") svg.render();
+  }
+}
+
+function setIncludeCondition(
+  workspace: Blockly.Workspace,
+  guard: Blockly.Block,
+  when: string,
+): void {
+  const existing = guard.getInputTargetBlock("WHEN");
+  if (existing && blockToExpression(existing) === when) return;
+  if (existing) existing.dispose(false);
+  const cond = expressionToBlock(workspace, when, "boolean");
+  const input = guard.getInput("WHEN")?.connection;
+  if (input && cond.outputConnection) input.connect(cond.outputConnection);
 }
 
 function attachLoopCollection(

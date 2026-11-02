@@ -1429,6 +1429,7 @@ function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }):
       sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
     },
   );
   const s = controller.getState();
@@ -2155,6 +2156,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
           },
         );
       }
@@ -2184,6 +2186,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
           },
         );
       }
