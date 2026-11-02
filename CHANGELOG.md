@@ -6,11 +6,11 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
-- **Example sets follow the repo**: the Agent API and unit tests load `examples/example-sets.json` from the source tree, so a leftover `src/desktop/www/` or `dist/` from an earlier build cannot hide newer gold mappings.
-
 ## [0.12.0] - 2026-11-02
 
 Preview and TypeScript output now agree on every mapped example set, the MCP tools are fixed after two AI-agent retests, and ehrtslib is 0.11.0.
+
+- **Example sets follow the repo**: the Agent API and unit tests load `examples/example-sets.json` from the source tree, so a leftover `src/desktop/www/` or `dist/` from an earlier build cannot hide newer gold mappings.
 
 - **ehrtslib 0.11.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.11), up from 0.7 via 0.8, 0.9 and 0.10). Simplified FLAT and STRUCTURED use the output flavour, as Better and EHRbase return it: every value at its own path, no `ctx/` keys, no `data` step for HISTORY, and RM attributes without a template path as `_<attr>` (for example `context/_health_care_facility`). A coded text on a `DV_TEXT` node is read, an ELEMENT with no value constraint is written as `<type>_value`, and name-constrained siblings (two `SECTION.adhoc` headings, Karda's *Organisationsnummer* next to *Identifierare*) stay apart, so Simple-vitals-series, OBX and Karda validate in both encodings ([ehrtslib#250](https://github.com/ErikSundvall/ehrtslib/issues/250), [#255](https://github.com/ErikSundvall/ehrtslib/issues/255), [#256](https://github.com/ErikSundvall/ehrtslib/issues/256)). Output validation is stricter: unknown or ineffective FLAT keys, missing RM-mandatory attributes and coded text without an exact match in the template's list are errors ([ehrtslib#216–#219](https://github.com/ErikSundvall/ehrtslib/issues/216), [#231](https://github.com/ErikSundvall/ehrtslib/issues/231), [#235](https://github.com/ErikSundvall/ehrtslib/issues/235)). Visible changes: renamed siblings use the spec slot id with a space, `[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']`, and a repeating ELEMENT keeps its own max, so the first of a 0..* identifier is `identifierare:0` ([ehrtslib#268](https://github.com/ErikSundvall/ehrtslib/issues/268)).
 - **History the agent can read** ([#316](https://github.com/regionstockholm/intehrgrator/issues/316)): `get_history` no longer returns a Project Bundle before and after every change. The default is the timeline (who, what, which slots). `includeBundles` or `seq` fetches bundles; `sinceSeq` and `limit` page. The history panel is unchanged.
