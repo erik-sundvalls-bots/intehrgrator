@@ -554,6 +554,7 @@ export class WorkbenchService {
           sheetNames: extract.sheetNames,
           instanceEncodings: extract.instanceEncodings,
           functions: extract.functions,
+          includes: extract.includes,
         });
       }, {
         ...ctx,
@@ -961,6 +962,7 @@ export class WorkbenchService {
           sheetNames: extract.sheetNames,
           instanceEncodings: extract.instanceEncodings,
           functions: extract.functions,
+          includes: extract.includes,
         },
       );
       return;
@@ -988,6 +990,7 @@ export class WorkbenchService {
         sheetNames: extract.sheetNames,
         instanceEncodings: extract.instanceEncodings,
         functions: extract.functions,
+        includes: extract.includes,
       },
     );
   }
@@ -1006,6 +1009,7 @@ export class WorkbenchService {
         sheetNames: extract.sheetNames,
         instanceEncodings: extract.instanceEncodings,
         functions: extract.functions,
+        includes: extract.includes,
       },
     );
   }

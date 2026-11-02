@@ -68,6 +68,7 @@ import {
 import { labelSlotId, walkSkeleton } from "./block_labels.ts";
 import { runWithoutBlocklyEvents } from "./blockly_events.ts";
 import { isLoopBlockType, loopIndexBinderName, loopLengthBinderName, sourcePathFromLoopList } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { migrateForEachSourceState } from "./migrate_for_each_source.ts";
 import {
   INSTANCE_ENCODING_FIELD,
@@ -243,7 +244,12 @@ function emitFragmentPush(
     ctx.helpers.add("logic");
     if (sourcePath) {
       ctx.helpers.add("nodes");
-      const innerCtx: TsEmitContext = { ...ctx, sourceVar: ident, loopVar: ident };
+      const innerCtx: TsEmitContext = {
+        ...ctx,
+        sourceVar: ident,
+        loopVar: ident,
+        loopBindings: { ...ctx.loopBindings, [name]: ident },
+      };
       let body = block.getInputTargetBlock("DO");
       while (body) {
         inner.push(emitFragmentPush(body, innerCtx, extraImports, webTemplateJson));
@@ -253,7 +259,11 @@ function emitFragmentPush(
     }
     const listBlock = block.getInputTargetBlock("LIST");
     const list = listBlock ? emitBlock(listBlock, ctx, 0) : "[]";
-    const innerCtx: TsEmitContext = { ...ctx, loopVar: ident };
+    const innerCtx: TsEmitContext = {
+      ...ctx,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [name]: ident },
+    };
     let body = block.getInputTargetBlock("DO");
     while (body) {
       inner.push(emitFragmentPush(body, innerCtx, extraImports, webTemplateJson));
@@ -328,6 +338,7 @@ function emitBlock(block: Block, ctx: TsEmitContext, indent: number): string {
   if (fromExpr !== null) return wrapCodePhraseSlotEmit(block, fromExpr);
 
   if (block.type === "for_each_list") return emitForEachList(block, ctx, indent);
+  if (block.type === INCLUDE_WHEN_BLOCK) return emitIncludeWhen(block, ctx, indent);
   if (block.type === "code_phrase") return emitCodePhrase(block, ctx, indent);
   if (block.type === "party_ref") return emitPartyRef(block, ctx, indent);
   if (block.type === "party_identified" || block.type === "party_related") {
@@ -590,6 +601,8 @@ function emitStatementList(
   for (const block of blocks) {
     const code = block.type === "for_each_list"
       ? emitForEachList(block, ctx, 0)
+      : block.type === INCLUDE_WHEN_BLOCK
+      ? emitIncludeWhen(block, ctx, indent)
       : block.type === "variables_set"
       ? emitVariableSet(block, ctx, indent + 1)
       : emitBlock(block, ctx, 0);
@@ -629,8 +642,17 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   ctx.helpers.add("logic");
   const sourcePath = sourcePathFromLoopList(block);
   const innerCtx: TsEmitContext = sourcePath
-    ? { ...ctx, sourceVar: ident, loopVar: ident }
-    : { ...ctx, loopVar: ident };
+    ? {
+      ...ctx,
+      sourceVar: ident,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [name]: ident },
+    }
+    : {
+      ...ctx,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [name]: ident },
+    };
   const bodyBlock = block.getInputTargetBlock("DO");
   const body = bodyBlock ? emitBlock(bodyBlock, innerCtx, indent) : "null";
   const bound = `(${emitTsLoopBind(name, ident)} ${body})`;
@@ -643,6 +665,29 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   const listBlock = block.getInputTargetBlock("LIST");
   const list = listBlock ? emitBlock(listBlock, ctx, indent) : "[]";
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+}
+
+function emitIncludeWhen(block: Block, ctx: TsEmitContext, indent: number): string {
+  const condBlock = block.getInputTargetBlock("WHEN");
+  const cond = condBlock ? emitBlock(condBlock, ctx, indent) : "false";
+  const thenCode = emitIncludeBranch(block.getInputTargetBlock("DO"), ctx, indent);
+  const elseCode = emitIncludeBranch(block.getInputTargetBlock("ELSE"), ctx, indent);
+  if (thenCode.trimStart().startsWith("...")) {
+    const thenInner = thenCode.trimStart().slice(3);
+    const elseInner = elseCode.trimStart().startsWith("...")
+      ? elseCode.trimStart().slice(3)
+      : "[]";
+    return `...((${cond}) ? (${thenInner}) : (${elseInner}))`;
+  }
+  return `((${cond}) ? (${thenCode}) : (${elseCode}))`;
+}
+
+function emitIncludeBranch(first: Block | null, ctx: TsEmitContext, indent: number): string {
+  if (!first) return "null";
+  if (first.getNextBlock()) {
+    return emitStatementList(first, true, ctx, indent) ?? "null";
+  }
+  return emitBlock(first, ctx, indent);
 }
 
 function isRelativeSourcePath(path: string): boolean {

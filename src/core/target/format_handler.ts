@@ -58,6 +58,12 @@ export interface TargetLoadOptions {
 export interface TargetRenderRequest {
   definition: TargetDefinition;
   slotValues: Readonly<Record<string, unknown>>;
+  /**
+   * `include_when` results keyed by slot id. A boolean, or a boolean array
+   * aligned with that node's loop (nested like slot values). `false` omits
+   * the node. Missing means emit.
+   */
+  guards?: Readonly<Record<string, unknown>>;
 }
 
 export interface TargetFormatHandler {
@@ -199,9 +205,9 @@ registerTargetFormatHandler({
       webTemplateJson: generated.webTemplateJson,
     };
   },
-  render({ definition, slotValues }) {
+  render({ definition, slotValues, guards }) {
     const roots = definition.skeleton
-      .map((node) => renderOpenEhrNode(node, slotValues))
+      .map((node) => renderOpenEhrNode(node, slotValues, undefined, guards))
       .filter((value) => value !== undefined);
     return roots.length === 1 ? roots[0] : roots;
   },
@@ -383,6 +389,7 @@ function renderOpenEhrNode(
   node: SkeletonNode,
   values: Readonly<Record<string, unknown>>,
   parentArchetypeRef?: string,
+  guards?: Readonly<Record<string, unknown>>,
 ): unknown {
   if (
     node.kind === "container" &&
@@ -394,20 +401,26 @@ function renderOpenEhrNode(
       const copies: unknown[] = [];
       for (let i = 0; i < count; i++) {
         const indexed = indexSlotValues(values, i, node);
+        const indexedGuards = indexGuards(guards, i, node);
+        if (indexedGuards?.[node.slotId] === false) continue;
         if (!subtreeHasClinicalValue(node, indexed, perItemSlots)) continue;
-        const one = renderOpenEhrNodeOnce(node, indexed, parentArchetypeRef);
+        const one = renderOpenEhrNodeOnce(node, indexed, parentArchetypeRef, indexedGuards);
         if (one !== undefined) copies.push(one);
       }
       return copies.length ? copies : undefined;
     }
     // One loop item: unwrap the per-item arrays so a nested loop's arrays
     // (one per outer item) reach the inner repeating container (#321).
-    if (count === 1) values = indexSlotValues(values, 0, node);
+    if (count === 1) {
+      values = indexSlotValues(values, 0, node);
+      guards = indexGuards(guards, 0, node);
+    }
   }
+  if (guards?.[node.slotId] === false) return undefined;
   if (node.rmType !== "COMPOSITION" && !subtreeHasClinicalValue(node, values)) {
     return undefined;
   }
-  return renderOpenEhrNodeOnce(node, values, parentArchetypeRef);
+  return renderOpenEhrNodeOnce(node, values, parentArchetypeRef, guards);
 }
 
 /** Boilerplate (language, event time) is kept once its parent is already included. */
@@ -415,11 +428,13 @@ function renderOpenEhrChild(
   node: SkeletonNode,
   values: Readonly<Record<string, unknown>>,
   parentArchetypeRef?: string,
+  guards?: Readonly<Record<string, unknown>>,
 ): unknown {
+  if (guards?.[node.slotId] === false) return undefined;
   if (node.rmAttribute && isRmBoilerplateAttribute(node.rmAttribute)) {
-    return renderOpenEhrNodeOnce(node, values, parentArchetypeRef);
+    return renderOpenEhrNodeOnce(node, values, parentArchetypeRef, guards);
   }
-  return renderOpenEhrNode(node, values, parentArchetypeRef);
+  return renderOpenEhrNode(node, values, parentArchetypeRef, guards);
 }
 
 /**
@@ -494,6 +509,7 @@ function renderOpenEhrNodeOnce(
   node: SkeletonNode,
   values: Readonly<Record<string, unknown>>,
   parentArchetypeRef?: string,
+  guards?: Readonly<Record<string, unknown>>,
 ): unknown {
   if (node.kind === "value") {
     let value = Object.hasOwn(values, node.slotId) ? values[node.slotId] : fixedValue(node);
@@ -533,7 +549,7 @@ function renderOpenEhrNodeOnce(
     if (isPartyIdentityRmType(node.rmType) && (child.rmAttribute === "name" || child.rmAttribute === "identifiers")) {
       continue;
     }
-    const value = renderOpenEhrChild(child, values, childArchetypeRef);
+    const value = renderOpenEhrChild(child, values, childArchetypeRef, guards);
     if (value === undefined) continue;
     const attribute = child.rmAttribute ?? child.label;
     const list = grouped.get(attribute) ?? [];
@@ -616,6 +632,21 @@ function repeatingInstanceCount(
     if (Array.isArray(value)) max = Math.max(max, value.length);
   }
   return max;
+}
+
+function indexGuards(
+  guards: Readonly<Record<string, unknown>> | undefined,
+  index: number,
+  subtree: SkeletonNode,
+): Readonly<Record<string, unknown>> | undefined {
+  if (!guards) return undefined;
+  const ids = new Set(collectAllSlotIds([subtree]));
+  const out: Record<string, unknown> = { ...guards };
+  for (const [key, value] of Object.entries(guards)) {
+    if (!ids.has(key) || !Array.isArray(value)) continue;
+    out[key] = value[index];
+  }
+  return out;
 }
 
 function indexSlotValues(

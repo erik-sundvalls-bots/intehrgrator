@@ -24,6 +24,37 @@
           }
         }
       }
+    },
+    {
+      "attachSlotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "measurement"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "$.measurements"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "includes": [
+    {
+      "slotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
+      "when": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "pulse"
+        }
+      },
+      "note": "Omit the pulse EVENT when this measurement has no pulse, so a time-only event is not kept."
     }
   ],
   "suggestions": [
@@ -175,6 +206,26 @@
         }
       },
       "note": "Coded as DV_CODED_TEXT; terminology_id ICD10 (openEHR external terminology id) instead of the source label 'ICD-10'."
+    },
+    {
+      "slotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "pulse"
+        }
+      }
+    },
+    {
+      "slotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/time/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "timestamp"
+        }
+      }
     }
   ]
 }

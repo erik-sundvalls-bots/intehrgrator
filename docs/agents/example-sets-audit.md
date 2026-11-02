@@ -124,7 +124,7 @@ App bugs behind the gaps are listed with repros in the 0.9 findings (F-M1 … F-
 
 ## Rerun on ehrtslib v0.10 (2026-11-01)
 
-Same headless MCP flow. Karda ordination: the substance loops use the relative path `Substanser` inside the treatment-day loop, course number and trial id map directly (empty values are left out), and the trial name comes from the template. The planned administration date keeps `$.KurDagar[1].StartTid`, because a slot inside the substance loop cannot read the day loop's item (F-M8). Output is unchanged. Karda administration and both Simple-vitals envelopes had no ehrtslib workarounds; their reruns give the same output and were not re-exported. Pulse in Simple-vitals-series stays unmapped: an iteration without a pulse still keeps an EVENT with only a time.
+Same headless MCP flow. Karda ordination: the substance loops use the relative path `Substanser` inside the treatment-day loop, course number and trial id map directly (empty values are left out), and the trial name comes from the template. The planned administration date is `dag.StartTid`, read from the day loop item inside the substance loop. Output is unchanged. Karda administration and both Simple-vitals envelopes had no ehrtslib workarounds; their reruns give the same output and were not re-exported. Pulse in Simple-vitals-series stays unmapped: an iteration without a pulse still keeps an EVENT with only a time.
 
 | Set | Default encoding | Simplified FLAT | Simplified STRUCTURED | Canonical JSON |
 | --- | --- | --- | --- | --- |

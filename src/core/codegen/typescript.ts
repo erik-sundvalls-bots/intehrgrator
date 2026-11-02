@@ -12,8 +12,16 @@
  * Output mode executes this script.
  */
 
-import type { MappingFunction, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
+import type {
+  MappingFunction,
+  MappingInclude,
+  MappingLoop,
+  MappingModel,
+  MappingSlot,
+  SkeletonNode,
+} from "../../types/mod.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
+import { namedLoopBinding } from "../named_loop_path.ts";
 import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
 import { DEFAULT_ACTION_ARCHETYPE_ID, isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import {
@@ -54,6 +62,10 @@ export interface TsEmitContext {
   sourceVar: string;
   /** When set, relative source paths evaluate against this loop node. */
   loopVar?: string;
+  /** Loop item name → TypeScript ident, outermost first. Inner names shadow. */
+  loopBindings?: Readonly<Record<string, string>>;
+  /** `include_when` guards, consulted while emitting a skeleton node. */
+  includes?: readonly MappingInclude[];
   types: Set<string>;
   helpers: Set<"string" | "number" | "boolean" | "nodes" | "rm" | "node" | "handlebars" | "sheets" | "logic" | "coded" | "party" | "prune">;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
@@ -270,6 +282,14 @@ function emitXpathCall(
   ctx: TsEmitContext,
 ): string {
   const path = pathAst?.kind === "literal" ? String(pathAst.value).trim() : "";
+  const named = path ? namedLoopBinding(path, ctx.loopBindings) : null;
+  if (named) {
+    const rest = named.rest === "." ? "." : named.rest;
+    const restCode = looksLikeOpenEhrLocator(rest)
+      ? JSON.stringify(compileAuthoringPath(rest, "json"))
+      : JSON.stringify(rest);
+    return `${fn}(${restCode}, ${named.ident})`;
+  }
   let code = pathCode;
   if (path && looksLikeOpenEhrLocator(path)) {
     code = JSON.stringify(compileAuthoringPath(path, "json"));
@@ -292,7 +312,11 @@ function emitQuantifierTs(
   const predAst = card ? ast.args[3] : ast.args[2];
   const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
   const ident = /^[A-Za-z_][A-Za-z0-9_]*$/.test(varName) ? varName : "_item";
-  const innerCtx: TsEmitContext = { ...ctx, loopVar: ident };
+  const innerCtx: TsEmitContext = {
+    ...ctx,
+    loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [varName]: ident },
+  };
   const predCode = predAst ? emitTsExpression(predAst, innerCtx) : "true";
   const bind = `(__vars[${JSON.stringify(varName)}] = ${ident}, ${predCode})`;
   const arr = `asList(${listCode})`;
@@ -1058,6 +1082,7 @@ export function generateTypeScriptFromSkeleton(
     return generateTypeScriptFromSlots(model);
   }
   const ctx = createTsEmitContext("sourceCtx.data", model.functions);
+  ctx.includes = model.includes;
   const slotMap = new Map(model.slots.map((s) => [s.slotId, s]));
   const loops = model.loops ?? [];
   const roots = skeleton
@@ -1110,7 +1135,19 @@ function emitSkeletonNode(
   // Name and archetype id alone are not a mapping. Drop the shell, including
   // mandatory children of an optional subtree that has no clinical value.
   if (node.rmType !== "COMPOSITION" && propsLackClinicalContent(props)) return null;
-  return wrapPruneNode(node.rmType, formatRmConstruct(node.rmType, props, indent, ctx), ctx);
+  return guardSkeletonNode(
+    node,
+    wrapPruneNode(node.rmType, formatRmConstruct(node.rmType, props, indent, ctx), ctx),
+    ctx,
+  );
+}
+
+/** `include_when` around a skeleton node: `cond ? node : null` (SMT `ite`). */
+function guardSkeletonNode(node: SkeletonNode, code: string, ctx: TsEmitContext): string {
+  const inc = ctx.includes?.find((item) => item.slotId === node.slotId);
+  if (!inc?.when || inc.elseEmits) return code;
+  const cond = emitTsExpressionSource(inc.when, ctx) ?? "false";
+  return `(${cond} ? ${code} : null)`;
 }
 
 function emitSkeletonLoop(
@@ -1129,6 +1166,7 @@ function emitSkeletonLoop(
     ...ctx,
     sourceVar: ident,
     loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [loop.varName]: ident },
     types: ctx.types,
     helpers: ctx.helpers,
   };
@@ -1141,9 +1179,13 @@ function emitSkeletonLoop(
     indent + 1,
     parentArchetypeRef,
   );
-  const constructed = wrapPruneNode(
-    node.rmType,
-    formatRmConstruct(node.rmType, props, indent + 1, innerCtx),
+  const constructed = guardSkeletonNode(
+    node,
+    wrapPruneNode(
+      node.rmType,
+      formatRmConstruct(node.rmType, props, indent + 1, innerCtx),
+      innerCtx,
+    ),
     innerCtx,
   );
   const bound =

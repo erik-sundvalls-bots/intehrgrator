@@ -43,6 +43,9 @@ import { archetypeRootIdBySlot } from "../core/openehr/rm_archetype_node_id.ts";
 import { generateGoTemplate } from "../core/codegen/go_template.ts";
 import { runWithoutBlocklyEvents } from "./blockly_events.ts";
 import { sourcePathFromLoopList } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
+import { namedLoopBinding } from "../core/named_loop_path.ts";
+import { isRelativeAuthoringPath } from "../core/mapping_model/loops.ts";
 import { migrateForEachSourceState } from "./migrate_for_each_source.ts";
 import {
   injectXmlnsOnOpenTag,
@@ -175,6 +178,7 @@ function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
   }
 
   if (block.type === "for_each_list") return emitForEachList(block, ctx);
+  if (block.type === INCLUDE_WHEN_BLOCK) return emitIncludeWhen(block, ctx);
   if (block.type === "controls_if") return emitControlsIf(block, ctx);
   if (block.type === "variables_set") return [];
   if (
@@ -243,28 +247,62 @@ function emitExpressionBlock(block: Block, ctx: GoEmitContext): string[] | null 
   return [emitGoExpressionTemplate(parseExpression(serialized), ctx)];
 }
 
+function goLoopIdent(name: string): string {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "item";
+}
+
 function emitForEachList(block: Block, ctx: GoEmitContext): string[] {
   const varName = String(block.getFieldValue("VAR") || "item");
+  const ident = goLoopIdent(varName);
   const sourcePath = sourcePathFromLoopList(block);
   const rangeExpr = sourcePath
-    ? loopRangeExpr(sourcePath)
+    ? loopRangeExpr(sourcePath, ctx)
     : (() => {
       const list = block.getInputTargetBlock("LIST");
       const listParts = list ? emitExpressionBlock(list, ctx) ?? emitBlock(list, ctx, 0) : ['""'];
       return listParts.join("").replace(/^\{\{\s*/, "").replace(/\s*\}\}$/, "") || `index .Data ""`;
     })();
   const body = block.getInputTargetBlock("DO");
-  const lines = [`{{- range ${rangeExpr} }}`];
-  const innerCtx: GoEmitContext = { ...ctx, loopVar: varName };
+  const lines = [`{{- range $${ident} := ${rangeExpr} }}`];
+  const innerCtx: GoEmitContext = {
+    ...ctx,
+    loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [varName]: `$${ident}` },
+  };
   if (body) lines.push(...emitStatementChain(body, innerCtx, 0));
   lines.push(`{{- end }}`);
   return lines;
 }
 
-function loopRangeExpr(path: string): string {
+function loopRangeExpr(path: string, ctx: GoEmitContext): string {
   const trimmed = path.trim();
+  const named = namedLoopBinding(trimmed, ctx.loopBindings);
+  if (named) {
+    if (named.rest === ".") return named.ident;
+    let expr = named.ident;
+    for (const seg of named.rest.split(".").filter(Boolean)) {
+      expr = `index ${expr} ${goQuote(seg)}`;
+    }
+    return expr;
+  }
   if (trimmed.startsWith("$.")) return jsonPathToGoIndex(trimmed);
+  if (ctx.loopVar && isRelativeAuthoringPath(trimmed)) return `index . ${goQuote(trimmed)}`;
   return `index .Data ${goQuote(trimmed)}`;
+}
+
+function emitIncludeWhen(block: Block, ctx: GoEmitContext): string[] {
+  const cond = block.getInputTargetBlock("WHEN");
+  const condStr = cond ? emitCondition(cond, ctx) : "false";
+  const lines = [`{{- if ${condStr} }}`];
+  const body = block.getInputTargetBlock("DO");
+  if (body) lines.push(...emitStatementChain(body, ctx, 0));
+  const elseBody = block.getInputTargetBlock("ELSE");
+  if (elseBody) {
+    lines.push(`{{- else }}`);
+    lines.push(...emitStatementChain(elseBody, ctx, 0));
+  }
+  lines.push(`{{- end }}`);
+  return lines;
 }
 
 function emitControlsIf(block: Block, ctx: GoEmitContext): string[] {

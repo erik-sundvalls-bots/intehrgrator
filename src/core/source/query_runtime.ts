@@ -17,6 +17,7 @@ import {
   unwrapExecuteEnvelope,
 } from "./json_document.ts";
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
+import { namedLoopRead } from "../named_loop_path.ts";
 
 export interface SourceContext {
   format: SourceFormatId;
@@ -27,6 +28,11 @@ export interface SourceContext {
   xmlDocument?: Document;
   /** Loop variables (`for_each_list` VAR → current source node or list item). */
   vars?: Record<string, unknown>;
+  /**
+   * Loop item names in lexical scope, outermost first. A path `dag.StartTid`
+   * reads from `vars.dag` when `dag` is listed here.
+   */
+  loopNames?: readonly string[];
   /**
    * When set, relative source paths walk this node instead of `json`.
    * Used while evaluating a DL restriction predicate against a list item.
@@ -231,9 +237,48 @@ function isRelativeJsonPath(expr: string): boolean {
   return expr.length > 0 && !expr.startsWith("$") && !expr.startsWith("/");
 }
 
+function namedJsonRoot(
+  path: string,
+  ctx: SourceContext,
+): { rest: string; root: unknown } | null {
+  const named = namedLoopRead(path, ctx.loopNames ?? []);
+  if (!named) return null;
+  return { rest: named.rest, root: ctx.vars?.[named.name] };
+}
+
+function jsonAt(path: string, root: unknown): unknown {
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "." || trimmed === "$") return root;
+  if (looksLikeOpenEhrLocator(trimmed)) {
+    const query = compileAuthoringPath(trimmed, "json");
+    return fontoxpath.evaluateXPathToString(query, null, null, { source: root });
+  }
+  const asPath = trimmed.startsWith("$")
+    ? trimmed
+    : `$.${trimmed.replace(/^\./, "")}`;
+  if (/\[\*\]/.test(asPath)) return evalJsonWildcard(asPath, root);
+  return walkJsonSegments(root, parseJsonAuthoringPath(asPath));
+}
+
 function xpathEval(expr: string, ctx: SourceContext, type: string): unknown {
   if (ctx.kind === "json") {
     const trimmed = expr.trim();
+    const named = namedJsonRoot(trimmed, ctx);
+    if (named) {
+      if (looksLikeOpenEhrLocator(named.rest) && named.rest !== ".") {
+        const query = compileAuthoringPath(named.rest, "json");
+        const variables = { source: named.root };
+        switch (type) {
+          case "number":
+            return fontoxpath.evaluateXPathToNumber(query, null, null, variables);
+          case "boolean":
+            return fontoxpath.evaluateXPathToBoolean(query, null, null, variables);
+          default:
+            return fontoxpath.evaluateXPathToString(query, null, null, variables);
+        }
+      }
+      return jsonAt(named.rest, named.root);
+    }
     const relative = isRelativeJsonPath(trimmed);
     if (looksLikeOpenEhrLocator(trimmed)) {
       const query = compileAuthoringPath(trimmed, "json");
@@ -381,6 +426,12 @@ function coerceReturn(value: unknown, returnType: string): unknown {
 export function evalSourceNode(expr: string, ctx: SourceContext): unknown {
   const trimmed = expr.trim();
   if (ctx.kind === "json") {
+    const named = namedJsonRoot(trimmed, ctx);
+    if (named) {
+      if (!named.rest || named.rest === ".") return named.root ?? null;
+      const nodes = collectJsonNodes(named.rest, named.root);
+      return nodes.length <= 1 ? (nodes[0] ?? null) : nodes;
+    }
     const relative = isRelativeJsonPath(trimmed);
     const root = relative ? (ctx.relativeRoot ?? ctx.json) : ctx.json;
     if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "/") {
@@ -451,6 +502,7 @@ function itemContext(ctx: SourceContext, name: string, item: unknown): SourceCon
   return {
     ...ctx,
     vars: { ...(ctx.vars ?? {}), [name]: item },
+    loopNames: [...(ctx.loopNames ?? []), name],
     relativeRoot: item,
     data: item,
   };

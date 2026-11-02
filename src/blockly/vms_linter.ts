@@ -4,7 +4,8 @@
  * paths, and out-of-dialect templates.
  */
 import type { Block } from "blockly/core";
-import { isVmsRemovedBlockType } from "./vms.ts";
+import { isVmsEscapeBlockType, isVmsRemovedBlockType } from "./vms.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { isSourceQueryBlockType } from "./source_query.ts";
 import { isPlaceholderSourcePath } from "./listening.ts";
 import { checkVmsHbs } from "../core/output/vms_hbs.ts";
@@ -58,6 +59,13 @@ export function blockHatchMessages(block: Block): string[] {
     return messages;
   }
 
+  if (block.type === INCLUDE_WHEN_BLOCK) {
+    const when = block.getInputTargetBlock("WHEN");
+    if (when && conditionHasEscape(when)) {
+      messages.push("Include when condition uses an escape block — unverified / not in declarative export");
+    }
+  }
+
   if (AD_HOC_TREE_TYPES.has(block.type)) {
     messages.push(HATCH_JSON_XML);
     return messages;
@@ -100,6 +108,15 @@ export function blockHatchMessages(block: Block): string[] {
   }
 
   return messages;
+}
+
+function conditionHasEscape(block: Block | null): boolean {
+  if (!block) return false;
+  if (isVmsEscapeBlockType(block.type) || isVmsRemovedBlockType(block.type)) return true;
+  for (const input of block.inputList) {
+    if (conditionHasEscape(block.getInputTargetBlock(input.name))) return true;
+  }
+  return conditionHasEscape(block.getNextBlock());
 }
 
 function scriptTextFromHandlebarsBlock(block: Block): string | null {

@@ -81,7 +81,7 @@
     {
       "id": "Simple-vitals-series",
       "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — mapped",
-      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). One for_each_list over measurements fills the blood-pressure events; the diagnosis is DV_CODED_TEXT (ICD10 code + display). Pulse is not mapped yet: a measurement without pulse would give an empty event.",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). One for_each_list over measurements fills the blood-pressure events; another fills pulse events and includes the event only when a pulse exists. The diagnosis is DV_CODED_TEXT (ICD10 code + display).",
       "source": {
         "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
         "instances": [
