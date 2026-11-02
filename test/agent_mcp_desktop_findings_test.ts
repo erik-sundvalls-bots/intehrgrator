@@ -87,8 +87,8 @@ Deno.test("get_snapshot counts scaffold Default points apart from mappings (#312
   const before = service.getSnapshot();
   assert(before.defaultedSlots > 0);
   assertEquals(before.appliedSlots, before.mappedSlots + before.defaultedSlots);
-  // Only the template's category constant is mapped before the agent maps anything.
-  assert(before.mappedSlots <= 1, `mappedSlots=${before.mappedSlots}`);
+  // Category is a scaffolded term_pick, not a mapping (#320).
+  assertEquals(before.mappedSlots, 0);
   await callAgentTool(service, "map_slot", { slotId: SYSTOLIC, path: "$.systolic" });
   assertEquals(service.getSnapshot().mappedSlots, before.mappedSlots + 1);
 });

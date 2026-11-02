@@ -50,7 +50,7 @@
     {
       "id": "Simple-vitals",
       "title": "Dummy vitals (JSON Schema → openEHR Template) — mapped",
-      "description": "Minimal JSON Schema source, valid instances plus one named-invalid instance, mapped to the simple-diagnose-and-vitals OPT. Blood-pressure Position uses a Decision table. Uses the operational template (.opt), which is self-contained; the sibling .t.json is a differential Archetype Designer file that needs overlay parent ADLs to flatten.",
+      "description": "Minimal JSON Schema source, valid instances plus one named-invalid instance, mapped to the simple-diagnose-and-vitals OPT. Blood pressure, pulse and their times come straight from the source. Position is mapped directly: the source words (sitting, standing, lying) match the template's value-set texts, so the at-code is filled in and an unknown word (the invalid instance's flying) fails validation. Uses the operational template (.opt), which is self-contained; the sibling .t.json is a differential Archetype Designer file that needs overlay parent ADLs to flatten.",
       "source": {
         "schema": "../test/fixtures/legacy-simulated-json/bp-schema.json",
         "instances": [
@@ -61,8 +61,7 @@
         ]
       },
       "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
-      "mapping": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.blockly.json",
-      "sheets": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.sheets.json"
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.blockly.json"
     },
     {
       "id": "Simple-vitals-series-unmapped",
@@ -82,7 +81,7 @@
     {
       "id": "Simple-vitals-series",
       "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — mapped",
-      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). Mapping uses a Decision table for diagnosis and a for_each_list over measurements.",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). One for_each_list over measurements fills the blood-pressure events; the diagnosis is DV_CODED_TEXT (ICD10 code + display). Pulse is not mapped yet: a measurement without pulse would give an empty event.",
       "source": {
         "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
         "instances": [
@@ -93,8 +92,7 @@
         ]
       },
       "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
-      "mapping": "../test/fixtures/legacy-simulated-json/mapping/bp-series.blockly.json",
-      "sheets": "../test/fixtures/legacy-simulated-json/mapping/bp-series.sheets.json"
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/bp-series.blockly.json"
     },
     {
       "id": "obx-mhv1-unmapped-json-to-openehr",
@@ -114,7 +112,7 @@
     {
       "id": "obx-mhv1-mapped-json-to-openehr",
       "title": "OBX MHV1 (JSON → openEHR) — mapped",
-      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. Lifestyle codes use a Decision table. The template is a GitHub .t.json (dependencies fetched from the same branch).",
+      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. Partial mapping: only part of the source is mapped, and the bundled OPT has no term definitions, so slots show at-codes. Preview and TypeScript Test Runs are valid.",
       "source": {
         "schema": "../test/fixtures/Obstetrix-MHV1/source-schema/obx-mhv1.review-1.schema.json",
         "instances": [
@@ -244,7 +242,7 @@
     {
       "id": "karda-ordinationsdata-to-openehr-flat",
       "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
-      "description": "OrdinationRCCV1 JSON Schema (aligned with Avro, including PDL vårdgivare name/HSAID) and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. Blockly mapping from the Go text/template artefact uses Decision tables for form/route; TypeScript Conversion Script Test Run is the check.",
+      "description": "OrdinationRCCV1 JSON Schema (aligned with Avro, including PDL vårdgivare name/HSAID) and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. Mapping uses two lookup Sheets (beredningsform, administreringsvag) to translate Cytodos form/route codes to the template codes; dose carries its unit from UnitCode. TypeScript Conversion Script Test Run is the check.",
       "source": {
         "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
         "instances": [
@@ -280,7 +278,7 @@
     {
       "id": "karda-administreringsdata-to-openehr-flat",
       "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
-      "description": "AdministrationRCCV1 Avro source schema (aligned with JSON Schema, including PDL vårdgivare name/HSAID) and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Blockly mapping from the Go text/template artefact uses a Decision table for ISM states.",
+      "description": "AdministrationRCCV1 Avro source schema (aligned with JSON Schema, including PDL vårdgivare name/HSAID) and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Mapping is direct source paths and constants: the template only allows the completed / at0007 state, so no table is needed. TypeScript Conversion Script Test Run is the check.",
       "source": {
         "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
         "instances": [
@@ -292,8 +290,7 @@
         ]
       },
       "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
-      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
-      "sheets": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
+      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json"
     }
   ]
 }

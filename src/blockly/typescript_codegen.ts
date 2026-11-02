@@ -24,6 +24,7 @@ import { registerSchemaBlocksFromSkeleton } from "./schema_blocks.ts";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import { TERM_PICK_BLOCK_TYPE } from "./blocks/term_pick.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
+import { terminologyValuesForSlot } from "../core/ai/slot_tree.ts";
 import { DEFAULTS_BLOCK_TYPE } from "../core/defaults/extract.ts";
 import {
   CONVERSION_START_TYPE,
@@ -34,7 +35,7 @@ import {
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
 import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
-import { LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
 import type { InstanceEncoding, MappingModel } from "../types/mod.ts";
 import {
   asStringExpr,
@@ -46,6 +47,11 @@ import {
   formatObjectLiteral,
   formatRmConstruct,
   generateTypeScriptFromSkeleton,
+  guardNumericConstruct,
+  wrapBooleanValue,
+  wrapPruneList,
+  wrapPruneNode,
+  wrapPruneValue,
   generateTypeScriptFromSlots,
   indentTsBlock,
   isBlankGeneratedExpr,
@@ -315,6 +321,9 @@ export function emitBlockForVmsTest(
 
 function emitBlock(block: Block, ctx: TsEmitContext, indent: number): string {
   if (block.type === TERM_PICK_BLOCK_TYPE) return emitTermPick(block, ctx);
+  // A scaffolded value-set picker (first coded choice, e.g. Position = Standing)
+  // is not a mapping. Preview omits it; emitting it invents clinical data (#320).
+  if (isScaffoldedValueSetPicker(block)) return "";
   const fromExpr = emitExpressionBlock(block, ctx);
   if (fromExpr !== null) return wrapCodePhraseSlotEmit(block, fromExpr);
 
@@ -363,7 +372,7 @@ function emitRmContainer(block: Block, ctx: TsEmitContext, indent: number): stri
     return "";
   }
   if (ENTRY_RM_TYPES.has(rmType)) ensureEntrySubject(props, ctx);
-  return formatRmConstruct(rmType, props, indent, ctx);
+  return wrapPruneNode(rmType, formatRmConstruct(rmType, props, indent, ctx), ctx);
 }
 
 /** RM ENTRY subtypes: `subject` is mandatory (RM 1.1 ENTRY). */
@@ -410,7 +419,7 @@ function collectRmProps(
     const value = block.getInputTargetBlock("VALUE");
     if (value && !value.isShadow()) {
       const code = emitBlock(value, ctx, indent + 1);
-      if (!isBlankGeneratedExpr(code)) props.push(["value", code]);
+      if (!isBlankGeneratedExpr(code)) props.push(["value", wrapPruneValue(code, ctx)]);
     }
   }
 
@@ -426,6 +435,9 @@ function collectRmProps(
     seen.add(attr);
     const code = emitAttribute(block, input.name, attr, rmType, ctx, indent);
     if (code && !isBlankGeneratedExpr(code)) props.push([attr, code]);
+  }
+  if (rmType === "ACTIVITY" && !props.some(([attr]) => attr === "action_archetype_id")) {
+    props.push(["action_archetype_id", JSON.stringify(DEFAULT_ACTION_ARCHETYPE_ID)]);
   }
   return props;
 }
@@ -456,7 +468,7 @@ function emitAttribute(
   if (isListAttribute(parentRmType, attr)) {
     const code = emitBlock(target, ctx, indent + 1);
     if (!code || isBlankGeneratedExpr(code)) return null;
-    return `[${code}]`;
+    return wrapPruneList(`[${code}]`, ctx);
   }
   const simplified = emitSimplifiedParty(attr, target, ctx, indent);
   if (simplified) return simplified;
@@ -559,6 +571,7 @@ function emitStatementList(
   asList: boolean,
   ctx: TsEmitContext,
   indent: number,
+  prune = true,
 ): string | null {
   const blocks: Block[] = [];
   let current = first;
@@ -583,7 +596,8 @@ function emitStatementList(
     if (!isBlankGeneratedExpr(code)) parts.push(indentTsBlock(code, indent + 2));
   }
   if (!parts.length) return null;
-  return `[\n${parts.join(",\n")},\n${"  ".repeat(indent + 1)}]`;
+  const list = `[\n${parts.join(",\n")},\n${"  ".repeat(indent + 1)}]`;
+  return prune ? wrapPruneList(list, ctx) : list;
 }
 
 function emitTsLoopBind(name: string, ident: string): string {
@@ -622,11 +636,18 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   const bound = `(${emitTsLoopBind(name, ident)} ${body})`;
   if (sourcePath) {
     ctx.helpers.add("nodes");
-    return `...xpathNodes(${JSON.stringify(sourcePath)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+    // A relative LIST inside an outer loop walks from the outer item (F-M7).
+    const scope = ctx.loopVar && isRelativeSourcePath(sourcePath) ? `, ${ctx.loopVar}` : "";
+    return `...xpathNodes(${JSON.stringify(sourcePath)}${scope}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
   }
   const listBlock = block.getInputTargetBlock("LIST");
   const list = listBlock ? emitBlock(listBlock, ctx, indent) : "[]";
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+}
+
+function isRelativeSourcePath(path: string): boolean {
+  const trimmed = path.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
 }
 
 function emitVariableSet(block: Block, ctx: TsEmitContext, indent: number): string {
@@ -644,6 +665,7 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     return emitCodePhrase(block, ctx, indent);
   }
   const props: Array<[string, string]> = [];
+  let rawValue: string | undefined;
   for (const attr of attributesFor(rmType)) {
     if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") continue;
     const inputName = block.getInput(`FLD_${attr.name}`)
@@ -670,8 +692,11 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     }
     const code = emitBlock(child, ctx, indent + 1);
     if (isBlankGeneratedExpr(code)) continue;
+    if (attr.name === "value") rawValue = code;
     const wrapped = attr.name === "magnitude"
       ? code
+      : rmType === "DV_BOOLEAN" && attr.name === "value"
+      ? wrapBooleanValue(code, ctx)
       : (attr.typeName === "String" || attr.name === "value" || attr.name === "code_string" ||
           attr.name === "units" || attr.name === "terminology_id")
       ? asStringExpr(code)
@@ -694,12 +719,15 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     rmType === "DV_CODED_TEXT" && props.length === 1 && props[0]![0] === "value"
   ) {
     const choices = codedChoices(ctx, String(block.getFieldValue("SLOT_ID") ?? "").trim());
-    if (choices.length) {
+    // A value that can be a coded record ({ value, code_string, terminology_id }
+    // from an if/else or Decision table) must not be turned into "[object Object]".
+    const record = rawValue != null && /["']?code_string["']?\s*:/.test(rawValue);
+    if (choices.length || record) {
       // Free text into a coded slot: look the text up in the template value set
       // so the output carries defining_code and the template rubric (#309, #310).
       ctx.types.add("DV_CODED_TEXT");
       ctx.helpers.add("coded");
-      return `codedText(${props[0]![1]}, ${JSON.stringify(choices)})`;
+      return `codedText(${record ? rawValue : props[0]![1]}, ${JSON.stringify(choices)})`;
     }
   }
   if (rmType === "DV_TEXT" && props.length === 1 && props[0]![0] === "value") {
@@ -707,6 +735,14 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     return `new DV_TEXT(${props[0]![1]})`;
   }
   if (!props.length) return "";
+  const magnitudeAt = props.findIndex(([key]) => key === "magnitude");
+  if (magnitudeAt >= 0) {
+    // A missing number leaves the value out instead of NaN (DV_COUNT throws on NaN).
+    return guardNumericConstruct(props[magnitudeAt]![1], (m) => {
+      const guarded = props.map(([key, value]): [string, string] => [key, key === "magnitude" ? m : value]);
+      return formatRmConstruct(rmType, guarded, indent, ctx);
+    }, ctx);
+  }
   return formatRmConstruct(rmType, props, indent, ctx);
 }
 
@@ -763,10 +799,11 @@ function codedChoices(ctx: TsEmitContext, slotId: string): Array<[string, string
   const node = ctx.skeletonNodes?.get(slotId) ??
     ctx.skeletonNodes?.get(slotId.replace(/\/value$/, "")) ??
     ctx.skeletonNodes?.get(slotId.replace(/\/DV_CODED_TEXT\/value$/, ""));
-  const allowed = node?.allowedValues ?? [];
-  return allowed
-    .filter((row) => row.code)
-    .map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
+  const allowed = (node?.allowedValues ?? []).filter((row) => row.code);
+  if (allowed.length) return allowed.map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
+  // No template list: an openEHR RM terminology attribute (category, setting, …).
+  const rm = terminologyValuesForSlot(slotId.endsWith("/value") ? slotId : `${slotId}/value`);
+  return rm ? rm.values.map((row) => [row.code, row.text || row.code, rm.terminologyId]) : [];
 }
 
 function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string {
@@ -790,6 +827,38 @@ function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string 
   }
   if (!props.length) return "";
   return formatRmConstruct("PARTY_REF", props, indent, ctx);
+}
+
+/**
+ * `lists_getIndex` over a list of literal coded/text choices, indexed by a
+ * constant. The skeleton attaches this so the canvas shows the value set.
+ * A source-driven index is a real mapping and is kept.
+ */
+function isScaffoldedValueSetPicker(block: Block): boolean {
+  if (block.type !== "lists_getIndex") return false;
+  const at = block.getInputTargetBlock("AT");
+  if (at && at.type !== "math_number") return false;
+  const list = block.getInputTargetBlock("VALUE");
+  if (!list || list.type !== "lists_create_with") return false;
+  const count = Number((list as Block & { itemCount_?: number }).itemCount_ ?? 0);
+  if (count < 1) return false;
+  for (let i = 0; i < count; i++) {
+    const item = list.getInputTargetBlock(`ADD${i}`);
+    if (!item || !isLiteralRmChoice(item)) return false;
+  }
+  return true;
+}
+
+function isLiteralRmChoice(block: Block): boolean {
+  if (block.type === "text" || block.type === "math_number" || block.type === "logic_boolean") return true;
+  if (block.type === "code_phrase" || isDataValueBlock(block)) {
+    for (const input of block.inputList) {
+      const child = block.getInputTargetBlock(input.name);
+      if (child && !isLiteralRmChoice(child)) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 function emitListsGetIndex(block: Block, ctx: TsEmitContext): string {
@@ -828,7 +897,7 @@ function emitGeneric(block: Block, ctx: TsEmitContext, indent: number): string {
     if (!input.name.startsWith("TARGET_") && !input.name.startsWith("SCHEMA_OPT_")) continue;
     const attr = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
     if (input.type === STATEMENT_INPUT_TYPE) {
-      const code = emitStatementList(block.getInputTargetBlock(input.name), true, ctx, indent);
+      const code = emitStatementList(block.getInputTargetBlock(input.name), true, ctx, indent, false);
       if (code) props.push([attr, code]);
       continue;
     }

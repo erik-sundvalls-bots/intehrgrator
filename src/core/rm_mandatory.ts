@@ -20,6 +20,13 @@ export const MANDATORY_RM_ATTRIBUTES: Record<string, string[]> = {
   CLUSTER: ["items"],
 };
 
+/**
+ * ACTIVITY.action_archetype_id is RM-mandatory but has no slot. Without a
+ * template pattern it is the match-all pattern, as ehrtslib's FLAT reader
+ * fills it (spec ACTIVITY table).
+ */
+export const DEFAULT_ACTION_ARCHETYPE_ID = "/.*/";
+
 /** RM-mandatory LOCATABLE attrs filled from template/at-code at export — not source-mapped. */
 export const AUTO_FIXED_LOCATABLE_ATTRS = new Set(["archetype_node_id", "name"]);
 

@@ -28,8 +28,9 @@ import { loadJsonSchema } from "../source/schema_loader.ts";
 import { isWebTemplateJson } from "ehrtslib/serialization/simplified/mod.ts";
 import { isTemplateJson } from "ehrtslib/parser/mod.ts";
 import { scaffoldClinicalModelFileset } from "../clinical_model/github_template.ts";
-import { isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
 import { assignSchemaBlockTypes } from "./schema_block_ids.ts";
+import { terminologyValuesForSlot } from "../ai/slot_tree.ts";
 
 export interface TargetDefinition {
   format: TargetFormatId;
@@ -399,6 +400,9 @@ function renderOpenEhrNode(
       }
       return copies.length ? copies : undefined;
     }
+    // One loop item: unwrap the per-item arrays so a nested loop's arrays
+    // (one per outer item) reach the inner repeating container (#321).
+    if (count === 1) values = indexSlotValues(values, 0, node);
   }
   if (node.rmType !== "COMPOSITION" && !subtreeHasClinicalValue(node, values)) {
     return undefined;
@@ -559,6 +563,9 @@ function renderOpenEhrNodeOnce(
   if (ENTRY_RM_TYPES.has(node.rmType) && output.subject == null) {
     output.subject = { _type: "PARTY_SELF" };
   }
+  if (node.rmType === "ACTIVITY" && output.action_archetype_id == null) {
+    output.action_archetype_id = DEFAULT_ACTION_ARCHETYPE_ID;
+  }
   if (output._type === "PARTY_PROXY") {
     output._type = output.name != null || output.identifiers != null ? "PARTY_IDENTIFIED" : "PARTY_SELF";
   }
@@ -672,7 +679,7 @@ function assignDataValueFields(
     return;
   }
   if (rmType === "DV_BOOLEAN") {
-    output.value = record && "value" in record ? Boolean(record.value) : Boolean(value);
+    output.value = booleanValue(record && "value" in record ? record.value : value);
     return;
   }
   if (rmType === "DV_COUNT") {
@@ -692,8 +699,12 @@ function assignDataValueFields(
   }
   if (rmType === "DV_CODED_TEXT") {
     if (record) {
-      if (record.value !== undefined) output.value = record.value;
       const phrase = codedPhraseFromRecord(record);
+      if (record.value !== undefined && record.value !== null && String(record.value) !== "") {
+        output.value = record.value;
+      } else if (!phrase) {
+        output.value = "";
+      }
       if (phrase) output.defining_code = phrase;
     } else {
       output.value = value;
@@ -723,7 +734,11 @@ function fillCodedValueFromAllowed(
   output: Record<string, unknown>,
   node: SkeletonNode,
 ): void {
-  const choices = node.allowedValues;
+  // No template list: an openEHR RM terminology attribute (category, setting, ISM state).
+  const rm = node.allowedValues?.length || node.rmType !== "DV_CODED_TEXT" ? undefined : terminologyValuesForSlot(node.slotId);
+  const choices = node.allowedValues?.length
+    ? node.allowedValues
+    : rm?.values.map((row) => ({ code: row.code, label: row.text, terminologyId: rm.terminologyId }));
   if (!choices?.length) return;
   if (node.rmType !== "DV_CODED_TEXT" && node.rmType !== "CODE_PHRASE") return;
   const phrase = asStringKeyedRecord(output.defining_code);
@@ -841,9 +856,13 @@ function dvIdentifierFromParts(
 function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, unknown> | null {
   const nested = record.defining_code;
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const inner = nested as Record<string, unknown>;
+    const innerCode = inner.code_string ?? inner.code;
+    if (innerCode == null || String(innerCode).trim() === "") return null;
     const phrase: Record<string, unknown> = {
       _type: "CODE_PHRASE",
-      ...(nested as Record<string, unknown>),
+      ...inner,
+      code_string: String(innerCode).trim(),
     };
     const term = phrase.terminology_id;
     if (typeof term === "string" || typeof term === "number") {
@@ -854,15 +873,25 @@ function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, 
   const code = record.code_string ?? record.code ??
     (typeof nested === "string" || typeof nested === "number" ? nested : undefined);
   const term = record.terminology_id ?? record.terminology;
-  if (code == null && term == null) return null;
-  const phrase: Record<string, unknown> = { _type: "CODE_PHRASE" };
+  // A terminology id with no code is not a CODE_PHRASE. TypeScript drops that
+  // shape (ehrtslib omits an empty code_string); preview must match (#320).
+  const codeText = code == null ? "" : String(code).trim();
+  if (!codeText) return null;
+  const phrase: Record<string, unknown> = { _type: "CODE_PHRASE", code_string: codeText };
   if (term != null) {
     phrase.terminology_id = typeof term === "object"
       ? term
       : { _type: "TERMINOLOGY_ID", value: String(term) };
   }
-  if (code != null) phrase.code_string = String(code);
   return phrase;
+}
+
+/** "false" is false, as in TypeScript mode (F-M11). */
+function booleanValue(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  const text = String(value ?? "").trim().toLowerCase();
+  if (text === "true" || text === "false") return text === "true";
+  return typeof value === "number" ? value !== 0 : Boolean(text);
 }
 
 function isAbsentValue(value: unknown): boolean {

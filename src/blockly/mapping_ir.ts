@@ -46,6 +46,8 @@ export interface MappingModelExtract {
     rmType: string;
     expression: string;
     hatch?: MappingSlotHatch;
+    unitsExpression?: string;
+    fieldExpressions?: Record<string, string>;
     review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
@@ -235,10 +237,46 @@ function collectSlots(workspace: Workspace): {
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
-      record(hatch ? { slotId, rmType, expression, hatch } : { slotId, rmType, expression }, exprBlock);
+      const unitsExpression = shellRm === "DV_QUANTITY" ? quantityUnitsExpression(shell!) : "";
+      const fieldExpressions = shellRm === "DV_IDENTIFIER" ? identifierFieldExpressions(shell!) : undefined;
+      record({
+        slotId,
+        rmType,
+        expression,
+        ...(hatch ? { hatch } : {}),
+        ...(unitsExpression ? { unitsExpression } : {}),
+        ...(fieldExpressions ? { fieldExpressions } : {}),
+      }, exprBlock);
     }
   }
   return { slots, blocks };
+}
+
+/**
+ * Units of a DV_QUANTITY shell, as TypeScript output writes them: a mapped
+ * `units` input, else the unit dropdown as a string literal. Scaffolded unit
+ * pickers (list blocks) are not mappings.
+ */
+function quantityUnitsExpression(shell: Block): string {
+  const target = shell.getInputTargetBlock(dvFieldInputName("units")) ?? shell.getInputTargetBlock("OPTFLD_units");
+  if (target && !target.isShadow() && target.type !== "lists_getIndex" && target.type !== "lists_create_with") {
+    const expression = blockToExpression(target);
+    if (expression) return expression;
+  }
+  const field = shell.getField("UNITS") ? String(shell.getFieldValue("UNITS") ?? "").trim() : "";
+  return field ? JSON.stringify(field) : "";
+}
+
+/** DV_IDENTIFIER type / issuer / assigner mapped on the shell (F-M12 note). */
+function identifierFieldExpressions(shell: Block): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  for (const attr of ["type", "issuer", "assigner"]) {
+    const target = shell.getInputTargetBlock(dvFieldInputName(attr)) ?? shell.getInputTargetBlock(`OPTFLD_${attr}`);
+    if (!target || target.isShadow()) continue;
+    const expression = blockToExpression(target);
+    if (expression) out[attr] = expression;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**

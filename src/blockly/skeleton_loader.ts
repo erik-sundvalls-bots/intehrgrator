@@ -279,6 +279,11 @@ export function applyModelExpressions(
         attachExpressionToElement(workspace, block, slot.expression, slot.returnType, slot.rmType);
       } else if (block.type === "party_identified" || block.type === "party_related") {
         attachExpressionToPartyName(workspace, block, slot.expression, slot.returnType);
+      } else if (block.type === "maps_get" && isPartyMapping(block, slot.expression)) {
+        // A party Default point replaced by a mapped map(name, id, …): put a
+        // party block in its place so the canvas keeps the mapping (F-M15).
+        const party = replaceLookupWithParty(workspace as WorkspaceSvg, block);
+        if (party) attachExpressionToPartyName(workspace, party, slot.expression, slot.returnType);
       } else if (isTermPickBlock(block) || isDataValueBlock(block)) {
         const shell = isTextRmType(slot.rmType) ? switchTextShellRmType(workspace, block, slot.rmType) : block;
         attachExpressionToTypedValue(workspace, shell, slot.expression, slot.returnType, slot.rmType);
@@ -1287,6 +1292,27 @@ function showOptionalDvField(block: Blockly.Block, attr: string): void {
     block.extraDvFields_.push(attr);
     (block as Blockly.Block & { updateDvFields_?: () => void }).updateDvFields_?.();
   }
+}
+
+function isPartyMapping(lookup: Blockly.Block, expression: string): boolean {
+  const rmType = String(lookup.getFieldValue("RM_TYPE") ?? "");
+  return rmType.startsWith("PARTY_") && /^\s*map\(/.test(expression);
+}
+
+function replaceLookupWithParty(workspace: WorkspaceSvg, lookup: Blockly.Block): Blockly.Block | null {
+  const parent = lookup.outputConnection?.targetConnection;
+  if (!parent) return null;
+  const slotId = String(lookup.getFieldValue("SLOT_ID") ?? "");
+  const rmType = lookup.getFieldValue("RM_TYPE") === "PARTY_RELATED" ? "PARTY_RELATED" : "PARTY_IDENTIFIED";
+  const type = rmType === "PARTY_RELATED" ? "party_related" : "party_identified";
+  ensureRmBlockType(type, rmType);
+  const party = workspace.newBlock(type) as BlockSvg;
+  setFieldIfPresent(party, "RM_TYPE", rmType);
+  setFieldIfPresent(party, "SLOT_ID", slotId);
+  finalizeBlock(party);
+  lookup.dispose(false);
+  if (party.outputConnection) parent.connect(party.outputConnection);
+  return party;
 }
 
 function attachExpressionToPartyName(

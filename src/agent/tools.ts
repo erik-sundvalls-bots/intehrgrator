@@ -9,7 +9,7 @@ import { termSetForRmAttribute } from "../core/openehr_term_catalog.ts";
 import { basename, dirname, fromFileUrl, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
 import type { MutationContext, WorkbenchService } from "../workbench/service.ts";
-import { mcpClientActor } from "./actor.ts";
+import { mcpClientActor, type HistoryActor } from "./actor.ts";
 import type { ConversionScriptLanguage, SourceFormatId } from "../types/mod.ts";
 import { isConversionScriptLanguage, isInstanceEncoding, isOutputMode } from "../types/mod.ts";
 import { exportBundle } from "../core/persistence/mod.ts";
@@ -17,6 +17,8 @@ import type { ProjectBundle } from "../types/mod.ts";
 import type { SheetDocument } from "../core/sheets/mod.ts";
 import { BUNDLED_EXAMPLE_SETS_PATH, type ExampleSetCatalog, parseExampleSetCatalog } from "../core/example_sets/mod.ts";
 import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
+import { compactSlotId } from "../core/ai/slot_tree.ts";
+import { projectHistory } from "../workbench/history.ts";
 import {
   BUNDLED_FUNCTION_LIBRARY_PATH,
   DEFAULT_GITHUB_FUNCTION_LIBRARY_URL,
@@ -122,8 +124,17 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "get_history",
-    description: "Attributed semantic history timeline.",
-    inputSchema: { type: "object", properties: {} },
+    description:
+      "Attributed history for undo and revert. Each entry is seq, revisionAfter, actor, kind, summary, affectedSlotIds, timestamp (and undone / targetSeqs when set). Project Bundles are omitted unless includeBundles is true, or seq is set (that one entry, with its bundles). sinceSeq returns entries after that seq, oldest first; limit caps the page (the first limit after sinceSeq, or the newest limit when sinceSeq is omitted). undo, revert and restore_at take seq and do not need the bundles.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        includeBundles: { type: "boolean", description: "Include beforeBundle and afterBundle on each entry." },
+        limit: { type: "number", description: "Maximum entries. With sinceSeq, the next page; otherwise the newest entries." },
+        sinceSeq: { type: "number", description: "Only entries with seq greater than this." },
+        seq: { type: "number", description: "One entry, including its Project Bundles." },
+      },
+    },
   },
   {
     name: "get_activity",
@@ -554,11 +565,15 @@ export async function callAgentTool(
   service: WorkbenchService,
   name: string,
   args: Record<string, unknown>,
+  options?: { actor?: HistoryActor },
 ): Promise<unknown> {
   args = withResolvedSlotRefs(service, name, args);
   const revision = args.revision as string | undefined;
-  const ctx = mutationContextFromArgs(args);
-  if (ctx?.actor) service.setActor(ctx.actor);
+  // Capture the actor before any await. A later request must not change it (#317).
+  const fromArgs = mutationContextFromArgs(args);
+  const actor = options?.actor ?? fromArgs?.actor;
+  const ctx: MutationContext | undefined = actor ? { ...fromArgs, actor } : fromArgs;
+  if (actor) service.setActor(actor);
   switch (name) {
     case "register_agent": {
       const reg = service.registerAgent({
@@ -599,7 +614,15 @@ export async function callAgentTool(
     case "list_constraint_warnings":
       return { revision: service.getRevision(), warnings: service.listConstraintWarnings() };
     case "get_history":
-      return { revision: service.getRevision(), entries: service.listHistory() };
+      return {
+        revision: service.getRevision(),
+        entries: projectHistory(service.listHistory(), {
+          includeBundles: flagArg(args.includeBundles),
+          limit: numberArg(args.limit),
+          sinceSeq: numberArg(args.sinceSeq),
+          seq: numberArg(args.seq),
+        }),
+      };
     case "get_activity":
       return { activity: service.getActivity(), agents: service.registry.list() };
     case "get_bundle":
@@ -620,7 +643,7 @@ export async function callAgentTool(
       return { revision: service.getRevision() };
     case "load_target":
       if (typeof args.url === "string") {
-        await service.loadTargetFromUrl(args.url);
+        await service.loadTargetFromUrl(args.url, ctx);
       } else {
         const file = await readTextInput(args, "target");
         service.loadTemplateContent(file.filename, file.content);
@@ -628,7 +651,7 @@ export async function callAgentTool(
       return { revision: service.getRevision(), snapshot: service.getSnapshot() };
     case "load_source_schema":
       if (typeof args.url === "string") {
-        await service.loadSchemaFromUrl(args.url);
+        await service.loadSchemaFromUrl(args.url, ctx);
       } else {
         const file = await readTextInput(args, "schema");
         service.loadSchemaContent(file.filename, file.content);
@@ -636,7 +659,7 @@ export async function callAgentTool(
       return { revision: service.getRevision() };
     case "add_example":
       if (typeof args.url === "string") {
-        await service.addExampleFromUrl(args.url);
+        await service.addExampleFromUrl(args.url, ctx);
       } else {
         const file = await readTextInput(args, "example");
         service.addExampleContent(file.filename, file.content);
@@ -655,7 +678,7 @@ export async function callAgentTool(
       };
     }
     case "load_example_set": {
-      const loaded = await loadExampleSetFromArgs(service, args);
+      const loaded = await loadExampleSetFromArgs(service, args, ctx);
       return { ...loaded, revision: service.getRevision(), snapshot: service.getSnapshot() };
     }
     case "list_function_library": {
@@ -680,7 +703,7 @@ export async function callAgentTool(
       };
     }
     case "set_active_example":
-      service.setActiveExample(String(args.id));
+      service.setActiveExample(String(args.id), ctx);
       return { revision: service.getRevision() };
     case "replace_sheets":
       if (!Array.isArray(args.sheets)) throw new Error("replace_sheets requires sheets[]");
@@ -722,6 +745,7 @@ export async function callAgentTool(
       if (!row) throw new Error(`Unknown slotId: ${slotId}`);
       const warnings: string[] = [];
       if (hasValue) {
+        const shown = compactSlotId(slotId);
         const report = service.importSuggestions(
           JSON.stringify({
             format: "intehrgrator-suggestions",
@@ -736,7 +760,12 @@ export async function callAgentTool(
             }],
           }),
           revision,
-          ctx,
+          {
+            ...ctx,
+            kind: "map_slot",
+            summary: `Set ${shown} = ${String(args.value)}`,
+            affectedSlotIds: [slotId],
+          },
         );
         if (report.errors?.length) throw new Error(report.errors.join("; "));
       } else {
@@ -825,6 +854,11 @@ export async function callAgentTool(
       const generated = service.generateScript(language);
       if (typeof args.path === "string") {
         await writeTextPath(args.path, generated.code);
+        return {
+          language: generated.language,
+          path: args.path,
+          bytes: new TextEncoder().encode(generated.code).length,
+        };
       }
       return { ...generated, path: args.path };
     }
@@ -882,6 +916,16 @@ export function suggestionTextFromArgs(args: Record<string, unknown>): string {
   if (args.format === "intehrgrator-suggestions") return JSON.stringify(args);
   if (args.envelope && typeof args.envelope === "object") return JSON.stringify(args.envelope);
   throw new Error("import_suggestions requires text (intehrgrator-suggestions JSON)");
+}
+
+function flagArg(value: unknown): boolean {
+  return value === true || value === "true" || value === "1";
+}
+
+function numberArg(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
 }
 
 function mutationContextFromArgs(args: Record<string, unknown>): MutationContext | undefined {
@@ -968,6 +1012,7 @@ function projectBundleFromArgs(args: Record<string, unknown>): ProjectBundle {
 async function loadExampleSetFromArgs(
   service: WorkbenchService,
   args: Record<string, unknown>,
+  ctx?: MutationContext,
 ): Promise<{ setId: string; title: string; catalogUrl: string }> {
   const setId = String(args.setId ?? "").trim();
   if (!setId) throw new Error("load_example_set requires setId");
@@ -981,6 +1026,7 @@ async function loadExampleSetFromArgs(
   const includeMapping = args.includeMapping !== false;
   await service.loadExampleSet(
     includeMapping ? set : { ...set, mapping: undefined, sheets: undefined },
+    ctx,
   );
   return { setId: set.id, title: set.title, catalogUrl: catalog.catalogUrl };
 }

@@ -111,7 +111,7 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
         case "change_case":
           return changeCase(args[0], String(args[1] ?? "LOWERCASE"));
         case "concat":
-          return args.map(String).join("");
+          return args.map((arg) => arg === null || arg === undefined ? "" : String(arg)).join("");
         case "round":
           return Math.round(Number(args[0] ?? 0));
         case "modulo": {

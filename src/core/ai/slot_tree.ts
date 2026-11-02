@@ -12,6 +12,7 @@
  * compact id, a unique tail), so tools keep accepting today's slot ids.
  */
 import { applyCodedTextSlots } from "../openehr/coded_text.ts";
+import { termSetForRmAttribute } from "../openehr_term_catalog.ts";
 import type { MappingModel, SkeletonNode } from "../../types/mod.ts";
 import {
   collectValueSlots,
@@ -187,6 +188,38 @@ function tailAfter(compact: string, group: string): string {
   return compact;
 }
 
+/** DV_CODED_TEXT RM attributes bound to an openEHR terminology group, by owning class. */
+const CODED_RM_ATTRIBUTE_PARENT: Record<string, string> = {
+  category: "COMPOSITION",
+  setting: "EVENT_CONTEXT",
+  current_state: "ISM_TRANSITION",
+  transition: "ISM_TRANSITION",
+  math_function: "INTERVAL_EVENT",
+  null_flavour: "ELEMENT",
+};
+
+/**
+ * Codes of an openEHR RM terminology attribute (`…/EVENT_CONTEXT/setting/value`
+ * → setting 225 home, 227 emergency care, …) when the template node itself
+ * has no value set (#320).
+ */
+export function terminologyValuesForSlot(
+  slotId: string,
+): { terminologyId: string; values: Array<{ code: string; text: string }> } | undefined {
+  const match = /\/([A-Z][A-Z0-9_]+)\/([a-z_]+)\/value$/.exec(slotId);
+  // Coded RM attributes whose parent step is an at-code or the template root
+  // (`<tpl>//category/DV_CODED_TEXT/value`, `…/ism_transition/at0007/current_state/DV_CODED_TEXT/value`).
+  const coded = match ? undefined : /\/([a-z_]+)\/(?:DV_CODED_TEXT\/)?value$/.exec(slotId)?.[1];
+  const parent = coded ? CODED_RM_ATTRIBUTE_PARENT[coded] : undefined;
+  if (!match && !parent) return undefined;
+  const set = match ? termSetForRmAttribute(match[1]!, match[2]!) : termSetForRmAttribute(parent!, coded!);
+  if (!set?.codes.length) return undefined;
+  return {
+    terminologyId: set.terminologyId,
+    values: set.codes.map((code) => ({ code: code.code, text: code.rubric })),
+  };
+}
+
 function valueSetRows(node: SkeletonNode): Pick<SlotTreeRow, "values" | "terminology"> {
   const values = node.allowedValues ?? [];
   if (!values.length) return {};
@@ -232,6 +265,10 @@ function rowFor(
   const vd = info?.valueDescriptions ?? {};
   let rowValues = values.values;
   if (!rowValues && info?.enum?.length) rowValues = info.enum.map((e) => ({ code: e.code, ...(e.text ? { text: e.text } : {}) }));
+  if (!rowValues) {
+    const fromRm = terminologyValuesForSlot(node.slotId);
+    if (fromRm?.values.length) rowValues = fromRm.values;
+  }
   if (rowValues && Object.keys(vd).length) {
     rowValues = rowValues.map((v) => vd[v.code] ? { ...v, description: shortText(vd[v.code], 100) } : v);
   }

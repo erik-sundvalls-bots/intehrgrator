@@ -74,9 +74,11 @@ export class LocalAgentClient implements AgentClient {
   async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
     if (name === "register_agent") return await this.registerAgent(args);
     if (this.actor) {
+      // Pass the actor into the call. Reset the shared field afterwards so a
+      // later call with no actor is the person (#317).
       this.service.setActor(this.actor);
       try {
-        return await callAgentTool(this.service, name, args);
+        return await callAgentTool(this.service, name, args, { actor: this.actor });
       } finally {
         this.service.setActor(USER_ACTOR);
       }
@@ -84,8 +86,9 @@ export class LocalAgentClient implements AgentClient {
     if (!this.session && this.identity?.agentId) {
       await this.registerAgent({ displayName: this.identity.displayName || this.clientName || undefined });
     }
-    if (this.session) this.service.setActor(this.sessionActor(this.session));
-    return await callAgentTool(this.service, name, this.actorArgs(args));
+    const actor = this.session ? this.sessionActor(this.session) : undefined;
+    if (actor) this.service.setActor(actor);
+    return await callAgentTool(this.service, name, this.actorArgs(args), actor ? { actor } : undefined);
   }
 }
 

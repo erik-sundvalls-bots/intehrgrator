@@ -10,7 +10,7 @@ export interface AgentSnapshot {
   appliedSlots: number;
   /** appliedSlots minus defaultedSlots: mapped from the source or a constant. */
   mappedSlots: number;
-  /** Slots that only read the default context map (`maps_get("defaults", …)`). */
+  /** Scaffolded Default points and term_picks (`maps_get("defaults", …)`, a literal term_pick). Not a person or agent mapping. */
   defaultedSlots: number;
   loops: number;
   unmappedMandatory: number;

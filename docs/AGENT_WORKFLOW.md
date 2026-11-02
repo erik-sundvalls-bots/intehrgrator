@@ -51,7 +51,7 @@ HTTP paths and MCP tool names are **1:1** for agent operations (shared `callAgen
 | GET | `/constraint-warnings` | `list_constraint_warnings` | Unmapped mandatory, Decision table lint, abstract EVENT / ITEM_STRUCTURE |
 | GET | `/leases` | `list_leases` | Advisory slot leases (S-15) |
 | GET | `/bundle` | `get_bundle` | Full `ProjectBundle` + revision |
-| GET | `/history` | `get_history` | Attributed semantic timeline |
+| GET | `/history` | `get_history` | Attributed timeline without Project Bundles (`includeBundles`, `seq`, `sinceSeq`, `limit`) |
 | GET | `/history/:seq/preview` | — | Read-only bundle at history seq (UI) |
 | GET | `/activity` | `get_activity` | Latest agent highlight + registered agents |
 | POST | `/register-agent` | `register_agent` | `{ agentId?, displayName?, color? }` |
@@ -89,7 +89,7 @@ Mutating requests accept **`If-Match: <revision>`** from the last snapshot. On c
 
 ### Example Set load
 
-`list_example_sets` lists the catalogued sets (`mapped` says whether a set has a mapping). Without `catalogPath` / `catalogUrl`, both tools use the catalog bundled with the app. `load_example_set` **`includeMapping` defaults to true**: a mapped catalog set **adopts** its Blockly canvas, Sheets, and loops. `get_snapshot.appliedSlots` counts every slot with an expression and is greater than 0 after that adopt: `mappedSlots` are mapped from the source or a constant, `defaultedSlots` only read the default context map. **`includeMapping: false`** loads the target, schema, and examples and **scaffolds** an empty Mapping Model from the Template Skeleton (no saved expressions).
+`list_example_sets` lists the catalogued sets (`mapped` says whether a set has a mapping). Without `catalogPath` / `catalogUrl`, both tools use the catalog bundled with the app. `load_example_set` **`includeMapping` defaults to true**: a mapped catalog set **adopts** its Blockly canvas, Sheets, and loops. `get_snapshot.appliedSlots` counts every slot with an expression and is greater than 0 after that adopt: `mappedSlots` are mapped from the source or a constant the person or an agent set, `defaultedSlots` are the scaffolded default context map and terminology picks (such as composition category). **`includeMapping: false`** loads the target, schema, and examples and **scaffolds** an empty Mapping Model from the Template Skeleton (no saved expressions).
 
 `list_slots` groups name their archetype / parent node in `label` and `within`; `loop: true` marks a repeating container whose `group` is the `attachSlotId` for `loops[]`. Call `get_slot` for one slot's full detail instead of loading the target file. In `view: "rows"`, `parentRmType` is the nearest COMPOSITION, SECTION, or ENTRY ancestor (`ACTION` vs `EVALUATION` when sibling content shares `at0000`). Pair it with `pathLabel` and `attachSlotId`; do not parse raw Blockly to tell those slots apart.
 

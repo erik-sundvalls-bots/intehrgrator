@@ -7,11 +7,11 @@
   },
   "loops": [
     {
-      "attachSlotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000",
+      "attachSlotId": "/content/at0000",
       "block": {
         "type": "for_each_list",
         "fields": {
-          "VAR": "kurdag"
+          "VAR": "dag"
         },
         "inputs": {
           "LIST": {
@@ -23,11 +23,10 @@
             }
           }
         }
-      },
-      "note": "SECTION 0..* Ordination per kurdag ← KurDagar"
+      }
     },
     {
-      "attachSlotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001",
+      "attachSlotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001",
       "block": {
         "type": "for_each_list",
         "fields": {
@@ -38,16 +37,16 @@
             "block": {
               "type": "source_query_node",
               "fields": {
-                "EXPRESSION": "$.KurDagar[*].Substanser"
+                "EXPRESSION": "Substanser"
               }
             }
           }
         }
       },
-      "note": "ACTIVITY 0..* Ordination per substans. Absolute $.KurDagar[*].Substanser so TypeScript xpathNodes iterates substances (relative Substanser is not evaluated against the parent kurdag node)."
+      "note": "Substances of the current treatment day"
     },
     {
-      "attachSlotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]",
+      "attachSlotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]",
       "block": {
         "type": "for_each_list",
         "fields": {
@@ -58,28 +57,126 @@
             "block": {
               "type": "source_query_node",
               "fields": {
-                "EXPRESSION": "$.KurDagar[*].Substanser"
+                "EXPRESSION": "Substanser"
               }
             }
           }
         }
       },
-      "note": "ACTION 1..* Schemalagd administrering per substans — same substans collection."
+      "note": "Substances of the current treatment day"
     }
   ],
   "suggestions": [
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//category/DV_CODED_TEXT/value",
+      "slotId": "/context/EVENT_CONTEXT/start_time/value",
       "block": {
-        "type": "text",
+        "type": "source_query",
         "fields": {
-          "TEXT": "event"
+          "EXPRESSION": "$.SignatureDate"
         }
-      },
-      "note": "codeFixed 433 / openehr"
+      }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//composer",
+      "slotId": "/context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "other care"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "238"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "openehr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/health_care_facility",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.PDL_enhet_Namn"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text_join",
+              "extraState": {
+                "itemCount": 2
+              },
+              "inputs": {
+                "ADD0": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "SE2321000016-"
+                    }
+                  }
+                },
+                "ADD1": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "$.PDL_enhet_HSAID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      },
+      "note": "PDL unit; the Vardenhet_* fields are empty in all examples"
+    },
+    {
+      "slotId": "/composer",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -116,52 +213,10 @@
             }
           }
         }
-      },
-      "note": "Source over defaults"
+      }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/health_care_facility",
-      "block": {
-        "type": "maps_create_with",
-        "extraState": { "itemCount": 3 },
-        "fields": { "KEY0": "name", "KEY1": "id", "KEY2": "type" },
-        "inputs": {
-          "VAL0": {
-            "block": {
-              "type": "logic_ternary",
-              "inputs": {
-                "IF": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Vardenhet_namn" } } },
-                "THEN": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Vardenhet_namn" } } },
-                "ELSE": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.PDL_enhet_Namn" } } }
-              }
-            }
-          },
-          "VAL1": {
-            "block": {
-              "type": "text_join",
-              "extraState": { "itemCount": 2 },
-              "inputs": {
-                "ADD0": { "block": { "type": "text", "fields": { "TEXT": "SE2321000016-" } } },
-                "ADD1": {
-                  "block": {
-                    "type": "logic_ternary",
-                    "inputs": {
-                      "IF": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Vardenhet_HSAID" } } },
-                      "THEN": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Vardenhet_HSAID" } } },
-                      "ELSE": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.PDL_enhet_HSAID" } } }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "urn:oid:1.2.752.29.4.19" } } }
-        }
-      },
-      "note": "Requires optional_rm_add EVENT_CONTEXT.health_care_facility. Tmpl prefers Vardenhet_* over PDL_enhet_*."
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0001/value/DV_TEXT/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0001/value/DV_TEXT/value",
       "block": {
         "type": "source_query",
         "fields": {
@@ -170,7 +225,7 @@
       }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0003/value/DV_IDENTIFIER/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0003/value/DV_IDENTIFIER/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -219,26 +274,47 @@
       }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0004/value/DV_CODED_TEXT/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0004/value/DV_CODED_TEXT/value",
       "block": {
-        "type": "text",
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
         "fields": {
-          "TEXT": "vårdenhet"
-        }
-      },
-      "note": "codeFixed 43741000"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Vårdenhet"
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "vårdenhet"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "43741000"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "http://snomed.info/sct/900000000000207008"
+              }
+            }
+          }
         }
       }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0001/value/DV_TEXT/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0001/value/DV_TEXT/value",
       "block": {
         "type": "source_query",
         "fields": {
@@ -247,7 +323,7 @@
       }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -278,16 +354,7 @@
       }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Identifierare']/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Identifierare"
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -315,144 +382,11 @@
             }
           }
         }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Organisationsnummer']/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Organisationsnummer"
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "vårdgivare"
-        }
       },
-      "note": "codeFixed 143591000052106"
+      "note": "Region Stockholm organisation number (constant)"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Vårdgivare"
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0001/value/DV_TEXT/value",
-      "block": {
-        "type": "source_query",
-        "fields": {
-          "EXPRESSION": "$.KurdefinisjonNavn"
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0031/value/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": ""
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0027/value/DV_COUNT/value",
-      "block": {
-        "type": "logic_ternary",
-        "inputs": {
-          "IF": {
-            "block": {
-              "type": "source_query",
-              "fields": {
-                "EXPRESSION": "$.PasientKurnummer"
-              }
-            }
-          },
-          "THEN": {
-            "block": {
-              "type": "source_query_number",
-              "fields": {
-                "EXPRESSION": "$.PasientKurnummer"
-              }
-            }
-          },
-          "ELSE": {
-            "block": {
-              "type": "math_number",
-              "fields": {
-                "NUM": "0"
-              }
-            }
-          }
-        }
-      },
-      "note": "Tmpl defaults null PasientKurnummer to 0"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0005/value/DV_BOOLEAN/value",
-      "block": {
-        "type": "logic_compare",
-        "fields": {
-          "OP": "EQ"
-        },
-        "inputs": {
-          "A": {
-            "block": {
-              "type": "source_query_number",
-              "fields": {
-                "EXPRESSION": "$.PasientenDeltarIStudie"
-              }
-            }
-          },
-          "B": {
-            "block": {
-              "type": "math_number",
-              "fields": {
-                "NUM": "1"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/value/DV_TEXT/value",
-      "block": {
-        "type": "source_query",
-        "fields": {
-          "EXPRESSION": "$.StudieId"
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Studie"
-        }
-      }
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/start_time/value",
-      "block": {
-        "type": "source_query",
-        "fields": {
-          "EXPRESSION": "$.SignatureDate"
-        }
-      },
-      "note": "Source SignatureDate over Defaults Map time"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//context/EVENT_CONTEXT/setting/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -468,7 +402,7 @@
             "block": {
               "type": "text",
               "fields": {
-                "TEXT": "other care"
+                "TEXT": "vårdgivare"
               }
             }
           },
@@ -476,7 +410,7 @@
             "block": {
               "type": "text",
               "fields": {
-                "TEXT": "238"
+                "TEXT": "143591000052106"
               }
             }
           },
@@ -484,7 +418,7 @@
             "block": {
               "type": "text",
               "fields": {
-                "TEXT": "openehr"
+                "TEXT": "http://snomed.info/sct/45991000052106"
               }
             }
           }
@@ -492,71 +426,76 @@
       }
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0000/items/at0030/value/DV_COUNT/value",
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0001/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.KurdefinisjonNavn"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0027/value/DV_COUNT/value",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.PasientKurnummer"
+        }
+      },
+      "note": "Left out when the course number is missing"
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0005/value/DV_BOOLEAN/value",
+      "block": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "$.PasientenDeltarIStudie"
+        }
+      },
+      "note": "PasientenDeltarIStudie 1 = yes, 0 = no"
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.StudieId"
+        }
+      },
+      "note": "Left out when there is no trial id"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0004/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.RekvisisjonId"
+        }
+      },
+      "loopVar": "dag"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0000/items/at0030/value/DV_COUNT/value",
       "block": {
         "type": "source_query_number",
         "fields": {
           "EXPRESSION": "Dognnummer"
         }
       },
-      "loopVar": "kurdag"
+      "loopVar": "dag"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0004/value/DV_IDENTIFIER/value",
-      "block": {
-        "type": "maps_create_with",
-        "extraState": {
-          "itemCount": 1
-        },
-        "fields": {
-          "KEY0": "id"
-        },
-        "inputs": {
-          "VAL0": {
-            "block": {
-              "type": "source_query",
-              "fields": {
-                "EXPRESSION": "$.RekvisisjonId"
-              }
-            }
-          }
-        }
-      },
-      "loopVar": "kurdag",
-      "note": "Composition-level RekvisisjonId (absolute)"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Läkemedelsordination"
-        }
-      },
-      "loopVar": "kurdag"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/narrative/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/narrative/value",
       "block": {
         "type": "source_query",
         "fields": {
           "EXPRESSION": "$.KurdefinisjonNavn"
         }
       },
-      "loopVar": "kurdag"
+      "loopVar": "dag"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Ordination per kurdag"
-        }
-      },
-      "loopVar": "kurdag"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0070/value/DV_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0070/value/DV_TEXT/value",
       "block": {
         "type": "source_query",
         "fields": {
@@ -566,7 +505,7 @@
       "loopVar": "substans"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -604,20 +543,11 @@
           }
         }
       },
-      "loopVar": "substans"
+      "loopVar": "substans",
+      "note": "ATC (OID 2.16.840.1.113883.6.73)"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0132/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Substans"
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0071/value/DV_CODED_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0071/value/DV_CODED_TEXT/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -631,38 +561,66 @@
         "inputs": {
           "VAL0": {
             "block": {
-              "type": "source_query",
+              "type": "sheet_lookup",
               "fields": {
-                "EXPRESSION": "Form"
+                "NAME": "beredningsform"
+              },
+              "inputs": {
+                "MATCH_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Form_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Form_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "text"
+                    }
+                  }
+                }
               }
             }
           },
           "VAL1": {
             "block": {
-              "type": "decision_table",
+              "type": "sheet_lookup",
               "fields": {
-                "NAME": "beredningsform",
-                "OUTPUT": "cytodos"
+                "NAME": "beredningsform"
               },
               "inputs": {
-                "INPUTS": {
+                "MATCH_COL": {
                   "block": {
-                    "type": "maps_create_with",
-                    "extraState": {
-                      "itemCount": 1
-                    },
+                    "type": "text",
                     "fields": {
-                      "KEY0": "form_code"
-                    },
-                    "inputs": {
-                      "VAL0": {
-                        "block": {
-                          "type": "source_query",
-                          "fields": {
-                            "EXPRESSION": "Form_CodeValue"
-                          }
-                        }
-                      }
+                      "TEXT": "Form_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Form_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "code"
                     }
                   }
                 }
@@ -680,10 +638,10 @@
         }
       },
       "loopVar": "substans",
-      "note": "OPT allowedValues are Cytodos 1-4. DT strips 1.0000→1 and documents SNOMED in column snomed (no TERM_MAPPING value slot)."
+      "note": "Sheet beredningsform: Cytodos form code (2.0000) to the template code (2)"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0139/value/value/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0139/value/value/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -715,27 +673,7 @@
       "loopVar": "substans"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0139/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Ordinerad dos"
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Detaljer om substans"
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0091/value/DV_CODED_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0091/value/DV_CODED_TEXT/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -749,38 +687,66 @@
         "inputs": {
           "VAL0": {
             "block": {
-              "type": "source_query",
+              "type": "sheet_lookup",
               "fields": {
-                "EXPRESSION": "Route_LongDescription"
+                "NAME": "administreringsvag"
+              },
+              "inputs": {
+                "MATCH_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Route_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Route_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "text"
+                    }
+                  }
+                }
               }
             }
           },
           "VAL1": {
             "block": {
-              "type": "decision_table",
+              "type": "sheet_lookup",
               "fields": {
-                "NAME": "administreringsvag",
-                "OUTPUT": "cytodos"
+                "NAME": "administreringsvag"
               },
               "inputs": {
-                "INPUTS": {
+                "MATCH_COL": {
                   "block": {
-                    "type": "maps_create_with",
-                    "extraState": {
-                      "itemCount": 1
-                    },
+                    "type": "text",
                     "fields": {
-                      "KEY0": "route_code"
-                    },
-                    "inputs": {
-                      "VAL0": {
-                        "block": {
-                          "type": "source_query",
-                          "fields": {
-                            "EXPRESSION": "Route_CodeValue"
-                          }
-                        }
-                      }
+                      "TEXT": "Route_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Route_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "code"
                     }
                   }
                 }
@@ -798,74 +764,61 @@
         }
       },
       "loopVar": "substans",
-      "note": "Route_CodeValue → Cytodos integer for OPT; SNOMED in DT column snomed."
+      "note": "Sheet administreringsvag: Cytodos route code (3.0000) to the template code (3)"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0148/value/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": ""
-        }
-      },
-      "loopVar": "substans",
-      "note": "No source in tmpl; keep ELEMENT present."
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0113/items/at0012/value/DV_DATE_TIME/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0113/items/at0012/value/DV_DATE_TIME/value",
       "block": {
         "type": "source_query",
         "fields": {
           "EXPRESSION": "$.KurDagar[1].StartTid"
         }
       },
-      "loopVar": "substans",
-      "note": "Kurdag StartTid is parent-level; catalog instances have one KurDag."
+      "note": "Start time of the treatment day. Karda sends one day per message; an absolute path because a slot inside the substance loop cannot read the day loop's item yet (findings F-M8)"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0113/items/at0012/name/DV_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0016/careflow_step/DV_CODED_TEXT/value",
       "block": {
-        "type": "text",
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
         "fields": {
-          "TEXT": "Planerat administreringsdatum"
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "Läkemedlets startdatum eller startvillkor inställt"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "at0016"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "local"
+              }
+            }
+          }
         }
       },
       "loopVar": "substans"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/name/DV_TEXT/value",
-      "block": {
-        "type": "source_query",
-        "fields": {
-          "EXPRESSION": "Innholdstoff_Navn"
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0016/current_state/DV_CODED_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "scheduled"
-        }
-      },
-      "loopVar": "substans",
-      "note": "codeFixed 529"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0016/careflow_step/DV_CODED_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Läkemedlets startdatum eller startvillkor inställt"
-        }
-      },
-      "loopVar": "substans",
-      "note": "codeFixed at0016"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
       "block": {
         "type": "maps_create_with",
         "extraState": {
@@ -906,60 +859,17 @@
       "loopVar": "substans"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/name/DV_TEXT/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
       "block": {
-        "type": "text",
+        "type": "source_query",
         "fields": {
-          "TEXT": "Substans"
+          "EXPRESSION": "$.RekvisisjonId"
         }
       },
       "loopVar": "substans"
     },
     {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Detaljer om substans"
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
-      "block": {
-        "type": "maps_create_with",
-        "extraState": {
-          "itemCount": 1
-        },
-        "fields": {
-          "KEY0": "id"
-        },
-        "inputs": {
-          "VAL0": {
-            "block": {
-              "type": "source_query",
-              "fields": {
-                "EXPRESSION": "$.RekvisisjonId"
-              }
-            }
-          }
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/name/DV_TEXT/value",
-      "block": {
-        "type": "text",
-        "fields": {
-          "TEXT": "Schemalagd administrering per substans"
-        }
-      },
-      "loopVar": "substans"
-    },
-    {
-      "slotId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag//content/at0000/items[openEHR-EHR-ACTION.medication.v1]/time/value",
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/time/value",
       "block": {
         "type": "source_query",
         "fields": {

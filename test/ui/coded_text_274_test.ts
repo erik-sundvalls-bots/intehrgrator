@@ -58,6 +58,25 @@ async function openMenuOn(page: Page, id: string): Promise<void> {
   });
 }
 
+const plain = {
+  block: "dv_text",
+  rm: "DV_TEXT",
+  menu: "Use plain text (DV_TEXT)",
+};
+const coded = {
+  block: "dv_coded_text",
+  rm: "DV_CODED_TEXT",
+  menu: "Use coded text (DV_CODED_TEXT)",
+};
+
+async function switchVia(page: Page, id: string, label: string): Promise<void> {
+  await openMenuOn(page, id);
+  const item = page.locator(".blocklyContextMenu").getByText(label);
+  await item.waitFor({ timeout: 5_000 });
+  await item.click();
+  await page.waitForTimeout(500);
+}
+
 Deno.test({
   name:
     "UI: #274 context menu switches DV_TEXT to DV_CODED_TEXT and back, with undo",
@@ -89,45 +108,36 @@ Deno.test({
         DIAGNOSIS,
         { timeout: 20_000 },
       );
-      assertEquals(await rmType(page), "DV_TEXT");
+      // The bundled mapping may already code the diagnosis; start from either side.
+      const startCoded = (await rmType(page)) === "DV_CODED_TEXT";
+      const first = startCoded ? coded : plain;
+      const second = startCoded ? plain : coded;
 
-      const plain = await textShell(page);
-      assertEquals(plain.type, "dv_text");
-      await openMenuOn(page, plain.id);
-      const toCoded = page.locator(".blocklyContextMenu").getByText(
-        "Use coded text (DV_CODED_TEXT)",
-      );
-      await toCoded.waitFor({ timeout: 5_000 });
-      await toCoded.click();
-      await page.waitForTimeout(500);
-      assertEquals((await textShell(page)).type, "dv_coded_text");
-      assertEquals(await rmType(page), "DV_CODED_TEXT");
+      const shell = await textShell(page);
+      assertEquals(shell.type, first.block);
+      await switchVia(page, shell.id, second.menu);
+      assertEquals((await textShell(page)).type, second.block);
+      assertEquals(await rmType(page), second.rm);
 
       await page.evaluate(() =>
         (globalThis as unknown as { intehrgratorTestApi: Api })
           .intehrgratorTestApi.undo()
       );
       await page.waitForTimeout(300);
-      assertEquals((await textShell(page)).type, "dv_text");
-      assertEquals(await rmType(page), "DV_TEXT");
+      assertEquals((await textShell(page)).type, first.block);
+      assertEquals(await rmType(page), first.rm);
 
-      // The menu offers the way back on a coded shell.
+      // The menu offers the way back.
       await page.evaluate(() =>
         (globalThis as unknown as { intehrgratorTestApi: { redo(): void } })
           .intehrgratorTestApi.redo()
       );
       await page.waitForTimeout(300);
-      const coded = await textShell(page);
-      assertEquals(coded.type, "dv_coded_text");
-      await openMenuOn(page, coded.id);
-      const toPlain = page.locator(".blocklyContextMenu").getByText(
-        "Use plain text (DV_TEXT)",
-      );
-      await toPlain.waitFor({ timeout: 5_000 });
-      await toPlain.click();
-      await page.waitForTimeout(500);
-      assertEquals((await textShell(page)).type, "dv_text");
-      assertEquals(await rmType(page), "DV_TEXT");
+      const again = await textShell(page);
+      assertEquals(again.type, second.block);
+      await switchVia(page, again.id, first.menu);
+      assertEquals((await textShell(page)).type, first.block);
+      assertEquals(await rmType(page), first.rm);
     } finally {
       await browser.close();
     }

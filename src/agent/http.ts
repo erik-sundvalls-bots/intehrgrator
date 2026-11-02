@@ -116,10 +116,11 @@ export function createAgentApiHandler(
       if (!tool) return json({ error: "Not found" }, 404);
 
       const args = await argsFromHttpRequest(req, tool, url, revisionHeader);
-      // Set the actor after the body is read, right before the call: two
-      // agents' requests can interleave at that await.
-      service.setActorFromHeaders(req.headers);
-      const result = await callAgentTool(service, tool, args);
+      // Resolve the actor after the body is read and pass it into the call.
+      // Do not read the shared actor again after an await: the webview's own
+      // requests have no X-Agent-Id and would record the agent as "You" (#317).
+      const actor = service.setActorFromHeaders(req.headers);
+      const result = await callAgentTool(service, tool, args, { actor });
       return json(result);
     } catch (err) {
       if (err instanceof AgentRevisionConflictError) {

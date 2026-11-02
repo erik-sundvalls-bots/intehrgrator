@@ -15,7 +15,7 @@ Each **entry** has:
 
 **New** loads the target into the **Target schema** tab only. Pull PARTY or terminology pieces onto value sockets and chip paths, **Save as**, then Apply.
 
-The ▾ menu **Refresh from file/URL** updates a target or source without wiping canvas mappings.
+The ▾ menu items **Refresh from file…** and **Refresh from URL…** update a target or source without wiping canvas mappings.
 
 When you confirm a joint load, scaffolding fills **Default point**s with map lookups. Editing a value shows up in Test Run immediately. New chips wait until you Apply.
 
