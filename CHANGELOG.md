@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Example sets follow the repo**: the Agent API and unit tests load `examples/example-sets.json` from the source tree, so a leftover `src/desktop/www/` or `dist/` from an earlier build cannot hide newer gold mappings.
+
 ## [0.12.0] - 2026-11-02
 
 Preview and TypeScript output now agree on every mapped example set, the MCP tools are fixed after two AI-agent retests, and ehrtslib is 0.11.0.

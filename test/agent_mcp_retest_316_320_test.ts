@@ -8,6 +8,7 @@ import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
 import { createAgentApiHandler } from "@intehrgrator/agent/http.ts";
 import { callAgentTool } from "@intehrgrator/agent/tools.ts";
 import { mcpInstructions } from "@intehrgrator/agent/mcp_stdio.ts";
+import { versionDir } from "@intehrgrator/core/ai/pinned_links.ts";
 
 const repo = join(import.meta.dirname!, "..");
 const BP = "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]";
@@ -249,5 +250,5 @@ Deno.test("unmapped coded pickers, script path, setting codes, flying, and mappe
   assertEquals(codeMessages[0], codeMessages[1]);
 
   assertStringIncludes(mcpInstructions(), "blob/main/docs/AGENT_WORKFLOW.md");
-  assertStringIncludes(mcpInstructions(), "v0.11/docs/AGENT_WORKFLOW.md");
+  assertStringIncludes(mcpInstructions(), `${versionDir()}/docs/AGENT_WORKFLOW.md`);
 });
