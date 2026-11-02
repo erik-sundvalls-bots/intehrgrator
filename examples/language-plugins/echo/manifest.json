@@ -1,0 +1,8 @@
+{
+  "id": "echo",
+  "label": "Echo",
+  "extension": "txt",
+  "mime": "text/plain",
+  "module": "./plugin.ts",
+  "runnable": false
+}

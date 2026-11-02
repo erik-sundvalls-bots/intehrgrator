@@ -784,20 +784,16 @@ export class WorkbenchService {
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? "Replace sheets" });
   }
 
-  generateScript(language: ConversionScriptLanguage): {
-    language: ConversionScriptLanguage;
+  async generateScript(language: string): Promise<{
+    language: string;
     extension: string;
     mime: string;
     code: string;
     revision: string;
-  } {
-    if (!isConversionScriptLanguage(language)) {
-      throw new Error(`Unsupported conversion script language: ${language}`);
-    }
+  }> {
     initBlocklyGenerators();
     const s = this.controller.getState();
-    const adapter = getExportTargetAdapter(language);
-    const code = generate(s.model, language, {
+    const scriptOptions = {
       handlebarsTemplate: s.handlebarsTemplate,
       blocklyState: s.blocklyState,
       skeleton: s.skeleton,
@@ -805,7 +801,22 @@ export class WorkbenchService {
         ? instanceShapeForEncoding(preferredInstanceEncoding(s.model))
         : s.settings.openEhrInstanceShape,
       webTemplateJson: s.target?.webTemplateJson,
-    });
+    };
+    if (!isConversionScriptLanguage(language)) {
+      const { externalLanguageGenerator } = await import("../core/codegen/language_plugin.ts");
+      const gen = externalLanguageGenerator();
+      if (!gen) throw new Error(`Unsupported conversion script language: ${language}`);
+      const generated = await gen(language, s.model, scriptOptions);
+      return {
+        language,
+        extension: generated.extension,
+        mime: generated.mime,
+        code: generated.code,
+        revision: this.revision,
+      };
+    }
+    const adapter = getExportTargetAdapter(language);
+    const code = generate(s.model, language, scriptOptions);
     return {
       language,
       extension: adapter.extension,

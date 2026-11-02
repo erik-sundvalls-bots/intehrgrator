@@ -55,6 +55,8 @@ Project-specific: `intehrgrator-mapping` for desktop Agent API / MCP mapping wor
 when a contribution issue is accepted, [`function-library/AGENTS.md`](function-library/AGENTS.md));
 `convert-mappings` when translating an existing mapping (Go `text/template`, Handlebars, TypeScript, …) into intEHRgrator Blockly / `intehrgrator-suggestions`.
 
+Conversion script language plugins (desktop Deno worker, `--language-plugin`, a new script language): [`docs/agents/conversion-script-plugins.md`](docs/agents/conversion-script-plugins.md).
+
 **Tests.** When adding, changing, or reviewing tests, read [docs/TESTING.md](docs/TESTING.md) first: pick the existing seam (unit, WorkbenchController, Playwright UI, or Agent/MCP), keep the UI green-path covering major authoring steps, and skip cloning an assertion onto a second layer unless that layer can miss a real bug.
 
 **End-user UI.** The web UI must work on Windows in Microsoft Edge; prefer

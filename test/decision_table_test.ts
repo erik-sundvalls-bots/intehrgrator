@@ -294,9 +294,9 @@ Deno.test("TypeScript codegen emits decisionTable helper call", () => {
   const code = generateTypeScript(model);
   assertEquals(code.includes("decisionTable("), true);
   assertEquals(code.includes("function decisionTable"), true);
-  assertEquals(code.includes("rowCatchAll"), true);
-  assertEquals(code.includes("collectDedupe"), true);
-  assertEquals(code.includes("cellMatch"), true);
+  assertEquals(code.includes("igDecisionTable"), true);
+  assertEquals(code.includes("rowCatchAll"), false);
+  assertEquals(code.includes("cellMatch"), false);
 });
 
 Deno.test("XQuery export emits decision_table helper bound to $sheets", () => {
@@ -305,7 +305,7 @@ Deno.test("XQuery export emits decision_table helper bound to $sheets", () => {
   );
   const xq = generateXQuery(model);
   assertStringIncludes(xq, "declare variable $sheets");
-  assertStringIncludes(xq, "local:decision-table");
+  assertStringIncludes(xq, "igsh:decision-table");
   assertStringIncludes(xq, "map { \"finding\": \"effusion\", \"laterality\": \"left\" }");
 });
 

@@ -145,9 +145,16 @@ Deno.test({
     if (!jars) return;
 
     const srcDir = join(dir, "src", "se", "regionstockholm", "intehrgrator", "generated");
+    const runtimeDir = join(dir, "src", "se", "regionstockholm", "intehrgrator", "runtime");
     await Deno.mkdir(srcDir, { recursive: true });
+    await Deno.mkdir(runtimeDir, { recursive: true });
     const srcPath = join(srcDir, "ConversionScript.java");
     await Deno.writeTextFile(srcPath, java);
+    const helperRoot = join(import.meta.dirname!, "..", "src", "core", "codegen", "helpers", "java");
+    await Deno.copyFile(
+      join(helperRoot, "IntehrgratorRuntime.java"),
+      join(runtimeDir, "IntehrgratorRuntime.java"),
+    );
     const classes = join(dir, "classes");
     await Deno.mkdir(classes, { recursive: true });
     const classpath = jars.join(":");
@@ -160,6 +167,7 @@ Deno.test({
         "-d",
         classes,
         srcPath,
+        join(runtimeDir, "IntehrgratorRuntime.java"),
       ],
       stdout: "piped",
       stderr: "piped",

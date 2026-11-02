@@ -14,7 +14,15 @@ server or CI JVM. Conversion Test Run for Java remains unimplemented
 
 ## What the class looks like
 
-Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`:
+Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`.
+
+Shared helpers live in `se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime`
+(`src/core/codegen/helpers/java/IntehrgratorRuntime.java`). Compile that file
+with the generated class. XPath uses Jackson, which Archie already brings in.
+When the script calls `handlebars`, also compile `HandlebarsSupport.java` and
+add Handlebars.java (below). The generated file imports only the static
+helpers it calls (`asString`, `rm`, …) and uses `ig.xpathString` / `ig.sheetLookup`
+for helpers that read the source or the sheet map.
 
 - `convert(Object source, Map<String, Object> defaults)` — JSON (`Map` /
   Jackson tree / JSON string) or XML (`org.w3c.dom.Node` / XML string).

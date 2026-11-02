@@ -48,7 +48,11 @@
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.11/"
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.11/",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/typescript.ts": "./src/core/codegen/helpers/typescript.ts",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/source.xqm": "./src/core/codegen/helpers/xquery/source.xqm",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/rm.xqm": "./src/core/codegen/helpers/xquery/rm.xqm",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/sheets.xqm": "./src/core/codegen/helpers/xquery/sheets.xqm"
   },
   "tasks": {
     "vendor": "deno run -A scripts/vendor-ehrtslib.ts",
@@ -71,6 +75,7 @@
     "mcp": "deno run -A src/agent/mcp_stdio.ts",
     "generate:function-library": "deno run -A --no-check scripts/generate-function-library.ts"
   },
+  "unstable": ["worker-options"],
   "lint": {
     "include": ["src", "test", "scripts", "web"],
     "rules": {

@@ -6,6 +6,7 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Shorter conversion scripts** ([#242](https://github.com/regionstockholm/intehrgrator/issues/242)): TypeScript, Java, and XQuery import shared helper modules (only the helpers that mapping uses) instead of pasting them into every script. Import paths in Generated conversion script(s) open the helper or library source. The desktop app can lazy-load another conversion script language from a manifest URL in a Deno worker sandbox (`--language-plugin`).
 - **Named loop items** ([#328](https://github.com/regionstockholm/intehrgrator/pull/328)): inside a nested **for each**, a source path can read an outer item by name (`dag.StartTid`). The planned administration date on Karda ordination no longer uses `$.KurDagar[1]`.
 - **Include when** ([#328](https://github.com/regionstockholm/intehrgrator/pull/328)): a wrapper in Loops & Logic emits an optional openEHR container only when a boolean condition is true, so a measurement without a pulse does not keep a time-only EVENT.
 

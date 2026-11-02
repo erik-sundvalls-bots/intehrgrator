@@ -13,6 +13,8 @@ export interface DesktopCliOptions {
   bind: string;
   load?: string;
   token?: string;
+  /** Manifest URLs for extra conversion-script languages. */
+  languagePlugins: string[];
 }
 
 export const USAGE = `intEHRgrator — local Integration Workbench
@@ -33,6 +35,11 @@ Options:
   --mcp               Speak MCP on stdin/stdout and proxy tools to
                       INTEHR_AGENT_URL. Does not open a workbench window.
                       An IDE launches the downloaded app this way.
+  --language-plugin <url>
+                      Manifest URL for an extra conversion-script language.
+                      Repeat the flag, or set INTEHR_LANGUAGE_PLUGINS to a
+                      comma-separated list. The module loads lazily in a Deno
+                      worker (net or read only). See docs/CONVERSION_SCRIPT_PLUGINS.md.
 `;
 
 export function isLoopbackBind(bind: string): boolean {
@@ -62,6 +69,10 @@ export function parseDesktopArgs(
     port: Number(env.PORT ?? 0),
     bind: env.INTEHR_BIND?.trim() || DEFAULT_BIND,
     token: env.INTEHR_AGENT_TOKEN?.trim() || undefined,
+    languagePlugins: (env.INTEHR_LANGUAGE_PLUGINS ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
   };
   if (!Number.isFinite(out.port) || out.port < 0) out.port = 0;
 
@@ -104,6 +115,12 @@ export function parseDesktopArgs(
       const { value, next } = takeValue(args, i, "--token");
       i = next;
       out.token = value;
+      continue;
+    }
+    if (a === "--language-plugin" || a.startsWith("--language-plugin=")) {
+      const { value, next } = takeValue(args, i, "--language-plugin");
+      i = next;
+      if (!out.languagePlugins.includes(value)) out.languagePlugins.push(value);
       continue;
     }
   }
