@@ -64,6 +64,27 @@ type AmObject = any;
 export interface GenerateSkeletonOptions {
   /** Preferred ontology / localizedNames language (ISO 639-1). */
   language?: string;
+  /**
+   * The template's primary language (lang.1), when the caller knows it better
+   * than the OPT does (a Web Template's `defaultLanguage`). Name constraints
+   * are labels in this language only.
+   */
+  primaryLanguage?: string;
+}
+
+/**
+ * How a node's own name is labelled while walking. A template that renames an
+ * archetype node writes the new name as a name constraint (`name/value matches
+ * {"Calculated scales"}`), in the template's primary language. EHRbase's Web
+ * Template generator and ehrtslib's `buildWebTemplate` use that name in the
+ * primary language and fall back to the archetype term text otherwise; the
+ * skeleton does the same. `occurrence` is the Web Template terms scope of a
+ * renamed archetype occurrence (`archetypeId,'Calculated scales'`), whose
+ * `localizedNames` give the other languages.
+ */
+interface NameLabels {
+  primary: boolean;
+  occurrence?: string;
 }
 
 export interface GenerateSkeletonResult {
@@ -191,7 +212,7 @@ export function generateSkeletonFromWebTemplate(
   const generated = generateSkeletonFromOperational(
     opt,
     buildWebTemplateTermsIndex(webTemplate, language),
-    { language },
+    { language, primaryLanguage: webTemplate.defaultLanguage || undefined },
   );
   applyWebTemplateInputConstraints(
     (webTemplate as { tree?: unknown }).tree,
@@ -204,6 +225,7 @@ export function generateSkeletonFromWebTemplate(
       generated.skeleton,
       generateSkeletonFromOperational(optFromWebTemplate(webTemplate), buildWebTemplateTermsIndex(webTemplate, primary), {
         language: primary,
+        primaryLanguage: primary,
       }).skeleton,
     );
   }
@@ -278,6 +300,7 @@ export function generateSkeletonFromOperational(
     ? resolveOptLanguage(opt, preferred)
     : resolveOptLanguage(opt);
   applyOperationalTemplateTermScopes(opt, lang);
+  const names: NameLabels = { primary: lang === (options?.primaryLanguage ?? resolveOptLanguage(opt)) };
   const fallbackTerms = mergedOntologyTerms(opt, lang);
   const archetypeTerms = mergeTermMaps(liveArchetypeTermsIndex(opt, lang), extraArchetypeTerms);
   const archetypeTermRecord = termBagsRecord(archetypeTerms);
@@ -292,6 +315,7 @@ export function generateSkeletonFromOperational(
     "",
     fallbackTerms,
     archetypeTermRecord,
+    names,
   );
 
   return {
@@ -310,6 +334,7 @@ function walkComplex(
   path: string,
   fallbackTerms: TermBag,
   archetypeTerms: Record<string, TermBag>,
+  names: NameLabels,
 ): SkeletonNode | null {
   const rmType = cObj.rm_type_name ?? "ITEM_TREE";
   const { nodeId, nameHint } = splitAqlStyleNodeId(cObj.node_id as string | undefined);
@@ -317,13 +342,15 @@ function walkComplex(
   const nodeArchetypeRef = publicArchetypeRef(
     termScopeOf(cObj as TermScopeMeta & { archetype_ref?: string }, archetypeRef),
   );
-  const terms = termsForArchetype(nodeArchetypeRef, fallbackTerms, archetypeTerms);
   const nameConstraint = nameConstraintOf(cObj);
-  const label = resolvedNodeLabel(
+  const nodeNames = namesForNode(cObj, nodeArchetypeRef, nameConstraint, names, archetypeTerms);
+  const termScope = nodeNames.occurrence ?? nodeArchetypeRef;
+  const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
+  const label = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
     nameHint,
     nodeId,
     rmType,
-    nodeArchetypeRef ?? archetypeRef,
+    termScope ?? archetypeRef,
     nameFallbackOf(cObj as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
     fallbackTerms,
     archetypeTerms,
@@ -378,6 +405,7 @@ function walkComplex(
       `${slotPath}/${attrName}`,
       fallbackTerms,
       archetypeTerms,
+      nodeNames,
     );
     for (const child of childNodes) {
       child.rmAttribute = attrName;
@@ -464,6 +492,7 @@ function walkAttribute(
   path: string,
   fallbackTerms: TermBag,
   archetypeTerms: Record<string, TermBag>,
+  names: NameLabels,
 ): SkeletonNode[] {
   const children = (attr.children ?? []) as AmObject[];
   const nodes: SkeletonNode[] = [];
@@ -486,6 +515,7 @@ function walkAttribute(
         childPath,
         fallbackTerms,
         archetypeTerms,
+        names,
       );
       if (node) nodes.push(node);
     } else {
@@ -495,18 +525,20 @@ function walkAttribute(
           archetypeShortName: archetypeShortName(childArchetypeRef),
         }
         : {};
-      const terms = termsForArchetype(childArchetypeRef, fallbackTerms, archetypeTerms);
+      const leafNames = namesForNode(child, childArchetypeRef, nameConstraint, names, archetypeTerms);
+      const termScope = leafNames.occurrence ?? childArchetypeRef;
+      const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
       nodes.push({
         // Keep unique-OPT DV leaves on `…/value/value/value` (the attribute is
         // already in `path`). locatorChildPath is for siblings with a node id.
         slotId: `${templateId}${path}/${nodeId ?? "value"}/value`,
         blockType: blockTypeForRm(rmType),
         rmType,
-        label: resolvedNodeLabel(
+        label: nameLabel(nameConstraint, leafNames) ?? resolvedNodeLabel(
           nameHint,
           nodeId,
           rmType,
-          childArchetypeRef,
+          termScope,
           nameFallbackOf(child as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
           fallbackTerms,
           archetypeTerms,
@@ -845,6 +877,38 @@ function resolvedNodeLabel(
     fromTerms !== templateId
   ) return fromTerms;
   return nameHint || fromTerms;
+}
+
+/** Archetype id without a name predicate: `openEHR-EHR-SECTION.adhoc.v1,'X'` → the id. */
+function bareArchetypeRef(ref: string | undefined): string | undefined {
+  return ref?.replace(/\s*,\s*'(?:[^']|'')*'\s*$/, "");
+}
+
+/**
+ * Name labelling for one node. A renamed archetype root (own `archetype_ref`
+ * and a name constraint) opens its Web Template occurrence scope when there is
+ * one; nodes inside the same archetype keep it, other archetypes drop it.
+ */
+function namesForNode(
+  cObj: AmObject,
+  termScope: string | undefined,
+  nameConstraint: string | undefined,
+  names: NameLabels,
+  archetypeTerms: Record<string, TermBag>,
+): NameLabels {
+  const ownRef = bareArchetypeRef(ownArchetypeRefOf(cObj));
+  if (ownRef && nameConstraint) {
+    const occurrence = `${ownRef},'${nameConstraint}'`;
+    return { primary: names.primary, ...(archetypeTerms[occurrence] ? { occurrence } : {}) };
+  }
+  const inherited = names.occurrence;
+  if (inherited && bareArchetypeRef(inherited) === bareArchetypeRef(termScope)) return names;
+  return { primary: names.primary };
+}
+
+/** A name constraint is the label in the primary language (as EHRbase and ehrtslib Web Templates). */
+function nameLabel(nameConstraint: string | undefined, names: NameLabels): string | undefined {
+  return names.primary ? nameConstraint?.trim() || undefined : undefined;
 }
 
 function pathNodeSegment(nodeId: string | undefined, rmType: string): string {

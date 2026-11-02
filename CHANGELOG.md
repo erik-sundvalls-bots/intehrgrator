@@ -30,6 +30,7 @@ Fixes from a desktop and headless MCP retest after 0.11.
 - **Activities in canonical output**: every ACTIVITY has its RM-mandatory `action_archetype_id` (`/.*/`, as ehrtslib's FLAT reader fills it), so Karda's ordination set validates as canonical JSON too.
 - **STRUCTURED output is validated**: with Simplified STRUCTURED as Instance encoding, output validation reads the document back through ehrtslib and checks it against the template, as for FLAT. It reported "Cannot determine type for object" before.
 - **Nested loops in XQuery**: a relative LIST path inside another loop reads the outer item in XQuery output as well, instead of stopping with `DYNAMIC-LOOP-PATH`.
+- **Renamed template nodes keep their names on the canvas**: when a template renames an archetype node (two `SECTION.adhoc` headings named *Vital signs* and *Calculated scales*), blocks and slot lists show the template's name in its primary language, as EHRbase and ehrtslib Web Templates do, instead of the archetype's term text. Other display languages show the archetype's translation. Output names were already right.
 - **Karda ordination mapping rerun on ehrtslib v0.10**: substances loop per treatment day with the relative path `Substanser`, course number and trial id map directly, and the trial name comes from the template. Output is unchanged.
 
 Fixes from driving the 0.11 desktop release over MCP with two AI agents.
