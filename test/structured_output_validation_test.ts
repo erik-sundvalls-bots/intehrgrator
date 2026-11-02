@@ -36,3 +36,31 @@ Deno.test("Simple-vitals-series: a coded diagnosis on a DV_TEXT node validates i
   assertEquals(run.testResult.outputValidation?.messages ?? [], []);
   assertEquals(run.testResult.outputValidation?.valid, true);
 });
+
+Deno.test("Simple-vitals-series and OBX validate in FLAT and STRUCTURED", async () => {
+  for (const setId of ["Simple-vitals-series", "obx-mhv1-mapped-json-to-openehr"]) {
+    const service = new WorkbenchService();
+    await callAgentTool(service, "load_example_set", { setId });
+    const listed = await callAgentTool(service, "list_examples", {}) as {
+      examples: Array<{ id: string; filename?: string }>;
+    };
+    const examples = listed.examples.filter((ex) => !ex.filename?.includes("invalid"));
+    for (const encoding of ["flat-json", "structured-json"] as const) {
+      await callAgentTool(service, "set_instance_encoding", { encoding });
+      for (const example of examples) {
+        await callAgentTool(service, "set_active_example", { id: example.id });
+        for (const outputMode of ["preview", "typescript"] as const) {
+          const run = await callAgentTool(service, "run_test", { outputMode }) as {
+            testResult: { outputValidation?: { valid?: boolean; messages?: Array<{ message: string }> } };
+          };
+          const messages = run.testResult.outputValidation?.messages?.map((m) => m.message).join("; ");
+          assertEquals(
+            run.testResult.outputValidation?.valid,
+            true,
+            `${setId} ${example.filename} ${encoding} ${outputMode}: ${messages}`,
+          );
+        }
+      }
+    }
+  }
+});

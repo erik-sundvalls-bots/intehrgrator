@@ -67,7 +67,8 @@ Deno.test("Karda TypeScript FLAT codes category, ISM state and coded records; pr
 
   const admin = (await runBoth("karda-administreringsdata-to-openehr-flat"))[0]!;
   assertEquals(value(admin.typescript, "/category|code"), "433");
-  assertEquals(value(admin.typescript, "/diagnos_vårdkontakt|code"), "C509");
+  // A 0..* ELEMENT keeps its own max (ehrtslib#268), so the first diagnosis is :0.
+  assertEquals(value(admin.typescript, "/diagnos_vårdkontakt:0|code"), "C509");
   assertEquals(Object.values(admin.typescript).includes("[object Object]"), false);
   assertEquals(value(admin.typescript, "administrerad_läkemedelsbehandling:0/ism_transition/current_state|code"), "532");
   assertEquals(value(admin.preview, "administrerad_läkemedelsbehandling:0/detaljer_per_substans/administrerad_dos|unit"), "mg");
@@ -91,9 +92,9 @@ Deno.test("Karda order: the nested Vårdgivare cluster and the identifier type r
   const order = (await runBoth("karda-ordinationsdata-to-openehr-flat"))[0]!;
   for (const [mode, flat] of [["preview", order.preview], ["typescript", order.typescript]] as const) {
     assertEquals(value(flat, "/context/vårdenhet/vårdgivare/namn"), "PDL-vårdgivare SLL IdP TEST", mode);
-    assertEquals(value(flat, "/context/vårdenhet/identifierare|type"), "urn:oid:1.2.752.29.4.19", mode);
-    // Since ehrtslib v0.10 FLAT keeps name-constrained siblings (ehrtslib#250).
-    assertEquals(value(flat, "/context/vårdenhet/vårdgivare/organisationsnummer|id"), "2321000016", mode);
+    // 0..* identifiers carry :0 (ehrtslib#268). Name-constrained siblings stay apart (ehrtslib#250).
+    assertEquals(value(flat, "/context/vårdenhet/identifierare:0|type"), "urn:oid:1.2.752.29.4.19", mode);
+    assertEquals(value(flat, "/context/vårdenhet/vårdgivare/organisationsnummer:0|id"), "2321000016", mode);
   }
 });
 

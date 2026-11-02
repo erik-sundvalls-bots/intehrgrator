@@ -561,5 +561,14 @@ Deno.test("web template renamed sections keep their own names in every language"
       ["Vital signs", "Calculated scales"],
       language,
     );
+    // Spec locator: a space after the comma (ehrtslib#256).
+    assertEquals(
+      sections.map((n) => n.slotId.split("//")[1]),
+      [
+        "content[openEHR-EHR-SECTION.adhoc.v1, 'Vital signs']",
+        "content[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']",
+      ],
+      language,
+    );
   }
 });
