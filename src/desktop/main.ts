@@ -92,11 +92,12 @@ export function workbenchOrErrorHandler(
   return composeWorkbenchHandler(staticHandler, enableAgentApi, { token });
 }
 
-function envMap(): Record<string, string | undefined> {
+export function envMap(): Record<string, string | undefined> {
   return {
     PORT: Deno.env.get("PORT"),
     INTEHR_BIND: Deno.env.get("INTEHR_BIND"),
     INTEHR_AGENT_TOKEN: Deno.env.get("INTEHR_AGENT_TOKEN"),
+    INTEHR_LANGUAGE_PLUGINS: Deno.env.get("INTEHR_LANGUAGE_PLUGINS"),
   };
 }
 
