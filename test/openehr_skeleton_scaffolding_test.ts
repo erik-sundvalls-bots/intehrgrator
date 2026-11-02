@@ -65,6 +65,7 @@ Deno.test("Web Template target scaffolds openEHR blocks, not target_structure", 
     JSON.stringify(wt),
   );
   assertEquals(loaded.format, "openehr-template");
+  assertEquals(loaded.webTemplateJson, JSON.stringify(wt));
   assertEquals(loaded.skeleton[0]?.blockType, "composition");
   assertEquals(loaded.skeleton[0]?.rmType, "COMPOSITION");
   assertEquals(

@@ -183,7 +183,7 @@ export function compileLocatorToJsonXPath(
       query = `${query}${key}`;
     }
     if (step.index === "*") query = `${query}?*`;
-    else if (typeof step.index === "number") query = `${query}?${step.index}`;
+    else if (typeof step.index === "number") query += xpathIndex(step.index);
   }
   return query;
 }
@@ -220,7 +220,7 @@ export function compileGenericJsonPath(expr: string, root = "$source"): string {
     if (!step.name && step.index === undefined) continue;
     if (step.name) query += jsonLookupKey(step.name);
     if (step.index === "*") query += "?*";
-    else if (typeof step.index === "number") query += `?${step.index}`;
+    else if (typeof step.index === "number") query += xpathIndex(step.index);
     else if (step.predicate?.nodeId) {
       // Non-openEHR `[key]` treated as a named child (legacy parseJsonAuthoringPath).
       query += jsonLookupKey(step.predicate.nodeId);
@@ -444,6 +444,11 @@ function xpathCmp(op: string): string {
   if (op === "<") return "lt";
   if (op === "!=") return "ne";
   return "=";
+}
+
+/** Authoring `[0]` is the first element, the same as `[1]`. fontoxpath rejects `?0`. */
+function xpathIndex(index: number): string {
+  return `?${index === 0 ? 1 : index}`;
 }
 
 function jsonLookupKey(name: string): string {

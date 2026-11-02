@@ -701,7 +701,8 @@ function emitXmlOrSchemaElement(block: BlockNode, ctx: GoEmitContext): string[] 
 
 function isXmlStructureBlockType(type: string): boolean {
   return type === "xml_element" || type === "target_structure" || type.startsWith("schema_") ||
-    type === "controls_if" || type === "for_each_source" || type === "for_each_list" ||
+    type === "controls_if" || type === "include_when" ||
+    type === "for_each_source" || type === "for_each_list" ||
     type === "json_object" || type === "json_array";
 }
 

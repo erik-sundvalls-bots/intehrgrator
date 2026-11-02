@@ -32,7 +32,7 @@ from `test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd`, not generic
    screening question, emits a single `<TextKeyWord>` TermId **16183**
    (“Patienten rapporterar inga symptom.”).
 4. Otherwise emits per-symptom `<TextKeyWord>` elements with the production
-   TermIds, outer `if`, and Note templates:
+   TermIds, an **Include when** guard, and Note templates:
 
    | TermId | Section |
    |--------|---------|

@@ -10,6 +10,7 @@
 import * as rm from "ehrtslib/openehr_rm.ts";
 import {
   evaluateXPathToBoolean,
+  evaluateXPathToFirstNode,
   evaluateXPathToNodes,
   evaluateXPathToNumber,
   evaluateXPathToString,
@@ -34,6 +35,7 @@ export function generatedScriptRuntime(): GeneratedScriptRuntime {
     evaluateXPathToNumber,
     evaluateXPathToBoolean,
     evaluateXPathToNodes,
+    evaluateXPathToFirstNode,
     JsonCanonicalSerializer,
     XmlSerializer,
     parseWebTemplate,
