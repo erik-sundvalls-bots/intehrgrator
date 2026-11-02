@@ -32,7 +32,7 @@ deno task build  # build web app into /dist
 deno task dev`  # start and serve on `http://localhost:5173`
 ```
 
-NOTE: ehrtslib is not cloned. `deno.json` (and `scripts/ehrtslib.compile.json`) import it, unpatched, from the jsDelivr URL for release [v0.10](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.10). `deno task vendor` only clones the example archetypes.
+NOTE: ehrtslib is not cloned. `deno.json` (and `scripts/ehrtslib.compile.json`) import it, unpatched, from the jsDelivr URL for library 0.11.0. Tag `v0.11` is not published yet, so the pin is main commit [`306c185`](https://github.com/ErikSundvall/ehrtslib/commit/306c185d4601a7f874d2e00518e185259b2b34fa) (version bump [#275](https://github.com/ErikSundvall/ehrtslib/pull/275)). Switch the pin to `v0.11` before merge once that tag exists. `deno task vendor` only clones the example archetypes.
 
 ## Tests
 
