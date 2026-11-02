@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **ehrtslib 0.11.0** ([ehrtslib#255](https://github.com/ErikSundvall/ehrtslib/issues/255), [#256](https://github.com/ErikSundvall/ehrtslib/issues/256), [#268](https://github.com/ErikSundvall/ehrtslib/issues/268)): Simplified FLAT and STRUCTURED read a coded text on a `DV_TEXT` node, and an ELEMENT with no value constraint is written as `<type>_value`, so Simple-vitals-series and OBX validate in both encodings. A repeating ELEMENT keeps its own max, so the first of a 0..* identifier is `identifierare:0`. Renamed siblings use the spec slot id with a space, `[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']`. The pin is main commit `306c185` until tag `v0.11` is published.
+
 Fixes from a desktop and headless MCP retest after 0.11.
 
 - **History the agent can read** ([#316](https://github.com/regionstockholm/intehrgrator/issues/316)): `get_history` no longer returns a Project Bundle before and after every change. The default is the timeline (who, what, which slots). `includeBundles` or `seq` fetches bundles; `sinceSeq` and `limit` page. The history panel is unchanged.

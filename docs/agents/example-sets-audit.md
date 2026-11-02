@@ -134,5 +134,15 @@ Same headless MCP flow. Karda ordination: the substance loops use the relative p
 | karda-administreringsdata-to-openehr-flat | valid | valid | valid | valid |
 | obx-mhv1-mapped-json-to-openehr | valid | invalid: ELEMENTs without a value constraint get a bare FLAT key | same as FLAT | valid |
 
+## Rerun on ehrtslib 0.11.0 (2026-11-02)
+
+Pinned to main `306c185` until tag `v0.11`. The name-predicate workaround is gone (`webTemplateToOpt` keeps the name constraint, ehrtslib#256). Slot ids for the two accident-report headings are `[openEHR-EHR-SECTION.adhoc.v1, 'Vital signs']` and `[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']`.
+
+| Set | Default encoding | Simplified FLAT | Simplified STRUCTURED | Canonical JSON |
+| --- | --- | --- | --- | --- |
+| Simple-vitals-series | valid | valid (ehrtslib#255) | valid | valid |
+| obx-mhv1-mapped-json-to-openehr | valid | valid (`<type>_value`, ehrtslib#255) | valid | valid |
+| karda-administreringsdata-to-openehr-flat | not re-run | valid; 0..* identifiers and the diagnosis are `:0` (ehrtslib#268) | not re-run | valid |
+
 Preview and TypeScript give the same verdict in every cell; the `*-invalid.json` instances fail as intended.
 
