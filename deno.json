@@ -48,7 +48,7 @@
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@306c185d4601a7f874d2e00518e185259b2b34fa/"
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.11/"
   },
   "tasks": {
     "vendor": "deno run -A scripts/vendor-ehrtslib.ts",

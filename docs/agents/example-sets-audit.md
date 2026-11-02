@@ -136,7 +136,7 @@ Same headless MCP flow. Karda ordination: the substance loops use the relative p
 
 ## Rerun on ehrtslib 0.11.0 (2026-11-02)
 
-Pinned to main `306c185` until tag `v0.11`. The name-predicate workaround is gone (`webTemplateToOpt` keeps the name constraint, ehrtslib#256). Slot ids for the two accident-report headings are `[openEHR-EHR-SECTION.adhoc.v1, 'Vital signs']` and `[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']`.
+Pinned to release `v0.11`. The name-predicate workaround is gone (`webTemplateToOpt` keeps the name constraint, ehrtslib#256). Slot ids for the two accident-report headings are `[openEHR-EHR-SECTION.adhoc.v1, 'Vital signs']` and `[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']`.
 
 | Set | Default encoding | Simplified FLAT | Simplified STRUCTURED | Canonical JSON |
 | --- | --- | --- | --- | --- |
