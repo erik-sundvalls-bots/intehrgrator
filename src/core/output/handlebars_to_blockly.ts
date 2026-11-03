@@ -40,7 +40,7 @@ export function extractHandlebarsPaths(template: string): HandlebarsPathRef[] {
     const body = match[1]!.trim();
     if (body.startsWith("#") || body.startsWith("/") || body.startsWith("else")) continue;
     // Skip helper calls like (gte x 70) / and ...
-    if (body.startsWith("(") || /^(eq|ne|lt|gt|lte|gte|and|or|toLowerCase|toUpperCase|slot|json)\b/
+    if (body.startsWith("(") || /^(eq|ne|lt|gt|lte|gte|inc|dec|and|or|toLowerCase|toUpperCase|slot|json)\b/
       .test(body)) {
       continue;
     }
