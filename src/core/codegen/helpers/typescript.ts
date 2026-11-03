@@ -5,9 +5,12 @@
  *
  * Generated scripts import only the names they call. The bodies here do not
  * change from mapping to mapping. XPath evaluators, the sheet bag, Handlebars,
- * and RM constructors are passed in so this module stays free of imports and
- * can be loaded from the raw GitHub URL.
+ * and RM constructors are passed in so this module stays free of package
+ * imports and can be loaded from the raw GitHub URL. Handlebars helper
+ * bodies live in `./handlebars.ts` (no package imports either).
  */
+
+import { registerKintegrateHandlebarsHelpers } from "./handlebars.ts";
 
 export type XPathEval = (...args: any[]) => any;
 
@@ -447,13 +450,8 @@ export function igHandlebars(
   context: unknown,
 ): string {
   const engine = Handlebars.create();
-  engine.registerHelper({
-    eq: (a: unknown, b: unknown) => a === b,
-    ne: (a: unknown, b: unknown) => a !== b,
-    toLowerCase: (v: unknown) => v == null ? v : String(v).toLowerCase(),
-    toUpperCase: (v: unknown) => v == null ? v : String(v).toUpperCase(),
-  });
-  return engine.compile(template, { noEscape: true })(context ?? {});
+  registerKintegrateHandlebarsHelpers(engine);
+  return engine.compile(template, { noEscape: true, data: true })(context ?? {});
 }
 
 export function partyValue(v: unknown, fallback: string): unknown {

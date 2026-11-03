@@ -1,0 +1,1004 @@
+{
+  "_type": "COMPOSITION",
+  "language": {
+    "_type": "CODE_PHRASE",
+    "code_string": "sv",
+    "terminology_id": {
+      "_type": "TERMINOLOGY_ID",
+      "value": "ISO_639-1"
+    }
+  },
+  "territory": {
+    "_type": "CODE_PHRASE",
+    "code_string": "SE",
+    "terminology_id": {
+      "_type": "TERMINOLOGY_ID",
+      "value": "ISO_3166-1"
+    }
+  },
+  "category": {
+    "_type": "DV_CODED_TEXT",
+    "defining_code": {
+      "_type": "CODE_PHRASE",
+      "code_string": "433",
+      "terminology_id": {
+        "_type": "TERMINOLOGY_ID",
+        "value": "openehr"
+      }
+    },
+    "value": "event"
+  },
+  "composer": {
+    "_type": "PARTY_IDENTIFIED",
+    "name": "Barnmorska 10421"
+  },
+  "context": {
+    "_type": "EVENT_CONTEXT",
+    "start_time": {
+      "_type": "DV_DATE_TIME",
+      "value": "2026-09-20T10:00:00+02:00"
+    },
+    "setting": {
+      "_type": "DV_CODED_TEXT",
+      "defining_code": {
+        "_type": "CODE_PHRASE",
+        "code_string": "229",
+        "terminology_id": {
+          "_type": "TERMINOLOGY_ID",
+          "value": "openehr"
+        }
+      },
+      "value": "primary nursing care"
+    },
+    "other_context": {
+      "_type": "ITEM_TREE",
+      "items": [
+        {
+          "_type": "CLUSTER",
+          "items": [
+            {
+              "_type": "ELEMENT",
+              "value": {
+                "_type": "DV_TEXT",
+                "value": "MVC Nightly barnmorskemottagning"
+              },
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Namn"
+              },
+              "archetype_node_id": "at0001"
+            },
+            {
+              "_type": "ELEMENT",
+              "value": {
+                "_type": "DV_IDENTIFIER",
+                "id": "SE2321000016-AVD1204",
+                "type": "urn:oid:1.2.752.29.4.19"
+              },
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Identifierare"
+              },
+              "archetype_node_id": "at0003"
+            },
+            {
+              "_type": "ELEMENT",
+              "value": {
+                "_type": "DV_CODED_TEXT",
+                "defining_code": {
+                  "_type": "CODE_PHRASE",
+                  "code_string": "43741000",
+                  "terminology_id": {
+                    "_type": "TERMINOLOGY_ID",
+                    "value": "http://snomed.info/sct/900000000000207008"
+                  }
+                },
+                "value": "vårdenhet"
+              },
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Roll"
+              },
+              "archetype_node_id": "at0004"
+            },
+            {
+              "_type": "CLUSTER",
+              "items": [
+                {
+                  "_type": "ELEMENT",
+                  "value": {
+                    "_type": "DV_TEXT",
+                    "value": "Region Stockholm"
+                  },
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Namn"
+                  },
+                  "archetype_node_id": "at0001"
+                },
+                {
+                  "_type": "ELEMENT",
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Organisationsnummer"
+                  },
+                  "archetype_node_id": "at0003",
+                  "value": {
+                    "_type": "DV_IDENTIFIER",
+                    "id": "2321000016",
+                    "type": "urn:oid:2.5.4.97"
+                  }
+                },
+                {
+                  "_type": "ELEMENT",
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Identifierare"
+                  },
+                  "archetype_node_id": "at0003",
+                  "value": {
+                    "_type": "DV_IDENTIFIER",
+                    "id": "SE2321000016-00001",
+                    "type": "urn:oid:1.2.752.29.4.19"
+                  }
+                },
+                {
+                  "_type": "ELEMENT",
+                  "value": {
+                    "_type": "DV_CODED_TEXT",
+                    "defining_code": {
+                      "_type": "CODE_PHRASE",
+                      "code_string": "143591000052106",
+                      "terminology_id": {
+                        "_type": "TERMINOLOGY_ID",
+                        "value": "http://snomed.info/sct/45991000052106"
+                      }
+                    },
+                    "value": "vårdgivare"
+                  },
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Roll"
+                  },
+                  "archetype_node_id": "at0004"
+                }
+              ],
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Vårdgivare"
+              },
+              "archetype_node_id": "openEHR-EHR-CLUSTER.organisation.v1",
+              "archetype_details": {
+                "_type": "ARCHETYPED",
+                "archetype_id": {
+                  "_type": "ARCHETYPE_ID",
+                  "value": "openEHR-EHR-CLUSTER.organisation.v1"
+                },
+                "rm_version": "1.1.0"
+              }
+            }
+          ],
+          "name": {
+            "_type": "DV_TEXT",
+            "value": "Vårdenhet"
+          },
+          "archetype_node_id": "openEHR-EHR-CLUSTER.organisation.v1",
+          "archetype_details": {
+            "_type": "ARCHETYPED",
+            "archetype_id": {
+              "_type": "ARCHETYPE_ID",
+              "value": "openEHR-EHR-CLUSTER.organisation.v1"
+            },
+            "rm_version": "1.1.0"
+          }
+        }
+      ],
+      "name": {
+        "_type": "DV_TEXT",
+        "value": "Tree"
+      },
+      "archetype_node_id": "at0001"
+    }
+  },
+  "content": [
+    {
+      "_type": "GENERIC_ENTRY",
+      "data": {
+        "_type": "ITEM_TREE",
+        "items": [
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": false
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "NatMhv3Finns"
+            },
+            "archetype_node_id": "at0010"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": true
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "FamSitSammanb"
+            },
+            "archetype_node_id": "at0032"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": false
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "FamSitEnsams"
+            },
+            "archetype_node_id": "at0033"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": false
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SjukMhv3Finns"
+            },
+            "archetype_node_id": "at0065"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": true
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "IngenMedicinering"
+            },
+            "archetype_node_id": "at0066"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": false
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "FamSitAnnan"
+            },
+            "archetype_node_id": "at0075"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": false
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "FamSitPartner"
+            },
+            "archetype_node_id": "at0088"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Regelbunden"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "RegelbMensText"
+            },
+            "archetype_node_id": "at0091"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Ej angivet"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SpiralKvarText"
+            },
+            "archetype_node_id": "at0092"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Nej"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "TobakInskrText"
+            },
+            "archetype_node_id": "at0093"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Nej"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "TobakForegravText"
+            },
+            "archetype_node_id": "at0094"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Nej"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SnusForeGravText"
+            },
+            "archetype_node_id": "at0095"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Nej"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SnusInskrText"
+            },
+            "archetype_node_id": "at0096"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Aldrig"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "AlkoholInskrText"
+            },
+            "archetype_node_id": "at0097"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Högst 1 gång per vecka"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "AlkoholForeGravText"
+            },
+            "archetype_node_id": "at0098"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Aldrig"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "DrogerInskrText"
+            },
+            "archetype_node_id": "at0099"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Aldrig"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "DrogerForeGravText"
+            },
+            "archetype_node_id": "at0100"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Heltid"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "ForvarvsArbText"
+            },
+            "archetype_node_id": "at0101"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Nej"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "BostadProbText"
+            },
+            "archetype_node_id": "at0102"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Nej"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "TidBlodTransText"
+            },
+            "archetype_node_id": "at0103"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Basprogram"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "BedomningText"
+            },
+            "archetype_node_id": "at0104"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 184299
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Mhv1_id"
+            },
+            "archetype_node_id": "at0001"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 77901
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Vma_id"
+            },
+            "archetype_node_id": "at0007"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1204
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Avd_id"
+            },
+            "archetype_node_id": "at0076"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2026-09-20T10:00:00+02:00"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "RegTid"
+            },
+            "archetype_node_id": "at0003"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2026-09-20"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "InskrDatum"
+            },
+            "archetype_node_id": "at0004"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 10421
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Barnmorska"
+            },
+            "archetype_node_id": "at0008"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2025-02-10"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SenastMens"
+            },
+            "archetype_node_id": "at0012"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "RegelbMens"
+            },
+            "archetype_node_id": "at0013"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 9
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SpiralKvar"
+            },
+            "archetype_node_id": "at0019"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2025-03-12"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "GravPos"
+            },
+            "archetype_node_id": "at0014"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "28"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Menstyp"
+            },
+            "archetype_node_id": "at0015"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "5"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Mensdagar"
+            },
+            "archetype_node_id": "at0016"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2025-11-17"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "BerakForSM"
+            },
+            "archetype_node_id": "at0020"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 0
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "ULDatumOverfort"
+            },
+            "archetype_node_id": "at0022"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 72
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Vikt"
+            },
+            "archetype_node_id": "at0024"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 170
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Langd"
+            },
+            "archetype_node_id": "at0025"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "TobakForegrav"
+            },
+            "archetype_node_id": "at0026"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SnusForeGrav"
+            },
+            "archetype_node_id": "at0027"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "TobakInskr"
+            },
+            "archetype_node_id": "at0028"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SnusInskr"
+            },
+            "archetype_node_id": "at0029"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 2
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "AlkoholForeGrav"
+            },
+            "archetype_node_id": "at0030"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "AlkoholInskr"
+            },
+            "archetype_node_id": "at0031"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "ForvarvsArb"
+            },
+            "archetype_node_id": "at0036"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "undersköterska"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Yrke"
+            },
+            "archetype_node_id": "at0037"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Södersjukhuset"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "ArbetsPlats"
+            },
+            "archetype_node_id": "at0038"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 2
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "BostadProb"
+            },
+            "archetype_node_id": "at0039"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "OfrivBarnlosIngen"
+            },
+            "archetype_node_id": "at0042"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 0
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "OfrivBarnlosIVF"
+            },
+            "archetype_node_id": "at0043"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 0
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "OfrivBarnlosOvulStim"
+            },
+            "archetype_node_id": "at0044"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 0
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "OfrivBarnlosKirurgi"
+            },
+            "archetype_node_id": "at0045"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 0
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "OfrivBarnlosICSI"
+            },
+            "archetype_node_id": "at0046"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 0
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "OfrivBarnlosAnnat"
+            },
+            "archetype_node_id": "at0047"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 2
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "TidBlodTrans"
+            },
+            "archetype_node_id": "at0068"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Bedomning"
+            },
+            "archetype_node_id": "at0070"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 10421
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "BedomningSign"
+            },
+            "archetype_node_id": "at0071"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Signering"
+            },
+            "archetype_node_id": "at0072"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2026-09-20T10:00:00+02:00"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SigneringTid"
+            },
+            "archetype_node_id": "at0073"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 2
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "RegisteredByProfessionalRoleId"
+            },
+            "archetype_node_id": "at0085"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1204
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "RegisteredOnUnitId"
+            },
+            "archetype_node_id": "at0086"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 1
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "VersionIdWhenFirstSaved"
+            },
+            "archetype_node_id": "at0087"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Förstföderska, opåverkad. Kartläggning enligt basprogram. Blodtryck 122/76."
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Anteckning"
+            },
+            "archetype_node_id": "at0067"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_TEXT",
+              "value": "Yrke: undersköterska. Arbetsplats: Södersjukhuset. BMI 24,1."
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "LokReg"
+            },
+            "archetype_node_id": "at0023"
+          }
+        ],
+        "name": {
+          "_type": "DV_TEXT",
+          "value": "Tree"
+        },
+        "archetype_node_id": "at0002"
+      },
+      "name": {
+        "_type": "DV_TEXT",
+        "value": "Mhv1GenericEntry"
+      },
+      "archetype_node_id": "openEHR-EHR-GENERIC_ENTRY.Mhv1.v1",
+      "archetype_details": {
+        "_type": "ARCHETYPED",
+        "archetype_id": {
+          "_type": "ARCHETYPE_ID",
+          "value": "openEHR-EHR-GENERIC_ENTRY.Mhv1.v1"
+        },
+        "rm_version": "1.1.0"
+      }
+    }
+  ],
+  "archetype_details": {
+    "_type": "ARCHETYPED",
+    "archetype_id": {
+      "_type": "ARCHETYPE_ID",
+      "value": "openEHR-EHR-COMPOSITION.encounter.v1"
+    },
+    "template_id": {
+      "_type": "TEMPLATE_ID",
+      "value": "generic-obstetrix-mhv1-v1"
+    },
+    "rm_version": "1.1.0"
+  },
+  "name": {
+    "_type": "DV_TEXT",
+    "value": "Mhv1"
+  },
+  "archetype_node_id": "openEHR-EHR-COMPOSITION.encounter.v1"
+}
