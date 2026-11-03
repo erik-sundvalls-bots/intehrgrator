@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Architecture review for intEHRgrator: plugin and host seams</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+<style>.seam { stroke-dasharray: 4 4; }</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+<header class="space-y-3">
+<h1 class="font-serif text-4xl">intEHRgrator: plugin and host seams</h1>
+<p class="text-sm text-slate-600">2026-11-03 · main f420a70 plus open PRs #332/#335 (language plugins) and #305 (VS Code file projects) · design issue <a class="underline" href="https://github.com/regionstockholm/intehrgrator/issues/336">#336</a> · text version: <a class="underline" href="../design/plugin-and-host-seams.md">docs/design/plugin-and-host-seams.md</a></p>
+<div class="flex flex-wrap gap-4 text-xs uppercase tracking-wider text-slate-600">
+<span><span class="inline-block w-4 h-3 border border-slate-700 align-middle"></span> module</span>
+<span><span class="inline-block w-6 border-t-2 border-dashed border-slate-700 align-middle"></span> seam</span>
+<span><span class="inline-block w-6 border-t-2 border-red-600 align-middle"></span> leakage</span>
+<span><span class="inline-block w-4 h-3 bg-slate-900 align-middle"></span> deep module</span>
+</div>
+</header>
+<section id="candidates" class="space-y-10">
+<article id="c1" class="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-6">
+<h2 class="font-serif text-2xl">One Conversion script language registry</h2>
+<div class="flex gap-2 text-xs"><span class="rounded px-2 py-0.5 bg-emerald-700 text-emerald-50">Strong</span><span class="rounded border border-slate-300 px-2 py-0.5">ports & adapters</span></div>
+<ul class="font-mono text-sm text-slate-700"><li>src/core/codegen/mod.ts</li><li>src/core/codegen/language_plugin.ts (#332)</li><li>src/blockly/typescript_codegen.ts</li><li>src/blockly/go_template_codegen.ts</li><li>src/workbench/controller.ts</li><li>src/workbench/service.ts</li><li>src/core/test_runner/mod.ts</li><li>src/agent/tools.ts</li></ul>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-red-700 mb-1">Before</div><pre class="mermaid">flowchart LR
+  C[WorkbenchController] --&gt;|isConversionScriptLanguage| R1[(adapters map)]
+  C --&gt;|isDesktopPluginLanguage| R2[(desktop plugin map)]
+  S[WorkbenchService] --&gt; R1
+  S --&gt;|externalGenerate singleton| R2
+  T[runTest] --&gt; R1
+  B[initBlocklyGenerators] -.overrides ts / go.-&gt; R1
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class B,R2 leak</pre></div>
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-emerald-700 mb-1">After</div><pre class="mermaid">flowchart LR
+  C[WorkbenchController] --&gt; L
+  S[WorkbenchService] --&gt; L
+  T[runTest] --&gt; L
+  A[agent tools] --&gt; L
+  L[[&quot;Conversion script language registry&lt;br/&gt;list · generate · run&quot;]]
+  L -.seam.-&gt; W1[browser blob worker]
+  L -.seam.-&gt; W2[Deno worker]
+  L -.seam.-&gt; W3[in-process: tests]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class L deep</pre></div></div>
+<p><b>Problem.</b> Three registries decide which languages exist (the codegen map, Blockly overrides that depend on call order, and #332&#x27;s plugin map with its global generator). Every caller branches on which one applies.</p>
+<p><b>Solution.</b> One module owns every language, built-ins included, as plugins behind one interface. The plugin loader is its adapter.</p>
+<ul class="list-disc pl-6 text-sm"><li>locality: one place adds a language</li><li>leverage: 4 callers, 1 interface</li><li>Blockly init order stops mattering</li><li>VMS golden tests cross the same seam</li><li>two adapters make it a real seam</li></ul>
+
+</article><article id="c2" class="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-6">
+<h2 class="font-serif text-2xl">One Conversion input</h2>
+<div class="flex gap-2 text-xs"><span class="rounded px-2 py-0.5 bg-emerald-700 text-emerald-50">Strong</span><span class="rounded border border-slate-300 px-2 py-0.5">in-process</span></div>
+<ul class="font-mono text-sm text-slate-700"><li>src/workbench/controller.ts (3, plus 1 more in #332)</li><li>src/workbench/service.ts</li><li>src/core/test_runner/mod.ts</li><li>src/core/codegen/xquery.ts</li><li>src/workbench/file_project.ts (#305)</li><li>src/blockly/typescript_codegen.ts</li><li>src/blockly/go_template_codegen.ts</li></ul>
+<div class="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4" style="min-height:320px">
+<div><div class="text-xs uppercase tracking-wider text-red-700 mb-2">Before: 8 call sites build options</div>
+<div class="grid grid-cols-4 gap-1"><div class="h-10 border border-red-500 text-[10px] p-1">ctrl</div><div class="h-10 border border-red-500 text-[10px] p-1">ctrl</div><div class="h-10 border border-red-500 text-[10px] p-1">ctrl</div><div class="h-10 border border-red-500 text-[10px] p-1">ctrl #332</div><div class="h-10 border border-red-500 text-[10px] p-1">service</div><div class="h-10 border border-red-500 text-[10px] p-1">runTest</div><div class="h-10 border border-red-500 text-[10px] p-1">xquery.ts</div><div class="h-10 border border-red-500 text-[10px] p-1">file project #305</div></div>
+<div class="mt-3 text-xs text-slate-600">each repeats <code>instanceShapeForEncoding(preferredInstanceEncoding(model))</code>. TS/Go walkers need a live Blockly <code>Workspace</code>.</div></div>
+<div class="flex justify-center gap-6"><div class="flex flex-col items-center gap-2"><div class="text-xs uppercase tracking-wider text-slate-500">Conversion input</div>
+<div class="w-40 border-2 border-slate-800 bg-amber-100" style="height:24px"></div>
+<div class="w-40 border-2 border-slate-800 bg-slate-900" style="height:200px"></div>
+<div class="text-xs text-slate-600 text-center w-48">interface: one serializable value · implementation: encoding rules, Blockly JSON, skeleton</div></div></div></div>
+<p><b>Problem.</b> Script options (instance shape, skeleton, Blockly state, Web Template) are built in 6 places on main and 8 with the PRs. The TypeScript and Go walkers need a live Blockly Workspace, which can&#x27;t be passed to a worker.</p>
+<p><b>Solution.</b> One function turns workbench state or a file project into a serializable Conversion input. The walkers read Blockly JSON.</p>
+<ul class="list-disc pl-6 text-sm"><li>interface shrinks to one value</li><li>locality: encoding rules in one place</li><li>plugins become worker-safe</li><li>file project matches the workbench</li></ul>
+
+</article><article id="c3" class="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-6">
+<h2 class="font-serif text-2xl">Hosts supply plugin text, not plugin execution</h2>
+<div class="flex gap-2 text-xs"><span class="rounded px-2 py-0.5 bg-emerald-700 text-emerald-50">Strong</span><span class="rounded border border-slate-300 px-2 py-0.5">ports & adapters</span></div>
+<ul class="font-mono text-sm text-slate-700"><li>src/host/mod.ts</li><li>src/host/web_adapter.ts</li><li>src/host/vscode_webview_adapter.ts</li><li>src/agent/http.ts (#332)</li><li>src/desktop/language_plugins.ts (#332)</li><li>web/main.ts</li><li>extension/extension.ts</li></ul>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-red-700 mb-1">Before</div><pre class="mermaid">flowchart LR
+  WM[web/main.ts] --&gt;|fetch /api/v1/language-plugins + token| H[agent/http.ts]
+  H -.imports.-&gt; D[desktop/language_plugins.ts]
+  WA[WebHostAdapter] --&gt;|generateConversionScript, desktop-only| H
+  P[Pages] -.same adapter, 404.-&gt; WA
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class H,D,P leak</pre></div>
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-emerald-700 mb-1">After</div><pre class="mermaid">flowchart LR
+  REG[[&quot;registry and loader&quot;]] --&gt; HA[&quot;HostAdapter&lt;br/&gt;readPluginIndex · readPluginText&quot;]
+  HA -.-&gt; W[Web: ./plugins/]
+  HA -.-&gt; DK[Desktop: Deno.serve /plugins/]
+  HA -.-&gt; V[VS Code: asWebviewUri]
+  HA -.-&gt; F[FS: headless]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class REG deep</pre></div></div>
+<p><b>Problem.</b> In #332 the agent depends on the desktop, the Web adapter carries a desktop-only method that Pages also gets, and web/main.ts calls the agent API itself.</p>
+<p><b>Solution.</b> Each host only serves plugin bytes from its same-origin plugins/ folder. Execution always happens in the registry&#x27;s worker adapter.</p>
+<ul class="list-disc pl-6 text-sm"><li>agent → desktop import gone</li><li>4 adapters, 2 small methods</li><li>no desktop-only optional method</li><li>same behaviour in every release format</li></ul>
+
+</article><article id="c4" class="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-6">
+<h2 class="font-serif text-2xl">A desktop Host adapter</h2>
+<div class="flex gap-2 text-xs"><span class="rounded px-2 py-0.5 bg-amber-700 text-amber-50">Worth exploring</span><span class="rounded border border-slate-300 px-2 py-0.5">ports & adapters</span></div>
+<ul class="font-mono text-sm text-slate-700"><li>src/host/create_host.ts</li><li>src/host/web_adapter.ts</li><li>src/desktop/serve.ts</li><li>src/web/agent_bridge.ts</li><li>src/web/agent_observer.ts</li><li>src/core/ai/credentials.ts</li><li>src/core/ai/models.ts</li><li>web/main.ts</li></ul>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-red-700 mb-1">Before</div><pre class="mermaid">flowchart TB
+  CH[createHostAdapter] --&gt; WA[WebHostAdapter]
+  CH --&gt; VS[VsCodeWebviewHostAdapter]
+  G((window.__INTEHR_DESKTOP__&lt;br/&gt;__INTEHR_AGENT_TOKEN__)) -.11 reads.-&gt; M1[web/main.ts]
+  G -.-&gt; M2[agent_bridge]
+  G -.-&gt; WA
+  M3[ai/credentials · models · observer] --&gt;|/api/v1/*| API[(desktop backend)]
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class G,M3 leak</pre></div>
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-emerald-700 mb-1">After</div><pre class="mermaid">flowchart TB
+  CH[createHostAdapter] --&gt; WA[WebHostAdapter]
+  CH --&gt; VS[VsCodeWebviewHostAdapter]
+  CH --&gt; DH[[&quot;DesktopHostAdapter&lt;br/&gt;token · /api/v1 · AI proxy&quot;]]
+  DH --&gt; API[(desktop backend)]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class DH deep</pre></div></div>
+<p><b>Problem.</b> The desktop UI runs the Web adapter and detects the desktop through page globals. Six modules call /api/v1 themselves.</p>
+<p><b>Solution.</b> createHostAdapter returns a desktop adapter that owns the token, the backend calls and the AI proxy.</p>
+<ul class="list-disc pl-6 text-sm"><li>globals stop leaking into UI</li><li>locality: backend calls in one adapter</li><li>desktop testable with a fake adapter</li></ul>
+
+</article><article id="c5" class="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-6">
+<h2 class="font-serif text-2xl">A project store seam</h2>
+<div class="flex gap-2 text-xs"><span class="rounded px-2 py-0.5 bg-amber-700 text-amber-50">Worth exploring</span><span class="rounded border border-slate-300 px-2 py-0.5">ports & adapters</span></div>
+<ul class="font-mono text-sm text-slate-700"><li>src/host/mod.ts (store methods)</li><li>src/core/persistence/mod.ts</li><li>extension/extension.ts</li><li>extension/file_project.ts (#305)</li><li>src/workbench/file_project*.ts (#305)</li><li>src/workbench/service.ts (loadBundleFile)</li></ul>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-red-700 mb-1">Before</div><pre class="mermaid">flowchart LR
+  UI[workbench] --&gt;|saveAutosave · saveManualSave · list · load| HA[HostAdapter]
+  UI --&gt;|postProjectMessage on concrete VS Code adapter| FP[file project editor]
+  HL[headless] --&gt;|loadBundleFile| SV[WorkbenchService]
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class FP leak</pre></div>
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-emerald-700 mb-1">After</div><pre class="mermaid">flowchart LR
+  UI[workbench] --&gt; PS[[&quot;ProjectStore&lt;br/&gt;open · save · undoOwner&quot;]]
+  HL[headless] --&gt; PS
+  PS -.-&gt; I[IndexedDB]
+  PS -.-&gt; G[VS Code globalState]
+  PS -.-&gt; F[file project]
+  PS -.-&gt; B[desktop backend]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class PS deep</pre></div></div>
+<p><b>Problem.</b> Four bundle-store methods on HostAdapter assume a Project Bundle. VS Code file projects bypass them through the concrete adapter and switch off autosave and undo.</p>
+<p><b>Solution.</b> One store interface that also says who owns undo, with the four stores as adapters.</p>
+<ul class="list-disc pl-6 text-sm"><li>file projects stop bypassing the seam</li><li>undo ownership in the interface</li><li>headless and UI open projects alike</li></ul>
+<div class="rounded border border-amber-300 bg-amber-50 p-2 text-sm">⚠ Touches ADR 0014 (one history) and #305&#x27;s decision that VS Code owns undo in file projects. Only worth reopening if a fourth store appears.</div>
+</article><article id="c6" class="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-6">
+<h2 class="font-serif text-2xl">Languages as an agent tool</h2>
+<div class="flex gap-2 text-xs"><span class="rounded px-2 py-0.5 bg-slate-600 text-slate-100">Speculative</span><span class="rounded border border-slate-300 px-2 py-0.5">in-process</span></div>
+<ul class="font-mono text-sm text-slate-700"><li>src/agent/tools.ts</li><li>src/agent/http.ts</li></ul>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-red-700 mb-1">Before</div><pre class="mermaid">flowchart LR
+  MCP[MCP client] --&gt;|AGENT_TOOLS| T[tools.ts]
+  UIc[UI] --&gt;|GET /language-plugins| H[http.ts route]
+  MCP -.ids only from a description string.-&gt; H
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class H leak</pre></div>
+<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="text-xs uppercase tracking-wider text-emerald-700 mb-1">After</div><pre class="mermaid">flowchart LR
+  MCP[MCP client] --&gt; T[[&quot;AGENT_TOOLS&lt;br/&gt;list_languages · generate_script&quot;]]
+  UIc[UI and in-app chat] --&gt; T
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class T deep</pre></div></div>
+<p><b>Problem.</b> #332 adds plugin routes outside the tool surface, so MCP clients can&#x27;t discover plugin ids.</p>
+<p><b>Solution.</b> Add a list_languages tool, which the ADR 0014 parity test then covers.</p>
+<ul class="list-disc pl-6 text-sm"><li>one tool surface</li><li>MCP discovers languages</li></ul>
+
+</article>
+</section>
+<section id="top-recommendation" class="rounded-2xl bg-slate-900 p-8 text-slate-50 space-y-3">
+<div class="text-xs uppercase tracking-wider text-emerald-300">Top recommendation</div>
+<h2 class="font-serif text-3xl"><a class="underline" href="#c1">One registry</a> and <a class="underline" href="#c2">one Conversion input</a>, as the first slice of #336</h2>
+<p>Every language, our own included, goes through one interface and one worker seam. 3 registries become one and 8 option-building sites become one function, and the VMS golden tests cross the same seam that users do.</p>
+</section>
+<section class="space-y-2">
+<h2 class="font-serif text-2xl">Which of these would you like to explore?</h2>
+<ol class="list-decimal pl-6 text-sm space-y-1">
+<li>Port the TS and Go walkers to Blockly JSON, or bundle headless Blockly into those plugins?</li>
+<li>Should the desktop UI generate in a browser worker like web and VS Code, with the Deno worker only for headless, MCP and --check?</li>
+<li>A ProjectStore now (touches ADR 0014 and #305), or only when a fourth store appears?</li>
+<li>Echo in the release plugins/index.json, or dev builds only?</li>
+</ol>
+</section>
+</main>
+</body>
+</html>
