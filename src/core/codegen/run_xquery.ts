@@ -7,6 +7,7 @@
 import type { SheetBag } from "../sheets/types.ts";
 import { renderHandlebars } from "../output/handlebars_dialect.ts";
 import { INTEHRGRATOR_XQUERY_NS } from "./xquery.ts";
+import { xqueryHelperModules } from "./xquery_modules.ts";
 
 type FontoxpathApi = typeof import("fontoxpath");
 type SlimdomApi = typeof import("slimdom");
@@ -136,7 +137,7 @@ export function runGeneratedXQuery(
   const sheets = isSheetBag(bindings.sheets)
     ? sheetsBagToXQueryMap(bindings.sheets)
     : (bindings.sheets ?? {});
-  const prepared = stripEngineOnlyOptions(source);
+  const prepared = stripEngineOnlyOptions(inlineXQueryHelperModules(source));
   const raw = fx.evaluateXPath(
     prepared,
     doc,
@@ -164,6 +165,39 @@ function isSheetBag(value: unknown): value is SheetBag {
   return Object.values(value as Record<string, unknown>).some((item) =>
     Boolean(item && typeof item === "object" && "headers" in item && "values" in item)
   );
+}
+
+/**
+ * fontoxpath evaluates one main module. Generated scripts import helper
+ * library modules; this copies those functions into the main module as
+ * `local:{prefix}-*` so Test Run matches the imported behaviour.
+ */
+export function inlineXQueryHelperModules(source: string): string {
+  let out = source;
+  for (const mod of xqueryHelperModules()) {
+    const importRe = new RegExp(
+      `import module namespace ${mod.prefix} = "[^"]*" at "[^"]*";\\n?`,
+    );
+    if (!importRe.test(out)) continue;
+    out = out.replace(importRe, "");
+    let body = mod.text.replace(/^module namespace \w+ = "[^"]+";\n?/, "");
+    body = body
+      .replace(/^declare namespace map = [^\n]+\n?/m, "")
+      .replace(/^declare namespace array = [^\n]+\n?/m, "")
+      .replace(/^declare namespace rm = [^\n]+\n?/m, "")
+      .replace(/^declare namespace xsi = [^\n]+\n?/m, "");
+    const localName = `local:${mod.prefix}-`;
+    body = body.replaceAll(`${mod.prefix}:`, localName);
+    out = out.replaceAll(`${mod.prefix}:`, localName);
+    // Namespace declarations must stay above function declarations.
+    const at = out.search(/\ndeclare function\b/);
+    if (at >= 0) {
+      out = `${out.slice(0, at + 1)}${body}\n${out.slice(at + 1)}`;
+    } else {
+      out = `${body}\n${out}`;
+    }
+  }
+  return out;
 }
 
 /** Prolog bits for BaseX/Saxon that fontoxpath rejects (reserved NS / serialization). */

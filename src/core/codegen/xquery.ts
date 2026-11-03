@@ -30,7 +30,7 @@ import {
   rmLocatableName,
 } from "../openehr/rm_archetype_node_id.ts";
 import { isListAttribute } from "./typescript.ts";
-import { emitSheetHelpers } from "./xquery_sheets.ts";
+import { xqueryHelperImports } from "./xquery_modules.ts";
 import {
   instanceShapeForEncoding,
   preferredInstanceEncoding,
@@ -201,6 +201,8 @@ function wrapXQueryModule(args: {
   body: string;
 }): string {
   const method = args.shape === "json" ? "json" : "xml";
+  const userFns = emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model));
+  const helperImports = xqueryHelperImports(`${userFns.join("\n")}\n${args.body}`);
   const lines: string[] = [
     'xquery version "3.1";',
     "",
@@ -210,6 +212,7 @@ function wrapXQueryModule(args: {
     "(: Runtime: Saxon / BaseX / eXist, or in-app Test Run via lazy-loaded fontoxpath :)",
     `(: ${xqComment(args.productComment)} :)`,
     "(: Bind $source (XML node or XPath 3.1 map), $defaults, and $sheets (see docs/agents/xquery-engine.md). :)",
+    ...(helperImports.length ? ["", ...helperImports] : []),
     "",
     'declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";',
     ...(args.needsRm
@@ -235,9 +238,7 @@ function wrapXQueryModule(args: {
     "declare variable $defaults as map(*) external := map {};",
     "declare variable $sheets as map(*) external := map {};",
     "",
-    ...emitHelpers(args.needsRm),
-    "",
-    ...emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model)),
+    ...userFns,
     `declare function local:convert($source as item()*) as ${args.convertType} {`,
     args.body,
     "};",
@@ -428,9 +429,9 @@ export function compileLoopSequence(loop: MappingLoop, scopeVar?: string): strin
     const base = path.replace(/\[\*\]$/, "");
     const lookup = jsonDollarPathToLookup(base);
     if (lookup) {
-      return `local:iterable-sequence(${lookup})`;
+      return `ig:iterable-sequence(${lookup})`;
     }
-    return `local:lookup-sequence($source, ${xqString(path)})`;
+    return `ig:lookup-sequence($source, ${xqString(path)})`;
   }
 
   if (path.startsWith("/")) {
@@ -439,153 +440,10 @@ export function compileLoopSequence(loop: MappingLoop, scopeVar?: string): strin
 
   if (scopeVar && scopeVar !== "$source") {
     const lookup = jsonDollarPathToLookup(`$.${path.replace(/\[\*\]$/, "")}`, scopeVar);
-    if (lookup) return `local:iterable-sequence(${lookup})`;
+    if (lookup) return `ig:iterable-sequence(${lookup})`;
   }
 
-  return `local:lookup-sequence($source, ${xqString(path)})`;
-}
-
-function emitHelpers(needsRm: boolean): string[] {
-  return [
-    "(: --- Source access (fontoxpath-authored paths → XQuery 3.1) --- :)",
-    "",
-    "declare function local:iterable-sequence($nodes as item()*) as item()* {",
-    "  if ($nodes instance of array(*)) then $nodes?*",
-    "  else $nodes",
-    "};",
-    "",
-    "declare function local:lookup-sequence($ctx as item()*, $path as xs:string) as item()* {",
-    "  (: Dynamic or non-literal loop paths — prefer compile-time $. / / paths from export :) ",
-    "  if (starts-with($path, \"$\"))",
-    "  then let $nodes := local:json-lookup($ctx, $path)",
-    "       return if ($nodes instance of array(*)) then $nodes?* else $nodes",
-    "  else error(",
-    '    QName("http://intehrgrator.local/xquery", "DYNAMIC-LOOP-PATH"),',
-    '    "Prefer compile-time literal loop PATH from intEHRgrator export; got: " || $path',
-    "  )",
-    "};",
-    "",
-    "declare function local:string-at($ctx as item()*, $path as xs:string) as xs:string? {",
-    "  let $value := local:lookup($ctx, $path)",
-    "  return if (empty($value)) then () else xs:string($value)",
-    "};",
-    "",
-    "declare function local:number-at($ctx as item()*, $path as xs:string) as xs:decimal? {",
-    "  let $value := local:lookup($ctx, $path)",
-    "  return if (empty($value)) then () else xs:decimal($value)",
-    "};",
-    "",
-    "declare function local:boolean-at($ctx as item()*, $path as xs:string) as xs:boolean? {",
-    "  let $value := local:lookup($ctx, $path)",
-    "  return if (empty($value)) then () else xs:boolean($value)",
-    "};",
-    "",
-    "declare function local:lookup($ctx as item()*, $path as xs:string) as item()* {",
-    "  if (starts-with($path, \"$\"))",
-    "  then local:json-lookup($ctx, $path)",
-    "  else error(",
-    '    QName("http://intehrgrator.local/xquery", "DYNAMIC-XML-PATH"),',
-    '    "Prefer compile-time literal XML paths from intEHRgrator export; got: " || $path',
-    "  )",
-    "};",
-    "",
-    "declare function local:json-lookup($ctx as item()*, $path as xs:string) as item()* {",
-    "  let $body := replace(replace(replace($path, \"^\\\\$\\\\.?\", \"\"), \"\\\\[(\\\\d+)\\\\]\", \".$1\"), \"\\\\[\\\\*\\\\]\", \".*\")",
-    "  let $segments := tokenize($body, \"\\\\.\")[. ne \"\"]",
-    "  return fold-left(",
-    "    $segments,",
-    "    $ctx,",
-    "    function($acc as item()*, $seg as xs:string) as item()* {",
-    "      if (empty($acc)) then ()",
-    "      else if ($seg eq \"*\") then",
-    "        if ($acc instance of array(*)) then $acc?* else $acc",
-    "      else if ($seg castable as xs:integer) then",
-    "        if ($acc instance of array(*)) then $acc?(xs:integer($seg)) else ($acc)[xs:integer($seg)]",
-    "      else if ($acc instance of array(*)) then $acc?*?($seg)",
-    "      else $acc?($seg)",
-    "    }",
-    "  )",
-    "};",
-    "",
-    ...(needsRm ? emitDvHelpers() : []),
-    ...emitSheetHelpers(),
-  ];
-}
-
-function emitDvHelpers(): string[] {
-  return [
-    "(: --- DV_* constructors (RM XML) --- :)",
-    "",
-    "declare function local:dv-text($value as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_TEXT" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-coded-text($value as xs:string?, $code as xs:string?, $terminology as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_CODED_TEXT" },',
-    "    element rm:value { $value },",
-    "    element rm:defining_code {",
-    "      element rm:terminology_id { element rm:value { $terminology } },",
-    "      element rm:code_string { $code }",
-    "    }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-quantity($magnitude as xs:decimal?, $units as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_QUANTITY" },',
-    "    element rm:magnitude { $magnitude },",
-    "    element rm:units { $units }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-count($magnitude as xs:integer?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_COUNT" },',
-    "    element rm:magnitude { $magnitude }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-boolean($value as xs:boolean?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_BOOLEAN" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-date-time($value as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_DATE_TIME" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-uri($value as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_URI" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:as-value($rm-type as xs:string, $value as item()*) as element()* {",
-    "  switch ($rm-type)",
-    '    case "DV_QUANTITY" return local:dv-quantity(($value)[1] ! xs:decimal(.), ())',
-    '    case "DV_COUNT" return local:dv-count(($value)[1] ! xs:integer(.))',
-    '    case "DV_INTEGER" return local:dv-count(($value)[1] ! xs:integer(.))',
-    '    case "DV_BOOLEAN" return local:dv-boolean(($value)[1] ! xs:boolean(.))',
-    '    case "DV_DATE_TIME" return local:dv-date-time(($value)[1] ! xs:string(.))',
-    '    case "DV_DATE" return local:dv-date-time(($value)[1] ! xs:string(.))',
-    '    case "DV_TIME" return local:dv-date-time(($value)[1] ! xs:string(.))',
-    '    case "DV_URI" return local:dv-uri(($value)[1] ! xs:string(.))',
-    '    case "DV_EHR_URI" return local:dv-uri(($value)[1] ! xs:string(.))',
-    '    case "DV_CODED_TEXT" return local:dv-coded-text(($value)[1] ! xs:string(.), (), ())',
-    "    default return local:dv-text(($value)[1] ! xs:string(.))",
-    "};",
-    "",
-  ];
+  return `ig:lookup-sequence($source, ${xqString(path)})`;
 }
 
 function emitSlot(slot: MappingSlot, env: XQueryEmitEnv = {}, needsRm = true): string[] {
@@ -598,7 +456,7 @@ function emitSlot(slot: MappingSlot, env: XQueryEmitEnv = {}, needsRm = true): s
   }
   const label = slot.label ?? slot.slotId;
   const valueLine = needsRm
-    ? `  local:as-value(${xqString(slot.rmType)}, ${exprXq})`
+    ? `  igrm:as-value(${xqString(slot.rmType)}, ${exprXq})`
     : `  ${exprXq}`;
   return [
     `(: ${xqComment(label)} — ${xqComment(slot.expression)} :)`,
@@ -679,25 +537,25 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
         case "maps_get":
           return `(if (${args[0]} eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
         case "sheet_get_cell":
-          return `local:sheet-get-cell(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-cell($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_xy":
-          return `local:sheet-get-xy(${args[0]}, ${args[1]}, ${args[2]})`;
+          return `igsh:sheet-get-xy($sheets, ${args[0]}, ${args[1]}, ${args[2]})`;
         case "sheet_get_row":
-          return `local:sheet-get-row(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-row($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_column":
-          return `local:sheet-get-column(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-column($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_header":
-          return `local:sheet-get-header(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-header($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_data":
-          return `local:sheet-get-data(${args[0]})`;
+          return `igsh:sheet-get-data($sheets, ${args[0]})`;
         case "sheet_lookup":
           return args.length >= 4
-            ? `local:sheet-lookup(${args[0]}, ${args[1]}, ${args[2]}, ${args[3]})`
-            : `local:sheet-lookup(${args[0]}, ${args[1]}, ${args[2]})`;
+            ? `igsh:sheet-lookup($sheets, ${args[0]}, ${args[1]}, ${args[2]}, ${args[3]})`
+            : `igsh:sheet-lookup($sheets, ${args[0]}, ${args[1]}, ${args[2]})`;
         case "decision_table":
           return args.length >= 3
-            ? `local:decision-table(${args[0]}, ${args[1] ?? "map {}"}, ${args[2]})`
-            : `local:decision-table(${args[0]}, ${args[1] ?? "map {}"})`;
+            ? `igsh:decision-table($sheets, ${args[0]}, ${args[1] ?? "map {}"}, ${args[2]})`
+            : `igsh:decision-table($sheets, ${args[0]}, ${args[1] ?? "map {}"})`;
         case "map":
           return emitMapLiteralXq(args);
         case "xpathString":
@@ -777,7 +635,7 @@ function emitXPathCall(
     const compiled = compileLiteralPath(pathAst.value, helper, sourceVar, env.bind);
     if (compiled) return compiled;
   }
-  return `local:${helper}(${sourceVar}, ${emitXQueryExpr(pathAst, env)})`;
+  return `ig:${helper}(${sourceVar}, ${emitXQueryExpr(pathAst, env)})`;
 }
 
 /**
@@ -923,7 +781,7 @@ export function jsonDollarPathToLookup(path: string, root = "$source"): string |
   let expr = root;
   for (const seg of segments) {
     if (seg === "*") expr += "?*";
-    else if (/^\d+$/.test(seg)) expr += `?${seg}`;
+    else if (/^\d+$/.test(seg)) expr += `?${seg === "0" ? "1" : seg}`;
     else if (/^[\p{L}_][\p{L}\p{N}_]*$/u.test(seg)) expr += `?${seg}`;
     else expr += `?(${xqString(seg)})`;
   }

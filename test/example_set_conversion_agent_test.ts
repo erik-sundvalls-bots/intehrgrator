@@ -320,6 +320,13 @@ const LOCAL_MAPPED_SETS: Array<{
     expect: ["Epirubicin"],
     extraExpect: ["Epirubicin"],
   },
+  {
+    setId: "mhv1-generic-entry-to-prenatal-visit",
+    ts: true,
+    extra: "preview",
+    expect: ["Barnmorska 10421", "229", "68", "Basprogram"],
+    extraExpect: ["Barnmorska 10421", "229", "68", "Basprogram"],
+  },
 ];
 
 Deno.test("Agent API Conversion Test Run on local mapped catalog Example Sets", async () => {

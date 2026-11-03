@@ -103,6 +103,25 @@ Deno.test("quoted JSON keys resolve and a missing index stays empty", () => {
   );
 });
 
+Deno.test("a boolean source path is false when missing and true when filled", () => {
+  const ctx = createSourceContext(JSON.stringify({
+    övergripande_status: [{ "|value": "Har aldrig rökt" }],
+    per_typ: [],
+  }), "json");
+  assertEquals(
+    evaluate(`xpathBoolean("$.övergripande_status[1]['|value']")`, ctx, "boolean"),
+    true,
+  );
+  assertEquals(
+    evaluate(`xpathBoolean("$.per_typ[1].typ[1]['|value']")`, ctx, "boolean"),
+    false,
+  );
+  assertEquals(evaluate('xpathBoolean("$.missing")', ctx, "boolean"), false);
+  // The word "false" is a filled string, the same as Handlebars {{#if}}.
+  const word = createSourceContext(JSON.stringify({ flag: "false" }), "json");
+  assertEquals(evaluate('xpathBoolean("$.flag")', word, "boolean"), true);
+});
+
 Deno.test("pathToFontoxpath json", () => {
   assertEquals(pathToFontoxpath("$.patient.id", "json"), "$.patient.id");
 });

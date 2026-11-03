@@ -156,7 +156,7 @@ Deno.test("java expression emit maps xpath, maps_get, and sheet_lookup", () => {
   const ctx = createJavaEmitContext();
   assertEquals(
     emitJavaExpression(parseExpression('xpathNumber("$.systolic")'), ctx),
-    'xpathNumber("$.systolic")',
+    'ig.xpathNumber("$.systolic")',
   );
   assertEquals(
     emitJavaExpression(parseExpression('maps_get("defaults", "language")'), ctx),
@@ -166,7 +166,7 @@ Deno.test("java expression emit maps xpath, maps_get, and sheet_lookup", () => {
     parseExpression('sheet_lookup("icd10_snomed", "code", "I10", "snomed")'),
     ctx,
   );
-  assertEquals(sheet, 'sheetLookup("icd10_snomed", "code", "I10", "snomed")');
+  assertEquals(sheet, 'ig.sheetLookup("icd10_snomed", "code", "I10", "snomed")');
   assert(ctx.helpers.has("sheets"));
 });
 
@@ -178,8 +178,8 @@ Deno.test("java codegen emits sheetLookup helper for sheet_lookup slots", () => 
     { rmType: "DV_TEXT", returnType: "string" },
   );
   const java = generate(model, "java");
-  assertStringIncludes(java, "sheetLookup(");
-  assertStringIncludes(java, "class Sheet");
+  assertStringIncludes(java, "ig.sheetLookup(");
+  assertStringIncludes(java, "import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;");
   assertStringIncludes(java, "Map<String, Sheet> sheets");
 });
 
@@ -227,9 +227,9 @@ Deno.test("java codegen emits source-node for_each_list iteration with relative 
   const java = generate(model, "java", { skeleton });
   assertStringIncludes(java, 'xpathNodes("$.measurements")');
   assertStringIncludes(java, ".stream().map(measurements ->");
-  assertStringIncludes(java, 'xpathNumber("pulse", measurements)');
+  assertStringIncludes(java, 'ig.xpathNumber("pulse", measurements)');
   assertStringIncludes(java, "new PointEvent<>()");
-  assertStringIncludes(java, 'new DvQuantity("/min", xpathNumber("pulse", measurements), null)');
+  assertStringIncludes(java, 'new DvQuantity("/min", ig.xpathNumber("pulse", measurements), null)');
 });
 
 Deno.test("java codegen from BP skeleton emits Archie RM constructors", async () => {
@@ -304,7 +304,7 @@ Deno.test("xquery codegen emits mapping-result module from Blockly slots", () =>
   assertStringIncludes(xq, "element mapping-result");
   assertStringIncludes(xq, "element slots");
   assertStringIncludes(xq, 'attribute id { "s1" }');
-  assertStringIncludes(xq, "local:as-value");
+  assertStringIncludes(xq, "igrm:as-value");
   assertStringIncludes(xq, "DV_QUANTITY");
   assertStringIncludes(xq, "$source?systolic");
   assertStringIncludes(xq, "declare variable $defaults");
@@ -360,7 +360,7 @@ Deno.test("xquery expression emit maps builtins and JSON paths", () => {
   );
   assertEquals(
     emitXQueryExpr(parseExpression('sheet_lookup("t", "code", "I10", "snomed")')),
-    'local:sheet-lookup("t", "code", "I10", "snomed")',
+    'igsh:sheet-lookup($sheets, "t", "code", "I10", "snomed")',
   );
 });
 
@@ -373,8 +373,9 @@ Deno.test("xquery export emits $sheets helpers for sheet accessors", () => {
   );
   const xq = generate(model, "xquery");
   assertStringIncludes(xq, "declare variable $sheets");
-  assertStringIncludes(xq, "local:sheet-lookup");
-  assertStringIncludes(xq, "local:decision-table");
+  assertStringIncludes(xq, "igsh:sheet-lookup");
+  assertStringIncludes(xq, "import module namespace igsh");
+  assertEquals(xq.includes("declare function igsh:decision-table"), false);
   assertStringIncludes(xq, '"icd10_snomed"');
 });
 
@@ -403,7 +404,7 @@ Deno.test("xquery export emits source-node for_each_list iteration with relative
   });
 
   const xq = generate(model, "xquery");
-  assertStringIncludes(xq, "let $measurements_col := local:iterable-sequence($source?measurements)");
+  assertStringIncludes(xq, "let $measurements_col := ig:iterable-sequence($source?measurements)");
   assertStringIncludes(xq, "for $measurements at $measurements_pos in $measurements_col");
   assertStringIncludes(xq, "let $measurements_index := $measurements_pos - 1");
   assertStringIncludes(xq, "let $measurements_length := count($measurements_col)");
@@ -417,7 +418,7 @@ Deno.test("xquery export emits source-node for_each_list iteration with relative
   assertEquals(xq.includes('attribute id { "slot/rate" }'), xq.indexOf("element loops") < xq.indexOf('attribute id { "slot/rate" }'));
   assertEquals(
     compileLoopSequence({ attachSlotId: "e", varName: "items", path: "$.readings[*]", kind: "source" }),
-    "local:iterable-sequence($source?readings)",
+    "ig:iterable-sequence($source?readings)",
   );
 });
 
@@ -725,6 +726,74 @@ export function convertSourceToComposition() {
 `);
   assertEquals(body.includes("composer: { name: xpathString"), true, body);
   assertEquals(body.includes("composer,"), false, body);
+});
+
+Deno.test("generated TypeScript treats authoring index 0 as the first element", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("items"),
+    "name",
+    'xpathString("$.items[0].name")',
+    { rmType: "string", returnType: "string", label: "Name" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [{ name: "first" }, { name: "second" }] },
+  });
+  assertStringIncludes(JSON.stringify(serializedConversionOutput(out)), "first");
+});
+
+Deno.test("generated TypeScript walks a missing JSON index instead of throwing", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("name"),
+    "name",
+    'xpathString("$.items[0].name")',
+    { rmType: "string", returnType: "string", label: "Name" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [] },
+  });
+  const text = JSON.stringify(serializedConversionOutput(out));
+  assertEquals(text.includes("undefined"), false);
+  assertEquals(text.includes("FOAY0001"), false);
+});
+
+Deno.test("generated TypeScript returns a JSON array from a node path", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("items"),
+    "items",
+    'xpathNode("$.items")',
+    { rmType: "string", returnType: "node", label: "Items" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [{ name: "first" }, { name: "second" }] },
+  });
+  const text = JSON.stringify(serializedConversionOutput(out));
+  assertStringIncludes(text, "first");
+  assertStringIncludes(text, "second");
+});
+
+Deno.test("generated TypeScript reads a quoted flat JSON key", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("flat"),
+    "magnitude",
+    "xpathString('$[\"vitals/systolic|magnitude\"]')",
+    { rmType: "string", returnType: "string", label: "Magnitude" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { "vitals/systolic|magnitude": 120 },
+  });
+  assertStringIncludes(JSON.stringify(serializedConversionOutput(out)), "120");
 });
 
 Deno.test("TypeScript Test Run xpath helpers coerce non-string paths", () => {

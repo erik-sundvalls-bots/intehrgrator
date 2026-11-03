@@ -226,7 +226,7 @@ Deno.test("#274 a code on a DV_TEXT slot maps it as DV_CODED_TEXT in TypeScript 
   );
   assertStringIncludes(
     java,
-    'new DvCodedText(xpathString(\\"$.diagnosis.display\\"), xpathString(\\"$.diagnosis.codeSystem\\") + \\"::\\" + xpathString(\\"$.diagnosis.code\\"))',
+    'new DvCodedText(ig.xpathString(\\"$.diagnosis.display\\"), ig.xpathString(\\"$.diagnosis.codeSystem\\") + \\"::\\" + ig.xpathString(\\"$.diagnosis.code\\"))',
   );
 });
 

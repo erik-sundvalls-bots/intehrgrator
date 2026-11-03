@@ -64,6 +64,9 @@ for (const { target, output } of TARGETS) {
     output,
     "--include",
     "src/desktop/www",
+    // Language plugins run in this worker; it is only referenced via new URL().
+    "--include",
+    "src/desktop/language_plugin_worker.ts",
     // Browser bundles must not be .js in the include tree; staging writes *.js.dat.
     "--exclude",
     "**/*.js",

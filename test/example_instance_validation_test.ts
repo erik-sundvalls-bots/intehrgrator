@@ -1,7 +1,7 @@
 import { dirname, fromFileUrl, join } from "@std/path";
 import { assertEquals } from "@std/assert";
 import { loadJsonSchema } from "@intehrgrator/core/source/schema_loader.ts";
-import { detectSourceFormat } from "@intehrgrator/core/source/format_handler.ts";
+import { detectSourceFormat, getSourceFormatHandler } from "@intehrgrator/core/source/format_handler.ts";
 import { validateInstanceAgainstSchema } from "@intehrgrator/core/source/instance_validation.ts";
 
 const root = join(dirname(fromFileUrl(import.meta.url)), "..");
@@ -32,6 +32,40 @@ Deno.test("catalog Example Instances validate against their Source Schema (excep
     if (!schemaRel) continue;
     const schemaPath = join(dirname(catalogPath), schemaRel);
     const schemaText = await Deno.readTextFile(schemaPath);
+    const schemaFormat = detectSourceFormat(schemaPath, schemaText);
+    if (
+      schemaFormat === "openehr-operational-template" ||
+      schemaFormat === "openehr-web-template"
+    ) {
+      // These are openEHR templates, not JSON Schema. FLAT keys do not line up
+      // with the Web Template tree, so the JSON Schema walker does not apply.
+      try {
+        getSourceFormatHandler(schemaFormat).loadSchema(schemaText);
+      } catch (err) {
+        failures.push(
+          `${set.id} schema: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        continue;
+      }
+      for (const instRel of set.source?.instances ?? []) {
+        const name = instRel.split("/").pop() ?? instRel;
+        if (NAME_BROKEN.test(name)) continue;
+        const instPath = join(dirname(catalogPath), instRel);
+        const content = await Deno.readTextFile(instPath);
+        const format = detectSourceFormat(instPath, content);
+        if (
+          format !== "openehr-flat-json" &&
+          format !== "openehr-structured-json" &&
+          format !== "openehr-canonical-json" &&
+          format !== "openehr-composition"
+        ) {
+          failures.push(
+            `${set.id} ${name}: expected an openEHR composition instance, got ${format}`,
+          );
+        }
+      }
+      continue;
+    }
     const schema = loadJsonSchema(schemaText, "root");
     for (const instRel of set.source?.instances ?? []) {
       const name = instRel.split("/").pop() ?? instRel;

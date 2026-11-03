@@ -2,7 +2,7 @@
  * Evaluate a Blockly XML / XSD schema canvas to an instance string.
  *
  * Used by Handlebars Output mode and Mapping preview so nested `text_code`
- * LANG=handlebars Notes and `controls_if` evaluate (issues #168 / #176).
+ * LANG=handlebars Notes, `include_when`, and `controls_if` evaluate (issues #168 / #176).
  * Free-form Handlebars (no XML/schema root) does not use this walker.
  * Walks workspace JSON (no live Blockly).
  */
@@ -70,7 +70,8 @@ function isXmlProduct(node: BlocklyNode | undefined): boolean {
 function isStructure(type: string | undefined): boolean {
   return type === XML_ELEMENT_TYPE || type === XML_DOCUMENT_TYPE ||
     (type?.startsWith("schema_") ?? false) ||
-    type === "controls_if" || type === "for_each_list" || type === "for_each_source";
+    type === "controls_if" || type === "include_when" ||
+    type === "for_each_list" || type === "for_each_source";
 }
 
 function xmlCanvasRoot(state: unknown): BlocklyNode | null {
@@ -109,6 +110,7 @@ export function renderXmlCanvasFromBlockly(
 
 function renderBlock(block: BlocklyNode, ctx: SourceContext): string[] {
   const type = block.type ?? "";
+  if (type === "include_when") return renderIncludeWhen(block, ctx);
   if (type === "controls_if") return renderControlsIf(block, ctx);
   if (type === "for_each_list" || type === "for_each_source") return renderForEach(block, ctx);
   if (type === "xml_text" || type === "xml_cdata") {
@@ -135,6 +137,13 @@ function renderChain(block: BlocklyNode | undefined, ctx: SourceContext): string
     current = current.next?.block;
   }
   return lines;
+}
+
+function renderIncludeWhen(block: BlocklyNode, ctx: SourceContext): string[] {
+  const cond = inputChild(block.inputs?.WHEN);
+  const ok = isTruthy(cond ? evalSerialized(cond, ctx, "boolean") : false);
+  const branch = ok ? inputChild(block.inputs?.DO) : inputChild(block.inputs?.ELSE);
+  return renderChain(branch, ctx);
 }
 
 function renderControlsIf(block: BlocklyNode, ctx: SourceContext): string[] {

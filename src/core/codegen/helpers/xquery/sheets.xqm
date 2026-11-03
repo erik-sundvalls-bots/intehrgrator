@@ -1,0 +1,198 @@
+module namespace igsh = "https://github.com/regionstockholm/intehrgrator/ns/helpers/sheets";
+declare namespace map = "http://www.w3.org/2005/xpath-functions/map";
+declare namespace array = "http://www.w3.org/2005/xpath-functions/array";
+
+(: --- Sheet / decision-table accessors ($sheets map) --- :)
+
+declare function igsh:sheet-of($sheets as map(*)?, $name as xs:string) as map(*)? {
+  if (empty($sheets)) then () else map:get($sheets, $name)
+};
+
+declare function igsh:sheet-col-index($sheet as map(*), $ref as item()*) as xs:integer? {
+  let $headers := $sheet?headers
+  return if ($ref instance of xs:numeric) then xs:integer($ref)
+    else let $token := xs:string($ref)
+         let $by-header := index-of($headers?*, $token)[1]
+         return if (exists($by-header)) then $by-header - 1
+           else if ($token = ('__row', 'row')) then -1
+           else if (matches($token, '^[A-Za-z]+$')) then igsh:letters-to-index($token)
+           else if (matches($token, '^\d+$')) then xs:integer($token)
+           else ()
+};
+
+declare function igsh:letters-to-index($letters as xs:string) as xs:integer {
+  fold-left(
+    string-to-codepoints(upper-case($letters)),
+    0,
+    function($n as xs:integer, $cp as xs:integer) as xs:integer { $n * 26 + ($cp - 64) }
+  ) - 1
+};
+
+declare function igsh:sheet-get-cell($sheets as map(*)?, $name as xs:string, $a1 as xs:string) as item()* {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then ()
+    else let $letters := replace(upper-case($a1), '[^A-Z]', '')
+         let $row := xs:integer(replace($a1, '[^0-9]', '')) - 1
+         return $sheet?values?*[$row + 1]?*[igsh:letters-to-index($letters) + 1]
+};
+
+declare function igsh:sheet-get-xy($sheets as map(*)?, $name as xs:string, $x as xs:numeric, $y as xs:numeric) as item()* {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then () else $sheet?values?*[xs:integer($y) + 1]?*[xs:integer($x) + 1]
+};
+
+declare function igsh:sheet-get-row($sheets as map(*)?, $name as xs:string, $y as xs:numeric) as array(*)? {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then () else $sheet?values?*[xs:integer($y) + 1]
+};
+
+declare function igsh:sheet-get-column($sheets as map(*)?, $name as xs:string, $x as xs:numeric) as item()* {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then ()
+    else for $row in $sheet?values?* return $row?*[xs:integer($x) + 1]
+};
+
+declare function igsh:sheet-get-header($sheets as map(*)?, $name as xs:string, $x as xs:numeric) as xs:string? {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then () else xs:string($sheet?headers?*[xs:integer($x) + 1])
+};
+
+declare function igsh:sheet-get-data($sheets as map(*)?, $name as xs:string) as array(*)? {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then () else $sheet?values
+};
+
+declare function igsh:sheet-lookup(
+  $sheets as map(*)?,
+  $name as xs:string,
+  $match-col as item(),
+  $match-value as item()*,
+  $return-col as item()?
+) as item()* {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  return if (empty($sheet)) then ()
+    else let $mi := igsh:sheet-col-index($sheet, $match-col)
+         let $rows := $sheet?rows
+         let $headers := $sheet?headers
+         let $hit := (
+           for $row in $rows?*
+           let $cell := if ($mi eq -1) then $row?('__row')
+             else $row($headers?*[$mi + 1])
+           where xs:string($cell) eq xs:string($match-value)
+           return $row
+         )[1]
+         return if (empty($hit)) then ()
+           else if (empty($return-col) or $return-col eq '') then $hit
+           else let $ri := igsh:sheet-col-index($sheet, $return-col)
+                return if ($ri eq -1) then $hit?('__row')
+                  else $hit($headers?*[$ri + 1])
+};
+
+declare function igsh:sheet-lookup(
+  $sheets as map(*)?,
+  $name as xs:string,
+  $match-col as item(),
+  $match-value as item()*
+) as item()* {
+  igsh:sheet-lookup($sheets, $name, $match-col, $match-value, ())
+};
+
+declare function igsh:dont-care($cell as item()*) as xs:boolean {
+  empty($cell) or (xs:string($cell) = ('', '—', '–', '-', '*'))
+};
+
+declare function igsh:to-number($value as item()*) as xs:double? {
+  if ($value instance of xs:numeric) then xs:double($value)
+  else if (xs:string($value) castable as xs:double) then xs:double($value)
+  else ()
+};
+
+declare function igsh:cell-match($cell as item()*, $input as item()*) as xs:boolean {
+  if (igsh:dont-care($cell)) then true()
+  else let $str := normalize-space(string-join(for $v in $cell return string($v), " "))
+       let $in := normalize-space(string-join(for $v in $input return string($v), " "))
+       let $n := igsh:to-number(($input)[1])
+       return if (exists($n) and contains($str, '..')) then
+         let $parts := tokenize($str, '\s*\.\.\s*')
+         return if (count($parts) eq 2 and $parts[1] castable as xs:double and $parts[2] castable as xs:double)
+           then let $a := xs:double($parts[1])
+                let $b := xs:double($parts[2])
+                return $n ge min(($a, $b)) and $n le max(($a, $b))
+           else $str eq $in
+       else if (exists($n) and matches($str, '^(>=|<=|>|<|=)\s*-?\d')) then
+         let $op := replace($str, '^([><=]+).*', '$1')
+         let $a := xs:double(replace($str, '^(>=|<=|>|<|=)\s*', ''))
+         return if ($op eq '>=') then $n ge $a
+           else if ($op eq '>') then $n gt $a
+           else if ($op eq '<=') then $n le $a
+           else if ($op eq '<') then $n lt $a
+           else $n eq $a
+       else $str eq $in
+};
+
+declare function igsh:snippet-interp($tpl as xs:string?, $inputs as map(*)) as xs:string {
+  if (empty($tpl)) then ''
+  else fold-left(
+    map:keys($inputs),
+    $tpl,
+    function($acc as xs:string, $key as xs:anyAtomicType) as xs:string {
+      replace($acc, '\{\{\s*' || replace(xs:string($key), '([\\\.\+\*\?\[\]\(\)\{\}\|\^\$])', '\\$1') || '\s*\}\}', xs:string(map:get($inputs, $key)))
+    }
+  )
+};
+
+declare function igsh:decision-cell-out($sheet as map(*), $row as map(*), $header as xs:string, $inputs as map(*)) as item()* {
+  let $headers := $sheet?headers?*
+  let $i := index-of($headers, $header)[1]
+  let $meta := ($sheet?decisionColumns?*[$i], map { 'role': 'output', 'outputKind': 'value' })[1]
+  let $cell := $row($header)
+  return if ($meta?outputKind eq 'snippet') then igsh:snippet-interp(xs:string($cell), $inputs)
+    else $cell
+};
+
+declare function igsh:decision-table($sheets as map(*)?, $name as xs:string, $inputs as item()*, $output-col as xs:string?) as item()* {
+  let $sheet := igsh:sheet-of($sheets, $name)
+  let $inmap := if ($inputs instance of map(*)) then $inputs else map {}
+  return if (empty($sheet)) then ()
+    else let $headers := $sheet?headers?*
+         let $meta := $sheet?decisionColumns
+         let $roles := for $i in (1 to count($headers))
+           return ($meta?*[$i]?role, if ($i lt count($headers)) then 'condition' else 'output')[1]
+         let $catch := ($sheet?rowCatchAll, array {})[1]
+         let $matched := (
+           for $y in (1 to count($sheet?rows?*))
+           let $row := $sheet?rows?*[$y]
+           let $is-catch := boolean($catch?*[$y])
+           let $ok := every $i in (1 to count($headers)) satisfies (
+             $roles[$i] ne 'condition' or igsh:cell-match($row($headers[$i]), map:get($inmap, $headers[$i]))
+           )
+           where $ok and not($is-catch)
+           return $y
+         )
+         let $hits := if (exists($matched)) then $matched
+           else for $y in (1 to count($sheet?rows?*)) where boolean($catch?*[$y]) return $y
+         let $policy := ($sheet?hitPolicy, 'FIRST')[1]
+         let $all := $output-col eq '*'
+         let $out-header := if ($all or not($output-col)) then $headers[position() = (index-of($roles, 'output')[1], count($headers))[1]] else $output-col
+         return if (empty($hits)) then ()
+           else if ($policy eq 'UNIQUE' and count($hits) gt 1) then error(
+             QName('http://intehrgrator.local/xquery', 'UNIQUE-OVERLAP'),
+             "UNIQUE decision table matched multiple rows: " || $name
+           )
+           else if ($policy eq 'COLLECT') then
+             let $join := ($sheet?collectJoin, '; ')[1]
+             let $parts := for $y in $hits
+               let $row := $sheet?rows?*[$y]
+               let $val := igsh:decision-cell-out($sheet, $row, $out-header, $inmap)
+               where not(igsh:dont-care($val))
+               return xs:string($val)
+             let $deduped := if (boolean($sheet?collectDedupe)) then distinct-values($parts) else $parts
+             return string-join($deduped, $join)
+           else let $row := $sheet?rows?*[$hits[1]]
+                return if ($all) then $row
+                  else igsh:decision-cell-out($sheet, $row, $out-header, $inmap)
+};
+
+declare function igsh:decision-table($sheets as map(*)?, $name as xs:string, $inputs as item()*) as item()* {
+  igsh:decision-table($sheets, $name, $inputs, ())
+};

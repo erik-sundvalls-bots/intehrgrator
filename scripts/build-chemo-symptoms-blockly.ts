@@ -428,28 +428,14 @@ function wrapIf(
   spec: ChemoKeywordSpec,
 ): Blockly.Block {
   if (spec.when === "always") return inner;
-  if (spec.when === "unless-and") {
-    const iff = createIfElse(workspace);
-    iff.getInput("IF0")?.connection?.connect(andAll(workspace, spec.compares).outputConnection!);
-    iff.getInput("ELSE")?.connection?.connect(inner.previousConnection!);
-    return iff;
-  }
-  const iff = workspace.newBlock("controls_if");
+  const guard = workspace.newBlock("include_when");
   const cond = spec.compares.length === 1
     ? compareData(workspace, spec.compares[0]!)
     : andAll(workspace, spec.compares);
-  iff.getInput("IF0")?.connection?.connect(cond.outputConnection!);
-  iff.getInput("DO0")?.connection?.connect(inner.previousConnection!);
-  return iff;
-}
-
-function createIfElse(workspace: Blockly.Workspace): Blockly.Block {
-  const appended = Blockly.serialization.blocks.append(
-    { type: "controls_if", extraState: { elseIfCount: 0, hasElse: true } },
-    workspace,
-  ) as Blockly.Block | undefined;
-  if (!appended) throw new Error("failed to create controls_if with else");
-  return appended;
+  guard.getInput("WHEN")?.connection?.connect(cond.outputConnection!);
+  const branch = spec.when === "unless-and" ? "ELSE" : "DO";
+  guard.getInput(branch)?.connection?.connect(inner.previousConnection!);
+  return guard;
 }
 
 function keywordBlock(
@@ -538,9 +524,9 @@ export function buildChemoSymptomsWorkspace(xsd: string, script: string): Blockl
   const after = CHEMO_KEYWORDS.filter((k) => k.group === "after");
   const numeric = CHEMO_KEYWORDS.filter((k) => k.group === "numeric");
 
-  const noneIf = createIfElse(workspace);
-  noneIf.getInput("IF0")?.connection?.connect(andAll(workspace, ALL_NEJ_COMPARES).outputConnection!);
-  noneIf.getInput("DO0")?.connection?.connect(
+  const noneIf = workspace.newBlock("include_when");
+  noneIf.getInput("WHEN")?.connection?.connect(andAll(workspace, ALL_NEJ_COMPARES).outputConnection!);
+  noneIf.getInput("DO")?.connection?.connect(
     keywordBlock(workspace, textNode, none, script).previousConnection!,
   );
   for (const spec of symptoms) {

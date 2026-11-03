@@ -1,5 +1,14 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { EditorView, keymap, lineNumbers, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import {
+  Decoration,
+  EditorView,
+  keymap,
+  lineNumbers,
+  ViewPlugin,
+  type DecorationSet,
+  type ViewUpdate,
+} from "@codemirror/view";
+import { importLinkSpans } from "../core/codegen/import_links.ts";
 import { Compartment, EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
@@ -217,7 +226,65 @@ export const editorChromeExtensions: Extension[] = [
 const editorTheme = EditorView.theme({
   "&": { height: "100%", fontSize: "12px" },
   ".cm-scroller": { overflow: "auto", fontFamily: "ui-monospace, monospace" },
+  ".cm-import-link": {
+    color: "var(--sl-color-primary-600, #0b6bcb)",
+    textDecoration: "underline",
+    cursor: "pointer",
+  },
 });
+
+const importLinkPlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = importLinkDecorations(view);
+    }
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = importLinkDecorations(update.view);
+      }
+    }
+  },
+  { decorations: (plugin) => plugin.decorations },
+);
+
+function importLinkDecorations(view: EditorView): DecorationSet {
+  const spans = importLinkSpans(view.state.doc.toString())
+    .filter((span) => span.from < span.to && span.to <= view.state.doc.length)
+    .sort((a, b) => a.from - b.from || a.to - b.to);
+  const marks = [];
+  let end = -1;
+  for (const span of spans) {
+    if (span.from < end) continue;
+    marks.push(
+      Decoration.mark({ class: "cm-import-link", attributes: { title: span.href } }).range(
+        span.from,
+        span.to,
+      ),
+    );
+    end = span.to;
+  }
+  return Decoration.set(marks);
+}
+
+/** Underline import specifiers and open the helper or library source on click. */
+export const importLinkExtensions: Extension[] = [
+  importLinkPlugin,
+  EditorView.domEventHandlers({
+    click(event, view) {
+      if (view.state.facet(EditorView.editable) && !event.metaKey && !event.ctrlKey) return false;
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (pos == null) return false;
+      const span = importLinkSpans(view.state.doc.toString()).find((item) =>
+        pos >= item.from && pos <= item.to
+      );
+      if (!span) return false;
+      event.preventDefault();
+      globalThis.open(span.href, "_blank", "noopener,noreferrer");
+      return true;
+    },
+  }),
+];
 
 function mountEditor(
   parent: HTMLElement,
@@ -233,6 +300,7 @@ function mountEditor(
       doc,
       extensions: [
         ...editorChromeExtensions,
+        ...importLinkExtensions,
         languageConf.of(languageSupport(language)),
         lintConf.of(vmsTemplateLintExtensions(language)),
         editorTheme,

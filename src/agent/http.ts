@@ -28,6 +28,10 @@ import {
 } from "./tools.ts";
 import { forwardChatCompletionsProxy } from "../core/ai/credentials.ts";
 import { forwardModelsProxy } from "../core/ai/models.ts";
+import {
+  generateWithLanguagePlugin,
+  listLanguagePlugins,
+} from "../desktop/language_plugins.ts";
 
 export function createAgentApiHandler(
   service: WorkbenchService,
@@ -62,6 +66,23 @@ export function createAgentApiHandler(
           token: options?.token,
           execPath: execPath(),
         }));
+      }
+
+      if (req.method === "GET" && path === "/language-plugins") {
+        return json({ plugins: await listLanguagePlugins() });
+      }
+
+      if (req.method === "POST" && path === "/language-plugins/generate") {
+        const body = await req.json().catch(() => null) as {
+          language?: unknown;
+          model?: unknown;
+          options?: unknown;
+        } | null;
+        if (!body || typeof body.language !== "string" || !body.language) {
+          return json({ error: "language is required" }, 400);
+        }
+        const generated = await generateWithLanguagePlugin(body.language, body.model ?? {}, body.options ?? {});
+        return json(generated);
       }
 
       if (!localMcp.enabled && !localMcpStaysUp(req.method, path)) {

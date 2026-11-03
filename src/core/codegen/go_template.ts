@@ -17,6 +17,7 @@
  */
 import type { ExprAst } from "../expression/mod.ts";
 import type { MappingFunction, MappingModel } from "../../types/mod.ts";
+import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
 import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
 import { valueFunctions } from "./user_functions.ts";
 import { isRelativeAuthoringPath } from "../mapping_model/loops.ts";
@@ -65,11 +66,18 @@ export function generateGoTemplate(
   const defines = emitGoFunctionDefines(model, ctx);
   if (defines) lines.push(defines);
 
-  if (options?.blocklyState) {
-    lines.push(generateFromBlockly(options.blocklyState, model));
-  } else {
-    lines.push(generateFromSlots(model, ctx));
+  const body = options?.blocklyState
+    ? generateFromBlockly(options.blocklyState, model)
+    : generateFromSlots(model, ctx);
+  const helperNames = ["sheetLookup", "decisionTable", "handlebars", "dict"].filter((name) =>
+    body.includes(name)
+  );
+  if (helperNames.length) {
+    lines.push(
+      `{{- /* Helpers: ${helperNames.join(", ")} — ${GO_TEMPLATE_HELPERS_BLOB} */ -}}`,
+    );
   }
+  lines.push(body);
 
   return lines.join("\n");
 }
@@ -701,7 +709,8 @@ function emitXmlOrSchemaElement(block: BlockNode, ctx: GoEmitContext): string[] 
 
 function isXmlStructureBlockType(type: string): boolean {
   return type === "xml_element" || type === "target_structure" || type.startsWith("schema_") ||
-    type === "controls_if" || type === "for_each_source" || type === "for_each_list" ||
+    type === "controls_if" || type === "include_when" ||
+    type === "for_each_source" || type === "for_each_list" ||
     type === "json_object" || type === "json_array";
 }
 

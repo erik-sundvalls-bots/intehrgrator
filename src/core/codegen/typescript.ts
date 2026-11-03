@@ -39,6 +39,7 @@ import {
   jsFunctionIdent,
   valueFunctions,
 } from "./user_functions.ts";
+import { TYPESCRIPT_HELPERS_SPECIFIER } from "./helpers/locations.ts";
 
 /** RM classes whose constructors actually apply an init bag. */
 const NATIVE_INIT_TYPES = new Set([
@@ -382,9 +383,6 @@ export interface TypeScriptModuleParts {
 
 export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
   const types = [...parts.types].sort();
-  const usesXpath = [...parts.helpers].some((h) =>
-    h === "string" || h === "number" || h === "boolean" || h === "nodes" || h === "node"
-  );
   const fonto: string[] = [];
   if (parts.helpers.has("string")) fonto.push("evaluateXPathToString");
   if (parts.helpers.has("number")) fonto.push("evaluateXPathToNumber");
@@ -425,6 +423,13 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
     if (types.length || fonto.length || parts.helpers.has("handlebars")) lines.push("");
     for (const line of parts.extraImports) lines.push(line);
   }
+  const helperNames = typescriptHelperImportNames(parts.helpers, parts.body);
+  if (helperNames.length) {
+    if (lines.at(-1) !== "") lines.push("");
+    lines.push("import {");
+    for (const name of helperNames) lines.push(`  ${name},`);
+    lines.push(`} from ${JSON.stringify(TYPESCRIPT_HELPERS_SPECIFIER)};`);
+  }
   lines.push(
     "",
     "export type SourceContext = { format: string; data: unknown };",
@@ -437,37 +442,13 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
       : []),
     `)${root !== "unknown" ? `: ${root}` : ""} {`,
   );
-  if (usesXpath) {
-    lines.push(...indentLines(xpathHelpers(parts.helpers), 1));
-    lines.push("");
-  }
-  if (parts.helpers.has("rm")) {
-    lines.push(...indentLines(rmHelper(), 1));
-    lines.push("");
-  }
-  if (parts.helpers.has("party")) {
-    lines.push(...indentLines(partyValueHelper(), 1));
-    lines.push("");
-  }
-  if (parts.helpers.has("coded")) {
-    lines.push(...indentLines(codedTextHelper(), 1));
-    lines.push("");
-  }
-  if (parts.helpers.has("prune")) {
-    lines.push(...indentLines(pruneHelpers(), 1));
-    lines.push("");
-  }
-  if (parts.helpers.has("handlebars")) {
-    lines.push(...indentLines(handlebarsHelper(), 1));
-    lines.push("");
-  }
-  if (parts.helpers.has("sheets")) {
-    lines.push(...indentLines(sheetHelpers(), 1));
+  const wrappers = typescriptHelperWrappers(parts.helpers, parts.body);
+  if (wrappers.length) {
+    lines.push(...indentLines(wrappers, 1));
     lines.push("");
   }
   if (parts.helpers.has("logic")) {
     lines.push("  const __vars: Record<string, unknown> = {};");
-    lines.push(...indentLines(logicHelpers(), 1));
     lines.push("");
   }
   for (const line of parts.body.split("\n")) {
@@ -477,379 +458,131 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
   return lines.join("\n");
 }
 
-function xpathHelpers(helpers: Set<string>): string[] {
-  const lines = [
-    "function jsonQuery(path: unknown): string {",
-    '  const trimmed = String(path ?? "").trim();',
-    '  if (!trimmed || trimmed.startsWith("/")) return trimmed;',
-    '  const asJson = trimmed.startsWith("$") ? trimmed : `$.${trimmed.replace(/^\\./, "")}`;',
-    "  let body = asJson.slice(1);",
-    '  if (body.startsWith(".")) body = body.slice(1);',
-    '  if (!body || body === ".") return "$source";',
-    "  const segments: string[] = [];",
-    "  let i = 0;",
-    "  while (i < body.length) {",
-    '    if (body[i] === ".") { i++; continue; }',
-    '    if (body[i] === "[") {',
-    '      const close = body.indexOf("]", i + 1);',
-    "      if (close < 0) break;",
-    "      segments.push(body.slice(i + 1, close));",
-    "      i = close + 1;",
-    "      continue;",
-    "    }",
-    "    let end = i;",
-    "    while (end < body.length && !\".[\".includes(body[end] ?? \"\")) end++;",
-    "    segments.push(body.slice(i, end));",
-    "    i = end;",
-    "  }",
-    '  return segments.reduce((q, seg) => {',
-    '    if (seg === "*") return `${q}?*`;',
-    '    if (/^\\d+$/.test(seg) || /^[A-Za-z_][A-Za-z0-9_]*$/.test(seg)) return `${q}?${seg}`;',
-    "    return `${q}?(${JSON.stringify(seg)})`;",
-    '  }, "$source");',
-    "}",
-    "",
-  ];
-  if (helpers.has("string")) {
-    lines.push(
+function typescriptHelperImportNames(helpers: Set<string>, body: string): string[] {
+  const names: string[] = [];
+  const uses = (needle: string) => body.includes(needle);
+  if (helpers.has("string") || uses("xpathString(")) names.push("igXpathString");
+  if (helpers.has("number") || uses("xpathNumber(")) names.push("igXpathNumber");
+  if (helpers.has("boolean") || uses("xpathBoolean(")) names.push("igXpathBoolean");
+  if (helpers.has("nodes") || uses("xpathNodes(")) names.push("igXpathNodes");
+  if (helpers.has("node") || uses("xpathNode(")) names.push("igXpathNode");
+  if (uses("asList(")) names.push("asList");
+  if (uses("listGetIndex(")) names.push("listGetIndex");
+  if (uses("sameItem(")) names.push("sameItem");
+  if (uses("setDifference(")) names.push("setDifference");
+  if (uses("setIntersection(")) names.push("setIntersection");
+  if (uses("setUnion(")) names.push("setUnion");
+  if (helpers.has("rm") || uses("rm(")) names.push("rm");
+  if (helpers.has("party") || uses("partyValue(")) names.push("partyValue");
+  if (helpers.has("coded") || uses("codedText(")) names.push("igCodedText");
+  for (const name of ["__blankValue", "__el", "__filled", "__keep", "__num", "__toBool", "__toNum", "__tree"]) {
+    if (uses(`${name}(`)) names.push(name);
+  }
+  if (helpers.has("handlebars") || uses("handlebars(")) names.push("igHandlebars");
+  if (uses("decisionTable(")) names.push("igDecisionTable");
+  if (uses("sheetGetCell(")) names.push("igSheetGetCell");
+  if (uses("sheetGetColumn(")) names.push("igSheetGetColumn");
+  if (uses("sheetGetData(")) names.push("igSheetGetData");
+  if (uses("sheetGetHeader(")) names.push("igSheetGetHeader");
+  if (uses("sheetGetRow(")) names.push("igSheetGetRow");
+  if (uses("sheetGetXy(")) names.push("igSheetGetXy");
+  if (uses("sheetLookup(")) names.push("igSheetLookup");
+  return [...new Set(names)].sort();
+}
+
+function typescriptHelperWrappers(helpers: Set<string>, body: string): string[] {
+  const uses = (needle: string) => helpers.size >= 0 && body.includes(needle);
+  const lines: string[] = [];
+  const add = (...rows: string[]) => {
+    if (lines.length) lines.push("");
+    lines.push(...rows);
+  };
+  if (helpers.has("string") || uses("xpathString(")) {
+    add(
       "function xpathString(path: string, node: unknown = sourceCtx.data): string {",
-      '  const p = typeof path === "string" ? path : String(path ?? "");',
-      '  if (p.trim().startsWith("$source") || p.includes("?*[")) {',
-      "    return evaluateXPathToString(p, null, null, { source: node });",
-      "  }",
-      '  if (p.trim().startsWith("/")) return evaluateXPathToString(p, node);',
-      "  return evaluateXPathToString(jsonQuery(p), null, null, { source: node });",
+      "  return igXpathString(evaluateXPathToString, path, node);",
       "}",
-      "",
     );
   }
-  if (helpers.has("number")) {
-    lines.push(
+  if (helpers.has("number") || uses("xpathNumber(")) {
+    add(
       "function xpathNumber(path: unknown, node: unknown = sourceCtx.data): number {",
-      '  const p = typeof path === "string" ? path : String(path ?? "");',
-      '  if (p.trim().startsWith("$source") || p.includes("?*[")) {',
-      "    return evaluateXPathToNumber(p, null, null, { source: node });",
-      "  }",
-      '  if (p.trim().startsWith("/")) return evaluateXPathToNumber(p, node);',
-      "  return evaluateXPathToNumber(jsonQuery(p), null, null, { source: node });",
+      "  return igXpathNumber(evaluateXPathToNumber, path, node);",
       "}",
-      "",
     );
   }
-  if (helpers.has("boolean")) {
-    lines.push(
+  if (helpers.has("boolean") || uses("xpathBoolean(")) {
+    add(
       "function xpathBoolean(path: unknown, node: unknown = sourceCtx.data): boolean {",
-      '  const p = typeof path === "string" ? path : String(path ?? "");',
-      '  if (p.trim().startsWith("$source") || p.includes("?*[")) {',
-      "    return evaluateXPathToBoolean(p, null, null, { source: node });",
-      "  }",
-      '  if (p.trim().startsWith("/")) return evaluateXPathToBoolean(p, node);',
-      "  return evaluateXPathToBoolean(jsonQuery(p), null, null, { source: node });",
+      "  return igXpathBoolean(evaluateXPathToBoolean, path, node);",
       "}",
-      "",
     );
   }
-  if (helpers.has("nodes")) {
-    lines.push(
-      "function jsonWalk(path: string, node: unknown): unknown {",
-      "  const trimmed = path.trim();",
-      '  if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "$source") return node;',
-      "  let body = trimmed;",
-      '  if (body.startsWith("$source")) body = body.slice(7);',
-      '  else if (body.startsWith("$")) body = body.slice(1);',
-      '  if (body.startsWith(".") || body.startsWith("?")) body = body.slice(1);',
-      "  const segs = [];",
-      "  let i = 0;",
-      "  while (i < body.length) {",
-      "    const ch = body[i];",
-      '    if (ch === "." || ch === "?") { i++; continue; }',
-      '    if (ch === "*") { segs.push("*"); i++; continue; }',
-      '    if (ch === "[") {',
-      '      const close = body.indexOf("]", i + 1);',
-      "      if (close < 0) break;",
-      "      const tok = body.slice(i + 1, close).trim();",
-      '      segs.push(tok === "*" ? "*" : tok.replace(/^["\']|["\']$/g, ""));',
-      "      i = close + 1;",
-      "      continue;",
-      "    }",
-      "    let end = i;",
-      '    while (end < body.length && !".?[*".includes(body[end] ?? "")) end++;',
-      "    if (end > i) segs.push(body.slice(i, end));",
-      "    i = end > i ? end : i + 1;",
-      "  }",
-      "  function walk(cur, rest) {",
-      "    if (rest.length === 0) return cur;",
-      "    const head = rest[0];",
-      "    const tail = rest.slice(1);",
-      '    if (head === "*") {',
-      "      if (!Array.isArray(cur)) return [];",
-      "      if (tail.length === 0) return cur;",
-      "      const out = [];",
-      "      for (const item of cur) {",
-      "        const v = walk(item, tail);",
-      "        if (Array.isArray(v)) out.push(...v);",
-      "        else if (v != null) out.push(v);",
-      "      }",
-      "      return out;",
-      "    }",
-      '    if (head && /^\\d+$/.test(head)) {',
-      "      if (!Array.isArray(cur)) return undefined;",
-      "      const n = Number(head);",
-      "      return walk(cur[n >= 1 ? n - 1 : n], tail);",
-      "    }",
-      '    if (cur == null || typeof cur !== "object") return undefined;',
-      "    return walk(cur[head], tail);",
-      "  }",
-      "  return walk(node, segs);",
-      "}",
+  if (helpers.has("nodes") || uses("xpathNodes(")) {
+    add(
       "function xpathNodes(path: string, node: unknown = sourceCtx.data): unknown[] {",
-      '  if (path.trim().startsWith("/")) return evaluateXPathToNodes(path, node);',
-      "  const found = jsonWalk(path, node);",
-      "  if (Array.isArray(found)) return found;",
-      "  if (found == null) return [];",
-      "  return [found];",
+      "  return igXpathNodes(evaluateXPathToNodes, path, node);",
       "}",
-      "",
     );
   }
-  if (helpers.has("node")) {
-    lines.push(
+  if (helpers.has("node") || uses("xpathNode(")) {
+    add(
       "function xpathNode(path: string, node: unknown = sourceCtx.data): unknown {",
-      '  if (path.trim().startsWith("/")) return evaluateXPathToFirstNode(path, node);',
-      '  const trimmed = path.trim();',
-      '  if (!trimmed || trimmed === "$" || trimmed === ".") return node;',
-      '  if (trimmed.startsWith("$source") || trimmed.includes("?*[")) {',
-      "    return evaluateXPathToFirstNode(trimmed, null, null, { source: node });",
-      "  }",
-      "  return evaluateXPathToFirstNode(jsonQuery(path), null, null, { source: node });",
+      "  return igXpathNode(evaluateXPathToFirstNode, path, node);",
       "}",
-      "",
     );
   }
-  while (lines.at(-1) === "") lines.pop();
+  if (helpers.has("coded") || uses("codedText(")) {
+    add(
+      "function codedText(text: unknown, choices: Array<[string, string, string]>) {",
+      "  return igCodedText(DV_CODED_TEXT, text, choices);",
+      "}",
+    );
+  }
+  if (helpers.has("handlebars") || uses("handlebars(")) {
+    add(
+      "function handlebars(template: string, context: unknown): string {",
+      "  return igHandlebars(Handlebars, template, context);",
+      "}",
+    );
+  }
+  if (uses("sheetGetCell(")) {
+    add("function sheetGetCell(name: string, a1: string) { return igSheetGetCell(sheets, name, a1); }");
+  }
+  if (uses("sheetGetXy(")) {
+    add("function sheetGetXy(name: string, x: number, y: number) { return igSheetGetXy(sheets, name, x, y); }");
+  }
+  if (uses("sheetGetRow(")) {
+    add("function sheetGetRow(name: string, y: number) { return igSheetGetRow(sheets, name, y); }");
+  }
+  if (uses("sheetGetColumn(")) {
+    add("function sheetGetColumn(name: string, x: number) { return igSheetGetColumn(sheets, name, x); }");
+  }
+  if (uses("sheetGetHeader(")) {
+    add("function sheetGetHeader(name: string, x: number) { return igSheetGetHeader(sheets, name, x); }");
+  }
+  if (uses("sheetGetData(")) {
+    add("function sheetGetData(name: string) { return igSheetGetData(sheets, name); }");
+  }
+  if (uses("sheetLookup(")) {
+    add(
+      "function sheetLookup(name: string, matchCol: string | number, matchValue: unknown, returnCol?: string | number) {",
+      "  return igSheetLookup(sheets, name, matchCol, matchValue, returnCol);",
+      "}",
+    );
+  }
+  if (uses("decisionTable(")) {
+    add(
+      "function decisionTable(name: string, inputs: Record<string, unknown> = {}, outputCol?: string) {",
+      "  return igDecisionTable(sheets, name, inputs, outputCol);",
+      "}",
+    );
+  }
   return lines;
 }
 
-function logicHelpers(): string[] {
-  return [
-    "function asList(value: unknown): unknown[] {",
-    "  if (Array.isArray(value)) return value;",
-    "  if (value == null) return [];",
-    "  return [value];",
-    "}",
-    "function listGetIndex(items: unknown, where: string, at: unknown = 1): unknown {",
-    "  const list = asList(items);",
-    '  if (where === "FIRST") return list[0] ?? null;',
-    '  if (where === "LAST") return list[list.length - 1] ?? null;',
-    "  const n = Number(at);",
-    '  if (where === "FROM_END") return list[list.length - n] ?? null;',
-    "  return list[n - 1] ?? null;",
-    "}",
-    "function sameItem(a: unknown, b: unknown): boolean {",
-    "  if (Object.is(a, b)) return true;",
-    "  if (a && b && typeof a === \"object\" && typeof b === \"object\") {",
-    "    try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }",
-    "  }",
-    "  return false;",
-    "}",
-    "function setIntersection(a: unknown[], b: unknown[]): unknown[] {",
-    "  return a.filter((item) => b.some((other) => sameItem(item, other)));",
-    "}",
-    "function setUnion(a: unknown[], b: unknown[]): unknown[] {",
-    "  const out = [...a];",
-    "  for (const item of b) {",
-    "    if (!out.some((other) => sameItem(item, other))) out.push(item);",
-    "  }",
-    "  return out;",
-    "}",
-    "function setDifference(universe: unknown[], excluded: unknown[]): unknown[] {",
-    "  return universe.filter((item) => !excluded.some((other) => sameItem(item, other)));",
-    "}",
-  ];
-}
+const PRUNE_TREE_TYPES = new Set(["ITEM_TREE", "ITEM_LIST", "CLUSTER"]);
 
-function sheetHelpers(): string[] {
-  return [
-    "function sheetOf(name: string) { return sheets[name]; }",
-    "function sheetGetCell(name: string, a1: string) {",
-    "  const s = sheetOf(name); if (!s) return null;",
-    "  const m = /^([A-Za-z]+)(\\d+)$/.exec(String(a1).trim()); if (!m) return null;",
-    "  let x = 0; for (const ch of m[1].toUpperCase()) x = x * 26 + (ch.charCodeAt(0) - 64);",
-    "  const row = s.values[Number(m[2]) - 1]; return row ? row[x - 1] ?? null : null;",
-    "}",
-    "function sheetGetXy(name: string, x: number, y: number) {",
-    "  const row = sheetOf(name)?.values[y]; return row ? row[x] ?? null : null;",
-    "}",
-    "function sheetGetRow(name: string, y: number) { return [...(sheetOf(name)?.values[y] ?? [])]; }",
-    "function sheetGetColumn(name: string, x: number) {",
-    "  return (sheetOf(name)?.values ?? []).map((row: unknown[]) => row?.[x] ?? null);",
-    "}",
-    "function sheetGetHeader(name: string, x: number) { return sheetOf(name)?.headers[x] ?? \"\"; }",
-    "function sheetGetData(name: string) { return (sheetOf(name)?.values ?? []).map((row: unknown[]) => [...row]); }",
-    "function sheetLookup(name: string, matchCol: string | number, matchValue: unknown, returnCol?: string | number) {",
-    "  const s = sheetOf(name); if (!s) return null;",
-    "  const idx = (ref: string | number) => {",
-    "    if (typeof ref === \"number\") return ref;",
-    "    const t = String(ref);",
-    "    const hi = s.headers.indexOf(t); if (hi >= 0) return hi;",
-    "    if (/^[A-Za-z]+$/.test(t)) { let n = 0; for (const ch of t.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; }",
-    "    if (/^\\d+$/.test(t)) return Number(t);",
-    "    return -1;",
-    "  };",
-    "  const mi = idx(matchCol);",
-    "  const y = s.values.findIndex((row: unknown[]) => String(row?.[mi] ?? \"\") === String(matchValue ?? \"\"));",
-    "  if (y < 0) return null;",
-    "  if (returnCol === undefined || returnCol === null || returnCol === \"\") {",
-    "    const rec: Record<string, unknown> = {};",
-    "    s.headers.forEach((h: string, x: number) => { rec[h || String(x)] = s.values[y][x]; });",
-    "    return rec;",
-    "  }",
-    "  return s.values[y][idx(returnCol)] ?? null;",
-    "}",
-    "function decisionTable(name: string, inputs: Record<string, unknown> = {}, outputCol?: string) {",
-    "  const s = sheetOf(name); if (!s) return null;",
-    "  const dontCare = (c: unknown) => c == null || (typeof c === \"string\" && [\"\", \"—\", \"–\", \"-\", \"*\"].includes(c.trim()));",
-    "  const width = s.headers.length;",
-    "  const meta = (s.decisionColumns ?? []).slice(0, width);",
-    "  while (meta.length < width) meta.push({ role: meta.length === width - 1 && !(s.decisionColumns?.length) ? \"output\" : \"condition\" });",
-    "  if (!(s.decisionColumns?.length) && width > 0) { for (let i = 0; i < width - 1; i++) meta[i] = { role: \"condition\" }; meta[width - 1] = { role: \"output\", outputKind: \"value\", valueType: \"string\" }; }",
-    "  const coerce = (v: unknown, t: string) => {",
-    "    if (v == null || v === \"\") return v;",
-    "    if (t === \"number\") { const n = typeof v === \"number\" ? v : Number(v); return Number.isFinite(n) ? n : v; }",
-    "    if (t === \"boolean\") { if (typeof v === \"boolean\") return v; const x = String(v).trim().toLowerCase(); if (x === \"true\") return true; if (x === \"false\") return false; return v; }",
-    "    return typeof v === \"string\" ? v : String(v);",
-    "  };",
-    "  const toNum = (v: unknown) => {",
-    "    if (typeof v === \"number\") return Number.isFinite(v) ? v : null;",
-    "    if (typeof v === \"string\" && v.trim() !== \"\") { const n = Number(v); return Number.isFinite(n) ? n : null; }",
-    "    return null;",
-    "  };",
-    "  const pred = (cell: unknown) => {",
-    "    if (cell == null || typeof cell === \"boolean\" || dontCare(cell)) return null;",
-    "    const str = typeof cell === \"number\" ? String(cell) : String(cell).trim();",
-    "    const range = /^(-?\\d+(?:\\.\\d+)?)\\s*\\.\\.\\s*(-?\\d+(?:\\.\\d+)?)$/.exec(str);",
-    "    if (range) { const a = Number(range[1]), b = Number(range[2]); return { op: \"range\", a: Math.min(a, b), b: Math.max(a, b) }; }",
-    "    const cmp = /^(>=|<=|>|<|=)\\s*(-?\\d+(?:\\.\\d+)?)$/.exec(str);",
-    "    if (cmp) return { op: cmp[1] as string, a: Number(cmp[2]) };",
-    "    return null;",
-    "  };",
-    "  const holds = (p: { op: string; a: number; b?: number }, n: number) => {",
-    "    if (p.op === \"range\") return n >= p.a && n <= (p.b as number);",
-    "    if (p.op === \">=\") return n >= p.a; if (p.op === \">\") return n > p.a;",
-    "    if (p.op === \"<=\") return n <= p.a; if (p.op === \"<\") return n < p.a;",
-    "    return n === p.a;",
-    "  };",
-    "  const cellMatch = (cell: unknown, input: unknown) => {",
-    "    if (dontCare(cell)) return true;",
-    "    const p = pred(cell);",
-    "    if (p) { const n = toNum(input); return n != null && holds(p, n); }",
-    "    return String(cell ?? \"\") === String(input ?? \"\");",
-    "  };",
-    "  const cellOut = (y: number, oi: number) => {",
-    "    const cell = s.values[y]?.[oi];",
-    "    const kind = meta[oi]?.outputKind ?? \"value\";",
-    "    if (kind === \"snippet\") {",
-    "      const tpl = String(cell ?? \"\");",
-    "      return tpl.replace(/\\{\\{\\s*([\\w.$]+)\\s*\\}\\}/g, (_: string, key: string) => {",
-    "        const parts = key.split(\".\"); let cur: unknown = inputs;",
-    "        for (const p of parts) { if (cur == null || typeof cur !== \"object\") return \"\"; cur = (cur as Record<string, unknown>)[p]; }",
-    "        return cur == null ? \"\" : String(cur);",
-    "      });",
-    "    }",
-    "    const t = meta[oi]?.valueType === \"number\" || meta[oi]?.valueType === \"boolean\" ? meta[oi].valueType : \"string\";",
-    "    return coerce(cell ?? null, t);",
-    "  };",
-    "  const outIdx = outputCol && outputCol !== \"*\" ? s.headers.indexOf(outputCol) : meta.findIndex((m) => m.role === \"output\");",
-    "  const oi = outIdx >= 0 ? outIdx : Math.max(0, width - 1);",
-    "  const matches: number[] = [];",
-    "  for (let y = 0; y < s.values.length; y++) {",
-    "    if (s.rowCatchAll?.[y]) { if (matches.length === 0) matches.push(y); continue; }",
-    "    let ok = true;",
-    "    for (let x = 0; x < width; x++) {",
-    "      if (meta[x]?.role !== \"condition\") continue;",
-    "      if (!cellMatch(s.values[y]?.[x], inputs[s.headers[x]])) { ok = false; break; }",
-    "    }",
-    "    if (ok) matches.push(y);",
-    "  }",
-    "  if (!matches.length) return null;",
-    "  const policy = s.hitPolicy ?? \"FIRST\";",
-    "  const all = outputCol === \"*\";",
-    "  const rowMap = (y: number) => {",
-    "    const rec: Record<string, unknown> = {};",
-    "    for (let x = 0; x < width; x++) { if (meta[x]?.role === \"output\") rec[s.headers[x] || String(x)] = cellOut(y, x); }",
-    "    return rec;",
-    "  };",
-    "  if (policy === \"UNIQUE\") {",
-    "    if (matches.length > 1) throw new Error(`UNIQUE decision table \"${name}\" matched ${matches.length} rows`);",
-    "    return all ? rowMap(matches[0]!) : cellOut(matches[0]!, oi);",
-    "  }",
-    "  if (policy === \"COLLECT\") {",
-    "    const join = s.collectJoin ?? \"; \";",
-    "    const joinParts = (vals: unknown[]) => {",
-    "      const out = []; const seen = new Set();",
-    "      for (const p of vals) {",
-    "        if (p == null || (typeof p === \"string\" && p.trim() === \"\")) continue;",
-    "        const t = String(p);",
-    "        if (s.collectDedupe) { if (seen.has(t)) continue; seen.add(t); }",
-    "        out.push(t);",
-    "      }",
-    "      return out.join(join);",
-    "    };",
-    "    if (!all) return joinParts(matches.map((y) => cellOut(y, oi)));",
-    "    const rec: Record<string, unknown> = {};",
-    "    for (let x = 0; x < width; x++) {",
-    "      if (meta[x]?.role !== \"output\") continue;",
-    "      rec[s.headers[x] || String(x)] = joinParts(matches.map((y) => cellOut(y, x)));",
-    "    }",
-    "    return rec;",
-    "  }",
-    "  return all ? rowMap(matches[0]!) : cellOut(matches[0]!, oi);",
-    "}",
-  ];
-}
-
-function handlebarsHelper(): string[] {
-  return [
-    "function handlebars(template: string, context: unknown): string {",
-    "  const engine = Handlebars.create();",
-    "  engine.registerHelper({",
-    "    eq: (a: unknown, b: unknown) => a === b,",
-    "    ne: (a: unknown, b: unknown) => a !== b,",
-    "    toLowerCase: (v: unknown) => v == null ? v : String(v).toLowerCase(),",
-    "    toUpperCase: (v: unknown) => v == null ? v : String(v).toUpperCase(),",
-    "  });",
-    "  return engine.compile(template, { noEscape: true })(context ?? {});",
-    "}",
-  ];
-}
-
-/**
- * A party Default point as canonical openEHR JSON: a name string becomes
- * PARTY_IDENTIFIED ("PARTY_SELF" is the subject sentinel), an old
- * `{ rmType }` literal gets `_type`, and a missing subject is PARTY_SELF.
- */
-function partyValueHelper(): string[] {
-  return [
-    "function partyValue(v: unknown, fallback: string): unknown {",
-    "  if (v == null || v === \"\") return fallback === \"PARTY_SELF\" ? { _type: \"PARTY_SELF\" } : undefined;",
-    "  if (typeof v === \"string\") {",
-    "    return v === \"PARTY_SELF\" ? { _type: \"PARTY_SELF\" } : { _type: \"PARTY_IDENTIFIED\", name: v };",
-    "  }",
-    "  if (typeof v !== \"object\" || Array.isArray(v) || \"_type\" in v) return v;",
-    "  if (Object.getPrototypeOf(v) !== Object.prototype) return v;",
-    "  const { rmType, ...rest } = v as Record<string, unknown>;",
-    "  const type = typeof rmType === \"string\" && rmType !== \"PARTY_PROXY\" ? rmType : fallback;",
-    "  return { _type: type, ...rest };",
-    "}",
-  ];
-}
-
-/**
- * Free text into a coded slot: match code or rubric (case-insensitive) in the
- * template value set. A coded record (value, code_string, terminology_id) is
- * used as it is. A unique match gives defining_code and the template
- * rubric; otherwise the text is kept and validation reports the missing code.
- */
 /** Value set of a coded node: the template list, else the openEHR RM terminology group. */
 function codedChoicesForNode(node: SkeletonNode): Array<[string, string, string]> {
   const allowed = (node.allowedValues ?? []).filter((row) => row.code);
@@ -857,90 +590,6 @@ function codedChoicesForNode(node: SkeletonNode): Array<[string, string, string]
   const rm = terminologyValuesForSlot(node.slotId);
   return rm ? rm.values.map((row) => [row.code, row.text || row.code, rm.terminologyId]) : [];
 }
-
-function codedTextHelper(): string[] {
-  return [
-    "function codedText(text: unknown, choices: Array<[string, string, string]>) {",
-    "  if (text && typeof text === \"object\" && !Array.isArray(text)) {",
-    "    // A coded record from an if/else or Decision table: { value, code_string, terminology_id }.",
-    "    const r = text as any;",
-    "    const dc = r.defining_code ?? {};",
-    "    const code = String(r.code_string ?? dc.code_string ?? \"\").trim();",
-    "    const term = r.terminology_id ?? dc.terminology_id;",
-    "    const termId = String(term && typeof term === \"object\" ? term.value ?? \"\" : term ?? \"\").trim();",
-    "    if (code) return new DV_CODED_TEXT({ value: String(r.value ?? code), defining_code: { terminology_id: termId || \"local\", code_string: code } });",
-    "    text = r.value;",
-    "  }",
-    "  const s = String(text ?? \"\").trim();",
-    "  if (!s) return undefined;",
-    "  const k = s.toLowerCase();",
-    "  const hits = choices.filter(([code, rubric]) =>",
-    "    code.trim().toLowerCase() === k || rubric.trim().toLowerCase() === k",
-    "  );",
-    "  if (hits.length !== 1) return new DV_CODED_TEXT({ value: s });",
-    "  const [code, rubric, terminology] = hits[0]!;",
-    "  return new DV_CODED_TEXT({",
-    "    value: rubric,",
-    "    defining_code: { terminology_id: terminology, code_string: code },",
-    "  });",
-    "}",
-  ];
-}
-
-/**
- * Run-time pruning so a missing source value leaves the ELEMENT out, as the
- * preview does (F-M2, F-M10): an empty data value, an ELEMENT without value
- * and an item structure without items are dropped.
- */
-function pruneHelpers(): string[] {
-  return [
-    "function __blankValue(x: unknown): boolean {",
-    "  if (x == null) return true;",
-    "  if (typeof x === \"number\") return !Number.isFinite(x);",
-    "  return typeof x === \"string\" && !x.trim();",
-    "}",
-    "function __toNum(x: unknown): number {",
-    "  if (x == null || (typeof x === \"string\" && !x.trim())) return NaN;",
-    "  return Number(x);",
-    "}",
-    "function __num(x: unknown, make: any): unknown {",
-    "  const m = __toNum(x);",
-    "  return Number.isFinite(m) ? make(m) : undefined;",
-    "}",
-    "function __filled(v: unknown): unknown {",
-    "  if (v == null) return undefined;",
-    "  if (typeof v !== \"object\") return __blankValue(v) ? undefined : v;",
-    "  const o = v as any;",
-    "  if (\"magnitude\" in o && typeof o.magnitude === \"number\" && Number.isNaN(o.magnitude)) return undefined;",
-    "  // Coded text: codedText() already returns undefined for a missing value; a",
-    "  // built value with a blank rubric is kept so validation reports it (as preview).",
-    "  if (\"defining_code\" in o) return v;",
-    "  if (\"issuer\" in o && \"id\" in o) return __blankValue(o.id) ? undefined : v;",
-    "  if (\"value\" in o && !(\"magnitude\" in o) && __blankValue(o.value)) return undefined;",
-    "  return v;",
-    "}",
-    "function __el(e: unknown): unknown {",
-    "  const o = e as any;",
-    "  return o.value == null && o.null_flavour == null ? undefined : e;",
-    "}",
-    "function __tree(t: unknown): unknown {",
-    "  const items = (t as any).items;",
-    "  return Array.isArray(items) && !items.length ? undefined : t;",
-    "}",
-    "function __toBool(x: unknown): unknown {",
-    "  if (typeof x === \"boolean\" || x == null) return x;",
-    "  const t = String(x).trim().toLowerCase();",
-    "  if (!t) return undefined;",
-    "  if (t === \"true\" || t === \"false\") return t === \"true\";",
-    "  return typeof x === \"number\" ? x !== 0 : Boolean(x);",
-    "}",
-    "function __keep(items: unknown[]): unknown[] {",
-    "  return items.filter((x) => x !== undefined && x !== null);",
-    "}",
-  ];
-}
-
-const PRUNE_TREE_TYPES = new Set(["ITEM_TREE", "ITEM_LIST", "CLUSTER"]);
 
 /** Wrap a constructed RM node so it drops out at run time when it ends up empty. */
 export function wrapPruneNode(rmType: string, code: string, ctx: TsEmitContext): string {
@@ -979,15 +628,6 @@ export function guardNumericConstruct(
   if (/^-?\d+(\.\d+)?$/.test(magnitudeExpr.trim())) return build(magnitudeExpr.trim());
   ctx.helpers.add("prune");
   return `__num(${magnitudeExpr}, (__m) => ${build("__m")})`;
-}
-
-function rmHelper(): string[] {
-  return [
-    "/** Apply an init bag on RM classes that still use a zero-arg constructor. */",
-    "function rm(Type: any, init: any) {",
-    "  return Object.assign(new Type(), init);",
-    "}",
-  ];
 }
 
 function indentLines(lines: string[], n: number): string[] {
