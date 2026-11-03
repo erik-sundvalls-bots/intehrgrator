@@ -40,6 +40,15 @@ Deno.test("narrow viewports treat Mapping Editors as the lead pane", () => {
   assertEquals(mappingPaneLeadsOnNarrow(1280), false);
 });
 
+Deno.test("sheet tabs use the pane width and still scroll when names overflow", async () => {
+  const css = await Deno.readTextFile(join(import.meta.dirname!, "..", "web", "styles.css"));
+  const tabsRule = css.slice(css.indexOf(".sheets-tabs {"), css.indexOf(".sheets-tab {"));
+  assert(tabsRule.includes("flex: 1 1 auto"), tabsRule);
+  assert(tabsRule.includes("overflow-x: auto"), tabsRule);
+  assert(tabsRule.includes("min-width: 0"), tabsRule);
+  assert(!tabsRule.includes("420px"), tabsRule);
+});
+
 Deno.test("example and test-output tabs scroll sideways instead of wrapping", async () => {
   const css = await Deno.readTextFile(join(import.meta.dirname!, "..", "web", "styles.css"));
   const tabsRule = css.slice(css.indexOf(".example-tabs {"), css.indexOf(".example-tab {"));

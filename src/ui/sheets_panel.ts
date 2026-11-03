@@ -41,6 +41,7 @@ import {
 } from "../blockly/decision_table_sync.ts";
 import { DECISION_TYPE_SWITCH_MESSAGE } from "../blockly/blocks/decision_table_blocks.ts";
 import { refreshWorkspaceConstraints } from "../blockly/block_constraints.ts";
+import { sheetColumnContentWidths, sheetColumnWidths } from "./sheet_column_layout.ts";
 
 type WorksheetInstance = {
   getData: () => unknown[][];
@@ -52,6 +53,7 @@ type WorksheetInstance = {
   headers?: HTMLTableCellElement[];
   options?: { rows?: Array<{ title?: string }> | Record<number, { title?: string }> };
   parent: { fullscreen: (activate?: boolean) => void };
+  setWidth?: (column: number | number[], width: number | number[]) => void;
 };
 
 const COG_SVG =
@@ -520,15 +522,16 @@ export function mountSheetsPanel(
     destroyGrid();
     applying = true;
     try {
+      const viewport = gridViewport();
+      const widths = columnWidthsFor(sheet, viewport.widthPx);
       const columns = sheet.headers.map((title, i) => ({
         type: (sheet.columnTypes?.[i] ?? "text") as "text" | "numeric" | "dropdown",
         title: title || undefined,
-        width: 120,
+        width: widths[i] ?? 120,
       }));
       const rowTitles = sheet.rowNames?.length
         ? sheet.rowNames.map((title) => ({ title }))
         : undefined;
-      const viewport = gridViewport();
       const dt = isDecisionTable(sheet);
       const created = jspreadsheet(gridEl, {
         worksheets: [{
@@ -536,7 +539,7 @@ export function mountSheetsPanel(
           columns,
           ...(rowTitles ? { rows: rowTitles } : {}),
           minDimensions: [
-            dt ? Math.max(sheet.headers.length, 1) : Math.max(sheet.headers.length, viewport.cols),
+            Math.max(sheet.headers.length, 1),
             dt ? Math.max(sheet.values.length, 3) : Math.max(sheet.values.length, viewport.rows),
           ],
           minSpareRows: 0,
@@ -851,6 +854,33 @@ export function mountSheetsPanel(
     URL.revokeObjectURL(url);
   });
 
+  const rowHeaderWidth = (): number => {
+    const header = gridEl.querySelector(".jss_row, .jss_selectall");
+    const measured = header?.getBoundingClientRect().width ?? 0;
+    return measured > 8 ? measured : 48;
+  };
+
+  const columnWidthsFor = (sheet: SheetDocument, hostWidthPx: number): number[] => {
+    const content = sheetColumnContentWidths(sheet.headers, sheet.values, {
+      headerPad: isDecisionTable(sheet) ? 48 : 36,
+    });
+    return sheetColumnWidths({
+      contentWidths: content,
+      availablePx: Math.max(0, hostWidthPx - rowHeaderWidth()),
+    });
+  };
+
+  const applyColumnWidths = (sheet: SheetDocument): void => {
+    if (!worksheet?.setWidth) return;
+    const hostW = gridHost.clientWidth || root.clientWidth;
+    if (hostW < 40) return;
+    const widths = columnWidthsFor(sheet, hostW);
+    if (!widths.length || typeof worksheet.setWidth !== "function") return;
+    for (let index = 0; index < widths.length; index++) {
+      worksheet.setWidth(index, widths[index]!);
+    }
+  };
+
   const gridViewport = (): { widthPx: number; heightPx: number; cols: number; rows: number } => {
     const widthPx = Math.max(root.clientWidth - 24, gridHost.clientWidth || 200, 200);
     const heightPx = Math.max(
@@ -867,18 +897,22 @@ export function mountSheetsPanel(
   };
 
   const sizeGrid = (): void => {
-    if (destroyed || fullscreen) return;
+    if (destroyed) return;
     const hostW = gridHost.clientWidth || root.clientWidth;
     const hostH = gridHost.clientHeight || Math.max(root.clientHeight - toolbar.offsetHeight, 0);
-    if (hostW < 40 || hostH < 40) return;
-    const content = (worksheet && "content" in worksheet
-      ? (worksheet as WorksheetInstance & { content?: HTMLElement }).content
-      : null) ?? gridEl.querySelector(".jss_content") as HTMLElement | null;
-    if (!content) return;
-    // Fit exactly to the host so only `.jss_content` scrolls — never the host.
-    content.style.width = `${hostW}px`;
-    content.style.height = `${hostH}px`;
-    content.style.maxHeight = `${hostH}px`;
+    if (!fullscreen && hostW >= 40 && hostH >= 40) {
+      const content = (worksheet && "content" in worksheet
+        ? (worksheet as WorksheetInstance & { content?: HTMLElement }).content
+        : null) ?? gridEl.querySelector(".jss_content") as HTMLElement | null;
+      if (content) {
+        // Fit exactly to the host so only `.jss_content` scrolls — never the host.
+        content.style.width = `${hostW}px`;
+        content.style.height = `${hostH}px`;
+        content.style.maxHeight = `${hostH}px`;
+      }
+    }
+    const sheet = findSheet(host.getSheets(), activeName);
+    if (sheet) applyColumnWidths(sheet);
   };
   let sizeRaf = 0;
   const scheduleSizeGrid = (): void => {
