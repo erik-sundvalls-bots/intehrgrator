@@ -355,7 +355,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     `- filename: \`${options.targetFilename || "(none)"}\``,
   );
   if (!api && !options.attachOriginalTarget) {
-    sections.push("- The original target file is not attached: the slot tree below has what mapping needs. (The user can turn on **Attach original target** in the AI menu.)");
+    sections.push("- The original target file is not attached: the slot tree below has what mapping needs. (The user can turn on **Attach original target format too** in the AI menu.)");
   }
   sections.push(
     "",

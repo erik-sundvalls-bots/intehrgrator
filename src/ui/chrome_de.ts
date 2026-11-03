@@ -15,6 +15,7 @@ export const de: ChromeMessages = {
   menuEmbedFiles: "Dateien in den Prompt einbetten",
   menuAttachFiles: "Dateien im Chat anhängen",
   menuBrowseUris: "URIs durchsuchen (falls vorhanden)",
+  menuAttachOriginalTarget: "Ursprüngliches Zielformat auch anhängen",
   menuAiCopyHeading: "kopieren/einfügen für externen KI-Chat",
   menuAiOwnHeading: "Eigene KI",
   menuAiDesktopHeading: "Desktop-App",

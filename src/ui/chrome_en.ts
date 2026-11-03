@@ -12,7 +12,7 @@ export const en = {
   menuEmbedFiles: "Embed files in prompt",
   menuAttachFiles: "Attach files in chat",
   menuBrowseUris: "Browse URIs (when available)",
-  menuAttachOriginalTarget: "Attach original target",
+  menuAttachOriginalTarget: "Attach original target format too",
   menuAttachOriginalTargetTitle: "Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.",
   menuAiLanguages: "Languages…",
   aiLanguagesTitle: "Languages",

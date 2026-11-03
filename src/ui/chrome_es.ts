@@ -15,6 +15,7 @@ export const es: ChromeMessages = {
   menuEmbedFiles: "Incrustar archivos en el prompt",
   menuAttachFiles: "Adjuntar archivos en el chat",
   menuBrowseUris: "Explorar URI (cuando existan)",
+  menuAttachOriginalTarget: "Adjuntar también el formato de destino original",
   menuAiCopyHeading: "copiar/pegar para chat de IA externo",
   menuAiOwnHeading: "Su propia IA",
   menuAiDesktopHeading: "Escritorio",

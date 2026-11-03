@@ -15,6 +15,7 @@ export const ca: ChromeMessages = {
   menuEmbedFiles: "Incrusta els fitxers a la indicació",
   menuAttachFiles: "Adjunta fitxers al xat",
   menuBrowseUris: "Explora els URI (quan n'hi hagi)",
+  menuAttachOriginalTarget: "Adjunta també el format de destinació original",
   menuAiCopyHeading: "copia/enganxa per a xat d'IA extern",
   menuAiOwnHeading: "La vostra IA",
   menuAiDesktopHeading: "Escriptori",

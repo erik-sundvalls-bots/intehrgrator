@@ -3,7 +3,7 @@ import { en, type ChromeMessages } from "./chrome_en.ts";
 /** Swedish web app chrome. Unlisted keys stay English (product names and tokens). */
 export const sv: ChromeMessages = {
   ...en,
-  menuAttachOriginalTarget: "Bifoga ursprungligt mål",
+  menuAttachOriginalTarget: "Bifoga ursprungligt målformat också",
   menuAttachOriginalTargetTitle: "Skicka även den råa målfilen (OPT / schema). Av: bara det kompakta slot-trädet, mycket mindre.",
   menuAiLanguages: "Språk…",
   aiLanguagesTitle: "Språk",

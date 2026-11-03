@@ -15,6 +15,7 @@ export const fr: ChromeMessages = {
   menuEmbedFiles: "Intégrer les fichiers dans l'invite",
   menuAttachFiles: "Joindre les fichiers dans le chat",
   menuBrowseUris: "Parcourir les URI (si disponibles)",
+  menuAttachOriginalTarget: "Joindre aussi le format cible d'origine",
   menuAiCopyHeading: "copier/coller pour chat IA externe",
   menuAiOwnHeading: "Votre propre IA",
   menuAiDesktopHeading: "Bureau",

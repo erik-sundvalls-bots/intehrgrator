@@ -14,6 +14,18 @@ import {
 
 const LOCALES = { sv, de, es, ca, fr } as const;
 
+Deno.test("Attach original target format too is translated in every UI language", () => {
+  assertEquals(en.menuAttachOriginalTarget, "Attach original target format too");
+  assertEquals(sv.menuAttachOriginalTarget, "Bifoga ursprungligt målformat också");
+  assertEquals(de.menuAttachOriginalTarget, "Ursprüngliches Zielformat auch anhängen");
+  assertEquals(es.menuAttachOriginalTarget, "Adjuntar también el formato de destino original");
+  assertEquals(ca.menuAttachOriginalTarget, "Adjunta també el format de destinació original");
+  assertEquals(fr.menuAttachOriginalTarget, "Joindre aussi le format cible d'origine");
+  for (const table of [sv, de, es, ca, fr]) {
+    assert(table.menuAttachOriginalTarget !== en.menuAttachOriginalTarget);
+  }
+});
+
 Deno.test("chrome catalogs translate the shell and keep English as the fallback", () => {
   assertEquals(chrome("sv").source, "Källa");
   assertEquals(chrome("en").source, "Source");
