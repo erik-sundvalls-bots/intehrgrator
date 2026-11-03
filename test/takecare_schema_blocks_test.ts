@@ -5,6 +5,8 @@ import { registerMapBlocks } from "@intehrgrator/blockly/blocks/map_blocks.ts";
 import { registerTargetBlocks } from "@intehrgrator/blockly/blocks/target_blocks.ts";
 import { registerExpressionBlocks } from "@intehrgrator/blockly/blocks/expression_blocks.ts";
 import { registerTextBlocks } from "@intehrgrator/blockly/blocks/text_blocks.ts";
+import { registerIncludeWhenBlock } from "@intehrgrator/blockly/blocks/include_when.ts";
+import { registerLogicBlocks } from "@intehrgrator/blockly/blocks/logic_blocks.ts";
 import {
   composeSchemaOptionalFields,
   schemaOptionalInputName,
@@ -38,6 +40,8 @@ function loadTakeCareWorkspace(): { workspace: Blockly.Workspace; root: Blockly.
   registerMapBlocks();
   registerExpressionBlocks();
   registerTextBlocks();
+  registerIncludeWhenBlock();
+  registerLogicBlocks();
   const target = getTargetFormatHandler("xml-schema").load(
     "TakeCare-CasenoteWrite-edit01.xsd",
     readEdit01(),
@@ -251,6 +255,9 @@ Deno.test("lung-MDT Blockly mapping uses TakeCare schema blocks, not generic XML
   assertEquals(types.filter((type) => type === "schema_DatetimeKeyword").length, 1);
   assertEquals(types.includes("xml_element"), false);
   assertEquals(types.includes("target_value"), false);
+  assert(types.includes("logic_compare"));
+  assert(types.includes("logic_list_restriction"));
+  assertEquals(types.includes("logic_ternary"), false);
 
   const { workspace } = loadTakeCareWorkspace();
   try {

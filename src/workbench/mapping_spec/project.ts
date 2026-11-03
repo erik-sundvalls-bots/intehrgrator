@@ -414,6 +414,13 @@ function walkBlock(
     return;
   }
 
+  if (type === "include_when") {
+    emit(lines, containerLine(block, indent, attribute, extraAliases, "include when"), attributeEdit);
+    walkNamedInputs(block, indent + 1, lines, ["WHEN", "DO", "ELSE"]);
+    if (block.next?.block) walkBlock(block.next.block, indent, lines, attribute, extraAliases, shell);
+    return;
+  }
+
   if (type === "controls_if") {
     emit(lines, containerLine(block, indent, attribute, extraAliases, "if"), attributeEdit);
     walkIfInputs(block, indent + 1, lines);
@@ -1077,6 +1084,7 @@ function classify(type: string): SpecLineKind {
     type === "default_context_map" ||
     type === "for_each_list" ||
     type === "controls_if" ||
+    type === "include_when" ||
     type === MAPS_CREATE_WITH ||
     isRmContainerBlockType(type)
   ) {

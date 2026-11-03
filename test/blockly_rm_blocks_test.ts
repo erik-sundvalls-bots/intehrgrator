@@ -350,6 +350,62 @@ Deno.test("loadSkeletonIntoWorkspace auto-attaches mandatory DV shells", () => {
   workspace.dispose();
 });
 
+Deno.test("a CLUSTER used as an ITEM_STRUCTURE stays a cluster and reloads", () => {
+  ensureBlocks();
+  const detail = {
+    slotId: "t//context/EVENT_CONTEXT/other_context/at0001/items/at0002",
+    blockType: "cluster",
+    rmType: "CLUSTER",
+    label: "Detail",
+    kind: "container" as const,
+    rmAttribute: "items",
+    mandatory: true,
+    children: [],
+  };
+  const other = {
+    slotId: "t//context/EVENT_CONTEXT/other_context/at0001",
+    blockType: "cluster",
+    rmType: "CLUSTER",
+    label: "Context detail",
+    kind: "container" as const,
+    rmAttribute: "other_context",
+    mandatory: true,
+    children: [detail],
+  };
+  const context = {
+    slotId: "t//context/EVENT_CONTEXT",
+    blockType: "event_context",
+    rmType: "EVENT_CONTEXT",
+    label: "context",
+    kind: "container" as const,
+    rmAttribute: "context",
+    mandatory: true,
+    children: [other],
+  };
+  const root = {
+    slotId: "t/",
+    blockType: "composition",
+    rmType: "COMPOSITION",
+    label: "Composition",
+    kind: "container" as const,
+    mandatory: true,
+    children: [context],
+  };
+  const workspace = new Blockly.Workspace();
+  loadSkeletonIntoWorkspace(workspace, [root], createEmptyModel("t"), null);
+  const saved = Blockly.serialization.workspaces.save(workspace);
+  workspace.dispose();
+  const again = new Blockly.Workspace();
+  Blockly.serialization.workspaces.load(saved, again);
+  const block = again.getAllBlocks(false).find((b) => b.getFieldValue("SLOT_ID") === other.slotId);
+  assert(block, "expected the other_context block");
+  assertEquals(block.type, "cluster");
+  assertEquals(block.getFieldValue("RM_TYPE"), "CLUSTER");
+  const nested = again.getAllBlocks(false).find((b) => b.getFieldValue("SLOT_ID") === detail.slotId);
+  assertEquals(nested?.type, "cluster");
+  again.dispose();
+});
+
 Deno.test("imported skeleton starts expanded; collapse-all skips the root", () => {
   ensureBlocks();
   const { skeleton } = generateSkeleton(fixture);

@@ -176,6 +176,9 @@ registerTargetFormatHandler({
           filename,
           targetId: generated.templateId,
           content,
+          // The file is the Web Template. Simplified FLAT / STRUCTURED Test Run
+          // reads target.webTemplateJson, the same field an OPT load fills.
+          webTemplateJson: content,
           skeleton: generated.skeleton,
           language: generated.language,
           languages: generated.languages,

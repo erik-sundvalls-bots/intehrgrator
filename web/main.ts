@@ -835,15 +835,44 @@ uploadSpecBtn?.addEventListener("click", () =>
   void withUndoableDocumentReplace(() => controller.importBlocklyDefinition())
 );
 exportTargetSelect.addEventListener("change", () => {
-  const target = exportTargetSelect.value as
-    | "preview"
-    | "typescript"
-    | "java"
-    | "handlebars"
-    | "xquery"
-    | "go-template";
-  controller.setExportTarget(target);
+  controller.setExportTarget(exportTargetSelect.value);
 });
+
+void loadDesktopLanguagePlugins();
+
+async function loadDesktopLanguagePlugins(): Promise<void> {
+  const token = (globalThis as unknown as { __INTEHR_AGENT_TOKEN__?: string }).__INTEHR_AGENT_TOKEN__;
+  try {
+    const res = await fetch("/api/v1/language-plugins", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return;
+    const body = await res.json() as {
+      plugins?: Array<{ id: string; label: string; extension: string; mime: string; runnable: boolean }>;
+    };
+    const { registerDesktopPluginLanguage, setExternalLanguageGenerator } = await import(
+      "../src/core/codegen/language_plugin.ts"
+    );
+    for (const plugin of body.plugins ?? []) {
+      if (!plugin.id || plugin.id.startsWith("plugin-error-")) continue;
+      registerDesktopPluginLanguage(plugin);
+      if ([...exportTargetSelect.options].some((option) => option.value === plugin.id)) continue;
+      const opt = document.createElement("option");
+      opt.value = plugin.id;
+      opt.textContent = plugin.label;
+      exportTargetSelect.appendChild(opt);
+    }
+    if (host.generateConversionScript) {
+      const generate = host.generateConversionScript.bind(host);
+      setExternalLanguageGenerator(async (language, model, options) => {
+        const generated = await generate(language, { model, options });
+        return { ...generated, label: language };
+      });
+    }
+  } catch {
+    // Static GitHub Pages has no plugin endpoint.
+  }
+}
 instanceShapeSelect?.addEventListener("change", () => {
   controller.setOpenEhrInstanceShape(
     instanceShapeSelect.value as import("@intehrgrator/types/mod.ts").OpenEhrInstanceShape,
