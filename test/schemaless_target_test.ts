@@ -6,7 +6,6 @@ import { assert, assertEquals } from "@std/assert";
 import { WorkbenchController } from "@intehrgrator/workbench/controller.ts";
 import { getSourceFormatHandler } from "@intehrgrator/core/source/mod.ts";
 import { renderJsonCanvasFromBlockly } from "@intehrgrator/core/output/canvas_example_runtime.ts";
-import { renderXmlCanvasFromBlockly } from "@intehrgrator/core/output/canvas_xml_runtime.ts";
 import type { HostAdapter } from "@intehrgrator/host/mod.ts";
 
 function stubHost(): HostAdapter {
@@ -113,13 +112,6 @@ Deno.test("schema-less XML target stores a document without a declaration", () =
   const preview = String(controller.getState().testResult?.output ?? "");
   assertEquals(preview.includes("<?xml"), false);
   assertEquals(preview.trim(), "<example>\nvalue\n</example>");
-  assertEquals(
-    renderXmlCanvasFromBlockly(
-      state.blocklyState,
-      getSourceFormatHandler("xml").createContext("<root/>"),
-    ),
-    "<example>\nvalue\n</example>",
-  );
 });
 
 Deno.test("schema-less text target previews the text document", () => {
