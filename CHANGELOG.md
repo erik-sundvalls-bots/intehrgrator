@@ -6,6 +6,7 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Obstetric template formats** ([#343](https://github.com/regionstockholm/intehrgrator/pull/343)): each operational template under the obstetric generic-entry fixtures is also stored as OPT2 and as a Web Template. MHV1 and partogram examples are Simplified FLAT (`*.flat.json`) and Canonical JSON (`*.canonical.json`) in the same folders. Each example set uses one of those formats. The mapped MHV1 sets stay on Simplified FLAT and the prenatal-visit Web Template.
 - **Handlebars `inc` and `dec`** ([#342](https://github.com/regionstockholm/intehrgrator/pull/342), [#339](https://github.com/regionstockholm/intehrgrator/issues/339)): `{{inc n}}` is one more than `n` and `{{dec n}}` is one less, as in Kintegrate (`{{inc @index}}` is a 1-based row number inside `#each`). Mapping preview and TypeScript, Java, XQuery, and Go Template output use the same helpers.
 - **GitHub Pages startup**: the web app asks for desktop language plugins only in the desktop app, so the browser no longer logs a 404 for `/api/v1/language-plugins` on the static site.
 - **Example set load**: conversion tests wait until the set has finished loading, and the conversion script is generated once.

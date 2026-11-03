@@ -1,0 +1,3399 @@
+{
+  "templateId": "generic-obstetrix-mhv1-v1",
+  "version": "1.0.0",
+  "defaultLanguage": "sv",
+  "languages": [
+    "sv"
+  ],
+  "tree": {
+    "id": "generic-obstetrix-mhv1-v1",
+    "name": "Mhv1",
+    "localizedName": "Mhv1",
+    "localizedNames": {
+      "sv": "Mhv1"
+    },
+    "rmType": "COMPOSITION",
+    "nodeId": "openEHR-EHR-COMPOSITION.encounter.v1",
+    "min": 1,
+    "max": 1,
+    "aqlPath": "/",
+    "children": [
+      {
+        "id": "category",
+        "name": "Category",
+        "rmType": "DV_CODED_TEXT",
+        "min": 1,
+        "max": 1,
+        "aqlPath": "/category",
+        "inContext": true,
+        "inputs": [
+          {
+            "type": "CODED_TEXT",
+            "suffix": "code"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "value"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "terminology"
+          }
+        ]
+      },
+      {
+        "id": "context",
+        "name": "Context",
+        "rmType": "EVENT_CONTEXT",
+        "min": 0,
+        "max": 1,
+        "aqlPath": "/context",
+        "children": [
+          {
+            "id": "vårdenhet",
+            "name": "Vårdenhet",
+            "localizedName": "Vårdenhet",
+            "localizedNames": {
+              "sv": "Vårdenhet"
+            },
+            "localizedDescriptions": {
+              "sv": "Vårdenhet"
+            },
+            "rmType": "CLUSTER",
+            "nodeId": "openEHR-EHR-CLUSTER.organisation.v1",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]",
+            "children": [
+              {
+                "id": "namn",
+                "name": "Namn",
+                "localizedName": "Namn",
+                "localizedNames": {
+                  "sv": "Namn"
+                },
+                "localizedDescriptions": {
+                  "sv": "Vårdenhetens namn"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0001",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0001]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "identifierare",
+                "name": "Identifierare",
+                "localizedName": "Identifierare",
+                "localizedNames": {
+                  "sv": "Identifierare"
+                },
+                "localizedDescriptions": {
+                  "sv": "Identifierare associerad med den identifierade organisationen (Vårdenhet)"
+                },
+                "rmType": "DV_IDENTIFIER",
+                "nodeId": "at0003",
+                "min": 1,
+                "max": -1,
+                "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0003]",
+                "inputs": [
+                  {
+                    "type": "TEXT",
+                    "suffix": "id"
+                  }
+                ]
+              },
+              {
+                "id": "roll",
+                "name": "Roll",
+                "localizedName": "Roll",
+                "localizedNames": {
+                  "sv": "Roll"
+                },
+                "localizedDescriptions": {
+                  "sv": "Organisationens relation till eller roll gentemot vårdtagaren."
+                },
+                "rmType": "DV_CODED_TEXT",
+                "nodeId": "at0004",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0004]",
+                "inputs": [
+                  {
+                    "type": "CODED_TEXT",
+                    "suffix": "code",
+                    "list": [
+                      {
+                        "value": "43741000"
+                      }
+                    ],
+                    "terminology": "http://snomed.info/sct/900000000000207008"
+                  },
+                  {
+                    "type": "TEXT",
+                    "suffix": "value"
+                  },
+                  {
+                    "type": "TEXT",
+                    "suffix": "terminology"
+                  }
+                ]
+              },
+              {
+                "id": "vårdgivare",
+                "name": "Vårdgivare",
+                "localizedName": "Vårdgivare",
+                "localizedNames": {
+                  "sv": "Vårdgivare"
+                },
+                "localizedDescriptions": {
+                  "sv": "Vårdgivare"
+                },
+                "rmType": "CLUSTER",
+                "nodeId": "openEHR-EHR-CLUSTER.organisation.v1",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[openEHR-EHR-CLUSTER.organisation.v1]",
+                "children": [
+                  {
+                    "id": "namn",
+                    "name": "Namn",
+                    "localizedName": "Namn",
+                    "localizedNames": {
+                      "sv": "Namn"
+                    },
+                    "localizedDescriptions": {
+                      "sv": "Vårdgivarens namn"
+                    },
+                    "rmType": "DV_TEXT",
+                    "nodeId": "at0001",
+                    "min": 0,
+                    "max": 1,
+                    "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0001]",
+                    "inputs": [
+                      {
+                        "type": "TEXT"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "organisationsnummer",
+                    "name": "Organisationsnummer",
+                    "localizedName": "Organisationsnummer",
+                    "localizedNames": {
+                      "sv": "Organisationsnummer"
+                    },
+                    "localizedDescriptions": {
+                      "sv": "Identifierare associerad med den identifierade organisationen (Vårdgivare)"
+                    },
+                    "rmType": "DV_IDENTIFIER",
+                    "nodeId": "at0003",
+                    "min": 0,
+                    "max": 1,
+                    "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0003 and name/value='Organisationsnummer']",
+                    "inputs": [
+                      {
+                        "type": "TEXT",
+                        "suffix": "id"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "identifierare",
+                    "name": "Identifierare",
+                    "localizedName": "Identifierare",
+                    "localizedNames": {
+                      "sv": "Identifierare"
+                    },
+                    "localizedDescriptions": {
+                      "sv": "Identifierare associerad med den identifierade organisationen (Vårdgivare)"
+                    },
+                    "rmType": "DV_IDENTIFIER",
+                    "nodeId": "at0003",
+                    "min": 1,
+                    "max": -1,
+                    "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0003 and name/value='Identifierare']",
+                    "inputs": [
+                      {
+                        "type": "TEXT",
+                        "suffix": "id"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "roll",
+                    "name": "Roll",
+                    "localizedName": "Roll",
+                    "localizedNames": {
+                      "sv": "Roll"
+                    },
+                    "localizedDescriptions": {
+                      "sv": "Organisationens relation till eller roll gentemot vårdtagaren."
+                    },
+                    "rmType": "DV_CODED_TEXT",
+                    "nodeId": "at0004",
+                    "min": 0,
+                    "max": 1,
+                    "aqlPath": "/context/other_context[at0001]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[openEHR-EHR-CLUSTER.organisation.v1]/items[at0004]",
+                    "inputs": [
+                      {
+                        "type": "CODED_TEXT",
+                        "suffix": "code",
+                        "list": [
+                          {
+                            "value": "143591000052106"
+                          }
+                        ],
+                        "terminology": "http://snomed.info/sct/45991000052106"
+                      },
+                      {
+                        "type": "TEXT",
+                        "suffix": "value"
+                      },
+                      {
+                        "type": "TEXT",
+                        "suffix": "terminology"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "start_time",
+            "name": "Start_time",
+            "rmType": "DV_DATE_TIME",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/context/start_time",
+            "inContext": true,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "setting",
+            "name": "Setting",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/context/setting",
+            "inContext": true,
+            "inputs": [
+              {
+                "type": "CODED_TEXT",
+                "suffix": "code"
+              },
+              {
+                "type": "TEXT",
+                "suffix": "value"
+              },
+              {
+                "type": "TEXT",
+                "suffix": "terminology"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mhv1genericentry",
+        "name": "Mhv1GenericEntry",
+        "localizedName": "Mhv1GenericEntry",
+        "localizedNames": {
+          "sv": "Mhv1GenericEntry"
+        },
+        "rmType": "GENERIC_ENTRY",
+        "nodeId": "openEHR-EHR-GENERIC_ENTRY.Mhv1.v1",
+        "min": 1,
+        "max": 1,
+        "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]",
+        "children": [
+          {
+            "id": "mhv1_id",
+            "name": "Mhv1_id",
+            "localizedName": "Mhv1_id",
+            "localizedNames": {
+              "sv": "Mhv1_id"
+            },
+            "localizedDescriptions": {
+              "sv": "Mhv1_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0001",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0001]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "regtid",
+            "name": "RegTid",
+            "localizedName": "RegTid",
+            "localizedNames": {
+              "sv": "RegTid"
+            },
+            "localizedDescriptions": {
+              "sv": "RegTid"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0003",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0003]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "inskrdatum",
+            "name": "InskrDatum",
+            "localizedName": "InskrDatum",
+            "localizedNames": {
+              "sv": "InskrDatum"
+            },
+            "localizedDescriptions": {
+              "sv": "InskrDatum"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0004",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0004]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "narmanhyrke",
+            "name": "NarmAnhYrke",
+            "localizedName": "NarmAnhYrke",
+            "localizedNames": {
+              "sv": "NarmAnhYrke"
+            },
+            "localizedDescriptions": {
+              "sv": "NarmAnhYrke"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0005",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0005]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "narmanharb",
+            "name": "NarmAnhArb",
+            "localizedName": "NarmAnhArb",
+            "localizedNames": {
+              "sv": "NarmAnhArb"
+            },
+            "localizedDescriptions": {
+              "sv": "NarmAnhArb"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0006",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0006]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "vma_id",
+            "name": "Vma_id",
+            "localizedName": "Vma_id",
+            "localizedNames": {
+              "sv": "Vma_id"
+            },
+            "localizedDescriptions": {
+              "sv": "Vma_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0007",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0007]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "barnmorska",
+            "name": "Barnmorska",
+            "localizedName": "Barnmorska",
+            "localizedNames": {
+              "sv": "Barnmorska"
+            },
+            "localizedDescriptions": {
+              "sv": "Barnmorska"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0008",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0008]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "nationalitet",
+            "name": "Nationalitet",
+            "localizedName": "Nationalitet",
+            "localizedNames": {
+              "sv": "Nationalitet"
+            },
+            "localizedDescriptions": {
+              "sv": "Nationalitet"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0009",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0009]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "natmhv3finns",
+            "name": "NatMhv3Finns",
+            "localizedName": "NatMhv3Finns",
+            "localizedNames": {
+              "sv": "NatMhv3Finns"
+            },
+            "localizedDescriptions": {
+              "sv": "NatMhv3Finns"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0010",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0010]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "natmhv3ant_id",
+            "name": "NatMhv3Ant_id",
+            "localizedName": "NatMhv3Ant_id",
+            "localizedNames": {
+              "sv": "NatMhv3Ant_id"
+            },
+            "localizedDescriptions": {
+              "sv": "NatMhv3Ant_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0011",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0011]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "senastmens",
+            "name": "SenastMens",
+            "localizedName": "SenastMens",
+            "localizedNames": {
+              "sv": "SenastMens"
+            },
+            "localizedDescriptions": {
+              "sv": "SenastMens"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0012",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0012]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "regelbmens",
+            "name": "RegelbMens",
+            "localizedName": "RegelbMens",
+            "localizedNames": {
+              "sv": "RegelbMens"
+            },
+            "localizedDescriptions": {
+              "sv": "RegelbMens"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0013",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0013]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "gravpos",
+            "name": "GravPos",
+            "localizedName": "GravPos",
+            "localizedNames": {
+              "sv": "GravPos"
+            },
+            "localizedDescriptions": {
+              "sv": "GravPos"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0014",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0014]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "menstyp",
+            "name": "Menstyp",
+            "localizedName": "Menstyp",
+            "localizedNames": {
+              "sv": "Menstyp"
+            },
+            "localizedDescriptions": {
+              "sv": "Menstyp"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0015",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0015]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "mensdagar",
+            "name": "Mensdagar",
+            "localizedName": "Mensdagar",
+            "localizedNames": {
+              "sv": "Mensdagar"
+            },
+            "localizedDescriptions": {
+              "sv": "Mensdagar"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0016",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0016]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "prevmedelupp",
+            "name": "PrevmedelUpp",
+            "localizedName": "PrevmedelUpp",
+            "localizedNames": {
+              "sv": "PrevmedelUpp"
+            },
+            "localizedDescriptions": {
+              "sv": "PrevmedelUpp"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0017",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0017]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "spiralut",
+            "name": "SpiralUt",
+            "localizedName": "SpiralUt",
+            "localizedNames": {
+              "sv": "SpiralUt"
+            },
+            "localizedDescriptions": {
+              "sv": "SpiralUt"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0018",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0018]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "spiralkvar",
+            "name": "SpiralKvar",
+            "localizedName": "SpiralKvar",
+            "localizedNames": {
+              "sv": "SpiralKvar"
+            },
+            "localizedDescriptions": {
+              "sv": "SpiralKvar"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0019",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0019]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "berakforsm",
+            "name": "BerakForSM",
+            "localizedName": "BerakForSM",
+            "localizedNames": {
+              "sv": "BerakForSM"
+            },
+            "localizedDescriptions": {
+              "sv": "BerakForSM"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0020",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0020]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "berakforul",
+            "name": "BerakForUL",
+            "localizedName": "BerakForUL",
+            "localizedNames": {
+              "sv": "BerakForUL"
+            },
+            "localizedDescriptions": {
+              "sv": "BerakForUL"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0021",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0021]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "uldatumoverfort",
+            "name": "ULDatumOverfort",
+            "localizedName": "ULDatumOverfort",
+            "localizedNames": {
+              "sv": "ULDatumOverfort"
+            },
+            "localizedDescriptions": {
+              "sv": "ULDatumOverfort"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0022",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0022]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "lokreg",
+            "name": "LokReg",
+            "localizedName": "LokReg",
+            "localizedNames": {
+              "sv": "LokReg"
+            },
+            "localizedDescriptions": {
+              "sv": "LokReg"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0023",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0023]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "vikt",
+            "name": "Vikt",
+            "localizedName": "Vikt",
+            "localizedNames": {
+              "sv": "Vikt"
+            },
+            "localizedDescriptions": {
+              "sv": "Vikt"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0024",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0024]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "langd",
+            "name": "Langd",
+            "localizedName": "Langd",
+            "localizedNames": {
+              "sv": "Langd"
+            },
+            "localizedDescriptions": {
+              "sv": "Langd"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0025",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0025]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "tobakforegrav",
+            "name": "TobakForegrav",
+            "localizedName": "TobakForegrav",
+            "localizedNames": {
+              "sv": "TobakForegrav"
+            },
+            "localizedDescriptions": {
+              "sv": "TobakForegrav"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0026",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0026]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "snusforegrav",
+            "name": "SnusForeGrav",
+            "localizedName": "SnusForeGrav",
+            "localizedNames": {
+              "sv": "SnusForeGrav"
+            },
+            "localizedDescriptions": {
+              "sv": "SnusForeGrav"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0027",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0027]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "tobakinskr",
+            "name": "TobakInskr",
+            "localizedName": "TobakInskr",
+            "localizedNames": {
+              "sv": "TobakInskr"
+            },
+            "localizedDescriptions": {
+              "sv": "TobakInskr"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0028",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0028]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "snusinskr",
+            "name": "SnusInskr",
+            "localizedName": "SnusInskr",
+            "localizedNames": {
+              "sv": "SnusInskr"
+            },
+            "localizedDescriptions": {
+              "sv": "SnusInskr"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0029",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0029]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "alkoholforegrav",
+            "name": "AlkoholForeGrav",
+            "localizedName": "AlkoholForeGrav",
+            "localizedNames": {
+              "sv": "AlkoholForeGrav"
+            },
+            "localizedDescriptions": {
+              "sv": "AlkoholForeGrav"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0030",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0030]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "alkoholinskr",
+            "name": "AlkoholInskr",
+            "localizedName": "AlkoholInskr",
+            "localizedNames": {
+              "sv": "AlkoholInskr"
+            },
+            "localizedDescriptions": {
+              "sv": "AlkoholInskr"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0031",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0031]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "famsitsammanb",
+            "name": "FamSitSammanb",
+            "localizedName": "FamSitSammanb",
+            "localizedNames": {
+              "sv": "FamSitSammanb"
+            },
+            "localizedDescriptions": {
+              "sv": "FamSitSammanb"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0032",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0032]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "famsitensams",
+            "name": "FamSitEnsams",
+            "localizedName": "FamSitEnsams",
+            "localizedNames": {
+              "sv": "FamSitEnsams"
+            },
+            "localizedDescriptions": {
+              "sv": "FamSitEnsams"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0033",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0033]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "familjsitannan",
+            "name": "FamiljSitAnnan",
+            "localizedName": "FamiljSitAnnan",
+            "localizedNames": {
+              "sv": "FamiljSitAnnan"
+            },
+            "localizedDescriptions": {
+              "sv": "FamiljSitAnnan"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0034",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0034]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "famsitmhv3ant_id",
+            "name": "FamSitMhv3Ant_id",
+            "localizedName": "FamSitMhv3Ant_id",
+            "localizedNames": {
+              "sv": "FamSitMhv3Ant_id"
+            },
+            "localizedDescriptions": {
+              "sv": "FamSitMhv3Ant_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0035",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0035]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "forvarvsarb",
+            "name": "ForvarvsArb",
+            "localizedName": "ForvarvsArb",
+            "localizedNames": {
+              "sv": "ForvarvsArb"
+            },
+            "localizedDescriptions": {
+              "sv": "ForvarvsArb"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0036",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0036]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "yrke",
+            "name": "Yrke",
+            "localizedName": "Yrke",
+            "localizedNames": {
+              "sv": "Yrke"
+            },
+            "localizedDescriptions": {
+              "sv": "Yrke"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0037",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0037]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "arbetsplats",
+            "name": "ArbetsPlats",
+            "localizedName": "ArbetsPlats",
+            "localizedNames": {
+              "sv": "ArbetsPlats"
+            },
+            "localizedDescriptions": {
+              "sv": "ArbetsPlats"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0038",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0038]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bostadprob",
+            "name": "BostadProb",
+            "localizedName": "BostadProb",
+            "localizedNames": {
+              "sv": "BostadProb"
+            },
+            "localizedDescriptions": {
+              "sv": "BostadProb"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0039",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0039]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "bostprobmhv3ant_id",
+            "name": "BostProbMhv3Ant_id",
+            "localizedName": "BostProbMhv3Ant_id",
+            "localizedNames": {
+              "sv": "BostProbMhv3Ant_id"
+            },
+            "localizedDescriptions": {
+              "sv": "BostProbMhv3Ant_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0040",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0040]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosar",
+            "name": "OfrivBarnlosAr",
+            "localizedName": "OfrivBarnlosAr",
+            "localizedNames": {
+              "sv": "OfrivBarnlosAr"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosAr"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0041",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0041]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosingen",
+            "name": "OfrivBarnlosIngen",
+            "localizedName": "OfrivBarnlosIngen",
+            "localizedNames": {
+              "sv": "OfrivBarnlosIngen"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosIngen"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0042",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0042]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosivf",
+            "name": "OfrivBarnlosIVF",
+            "localizedName": "OfrivBarnlosIVF",
+            "localizedNames": {
+              "sv": "OfrivBarnlosIVF"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosIVF"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0043",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0043]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosovulstim",
+            "name": "OfrivBarnlosOvulStim",
+            "localizedName": "OfrivBarnlosOvulStim",
+            "localizedNames": {
+              "sv": "OfrivBarnlosOvulStim"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosOvulStim"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0044",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0044]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnloskirurgi",
+            "name": "OfrivBarnlosKirurgi",
+            "localizedName": "OfrivBarnlosKirurgi",
+            "localizedNames": {
+              "sv": "OfrivBarnlosKirurgi"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosKirurgi"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0045",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0045]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosicsi",
+            "name": "OfrivBarnlosICSI",
+            "localizedName": "OfrivBarnlosICSI",
+            "localizedNames": {
+              "sv": "OfrivBarnlosICSI"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosICSI"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0046",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0046]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosannat",
+            "name": "OfrivBarnlosAnnat",
+            "localizedName": "OfrivBarnlosAnnat",
+            "localizedNames": {
+              "sv": "OfrivBarnlosAnnat"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosAnnat"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0047",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0047]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "ofrivbarnlosatgard",
+            "name": "OfrivBarnlosAtgard",
+            "localizedName": "OfrivBarnlosAtgard",
+            "localizedNames": {
+              "sv": "OfrivBarnlosAtgard"
+            },
+            "localizedDescriptions": {
+              "sv": "OfrivBarnlosAtgard"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0048",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0048]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "hereditet",
+            "name": "Hereditet",
+            "localizedName": "Hereditet",
+            "localizedNames": {
+              "sv": "Hereditet"
+            },
+            "localizedDescriptions": {
+              "sv": "Hereditet"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0049",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0049]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "hjart",
+            "name": "Hjart",
+            "localizedName": "Hjart",
+            "localizedNames": {
+              "sv": "Hjart"
+            },
+            "localizedDescriptions": {
+              "sv": "Hjart"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0050",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0050]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "trombos",
+            "name": "Trombos",
+            "localizedName": "Trombos",
+            "localizedNames": {
+              "sv": "Trombos"
+            },
+            "localizedDescriptions": {
+              "sv": "Trombos"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0051",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0051]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "psyk",
+            "name": "Psyk",
+            "localizedName": "Psyk",
+            "localizedNames": {
+              "sv": "Psyk"
+            },
+            "localizedDescriptions": {
+              "sv": "Psyk"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0052",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0052]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "gulsot",
+            "name": "Gulsot",
+            "localizedName": "Gulsot",
+            "localizedNames": {
+              "sv": "Gulsot"
+            },
+            "localizedDescriptions": {
+              "sv": "Gulsot"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0053",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0053]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "gynekolog",
+            "name": "Gynekolog",
+            "localizedName": "Gynekolog",
+            "localizedNames": {
+              "sv": "Gynekolog"
+            },
+            "localizedDescriptions": {
+              "sv": "Gynekolog"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0054",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0054]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "endokrina",
+            "name": "Endokrina",
+            "localizedName": "Endokrina",
+            "localizedNames": {
+              "sv": "Endokrina"
+            },
+            "localizedDescriptions": {
+              "sv": "Endokrina"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0055",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0055]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "urinvagsinf",
+            "name": "Urinvagsinf",
+            "localizedName": "Urinvagsinf",
+            "localizedNames": {
+              "sv": "Urinvagsinf"
+            },
+            "localizedDescriptions": {
+              "sv": "Urinvagsinf"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0056",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0056]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "lung",
+            "name": "Lung",
+            "localizedName": "Lung",
+            "localizedNames": {
+              "sv": "Lung"
+            },
+            "localizedDescriptions": {
+              "sv": "Lung"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0057",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0057]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "njur",
+            "name": "Njur",
+            "localizedName": "Njur",
+            "localizedNames": {
+              "sv": "Njur"
+            },
+            "localizedDescriptions": {
+              "sv": "Njur"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0058",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0058]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "ulceroscolit",
+            "name": "UlcerosColit",
+            "localizedName": "UlcerosColit",
+            "localizedNames": {
+              "sv": "UlcerosColit"
+            },
+            "localizedDescriptions": {
+              "sv": "UlcerosColit"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0059",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0059]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "diabetes",
+            "name": "Diabetes",
+            "localizedName": "Diabetes",
+            "localizedNames": {
+              "sv": "Diabetes"
+            },
+            "localizedDescriptions": {
+              "sv": "Diabetes"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0060",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0060]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "sle",
+            "name": "SLE",
+            "localizedName": "SLE",
+            "localizedNames": {
+              "sv": "SLE"
+            },
+            "localizedDescriptions": {
+              "sv": "SLE"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0061",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0061]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "epilepsi",
+            "name": "Epilepsi",
+            "localizedName": "Epilepsi",
+            "localizedNames": {
+              "sv": "Epilepsi"
+            },
+            "localizedDescriptions": {
+              "sv": "Epilepsi"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0062",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0062]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "hypertoni",
+            "name": "Hypertoni",
+            "localizedName": "Hypertoni",
+            "localizedNames": {
+              "sv": "Hypertoni"
+            },
+            "localizedDescriptions": {
+              "sv": "Hypertoni"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0063",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0063]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "sjukmhv3ant_id",
+            "name": "SjukMhv3Ant_id",
+            "localizedName": "SjukMhv3Ant_id",
+            "localizedNames": {
+              "sv": "SjukMhv3Ant_id"
+            },
+            "localizedDescriptions": {
+              "sv": "SjukMhv3Ant_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0064",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0064]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "sjukmhv3finns",
+            "name": "SjukMhv3Finns",
+            "localizedName": "SjukMhv3Finns",
+            "localizedNames": {
+              "sv": "SjukMhv3Finns"
+            },
+            "localizedDescriptions": {
+              "sv": "SjukMhv3Finns"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0065",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0065]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "ingenmedicinering",
+            "name": "IngenMedicinering",
+            "localizedName": "IngenMedicinering",
+            "localizedNames": {
+              "sv": "IngenMedicinering"
+            },
+            "localizedDescriptions": {
+              "sv": "IngenMedicinering"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0066",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0066]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "anteckning",
+            "name": "Anteckning",
+            "localizedName": "Anteckning",
+            "localizedNames": {
+              "sv": "Anteckning"
+            },
+            "localizedDescriptions": {
+              "sv": "Anteckning"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0067",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0067]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "tidblodtrans",
+            "name": "TidBlodTrans",
+            "localizedName": "TidBlodTrans",
+            "localizedNames": {
+              "sv": "TidBlodTrans"
+            },
+            "localizedDescriptions": {
+              "sv": "TidBlodTrans"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0068",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0068]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "tidblodtransdatum",
+            "name": "TidBlodTransDatum",
+            "localizedName": "TidBlodTransDatum",
+            "localizedNames": {
+              "sv": "TidBlodTransDatum"
+            },
+            "localizedDescriptions": {
+              "sv": "TidBlodTransDatum"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0069",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0069]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bedomning",
+            "name": "Bedomning",
+            "localizedName": "Bedomning",
+            "localizedNames": {
+              "sv": "Bedomning"
+            },
+            "localizedDescriptions": {
+              "sv": "Bedomning"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0070",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0070]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "bedomningsign",
+            "name": "BedomningSign",
+            "localizedName": "BedomningSign",
+            "localizedNames": {
+              "sv": "BedomningSign"
+            },
+            "localizedDescriptions": {
+              "sv": "BedomningSign"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0071",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0071]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "signering",
+            "name": "Signering",
+            "localizedName": "Signering",
+            "localizedNames": {
+              "sv": "Signering"
+            },
+            "localizedDescriptions": {
+              "sv": "Signering"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0072",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0072]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "signeringtid",
+            "name": "SigneringTid",
+            "localizedName": "SigneringTid",
+            "localizedNames": {
+              "sv": "SigneringTid"
+            },
+            "localizedDescriptions": {
+              "sv": "SigneringTid"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0073",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0073]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "bedommhv3ant_id",
+            "name": "BedomMhv3Ant_id",
+            "localizedName": "BedomMhv3Ant_id",
+            "localizedNames": {
+              "sv": "BedomMhv3Ant_id"
+            },
+            "localizedDescriptions": {
+              "sv": "BedomMhv3Ant_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0074",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0074]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "famsitannan",
+            "name": "FamSitAnnan",
+            "localizedName": "FamSitAnnan",
+            "localizedNames": {
+              "sv": "FamSitAnnan"
+            },
+            "localizedDescriptions": {
+              "sv": "FamSitAnnan"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0075",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0075]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "avd_id",
+            "name": "Avd_id",
+            "localizedName": "Avd_id",
+            "localizedNames": {
+              "sv": "Avd_id"
+            },
+            "localizedDescriptions": {
+              "sv": "Avd_id"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0076",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0076]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "berakforet",
+            "name": "BerakForET",
+            "localizedName": "BerakForET",
+            "localizedNames": {
+              "sv": "BerakForET"
+            },
+            "localizedDescriptions": {
+              "sv": "BerakForET"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0077",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0077]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "drogerforegrav",
+            "name": "DrogerForeGrav",
+            "localizedName": "DrogerForeGrav",
+            "localizedNames": {
+              "sv": "DrogerForeGrav"
+            },
+            "localizedDescriptions": {
+              "sv": "DrogerForeGrav"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0078",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0078]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "drogerinskr",
+            "name": "DrogerInskr",
+            "localizedName": "DrogerInskr",
+            "localizedNames": {
+              "sv": "DrogerInskr"
+            },
+            "localizedDescriptions": {
+              "sv": "DrogerInskr"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0079",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0079]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "hepatittyp",
+            "name": "HepatitTyp",
+            "localizedName": "HepatitTyp",
+            "localizedNames": {
+              "sv": "HepatitTyp"
+            },
+            "localizedDescriptions": {
+              "sv": "HepatitTyp"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0080",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0080]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "sjukdomannattext",
+            "name": "SjukdomAnnatText",
+            "localizedName": "SjukdomAnnatText",
+            "localizedNames": {
+              "sv": "SjukdomAnnatText"
+            },
+            "localizedDescriptions": {
+              "sv": "SjukdomAnnatText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0081",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0081]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "sjukdomannat",
+            "name": "SjukdomAnnat",
+            "localizedName": "SjukdomAnnat",
+            "localizedNames": {
+              "sv": "SjukdomAnnat"
+            },
+            "localizedDescriptions": {
+              "sv": "SjukdomAnnat"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0082",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0082]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "auditpoäng",
+            "name": "AuditPoäng",
+            "localizedName": "AuditPoäng",
+            "localizedNames": {
+              "sv": "AuditPoäng"
+            },
+            "localizedDescriptions": {
+              "sv": "AuditPoäng"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0083",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0083]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "uppföljning",
+            "name": "Uppföljning",
+            "localizedName": "Uppföljning",
+            "localizedNames": {
+              "sv": "Uppföljning"
+            },
+            "localizedDescriptions": {
+              "sv": "Uppföljning"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0084",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0084]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "registeredbyprofessionalroleid",
+            "name": "RegisteredByProfessionalRoleId",
+            "localizedName": "RegisteredByProfessionalRoleId",
+            "localizedNames": {
+              "sv": "RegisteredByProfessionalRoleId"
+            },
+            "localizedDescriptions": {
+              "sv": "RegisteredByProfessionalRoleId"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0085",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0085]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "registeredonunitid",
+            "name": "RegisteredOnUnitId",
+            "localizedName": "RegisteredOnUnitId",
+            "localizedNames": {
+              "sv": "RegisteredOnUnitId"
+            },
+            "localizedDescriptions": {
+              "sv": "RegisteredOnUnitId"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0086",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0086]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "versionidwhenfirstsaved",
+            "name": "VersionIdWhenFirstSaved",
+            "localizedName": "VersionIdWhenFirstSaved",
+            "localizedNames": {
+              "sv": "VersionIdWhenFirstSaved"
+            },
+            "localizedDescriptions": {
+              "sv": "VersionIdWhenFirstSaved"
+            },
+            "rmType": "DV_COUNT",
+            "nodeId": "at0087",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0087]",
+            "inputs": [
+              {
+                "type": "INTEGER"
+              }
+            ]
+          },
+          {
+            "id": "famsitpartner",
+            "name": "FamSitPartner",
+            "localizedName": "FamSitPartner",
+            "localizedNames": {
+              "sv": "FamSitPartner"
+            },
+            "localizedDescriptions": {
+              "sv": "FamSitPartner"
+            },
+            "rmType": "DV_BOOLEAN",
+            "nodeId": "at0088",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0088]",
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "mentalhealthdisorder",
+            "name": "MentalHealthDisorder",
+            "localizedName": "MentalHealthDisorder",
+            "localizedNames": {
+              "sv": "MentalHealthDisorder"
+            },
+            "localizedDescriptions": {
+              "sv": "MentalHealthDisorder"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0089",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0089]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bp_comp",
+            "name": "Bp_comp",
+            "localizedName": "Bp_comp",
+            "localizedNames": {
+              "sv": "Bp_comp"
+            },
+            "localizedDescriptions": {
+              "sv": "Bp_comp"
+            },
+            "rmType": "DV_DATE_TIME",
+            "nodeId": "at0090",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0090]",
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "regelbmenstext",
+            "name": "RegelbMensText",
+            "localizedName": "RegelbMensText",
+            "localizedNames": {
+              "sv": "RegelbMensText"
+            },
+            "localizedDescriptions": {
+              "sv": "RegelbMensText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0091",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0091]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "spiralkvartext",
+            "name": "SpiralKvarText",
+            "localizedName": "SpiralKvarText",
+            "localizedNames": {
+              "sv": "SpiralKvarText"
+            },
+            "localizedDescriptions": {
+              "sv": "SpiralKvarText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0092",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0092]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "tobakinskrtext",
+            "name": "TobakInskrText",
+            "localizedName": "TobakInskrText",
+            "localizedNames": {
+              "sv": "TobakInskrText"
+            },
+            "localizedDescriptions": {
+              "sv": "TobakInskrText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0093",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0093]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "tobakforegravtext",
+            "name": "TobakForegravText",
+            "localizedName": "TobakForegravText",
+            "localizedNames": {
+              "sv": "TobakForegravText"
+            },
+            "localizedDescriptions": {
+              "sv": "TobakForegravText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0094",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0094]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "snusforegravtext",
+            "name": "SnusForeGravText",
+            "localizedName": "SnusForeGravText",
+            "localizedNames": {
+              "sv": "SnusForeGravText"
+            },
+            "localizedDescriptions": {
+              "sv": "SnusForeGravText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0095",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0095]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "snusinskrtext",
+            "name": "SnusInskrText",
+            "localizedName": "SnusInskrText",
+            "localizedNames": {
+              "sv": "SnusInskrText"
+            },
+            "localizedDescriptions": {
+              "sv": "SnusInskrText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0096",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0096]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "alkoholinskrtext",
+            "name": "AlkoholInskrText",
+            "localizedName": "AlkoholInskrText",
+            "localizedNames": {
+              "sv": "AlkoholInskrText"
+            },
+            "localizedDescriptions": {
+              "sv": "AlkoholInskrText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0097",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0097]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "alkoholforegravtext",
+            "name": "AlkoholForeGravText",
+            "localizedName": "AlkoholForeGravText",
+            "localizedNames": {
+              "sv": "AlkoholForeGravText"
+            },
+            "localizedDescriptions": {
+              "sv": "AlkoholForeGravText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0098",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0098]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "drogerinskrtext",
+            "name": "DrogerInskrText",
+            "localizedName": "DrogerInskrText",
+            "localizedNames": {
+              "sv": "DrogerInskrText"
+            },
+            "localizedDescriptions": {
+              "sv": "DrogerInskrText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0099",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0099]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "drogerforegravtext",
+            "name": "DrogerForeGravText",
+            "localizedName": "DrogerForeGravText",
+            "localizedNames": {
+              "sv": "DrogerForeGravText"
+            },
+            "localizedDescriptions": {
+              "sv": "DrogerForeGravText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0100",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0100]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "forvarvsarbtext",
+            "name": "ForvarvsArbText",
+            "localizedName": "ForvarvsArbText",
+            "localizedNames": {
+              "sv": "ForvarvsArbText"
+            },
+            "localizedDescriptions": {
+              "sv": "ForvarvsArbText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0101",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0101]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bostadprobtext",
+            "name": "BostadProbText",
+            "localizedName": "BostadProbText",
+            "localizedNames": {
+              "sv": "BostadProbText"
+            },
+            "localizedDescriptions": {
+              "sv": "BostadProbText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0102",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0102]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "tidblodtranstext",
+            "name": "TidBlodTransText",
+            "localizedName": "TidBlodTransText",
+            "localizedNames": {
+              "sv": "TidBlodTransText"
+            },
+            "localizedDescriptions": {
+              "sv": "TidBlodTransText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0103",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0103]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bedomningtext",
+            "name": "BedomningText",
+            "localizedName": "BedomningText",
+            "localizedNames": {
+              "sv": "BedomningText"
+            },
+            "localizedDescriptions": {
+              "sv": "BedomningText"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0104",
+            "min": 1,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0104]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "signering_hsaid",
+            "name": "Signering_HsaId",
+            "localizedName": "Signering_HsaId",
+            "localizedNames": {
+              "sv": "Signering_HsaId"
+            },
+            "localizedDescriptions": {
+              "sv": "HsaId för användaren som signerat MHV1"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0105",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0105]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "signering_namn",
+            "name": "Signering_Namn",
+            "localizedName": "Signering_Namn",
+            "localizedNames": {
+              "sv": "Signering_Namn"
+            },
+            "localizedDescriptions": {
+              "sv": "Namn för användaren som signerat MHV1"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0106",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0106]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "barnmorska_hsaid",
+            "name": "Barnmorska_HsaId",
+            "localizedName": "Barnmorska_HsaId",
+            "localizedNames": {
+              "sv": "Barnmorska_HsaId"
+            },
+            "localizedDescriptions": {
+              "sv": "HsaId för barnmorska"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0107",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0107]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "barnmorska_namn",
+            "name": "Barnmorska_Namn",
+            "localizedName": "Barnmorska_Namn",
+            "localizedNames": {
+              "sv": "Barnmorska_Namn"
+            },
+            "localizedDescriptions": {
+              "sv": "Namn för barnmorska"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0108",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0108]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bedomningsign_hsaid",
+            "name": "BedomningSign_HsaId",
+            "localizedName": "BedomningSign_HsaId",
+            "localizedNames": {
+              "sv": "BedomningSign_HsaId"
+            },
+            "localizedDescriptions": {
+              "sv": "HsaId för användare som signerat bedömning"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0109",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0109]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "bedomningsign_namn",
+            "name": "BedomningSign_Namn",
+            "localizedName": "BedomningSign_Namn",
+            "localizedNames": {
+              "sv": "BedomningSign_Namn"
+            },
+            "localizedDescriptions": {
+              "sv": "Namn för användare som signerat bedömning"
+            },
+            "rmType": "DV_TEXT",
+            "nodeId": "at0110",
+            "min": 0,
+            "max": 1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0110]",
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "m1medicinering",
+            "name": "M1Medicinering",
+            "localizedName": "M1Medicinering",
+            "localizedNames": {
+              "sv": "M1Medicinering"
+            },
+            "localizedDescriptions": {
+              "sv": "MHV1 Medicineringar"
+            },
+            "rmType": "CLUSTER",
+            "nodeId": "at0111",
+            "min": 0,
+            "max": -1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]",
+            "children": [
+              {
+                "id": "medicin_id",
+                "name": "Medicin_id",
+                "localizedName": "Medicin_id",
+                "localizedNames": {
+                  "sv": "Medicin_id"
+                },
+                "localizedDescriptions": {
+                  "sv": "Medicin_id"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0112",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]/items[at0112]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "mhv1_id",
+                "name": "MHV1_id",
+                "localizedName": "MHV1_id",
+                "localizedNames": {
+                  "sv": "MHV1_id"
+                },
+                "localizedDescriptions": {
+                  "sv": "MHV1_id"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0113",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]/items[at0113]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "preperat",
+                "name": "Preperat",
+                "localizedName": "Preperat",
+                "localizedNames": {
+                  "sv": "Preperat"
+                },
+                "localizedDescriptions": {
+                  "sv": "Preperat"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0114",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]/items[at0114]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "dos",
+                "name": "Dos",
+                "localizedName": "Dos",
+                "localizedNames": {
+                  "sv": "Dos"
+                },
+                "localizedDescriptions": {
+                  "sv": "Dos"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0115",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]/items[at0115]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "frgravvecka",
+                "name": "FrGravVecka",
+                "localizedName": "FrGravVecka",
+                "localizedNames": {
+                  "sv": "FrGravVecka"
+                },
+                "localizedDescriptions": {
+                  "sv": "FrGravVecka"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0116",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]/items[at0116]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "tomgravvecka",
+                "name": "TomGravVecka",
+                "localizedName": "TomGravVecka",
+                "localizedNames": {
+                  "sv": "TomGravVecka"
+                },
+                "localizedDescriptions": {
+                  "sv": "TomGravVecka"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0117",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0111]/items[at0117]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "m1tidigaregraviditeter",
+            "name": "M1TidigareGraviditeter",
+            "localizedName": "M1TidigareGraviditeter",
+            "localizedNames": {
+              "sv": "M1TidigareGraviditeter"
+            },
+            "localizedDescriptions": {
+              "sv": "MHV1 Tidigare graviditeter"
+            },
+            "rmType": "CLUSTER",
+            "nodeId": "at0118",
+            "min": 0,
+            "max": -1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]",
+            "children": [
+              {
+                "id": "tidgrav_id",
+                "name": "TidGrav_id",
+                "localizedName": "TidGrav_id",
+                "localizedNames": {
+                  "sv": "TidGrav_id"
+                },
+                "localizedDescriptions": {
+                  "sv": "TidGrav_id"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0119",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0119]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "mhv1_id",
+                "name": "MHV1_id",
+                "localizedName": "MHV1_id",
+                "localizedNames": {
+                  "sv": "MHV1_id"
+                },
+                "localizedDescriptions": {
+                  "sv": "MHV1_id"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0120",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0120]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "ar",
+                "name": "Ar",
+                "localizedName": "Ar",
+                "localizedNames": {
+                  "sv": "Ar"
+                },
+                "localizedDescriptions": {
+                  "sv": "Ar"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0121",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0121]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "man",
+                "name": "Man",
+                "localizedName": "Man",
+                "localizedNames": {
+                  "sv": "Man"
+                },
+                "localizedDescriptions": {
+                  "sv": "Man"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0122",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0122]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "typ",
+                "name": "Typ",
+                "localizedName": "Typ",
+                "localizedNames": {
+                  "sv": "Typ"
+                },
+                "localizedDescriptions": {
+                  "sv": "Typ"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0123",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0123]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "sjukhus",
+                "name": "Sjukhus",
+                "localizedName": "Sjukhus",
+                "localizedNames": {
+                  "sv": "Sjukhus"
+                },
+                "localizedDescriptions": {
+                  "sv": "Sjukhus"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0124",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0124]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "forlopp",
+                "name": "Forlopp",
+                "localizedName": "Forlopp",
+                "localizedNames": {
+                  "sv": "Forlopp"
+                },
+                "localizedDescriptions": {
+                  "sv": "Forlopp"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0125",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0125]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "sectio",
+                "name": "Sectio",
+                "localizedName": "Sectio",
+                "localizedNames": {
+                  "sv": "Sectio"
+                },
+                "localizedDescriptions": {
+                  "sv": "Sectio"
+                },
+                "rmType": "DV_BOOLEAN",
+                "nodeId": "at0126",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0126]",
+                "inputs": [
+                  {
+                    "type": "BOOLEAN"
+                  }
+                ]
+              },
+              {
+                "id": "kon",
+                "name": "Kon",
+                "localizedName": "Kon",
+                "localizedNames": {
+                  "sv": "Kon"
+                },
+                "localizedDescriptions": {
+                  "sv": "Kon"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0127",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0127]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "vikt",
+                "name": "Vikt",
+                "localizedName": "Vikt",
+                "localizedNames": {
+                  "sv": "Vikt"
+                },
+                "localizedDescriptions": {
+                  "sv": "Vikt"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0128",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0128]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "gravveckor",
+                "name": "Gravveckor",
+                "localizedName": "Gravveckor",
+                "localizedNames": {
+                  "sv": "Gravveckor"
+                },
+                "localizedDescriptions": {
+                  "sv": "Gravveckor"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0129",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0129]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "tillstand",
+                "name": "Tillstand",
+                "localizedName": "Tillstand",
+                "localizedNames": {
+                  "sv": "Tillstand"
+                },
+                "localizedDescriptions": {
+                  "sv": "Tillstand"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0130",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0130]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "mhv3ant_id",
+                "name": "Mhv3Ant_id",
+                "localizedName": "Mhv3Ant_id",
+                "localizedNames": {
+                  "sv": "Mhv3Ant_id"
+                },
+                "localizedDescriptions": {
+                  "sv": "Mhv3Ant_id"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0131",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0131]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "typtext",
+                "name": "TypText",
+                "localizedName": "TypText",
+                "localizedNames": {
+                  "sv": "TypText"
+                },
+                "localizedDescriptions": {
+                  "sv": "TypText"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0132",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0132]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "kontext",
+                "name": "KonText",
+                "localizedName": "KonText",
+                "localizedNames": {
+                  "sv": "KonText"
+                },
+                "localizedDescriptions": {
+                  "sv": "KonText"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0133",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0133]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "tillstandtext",
+                "name": "TillstandText",
+                "localizedName": "TillstandText",
+                "localizedNames": {
+                  "sv": "TillstandText"
+                },
+                "localizedDescriptions": {
+                  "sv": "TillstandText"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0134",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0118]/items[at0134]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "audit",
+            "name": "Audit",
+            "localizedName": "Audit",
+            "localizedNames": {
+              "sv": "Audit"
+            },
+            "localizedDescriptions": {
+              "sv": "MHV1 - Audit enskilda svar"
+            },
+            "rmType": "CLUSTER",
+            "nodeId": "at0135",
+            "min": 0,
+            "max": -1,
+            "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]",
+            "children": [
+              {
+                "id": "auditid",
+                "name": "AuditId",
+                "localizedName": "AuditId",
+                "localizedNames": {
+                  "sv": "AuditId"
+                },
+                "localizedDescriptions": {
+                  "sv": "AuditId"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0136",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0136]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "mhv1_id",
+                "name": "Mhv1_Id",
+                "localizedName": "Mhv1_Id",
+                "localizedNames": {
+                  "sv": "Mhv1_Id"
+                },
+                "localizedDescriptions": {
+                  "sv": "Mhv1_Id"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0137",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0137]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "auditquestion_ltid",
+                "name": "AuditQuestion_LTId",
+                "localizedName": "AuditQuestion_LTId",
+                "localizedNames": {
+                  "sv": "AuditQuestion_LTId"
+                },
+                "localizedDescriptions": {
+                  "sv": "AuditQuestion_LTId"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0138",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0138]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "pointvalue",
+                "name": "PointValue",
+                "localizedName": "PointValue",
+                "localizedNames": {
+                  "sv": "PointValue"
+                },
+                "localizedDescriptions": {
+                  "sv": "PointValue"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0139",
+                "min": 1,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0139]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "auditanswer_lt_name",
+                "name": "AuditAnswer_LT_Name",
+                "localizedName": "AuditAnswer_LT_Name",
+                "localizedNames": {
+                  "sv": "AuditAnswer_LT_Name"
+                },
+                "localizedDescriptions": {
+                  "sv": "Namn på svaret i AUDIT"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0140",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0140]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "auditanswer_lt_description",
+                "name": "AuditAnswer_LT_Description",
+                "localizedName": "AuditAnswer_LT_Description",
+                "localizedNames": {
+                  "sv": "AuditAnswer_LT_Description"
+                },
+                "localizedDescriptions": {
+                  "sv": "Beskrivning av svaret i AUDIT"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0141",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0141]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "auditanswer_lt_auditquestion_ltid",
+                "name": "AuditAnswer_LT_AuditQuestion_LTId",
+                "localizedName": "AuditAnswer_LT_AuditQuestion_LTId",
+                "localizedNames": {
+                  "sv": "AuditAnswer_LT_AuditQuestion_LTId"
+                },
+                "localizedDescriptions": {
+                  "sv": "Id på svar i AUDIT"
+                },
+                "rmType": "DV_COUNT",
+                "nodeId": "at0142",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0142]",
+                "inputs": [
+                  {
+                    "type": "INTEGER"
+                  }
+                ]
+              },
+              {
+                "id": "auditquestion_lt_name",
+                "name": "AuditQuestion_LT_Name",
+                "localizedName": "AuditQuestion_LT_Name",
+                "localizedNames": {
+                  "sv": "AuditQuestion_LT_Name"
+                },
+                "localizedDescriptions": {
+                  "sv": "Namn för fråga i AUDIT"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0143",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0143]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "auditquestion_lt_description",
+                "name": "AuditQuestion_LT_Description",
+                "localizedName": "AuditQuestion_LT_Description",
+                "localizedNames": {
+                  "sv": "AuditQuestion_LT_Description"
+                },
+                "localizedDescriptions": {
+                  "sv": "Beskrivning för fråga i AUDIT"
+                },
+                "rmType": "DV_TEXT",
+                "nodeId": "at0144",
+                "min": 0,
+                "max": 1,
+                "aqlPath": "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]/items[at0135]/items[at0144]",
+                "inputs": [
+                  {
+                    "type": "TEXT"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "composer",
+        "name": "Composer",
+        "rmType": "PARTY_PROXY",
+        "min": 1,
+        "max": 1,
+        "aqlPath": "/composer",
+        "inContext": true,
+        "inputs": [
+          {
+            "type": "TEXT",
+            "suffix": "name"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "id"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "id_scheme"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "id_namespace"
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "name": "Language",
+        "rmType": "CODE_PHRASE",
+        "min": 1,
+        "max": 1,
+        "aqlPath": "/language",
+        "inContext": true,
+        "inputs": [
+          {
+            "type": "TEXT",
+            "suffix": "code"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "terminology"
+          }
+        ]
+      },
+      {
+        "id": "territory",
+        "name": "Territory",
+        "rmType": "CODE_PHRASE",
+        "min": 1,
+        "max": 1,
+        "aqlPath": "/territory",
+        "inContext": true,
+        "inputs": [
+          {
+            "type": "TEXT",
+            "suffix": "code"
+          },
+          {
+            "type": "TEXT",
+            "suffix": "terminology"
+          }
+        ]
+      }
+    ],
+    "collapsed": {
+      "/context/other_context[at0001]": {
+        "rmType": "ITEM_TREE",
+        "name": "Tree",
+        "localizedNames": {
+          "sv": "Tree"
+        }
+      },
+      "/content[openEHR-EHR-GENERIC_ENTRY.Mhv1.v1]/data[at0002]": {
+        "rmType": "ITEM_TREE",
+        "name": "Tree",
+        "localizedNames": {
+          "sv": "Tree"
+        }
+      }
+    }
+  }
+}

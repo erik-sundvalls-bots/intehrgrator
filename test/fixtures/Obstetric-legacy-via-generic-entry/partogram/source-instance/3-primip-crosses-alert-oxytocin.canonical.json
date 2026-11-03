@@ -1,0 +1,4099 @@
+{
+  "_type": "COMPOSITION",
+  "language": {
+    "_type": "CODE_PHRASE",
+    "code_string": "sv",
+    "terminology_id": {
+      "_type": "TERMINOLOGY_ID",
+      "value": "ISO_639-1"
+    }
+  },
+  "territory": {
+    "_type": "CODE_PHRASE",
+    "code_string": "SE",
+    "terminology_id": {
+      "_type": "TERMINOLOGY_ID",
+      "value": "ISO_3166-1"
+    }
+  },
+  "category": {
+    "_type": "DV_CODED_TEXT",
+    "defining_code": {
+      "_type": "CODE_PHRASE",
+      "code_string": "433",
+      "terminology_id": {
+        "_type": "TERMINOLOGY_ID",
+        "value": "openehr"
+      }
+    },
+    "value": "event"
+  },
+  "composer": {
+    "_type": "PARTY_IDENTIFIED",
+    "name": "Barnmorska 22014"
+  },
+  "context": {
+    "_type": "EVENT_CONTEXT",
+    "start_time": {
+      "_type": "DV_DATE_TIME",
+      "value": "2026-01-19T08:00:00+01:00"
+    },
+    "setting": {
+      "_type": "DV_CODED_TEXT",
+      "defining_code": {
+        "_type": "CODE_PHRASE",
+        "code_string": "228",
+        "terminology_id": {
+          "_type": "TERMINOLOGY_ID",
+          "value": "openehr"
+        }
+      },
+      "value": "secondary medical care"
+    },
+    "other_context": {
+      "_type": "ITEM_TREE",
+      "items": [
+        {
+          "_type": "CLUSTER",
+          "items": [
+            {
+              "_type": "ELEMENT",
+              "value": {
+                "_type": "DV_TEXT",
+                "value": "Förlossning Danderyds sjukhus"
+              },
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Namn"
+              },
+              "archetype_node_id": "at0001"
+            },
+            {
+              "_type": "ELEMENT",
+              "value": {
+                "_type": "DV_IDENTIFIER",
+                "id": "SE2321000016-AVD31",
+                "type": "urn:oid:1.2.752.29.4.19"
+              },
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Identifierare"
+              },
+              "archetype_node_id": "at0003"
+            },
+            {
+              "_type": "ELEMENT",
+              "value": {
+                "_type": "DV_CODED_TEXT",
+                "defining_code": {
+                  "_type": "CODE_PHRASE",
+                  "code_string": "43741000",
+                  "terminology_id": {
+                    "_type": "TERMINOLOGY_ID",
+                    "value": "http://snomed.info/sct/900000000000207008"
+                  }
+                },
+                "value": "vårdenhet"
+              },
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Roll"
+              },
+              "archetype_node_id": "at0004"
+            },
+            {
+              "_type": "CLUSTER",
+              "items": [
+                {
+                  "_type": "ELEMENT",
+                  "value": {
+                    "_type": "DV_TEXT",
+                    "value": "Region Stockholm"
+                  },
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Namn"
+                  },
+                  "archetype_node_id": "at0001"
+                },
+                {
+                  "_type": "ELEMENT",
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Organisationsnummer"
+                  },
+                  "archetype_node_id": "at0003",
+                  "value": {
+                    "_type": "DV_IDENTIFIER",
+                    "id": "2321000016",
+                    "type": "urn:oid:2.5.4.97"
+                  }
+                },
+                {
+                  "_type": "ELEMENT",
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Identifierare"
+                  },
+                  "archetype_node_id": "at0003",
+                  "value": {
+                    "_type": "DV_IDENTIFIER",
+                    "id": "SE2321000016-00001",
+                    "type": "urn:oid:1.2.752.29.4.19"
+                  }
+                },
+                {
+                  "_type": "ELEMENT",
+                  "value": {
+                    "_type": "DV_CODED_TEXT",
+                    "defining_code": {
+                      "_type": "CODE_PHRASE",
+                      "code_string": "143591000052106",
+                      "terminology_id": {
+                        "_type": "TERMINOLOGY_ID",
+                        "value": "http://snomed.info/sct/45991000052106"
+                      }
+                    },
+                    "value": "vårdgivare"
+                  },
+                  "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Roll"
+                  },
+                  "archetype_node_id": "at0004"
+                }
+              ],
+              "name": {
+                "_type": "DV_TEXT",
+                "value": "Vårdgivare"
+              },
+              "archetype_node_id": "openEHR-EHR-CLUSTER.organisation.v1",
+              "archetype_details": {
+                "_type": "ARCHETYPED",
+                "archetype_id": {
+                  "_type": "ARCHETYPE_ID",
+                  "value": "openEHR-EHR-CLUSTER.organisation.v1"
+                },
+                "rm_version": "1.1.0"
+              }
+            }
+          ],
+          "name": {
+            "_type": "DV_TEXT",
+            "value": "Vårdenhet"
+          },
+          "archetype_node_id": "openEHR-EHR-CLUSTER.organisation.v1",
+          "archetype_details": {
+            "_type": "ARCHETYPED",
+            "archetype_id": {
+              "_type": "ARCHETYPE_ID",
+              "value": "openEHR-EHR-CLUSTER.organisation.v1"
+            },
+            "rm_version": "1.1.0"
+          }
+        }
+      ],
+      "name": {
+        "_type": "DV_TEXT",
+        "value": "Tree"
+      },
+      "archetype_node_id": "at0001"
+    }
+  },
+  "content": [
+    {
+      "_type": "GENERIC_ENTRY",
+      "data": {
+        "_type": "ITEM_TREE",
+        "items": [
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 61003
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "pgr_id"
+            },
+            "archetype_node_id": "at0001"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 91003
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Vtf_id"
+            },
+            "archetype_node_id": "at0003"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2026-01-19T08:00:00+01:00"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Starttid"
+            },
+            "archetype_node_id": "at0004"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": false
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Makulerat"
+            },
+            "archetype_node_id": "at0005"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": true
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "VisaStL"
+            },
+            "archetype_node_id": "at0006"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 22014
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "StartAnv_id"
+            },
+            "archetype_node_id": "at0008"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_BOOLEAN",
+              "value": true
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "IsFirstTimeMother"
+            },
+            "archetype_node_id": "at0014"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 10
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SupportLineConvergencePointCm"
+            },
+            "archetype_node_id": "at0015"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_DATE_TIME",
+              "value": "2026-01-19T16:10:00+01:00"
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "Sluttid"
+            },
+            "archetype_node_id": "at0009"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 22014
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SlutAnv_id"
+            },
+            "archetype_node_id": "at0010"
+          },
+          {
+            "_type": "ELEMENT",
+            "value": {
+              "_type": "DV_COUNT",
+              "magnitude": 18
+            },
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "HourThresholdForProlongedAmnioticFluidDischarge"
+            },
+            "archetype_node_id": "at0017"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100301
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T08:00:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Livmm_id"
+                    },
+                    "archetype_node_id": "at0140"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0143"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0144"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 4
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Oppningsgrad"
+                    },
+                    "archetype_node_id": "at0141"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Retraherad"
+                    },
+                    "archetype_node_id": "at0142"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Livmodermun"
+                },
+                "archetype_node_id": "at0139"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 2
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Cervix_id"
+                    },
+                    "archetype_node_id": "at0076"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0078"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0079"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 50,
+                      "units": "%"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Utplanad"
+                    },
+                    "archetype_node_id": "at0077"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Cervix"
+                },
+                "archetype_node_id": "at0075"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 3
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Stn_id"
+                    },
+                    "archetype_node_id": "at0057"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0061"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0062"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": -3
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Hojd"
+                    },
+                    "archetype_node_id": "at0058"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0063"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Rotation"
+                    },
+                    "archetype_node_id": "at0059"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Bjudning"
+                    },
+                    "archetype_node_id": "at0060"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Station"
+                },
+                "archetype_node_id": "at0056"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 4
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Flj_id"
+                    },
+                    "archetype_node_id": "at0094"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0097"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0099"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0095"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 144
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Slag_per_minut"
+                    },
+                    "archetype_node_id": "at0096"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0098"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Flj"
+                },
+                "archetype_node_id": "at0093"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 5
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kon_id"
+                    },
+                    "archetype_node_id": "at0123"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0126"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0127"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kryst"
+                    },
+                    "archetype_node_id": "at0125"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 2
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionsPer10MinutesSingleValue"
+                    },
+                    "archetype_node_id": "at0129"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 20
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionLengthInSeconds"
+                    },
+                    "archetype_node_id": "at0132"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "svaga"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "KontrText"
+                    },
+                    "archetype_node_id": "at0128"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Kontraktion"
+                },
+                "archetype_node_id": "at0122"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Puls_id"
+                    },
+                    "archetype_node_id": "at0047"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0049"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0050"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 76
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Puls"
+                    },
+                    "archetype_node_id": "at0048"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Pul"
+                },
+                "archetype_node_id": "at0046"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 7
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Blt_id"
+                    },
+                    "archetype_node_id": "at0041"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0044"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0045"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 110
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Systoliskt"
+                    },
+                    "archetype_node_id": "at0042"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 68
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Diastoliskt"
+                    },
+                    "archetype_node_id": "at0043"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Blodtryck"
+                },
+                "archetype_node_id": "at0040"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 8
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Temp_id"
+                    },
+                    "archetype_node_id": "at0052"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0054"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0055"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 36.6,
+                      "units": "Cel"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Temperatur1"
+                    },
+                    "archetype_node_id": "at0053"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Temperatur"
+                },
+                "archetype_node_id": "at0051"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 9
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Smp_id"
+                    },
+                    "archetype_node_id": "at0184"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0185"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0186"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 6,
+                      "units": "1"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Varde"
+                    },
+                    "archetype_node_id": "at0187"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Smartpav"
+                },
+                "archetype_node_id": "at0183"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 10
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Not_id"
+                    },
+                    "archetype_node_id": "at0146"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T08:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0148"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100301
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0149"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Alertlinjen dras från 4 cm. Förväntat ungefär 8 cm kl 12 vid 1 cm/timme."
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Notat1"
+                    },
+                    "archetype_node_id": "at0147"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Notat"
+                },
+                "archetype_node_id": "at0145"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100302
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T12:00:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 11
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Livmm_id"
+                    },
+                    "archetype_node_id": "at0140"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0143"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0144"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 5
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Oppningsgrad"
+                    },
+                    "archetype_node_id": "at0141"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Retraherad"
+                    },
+                    "archetype_node_id": "at0142"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Livmodermun"
+                },
+                "archetype_node_id": "at0139"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 12
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Cervix_id"
+                    },
+                    "archetype_node_id": "at0076"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0078"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0079"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 60,
+                      "units": "%"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Utplanad"
+                    },
+                    "archetype_node_id": "at0077"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Cervix"
+                },
+                "archetype_node_id": "at0075"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 13
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Stn_id"
+                    },
+                    "archetype_node_id": "at0057"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0061"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0062"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": -3
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Hojd"
+                    },
+                    "archetype_node_id": "at0058"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0063"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Rotation"
+                    },
+                    "archetype_node_id": "at0059"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Bjudning"
+                    },
+                    "archetype_node_id": "at0060"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Station"
+                },
+                "archetype_node_id": "at0056"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 14
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Flj_id"
+                    },
+                    "archetype_node_id": "at0094"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0097"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0099"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0095"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 150
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Slag_per_minut"
+                    },
+                    "archetype_node_id": "at0096"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0098"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Flj"
+                },
+                "archetype_node_id": "at0093"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 15
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kon_id"
+                    },
+                    "archetype_node_id": "at0123"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0126"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0127"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kryst"
+                    },
+                    "archetype_node_id": "at0125"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 2
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionsPer10MinutesSingleValue"
+                    },
+                    "archetype_node_id": "at0129"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 25
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionLengthInSeconds"
+                    },
+                    "archetype_node_id": "at0132"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "svaga"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "KontrText"
+                    },
+                    "archetype_node_id": "at0128"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Kontraktion"
+                },
+                "archetype_node_id": "at0122"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 16
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Smp_id"
+                    },
+                    "archetype_node_id": "at0184"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0185"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0186"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 8,
+                      "units": "1"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Varde"
+                    },
+                    "archetype_node_id": "at0187"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Smartpav"
+                },
+                "archetype_node_id": "at0183"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 17
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Not_id"
+                    },
+                    "archetype_node_id": "at0146"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0148"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100302
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0149"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "4 timmar senare bara 5 cm. Kurvan har passerat alertlinjen och närmar sig actionlinjen (4 timmar till höger)."
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Notat1"
+                    },
+                    "archetype_node_id": "at0147"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Notat"
+                },
+                "archetype_node_id": "at0145"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100303
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T12:15:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 18
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Sma_id"
+                    },
+                    "archetype_node_id": "at0167"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:15:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0171"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100303
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0172"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "bupivakain med sufentanil"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Preparat"
+                    },
+                    "archetype_node_id": "at0175"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "bolus, sedan infusion"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Dos"
+                    },
+                    "archetype_node_id": "at0169"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Avslut"
+                    },
+                    "archetype_node_id": "at0170"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": true
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "StaendeOrd"
+                    },
+                    "archetype_node_id": "at0180"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "TypAvSmartlindring"
+                    },
+                    "archetype_node_id": "at0174"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Smartlindring"
+                },
+                "archetype_node_id": "at0166"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 19
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Smp_id"
+                    },
+                    "archetype_node_id": "at0184"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:15:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0185"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100303
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0186"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 8,
+                      "units": "1"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Varde"
+                    },
+                    "archetype_node_id": "at0187"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Smartpav"
+                },
+                "archetype_node_id": "at0183"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100304
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T12:30:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 20
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Flj_id"
+                    },
+                    "archetype_node_id": "at0094"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0097"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100304
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0099"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0095"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 148
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Slag_per_minut"
+                    },
+                    "archetype_node_id": "at0096"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0098"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Flj"
+                },
+                "archetype_node_id": "at0093"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 21
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kon_id"
+                    },
+                    "archetype_node_id": "at0123"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0126"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100304
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0127"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kryst"
+                    },
+                    "archetype_node_id": "at0125"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 3
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionsPer10MinutesSingleValue"
+                    },
+                    "archetype_node_id": "at0129"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 35
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionLengthInSeconds"
+                    },
+                    "archetype_node_id": "at0132"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "måttliga"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "KontrText"
+                    },
+                    "archetype_node_id": "at0128"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Kontraktion"
+                },
+                "archetype_node_id": "at0122"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 22
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Inf_id"
+                    },
+                    "archetype_node_id": "at0101"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0104"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100304
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0105"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "5 IU/500 ml NaCl"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Koncentration"
+                    },
+                    "archetype_node_id": "at0102"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "12 mU/min"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Dos"
+                    },
+                    "archetype_node_id": "at0106"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "500 ml"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Mangd"
+                    },
+                    "archetype_node_id": "at0103"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "oxytocin"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "AnnatPreparat"
+                    },
+                    "archetype_node_id": "at0108"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Syntocinon"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "AnnatPreparatKort"
+                    },
+                    "archetype_node_id": "at0109"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Avslut"
+                    },
+                    "archetype_node_id": "at0111"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": true
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "StaendeOrd"
+                    },
+                    "archetype_node_id": "at0114"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 40
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "MangdSomGattIn"
+                    },
+                    "archetype_node_id": "at0112"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Infusion"
+                },
+                "archetype_node_id": "at0100"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 23
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Smp_id"
+                    },
+                    "archetype_node_id": "at0184"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0185"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100304
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0186"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 3,
+                      "units": "1"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Varde"
+                    },
+                    "archetype_node_id": "at0187"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Smartpav"
+                },
+                "archetype_node_id": "at0183"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 24
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Not_id"
+                    },
+                    "archetype_node_id": "at0146"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T12:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0148"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100304
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0149"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Oxytocin startat. Epidural. VAS 3."
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Notat1"
+                    },
+                    "archetype_node_id": "at0147"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Notat"
+                },
+                "archetype_node_id": "at0145"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100305
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T13:30:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 25
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Flj_id"
+                    },
+                    "archetype_node_id": "at0094"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T13:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0097"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100305
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0099"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0095"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 168
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Slag_per_minut"
+                    },
+                    "archetype_node_id": "at0096"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0098"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Flj"
+                },
+                "archetype_node_id": "at0093"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 26
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Vtn_id"
+                    },
+                    "archetype_node_id": "at0026"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T13:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0032"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100305
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0033"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Blodning"
+                    },
+                    "archetype_node_id": "at0028"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Illaluktande"
+                    },
+                    "archetype_node_id": "at0030"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "VattenAmni"
+                    },
+                    "archetype_node_id": "at0031"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Mekoniumfargad"
+                    },
+                    "archetype_node_id": "at0029"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0034"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0027"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Vattenavgang"
+                },
+                "archetype_node_id": "at0025"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 27
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Not_id"
+                    },
+                    "archetype_node_id": "at0146"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T13:30:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0148"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100305
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0149"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Tunt mekonium. Fosterljud 168."
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Notat1"
+                    },
+                    "archetype_node_id": "at0147"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Notat"
+                },
+                "archetype_node_id": "at0145"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100306
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T14:00:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 28
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Flj_id"
+                    },
+                    "archetype_node_id": "at0094"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T14:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0097"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100306
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0099"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0095"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 112
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Slag_per_minut"
+                    },
+                    "archetype_node_id": "at0096"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0098"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Flj"
+                },
+                "archetype_node_id": "at0093"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 29
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Lak_id"
+                    },
+                    "archetype_node_id": "at0134"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T14:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0135"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100306
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0136"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 5.4,
+                      "units": "mmol/L"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Varde"
+                    },
+                    "archetype_node_id": "at0137"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0138"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Laktat"
+                },
+                "archetype_node_id": "at0133"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 30
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Ph_id"
+                    },
+                    "archetype_node_id": "at0151"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T14:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0152"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100306
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0153"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 7.22,
+                      "units": "1"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Varde"
+                    },
+                    "archetype_node_id": "at0154"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0155"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Ph"
+                },
+                "archetype_node_id": "at0150"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 31
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Not_id"
+                    },
+                    "archetype_node_id": "at0146"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T14:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0148"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100306
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0149"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Skalpblod: laktat 5,4 mmol/L, pH 7,22. Fosterljud 112. Fortsatt övervakning, inte omedelbar förlossning."
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Notat1"
+                    },
+                    "archetype_node_id": "at0147"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Notat"
+                },
+                "archetype_node_id": "at0145"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 32
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Ctg_id"
+                    },
+                    "archetype_node_id": "at0081"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T14:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0083"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100306
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0084"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 2
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0082"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0085"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Ctg"
+                },
+                "archetype_node_id": "at0080"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          },
+          {
+            "_type": "CLUSTER",
+            "items": [
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 6100307
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Snp_id"
+                },
+                "archetype_node_id": "at0019"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 22014
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Anv_id"
+                },
+                "archetype_node_id": "at0020"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_DATE_TIME",
+                  "value": "2026-01-19T16:00:00+01:00"
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Sign_Tid"
+                },
+                "archetype_node_id": "at0021"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 61003
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "pgr_id"
+                },
+                "archetype_node_id": "at0022"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 1
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredByProfessionalRoleId"
+                },
+                "archetype_node_id": "at0023"
+              },
+              {
+                "_type": "ELEMENT",
+                "value": {
+                  "_type": "DV_COUNT",
+                  "magnitude": 31
+                },
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "RegisteredOnUnitId"
+                },
+                "archetype_node_id": "at0024"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 33
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Livmm_id"
+                    },
+                    "archetype_node_id": "at0140"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0143"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0144"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 8
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Oppningsgrad"
+                    },
+                    "archetype_node_id": "at0141"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Retraherad"
+                    },
+                    "archetype_node_id": "at0142"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Livmodermun"
+                },
+                "archetype_node_id": "at0139"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 34
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Cervix_id"
+                    },
+                    "archetype_node_id": "at0076"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0078"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0079"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 90,
+                      "units": "%"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Utplanad"
+                    },
+                    "archetype_node_id": "at0077"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Cervix"
+                },
+                "archetype_node_id": "at0075"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 35
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Stn_id"
+                    },
+                    "archetype_node_id": "at0057"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0061"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0062"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": -1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Hojd"
+                    },
+                    "archetype_node_id": "at0058"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0063"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Rotation"
+                    },
+                    "archetype_node_id": "at0059"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Bjudning"
+                    },
+                    "archetype_node_id": "at0060"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Station"
+                },
+                "archetype_node_id": "at0056"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 36
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Flj_id"
+                    },
+                    "archetype_node_id": "at0094"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0097"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0099"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Typ"
+                    },
+                    "archetype_node_id": "at0095"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 140
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Slag_per_minut"
+                    },
+                    "archetype_node_id": "at0096"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 1
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Foster_nr"
+                    },
+                    "archetype_node_id": "at0098"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Flj"
+                },
+                "archetype_node_id": "at0093"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 37
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kon_id"
+                    },
+                    "archetype_node_id": "at0123"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0126"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0127"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Kryst"
+                    },
+                    "archetype_node_id": "at0125"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 4
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionsPer10MinutesSingleValue"
+                    },
+                    "archetype_node_id": "at0129"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 50
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "ContractionLengthInSeconds"
+                    },
+                    "archetype_node_id": "at0132"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "starka"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "KontrText"
+                    },
+                    "archetype_node_id": "at0128"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Kontraktion"
+                },
+                "archetype_node_id": "at0122"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 38
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Puls_id"
+                    },
+                    "archetype_node_id": "at0047"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0049"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0050"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 92
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Puls"
+                    },
+                    "archetype_node_id": "at0048"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Pul"
+                },
+                "archetype_node_id": "at0046"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 39
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Temp_id"
+                    },
+                    "archetype_node_id": "at0052"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0054"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0055"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_QUANTITY",
+                      "magnitude": 37.4,
+                      "units": "Cel"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Temperatur1"
+                    },
+                    "archetype_node_id": "at0053"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Temperatur"
+                },
+                "archetype_node_id": "at0051"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 40
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Inf_id"
+                    },
+                    "archetype_node_id": "at0101"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0104"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0105"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "5 IU/500 ml NaCl"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Koncentration"
+                    },
+                    "archetype_node_id": "at0102"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "24 mU/min"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Dos"
+                    },
+                    "archetype_node_id": "at0106"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "500 ml"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Mangd"
+                    },
+                    "archetype_node_id": "at0103"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "oxytocin"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "AnnatPreparat"
+                    },
+                    "archetype_node_id": "at0108"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Syntocinon"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "AnnatPreparatKort"
+                    },
+                    "archetype_node_id": "at0109"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": false
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Avslut"
+                    },
+                    "archetype_node_id": "at0111"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_BOOLEAN",
+                      "value": true
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "StaendeOrd"
+                    },
+                    "archetype_node_id": "at0114"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 160
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "MangdSomGattIn"
+                    },
+                    "archetype_node_id": "at0112"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Infusion"
+                },
+                "archetype_node_id": "at0100"
+              },
+              {
+                "_type": "CLUSTER",
+                "items": [
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 41
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Not_id"
+                    },
+                    "archetype_node_id": "at0146"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_DATE_TIME",
+                      "value": "2026-01-19T16:00:00+01:00"
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Tidpunkt"
+                    },
+                    "archetype_node_id": "at0148"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_COUNT",
+                      "magnitude": 6100307
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Snp_id"
+                    },
+                    "archetype_node_id": "at0149"
+                  },
+                  {
+                    "_type": "ELEMENT",
+                    "value": {
+                      "_type": "DV_TEXT",
+                      "value": "Efter värkstimulering 8 cm, höjd −1, fosterljud 140."
+                    },
+                    "name": {
+                      "_type": "DV_TEXT",
+                      "value": "Notat1"
+                    },
+                    "archetype_node_id": "at0147"
+                  }
+                ],
+                "name": {
+                  "_type": "DV_TEXT",
+                  "value": "Notat"
+                },
+                "archetype_node_id": "at0145"
+              }
+            ],
+            "name": {
+              "_type": "DV_TEXT",
+              "value": "SignParto"
+            },
+            "archetype_node_id": "at0018"
+          }
+        ],
+        "name": {
+          "_type": "DV_TEXT",
+          "value": "Tree"
+        },
+        "archetype_node_id": "at0002"
+      },
+      "name": {
+        "_type": "DV_TEXT",
+        "value": "PartogramGenericEntry"
+      },
+      "archetype_node_id": "openEHR-EHR-GENERIC_ENTRY.Partogram.v1",
+      "archetype_details": {
+        "_type": "ARCHETYPED",
+        "archetype_id": {
+          "_type": "ARCHETYPE_ID",
+          "value": "openEHR-EHR-GENERIC_ENTRY.Partogram.v1"
+        },
+        "rm_version": "1.1.0"
+      }
+    }
+  ],
+  "archetype_details": {
+    "_type": "ARCHETYPED",
+    "archetype_id": {
+      "_type": "ARCHETYPE_ID",
+      "value": "openEHR-EHR-COMPOSITION.encounter.v1"
+    },
+    "template_id": {
+      "_type": "TEMPLATE_ID",
+      "value": "generic-obstetrix-partogram-v1"
+    },
+    "rm_version": "1.1.0"
+  },
+  "name": {
+    "_type": "DV_TEXT",
+    "value": "Partogram"
+  },
+  "archetype_node_id": "openEHR-EHR-COMPOSITION.encounter.v1"
+}

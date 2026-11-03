@@ -294,49 +294,185 @@
     },
     {
       "id": "mhv1-generic-entry-to-prenatal-visit-unmapped",
-      "title": "Obstetric MHV1 generic entry (FLAT → openEHR) — unmapped",
-      "description": "Integration archetype generic-obstetrix-mhv1-v1 (operational template) as the source schema, four FLAT compositions as the examples, prenatal-visit Web Template as the target. No mapping. The composition root offers Canonical JSON, Canonical XML, Simplified FLAT, and Simplified STRUCTURED.",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, operational template → Web Template) — unmapped",
+      "description": "Integration archetype generic-obstetrix-mhv1-v1 as OPT XML, four Simplified FLAT compositions, prenatal-visit Web Template. No mapping. Canonical JSON of the same stories is a separate example set.",
       "source": {
         "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
         "instances": [
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.json"
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
         ]
       },
       "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
     },
     {
       "id": "mhv1-generic-entry-to-prenatal-visit",
-      "title": "Obstetric MHV1 generic entry (FLAT → openEHR) — mapped",
-      "description": "Partial mapping from the generic-entry operational template onto MHV1- Prenatal visit.encounter.v1. Examples are FLAT compositions. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. Saved as Simplified FLAT; the composition root still offers the other encodings. Canvas path labels on this Web Template are not the clinical names.",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, operational template → Web Template) — mapped",
+      "description": "Partial mapping from the generic-entry operational template onto MHV1- Prenatal visit.encounter.v1. Examples are Simplified FLAT. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. Saved as Simplified FLAT. Canvas path labels on this Web Template are not the clinical names.",
       "source": {
         "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
         "instances": [
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.json"
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
         ]
       },
       "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
       "mapping": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/mapping/mapping.blockly.json"
     },
     {
+      "id": "mhv1-generic-entry-flat-wt-unmapped",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, Web Template) — unmapped",
+      "description": "The same four Simplified FLAT compositions, with the generic-entry Web Template as the source schema and the prenatal-visit Web Template as the target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
+    },
+    {
+      "id": "mhv1-generic-entry-flat-wt",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, Web Template) — mapped",
+      "description": "Same Simplified FLAT mapping as the operational-template set. Source schema and target are both Web Templates.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+      "mapping": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/mapping/mapping.blockly.json"
+    },
+    {
+      "id": "mhv1-generic-entry-flat-opt2-unmapped",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, OPT2) — unmapped",
+      "description": "OPT2 of generic-obstetrix-mhv1-v1, the four Simplified FLAT compositions, and OPT2 of MHV1- Prenatal visit.encounter.v1. Unmapped. A few value-leaf slot ids differ from the prenatal-visit Web Template.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2"
+    },
+    {
+      "id": "mhv1-generic-entry-canonical-wt-unmapped",
+      "title": "Obstetric MHV1 generic entry (Canonical JSON, Web Template) — unmapped",
+      "description": "The same four clinical stories as Canonical JSON compositions. Source schema and target are Web Templates. The saved mapping reads Simplified FLAT keys, so this set is unmapped.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
+    },
+    {
+      "id": "mhv1-generic-entry-canonical-opt2-unmapped",
+      "title": "Obstetric MHV1 generic entry (Canonical JSON, OPT2) — unmapped",
+      "description": "Canonical JSON compositions of generic-obstetrix-mhv1-v1, with OPT2 as both the source schema and the prenatal-visit target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2"
+    },
+    {
       "id": "partogram-generic-entry-to-partogram-unmapped",
-      "title": "Obstetric partogram generic entry (FLAT → openEHR) — unmapped",
-      "description": "Integration archetype generic-obstetrix-partogram-v1 (operational template) as the source schema, four FLAT partographs as the examples, Partogram.v1 Web Template as the target. No mapping. The curves follow a published alert line (about 1 cm/hour from 4 cm) and an action line four hours to the right: a primip who stays left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and a multip with thick meconium and a low scalp pH. Integer codes with no template value set are fixture labels, listed in the instance README.",
+      "title": "Obstetric partogram generic entry (Simplified FLAT, operational template → Web Template) — unmapped",
+      "description": "Integration archetype generic-obstetrix-partogram-v1 as OPT XML, four Simplified FLAT partographs, Partogram.v1 Web Template. No mapping. The curves follow a published alert line (about 1 cm/hour from 4 cm) and an action line four hours to the right: a primip who stays left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and a multip with thick meconium and a low scalp pH. Integer codes with no template value set are fixture labels, listed in the instance README.",
       "source": {
         "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt",
         "instances": [
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.json",
-          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.json"
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.flat.json"
         ]
       },
       "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
+    },
+    {
+      "id": "partogram-generic-entry-flat-wt-unmapped",
+      "title": "Obstetric partogram generic entry (Simplified FLAT, Web Template) — unmapped",
+      "description": "The same four Simplified FLAT partographs, with the generic-entry Web Template as the source schema and the Partogram.v1 Web Template as the target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
+    },
+    {
+      "id": "partogram-generic-entry-flat-opt2-unmapped",
+      "title": "Obstetric partogram generic entry (Simplified FLAT, OPT2) — unmapped",
+      "description": "OPT2 of generic-obstetrix-partogram-v1, the four Simplified FLAT partographs, and OPT2 of Partogram.v1. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2"
+    },
+    {
+      "id": "partogram-generic-entry-canonical-wt-unmapped",
+      "title": "Obstetric partogram generic entry (Canonical JSON, Web Template) — unmapped",
+      "description": "The same four partographs as Canonical JSON compositions. Source schema and target are Web Templates. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
+    },
+    {
+      "id": "partogram-generic-entry-canonical-opt2-unmapped",
+      "title": "Obstetric partogram generic entry (Canonical JSON, OPT2) — unmapped",
+      "description": "Canonical JSON partographs of generic-obstetrix-partogram-v1, with OPT2 as both the source schema and the Partogram.v1 target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2"
     }
   ]
 }
