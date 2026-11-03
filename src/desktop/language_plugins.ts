@@ -6,7 +6,7 @@
  * generates that language. Remote modules get `net` to their hosts only.
  * Local `file:` modules get `read` of their directory only.
  */
-import { dirname, fromFileUrl } from "@std/path";
+import { dirname, fromFileUrl, resolve, toFileUrl } from "@std/path";
 import {
   registerDesktopPluginLanguage,
   type DesktopPluginListing,
@@ -37,11 +37,24 @@ const configured: string[] = [];
 const loaded = new Map<string, LoadedPlugin>();
 const loading = new Map<string, Promise<LoadedPlugin>>();
 
+/**
+ * Turn a `--language-plugin` value into a manifest URL. `http:`, `https:` and
+ * `file:` URLs pass through; anything else is a local path, resolved against
+ * the working directory, so `examples/language-plugins/echo/manifest.json`
+ * works from the repository root.
+ */
+export function normalizeManifestUrl(value: string, cwd = Deno.cwd()): string {
+  const trimmed = value.trim();
+  if (/^(https?|file):/i.test(trimmed)) return trimmed;
+  return toFileUrl(resolve(cwd, trimmed)).href;
+}
+
 export function configureLanguagePlugins(manifestUrls: readonly string[]): void {
   configured.length = 0;
   for (const url of manifestUrls) {
-    const trimmed = url.trim();
-    if (trimmed && !configured.includes(trimmed)) configured.push(trimmed);
+    if (!url.trim()) continue;
+    const normalized = normalizeManifestUrl(url);
+    if (!configured.includes(normalized)) configured.push(normalized);
   }
 }
 

@@ -7,13 +7,20 @@ The web app on GitHub Pages keeps the five built-in languages. Plugins load only
 ## Run a plugin
 
 ```bash
-deno task desktop -- --language-plugin https://example.com/echo/manifest.json
+intEHRgrator --language-plugin https://example.com/echo/manifest.json
+intEHRgrator --language-plugin examples/language-plugins/echo/manifest.json
 ```
 
-Repeat `--language-plugin` for more than one. Or set a comma-separated list:
+The value is an `https:`, `http:` or `file:` URL, or a local path resolved against the working directory. Repeat `--language-plugin` for more than one. Or set a comma-separated list:
 
 ```bash
 INTEHR_LANGUAGE_PLUGINS=https://example.com/echo/manifest.json
+```
+
+`deno task desktop` does not pass flags after `--` on to the app, so use the environment variable there:
+
+```bash
+INTEHR_LANGUAGE_PLUGINS=examples/language-plugins/echo/manifest.json deno task desktop
 ```
 
 The module is not imported at startup. The first time you pick that language (or an agent calls `generate_script`), the desktop loads it in a worker.

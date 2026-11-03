@@ -20,6 +20,8 @@ Desktop-only languages:
 3. `setExternalLanguageGenerator` lets `WorkbenchService.generateScript` and `generate_script` reach that worker.
 4. The browser learns ids from `GET /api/v1/language-plugins` and posts the live Mapping Model to `POST /api/v1/language-plugins/generate`.
 
+`language_plugin_worker.ts` is only reached through `new URL(..., import.meta.url)`, so `deno desktop` does not bundle it on its own. The `desktop` task and `scripts/compile-desktop.ts` pass `--include src/desktop/language_plugin_worker.ts`; keep that when you move or rename the worker. Plain paths from `--language-plugin` / `INTEHR_LANGUAGE_PLUGINS` become `file:` URLs relative to the working directory (`normalizeManifestUrl`).
+
 `deno.json` sets `"unstable": ["worker-options"]` so the worker permission set type-checks and runs. The same file maps the helper raw GitHub URLs onto `src/core/codegen/helpers/` so `deno test` and `deno run` in this repo execute generated scripts without waiting for `main` to publish the files.
 
 ## Manifest and module
