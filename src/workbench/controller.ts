@@ -241,6 +241,8 @@ export class WorkbenchController {
   private statusMessage = "Ready";
   private taskProgress: TaskProgress | null = null;
   private taskDepth = 0;
+  /** Suppresses debounced Conversion Test Run while `loadExampleSet` is in progress. */
+  private exampleSetLoadDepth = 0;
 
   constructor(
     private host: HostAdapter,
@@ -896,7 +898,7 @@ export class WorkbenchController {
       this.rememberLoadUrl("example", url);
       this.statusMessage = this.exampleLoadStatus(file.name);
       this.markDirty();
-      if (this.settings.autoplay) this.scheduleTestRun();
+      if (this.settings.autoplay && this.exampleSetLoadDepth === 0) this.scheduleTestRun();
     } catch (err) {
       this.statusMessage = `Example load failed: ${err instanceof Error ? err.message : String(err)}`;
       this.notifyChange();
@@ -1004,6 +1006,7 @@ export class WorkbenchController {
     if (set.defaults) steps.push({ id: "defaults", label: "Load defaults map" });
     steps.push({ id: "generate", label: "Generate conversion script" });
     try {
+      this.exampleSetLoadDepth++;
       await this.withTask(`Load example set "${set.title}"`, steps, async () => {
         this.resetWorkspaceState();
         if (set.target) {
@@ -1054,7 +1057,7 @@ export class WorkbenchController {
           });
         }
         await this.runTaskStep("generate", () => {
-          this.refreshDerived();
+          // `schedulePostLoadOutput` runs conversion script generation once mapping is on the canvas.
         });
       });
       this.statusMessage = `Loaded example set "${set.title}"`;
@@ -1066,6 +1069,8 @@ export class WorkbenchController {
       }`;
       this.notifyChange();
       throw err;
+    } finally {
+      if (this.exampleSetLoadDepth > 0) this.exampleSetLoadDepth--;
     }
   }
 
