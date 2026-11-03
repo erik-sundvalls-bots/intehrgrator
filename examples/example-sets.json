@@ -322,6 +322,21 @@
       },
       "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
       "mapping": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/mapping/mapping.blockly.json"
+    },
+    {
+      "id": "partogram-generic-entry-to-partogram-unmapped",
+      "title": "Obstetric partogram generic entry (FLAT → openEHR) — unmapped",
+      "description": "Integration archetype generic-obstetrix-partogram-v1 (operational template) as the source schema, four FLAT partographs as the examples, Partogram.v1 Web Template as the target. No mapping. The curves follow a published alert line (about 1 cm/hour from 4 cm) and an action line four hours to the right: a primip who stays left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and a multip with thick meconium and a low scalp pH. Integer codes with no template value set are fixture labels, listed in the instance README.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
     }
   ]
 }
