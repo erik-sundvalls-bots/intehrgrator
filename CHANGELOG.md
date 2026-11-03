@@ -6,6 +6,10 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **GitHub Pages startup**: the web app asks for desktop language plugins only in the desktop app, so the browser no longer logs a 404 for `/api/v1/language-plugins` on the static site.
+- **Example set load**: conversion tests wait until the set has finished loading, and the conversion script is generated once.
+- **Obstetric partogram generic entry**: four FLAT partographs (a primip left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and thick meconium with a low scalp pH) load against `generic-obstetrix-partogram-v1`. The target is the resolved Partogram.v1 Web Template. There is no mapping yet.
+
 ## [0.13.0] - 2026-11-03
 
 Conversion scripts share imported helpers, openEHR templates can be source or Web Template target, **Include when** and named loop items tighten mappings, and the Obstetric MHV1 example maps generic-entry FLAT onto a prenatal Web Template.

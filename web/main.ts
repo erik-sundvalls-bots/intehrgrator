@@ -838,7 +838,9 @@ exportTargetSelect.addEventListener("change", () => {
   controller.setExportTarget(exportTargetSelect.value);
 });
 
-void loadDesktopLanguagePlugins();
+if (isDesktopEnvironment()) {
+  void loadDesktopLanguagePlugins();
+}
 
 async function loadDesktopLanguagePlugins(): Promise<void> {
   const token = (globalThis as unknown as { __INTEHR_AGENT_TOKEN__?: string }).__INTEHR_AGENT_TOKEN__;
