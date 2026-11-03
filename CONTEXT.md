@@ -283,7 +283,7 @@ The product profile for mappings that are safe to verify and to codegen consiste
 _Avoid_: treating every Blockly block as VMS, re-adding sheet mutators to the default toolbox, treating all Handlebars or Go templates as unverified
 
 **VMS-Hbs**:
-The Handlebars dialect editors and `renderHandlebars` accept: paths, `#if`/`#unless`/`#each`/`else`, comparison helpers (`eq`/`ne`/…/`and`/`or`), `toLowerCase`/`toUpperCase`, `slot`, `~` whitespace, Mustache-style `{{#path}}` sections. Not the same syntax as **VMS-Mustache** or **VMS-Go**. See [ADR 0009](docs/adr/0009-verifiable-template-dialects.md).
+The Handlebars dialect editors and `renderHandlebars` accept: paths, `#if`/`#unless`/`#each`/`else`, comparison helpers (`eq`/`ne`/…/`and`/`or`), `inc`/`dec` (one more / one less; `{{inc @index}}` is a 1-based row number), `toLowerCase`/`toUpperCase`, `slot`, `~` whitespace, Mustache-style `{{#path}}` sections. Not the same syntax as **VMS-Mustache** or **VMS-Go**. See [ADR 0009](docs/adr/0009-verifiable-template-dialects.md).
 _Avoid_: full Handlebars.js, `#with`/`lookup`/`#log`/partials, calling VMS-Hbs “Mustache”
 
 **VMS-Go**:
