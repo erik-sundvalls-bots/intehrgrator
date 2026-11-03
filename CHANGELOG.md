@@ -2,7 +2,7 @@
 
 Notable changes per release, newest first. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions are the desktop / web app versions (tags `vX.Y.Z`, with `X.Y.0` tagged `vX.Y`). Each release's frozen web app is at `https://regionstockholm.github.io/intehrgrator/<tag>/`.
 
-Add an entry under **Unreleased** in every feature or fix PR that changes user-visible behaviour; the release PR renames it to the new version.
+Add an entry under **Unreleased** in every feature or fix PR that changes user-visible behaviour; `deno task release` moves it into the version it tags.
 
 ## [Unreleased]
 
@@ -238,7 +238,9 @@ Minor release: one shared, append-only change history for you, the AI chat and M
 
 - First web app and core modules ([#2](https://github.com/regionstockholm/intehrgrator/pull/2)): Click-to-Map ([#4](https://github.com/regionstockholm/intehrgrator/pull/4)), source format handlers ([#5](https://github.com/regionstockholm/intehrgrator/pull/5)), Mapping Spec download / upload ([#7](https://github.com/regionstockholm/intehrgrator/pull/7)), readable TypeScript codegen ([#9](https://github.com/regionstockholm/intehrgrator/pull/9)).
 
-[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.11...main
+[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.13...main
+[0.13.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.13
+[0.12.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.12
 [0.11.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.11
 [0.10.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.10
 [0.9.2]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.9.2
