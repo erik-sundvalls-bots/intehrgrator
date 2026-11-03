@@ -6,6 +6,10 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-03
+
+Conversion scripts share imported helpers, openEHR templates can be source or Web Template target, **Include when** and named loop items tighten mappings, and the Obstetric MHV1 example maps generic-entry FLAT onto a prenatal Web Template.
+
 - **Shorter conversion scripts** ([#332](https://github.com/regionstockholm/intehrgrator/pull/332), [#242](https://github.com/regionstockholm/intehrgrator/issues/242)): TypeScript, Java, and XQuery import shared helper modules (only the helpers that mapping uses) instead of pasting them into every script. Import paths in Generated conversion script(s) open the helper or library source. The desktop app can lazy-load another conversion script language from a manifest URL in a Deno worker sandbox (`--language-plugin`).
 - **openEHR template as source or target**: an operational template (`.opt`, `.opt2`, `.oet`) loads as a source schema for an integration-archetype to CKM conversion. Its source tree is that template's Web Template. A `.wt.json` target stores the Web Template document, so the composition root can serialize Canonical JSON, Canonical XML, Simplified FLAT, or Simplified STRUCTURED, the same choices as an OPT target. FLAT and STRUCTURED need that document.
 - **Quoted flat source keys**: a TypeScript Conversion Script reads `$["composer|name"]` as that key. The quote characters used to become part of the lookup. An authoring index `[0]` is the first element, as in Mapping preview.
