@@ -40,7 +40,12 @@ export function jsonQuery(path: unknown): string {
     if (body[i] === "[") {
       const close = body.indexOf("]", i + 1);
       if (close < 0) break;
-      segments.push(body.slice(i + 1, close));
+      let seg = body.slice(i + 1, close).trim();
+      const quote = seg[0];
+      if ((quote === '"' || quote === "'") && seg.endsWith(quote) && seg.length >= 2) {
+        seg = seg.slice(1, -1);
+      }
+      segments.push(seg);
       i = close + 1;
       continue;
     }
@@ -51,38 +56,47 @@ export function jsonQuery(path: unknown): string {
   }
   return segments.reduce((q, seg) => {
     if (seg === "*") return `${q}?*`;
-    if (/^\d+$/.test(seg) || /^[A-Za-z_][A-Za-z0-9_]*$/.test(seg)) return `${q}?${seg}`;
+    // Authoring [0] and [1] are both the first element. fontoxpath JSON indexes are 1-based, and ?0 throws.
+    if (/^\d+$/.test(seg)) return `${q}?${seg === "0" ? "1" : seg}`;
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(seg)) return `${q}?${seg}`;
     return `${q}?(${JSON.stringify(seg)})`;
   }, "$source");
 }
 
 export function igXpathString(evaluateXPathToString: XPathEval, path: unknown, node: unknown): string {
-  const p = typeof path === "string" ? path : String(path ?? "");
-  if (p.trim().startsWith("$source") || p.includes("?*[")) {
-    return evaluateXPathToString(p, null, null, { source: node });
-  }
-  if (p.trim().startsWith("/")) return evaluateXPathToString(p, node);
-  return evaluateXPathToString(jsonQuery(p), null, null, { source: node });
+  const trimmed = (typeof path === "string" ? path : String(path ?? "")).trim();
+  if (trimmed.startsWith("/")) return evaluateXPathToString(trimmed, node);
+  const found = jsonWalk(trimmed, node);
+  if (typeof found === "string") return found;
+  if (typeof found === "number" || typeof found === "boolean") return String(found);
+  return "";
 }
 
 export function igXpathNumber(evaluateXPathToNumber: XPathEval, path: unknown, node: unknown): number {
-  const p = typeof path === "string" ? path : String(path ?? "");
-  if (p.trim().startsWith("$source") || p.includes("?*[")) {
-    return evaluateXPathToNumber(p, null, null, { source: node });
-  }
-  if (p.trim().startsWith("/")) return evaluateXPathToNumber(p, node);
-  return evaluateXPathToNumber(jsonQuery(p), null, null, { source: node });
+  const trimmed = (typeof path === "string" ? path : String(path ?? "")).trim();
+  if (trimmed.startsWith("/")) return evaluateXPathToNumber(trimmed, node);
+  const found = jsonWalk(trimmed, node);
+  if (typeof found === "number") return found;
+  if (typeof found === "boolean") return found ? 1 : 0;
+  if (typeof found === "string" && found.trim() !== "") return Number(found);
+  return NaN;
 }
 
 export function igXpathBoolean(evaluateXPathToBoolean: XPathEval, path: unknown, node: unknown): boolean {
-  const p = typeof path === "string" ? path : String(path ?? "");
-  if (p.trim().startsWith("$source") || p.includes("?*[")) {
-    return evaluateXPathToBoolean(p, null, null, { source: node });
-  }
-  if (p.trim().startsWith("/")) return evaluateXPathToBoolean(p, node);
-  return evaluateXPathToBoolean(jsonQuery(p), null, null, { source: node });
+  const trimmed = (typeof path === "string" ? path : String(path ?? "")).trim();
+  if (trimmed.startsWith("/")) return evaluateXPathToBoolean(trimmed, node);
+  const found = jsonWalk(trimmed, node);
+  if (found == null || found === "") return false;
+  if (typeof found === "boolean") return found;
+  if (typeof found === "number") return found !== 0 && !Number.isNaN(found);
+  if (typeof found === "string") return true;
+  if (Array.isArray(found)) return found.length > 0;
+  return true;
 }
 
+// JSON authoring paths walk the document. fontoxpath throws FOAY0001 when an
+// index is missing and refuses a sequence from evaluateXPathToFirstNode.
+// Preview already walks, so a missing [0] is empty and a list path is the list.
 function jsonWalk(path: string, node: unknown): unknown {
   const trimmed = path.trim();
   if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "$source") return node;
@@ -150,14 +164,12 @@ export function igXpathNodes(evaluateXPathToNodes: XPathEval, path: string, node
   return [found];
 }
 
-export function igXpathNode(evaluateXPathToFirstNode: XPathEval, path: string, node: unknown): unknown {
-  if (path.trim().startsWith("/")) return evaluateXPathToFirstNode(path, node);
-  const trimmed = path.trim();
+export function igXpathNode(evaluateXPathToFirstNode: XPathEval, path: unknown, node: unknown): unknown {
+  const trimmed = (typeof path === "string" ? path : String(path ?? "")).trim();
+  if (trimmed.startsWith("/")) return evaluateXPathToFirstNode(trimmed, node);
   if (!trimmed || trimmed === "$" || trimmed === ".") return node;
-  if (trimmed.startsWith("$source") || trimmed.includes("?*[")) {
-    return evaluateXPathToFirstNode(trimmed, null, null, { source: node });
-  }
-  return evaluateXPathToFirstNode(jsonQuery(path), null, null, { source: node });
+  const found = jsonWalk(trimmed, node);
+  return found === undefined ? null : found;
 }
 
 export function asList(value: unknown): unknown[] {

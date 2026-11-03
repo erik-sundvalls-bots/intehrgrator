@@ -446,7 +446,7 @@ Deno.test("schema optional fields are marked optional on targetSignature", () =>
   workspace.dispose();
 });
 
-Deno.test("lung-MDT fixture Blockly extracts unsupported Remove types and round-trips", () => {
+Deno.test("lung-MDT fixture Blockly uses include_when and round-trips", () => {
   ensure();
   const xsd = Deno.readTextFileSync(
     join(import.meta.dirname!, "./fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd"),
@@ -468,9 +468,18 @@ Deno.test("lung-MDT fixture Blockly extracts unsupported Remove types and round-
   );
   Blockly.serialization.workspaces.load(mapping, workspace);
   const first = workspaceToModelJson(workspace);
+  assertEquals(
+    first.unsupported.some((u) => u.blockType === "controls_if"),
+    false,
+    "lung-MDT keyword guards are include_when, not leftover statement-if",
+  );
   assert(
-    first.unsupported.some((u) => u.blockType === "controls_if" && u.reason === "removed"),
-    "leftover statement-if is recorded as removed, not an If IR node",
+    first.includes.length > 0,
+    "include_when guards are first-class includes, not removed blocks",
+  );
+  assertEquals(
+    first.unsupported.some((u) => u.blockType === "include_when"),
+    false,
   );
   assertEquals(
     first.unsupported.some((u) => u.blockType === "text_code" && u.reason === "escape"),
@@ -494,6 +503,7 @@ Deno.test("lung-MDT fixture Blockly extracts unsupported Remove types and round-
   const second = workspaceToModelJson(loaded);
   assertEquals(second.unsupported, first.unsupported);
   assertEquals(second.slots, first.slots);
+  assertEquals(second.includes, first.includes);
   assertEquals(second.targetSignature, first.targetSignature);
   loaded.dispose();
 });
