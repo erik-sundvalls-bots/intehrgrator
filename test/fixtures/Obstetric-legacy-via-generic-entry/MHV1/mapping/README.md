@@ -27,7 +27,7 @@ Guesses carry `confidence` (percent) and a block comment. Direct copies (categor
 
 ## Not mapped, and why
 
-- The source schema is `../source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt` (the integration archetype). The four examples are FLAT compositions of that template. The target is the CKM Web Template, and its composition root can emit Canonical JSON, Canonical XML, Simplified FLAT, or Simplified STRUCTURED. This mapping is saved as Simplified FLAT.
+- The source schema for the mapped set is `../source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt` (the integration archetype). The four examples in that set are Simplified FLAT (`*.flat.json`). The target is the CKM Web Template. Sibling example sets load the OPT2 or the Web Template, and the Canonical JSON examples (`*.canonical.json`), without mixing those formats in one set. This mapping is saved as Simplified FLAT.
 - `BerakForSM`, `BerakForUL`, and `BerakForET` are different calculations of the delivery date. SM is senaste mens and UL is ultraljud. Every example sets `berakforsm`, and that is the mapped EDD. Only the IVF composition sets the other two: `berakforul` is 2025-10-14, two days after the SM date, and `berakforet` is 2025-01-12, a week after senaste mens.
 - `anteckning` and `partogram` in the parent fixture have source OPTs and no instances, so there is nothing to map. `Blodtryck` is on the partogram template. `Bp_comp` on this generic entry is a separate date-time (`at0090`). In Swedish obstetrics “bp” can mean beräknad partum. These examples leave `bp_comp` empty.
 - There is no personal identity number in the generic source.

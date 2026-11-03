@@ -1,0 +1,2569 @@
+operational_template (adl_version=2.4.0; rm_release=1.0.4)
+    generic-obstetrix-partogram-v1
+
+language
+    original_language = <[ISO_639-1::sv]>
+
+definition
+    use_archetype COMPOSITION[at0000, openEHR-EHR-COMPOSITION.encounter.v1] occurrences matches {1..1} matches {
+        context existence matches {0..1} matches {
+            EVENT_CONTEXT occurrences matches {0..1} matches {
+                other_context existence matches {0..1} matches {
+                    ITEM_TREE[at0001] occurrences matches {0..1} matches {
+                        items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                            use_archetype CLUSTER[at0000, openEHR-EHR-CLUSTER.organisation.v1] occurrences matches {1..1} matches {
+                                items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                                    ELEMENT[at0001] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0003] occurrences matches {1..*} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_IDENTIFIER occurrences matches {0..1} matches {
+                                                type existence matches {1..1} matches {/urn:oid:1.2.752.29.4.19/}
+                                            }
+                                        }
+                                    }
+                                    ELEMENT[at0004] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_CODED_TEXT occurrences matches {0..1} matches {
+                                                defining_code existence matches {0..1} matches {
+                                                    [http://snomed.info/sct/900000000000207008::43741000]
+                                                }
+                                            }
+                                        }
+                                    }
+                                    use_archetype CLUSTER[at0000, openEHR-EHR-CLUSTER.organisation.v1] occurrences matches {1..1} matches {
+                                        items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                                            ELEMENT[at0001] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0003] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_IDENTIFIER occurrences matches {0..1} matches {
+                                                        type existence matches {1..1} matches {/urn:oid:2.5.4.97/}
+                                                    }
+                                                }
+                                                name existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1} matches {
+                                                        value existence matches {1..1} matches {
+                                                            "Organisationsnummer"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            ELEMENT[at0003] occurrences matches {1..*} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_IDENTIFIER occurrences matches {0..1} matches {
+                                                        type existence matches {1..1} matches {/urn:oid:1.2.752.29.4.19/}
+                                                    }
+                                                }
+                                                name existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1} matches {
+                                                        value existence matches {1..1} matches {
+                                                            "Identifierare"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            ELEMENT[at0004] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_CODED_TEXT occurrences matches {0..1} matches {
+                                                        defining_code existence matches {0..1} matches {
+                                                            [http://snomed.info/sct/45991000052106::143591000052106]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content existence matches {1..1} cardinality matches {0..*; unordered} matches {
+            use_archetype GENERIC_ENTRY[at0000, openEHR-EHR-GENERIC_ENTRY.Partogram.v1] occurrences matches {1..1} matches {
+                data existence matches {1..1} matches {
+                    ITEM_TREE[at0002] occurrences matches {1..1} matches {
+                        items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                            ELEMENT[at0001] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0003] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0004] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0005] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0006] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0007] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0008] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0009] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0010] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0011] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0012] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0013] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0014] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0015] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0016] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0017] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            CLUSTER[at0018] occurrences matches {0..*} matches {
+                                items cardinality matches {0..*} matches {
+                                    ELEMENT[at0019] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0020] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0021] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_DATE_TIME occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0022] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0023] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0024] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    CLUSTER[at0025] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0026] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0027] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0028] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0029] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0030] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0031] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0032] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0033] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0034] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0035] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0036] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0037] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0038] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0039] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0040] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0041] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0042] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0043] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0044] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0045] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0046] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0047] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0048] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0049] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0050] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0051] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0052] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0053] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_QUANTITY occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0054] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0055] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0056] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0057] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0058] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0059] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0060] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0061] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0062] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0063] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0064] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0065] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0066] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0067] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0068] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0069] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0070] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0071] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0072] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0073] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0074] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0075] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0076] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0077] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_QUANTITY occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0078] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0079] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0080] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0081] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0082] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0083] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0084] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0085] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0086] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0087] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0088] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0089] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0090] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0091] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0092] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0093] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0094] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0095] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0096] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0097] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0098] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0099] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0100] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0101] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0102] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0103] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0104] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0105] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0106] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0107] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0108] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0109] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0110] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0111] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0112] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0113] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0114] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0115] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0116] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0117] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0118] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0119] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0120] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0121] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0122] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0123] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0124] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_QUANTITY occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0125] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0126] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0127] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0128] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0129] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0130] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0131] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0132] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0133] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0134] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0135] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0136] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0137] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_QUANTITY occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0138] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0139] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0140] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0141] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0142] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0143] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0144] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0145] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0146] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0147] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0148] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0149] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0150] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0151] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0152] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0153] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0154] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_QUANTITY occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0155] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0156] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0157] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0158] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0159] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0160] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0161] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0162] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0163] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0164] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0165] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0166] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0167] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0168] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0169] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0170] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0171] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0172] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0173] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0174] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0175] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0176] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0177] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0178] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0179] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0180] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_BOOLEAN occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0181] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0182] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {0..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    CLUSTER[at0183] occurrences matches {0..*} matches {
+                                        items cardinality matches {0..*} matches {
+                                            ELEMENT[at0184] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0185] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_DATE_TIME occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0186] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_COUNT occurrences matches {1..1}
+                                                }
+                                            }
+                                            ELEMENT[at0187] occurrences matches {1..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_QUANTITY occurrences matches {1..1}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+            ["sv"] = <
+                ["at0000"] = <
+                    text = <"PartogramGenericEntry">
+                >
+                ["at0001"] = <
+                    text = <"pgr_id">
+                    description = <"pgr_id">
+                >
+                ["at0003"] = <
+                    text = <"Vtf_id">
+                    description = <"Vtf_id">
+                >
+                ["http://snomed.info/sct/900000000000207008::43741000"] = <
+                    text = <"vårdenhet">
+                >
+                ["at0004"] = <
+                    text = <"Starttid">
+                    description = <"Starttid">
+                >
+                ["http://snomed.info/sct/45991000052106::143591000052106"] = <
+                    text = <"vårdgivare">
+                >
+                ["at0002"] = <
+                    text = <"Tree">
+                    description = <"@ internal @">
+                >
+                ["at0005"] = <
+                    text = <"Makulerat">
+                    description = <"Makulerat">
+                >
+                ["at0006"] = <
+                    text = <"VisaStL">
+                    description = <"VisaStL">
+                >
+                ["at0007"] = <
+                    text = <"SupportLineConvergenceDateTime">
+                    description = <"SupportLineConvergenceDateTime">
+                >
+                ["at0008"] = <
+                    text = <"StartAnv_id">
+                    description = <"StartAnv_id">
+                >
+                ["at0009"] = <
+                    text = <"Sluttid">
+                    description = <"Sluttid">
+                >
+                ["at0010"] = <
+                    text = <"SlutAnv_id">
+                    description = <"SlutAnv_id">
+                >
+                ["at0011"] = <
+                    text = <"SparaBjudningMellanSes">
+                    description = <"SparaBjudningMellanSes">
+                >
+                ["at0012"] = <
+                    text = <"SparaRotationMellanSes">
+                    description = <"SparaRotationMellanSes">
+                >
+                ["at0013"] = <
+                    text = <"WaterFromFv1Lock">
+                    description = <"WaterFromFv1Lock">
+                >
+                ["at0014"] = <
+                    text = <"IsFirstTimeMother">
+                    description = <"IsFirstTimeMother">
+                >
+                ["at0015"] = <
+                    text = <"SupportLineConvergencePointCm">
+                    description = <"SupportLineConvergencePointCm">
+                >
+                ["at0016"] = <
+                    text = <"VersionIdWhenFirstSaved">
+                    description = <"VersionIdWhenFirstSaved">
+                >
+                ["at0017"] = <
+                    text = <"HourThresholdForProlongedAmnioticFluidDischarge">
+                    description = <"HourThresholdForProlongedAmnioticFluidDischarge">
+                >
+                ["at0018"] = <
+                    text = <"SignParto">
+                    description = <"Signerade partogram">
+                >
+                ["at0019"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0020"] = <
+                    text = <"Anv_id">
+                    description = <"Anv_id">
+                >
+                ["at0021"] = <
+                    text = <"Sign_Tid">
+                    description = <"Sign_Tid">
+                >
+                ["at0022"] = <
+                    text = <"pgr_id">
+                    description = <"pgr_id">
+                >
+                ["at0023"] = <
+                    text = <"RegisteredByProfessionalRoleId">
+                    description = <"RegisteredByProfessionalRoleId">
+                >
+                ["at0024"] = <
+                    text = <"RegisteredOnUnitId">
+                    description = <"RegisteredOnUnitId">
+                >
+                ["at0025"] = <
+                    text = <"Vattenavgang">
+                    description = <"Vattenavgång för ett partogram, från Vattenavgangs">
+                >
+                ["at0026"] = <
+                    text = <"Vtn_id">
+                    description = <"Vtn_id">
+                >
+                ["at0027"] = <
+                    text = <"Typ">
+                    description = <"Typ">
+                >
+                ["at0028"] = <
+                    text = <"Blodning">
+                    description = <"Blodning">
+                >
+                ["at0029"] = <
+                    text = <"Mekoniumfargad">
+                    description = <"Mekoniumfargad">
+                >
+                ["at0030"] = <
+                    text = <"Illaluktande">
+                    description = <"Illaluktande">
+                >
+                ["at0031"] = <
+                    text = <"VattenAmni">
+                    description = <"VattenAmni">
+                >
+                ["at0032"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0033"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0034"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0035"] = <
+                    text = <"Blodning">
+                    description = <"Blödningar för ett partogram, från Blodnings">
+                >
+                ["at0036"] = <
+                    text = <"Blo_id">
+                    description = <"Blo_id">
+                >
+                ["at0037"] = <
+                    text = <"Typ">
+                    description = <"Typ">
+                >
+                ["at0038"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0039"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0040"] = <
+                    text = <"Blodtryck">
+                    description = <"Blodtryck för ett partogram, från Blodtrycks">
+                >
+                ["at0041"] = <
+                    text = <"Blt_id">
+                    description = <"Blt_id">
+                >
+                ["at0042"] = <
+                    text = <"Systoliskt">
+                    description = <"Systoliskt">
+                >
+                ["at0043"] = <
+                    text = <"Diastoliskt">
+                    description = <"Diastoliskt">
+                >
+                ["at0044"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0045"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0046"] = <
+                    text = <"Pul">
+                    description = <"Blodtryck för ett partogram, från Puls">
+                >
+                ["at0047"] = <
+                    text = <"Puls_id">
+                    description = <"Puls_id">
+                >
+                ["at0048"] = <
+                    text = <"Puls">
+                    description = <"Puls">
+                >
+                ["at0049"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0050"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0051"] = <
+                    text = <"Temperatur">
+                    description = <"Temperatur för ett partogram, från Temperaturs">
+                >
+                ["at0052"] = <
+                    text = <"Temp_id">
+                    description = <"Temp_id">
+                >
+                ["at0053"] = <
+                    text = <"Temperatur1">
+                    description = <"Temperatur1">
+                >
+                ["at0054"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0055"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0056"] = <
+                    text = <"Station">
+                    description = <"Station för ett partogram, från Stations">
+                >
+                ["at0057"] = <
+                    text = <"Stn_id">
+                    description = <"Stn_id">
+                >
+                ["at0058"] = <
+                    text = <"Hojd">
+                    description = <"Hojd">
+                >
+                ["at0059"] = <
+                    text = <"Rotation">
+                    description = <"Rotation">
+                >
+                ["at0060"] = <
+                    text = <"Bjudning">
+                    description = <"Bjudning">
+                >
+                ["at0061"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0062"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0063"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0064"] = <
+                    text = <"AnnanMed">
+                    description = <"AnnanMed för ett partogram">
+                >
+                ["at0065"] = <
+                    text = <"Anm_id">
+                    description = <"Anm_id">
+                >
+                ["at0066"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0067"] = <
+                    text = <"Preparat">
+                    description = <"Preparat">
+                >
+                ["at0068"] = <
+                    text = <"Dos">
+                    description = <"Dos">
+                >
+                ["at0069"] = <
+                    text = <"Koncentration">
+                    description = <"Koncentration">
+                >
+                ["at0070"] = <
+                    text = <"Mangd">
+                    description = <"Mangd">
+                >
+                ["at0071"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0072"] = <
+                    text = <"OrdAnv_id">
+                    description = <"OrdAnv_id">
+                >
+                ["at0073"] = <
+                    text = <"PrescribedByProfessionalRoleId">
+                    description = <"PrescribedByProfessionalRoleId">
+                >
+                ["at0074"] = <
+                    text = <"PrescribedOnUnitId">
+                    description = <"PrescribedOnUnitId">
+                >
+                ["at0075"] = <
+                    text = <"Cervix">
+                    description = <"Cervix för ett partogram">
+                >
+                ["at0076"] = <
+                    text = <"Cervix_id">
+                    description = <"Cervix_id">
+                >
+                ["at0077"] = <
+                    text = <"Utplanad">
+                    description = <"Utplanad">
+                >
+                ["at0078"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0079"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0080"] = <
+                    text = <"Ctg">
+                    description = <"Ctg för ett partogram">
+                >
+                ["at0081"] = <
+                    text = <"Ctg_id">
+                    description = <"Ctg_id">
+                >
+                ["at0082"] = <
+                    text = <"Typ">
+                    description = <"Typ">
+                >
+                ["at0083"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0084"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0085"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0086"] = <
+                    text = <"Dropp">
+                    description = <"Dropp för ett partogram">
+                >
+                ["at0087"] = <
+                    text = <"Dropp_id">
+                    description = <"Dropp_id">
+                >
+                ["at0088"] = <
+                    text = <"Koncentration">
+                    description = <"Koncentration">
+                >
+                ["at0089"] = <
+                    text = <"Mangd">
+                    description = <"Mangd">
+                >
+                ["at0090"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0091"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0092"] = <
+                    text = <"Drf_id">
+                    description = <"Drf_id">
+                >
+                ["at0093"] = <
+                    text = <"Flj">
+                    description = <"Flj för ett partogram">
+                >
+                ["at0094"] = <
+                    text = <"Flj_id">
+                    description = <"Flj_id">
+                >
+                ["at0095"] = <
+                    text = <"Typ">
+                    description = <"Typ">
+                >
+                ["at0096"] = <
+                    text = <"Slag_per_minut">
+                    description = <"Slag_per_minut">
+                >
+                ["at0097"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0098"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0099"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0100"] = <
+                    text = <"Infusion">
+                    description = <"Infusion för ett partogram">
+                >
+                ["at0101"] = <
+                    text = <"Inf_id">
+                    description = <"Inf_id">
+                >
+                ["at0102"] = <
+                    text = <"Koncentration">
+                    description = <"Koncentration">
+                >
+                ["at0103"] = <
+                    text = <"Mangd">
+                    description = <"Mangd">
+                >
+                ["at0104"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0105"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0106"] = <
+                    text = <"Dos">
+                    description = <"Dos">
+                >
+                ["at0107"] = <
+                    text = <"Ipr_id">
+                    description = <"Ipr_id">
+                >
+                ["at0108"] = <
+                    text = <"AnnatPreparat">
+                    description = <"AnnatPreparat">
+                >
+                ["at0109"] = <
+                    text = <"AnnatPreparatKort">
+                    description = <"AnnatPreparatKort">
+                >
+                ["at0110"] = <
+                    text = <"Linje_id">
+                    description = <"Linje_id">
+                >
+                ["at0111"] = <
+                    text = <"Avslut">
+                    description = <"Avslut">
+                >
+                ["at0112"] = <
+                    text = <"MangdSomGattIn">
+                    description = <"MangdSomGattIn">
+                >
+                ["at0113"] = <
+                    text = <"OrdAnv_id">
+                    description = <"OrdAnv_id">
+                >
+                ["at0114"] = <
+                    text = <"StaendeOrd">
+                    description = <"StaendeOrd">
+                >
+                ["at0115"] = <
+                    text = <"PrescribedByProfessionalRoleId">
+                    description = <"PrescribedByProfessionalRoleId">
+                >
+                ["at0116"] = <
+                    text = <"PrescribedOnUnitId">
+                    description = <"PrescribedOnUnitId">
+                >
+                ["at0117"] = <
+                    text = <"Iup">
+                    description = <"Iup för ett partogram">
+                >
+                ["at0118"] = <
+                    text = <"Iup_id">
+                    description = <"Iup_id">
+                >
+                ["at0119"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0120"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0121"] = <
+                    text = <"Typ">
+                    description = <"Typ">
+                >
+                ["at0122"] = <
+                    text = <"Kontraktion">
+                    description = <"Kontraktion för ett partogram">
+                >
+                ["at0123"] = <
+                    text = <"Kon_id">
+                    description = <"Kon_id">
+                >
+                ["at0124"] = <
+                    text = <"Styrka">
+                    description = <"Styrka">
+                >
+                ["at0125"] = <
+                    text = <"Kryst">
+                    description = <"Kryst">
+                >
+                ["at0126"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0127"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0128"] = <
+                    text = <"KontrText">
+                    description = <"KontrText">
+                >
+                ["at0129"] = <
+                    text = <"ContractionsPer10MinutesSingleValue">
+                    description = <"ContractionsPer10MinutesSingleValue">
+                >
+                ["at0130"] = <
+                    text = <"ContractionsPer10MinutesIntervalMin">
+                    description = <"ContractionsPer10MinutesIntervalMin">
+                >
+                ["at0131"] = <
+                    text = <"ContractionsPer10MinutesIntervalMax">
+                    description = <"ContractionsPer10MinutesIntervalMax">
+                >
+                ["at0132"] = <
+                    text = <"ContractionLengthInSeconds">
+                    description = <"ContractionLengthInSeconds">
+                >
+                ["at0133"] = <
+                    text = <"Laktat">
+                    description = <"Laktat för ett partogram">
+                >
+                ["at0134"] = <
+                    text = <"Lak_id">
+                    description = <"Lak_id">
+                >
+                ["at0135"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0136"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0137"] = <
+                    text = <"Varde">
+                    description = <"Varde">
+                >
+                ["at0138"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0139"] = <
+                    text = <"Livmodermun">
+                    description = <"Livmodermun för ett partogram">
+                >
+                ["at0140"] = <
+                    text = <"Livmm_id">
+                    description = <"Livmm_id">
+                >
+                ["at0141"] = <
+                    text = <"Oppningsgrad">
+                    description = <"Oppningsgrad">
+                >
+                ["at0142"] = <
+                    text = <"Retraherad">
+                    description = <"Retraherad">
+                >
+                ["at0143"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0144"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0145"] = <
+                    text = <"Notat">
+                    description = <"Notat för ett partogram">
+                >
+                ["at0146"] = <
+                    text = <"Not_id">
+                    description = <"Not_id">
+                >
+                ["at0147"] = <
+                    text = <"Notat1">
+                    description = <"Notat1">
+                >
+                ["at0148"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0149"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0150"] = <
+                    text = <"Ph">
+                    description = <"Ph för ett partogram">
+                >
+                ["at0151"] = <
+                    text = <"Ph_id">
+                    description = <"Ph_id">
+                >
+                ["at0152"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0153"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0154"] = <
+                    text = <"Varde">
+                    description = <"Varde">
+                >
+                ["at0155"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0156"] = <
+                    text = <"Segment">
+                    description = <"Segment för ett partogram">
+                >
+                ["at0157"] = <
+                    text = <"Seg_id">
+                    description = <"Seg_id">
+                >
+                ["at0158"] = <
+                    text = <"Andel">
+                    description = <"Andel">
+                >
+                ["at0159"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0160"] = <
+                    text = <"Foster_nr">
+                    description = <"Foster_nr">
+                >
+                ["at0161"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0162"] = <
+                    text = <"SignPartoJournal">
+                    description = <"SignPartoJournal för ett partogram">
+                >
+                ["at0163"] = <
+                    text = <"Spj_id">
+                    description = <"Spj_id">
+                >
+                ["at0164"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0165"] = <
+                    text = <"Ant_id">
+                    description = <"Ant_id">
+                >
+                ["at0166"] = <
+                    text = <"Smartlindring">
+                    description = <"Smartlindring för ett partogram">
+                >
+                ["at0167"] = <
+                    text = <"Sma_id">
+                    description = <"Sma_id">
+                >
+                ["at0168"] = <
+                    text = <"Styrka">
+                    description = <"Styrka">
+                >
+                ["at0169"] = <
+                    text = <"Dos">
+                    description = <"Dos">
+                >
+                ["at0170"] = <
+                    text = <"Avslut">
+                    description = <"Avslut">
+                >
+                ["at0171"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0172"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0173"] = <
+                    text = <"Linje_id">
+                    description = <"Linje_id">
+                >
+                ["at0174"] = <
+                    text = <"TypAvSmartlindring">
+                    description = <"TypAvSmartlindring">
+                >
+                ["at0175"] = <
+                    text = <"Preparat">
+                    description = <"Preparat">
+                >
+                ["at0176"] = <
+                    text = <"PreparatKort">
+                    description = <"PreparatKort">
+                >
+                ["at0177"] = <
+                    text = <"OrdAnv_id">
+                    description = <"OrdAnv_id">
+                >
+                ["at0178"] = <
+                    text = <"GivAnv_id">
+                    description = <"GivAnv_id">
+                >
+                ["at0179"] = <
+                    text = <"Kod">
+                    description = <"Kod">
+                >
+                ["at0180"] = <
+                    text = <"StaendeOrd">
+                    description = <"StaendeOrd">
+                >
+                ["at0181"] = <
+                    text = <"PrescribedByProfessionalRoleId">
+                    description = <"PrescribedByProfessionalRoleId">
+                >
+                ["at0182"] = <
+                    text = <"PrescribedOnUnitId">
+                    description = <"PrescribedOnUnitId">
+                >
+                ["at0183"] = <
+                    text = <"Smartpav">
+                    description = <"Smartpav för ett partogram">
+                >
+                ["at0184"] = <
+                    text = <"Smp_id">
+                    description = <"Smp_id">
+                >
+                ["at0185"] = <
+                    text = <"Tidpunkt">
+                    description = <"Tidpunkt">
+                >
+                ["at0186"] = <
+                    text = <"Snp_id">
+                    description = <"Snp_id">
+                >
+                ["at0187"] = <
+                    text = <"Varde">
+                    description = <"Varde">
+                >
+            >
+        >
+component_terminologies
+<
+            ["openEHR-EHR-CLUSTER.organisation.v1"] = <
+                term_definitions = <
+                    ["sv"] = <
+                        ["at0000"] = <
+                            text = <"Vårdenhet">
+                            description = <"Vårdenhet">
+                        >
+                        ["at0001"] = <
+                            text = <"Namn">
+                            description = <"Vårdenhetens namn">
+                        >
+                        ["at0003"] = <
+                            text = <"Identifierare">
+                            description = <"Identifierare associerad med den identifierade organisationen (Vårdenhet)">
+                        >
+                        ["http://snomed.info/sct/900000000000207008::43741000"] = <
+                            text = <"vårdenhet">
+                        >
+                        ["at0004"] = <
+                            text = <"Roll">
+                            description = <"Organisationens relation till eller roll gentemot vårdtagaren.">
+                        >
+                    >
+                >
+            >
+            ["openEHR-EHR-COMPOSITION.encounter.v1"] = <
+                term_definitions = <
+                    ["sv"] = <
+                        ["at0000"] = <
+                            text = <"Partogram">
+                        >
+                        ["at0001"] = <
+                            text = <"Tree">
+                            description = <"@ internal @">
+                        >
+                    >
+                >
+            >
+            ["openEHR-EHR-GENERIC_ENTRY.Partogram.v1"] = <
+                term_definitions = <
+                    ["sv"] = <
+                        ["at0000"] = <
+                            text = <"PartogramGenericEntry">
+                        >
+                        ["at0001"] = <
+                            text = <"pgr_id">
+                            description = <"pgr_id">
+                        >
+                        ["at0002"] = <
+                            text = <"Tree">
+                            description = <"@ internal @">
+                        >
+                        ["at0003"] = <
+                            text = <"Vtf_id">
+                            description = <"Vtf_id">
+                        >
+                        ["at0004"] = <
+                            text = <"Starttid">
+                            description = <"Starttid">
+                        >
+                        ["at0005"] = <
+                            text = <"Makulerat">
+                            description = <"Makulerat">
+                        >
+                        ["at0006"] = <
+                            text = <"VisaStL">
+                            description = <"VisaStL">
+                        >
+                        ["at0007"] = <
+                            text = <"SupportLineConvergenceDateTime">
+                            description = <"SupportLineConvergenceDateTime">
+                        >
+                        ["at0008"] = <
+                            text = <"StartAnv_id">
+                            description = <"StartAnv_id">
+                        >
+                        ["at0009"] = <
+                            text = <"Sluttid">
+                            description = <"Sluttid">
+                        >
+                        ["at0010"] = <
+                            text = <"SlutAnv_id">
+                            description = <"SlutAnv_id">
+                        >
+                        ["at0011"] = <
+                            text = <"SparaBjudningMellanSes">
+                            description = <"SparaBjudningMellanSes">
+                        >
+                        ["at0012"] = <
+                            text = <"SparaRotationMellanSes">
+                            description = <"SparaRotationMellanSes">
+                        >
+                        ["at0013"] = <
+                            text = <"WaterFromFv1Lock">
+                            description = <"WaterFromFv1Lock">
+                        >
+                        ["at0014"] = <
+                            text = <"IsFirstTimeMother">
+                            description = <"IsFirstTimeMother">
+                        >
+                        ["at0015"] = <
+                            text = <"SupportLineConvergencePointCm">
+                            description = <"SupportLineConvergencePointCm">
+                        >
+                        ["at0016"] = <
+                            text = <"VersionIdWhenFirstSaved">
+                            description = <"VersionIdWhenFirstSaved">
+                        >
+                        ["at0017"] = <
+                            text = <"HourThresholdForProlongedAmnioticFluidDischarge">
+                            description = <"HourThresholdForProlongedAmnioticFluidDischarge">
+                        >
+                        ["at0018"] = <
+                            text = <"SignParto">
+                            description = <"Signerade partogram">
+                        >
+                        ["at0019"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0020"] = <
+                            text = <"Anv_id">
+                            description = <"Anv_id">
+                        >
+                        ["at0021"] = <
+                            text = <"Sign_Tid">
+                            description = <"Sign_Tid">
+                        >
+                        ["at0022"] = <
+                            text = <"pgr_id">
+                            description = <"pgr_id">
+                        >
+                        ["at0023"] = <
+                            text = <"RegisteredByProfessionalRoleId">
+                            description = <"RegisteredByProfessionalRoleId">
+                        >
+                        ["at0024"] = <
+                            text = <"RegisteredOnUnitId">
+                            description = <"RegisteredOnUnitId">
+                        >
+                        ["at0025"] = <
+                            text = <"Vattenavgang">
+                            description = <"Vattenavgång för ett partogram, från Vattenavgangs">
+                        >
+                        ["at0026"] = <
+                            text = <"Vtn_id">
+                            description = <"Vtn_id">
+                        >
+                        ["at0027"] = <
+                            text = <"Typ">
+                            description = <"Typ">
+                        >
+                        ["at0028"] = <
+                            text = <"Blodning">
+                            description = <"Blodning">
+                        >
+                        ["at0029"] = <
+                            text = <"Mekoniumfargad">
+                            description = <"Mekoniumfargad">
+                        >
+                        ["at0030"] = <
+                            text = <"Illaluktande">
+                            description = <"Illaluktande">
+                        >
+                        ["at0031"] = <
+                            text = <"VattenAmni">
+                            description = <"VattenAmni">
+                        >
+                        ["at0032"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0033"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0034"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0035"] = <
+                            text = <"Blodning">
+                            description = <"Blödningar för ett partogram, från Blodnings">
+                        >
+                        ["at0036"] = <
+                            text = <"Blo_id">
+                            description = <"Blo_id">
+                        >
+                        ["at0037"] = <
+                            text = <"Typ">
+                            description = <"Typ">
+                        >
+                        ["at0038"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0039"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0040"] = <
+                            text = <"Blodtryck">
+                            description = <"Blodtryck för ett partogram, från Blodtrycks">
+                        >
+                        ["at0041"] = <
+                            text = <"Blt_id">
+                            description = <"Blt_id">
+                        >
+                        ["at0042"] = <
+                            text = <"Systoliskt">
+                            description = <"Systoliskt">
+                        >
+                        ["at0043"] = <
+                            text = <"Diastoliskt">
+                            description = <"Diastoliskt">
+                        >
+                        ["at0044"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0045"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0046"] = <
+                            text = <"Pul">
+                            description = <"Blodtryck för ett partogram, från Puls">
+                        >
+                        ["at0047"] = <
+                            text = <"Puls_id">
+                            description = <"Puls_id">
+                        >
+                        ["at0048"] = <
+                            text = <"Puls">
+                            description = <"Puls">
+                        >
+                        ["at0049"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0050"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0051"] = <
+                            text = <"Temperatur">
+                            description = <"Temperatur för ett partogram, från Temperaturs">
+                        >
+                        ["at0052"] = <
+                            text = <"Temp_id">
+                            description = <"Temp_id">
+                        >
+                        ["at0053"] = <
+                            text = <"Temperatur1">
+                            description = <"Temperatur1">
+                        >
+                        ["at0054"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0055"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0056"] = <
+                            text = <"Station">
+                            description = <"Station för ett partogram, från Stations">
+                        >
+                        ["at0057"] = <
+                            text = <"Stn_id">
+                            description = <"Stn_id">
+                        >
+                        ["at0058"] = <
+                            text = <"Hojd">
+                            description = <"Hojd">
+                        >
+                        ["at0059"] = <
+                            text = <"Rotation">
+                            description = <"Rotation">
+                        >
+                        ["at0060"] = <
+                            text = <"Bjudning">
+                            description = <"Bjudning">
+                        >
+                        ["at0061"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0062"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0063"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0064"] = <
+                            text = <"AnnanMed">
+                            description = <"AnnanMed för ett partogram">
+                        >
+                        ["at0065"] = <
+                            text = <"Anm_id">
+                            description = <"Anm_id">
+                        >
+                        ["at0066"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0067"] = <
+                            text = <"Preparat">
+                            description = <"Preparat">
+                        >
+                        ["at0068"] = <
+                            text = <"Dos">
+                            description = <"Dos">
+                        >
+                        ["at0069"] = <
+                            text = <"Koncentration">
+                            description = <"Koncentration">
+                        >
+                        ["at0070"] = <
+                            text = <"Mangd">
+                            description = <"Mangd">
+                        >
+                        ["at0071"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0072"] = <
+                            text = <"OrdAnv_id">
+                            description = <"OrdAnv_id">
+                        >
+                        ["at0073"] = <
+                            text = <"PrescribedByProfessionalRoleId">
+                            description = <"PrescribedByProfessionalRoleId">
+                        >
+                        ["at0074"] = <
+                            text = <"PrescribedOnUnitId">
+                            description = <"PrescribedOnUnitId">
+                        >
+                        ["at0075"] = <
+                            text = <"Cervix">
+                            description = <"Cervix för ett partogram">
+                        >
+                        ["at0076"] = <
+                            text = <"Cervix_id">
+                            description = <"Cervix_id">
+                        >
+                        ["at0077"] = <
+                            text = <"Utplanad">
+                            description = <"Utplanad">
+                        >
+                        ["at0078"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0079"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0080"] = <
+                            text = <"Ctg">
+                            description = <"Ctg för ett partogram">
+                        >
+                        ["at0081"] = <
+                            text = <"Ctg_id">
+                            description = <"Ctg_id">
+                        >
+                        ["at0082"] = <
+                            text = <"Typ">
+                            description = <"Typ">
+                        >
+                        ["at0083"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0084"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0085"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0086"] = <
+                            text = <"Dropp">
+                            description = <"Dropp för ett partogram">
+                        >
+                        ["at0087"] = <
+                            text = <"Dropp_id">
+                            description = <"Dropp_id">
+                        >
+                        ["at0088"] = <
+                            text = <"Koncentration">
+                            description = <"Koncentration">
+                        >
+                        ["at0089"] = <
+                            text = <"Mangd">
+                            description = <"Mangd">
+                        >
+                        ["at0090"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0091"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0092"] = <
+                            text = <"Drf_id">
+                            description = <"Drf_id">
+                        >
+                        ["at0093"] = <
+                            text = <"Flj">
+                            description = <"Flj för ett partogram">
+                        >
+                        ["at0094"] = <
+                            text = <"Flj_id">
+                            description = <"Flj_id">
+                        >
+                        ["at0095"] = <
+                            text = <"Typ">
+                            description = <"Typ">
+                        >
+                        ["at0096"] = <
+                            text = <"Slag_per_minut">
+                            description = <"Slag_per_minut">
+                        >
+                        ["at0097"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0098"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0099"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0100"] = <
+                            text = <"Infusion">
+                            description = <"Infusion för ett partogram">
+                        >
+                        ["at0101"] = <
+                            text = <"Inf_id">
+                            description = <"Inf_id">
+                        >
+                        ["at0102"] = <
+                            text = <"Koncentration">
+                            description = <"Koncentration">
+                        >
+                        ["at0103"] = <
+                            text = <"Mangd">
+                            description = <"Mangd">
+                        >
+                        ["at0104"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0105"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0106"] = <
+                            text = <"Dos">
+                            description = <"Dos">
+                        >
+                        ["at0107"] = <
+                            text = <"Ipr_id">
+                            description = <"Ipr_id">
+                        >
+                        ["at0108"] = <
+                            text = <"AnnatPreparat">
+                            description = <"AnnatPreparat">
+                        >
+                        ["at0109"] = <
+                            text = <"AnnatPreparatKort">
+                            description = <"AnnatPreparatKort">
+                        >
+                        ["at0110"] = <
+                            text = <"Linje_id">
+                            description = <"Linje_id">
+                        >
+                        ["at0111"] = <
+                            text = <"Avslut">
+                            description = <"Avslut">
+                        >
+                        ["at0112"] = <
+                            text = <"MangdSomGattIn">
+                            description = <"MangdSomGattIn">
+                        >
+                        ["at0113"] = <
+                            text = <"OrdAnv_id">
+                            description = <"OrdAnv_id">
+                        >
+                        ["at0114"] = <
+                            text = <"StaendeOrd">
+                            description = <"StaendeOrd">
+                        >
+                        ["at0115"] = <
+                            text = <"PrescribedByProfessionalRoleId">
+                            description = <"PrescribedByProfessionalRoleId">
+                        >
+                        ["at0116"] = <
+                            text = <"PrescribedOnUnitId">
+                            description = <"PrescribedOnUnitId">
+                        >
+                        ["at0117"] = <
+                            text = <"Iup">
+                            description = <"Iup för ett partogram">
+                        >
+                        ["at0118"] = <
+                            text = <"Iup_id">
+                            description = <"Iup_id">
+                        >
+                        ["at0119"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0120"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0121"] = <
+                            text = <"Typ">
+                            description = <"Typ">
+                        >
+                        ["at0122"] = <
+                            text = <"Kontraktion">
+                            description = <"Kontraktion för ett partogram">
+                        >
+                        ["at0123"] = <
+                            text = <"Kon_id">
+                            description = <"Kon_id">
+                        >
+                        ["at0124"] = <
+                            text = <"Styrka">
+                            description = <"Styrka">
+                        >
+                        ["at0125"] = <
+                            text = <"Kryst">
+                            description = <"Kryst">
+                        >
+                        ["at0126"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0127"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0128"] = <
+                            text = <"KontrText">
+                            description = <"KontrText">
+                        >
+                        ["at0129"] = <
+                            text = <"ContractionsPer10MinutesSingleValue">
+                            description = <"ContractionsPer10MinutesSingleValue">
+                        >
+                        ["at0130"] = <
+                            text = <"ContractionsPer10MinutesIntervalMin">
+                            description = <"ContractionsPer10MinutesIntervalMin">
+                        >
+                        ["at0131"] = <
+                            text = <"ContractionsPer10MinutesIntervalMax">
+                            description = <"ContractionsPer10MinutesIntervalMax">
+                        >
+                        ["at0132"] = <
+                            text = <"ContractionLengthInSeconds">
+                            description = <"ContractionLengthInSeconds">
+                        >
+                        ["at0133"] = <
+                            text = <"Laktat">
+                            description = <"Laktat för ett partogram">
+                        >
+                        ["at0134"] = <
+                            text = <"Lak_id">
+                            description = <"Lak_id">
+                        >
+                        ["at0135"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0136"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0137"] = <
+                            text = <"Varde">
+                            description = <"Varde">
+                        >
+                        ["at0138"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0139"] = <
+                            text = <"Livmodermun">
+                            description = <"Livmodermun för ett partogram">
+                        >
+                        ["at0140"] = <
+                            text = <"Livmm_id">
+                            description = <"Livmm_id">
+                        >
+                        ["at0141"] = <
+                            text = <"Oppningsgrad">
+                            description = <"Oppningsgrad">
+                        >
+                        ["at0142"] = <
+                            text = <"Retraherad">
+                            description = <"Retraherad">
+                        >
+                        ["at0143"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0144"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0145"] = <
+                            text = <"Notat">
+                            description = <"Notat för ett partogram">
+                        >
+                        ["at0146"] = <
+                            text = <"Not_id">
+                            description = <"Not_id">
+                        >
+                        ["at0147"] = <
+                            text = <"Notat1">
+                            description = <"Notat1">
+                        >
+                        ["at0148"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0149"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0150"] = <
+                            text = <"Ph">
+                            description = <"Ph för ett partogram">
+                        >
+                        ["at0151"] = <
+                            text = <"Ph_id">
+                            description = <"Ph_id">
+                        >
+                        ["at0152"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0153"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0154"] = <
+                            text = <"Varde">
+                            description = <"Varde">
+                        >
+                        ["at0155"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0156"] = <
+                            text = <"Segment">
+                            description = <"Segment för ett partogram">
+                        >
+                        ["at0157"] = <
+                            text = <"Seg_id">
+                            description = <"Seg_id">
+                        >
+                        ["at0158"] = <
+                            text = <"Andel">
+                            description = <"Andel">
+                        >
+                        ["at0159"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0160"] = <
+                            text = <"Foster_nr">
+                            description = <"Foster_nr">
+                        >
+                        ["at0161"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0162"] = <
+                            text = <"SignPartoJournal">
+                            description = <"SignPartoJournal för ett partogram">
+                        >
+                        ["at0163"] = <
+                            text = <"Spj_id">
+                            description = <"Spj_id">
+                        >
+                        ["at0164"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0165"] = <
+                            text = <"Ant_id">
+                            description = <"Ant_id">
+                        >
+                        ["at0166"] = <
+                            text = <"Smartlindring">
+                            description = <"Smartlindring för ett partogram">
+                        >
+                        ["at0167"] = <
+                            text = <"Sma_id">
+                            description = <"Sma_id">
+                        >
+                        ["at0168"] = <
+                            text = <"Styrka">
+                            description = <"Styrka">
+                        >
+                        ["at0169"] = <
+                            text = <"Dos">
+                            description = <"Dos">
+                        >
+                        ["at0170"] = <
+                            text = <"Avslut">
+                            description = <"Avslut">
+                        >
+                        ["at0171"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0172"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0173"] = <
+                            text = <"Linje_id">
+                            description = <"Linje_id">
+                        >
+                        ["at0174"] = <
+                            text = <"TypAvSmartlindring">
+                            description = <"TypAvSmartlindring">
+                        >
+                        ["at0175"] = <
+                            text = <"Preparat">
+                            description = <"Preparat">
+                        >
+                        ["at0176"] = <
+                            text = <"PreparatKort">
+                            description = <"PreparatKort">
+                        >
+                        ["at0177"] = <
+                            text = <"OrdAnv_id">
+                            description = <"OrdAnv_id">
+                        >
+                        ["at0178"] = <
+                            text = <"GivAnv_id">
+                            description = <"GivAnv_id">
+                        >
+                        ["at0179"] = <
+                            text = <"Kod">
+                            description = <"Kod">
+                        >
+                        ["at0180"] = <
+                            text = <"StaendeOrd">
+                            description = <"StaendeOrd">
+                        >
+                        ["at0181"] = <
+                            text = <"PrescribedByProfessionalRoleId">
+                            description = <"PrescribedByProfessionalRoleId">
+                        >
+                        ["at0182"] = <
+                            text = <"PrescribedOnUnitId">
+                            description = <"PrescribedOnUnitId">
+                        >
+                        ["at0183"] = <
+                            text = <"Smartpav">
+                            description = <"Smartpav för ett partogram">
+                        >
+                        ["at0184"] = <
+                            text = <"Smp_id">
+                            description = <"Smp_id">
+                        >
+                        ["at0185"] = <
+                            text = <"Tidpunkt">
+                            description = <"Tidpunkt">
+                        >
+                        ["at0186"] = <
+                            text = <"Snp_id">
+                            description = <"Snp_id">
+                        >
+                        ["at0187"] = <
+                            text = <"Varde">
+                            description = <"Varde">
+                        >
+                    >
+                >
+            >
+        >
+

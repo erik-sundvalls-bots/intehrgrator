@@ -6,11 +6,12 @@ Template id: `Partogram.v1`.
 
 | File | Use |
 |------|-----|
-| `partogram.v1.wt.json` | Load this as the target. Web template of the resolved operational template. The template's primary language is English; Swedish labels are in the document. |
+| `partogram.v1.wt.json` | Load this as the Web Template target. Web template of the resolved operational template. The template's primary language is English; Swedish labels are in the document. |
+| `partogram.v1.opt2` | The same operational template as OPT2 (ADL2). Template id stays `Partogram.v1`. At-code lists are separate terms (`[at0010], [at0011]`). |
 | `partogram.v1.fileset.json` | The closure (`sourceUrl`, `rootPath`, `files`). Re-resolve with `scaffoldClinicalModelFileset`. |
-| `partogram.v1.opt` | OPT XML from the same resolver. Archetype term definitions are not in this export, so node labels collapse to at-codes. Load the Web Template when labels matter. |
+| `partogram.v1.opt` | OPT XML from the same resolver. Archetype term definitions are not in this export, so node labels collapse to at-codes. Load the Web Template or the OPT2 when labels matter. |
 
-The generic-entry source schema stays in `../source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt`. FLAT examples for that template are in `../source-instance/`.
+The generic-entry source schema is `../source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt`, with `.opt2` and `.wt.json` beside it. Examples for that template are in `../source-instance/` (`*.flat.json` and `*.canonical.json`).
 
 **Upstream** (branch `Obstetrix-openEHR`):
 

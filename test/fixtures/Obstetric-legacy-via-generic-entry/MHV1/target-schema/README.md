@@ -6,7 +6,8 @@ Template id: `MHV1- Prenatal visit.encounter.v1`.
 
 | File | Use |
 |------|-----|
-| `mhv1-prenatal-visit.encounter.v1.wt.json` | Load this as the target. Web template of the resolved operational template, including Swedish labels. |
+| `mhv1-prenatal-visit.encounter.v1.wt.json` | Load this as the Web Template target. Web template of the resolved operational template, including Swedish labels. |
+| `mhv1-prenatal-visit.encounter.v1.opt2` | The same operational template as OPT2 (ADL2). Template id stays `MHV1- Prenatal visit.encounter.v1`. At-code lists are separate terms (`[at0010], [at0011]`). |
 | `mhv1-prenatal-visit.encounter.v1.fileset.json` | The closure (`sourceUrl`, `rootPath`, `files`). Re-resolve with `scaffoldClinicalModelFileset`. |
 
 An OPT XML export from the same resolver omits archetype term definitions, so node labels collapse to at-codes. That export is not stored.
