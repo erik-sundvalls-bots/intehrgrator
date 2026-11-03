@@ -78,7 +78,7 @@ prose, CSV, HTML, JSON, XML, or another non-openEHR format.
 VMS-Hbs lives on a **Handlebars text block** (`text_handlebars`) whose SCRIPT is
 typically a **Code text block** (LANG = Handlebars). Loading a free-form `.hbs`
 target seeds that product. Convert accepts the ADR 0009 whitelist (`if`,
-`unless`, `each`, `eq`, `ne`, `lt`, `gt`, `lte`, `gte`, `and`, `or`,
+`unless`, `each`, `eq`, `ne`, `lt`, `gt`, `lte`, `gte`, `inc`, `dec`, `and`, `or`,
 `toLowerCase`, `toUpperCase`, `slot`) and rejects `#with` / `lookup` / `#log`
 / partials. `{{slot "target-slot-id"}}` reads Mapping Model slot values.
 

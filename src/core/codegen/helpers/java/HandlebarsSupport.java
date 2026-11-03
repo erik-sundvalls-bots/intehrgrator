@@ -17,6 +17,9 @@ public final class HandlebarsSupport {
       engine.registerHelper("gt", (ctx, options) -> compareNumbers(ctx, options.param(0)) > 0);
       engine.registerHelper("lte", (ctx, options) -> compareNumbers(ctx, options.param(0)) <= 0);
       engine.registerHelper("gte", (ctx, options) -> compareNumbers(ctx, options.param(0)) >= 0);
+      // Kintegrate: inc (v) -> v + 1 (JavaScript +; a string concatenates), dec (v) -> v - 1.
+      engine.registerHelper("inc", (ctx, options) -> inc(ctx));
+      engine.registerHelper("dec", (ctx, options) -> dec(ctx));
       engine.registerHelper("and", (ctx, options) -> {
         if (!IntehrgratorRuntime.asBoolean(ctx)) return false;
         for (Object arg : options.params) if (!IntehrgratorRuntime.asBoolean(arg)) return false;
@@ -41,5 +44,41 @@ public final class HandlebarsSupport {
 
   private static int compareNumbers(Object left, Object right) {
     return Double.compare(IntehrgratorRuntime.toDouble(left), IntehrgratorRuntime.toDouble(right));
+  }
+
+  /** JavaScript `value + 1`. A CharSequence concatenates; everything else is numeric. */
+  private static Object inc(Object value) {
+    if (value instanceof CharSequence text) return text.toString() + "1";
+    return jsAdd(value, 1);
+  }
+
+  /** JavaScript `value - 1` (always numeric, including numeric strings). */
+  private static Object dec(Object value) {
+    return jsAdd(value, -1);
+  }
+
+  private static Object jsAdd(Object value, int delta) {
+    if (value instanceof Boolean flag) return (flag ? 1 : 0) + delta;
+    double n = jsToNumber(value);
+    double sum = n + delta;
+    if (Double.isNaN(sum) || Double.isInfinite(sum)) return sum;
+    if (sum == Math.rint(sum) && sum >= Integer.MIN_VALUE && sum <= Integer.MAX_VALUE) {
+      return (int) sum;
+    }
+    return sum;
+  }
+
+  /** JavaScript ToNumber for null, booleans, numbers, and strings. */
+  private static double jsToNumber(Object value) {
+    if (value == null) return 0d;
+    if (value instanceof Boolean flag) return flag ? 1d : 0d;
+    if (value instanceof Number number) return number.doubleValue();
+    String text = String.valueOf(value).trim();
+    if (text.isEmpty()) return 0d;
+    try {
+      return Double.parseDouble(text);
+    } catch (NumberFormatException e) {
+      return Double.NaN;
+    }
   }
 }
