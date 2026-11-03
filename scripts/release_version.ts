@@ -84,11 +84,12 @@ export function promoteUnreleasedChangelog(
   const rest = lines.slice(end);
   const headingRe = new RegExp(`^## \\[${escapeRegExp(version)}\\b`);
   const existingIdx = rest.findIndex((line) => headingRe.test(line));
+  const between = existingIdx > 0 ? rest.slice(0, existingIdx) : [];
   const tail = existingIdx >= 0 ? rest.slice(existingIdx + 1) : rest;
   while (tail.length > 0 && tail[0].trim() === "") tail.shift();
 
   const promoted = existingIdx >= 0
-    ? [rest[existingIdx], "", notes, "", ...tail]
+    ? [...between, rest[existingIdx], "", notes, "", ...tail]
     : ["", `## [${version}] - ${isoDate}`, "", notes, "", ...tail];
   if (promoted[0]?.trim() !== "") promoted.unshift("");
 
