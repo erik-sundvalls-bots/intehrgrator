@@ -28,7 +28,7 @@ Deno.test("a context map that covers the product tree pushes the tree below it",
     { x: 20, y: 20, width: 280, height: 400 },
     { x: 20, y: 196, width: 640, height: 900 },
   );
-  assertEquals(shift, { dx: 0, dy: 20 + 400 + 16 - 196 });
+  assertEquals(shift, { dx: 0, dy: 240 });
 });
 
 Deno.test("a product tree already clear of the context map stays put", () => {
@@ -54,8 +54,7 @@ Deno.test("a product tree that only clips the context map's right edge moves rig
     { x: 20, y: 20, width: 200, height: 100 },
     { x: 180, y: 20, width: 400, height: 120 },
   );
-  assertEquals(shift.dy, 0);
-  assertEquals(shift.dx, 20 + 200 + 16 - 180);
+  assertEquals(shift, { dx: 56, dy: 0 });
 });
 
 Deno.test("Conversion start parks above the root using start height, not root height", () => {

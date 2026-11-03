@@ -18,9 +18,7 @@ Deno.test("sheet columns fill the pane when content is narrower, favouring wider
     contentWidths: [100, 100, 300],
     availablePx: 800,
   });
-  assertEquals(widths.reduce((sum, width) => sum + width, 0), 800);
-  assertEquals(widths[2]! > widths[0]!, true);
-  assertEquals(widths[0]! > 100, true);
+  assertEquals(widths, [160, 160, 480]);
 });
 
 Deno.test("sheet columns honour the minimum width and an empty grid", () => {
@@ -34,7 +32,7 @@ Deno.test("decision-table content width follows the longest cell, not a fixed 12
     [["true", "Fraktionsdos: {{fraktionsdos}} mg"]],
     { headerPad: 48 },
   );
-  assertEquals(widths[0]! > 72, true);
-  assertEquals(widths[1]! > widths[0]!, true);
-  assertEquals(widths[1]! > 120, true);
+  // "has_fraktion" is 12 characters at 8px plus the 48px header pad.
+  // The snippet cell is 33 characters at 8px plus the 28px cell pad.
+  assertEquals(widths, [144, 292]);
 });

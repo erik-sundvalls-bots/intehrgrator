@@ -7,15 +7,9 @@
 /** Short headers stay clickable, including the decision-table cog. */
 export const SHEET_COLUMN_MIN_PX = 72;
 
-/** One huge cell does not force a multi-thousand-pixel column. */
-export const SHEET_COLUMN_CONTENT_CAP_PX = 960;
-
 export function estimateCellWidthPx(text: string, pxPerChar = 8, pad = 28): number {
   const longest = String(text).split("\n").reduce((max, line) => Math.max(max, line.length), 0);
-  return Math.min(
-    SHEET_COLUMN_CONTENT_CAP_PX,
-    Math.max(SHEET_COLUMN_MIN_PX, Math.ceil(longest * pxPerChar + pad)),
-  );
+  return Math.max(SHEET_COLUMN_MIN_PX, Math.ceil(longest * pxPerChar + pad));
 }
 
 /** Preferred width of each column from its header and cell text. */
@@ -48,7 +42,7 @@ export function sheetColumnWidths(input: {
   const min = input.minPx ?? SHEET_COLUMN_MIN_PX;
   const preferred = input.contentWidths.map((width) => {
     const value = Number.isFinite(width) ? width : min;
-    return Math.max(min, Math.min(SHEET_COLUMN_CONTENT_CAP_PX, Math.ceil(value)));
+    return Math.max(min, Math.ceil(value));
   });
   if (preferred.length === 0) return [];
   const sum = preferred.reduce((total, width) => total + width, 0);
