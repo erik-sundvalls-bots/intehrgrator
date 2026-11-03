@@ -90,6 +90,7 @@ import {
   enforceConversionStartUniqueness,
   CONVERSION_START_TYPE,
   hydrateDefaultsMapArgument,
+  separateContextMapFromProductTree,
   serializeDefaultsMapArgument,
   applyDefaultContextMap,
   setDefaultsMapPickHandler,
@@ -1347,6 +1348,7 @@ async function bootBlockly(): Promise<void> {
     if (event.type === Blockly.Events.FINISHED_LOADING || event.isUiEvent) return;
     if (suppressBlocklyModelSync || applyingDocumentUndo) return;
     if (!isSemanticBlocklyEvent(event)) return;
+    separateContextMapFromProductTree(workspace);
     lastSemanticEventSummary = summarizeBlocklyEvent(event);
     persistBlocklyCanvas({ summary: lastSemanticEventSummary });
   });
@@ -2051,9 +2053,27 @@ function applyPendingDefaultsMap(): boolean {
   if (!pending) return false;
   runWithoutBlocklyEvents(() => {
     hydrateDefaultsMapArgument(workspace, pending, blocklyLocale, targetFormatOf(controller.getState()));
+    separateContextMapFromProductTree(workspace);
   });
   persistBlocklyCanvas();
   return true;
+}
+
+let contextMapClearFrame = 0;
+
+/** Re-measure after the browser has laid out the blocks. Headless workspaces report no size and stay put. */
+function scheduleContextMapClearance(): void {
+  if (typeof requestAnimationFrame !== "function") return;
+  if (contextMapClearFrame) cancelAnimationFrame(contextMapClearFrame);
+  contextMapClearFrame = requestAnimationFrame(() => {
+    contextMapClearFrame = requestAnimationFrame(() => {
+      contextMapClearFrame = 0;
+      if (!workspace) return;
+      if (separateContextMapFromProductTree(workspace)) {
+        persistBlocklyCanvas({ notify: false });
+      }
+    });
+  });
 }
 
 function applyDefaultContextMapFromCanvas(): void {
@@ -2171,6 +2191,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       });
       lockWorkspaceRootsExpanded(workspace);
       refreshAiReviewMarkers(workspace);
+      separateContextMapFromProductTree(workspace);
       blocklySkeletonKey = skeletonKey;
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
@@ -2192,6 +2213,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
         );
       }
       applyPendingDefaultsMap();
+      scheduleContextMapClearance();
       return;
     } else {
       const hadPending = applyPendingDefaultsMap();
@@ -2226,6 +2248,8 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
     blocklyLabelLanguage = labelLanguage;
     blocklySlotSignature = slotSignature;
     applyPendingDefaultsMap();
+    separateContextMapFromProductTree(workspace);
+    scheduleContextMapClearance();
     return;
   }
 

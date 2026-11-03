@@ -46,6 +46,7 @@ import {
   attachDefaultPointLookups,
   captureDefaultsBlockState,
   placeDefaultsBesideSkeleton,
+  separateContextMapFromProductTree,
   restoreDefaultsBlockState,
 } from "./defaults_canvas.ts";
 import { attachStartToInstanceRoot } from "./conversion_start_canvas.ts";
@@ -124,6 +125,7 @@ export function loadSkeletonIntoWorkspace(
     highlightListeningSlot(workspace, listeningSlotId);
     refreshWorkspaceLayout(workspace);
     refreshWorkspaceConstraints(workspace);
+    separateContextMapFromProductTree(workspace);
   });
 }
 

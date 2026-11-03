@@ -130,6 +130,7 @@ export {
   findDefaultsBlock,
   hydrateDefaultsMapArgument,
   placeDefaultsBesideSkeleton,
+  separateContextMapFromProductTree,
   restoreDefaultsBlockState,
   serializeDefaultsMapArgument,
 } from "./defaults_canvas.ts";
