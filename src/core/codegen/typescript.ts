@@ -584,7 +584,7 @@ function typescriptHelperWrappers(helpers: Set<string>, body: string): string[] 
 const PRUNE_TREE_TYPES = new Set(["ITEM_TREE", "ITEM_LIST", "CLUSTER"]);
 
 /** Value set of a coded node: the template list, else the openEHR RM terminology group. */
-function codedChoicesForNode(node: SkeletonNode): Array<[string, string, string]> {
+export function codedChoicesForNode(node: SkeletonNode): Array<[string, string, string]> {
   const allowed = (node.allowedValues ?? []).filter((row) => row.code);
   if (allowed.length) return allowed.map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
   const rm = terminologyValuesForSlot(node.slotId);

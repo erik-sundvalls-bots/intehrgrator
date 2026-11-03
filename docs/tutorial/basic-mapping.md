@@ -36,7 +36,7 @@ Click **+ Add Example** and pick one or more JSON or XML instance files (or a Gi
 
 ## Load a target
 
-In **Target & Previews**, click **Load target & default context map**. Pick a target (file, URL, or one already loaded). You can attach a **default context map** now, or skip that and read [Default context](default-context.md) later.
+In **Target & Previews**, click **Load target & default context map**. Pick a target (a schema or template file, a URL, one already loaded, or a minimal JSON, XML, or text example). You can attach a **default context map** now, or skip that and read [Default context](default-context.md) later.
 
 Confirm scaffolds the **Template Skeleton**. **New** loads the target into the **Target schema** tab only, so you can pull chips onto the canvas and then Apply.
 
@@ -46,6 +46,7 @@ Supported targets:
 - JSON Schema
 - XML Schema (XSD)
 - Free-form text (no schema; Handlebars, decision-table snippets, and other text blocks)
+- Minimal JSON, XML, or text example (no schema file; a conversion start sits above a small document)
 
 An openEHR template becomes a **Template Skeleton**: nested Blockly blocks for the clinical model, including silent-mandatory RM fields the template file does not mention.
 

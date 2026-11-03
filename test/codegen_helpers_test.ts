@@ -124,6 +124,10 @@ Deno.test("import specifiers resolve to GitHub source pages", () => {
     resolveImportHref("se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime") ?? "",
     "IntehrgratorRuntime.java",
   );
+  assertStringIncludes(
+    resolveImportHref("se.regionstockholm.intehrgrator.runtime.CodedTextSupport") ?? "",
+    "CodedTextSupport.java",
+  );
   const src = 'import { COMPOSITION } from "ehrtslib/openehr_rm.ts";\n';
   const spans = importLinkSpans(src);
   assertEquals(spans.length, 1);

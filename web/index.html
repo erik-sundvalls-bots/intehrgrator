@@ -750,6 +750,22 @@
       </p>
       <fieldset class="joint-load-fieldset">
         <legend data-i18n="targetLegend">Target</legend>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="schema" checked />
+          <span data-i18n="schemalessSchema">Schema, template, or file</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="json" />
+          <span data-i18n="schemalessJson">Minimal JSON example</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="xml" />
+          <span data-i18n="schemalessXml">Minimal XML example</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="text" />
+          <span data-i18n="schemalessText">Minimal text example</span>
+        </label>
         <p id="joint-target-summary" class="joint-load-summary" data-i18n="noTargetYet">No target selected yet.</p>
         <div class="dialog-actions">
           <button type="button" id="joint-target-file" data-i18n="fromFile">From file…</button>

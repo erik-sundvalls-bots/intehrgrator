@@ -2,10 +2,13 @@
 
 Notable changes per release, newest first. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions are the desktop / web app versions (tags `vX.Y.Z`, with `X.Y.0` tagged `vX.Y`). Each release's frozen web app is at `https://regionstockholm.github.io/intehrgrator/<tag>/`.
 
-Add an entry under **Unreleased** in every feature or fix PR that changes user-visible behaviour; the release PR renames it to the new version.
+Add an entry under **Unreleased** in every feature or fix PR that changes user-visible behaviour; `deno task release` moves it into the version it tags.
 
 ## [Unreleased]
 
+- **Schema-less target** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#198](https://github.com/regionstockholm/intehrgrator/issues/198)): Load target & default context map can start from a minimal JSON, XML, or text example. A conversion start sits above that document, and the default context map you picked still applies.
+- **Java conversion scripts** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#333](https://github.com/regionstockholm/intehrgrator/issues/333)): generic lists use the reference-model element type, identifiers call `setId`, counts use `long`, and nodes that are not LOCATABLE omit the archetype node id. Coded text follows the template value set, and a quantity with units but no magnitude is left out, as in TypeScript.
+- **Desktop dev window** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#334](https://github.com/regionstockholm/intehrgrator/issues/334)): `deno task desktop` includes the workbench files, so the Linux window can start, and flags after `--` (`--headless`, `--load`, `--language-plugin`, and the rest) reach the app.
 - **Attach original target format too** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): the AI menu and the chat copy menu use that label in English, Swedish, German, Spanish, Catalan, and French.
 - **Sheets and decision tables use the pane** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): columns follow their text and fill leftover width, and the sheet tabs use the full toolbar and scroll when the names do not fit.
 - **Context map stays off the target tree** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): after the canvas is measured, the product tree moves clear of the default context map instead of being drawn on top of it.
@@ -238,7 +241,9 @@ Minor release: one shared, append-only change history for you, the AI chat and M
 
 - First web app and core modules ([#2](https://github.com/regionstockholm/intehrgrator/pull/2)): Click-to-Map ([#4](https://github.com/regionstockholm/intehrgrator/pull/4)), source format handlers ([#5](https://github.com/regionstockholm/intehrgrator/pull/5)), Mapping Spec download / upload ([#7](https://github.com/regionstockholm/intehrgrator/pull/7)), readable TypeScript codegen ([#9](https://github.com/regionstockholm/intehrgrator/pull/9)).
 
-[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.11...main
+[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.13...main
+[0.13.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.13
+[0.12.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.12
 [0.11.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.11
 [0.10.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.10
 [0.9.2]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.9.2

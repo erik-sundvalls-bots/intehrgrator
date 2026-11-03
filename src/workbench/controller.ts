@@ -163,6 +163,11 @@ import {
   type UrlHistoryKind,
 } from "../host/url_history.ts";
 import { seedHandlebarsProductOnCanvas } from "../core/output/canvas_handlebars_seed.ts";
+import {
+  schemalessExampleSpec,
+  seedMinimalExample,
+  type SchemalessExampleKind,
+} from "../core/output/canvas_example_seed.ts";
 import type { TaskProgress, TaskStepState } from "./task_progress.ts";
 
 export type { TaskProgress, TaskProgressStep, TaskStepState } from "./task_progress.ts";
@@ -465,6 +470,34 @@ export class WorkbenchController {
       detectTargetFormat(filename, stripBom(content)),
       "browse",
     );
+  }
+
+  /**
+   * Start from a minimal JSON, XML, or text document (#198).
+   * Leaves a queued default context map in place for the canvas to hydrate.
+   */
+  startSchemalessTarget(kind: SchemalessExampleKind): void {
+    const spec = schemalessExampleSpec(kind);
+    this.target = {
+      format: spec.format,
+      filename: spec.filename,
+      targetId: spec.targetId,
+      content: spec.content,
+      skeleton: [],
+    };
+    this.templateContent = spec.content;
+    this.templateFilename = spec.filename;
+    this.templateId = spec.targetId;
+    this.targetOriginUrl = null;
+    this.skeleton = [];
+    this.model = createEmptyModel(spec.targetId);
+    this.model.targetFormat = spec.format;
+    this.handlebarsTemplate = "";
+    this.blocklyState = seedMinimalExample(kind);
+    this.blocklyReloadToken += 1;
+    this.refreshDerived();
+    this.statusMessage = `Loaded ${spec.format} target ${spec.targetId}`;
+    this.markDirty();
   }
 
   /**

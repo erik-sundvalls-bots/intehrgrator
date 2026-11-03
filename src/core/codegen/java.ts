@@ -11,6 +11,7 @@
 import type { MappingFunction, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
 import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
 import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
+import { attributesFor, baseRmTypeName, isAbstractType, isSubtypeOf, resolveGenericSlotType } from "../rm_meta.ts";
 import {
   propsLackClinicalContent,
   rmArchetypeNodeId,
@@ -18,7 +19,7 @@ import {
 } from "../openehr/rm_archetype_node_id.ts";
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
 import { namedLoopBinding } from "../named_loop_path.ts";
-import { isListAttribute } from "./typescript.ts";
+import { codedChoicesForNode, isListAttribute } from "./typescript.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
@@ -27,9 +28,19 @@ import {
   jsFunctionIdent,
   valueFunctions,
 } from "./user_functions.ts";
-import { JAVA_HANDLEBARS_BLOB, JAVA_RUNTIME_BLOB } from "./helpers/locations.ts";
+import { JAVA_CODED_TEXT_BLOB, JAVA_HANDLEBARS_BLOB, JAVA_RUNTIME_BLOB } from "./helpers/locations.ts";
 
 const GENERIC_RM = new Set(["HISTORY", "POINT_EVENT", "INTERVAL_EVENT", "EVENT"]);
+
+/**
+ * Archie classes that cannot be constructed. Archetypes often leave the slot
+ * at the abstract parent (`EVENT` = any event); the concrete sibling is what
+ * `new` can call.
+ */
+const CONCRETE_RM: Record<string, string> = {
+  EVENT: "POINT_EVENT",
+  ITEM_STRUCTURE: "ITEM_TREE",
+};
 
 /** Matches the desktop app identifier in deno.json (`se.regionstockholm.intehrgrator`). */
 const JAVA_GENERATED_PACKAGE = "se.regionstockholm.intehrgrator.generated";
@@ -52,6 +63,7 @@ const JAVA_PACKAGES: Record<string, string> = {
   Composition: "com.nedap.archie.rm.composition",
   EventContext: "com.nedap.archie.rm.composition",
   Section: "com.nedap.archie.rm.composition",
+  ContentItem: "com.nedap.archie.rm.composition",
   Observation: "com.nedap.archie.rm.composition",
   Evaluation: "com.nedap.archie.rm.composition",
   Instruction: "com.nedap.archie.rm.composition",
@@ -71,6 +83,7 @@ const JAVA_PACKAGES: Record<string, string> = {
   IntervalEvent: "com.nedap.archie.rm.datastructures",
   Event: "com.nedap.archie.rm.datastructures",
   Item: "com.nedap.archie.rm.datastructures",
+  ItemStructure: "com.nedap.archie.rm.datastructures",
   DvText: "com.nedap.archie.rm.datavalues",
   DvCodedText: "com.nedap.archie.rm.datavalues",
   DvBoolean: "com.nedap.archie.rm.datavalues",
@@ -121,7 +134,8 @@ export type JavaHelper =
   | "logic"
   | "rm"
   | "flatten"
-  | "handlebars";
+  | "handlebars"
+  | "coded";
 
 export interface JavaEmitContext {
   sourceVar: string;
@@ -153,6 +167,175 @@ export function javaClassName(rmType: string): string {
 export function javaSetterName(attr: string): string {
   const camel = attr.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
   return "set" + camel.charAt(0).toUpperCase() + camel.slice(1);
+}
+
+/** LOCATABLE (BMM ancestry). ISM_TRANSITION and EVENT_CONTEXT are not. */
+function emitsArchetypeNodeId(rmType: string): boolean {
+  try {
+    return rmType === "LOCATABLE" || isSubtypeOf(rmType, "LOCATABLE");
+  } catch {
+    return LOCATABLE_TYPES.has(rmType);
+  }
+}
+
+function splitTypeArgs(args: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < args.length; i++) {
+    const c = args[i];
+    if (c === "<") depth++;
+    else if (c === ">") depth--;
+    else if (c === "," && depth === 0) {
+      out.push(args.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  const last = args.slice(start).trim();
+  if (last) out.push(last);
+  return out;
+}
+
+/** Archie type name for a BMM type (`EVENT<T>` → `Event<ItemStructure>`). */
+function javaRmType(owner: string, typeName: string): string {
+  const trimmed = typeName.trim();
+  const genericAt = trimmed.indexOf("<");
+  if (genericAt > 0 && trimmed.endsWith(">")) {
+    const raw = trimmed.slice(0, genericAt);
+    const args = splitTypeArgs(trimmed.slice(genericAt + 1, -1));
+    return `${javaClassName(raw)}<${args.map((arg) => javaRmType(raw, arg)).join(", ")}>`;
+  }
+  if (trimmed === "T") return javaClassName(resolveGenericSlotType(owner, trimmed));
+  return javaClassName(trimmed);
+}
+
+/**
+ * Element type of a BMM `List<…>` attribute.
+ * Missing attributes (OBSERVATION.events is not on the class) stay unwrapped.
+ */
+function javaListElementType(parentRm: string, attr: string): string | null {
+  try {
+    const meta = attributesFor(parentRm).find((item) => item.name === attr);
+    if (!meta?.typeName.startsWith("List<") || !meta.typeName.endsWith(">")) return null;
+    return javaRmType(parentRm, meta.typeName.slice("List<".length, -1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Java lists are invariant. `List<PointEvent<ItemStructure>>` is not a
+ * `List<Event<ItemStructure>>`, and `new PointEvent<>()` does not infer its
+ * parameter unless the stream map has a type witness.
+ * Nested streams are already witnessed, so only this list's own depth changes.
+ */
+/** Import Archie classes named in a type witness (`Event<ItemStructure>`). */
+function concreteRmType(rmType: string): string {
+  const substitute = CONCRETE_RM[rmType];
+  if (!substitute) return rmType;
+  try {
+    return isAbstractType(rmType) ? substitute : rmType;
+  } catch {
+    return substitute;
+  }
+}
+
+/**
+ * A CLUSTER in an ITEM_STRUCTURE socket is the template shape for
+ * other_context and protocol. Archie types that attribute as ItemStructure,
+ * so the assignment goes through Object.
+ */
+function adaptAssignedValue(
+  parentRm: string,
+  attr: string,
+  childRm: string,
+  code: string,
+  ctx: JavaEmitContext,
+): string {
+  try {
+    const meta = attributesFor(parentRm).find((item) => item.name === attr);
+    if (!meta || meta.typeName.startsWith("List<")) return code;
+    const targetRm = resolveGenericSlotType(parentRm, baseRmTypeName(meta.typeName));
+    if (childRm === targetRm || isSubtypeOf(childRm, targetRm)) return code;
+    const javaType = javaRmType(parentRm, meta.typeName);
+    const raw = javaType.replace(/<.*/, "");
+    if (!JAVA_PACKAGES[raw]) return code;
+    noteImportedJavaType(ctx, javaType);
+    return `((${javaType}) (Object) (${code}))`;
+  } catch {
+    return code;
+  }
+}
+
+function noteImportedJavaType(ctx: JavaEmitContext, javaType: string): void {
+  for (const name of javaType.match(/[A-Z][A-Za-z0-9]*/g) ?? []) {
+    if (!JAVA_PACKAGES[name]) continue;
+    const overridden = Object.entries(JAVA_CLASS_OVERRIDES).find(([, cls]) => cls === name)?.[0];
+    const rm = overridden ?? name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toUpperCase();
+    ctx.types.add(rm);
+  }
+}
+
+function widenJavaList(code: string, element: string): string {
+  const trimmed = code.trimStart();
+  const depth = trimmed.startsWith("flatten(") ? 1 : 0;
+  return `new java.util.ArrayList<${element}>(${witnessListExpr(code, element, depth)})`;
+}
+
+function witnessListExpr(code: string, element: string, depth: number): string {
+  const stream = ".stream().map(";
+  const listOf = "java.util.List.of(";
+  let out = "";
+  let i = 0;
+  let d = 0;
+  let inString = false;
+  while (i < code.length) {
+    const c = code[i]!;
+    if (inString) {
+      out += c;
+      if (c === "\\") {
+        const next = code[i + 1];
+        if (next !== undefined) {
+          out += next;
+          i += 2;
+          continue;
+        }
+      }
+      if (c === '"') inString = false;
+      i++;
+      continue;
+    }
+    if (c === '"') {
+      inString = true;
+      out += c;
+      i++;
+      continue;
+    }
+    if (d === depth && code.startsWith(stream, i)) {
+      out += `.stream().<${element}>map(`;
+      i += stream.length;
+      d++;
+      continue;
+    }
+    if (d === depth && code.startsWith(listOf, i)) {
+      out += `java.util.List.<${element}>of(`;
+      i += listOf.length;
+      d++;
+      continue;
+    }
+    if (c === "(") d++;
+    else if (c === ")") d--;
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+function javaChoicesLiteral(choices: Array<[string, string, string]>): string {
+  const rows = choices.map(([code, rubric, term]) =>
+    `{${JSON.stringify(code)}, ${JSON.stringify(rubric)}, ${JSON.stringify(term)}}`
+  );
+  return `new String[][]{${rows.join(", ")}}`;
 }
 
 function javaIdent(raw: string, fallback = "item"): string {
@@ -481,11 +664,12 @@ function formatRmConstruct(
     ctx.types.add("PARTY_SELF");
     return "new PartySelf()";
   }
-  ctx.types.add(rmType);
-  const compact = compactConstruct(rmType, props, ctx);
+  const constructType = concreteRmType(rmType);
+  ctx.types.add(constructType);
+  const compact = compactConstruct(constructType, props, ctx);
   if (compact) return compact;
-  const cls = javaClassName(rmType);
-  const diamond = GENERIC_RM.has(rmType) ? "<>" : "";
+  const cls = javaClassName(constructType);
+  const diamond = GENERIC_RM.has(constructType) || GENERIC_RM.has(rmType) ? "<>" : "";
   if (!props.length) return `new ${cls}${diamond}()`;
   const ident = freshIdent(ctx, rmType);
   const inner = indent + 1;
@@ -763,7 +947,7 @@ function skeletonContainerProps(
     ]);
   }
   const nodeId = rmArchetypeNodeId(node, parentArchetypeRef);
-  if (nodeId) {
+  if (nodeId && emitsArchetypeNodeId(node.rmType)) {
     props.push(["archetype_node_id", JSON.stringify(nodeId)]);
   }
   const childArchetypeRef = node.archetypeRef ?? parentArchetypeRef;
@@ -779,41 +963,46 @@ function skeletonContainerProps(
 
   for (const [attr, children] of grouped) {
     const listAttr = isListAttribute(node.rmType, attr);
-    const codes = children
-      .map((child) =>
-        emitSkeletonNode(
+    const emitted = children
+      .map((child) => ({
+        rmType: child.rmType,
+        code: emitSkeletonNode(
           child,
           slots,
           loops,
           ctx,
           listAttr ? indent + 2 : indent + 1,
           childArchetypeRef,
-        )
-      )
-      .filter((code): code is string => Boolean(code) && !isBlankGeneratedExpr(code));
-    if (!codes.length) continue;
+        ),
+      }))
+      .filter((item): item is { rmType: string; code: string } =>
+        Boolean(item.code) && !isBlankGeneratedExpr(item.code!)
+      );
+    if (!emitted.length) continue;
+    const codes = emitted.map((item) => item.code);
     const streamed = codes.some((c) => c.includes(".stream().map("));
     const asList = listAttr || streamed;
+    let value: string;
     if (asList) {
       if (codes.length === 1 && streamed) {
-        props.push([attr, codes[0]!]);
+        value = codes[0]!;
       } else if (streamed) {
         ctx.helpers.add("flatten");
         const inner = codes.map((c) => indentBlock(c, indent + 2)).join(",\n");
-        props.push([
-          attr,
-          `flatten(\n${inner}\n${"  ".repeat(indent + 1)})`,
-        ]);
+        value = `flatten(\n${inner}\n${"  ".repeat(indent + 1)})`;
       } else {
         const inner = codes.map((c) => indentBlock(c, indent + 2)).join(",\n");
-        props.push([
-          attr,
-          `java.util.List.of(\n${inner}\n${"  ".repeat(indent + 1)})`,
-        ]);
+        value = `java.util.List.of(\n${inner}\n${"  ".repeat(indent + 1)})`;
+      }
+      const element = javaListElementType(node.rmType, attr);
+      if (element) {
+        noteImportedJavaType(ctx, element);
+        value = widenJavaList(value, element);
       }
     } else {
-      props.push([attr, codes[0]!]);
+      value = adaptAssignedValue(node.rmType, attr, emitted[0]!.rmType, codes[0]!, ctx);
     }
+    props.push([attr, value]);
   }
   return props;
 }
@@ -863,19 +1052,30 @@ function emitSkeletonValue(
         JSON.stringify(`${term}::${code}`)
       })`;
     }
-    if (expr) return `new DvCodedText(${asStringExpr(expr)}, new CodePhrase())`;
+    if (expr) {
+      const choices = codedChoicesForNode(node);
+      if (choices.length) {
+        ctx.helpers.add("coded");
+        return `codedText(${expr}, ${javaChoicesLiteral(choices)})`;
+      }
+      return `new DvCodedText(${asStringExpr(expr)}, new CodePhrase())`;
+    }
     return null;
   }
 
   if (rmType === "DV_QUANTITY") {
-    const props: Array<[string, string]> = [];
-    if (expr) props.push(["magnitude", asDoubleExpr(expr)]);
+    if (!expr) return null;
+    const props: Array<[string, string]> = [["magnitude", asDoubleExpr(expr)]];
     if (fields.units) props.push(["units", JSON.stringify(fields.units)]);
-    if (!props.length) return null;
     return formatRmConstruct("DV_QUANTITY", props, indent, ctx);
   }
 
-  if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
+  if (rmType === "DV_COUNT") {
+    if (!expr) return null;
+    return formatRmConstruct(rmType, [["magnitude", `(long) ${asDoubleExpr(expr)}`]], indent, ctx);
+  }
+
+  if (rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
     return formatRmConstruct(rmType, [["magnitude", asDoubleExpr(expr)]], indent, ctx);
   }
@@ -887,7 +1087,20 @@ function emitSkeletonValue(
 
   if (
     rmType === "DV_DATE_TIME" || rmType === "DV_DATE" || rmType === "DV_TIME" ||
-    rmType === "DV_DURATION" || rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
+    rmType === "DV_DURATION"
+  ) {
+    const value = expr
+      ? asStringExpr(expr)
+      : fields.value
+      ? JSON.stringify(fields.value)
+      : null;
+    if (!value) return null;
+    ctx.types.add(rmType);
+    return `new ${javaClassName(rmType)}(${value})`;
+  }
+
+  if (
+    rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
     rmType === "DV_TEXT" || rmType === "DV_IDENTIFIER"
   ) {
     const value = expr
@@ -899,6 +1112,9 @@ function emitSkeletonValue(
     if (rmType === "DV_TEXT") {
       ctx.types.add("DV_TEXT");
       return `new DvText(${value})`;
+    }
+    if (rmType === "DV_IDENTIFIER") {
+      return formatRmConstruct(rmType, [["id", value]], indent, ctx);
     }
     return formatRmConstruct(rmType, [["value", value]], indent, ctx);
   }
@@ -968,6 +1184,9 @@ function wrapJavaModule(parts: JavaModuleParts): string {
     ...(parts.helpers.has("handlebars")
       ? [`// VMS-Hbs render via com.github.jknack.handlebars: ${JAVA_HANDLEBARS_BLOB}`]
       : []),
+    ...(parts.helpers.has("coded")
+      ? [`// Coded text value-set lookup (Archie): ${JAVA_CODED_TEXT_BLOB}`]
+      : []),
     parts.source === "skeleton"
       ? "// Source: Template Skeleton + Mapping Model expressions"
       : parts.source === "blockly"
@@ -1014,6 +1233,9 @@ function wrapJavaModule(parts: JavaModuleParts): string {
     ),
     ...(parts.helpers.has("handlebars")
       ? ["import static se.regionstockholm.intehrgrator.runtime.HandlebarsSupport.handlebars;"]
+      : []),
+    ...(parts.helpers.has("coded")
+      ? ["import static se.regionstockholm.intehrgrator.runtime.CodedTextSupport.codedText;"]
       : []),
     "",
     "public class ConversionScript {",
