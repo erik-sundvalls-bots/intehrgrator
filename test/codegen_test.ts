@@ -230,6 +230,159 @@ Deno.test("java codegen emits source-node for_each_list iteration with relative 
   assertStringIncludes(java, 'ig.xpathNumber("pulse", measurements)');
   assertStringIncludes(java, "new PointEvent<>()");
   assertStringIncludes(java, 'new DvQuantity("/min", ig.xpathNumber("pulse", measurements), null)');
+  assertEquals(java.includes("ArrayList<"), false);
+});
+
+function container(
+  slotId: string,
+  rmType: string,
+  children: Array<Record<string, unknown>>,
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    slotId,
+    blockType: rmType.toLowerCase(),
+    rmType,
+    label: rmType,
+    kind: "container",
+    mandatory: true,
+    children,
+    ...extra,
+  };
+}
+
+function valueNode(
+  slotId: string,
+  rmType: string,
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    slotId,
+    blockType: rmType.toLowerCase(),
+    rmType,
+    label: rmType,
+    kind: "value",
+    mandatory: true,
+    children: [],
+    ...extra,
+  };
+}
+
+Deno.test("java list attributes use the BMM element type", () => {
+  let model = createEmptyModel("series");
+  model = upsertLoop(model, {
+    attachSlotId: "evt",
+    varName: "measurements",
+    path: "$.measurements",
+    kind: "source",
+  });
+  model = applyExpressionEdit(model, "rate", 'xpathNumber("pulse")', {
+    rmType: "DV_QUANTITY",
+    returnType: "number",
+  });
+  const skeleton = [container("hist", "HISTORY", [
+    container("evt", "POINT_EVENT", [
+      valueNode("rate", "DV_QUANTITY", { rmAttribute: "data", fixedFields: { units: "/min" } }),
+    ], { rmAttribute: "events" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, "new java.util.ArrayList<Event<ItemStructure>>(");
+  assertStringIncludes(java, ".stream().<Event<ItemStructure>>map(measurements ->");
+  assertStringIncludes(java, "new PointEvent<>()");
+});
+
+Deno.test("java composition content widens Section to ContentItem", () => {
+  let model = createEmptyModel("note");
+  model = applyExpressionEdit(model, "text", '"hello"', { rmType: "DV_TEXT", returnType: "string" });
+  const skeleton = [container("comp", "COMPOSITION", [
+    container("sec", "SECTION", [
+      container("el", "ELEMENT", [
+        valueNode("text", "DV_TEXT", { rmAttribute: "value" }),
+      ], { rmAttribute: "items" }),
+    ], { rmAttribute: "content" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, "new java.util.ArrayList<ContentItem>(");
+  assertStringIncludes(java, "java.util.List.<ContentItem>of(");
+  const cluster = generate(
+    applyExpressionEdit(createEmptyModel("cluster"), "text", '"hello"', {
+      rmType: "DV_TEXT",
+      returnType: "string",
+    }),
+    "java",
+    {
+      skeleton: [container("cl", "CLUSTER", [
+        container("el", "ELEMENT", [
+          valueNode("text", "DV_TEXT", { rmAttribute: "value" }),
+        ], { rmAttribute: "items" }),
+      ])] as never,
+    },
+  );
+  assertStringIncludes(cluster, "new java.util.ArrayList<Item>(");
+  assertStringIncludes(cluster, "java.util.List.<Item>of(");
+});
+
+Deno.test("java ISM_TRANSITION does not call setArchetypeNodeId", () => {
+  let model = createEmptyModel("action");
+  model = applyExpressionEdit(model, "state", '"at0016"', { rmType: "DV_CODED_TEXT", returnType: "string" });
+  const skeleton = [container("act", "ACTION", [
+    container("ism", "ISM_TRANSITION", [
+      valueNode("state", "DV_CODED_TEXT", {
+        rmAttribute: "current_state",
+        allowedValues: [{ code: "at0016", label: "planned", terminologyId: "openehr" }],
+      }),
+    ], { rmAttribute: "ism_transition", archetypeNodeId: "at0016" }),
+  ], { archetypeNodeId: "at0001" })];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, "new IsmTransition()");
+  assertEquals(java.includes("ismTransition.setArchetypeNodeId"), false);
+  assertStringIncludes(java, "action.setArchetypeNodeId(");
+});
+
+Deno.test("java DvIdentifier uses setId and DvCount uses long", () => {
+  let model = createEmptyModel("ids");
+  model = applyExpressionEdit(model, "id", '"abc"', { rmType: "DV_IDENTIFIER", returnType: "string" });
+  model = applyExpressionEdit(model, "count", 'xpathNumber("$.n")', { rmType: "DV_COUNT", returnType: "number" });
+  const skeleton = [container("comp", "COMPOSITION", [
+    container("el1", "ELEMENT", [
+      valueNode("id", "DV_IDENTIFIER", { rmAttribute: "value" }),
+    ], { rmAttribute: "content" }),
+    container("el2", "ELEMENT", [
+      valueNode("count", "DV_COUNT", { rmAttribute: "value" }),
+    ], { rmAttribute: "content" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, '.setId("abc")');
+  assertStringIncludes(java, ".setMagnitude((long) ig.xpathNumber(");
+  assertEquals(java.includes("dvIdentifier.setValue"), false);
+});
+
+Deno.test("java coded text looks up the value set and omits an empty quantity", () => {
+  let model = createEmptyModel("bp");
+  model = applyExpressionEdit(model, "pos", 'xpathString("$.position")', {
+    rmType: "DV_CODED_TEXT",
+    returnType: "string",
+  });
+  const skeleton = [container("obs", "OBSERVATION", [
+    container("pulse", "POINT_EVENT", [
+      valueNode("rate", "DV_QUANTITY", { rmAttribute: "data", fixedFields: { units: "/min" } }),
+    ], { rmAttribute: "events" }),
+    container("el", "ELEMENT", [
+      valueNode("pos", "DV_CODED_TEXT", {
+        rmAttribute: "value",
+        allowedValues: [{ code: "at1001", label: "Sitting", terminologyId: "local" }],
+      }),
+    ], { rmAttribute: "protocol" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, 'codedText(ig.xpathString("$.position")');
+  assertStringIncludes(java, 'new String[][]{{"at1001", "Sitting", "local"}}');
+  assertStringIncludes(
+    java,
+    "import static se.regionstockholm.intehrgrator.runtime.CodedTextSupport.codedText;",
+  );
+  assertEquals(java.includes('new DvQuantity("/min"'), false);
+  assertEquals(java.includes("new CodePhrase()"), false);
 });
 
 Deno.test("java codegen from BP skeleton emits Archie RM constructors", async () => {

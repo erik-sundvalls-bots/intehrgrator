@@ -6,6 +6,7 @@ import {
   EHRTSLIB_BLOB_PREFIX,
   HELPERS_GITHUB_REF,
   HELPERS_GITHUB_REPO,
+  JAVA_CODED_TEXT_BLOB,
   JAVA_HANDLEBARS_BLOB,
   JAVA_RUNTIME_BLOB,
 } from "./helpers/locations.ts";
@@ -41,6 +42,9 @@ export function resolveImportHref(specifier: string): string | undefined {
   if (spec in PACKAGE_BLOBS) return PACKAGE_BLOBS[spec];
   if (spec.startsWith("se.regionstockholm.intehrgrator.runtime.HandlebarsSupport")) {
     return JAVA_HANDLEBARS_BLOB;
+  }
+  if (spec.startsWith("se.regionstockholm.intehrgrator.runtime.CodedTextSupport")) {
+    return JAVA_CODED_TEXT_BLOB;
   }
   if (spec.startsWith("se.regionstockholm.intehrgrator.runtime.")) {
     return JAVA_RUNTIME_BLOB;

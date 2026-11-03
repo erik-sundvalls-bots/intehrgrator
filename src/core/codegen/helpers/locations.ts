@@ -21,6 +21,8 @@ export const JAVA_RUNTIME_BLOB =
   `${BLOB}/src/core/codegen/helpers/java/IntehrgratorRuntime.java`;
 export const JAVA_HANDLEBARS_BLOB =
   `${BLOB}/src/core/codegen/helpers/java/HandlebarsSupport.java`;
+export const JAVA_CODED_TEXT_BLOB =
+  `${BLOB}/src/core/codegen/helpers/java/CodedTextSupport.java`;
 
 export const XQUERY_SOURCE_NS =
   "https://github.com/regionstockholm/intehrgrator/ns/helpers/source";
