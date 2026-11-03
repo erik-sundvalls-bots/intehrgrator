@@ -6,7 +6,7 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
-- **Obstetric template formats**: each operational template under the obstetric generic-entry fixtures is also stored as OPT2 and as a Web Template. MHV1 and partogram examples are Simplified FLAT (`*.flat.json`) and Canonical JSON (`*.canonical.json`) in the same folders. Each example set uses one of those formats. The mapped MHV1 sets stay on Simplified FLAT and the prenatal-visit Web Template.
+- **Obstetric template formats** ([#343](https://github.com/regionstockholm/intehrgrator/pull/343)): each operational template under the obstetric generic-entry fixtures is also stored as OPT2 and as a Web Template. MHV1 and partogram examples are Simplified FLAT (`*.flat.json`) and Canonical JSON (`*.canonical.json`) in the same folders. Each example set uses one of those formats. The mapped MHV1 sets stay on Simplified FLAT and the prenatal-visit Web Template.
 - **GitHub Pages startup**: the web app asks for desktop language plugins only in the desktop app, so the browser no longer logs a 404 for `/api/v1/language-plugins` on the static site.
 - **Example set load**: conversion tests wait until the set has finished loading, and the conversion script is generated once.
 - **Obstetric partogram generic entry**: four FLAT partographs (a primip left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and thick meconium with a low scalp pH) load against `generic-obstetrix-partogram-v1`. The target is the resolved Partogram.v1 Web Template. There is no mapping yet.
