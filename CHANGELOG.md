@@ -6,7 +6,7 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
-- **Handlebars `inc` and `dec`** ([#339](https://github.com/regionstockholm/intehrgrator/issues/339)): `{{inc n}}` is one more than `n` and `{{dec n}}` is one less, as in Kintegrate (`{{inc @index}}` is a 1-based row number inside `#each`). Mapping preview and TypeScript, Java, XQuery, and Go Template output use the same helpers.
+- **Handlebars `inc` and `dec`** ([#342](https://github.com/regionstockholm/intehrgrator/pull/342), [#339](https://github.com/regionstockholm/intehrgrator/issues/339)): `{{inc n}}` is one more than `n` and `{{dec n}}` is one less, as in Kintegrate (`{{inc @index}}` is a 1-based row number inside `#each`). Mapping preview and TypeScript, Java, XQuery, and Go Template output use the same helpers.
 - **GitHub Pages startup**: the web app asks for desktop language plugins only in the desktop app, so the browser no longer logs a 404 for `/api/v1/language-plugins` on the static site.
 - **Example set load**: conversion tests wait until the set has finished loading, and the conversion script is generated once.
 - **Obstetric partogram generic entry**: four FLAT partographs (a primip left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and thick meconium with a low scalp pH) load against `generic-obstetrix-partogram-v1`. The target is the resolved Partogram.v1 Web Template. There is no mapping yet.
