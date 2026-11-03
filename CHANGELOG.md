@@ -6,9 +6,9 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
-- **Attach original target format too** ([#290](https://github.com/regionstockholm/intehrgrator/issues/290)): the AI menu and the chat copy menu use that label in English, Swedish, German, Spanish, Catalan, and French.
-- **Sheets and decision tables use the pane** ([#290](https://github.com/regionstockholm/intehrgrator/issues/290)): columns follow their text and fill leftover width, and the sheet tabs use the full toolbar and scroll when the names do not fit.
-- **Context map stays off the target tree** ([#290](https://github.com/regionstockholm/intehrgrator/issues/290)): after the canvas is measured, the product tree moves clear of the default context map instead of being drawn on top of it.
+- **Attach original target format too** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): the AI menu and the chat copy menu use that label in English, Swedish, German, Spanish, Catalan, and French.
+- **Sheets and decision tables use the pane** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): columns follow their text and fill leftover width, and the sheet tabs use the full toolbar and scroll when the names do not fit.
+- **Context map stays off the target tree** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): after the canvas is measured, the product tree moves clear of the default context map instead of being drawn on top of it.
 - **GitHub Pages startup**: the web app asks for desktop language plugins only in the desktop app, so the browser no longer logs a 404 for `/api/v1/language-plugins` on the static site.
 - **Example set load**: conversion tests wait until the set has finished loading, and the conversion script is generated once.
 - **Obstetric partogram generic entry**: four FLAT partographs (a primip left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and thick meconium with a low scalp pH) load against `generic-obstetrix-partogram-v1`. The target is the resolved Partogram.v1 Web Template. There is no mapping yet.
