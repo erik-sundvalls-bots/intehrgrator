@@ -17,7 +17,13 @@ The value is an `https:`, `http:` or `file:` URL, or a local path resolved again
 INTEHR_LANGUAGE_PLUGINS=https://example.com/echo/manifest.json
 ```
 
-`deno task desktop` does not pass flags after `--` on to the app, so use the environment variable there:
+`deno task desktop` forwards flags after `--` (the native `deno desktop` process does not keep them as arguments):
+
+```bash
+deno task desktop -- --language-plugin examples/language-plugins/echo/manifest.json
+```
+
+The environment variable still works:
 
 ```bash
 INTEHR_LANGUAGE_PLUGINS=examples/language-plugins/echo/manifest.json deno task desktop

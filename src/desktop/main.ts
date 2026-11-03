@@ -98,6 +98,10 @@ export function envMap(): Record<string, string | undefined> {
     INTEHR_BIND: Deno.env.get("INTEHR_BIND"),
     INTEHR_AGENT_TOKEN: Deno.env.get("INTEHR_AGENT_TOKEN"),
     INTEHR_LANGUAGE_PLUGINS: Deno.env.get("INTEHR_LANGUAGE_PLUGINS"),
+    INTEHR_HELP: Deno.env.get("INTEHR_HELP"),
+    INTEHR_HEADLESS: Deno.env.get("INTEHR_HEADLESS"),
+    INTEHR_MCP: Deno.env.get("INTEHR_MCP"),
+    INTEHR_LOAD: Deno.env.get("INTEHR_LOAD"),
   };
 }
 

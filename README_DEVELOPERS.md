@@ -60,7 +60,7 @@ The UI **green-path** (`test/ui/green_path_test.ts`) walks load → Click-to-Map
 | `deno task test:xquery-engine` | Optional BaseX golden (`test/xquery_engine_test.ts`) |
 | `deno task lint` | `deno lint` on `src`, `test`, `scripts` |
 | `deno task check` | Type-check TypeScript sources |
-| `deno task desktop` | Build + run native window (`deno desktop`) |
+| `deno task desktop` | Build + run native window. Flags after `--` are forwarded (`--headless`, `--load`, `--language-plugin`, …) |
 | `deno task compile:desktop` | Platform binaries → `dist/release/` |
 | `deno task mcp` | Stdio MCP server for IDE agents (proxies to `INTEHR_AGENT_URL` or embeds a headless `WorkbenchService`) |
 | `deno task release -- --version X.Y.Z` | Bump, tag, push; CI publishes desktop + pinned Pages |

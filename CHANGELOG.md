@@ -6,6 +6,7 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Desktop dev window** ([#334](https://github.com/regionstockholm/intehrgrator/issues/334)): `deno task desktop` includes the workbench files, so the Linux window can start, and flags after `--` (`--headless`, `--load`, `--language-plugin`, and the rest) reach the app.
 - **Attach original target format too** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): the AI menu and the chat copy menu use that label in English, Swedish, German, Spanish, Catalan, and French.
 - **Sheets and decision tables use the pane** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): columns follow their text and fill leftover width, and the sheet tabs use the full toolbar and scroll when the names do not fit.
 - **Context map stays off the target tree** ([#344](https://github.com/regionstockholm/intehrgrator/pull/344), [#290](https://github.com/regionstockholm/intehrgrator/issues/290)): after the canvas is measured, the product tree moves clear of the default context map instead of being drawn on top of it.
