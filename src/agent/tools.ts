@@ -413,7 +413,8 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "generate_script",
-    description: "Generate a Conversion Script (typescript|java|handlebars|xquery|go-template). Optionally write to path.",
+    description:
+      "Generate a Conversion Script (typescript|java|handlebars|xquery|go-template, or a desktop plugin id from GET /api/v1/language-plugins). Optionally write to path.",
     inputSchema: {
       type: "object",
       required: ["language"],
@@ -847,11 +848,8 @@ export async function callAgentTool(
       };
     }
     case "generate_script": {
-      const language = String(args.language) as ConversionScriptLanguage;
-      if (!isConversionScriptLanguage(language)) {
-        throw new Error(`Unsupported conversion script language: ${language}`);
-      }
-      const generated = service.generateScript(language);
+      const language = String(args.language);
+      const generated = await service.generateScript(language);
       if (typeof args.path === "string") {
         await writeTextPath(args.path, generated.code);
         return {

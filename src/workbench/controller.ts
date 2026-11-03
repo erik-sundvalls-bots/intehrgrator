@@ -38,6 +38,10 @@ import {
   MAPPING_PREVIEW_SCRIPT_PLACEHOLDER,
   unimplementedTestRunMessage,
 } from "../types/mod.ts";
+import {
+  desktopPluginLanguage,
+  isDesktopPluginLanguage,
+} from "../core/codegen/language_plugin.ts";
 import { collectValueSlots, collectAllSlotIds, findSkeletonTrail, nearestRepeatingContainer, applyOptionalRmToSkeleton } from "../core/skeleton/generate_skeleton.ts";
 import {
   applyExpressionEdit,
@@ -229,6 +233,7 @@ export class WorkbenchController {
   private lastRefreshReport: RefreshDiffReport | null = null;
   private getBlocklyState: (() => unknown) | null = null;
   private debounceTimer: number | null = null;
+  private pluginGen = 0;
   private postLoadTimer: number | null = null;
   private autosaveTimer: number | null = null;
   private dirty = false;
@@ -1512,6 +1517,15 @@ export class WorkbenchController {
 
   exportTypeScript(): void {
     const mode = this.settings.exportTarget;
+    if (isDesktopPluginLanguage(mode)) {
+      const info = desktopPluginLanguage(mode);
+      void this.host.downloadText(
+        `conversion-${safeFilename(this.templateId)}.${info?.extension ?? "txt"}`,
+        this.generatedCode,
+        info?.mime ?? "text/plain",
+      );
+      return;
+    }
     if (!isConversionScriptLanguage(mode)) return;
     const adapter = getExportTargetAdapter(mode);
     const code = generate(this.model, mode, {
@@ -1896,8 +1910,15 @@ export class WorkbenchController {
     return artifacts;
   }
 
-  setExportTarget(target: OutputMode): void {
-    this.settings.exportTarget = target;
+  setExportTarget(target: string): void {
+    if (
+      target !== "preview" &&
+      !isConversionScriptLanguage(target) &&
+      !isDesktopPluginLanguage(target)
+    ) {
+      return;
+    }
+    this.settings.exportTarget = target as OutputMode;
     this.examples.clearCache();
     this.outputValidations.clear();
     this.exampleTestResults.clear();
@@ -2199,11 +2220,50 @@ export class WorkbenchController {
     this.outputValidations.clear();
   }
 
+  private queuePluginScript(language: string): void {
+    const request = ++this.pluginGen;
+    const info = desktopPluginLanguage(language);
+    this.generatedCode =
+      `// Loading ${info?.label ?? language}…\n`;
+    const gen = this.host.generateConversionScript;
+    if (!gen) {
+      this.generatedCode =
+        `// ${info?.label ?? language} is a desktop conversion-script plugin.\n` +
+        "// Open the project in the intEHRgrator desktop app with --language-plugin.\n";
+      return;
+    }
+    const model = this.model;
+    const options = {
+      handlebarsTemplate: this.handlebarsTemplate,
+      blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
+      skeleton: this.skeleton,
+      instanceShape: this.model.instanceEncodings?.length
+        ? instanceShapeForEncoding(preferredInstanceEncoding(this.model))
+        : this.settings.openEhrInstanceShape,
+      webTemplateJson: this.target?.webTemplateJson,
+    };
+    void gen.call(this.host, language, { model, options }).then((generated) => {
+      if (request !== this.pluginGen) return;
+      if (this.settings.exportTarget !== language) return;
+      this.generatedCode = generated.code;
+      this.notifyChange();
+    }).catch((err) => {
+      if (request !== this.pluginGen) return;
+      const detail = err instanceof Error ? err.message : String(err);
+      this.generatedCode = `// ${info?.label ?? language} failed: ${detail}\n`;
+      this.notifyChange();
+    });
+  }
+
   private refreshDerived(): void {
     this.applyTargetIdLanguage();
     // Spec view is widgets over the pretty Blockly JSON document.
     this.specText = formatBlocklyState(this.getBlocklyState?.() ?? this.blocklyState);
     const mode = this.settings.exportTarget;
+    if (isDesktopPluginLanguage(mode)) {
+      this.queuePluginScript(mode);
+      return;
+    }
     if (!isConversionScriptLanguage(mode)) {
       this.generatedCode = MAPPING_PREVIEW_SCRIPT_PLACEHOLDER;
       return;
@@ -2327,6 +2387,13 @@ export class WorkbenchController {
     example: { content: string; format: SourceFormatId },
   ): TestResult {
     const mode = this.settings.exportTarget;
+    if (isDesktopPluginLanguage(mode)) {
+      const label = desktopPluginLanguage(mode)?.label ?? mode;
+      const message =
+        `// ${label} generates a conversion script in the desktop app.\n` +
+        "// Conversion Test Run for a plugin language stays on Mapping preview.\n";
+      return { ok: false, output: message, error: message.trim(), warnings: [] };
+    }
     if (isConversionScriptLanguage(mode) && mode !== "typescript" && mode !== "handlebars" && mode !== "go-template" && mode !== "xquery") {
       const message = unimplementedTestRunMessage(mode);
       return {
