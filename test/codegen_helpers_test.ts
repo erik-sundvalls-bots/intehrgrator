@@ -15,6 +15,10 @@ import { xquerySourceModule, xqueryRmModule } from "@intehrgrator/core/codegen/x
 import { xquerySheetsModule } from "@intehrgrator/core/codegen/xquery_sheets.ts";
 import { TYPESCRIPT_HELPERS_SPECIFIER } from "@intehrgrator/core/codegen/helpers/locations.ts";
 
+function normalizeLf(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
 Deno.test("typescript helpers look up a sheet row and a decision table", () => {
   const sheets = {
     terms: {
@@ -99,9 +103,9 @@ Deno.test("generated XQuery imports helper modules instead of pasting them", asy
   assertStringIncludes(xq, 'import module namespace igsh =');
   assertEquals(xq.includes("declare function igsh:sheet-lookup"), false);
   const root = new URL("../src/core/codegen/helpers/xquery/", import.meta.url);
-  assertEquals(await Deno.readTextFile(new URL("source.xqm", root)), xquerySourceModule());
-  assertEquals(await Deno.readTextFile(new URL("rm.xqm", root)), xqueryRmModule());
-  assertEquals(await Deno.readTextFile(new URL("sheets.xqm", root)), xquerySheetsModule());
+  assertEquals(normalizeLf(await Deno.readTextFile(new URL("source.xqm", root))), xquerySourceModule());
+  assertEquals(normalizeLf(await Deno.readTextFile(new URL("rm.xqm", root))), xqueryRmModule());
+  assertEquals(normalizeLf(await Deno.readTextFile(new URL("sheets.xqm", root))), xquerySheetsModule());
 });
 
 Deno.test("import specifiers resolve to GitHub source pages", () => {
