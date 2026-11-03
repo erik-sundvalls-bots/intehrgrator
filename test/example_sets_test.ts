@@ -261,6 +261,7 @@ Deno.test("catalog titles put mapping state last with a shared family+route pref
     ["lung-mdt-form-to-tc-xml-unmapped", "lung-mdt-form-to-tc-xml", "lung-mdt-form-to-tc-xml-decision-tables"],
     ["karda-ordinationsdata-to-openehr-flat-unmapped", "karda-ordinationsdata-to-openehr-flat"],
     ["karda-administreringsdata-to-openehr-flat-unmapped", "karda-administreringsdata-to-openehr-flat"],
+    ["mhv1-generic-entry-to-prenatal-visit-unmapped", "mhv1-generic-entry-to-prenatal-visit"],
   ];
   for (const set of catalog.sets) {
     assertEquals(
@@ -299,6 +300,7 @@ Deno.test("catalog has an unmapped and a mapped Example Set for each source sche
     ["lung-mdt-form-to-tc-xml-unmapped", "lung-mdt-form-to-tc-xml"],
     ["karda-ordinationsdata-to-openehr-flat-unmapped", "karda-ordinationsdata-to-openehr-flat"],
     ["karda-administreringsdata-to-openehr-flat-unmapped", "karda-administreringsdata-to-openehr-flat"],
+    ["mhv1-generic-entry-to-prenatal-visit-unmapped", "mhv1-generic-entry-to-prenatal-visit"],
   ];
   for (const [unmappedId, mappedId] of pairs) {
     const unmapped = catalog.sets.find((set) => set.id === unmappedId);

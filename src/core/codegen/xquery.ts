@@ -781,7 +781,7 @@ export function jsonDollarPathToLookup(path: string, root = "$source"): string |
   let expr = root;
   for (const seg of segments) {
     if (seg === "*") expr += "?*";
-    else if (/^\d+$/.test(seg)) expr += `?${seg}`;
+    else if (/^\d+$/.test(seg)) expr += `?${seg === "0" ? "1" : seg}`;
     else if (/^[\p{L}_][\p{L}\p{N}_]*$/u.test(seg)) expr += `?${seg}`;
     else expr += `?(${xqString(seg)})`;
   }

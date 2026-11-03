@@ -261,6 +261,13 @@ function jsonAt(path: string, root: unknown): unknown {
 }
 
 function xpathEval(expr: string, ctx: SourceContext, type: string): unknown {
+  const value = xpathEvalRaw(expr, ctx, type);
+  if (type !== "boolean") return value;
+  if (Array.isArray(value)) return value.map((item) => booleanValue(item));
+  return booleanValue(value);
+}
+
+function xpathEvalRaw(expr: string, ctx: SourceContext, type: string): unknown {
   if (ctx.kind === "json") {
     const trimmed = expr.trim();
     const named = namedJsonRoot(trimmed, ctx);
@@ -409,17 +416,28 @@ function changeCase(value: unknown, mode: string): string {
 function coerceReturn(value: unknown, returnType: string): unknown {
   if (returnType === "node" || returnType === "source") return value;
   if (Array.isArray(value)) return value.map((item) => coerceReturn(item, returnType));
+  // A boolean source block is the cast. Absence is false, the same as XPath
+  // boolean() and Handlebars {{#if}}: a missing path, null, or "" is false;
+  // any other string (including the word "false") is true. Number 0 is false.
+  // Callers do not need a ternary that rewrites the boolean into true/false.
+  if (returnType === "boolean") return booleanValue(value);
   if (value === null || value === undefined) return value;
   // Keep `map(...)` records so DV_QUANTITY / DV_CODED_TEXT shells can unpack fields.
   if (typeof value === "object") return value;
   switch (returnType) {
     case "number":
       return Number(value);
-    case "boolean":
-      return Boolean(value);
     default:
       return String(value);
   }
+}
+
+function booleanValue(value: unknown): boolean {
+  if (value == null || value === "") return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0 && !Number.isNaN(value);
+  if (typeof value === "string") return true;
+  return true;
 }
 
 /** First node / subtree at a fontoxpath-authored path, as a Handlebars-friendly value. */

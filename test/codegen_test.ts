@@ -728,6 +728,74 @@ export function convertSourceToComposition() {
   assertEquals(body.includes("composer,"), false, body);
 });
 
+Deno.test("generated TypeScript treats authoring index 0 as the first element", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("items"),
+    "name",
+    'xpathString("$.items[0].name")',
+    { rmType: "string", returnType: "string", label: "Name" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [{ name: "first" }, { name: "second" }] },
+  });
+  assertStringIncludes(JSON.stringify(serializedConversionOutput(out)), "first");
+});
+
+Deno.test("generated TypeScript walks a missing JSON index instead of throwing", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("name"),
+    "name",
+    'xpathString("$.items[0].name")',
+    { rmType: "string", returnType: "string", label: "Name" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [] },
+  });
+  const text = JSON.stringify(serializedConversionOutput(out));
+  assertEquals(text.includes("undefined"), false);
+  assertEquals(text.includes("FOAY0001"), false);
+});
+
+Deno.test("generated TypeScript returns a JSON array from a node path", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("items"),
+    "items",
+    'xpathNode("$.items")',
+    { rmType: "string", returnType: "node", label: "Items" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [{ name: "first" }, { name: "second" }] },
+  });
+  const text = JSON.stringify(serializedConversionOutput(out));
+  assertStringIncludes(text, "first");
+  assertStringIncludes(text, "second");
+});
+
+Deno.test("generated TypeScript reads a quoted flat JSON key", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("flat"),
+    "magnitude",
+    "xpathString('$[\"vitals/systolic|magnitude\"]')",
+    { rmType: "string", returnType: "string", label: "Magnitude" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { "vitals/systolic|magnitude": 120 },
+  });
+  assertStringIncludes(JSON.stringify(serializedConversionOutput(out)), "120");
+});
+
 Deno.test("TypeScript Test Run xpath helpers coerce non-string paths", () => {
   const out = runGeneratedTypeScript(
     `
