@@ -251,6 +251,10 @@ export const en = {
   jointIntroHtml:
     "Pick a target and a default context map together. Confirm scaffolds the <strong>Template Skeleton</strong> and <strong>Default point</strong>s. <strong>New</strong> loads the target into the Target schema tab only so you can pull chips and values, then Apply on the canvas block.",
   targetLegend: "Target",
+  schemalessSchema: "Schema, template, or file",
+  schemalessJson: "Minimal JSON example",
+  schemalessXml: "Minimal XML example",
+  schemalessText: "Minimal text example",
   noTargetYet: "No target selected yet.",
   fromFile: "From file…",
   useLoadedTarget: "Use loaded target",

@@ -213,6 +213,10 @@ export const ca: ChromeMessages = {
   jointIntroHtml:
     "Tria una destinació i un mapa de context per defecte alhora. En confirmar es construeix l'<strong>esquelet de plantilla</strong> i els <strong>punts per defecte</strong>. <strong>Nou</strong> carrega la destinació només a la pestanya Esquema de destinació, perquè puguis agafar fitxes i valors i després prémer Aplica al bloc del llenç.",
   targetLegend: "Destinació",
+  schemalessSchema: "Esquema, plantilla o fitxer",
+  schemalessJson: "Exemple JSON mínim",
+  schemalessXml: "Exemple XML mínim",
+  schemalessText: "Exemple de text mínim",
   noTargetYet: "Encara no hi ha cap destinació seleccionada.",
   fromFile: "Des d'un fitxer…",
   useLoadedTarget: "Usa la destinació carregada",

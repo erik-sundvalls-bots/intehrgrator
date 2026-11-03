@@ -1,5 +1,6 @@
 import * as Blockly from "blockly/core";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
+import type { SchemalessExampleKind } from "../src/core/output/canvas_example_seed.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
 import { WorkbenchController } from "../src/workbench/controller.ts";
 import { setIdLanguageChangeGuard, setIdLanguageChoices } from "../src/blockly/field_id_language.ts";
@@ -3359,15 +3360,50 @@ function emptyContextMapJson(): Record<string, unknown> {
   return { type: "default_context_map", extraState: { itemCount: 0, targets: [] }, fields: {} };
 }
 
+function selectedJointTargetKind(): "schema" | SchemalessExampleKind {
+  const dialog = document.getElementById("dialog-joint-load");
+  const checked = dialog?.querySelector<HTMLInputElement>('input[name="joint-target-kind"]:checked');
+  const value = checked?.value;
+  if (value === "json" || value === "xml" || value === "text") return value;
+  return "schema";
+}
+
 function jointHasTarget(): boolean {
+  if (selectedJointTargetKind() !== "schema") return true;
   return Boolean(jointPendingTarget || controller.getState().templateId);
+}
+
+function refreshJointTargetSummary(): void {
+  const summary = document.getElementById("joint-target-summary");
+  if (!summary) return;
+  const kind = selectedJointTargetKind();
+  if (kind === "json") {
+    summary.textContent = uiChrome().schemalessJson;
+    return;
+  }
+  if (kind === "xml") {
+    summary.textContent = uiChrome().schemalessXml;
+    return;
+  }
+  if (kind === "text") {
+    summary.textContent = uiChrome().schemalessText;
+    return;
+  }
+  if (jointPendingTarget) {
+    summary.textContent = formatMessage(uiChrome().selectedFile, { name: jointPendingTarget.name });
+    return;
+  }
+  const state = controller.getState();
+  summary.textContent = state.templateId
+    ? formatMessage(uiChrome().loadedColon, { name: state.templateFilename || state.templateId })
+    : uiChrome().noTargetYet;
 }
 
 function syncJointConfirmButton(): void {
   const confirm = document.getElementById("joint-load-confirm") as HTMLButtonElement | null;
   if (!confirm) return;
   confirm.disabled = !jointHasTarget();
-  confirm.textContent = selectedJointMapChoice() === "new"
+  confirm.textContent = selectedJointTargetKind() === "schema" && selectedJointMapChoice() === "new"
     ? uiChrome().loadIntoSchema
     : uiChrome().loadAndScaffold;
 }
@@ -3385,9 +3421,11 @@ async function openJointLoadDialog(): Promise<void> {
   const fileOption = document.getElementById("joint-map-file-option");
   if (fileOption) fileOption.hidden = true;
   const state = controller.getState();
-  summary.textContent = state.templateId
-    ? formatMessage(uiChrome().loadedColon, { name: state.templateFilename || state.templateId })
-    : uiChrome().noTargetYet;
+  const schemaKind = dialog.querySelector<HTMLInputElement>(
+    'input[name="joint-target-kind"][value="schema"]',
+  );
+  if (schemaKind) schemaKind.checked = true;
+  refreshJointTargetSummary();
   if (useCurrent) useCurrent.hidden = !state.templateId;
   catalogEl.replaceChildren();
   try {
@@ -3421,7 +3459,8 @@ function selectedJointMapChoice(): string {
 
 async function confirmJointLoad(): Promise<void> {
   const dialog = document.getElementById("dialog-joint-load") as HTMLDialogElement | null;
-  if (!jointHasTarget()) {
+  const targetKind = selectedJointTargetKind();
+  if (targetKind === "schema" && !jointHasTarget()) {
     controller.setStatusMessage("Pick a target file or URL first.");
     return;
   }
@@ -3439,7 +3478,12 @@ async function confirmJointLoad(): Promise<void> {
   } else if (choice.startsWith("catalog:")) {
     mapBlock = await defaultsCatalog.load(choice.slice("catalog:".length));
   }
-  if (jointPendingTarget) {
+  if (targetKind !== "schema") {
+    controller.queuePendingDefaultsMap(mapBlock);
+    await withUndoableDocumentReplace(() => {
+      controller.startSchemalessTarget(targetKind);
+    });
+  } else if (jointPendingTarget) {
     controller.queuePendingDefaultsMap(mapBlock);
     if (isNew) {
       await withUndoableDocumentReplace(() => {
@@ -3486,18 +3530,22 @@ document.getElementById("joint-target-file")?.addEventListener("click", () => {
     );
     if (!file) return;
     jointPendingTarget = { name: file.name, text: file.text };
-    const summary = document.getElementById("joint-target-summary");
-    if (summary) summary.textContent = formatMessage(uiChrome().selectedFile, { name: file.name });
+    refreshJointTargetSummary();
     syncJointConfirmButton();
   })();
 });
 document.getElementById("joint-target-current")?.addEventListener("click", () => {
   jointPendingTarget = null;
-  const state = controller.getState();
+  const schemaKind = document.querySelector<HTMLInputElement>(
+    '#dialog-joint-load input[name="joint-target-kind"][value="schema"]',
+  );
+  if (schemaKind) schemaKind.checked = true;
+  refreshJointTargetSummary();
+  const loaded = controller.getState();
   const summary = document.getElementById("joint-target-summary");
-  if (summary) {
+  if (summary && loaded.templateId) {
     summary.textContent = formatMessage(uiChrome().usingLoaded, {
-      name: state.templateFilename || state.templateId,
+      name: loaded.templateFilename || loaded.templateId,
     });
   }
   syncJointConfirmButton();
@@ -3513,8 +3561,7 @@ document.getElementById("joint-target-url-load")?.addEventListener("click", () =
     try {
       const file = await host.fetchTextUrl(url);
       jointPendingTarget = { name: file.name, text: file.text };
-      const summary = document.getElementById("joint-target-summary");
-      if (summary) summary.textContent = formatMessage(uiChrome().fetchedFile, { name: file.name });
+      refreshJointTargetSummary();
       syncJointConfirmButton();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -3544,7 +3591,11 @@ document.getElementById("joint-load-cancel")?.addEventListener("click", () => {
 });
 document.getElementById("dialog-joint-load")?.addEventListener("change", (event) => {
   const target = event.target;
-  if (target instanceof HTMLInputElement && target.name === "joint-map") {
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.name === "joint-target-kind") {
+    refreshJointTargetSummary();
+    syncJointConfirmButton();
+  } else if (target.name === "joint-map") {
     syncJointConfirmButton();
   }
 });

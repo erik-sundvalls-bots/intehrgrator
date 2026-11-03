@@ -185,3 +185,36 @@ Deno.test({
     }
   },
 });
+
+Deno.test({
+  name: "UI: joint load minimal JSON scaffolds a conversion start and the factory map",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage();
+      await page.goto(`${baseUrl}/?testMode=1`, { waitUntil: "networkidle" });
+      await waitForTestApi(page);
+      await page.click("#btn-open-template");
+      await page.locator("#dialog-joint-load").waitFor({ state: "visible", timeout: 5_000 });
+      assertEquals(await page.locator("#joint-load-confirm").isDisabled(), true);
+      await page.locator('input[name="joint-target-kind"][value="json"]').click();
+      assertEquals(await page.locator("#joint-load-confirm").isDisabled(), false);
+      assertEquals(
+        (await page.locator("#joint-load-confirm").innerText()).trim(),
+        "Load & scaffold",
+      );
+      await page.click("#joint-load-confirm");
+      await page.locator("#dialog-joint-load").waitFor({ state: "hidden", timeout: 5_000 });
+      const snap = await getSnapshot(page);
+      const types = snap.blocklyBlocks.map((block) => block.type);
+      assert(types.includes("conversion_start"), types.join(","));
+      assert(types.includes("json_object"), types.join(","));
+      assert(types.includes("default_context_map"), types.join(","));
+      assertEquals(snap.templateId, "example-json");
+    } finally {
+      await browser.close();
+    }
+  },
+});

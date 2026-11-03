@@ -41,6 +41,10 @@ import {
 import { renderHandlebars } from "../output/handlebars_dialect.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import { renderXmlCanvasFromBlockly } from "../output/canvas_xml_runtime.ts";
+import {
+  renderJsonCanvasFromBlockly,
+  renderTextDocumentFromBlockly,
+} from "../output/canvas_example_runtime.ts";
 import { executeGoTemplate, isGoTemplateWasmLoaded } from "../output/go_template_runtime.ts";
 import { generateGoTemplate } from "../codegen/go_template.ts";
 import { DEFAULTS_MAP_NAME, namedMapsFromBlocklyState } from "../defaults/mod.ts";
@@ -273,22 +277,34 @@ export function runTest(
 
     let output: unknown;
     if (target?.format === "free-form") {
-      const canvasOutput = tryRunCanvasConversionScript(model, options, ctx, defaults);
-      if (canvasOutput) {
-        output = canvasOutput;
+      const textDocument = renderTextDocumentFromBlockly(options.blocklyState, ctx);
+      if (textDocument != null) {
+        output = textDocument;
       } else {
-        const template = options.handlebarsTemplate ?? target?.content ?? "";
-        output = renderHandlebars(template, ctx.data, { slots: slotValues });
+        const canvasOutput = tryRunCanvasConversionScript(model, options, ctx, defaults);
+        if (canvasOutput) {
+          output = canvasOutput;
+        } else {
+          const template = options.handlebarsTemplate ?? target?.content ?? "";
+          output = renderHandlebars(template, ctx.data, { slots: slotValues });
+        }
       }
     } else if (target) {
       // TakeCare / XSD canvases evaluate nested Code text the same way as
-      // Handlebars Output mode. JSON Schema and openEHR stay on slot-fill.
-      // Free-form Handlebars (no XML root) stays above.
+      // Handlebars Output mode. A schema-less JSON document (empty skeleton)
+      // renders from the canvas. Other JSON Schema and openEHR stay on slot-fill.
       const xmlCanvas = target.format === "xml-schema"
         ? renderXmlCanvasFromBlockly(options.blocklyState, ctx)
         : null;
+      const jsonCanvas = xmlCanvas == null &&
+          target.format === "json-schema" &&
+          target.skeleton.length === 0
+        ? renderJsonCanvasFromBlockly(options.blocklyState, ctx)
+        : null;
       output = xmlCanvas != null
         ? xmlCanvas
+        : jsonCanvas != null
+        ? jsonCanvas
         : getTargetFormatHandler(target.format).render({
           definition: target,
           slotValues,

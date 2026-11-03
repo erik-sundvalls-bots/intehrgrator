@@ -213,6 +213,10 @@ export const fr: ChromeMessages = {
   jointIntroHtml:
     "Choisissez ensemble une cible et une carte de contexte par défaut. Confirmer échafaude le <strong>squelette de modèle</strong> et les <strong>points par défaut</strong>. <strong>Nouveau</strong> charge la cible uniquement dans l'onglet Schéma cible pour que vous puissiez tirer les pastilles et les valeurs, puis Appliquer sur le bloc du canevas.",
   targetLegend: "Cible",
+  schemalessSchema: "Schéma, modèle ou fichier",
+  schemalessJson: "Exemple JSON minimal",
+  schemalessXml: "Exemple XML minimal",
+  schemalessText: "Exemple de texte minimal",
   noTargetYet: "Aucune cible sélectionnée pour l'instant.",
   fromFile: "Depuis un fichier…",
   useLoadedTarget: "Utiliser la cible chargée",
