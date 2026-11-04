@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-04
+
 A target can start from a minimal JSON, XML, or text example, Handlebars gains `inc` and `dec`, and Java conversion scripts follow TypeScript on lists, identifiers, counts, and coded text. Sheets and decision tables use the pane width, and the obstetric fixtures add OPT2, Web Templates, and canonical JSON beside Simplified FLAT.
 
 - **Schema-less target** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#198](https://github.com/regionstockholm/intehrgrator/issues/198)): Load target & default context map can start from a minimal JSON, XML, or text example. A conversion start sits above that document, and the default context map you picked still applies.
@@ -243,7 +245,8 @@ Minor release: one shared, append-only change history for you, the AI chat and M
 
 - First web app and core modules ([#2](https://github.com/regionstockholm/intehrgrator/pull/2)): Click-to-Map ([#4](https://github.com/regionstockholm/intehrgrator/pull/4)), source format handlers ([#5](https://github.com/regionstockholm/intehrgrator/pull/5)), Mapping Spec download / upload ([#7](https://github.com/regionstockholm/intehrgrator/pull/7)), readable TypeScript codegen ([#9](https://github.com/regionstockholm/intehrgrator/pull/9)).
 
-[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.13...main
+[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.14...main
+[0.14.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.14
 [0.13.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.13
 [0.12.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.12
 [0.11.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.11
