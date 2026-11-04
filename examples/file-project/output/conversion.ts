@@ -8,49 +8,18 @@ import {
   evaluateXPathToString,
 } from "fontoxpath";
 
+import {
+  igXpathString,
+} from "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/typescript.ts";
+
 export type SourceContext = { format: string; data: unknown };
 
 export function convertSourceToComposition(
   sourceCtx: SourceContext,
   defaults: Record<string, unknown> = {},
 ) {
-  function jsonQuery(path: unknown): string {
-    const trimmed = String(path ?? "").trim();
-    if (!trimmed || trimmed.startsWith("/")) return trimmed;
-    const asJson = trimmed.startsWith("$") ? trimmed : `$.${trimmed.replace(/^\./, "")}`;
-    let body = asJson.slice(1);
-    if (body.startsWith(".")) body = body.slice(1);
-    if (!body || body === ".") return "$source";
-    const segments: string[] = [];
-    let i = 0;
-    while (i < body.length) {
-      if (body[i] === ".") { i++; continue; }
-      if (body[i] === "[") {
-        const close = body.indexOf("]", i + 1);
-        if (close < 0) break;
-        segments.push(body.slice(i + 1, close));
-        i = close + 1;
-        continue;
-      }
-      let end = i;
-      while (end < body.length && !".[".includes(body[end] ?? "")) end++;
-      segments.push(body.slice(i, end));
-      i = end;
-    }
-    return segments.reduce((q, seg) => {
-      if (seg === "*") return `${q}?*`;
-      if (/^\d+$/.test(seg) || /^[A-Za-z_][A-Za-z0-9_]*$/.test(seg)) return `${q}?${seg}`;
-      return `${q}?(${JSON.stringify(seg)})`;
-    }, "$source");
-  }
-
   function xpathString(path: string, node: unknown = sourceCtx.data): string {
-    const p = typeof path === "string" ? path : String(path ?? "");
-    if (p.trim().startsWith("$source") || p.includes("?*[")) {
-      return evaluateXPathToString(p, null, null, { source: node });
-    }
-    if (p.trim().startsWith("/")) return evaluateXPathToString(p, node);
-    return evaluateXPathToString(jsonQuery(p), null, null, { source: node });
+    return igXpathString(evaluateXPathToString, path, node);
   }
 
   return {
