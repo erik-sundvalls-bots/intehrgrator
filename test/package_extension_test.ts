@@ -7,7 +7,8 @@ Deno.test("VS Code VSIX release asset path matches desktop release folder", () =
 
 Deno.test("VSIX ignore keeps desktop binaries out of the extension package", async () => {
   const text = await Deno.readTextFile(new URL("../.vscodeignore", import.meta.url));
-  const includeDist = text.indexOf("!dist/**");
-  const excludeRelease = text.indexOf("dist/release/**");
-  assertEquals(includeDist >= 0 && excludeRelease > includeDist, true);
+  // vsce includes a path when any ! pattern matches, so !dist/** would pull dist/release back in.
+  assertEquals(text.includes("!dist/**"), false);
+  assertEquals(text.includes("!dist/release"), false);
+  assertEquals(text.includes("!dist/wasm/**"), true);
 });
