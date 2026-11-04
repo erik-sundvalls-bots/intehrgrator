@@ -304,7 +304,10 @@ function nestCheckFor(rmType: string): string | string[] | null {
   if (rmType === "GENERIC_ENTRY") return "CONTENT_ITEM";
   if (rmType === "HISTORY") return "HISTORY";
   if (isSubtypeOf(rmType, "ITEM_STRUCTURE")) {
-    return ["ITEM_STRUCTURE", "ITEM_TREE", "ITEM_LIST", "ITEM_TABLE", "ITEM_SINGLE"];
+    // Archetypes often constrain other_context and protocol as CLUSTER while
+    // the RM attribute is ITEM_STRUCTURE. The socket accepts that cluster so
+    // the canvas can save and load it; the instance stays a CLUSTER.
+    return ["ITEM_STRUCTURE", "ITEM_TREE", "ITEM_LIST", "ITEM_TABLE", "ITEM_SINGLE", "CLUSTER"];
   }
   if (isSubtypeOf(rmType, "PARTY_PROXY")) return partyProxyNestCheck(rmType);
   if (rmType === "EVENT_CONTEXT") return "EVENT_CONTEXT";

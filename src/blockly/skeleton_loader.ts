@@ -13,7 +13,7 @@ import {
 import { parseExpression } from "../core/expression/mod.ts";
 import { skeletonNodeForOptionalRm, isRepeatingMultiplicity } from "../core/skeleton/generate_skeleton.ts";
 import { termSetById, termSetForMandatedCode, termSetForRmAttribute, TERM_PICK_NONE } from "../core/openehr_term_catalog.ts";
-import { astToExpressionBlock } from "./expression_serialize.ts";
+import { astToExpressionBlock, blockToExpression } from "./expression_serialize.ts";
 import { Blockly } from "./blockly_core.ts";
 import "blockly/blocks";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
@@ -41,10 +41,12 @@ import { createTermPickBlock, isTermPickBlock } from "./blocks/term_pick.ts";
 import { applySkeletonBlockLabels } from "./block_labels.ts";
 import { createSourceQueryBlock, isSourceQueryBlockType } from "./source_query.ts";
 import { FOR_EACH_LIST_BLOCK, isLoopBlockType } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import {
   attachDefaultPointLookups,
   captureDefaultsBlockState,
   placeDefaultsBesideSkeleton,
+  separateContextMapFromProductTree,
   restoreDefaultsBlockState,
 } from "./defaults_canvas.ts";
 import { attachStartToInstanceRoot } from "./conversion_start_canvas.ts";
@@ -123,6 +125,7 @@ export function loadSkeletonIntoWorkspace(
     highlightListeningSlot(workspace, listeningSlotId);
     refreshWorkspaceLayout(workspace);
     refreshWorkspaceConstraints(workspace);
+    separateContextMapFromProductTree(workspace);
   });
 }
 
@@ -279,6 +282,11 @@ export function applyModelExpressions(
         attachExpressionToElement(workspace, block, slot.expression, slot.returnType, slot.rmType);
       } else if (block.type === "party_identified" || block.type === "party_related") {
         attachExpressionToPartyName(workspace, block, slot.expression, slot.returnType);
+      } else if (block.type === "maps_get" && isPartyMapping(block, slot.expression)) {
+        // A party Default point replaced by a mapped map(name, id, …): put a
+        // party block in its place so the canvas keeps the mapping (F-M15).
+        const party = replaceLookupWithParty(workspace as WorkspaceSvg, block);
+        if (party) attachExpressionToPartyName(workspace, party, slot.expression, slot.returnType);
       } else if (isTermPickBlock(block) || isDataValueBlock(block)) {
         const shell = isTextRmType(slot.rmType) ? switchTextShellRmType(workspace, block, slot.rmType) : block;
         attachExpressionToTypedValue(workspace, shell, slot.expression, slot.returnType, slot.rmType);
@@ -287,6 +295,7 @@ export function applyModelExpressions(
       }
     }
     applyModelLoops(workspace, model);
+    applyModelIncludes(workspace, model);
     applyModelOptionalSchemaFields(workspace as WorkspaceSvg, model);
     applyModelOptionalRmInsertions(workspace as WorkspaceSvg, model);
     if (model.slots.some((s) => s.review)) applySlotReviews(slotExpressionBlocks(workspace), model.slots);
@@ -331,9 +340,10 @@ function wrapBlockWithForEachList(
   loop: MappingLoop,
 ): void {
   const parent = inner.getParent();
-  if (parent?.type === FOR_EACH_LIST_BLOCK) {
-    parent.setFieldValue(loop.varName, "VAR");
-    attachLoopCollection(workspace, parent, loop);
+  const existing = enclosingForEach(inner);
+  if (existing) {
+    existing.setFieldValue(loop.varName, "VAR");
+    attachLoopCollection(workspace, existing, loop);
     return;
   }
 
@@ -370,6 +380,54 @@ function wrapBlockWithForEachList(
   if (typeof document !== "undefined" && typeof svg.render === "function") {
     svg.render();
   }
+}
+
+/** The for-each around this block, looking through an include-when wrapper. */
+function enclosingForEach(block: Blockly.Block): Blockly.Block | null {
+  let parent = block.getParent();
+  if (parent?.type === INCLUDE_WHEN_BLOCK) parent = parent.getParent();
+  return parent?.type === FOR_EACH_LIST_BLOCK ? parent : null;
+}
+
+function applyModelIncludes(workspace: Blockly.Workspace, model: MappingModel): void {
+  for (const inc of model.includes ?? []) {
+    if (!inc.when?.trim()) continue;
+    const inner = findAttachBlock(workspace, inc.slotId);
+    if (!inner) continue;
+    const parent = inner.getParent();
+    if (parent?.type === INCLUDE_WHEN_BLOCK && parent.getInputTargetBlock("DO") === inner) {
+      setIncludeCondition(workspace, parent, inc.when);
+      continue;
+    }
+    const wrap = workspace.newBlock(INCLUDE_WHEN_BLOCK);
+    const svg = wrap as BlockSvg;
+    if (typeof document !== "undefined" && typeof svg.initSvg === "function") svg.initSvg();
+    setIncludeCondition(workspace, wrap, inc.when);
+    const prevTarget = inner.previousConnection?.targetConnection ?? null;
+    const nextBlock = inner.getNextBlock();
+    if (inner.previousConnection?.isConnected()) inner.previousConnection.disconnect();
+    if (inner.nextConnection?.isConnected()) inner.nextConnection.disconnect();
+    const doConn = wrap.getInput("DO")?.connection;
+    if (doConn && inner.previousConnection) doConn.connect(inner.previousConnection);
+    if (prevTarget && wrap.previousConnection) prevTarget.connect(wrap.previousConnection);
+    if (nextBlock?.previousConnection && wrap.nextConnection) {
+      wrap.nextConnection.connect(nextBlock.previousConnection);
+    }
+    if (typeof document !== "undefined" && typeof svg.render === "function") svg.render();
+  }
+}
+
+function setIncludeCondition(
+  workspace: Blockly.Workspace,
+  guard: Blockly.Block,
+  when: string,
+): void {
+  const existing = guard.getInputTargetBlock("WHEN");
+  if (existing && blockToExpression(existing) === when) return;
+  if (existing) existing.dispose(false);
+  const cond = expressionToBlock(workspace, when, "boolean");
+  const input = guard.getInput("WHEN")?.connection;
+  if (input && cond.outputConnection) input.connect(cond.outputConnection);
 }
 
 function attachLoopCollection(
@@ -1287,6 +1345,27 @@ function showOptionalDvField(block: Blockly.Block, attr: string): void {
     block.extraDvFields_.push(attr);
     (block as Blockly.Block & { updateDvFields_?: () => void }).updateDvFields_?.();
   }
+}
+
+function isPartyMapping(lookup: Blockly.Block, expression: string): boolean {
+  const rmType = String(lookup.getFieldValue("RM_TYPE") ?? "");
+  return rmType.startsWith("PARTY_") && /^\s*map\(/.test(expression);
+}
+
+function replaceLookupWithParty(workspace: WorkspaceSvg, lookup: Blockly.Block): Blockly.Block | null {
+  const parent = lookup.outputConnection?.targetConnection;
+  if (!parent) return null;
+  const slotId = String(lookup.getFieldValue("SLOT_ID") ?? "");
+  const rmType = lookup.getFieldValue("RM_TYPE") === "PARTY_RELATED" ? "PARTY_RELATED" : "PARTY_IDENTIFIED";
+  const type = rmType === "PARTY_RELATED" ? "party_related" : "party_identified";
+  ensureRmBlockType(type, rmType);
+  const party = workspace.newBlock(type) as BlockSvg;
+  setFieldIfPresent(party, "RM_TYPE", rmType);
+  setFieldIfPresent(party, "SLOT_ID", slotId);
+  finalizeBlock(party);
+  lookup.dispose(false);
+  if (party.outputConnection) parent.connect(party.outputConnection);
+  return party;
 }
 
 function attachExpressionToPartyName(

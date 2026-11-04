@@ -179,6 +179,33 @@ export class WebHostAdapter implements HostAdapter {
     });
   }
 
+  async generateConversionScript(
+    language: string,
+    request: { model: unknown; options: unknown },
+  ): Promise<{ code: string; extension: string; mime: string }> {
+    const token = (globalThis as unknown as { __INTEHR_AGENT_TOKEN__?: string }).__INTEHR_AGENT_TOKEN__;
+    const res = await fetch("/api/v1/language-plugins/generate", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ language, model: request.model, options: request.options }),
+    });
+    const body = await res.json().catch(() => ({})) as {
+      code?: string;
+      extension?: string;
+      mime?: string;
+      error?: string;
+    };
+    if (!res.ok) throw new Error(body.error || `Plugin generate failed (${res.status})`);
+    return {
+      code: body.code ?? "",
+      extension: body.extension ?? "txt",
+      mime: body.mime ?? "text/plain",
+    };
+  }
+
   downloadText(filename: string, content: string, mime = "text/plain"): void {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);

@@ -15,6 +15,7 @@ export const es: ChromeMessages = {
   menuEmbedFiles: "Incrustar archivos en el prompt",
   menuAttachFiles: "Adjuntar archivos en el chat",
   menuBrowseUris: "Explorar URI (cuando existan)",
+  menuAttachOriginalTarget: "Adjuntar también el formato de destino original",
   menuAiCopyHeading: "copiar/pegar para chat de IA externo",
   menuAiOwnHeading: "Su propia IA",
   menuAiDesktopHeading: "Escritorio",
@@ -212,6 +213,10 @@ export const es: ChromeMessages = {
   jointIntroHtml:
     "Elija juntos un destino y un mapa de contexto predeterminado. Confirmar construye el <strong>esqueleto de plantilla</strong> y los <strong>puntos predeterminados</strong>. <strong>Nuevo</strong> carga el destino solo en la pestaña Esquema de destino para que pueda arrastrar fichas y valores y luego aplicar en el bloque del lienzo.",
   targetLegend: "Destino",
+  schemalessSchema: "Esquema, plantilla o archivo",
+  schemalessJson: "Ejemplo JSON mínimo",
+  schemalessXml: "Ejemplo XML mínimo",
+  schemalessText: "Ejemplo de texto mínimo",
   noTargetYet: "Aún no hay un destino seleccionado.",
   fromFile: "Desde archivo…",
   useLoadedTarget: "Usar el destino cargado",

@@ -17,9 +17,11 @@
  */
 import type { ExprAst } from "../expression/mod.ts";
 import type { MappingFunction, MappingModel } from "../../types/mod.ts";
+import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
 import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
 import { valueFunctions } from "./user_functions.ts";
 import { isRelativeAuthoringPath } from "../mapping_model/loops.ts";
+import { namedLoopBinding } from "../named_loop_path.ts";
 import {
   injectXmlnsOnOpenTag,
   wrapXmlCdata,
@@ -34,6 +36,8 @@ import {
 export interface GoEmitContext {
   /** When set, relative xpath paths evaluate against the loop item (`.`). */
   loopVar?: string;
+  /** Loop item name → Go variable (`$dag`). Inner names shadow. */
+  loopBindings?: Readonly<Record<string, string>>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
@@ -62,11 +66,18 @@ export function generateGoTemplate(
   const defines = emitGoFunctionDefines(model, ctx);
   if (defines) lines.push(defines);
 
-  if (options?.blocklyState) {
-    lines.push(generateFromBlockly(options.blocklyState, model));
-  } else {
-    lines.push(generateFromSlots(model, ctx));
+  const body = options?.blocklyState
+    ? generateFromBlockly(options.blocklyState, model)
+    : generateFromSlots(model, ctx);
+  const helperNames = ["sheetLookup", "decisionTable", "handlebars", "dict"].filter((name) =>
+    body.includes(name)
+  );
+  if (helperNames.length) {
+    lines.push(
+      `{{- /* Helpers: ${helperNames.join(", ")} — ${GO_TEMPLATE_HELPERS_BLOB} */ -}}`,
+    );
   }
+  lines.push(body);
 
   return lines.join("\n");
 }
@@ -234,6 +245,10 @@ export function emitBlock(block: BlockNode, ctx: GoEmitContext = createGoEmitCon
     }
     case "controls_if": {
       lines.push(...emitControlsIf(block, ctx));
+      break;
+    }
+    case "include_when": {
+      lines.push(...emitIncludeWhen(block, ctx));
       break;
     }
     case "for_each_source": {
@@ -477,14 +492,38 @@ function blockNodeToExpression(block: BlockNode): string | null {
   }
 }
 
-function emitForEachSource(block: BlockNode, _ctx: GoEmitContext): string[] {
+function goLoopIdent(name: string): string {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "item";
+}
+
+function withGoLoop(ctx: GoEmitContext, varName: string): { ident: string; ctx: GoEmitContext } {
+  const ident = goLoopIdent(varName);
+  return {
+    ident,
+    ctx: {
+      ...ctx,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [varName]: `$${ident}` },
+    },
+  };
+}
+
+function goIndexChain(root: string, rest: string): string {
+  let expr = root;
+  for (const seg of rest.split(".").filter(Boolean)) {
+    expr = `index ${expr} ${goQuote(seg)}`;
+  }
+  return expr;
+}
+
+function emitForEachSource(block: BlockNode, ctx: GoEmitContext): string[] {
   const varName = String(block.fields?.VAR ?? "item");
   const path = String(block.fields?.PATH ?? "");
-  const rangeExpr = loopRangeExpr(path);
+  const rangeExpr = loopRangeExpr(path, ctx);
+  const bound = withGoLoop(ctx, varName);
   const body = inputChild(block.inputs?.DO);
-  const lines = [`{{- range ${rangeExpr} }}`];
-  const innerCtx: GoEmitContext = { ..._ctx, loopVar: varName };
-  if (body) lines.push(...emitStatementChain(body, innerCtx));
+  const lines = [`{{- range $${bound.ident} := ${rangeExpr} }}`];
+  if (body) lines.push(...emitStatementChain(body, bound.ctx));
   lines.push(`{{- end }}`);
   return lines;
 }
@@ -500,9 +539,9 @@ function emitForEachList(block: BlockNode, ctx: GoEmitContext): string[] {
     ? stripDelimiters(emitValueExpression(list, ctx).join(""))
     : "index .Data \"\"";
   const body = inputChild(block.inputs?.DO);
-  const lines = [`{{- range ${listExpr} }}`];
-  const innerCtx: GoEmitContext = { ...ctx, loopVar: varName };
-  if (body) lines.push(...emitStatementChain(body, innerCtx));
+  const bound = withGoLoop(ctx, varName);
+  const lines = [`{{- range $${bound.ident} := ${listExpr} }}`];
+  if (body) lines.push(...emitStatementChain(body, bound.ctx));
   lines.push(`{{- end }}`);
   return lines;
 }
@@ -512,8 +551,12 @@ function isSourceQueryNodeType(type: string | undefined): boolean {
     type === "source_query_boolean" || type === "source_query_node";
 }
 
-function loopRangeExpr(path: string): string {
+function loopRangeExpr(path: string, ctx: GoEmitContext): string {
   const trimmed = path.trim();
+  const named = namedLoopBinding(trimmed, ctx.loopBindings);
+  if (named) {
+    return named.rest === "." ? named.ident : goIndexChain(named.ident, named.rest);
+  }
   if (trimmed.startsWith("$.")) {
     const body = trimmed.replace(/^\$\.?/, "").replace(/\[(\d+|\*)\]/g, ".$1");
     const segments = body.split(".").filter(Boolean);
@@ -523,6 +566,9 @@ function loopRangeExpr(path: string): string {
       expr = `index ${expr} ${goQuote(seg)}`;
     }
     return expr;
+  }
+  if (ctx.loopVar && isRelativeAuthoringPath(trimmed)) {
+    return `index . ${goQuote(trimmed)}`;
   }
   return `index .Data ${goQuote(trimmed)}`;
 }
@@ -550,6 +596,21 @@ function emitJsonStructure(block: BlockNode, ctx: GoEmitContext): string[] {
     props.push(`"${fieldName}": ${emitValueExpression(child, ctx).join("")}`);
   }
   return [`{${props.join(", ")}}`];
+}
+
+function emitIncludeWhen(block: BlockNode, ctx: GoEmitContext): string[] {
+  const cond = inputChild(block.inputs?.WHEN);
+  const condStr = cond ? emitConditionExpression(cond, ctx) : "false";
+  const lines = [`{{- if ${condStr} }}`];
+  const body = inputChild(block.inputs?.DO);
+  if (body) lines.push(...emitStatementChain(body, ctx));
+  const elseBody = inputChild(block.inputs?.ELSE);
+  if (elseBody) {
+    lines.push(`{{- else }}`);
+    lines.push(...emitStatementChain(elseBody, ctx));
+  }
+  lines.push(`{{- end }}`);
+  return lines;
 }
 
 function emitControlsIf(block: BlockNode, ctx: GoEmitContext): string[] {
@@ -648,7 +709,8 @@ function emitXmlOrSchemaElement(block: BlockNode, ctx: GoEmitContext): string[] 
 
 function isXmlStructureBlockType(type: string): boolean {
   return type === "xml_element" || type === "target_structure" || type.startsWith("schema_") ||
-    type === "controls_if" || type === "for_each_source" || type === "for_each_list" ||
+    type === "controls_if" || type === "include_when" ||
+    type === "for_each_source" || type === "for_each_list" ||
     type === "json_object" || type === "json_array";
 }
 
@@ -961,6 +1023,11 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
 
 function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
   const path = pathArg?.kind === "literal" ? String(pathArg.value) : "";
+  const named = namedLoopBinding(path, ctx.loopBindings);
+  if (named) {
+    if (named.rest === ".") return named.ident;
+    return `(${goIndexChain(named.ident, named.rest)})`;
+  }
   if (ctx.loopVar && isRelativeAuthoringPath(path)) {
     if (path === ".") return ".";
     return `(index . ${goQuote(path)})`;

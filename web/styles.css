@@ -751,11 +751,13 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 .spec-root-divider--clickable:hover .spec-root-divider-label { color: var(--primary); }
 .sheets-tabs {
   display: flex;
+  flex: 1 1 auto;
   gap: 0;
   border-bottom: 1px solid #c5d5d3;
   margin-right: 8px;
   overflow-x: auto;
-  max-width: min(50vw, 420px);
+  min-width: 0;
+  max-width: 100%;
 }
 .sheets-tab {
   border: none;
@@ -925,10 +927,12 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 }
 .sheets-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   align-items: center;
   margin-bottom: 6px;
+  width: 100%;
+  min-width: 0;
 }
 .sheets-select {
   min-width: 8rem;

@@ -12,7 +12,7 @@
  */
 import { resolveWebRoot } from "./web_root.ts";
 import { errorPageHandler, workbenchHandler } from "./serve.ts";
-import { HttpAgentClient, runMcpStdio } from "../agent/mcp_stdio.ts";
+import { HttpAgentClient, mcpIdentityFromEnv, runMcpStdio } from "../agent/mcp_stdio.ts";
 import { composeWorkbenchHandler, getSharedWorkbenchService } from "../agent/http.ts";
 import {
   bindRequiresTokenMessage,
@@ -20,6 +20,8 @@ import {
   USAGE,
   type DesktopCliOptions,
 } from "./cli.ts";
+import { configureLanguagePlugins, generateWithLanguagePlugin } from "./language_plugins.ts";
+import { setExternalLanguageGenerator } from "../core/codegen/language_plugin.ts";
 
 async function openBrowser(url: string): Promise<void> {
   const cmd = Deno.build.os === "windows"
@@ -90,11 +92,16 @@ export function workbenchOrErrorHandler(
   return composeWorkbenchHandler(staticHandler, enableAgentApi, { token });
 }
 
-function envMap(): Record<string, string | undefined> {
+export function envMap(): Record<string, string | undefined> {
   return {
     PORT: Deno.env.get("PORT"),
     INTEHR_BIND: Deno.env.get("INTEHR_BIND"),
     INTEHR_AGENT_TOKEN: Deno.env.get("INTEHR_AGENT_TOKEN"),
+    INTEHR_LANGUAGE_PLUGINS: Deno.env.get("INTEHR_LANGUAGE_PLUGINS"),
+    INTEHR_HELP: Deno.env.get("INTEHR_HELP"),
+    INTEHR_HEADLESS: Deno.env.get("INTEHR_HEADLESS"),
+    INTEHR_MCP: Deno.env.get("INTEHR_MCP"),
+    INTEHR_LOAD: Deno.env.get("INTEHR_LOAD"),
   };
 }
 
@@ -116,6 +123,10 @@ if (import.meta.main) {
     Deno.exit(1);
   }
   if (opts.token) Deno.env.set("INTEHR_AGENT_TOKEN", opts.token);
+  configureLanguagePlugins(opts.languagePlugins);
+  setExternalLanguageGenerator((language, model, options) =>
+    generateWithLanguagePlugin(language, model, options)
+  );
 
   if (opts.mcp) {
     // An IDE starts this as its MCP server: no window. The compiled app
@@ -129,7 +140,7 @@ if (import.meta.main) {
       );
       Deno.exit(1);
     }
-    await runMcpStdio(new HttpAgentClient(base.replace(/\/$/, ""), opts.token));
+    await runMcpStdio(new HttpAgentClient(base.replace(/\/$/, ""), opts.token, mcpIdentityFromEnv()));
     // stdin closed (the IDE stopped the server): exit even though the desktop
     // runtime would keep the process alive.
     Deno.exit(0);

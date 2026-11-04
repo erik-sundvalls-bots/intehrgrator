@@ -12,6 +12,7 @@
  * compact id, a unique tail), so tools keep accepting today's slot ids.
  */
 import { applyCodedTextSlots } from "../openehr/coded_text.ts";
+import { termSetForRmAttribute } from "../openehr_term_catalog.ts";
 import type { MappingModel, SkeletonNode } from "../../types/mod.ts";
 import {
   collectValueSlots,
@@ -144,7 +145,9 @@ export function resolveSlotRef(ref: string, known: ReadonlySet<string>): string 
   if (known.has(trimmed)) return trimmed;
   const key = collapse(trimmed);
   const index = refIndex(known);
-  const hit = index.full.get(key) ?? index.compact.get(key);
+  const hit = index.full.get(key) ?? index.compact.get(key) ??
+    // A root-group row id ("context/…", without the group's "/").
+    (/^[A-Za-z_]/.test(key) ? index.compact.get(`/${key}`) : undefined);
   if (hit) return hit;
   // A tail of one compact id, starting at a path step.
   if (!/^[/.[@]/.test(key) || key === "/" || key === ".") return null;
@@ -176,12 +179,45 @@ export function resolveSlotPrefix(ref: string, known: ReadonlySet<string>): stri
 }
 
 function tailAfter(compact: string, group: string): string {
-  if (group === "/" && compact.startsWith("/")) return compact;
+  // Root group "/": rows are "context/…", so group + id is "/context/…", not "//context/…" (#312).
+  if (group === "/" && compact.startsWith("/")) return compact.slice(1);
   if (group && compact.startsWith(group) && compact.length > group.length) {
     const rest = compact.slice(group.length);
     if (/^[/.[@]/.test(rest)) return rest;
   }
   return compact;
+}
+
+/** DV_CODED_TEXT RM attributes bound to an openEHR terminology group, by owning class. */
+const CODED_RM_ATTRIBUTE_PARENT: Record<string, string> = {
+  category: "COMPOSITION",
+  setting: "EVENT_CONTEXT",
+  current_state: "ISM_TRANSITION",
+  transition: "ISM_TRANSITION",
+  math_function: "INTERVAL_EVENT",
+  null_flavour: "ELEMENT",
+};
+
+/**
+ * Codes of an openEHR RM terminology attribute (`…/EVENT_CONTEXT/setting/value`
+ * → setting 225 home, 227 emergency care, …) when the template node itself
+ * has no value set (#320).
+ */
+export function terminologyValuesForSlot(
+  slotId: string,
+): { terminologyId: string; values: Array<{ code: string; text: string }> } | undefined {
+  const match = /\/([A-Z][A-Z0-9_]+)\/([a-z_]+)\/value$/.exec(slotId);
+  // Coded RM attributes whose parent step is an at-code or the template root
+  // (`<tpl>//category/DV_CODED_TEXT/value`, `…/ism_transition/at0007/current_state/DV_CODED_TEXT/value`).
+  const coded = match ? undefined : /\/([a-z_]+)\/(?:DV_CODED_TEXT\/)?value$/.exec(slotId)?.[1];
+  const parent = coded ? CODED_RM_ATTRIBUTE_PARENT[coded] : undefined;
+  if (!match && !parent) return undefined;
+  const set = match ? termSetForRmAttribute(match[1]!, match[2]!) : termSetForRmAttribute(parent!, coded!);
+  if (!set?.codes.length) return undefined;
+  return {
+    terminologyId: set.terminologyId,
+    values: set.codes.map((code) => ({ code: code.code, text: code.rubric })),
+  };
 }
 
 function valueSetRows(node: SkeletonNode): Pick<SlotTreeRow, "values" | "terminology"> {
@@ -229,6 +265,10 @@ function rowFor(
   const vd = info?.valueDescriptions ?? {};
   let rowValues = values.values;
   if (!rowValues && info?.enum?.length) rowValues = info.enum.map((e) => ({ code: e.code, ...(e.text ? { text: e.text } : {}) }));
+  if (!rowValues) {
+    const fromRm = terminologyValuesForSlot(node.slotId);
+    if (fromRm?.values.length) rowValues = fromRm.values;
+  }
   if (rowValues && Object.keys(vd).length) {
     rowValues = rowValues.map((v) => vd[v.code] ? { ...v, description: shortText(vd[v.code], 100) } : v);
   }
@@ -372,4 +412,4 @@ export function formatSlotTree(groups: SlotTreeGroup[]): string {
 
 /** Slot-tree reading guide, shared by the prompt and the tool description. */
 export const SLOT_TREE_GUIDE =
-  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";
+  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`; the root group `/` + `context/start_time/value` → `/context/start_time/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";

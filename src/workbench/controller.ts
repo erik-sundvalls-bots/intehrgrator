@@ -39,6 +39,10 @@ import {
   MAPPING_PREVIEW_SCRIPT_PLACEHOLDER,
   unimplementedTestRunMessage,
 } from "../types/mod.ts";
+import {
+  desktopPluginLanguage,
+  isDesktopPluginLanguage,
+} from "../core/codegen/language_plugin.ts";
 import { collectValueSlots, collectAllSlotIds, findSkeletonTrail, nearestRepeatingContainer, applyOptionalRmToSkeleton } from "../core/skeleton/generate_skeleton.ts";
 import {
   applyExpressionEdit,
@@ -161,6 +165,11 @@ import {
   type UrlHistoryKind,
 } from "../host/url_history.ts";
 import { seedHandlebarsProductOnCanvas } from "../core/output/canvas_handlebars_seed.ts";
+import {
+  schemalessExampleSpec,
+  seedMinimalExample,
+  type SchemalessExampleKind,
+} from "../core/output/canvas_example_seed.ts";
 import type { TaskProgress, TaskStepState } from "./task_progress.ts";
 
 export type { TaskProgress, TaskProgressStep, TaskStepState } from "./task_progress.ts";
@@ -231,6 +240,7 @@ export class WorkbenchController {
   private lastRefreshReport: RefreshDiffReport | null = null;
   private getBlocklyState: (() => unknown) | null = null;
   private debounceTimer: number | null = null;
+  private pluginGen = 0;
   private postLoadTimer: number | null = null;
   private autosaveTimer: number | null = null;
   /** Set by a host that owns saving (VS Code file project): no autosave, host dirty state. */
@@ -240,6 +250,8 @@ export class WorkbenchController {
   private statusMessage = "Ready";
   private taskProgress: TaskProgress | null = null;
   private taskDepth = 0;
+  /** Suppresses debounced Conversion Test Run while `loadExampleSet` is in progress. */
+  private exampleSetLoadDepth = 0;
 
   constructor(
     private host: HostAdapter,
@@ -479,6 +491,34 @@ export class WorkbenchController {
       detectTargetFormat(filename, stripBom(content)),
       "browse",
     );
+  }
+
+  /**
+   * Start from a minimal JSON, XML, or text document (#198).
+   * Leaves a queued default context map in place for the canvas to hydrate.
+   */
+  startSchemalessTarget(kind: SchemalessExampleKind): void {
+    const spec = schemalessExampleSpec(kind);
+    this.target = {
+      format: spec.format,
+      filename: spec.filename,
+      targetId: spec.targetId,
+      content: spec.content,
+      skeleton: [],
+    };
+    this.templateContent = spec.content;
+    this.templateFilename = spec.filename;
+    this.templateId = spec.targetId;
+    this.targetOriginUrl = null;
+    this.skeleton = [];
+    this.model = createEmptyModel(spec.targetId);
+    this.model.targetFormat = spec.format;
+    this.handlebarsTemplate = "";
+    this.blocklyState = seedMinimalExample(kind);
+    this.blocklyReloadToken += 1;
+    this.refreshDerived();
+    this.statusMessage = `Loaded ${spec.format} target ${spec.targetId}`;
+    this.markDirty();
   }
 
   /**
@@ -912,7 +952,7 @@ export class WorkbenchController {
       this.rememberLoadUrl("example", url);
       this.statusMessage = this.exampleLoadStatus(file.name);
       this.markDirty();
-      if (this.settings.autoplay) this.scheduleTestRun();
+      if (this.settings.autoplay && this.exampleSetLoadDepth === 0) this.scheduleTestRun();
     } catch (err) {
       this.statusMessage = `Example load failed: ${err instanceof Error ? err.message : String(err)}`;
       this.notifyChange();
@@ -1020,6 +1060,7 @@ export class WorkbenchController {
     if (set.defaults) steps.push({ id: "defaults", label: "Load defaults map" });
     steps.push({ id: "generate", label: "Generate conversion script" });
     try {
+      this.exampleSetLoadDepth++;
       await this.withTask(`Load example set "${set.title}"`, steps, async () => {
         this.resetWorkspaceState();
         if (set.target) {
@@ -1070,7 +1111,7 @@ export class WorkbenchController {
           });
         }
         await this.runTaskStep("generate", () => {
-          this.refreshDerived();
+          // `schedulePostLoadOutput` runs conversion script generation once mapping is on the canvas.
         });
       });
       this.statusMessage = `Loaded example set "${set.title}"`;
@@ -1082,6 +1123,8 @@ export class WorkbenchController {
       }`;
       this.notifyChange();
       throw err;
+    } finally {
+      if (this.exampleSetLoadDepth > 0) this.exampleSetLoadDepth--;
     }
   }
 
@@ -1384,6 +1427,8 @@ export class WorkbenchController {
       expression: string;
       hatch?: MappingSlotHatch;
       review?: MappingSlotReview;
+      unitsExpression?: string;
+      fieldExpressions?: Record<string, string>;
     }>,
     loops: MappingLoop[] = [],
     optionalRm?: MappingModel["optionalRm"],
@@ -1394,6 +1439,7 @@ export class WorkbenchController {
       sheetNames?: string[];
       instanceEncodings?: InstanceEncoding[];
       functions?: MappingFunction[];
+      includes?: MappingModel["includes"];
     },
   ): void {
     if (!this.templateId) {
@@ -1412,6 +1458,7 @@ export class WorkbenchController {
     next.optionalRm = optionalRm ? [...optionalRm] : [...this.model.optionalRm];
     // Canvas is source of truth: empty `loops` means the loops were undone, not "keep previous".
     next.loops = [...loops];
+    next.includes = options?.includes ? [...options.includes] : [];
     next.targetSignature = options?.targetSignature ? [...options.targetSignature] : [];
     next.unsupported = options?.unsupported ? [...options.unsupported] : [];
     next.sheetNames = options?.sheetNames ? [...options.sheetNames] : [];
@@ -1430,11 +1477,18 @@ export class WorkbenchController {
         label: targetSlot?.label,
         mandatory: targetSlot?.mandatory,
       });
-      if (item.hatch) {
+      if (item.hatch || item.unitsExpression || item.fieldExpressions) {
         next = {
           ...next,
           slots: next.slots.map((slot) =>
-            slot.slotId === item.slotId ? { ...slot, hatch: item.hatch } : slot
+            slot.slotId === item.slotId
+              ? {
+                ...slot,
+                ...(item.hatch ? { hatch: item.hatch } : {}),
+                ...(item.unitsExpression ? { unitsExpression: item.unitsExpression } : {}),
+                ...(item.fieldExpressions ? { fieldExpressions: item.fieldExpressions } : {}),
+              }
+              : slot
           ),
         };
       }
@@ -1522,6 +1576,15 @@ export class WorkbenchController {
 
   exportTypeScript(): void {
     const mode = this.settings.exportTarget;
+    if (isDesktopPluginLanguage(mode)) {
+      const info = desktopPluginLanguage(mode);
+      void this.host.downloadText(
+        `conversion-${safeFilename(this.templateId)}.${info?.extension ?? "txt"}`,
+        this.generatedCode,
+        info?.mime ?? "text/plain",
+      );
+      return;
+    }
     if (!isConversionScriptLanguage(mode)) return;
     const adapter = getExportTargetAdapter(mode);
     const code = generate(this.model, mode, {
@@ -1757,7 +1820,18 @@ export class WorkbenchController {
     }
     let schemaIssues: SchemaIssue[] = [];
     try {
-      schemaIssues = validateSuggestionEnvelope(extractSuggestionsJson(text));
+      // `format` and `target` may be left out (the loaded target is used), so do
+      // not report them as missing (AI_SUGGESTION_FORMAT.md).
+      const envelope = extractSuggestionsJson(text);
+      if (envelope && typeof envelope === "object" && !Array.isArray(envelope)) {
+        const rec = envelope as Record<string, unknown>;
+        rec.format ??= "intehrgrator-suggestions";
+        rec.target ??= {
+          targetId: this.templateId,
+          format: this.target?.format ?? this.model.targetFormat ?? "openehr-template",
+        };
+      }
+      schemaIssues = validateSuggestionEnvelope(envelope);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       schemaIssues = [{ path: "$", message }];
@@ -1895,8 +1969,15 @@ export class WorkbenchController {
     return artifacts;
   }
 
-  setExportTarget(target: OutputMode): void {
-    this.settings.exportTarget = target;
+  setExportTarget(target: string): void {
+    if (
+      target !== "preview" &&
+      !isConversionScriptLanguage(target) &&
+      !isDesktopPluginLanguage(target)
+    ) {
+      return;
+    }
+    this.settings.exportTarget = target as OutputMode;
     this.examples.clearCache();
     this.outputValidations.clear();
     this.exampleTestResults.clear();
@@ -2233,11 +2314,50 @@ export class WorkbenchController {
     this.outputValidations.clear();
   }
 
+  private queuePluginScript(language: string): void {
+    const request = ++this.pluginGen;
+    const info = desktopPluginLanguage(language);
+    this.generatedCode =
+      `// Loading ${info?.label ?? language}…\n`;
+    const gen = this.host.generateConversionScript;
+    if (!gen) {
+      this.generatedCode =
+        `// ${info?.label ?? language} is a desktop conversion-script plugin.\n` +
+        "// Open the project in the intEHRgrator desktop app with --language-plugin.\n";
+      return;
+    }
+    const model = this.model;
+    const options = {
+      handlebarsTemplate: this.handlebarsTemplate,
+      blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
+      skeleton: this.skeleton,
+      instanceShape: this.model.instanceEncodings?.length
+        ? instanceShapeForEncoding(preferredInstanceEncoding(this.model))
+        : this.settings.openEhrInstanceShape,
+      webTemplateJson: this.target?.webTemplateJson,
+    };
+    void gen.call(this.host, language, { model, options }).then((generated) => {
+      if (request !== this.pluginGen) return;
+      if (this.settings.exportTarget !== language) return;
+      this.generatedCode = generated.code;
+      this.notifyChange();
+    }).catch((err) => {
+      if (request !== this.pluginGen) return;
+      const detail = err instanceof Error ? err.message : String(err);
+      this.generatedCode = `// ${info?.label ?? language} failed: ${detail}\n`;
+      this.notifyChange();
+    });
+  }
+
   private refreshDerived(): void {
     this.applyTargetIdLanguage();
     // Spec view is widgets over the pretty Blockly JSON document.
     this.specText = formatBlocklyState(this.getBlocklyState?.() ?? this.blocklyState);
     const mode = this.settings.exportTarget;
+    if (isDesktopPluginLanguage(mode)) {
+      this.queuePluginScript(mode);
+      return;
+    }
     if (!isConversionScriptLanguage(mode)) {
       this.generatedCode = MAPPING_PREVIEW_SCRIPT_PLACEHOLDER;
       return;
@@ -2362,6 +2482,13 @@ export class WorkbenchController {
     example: { content: string; format: SourceFormatId },
   ): TestResult {
     const mode = this.settings.exportTarget;
+    if (isDesktopPluginLanguage(mode)) {
+      const label = desktopPluginLanguage(mode)?.label ?? mode;
+      const message =
+        `// ${label} generates a conversion script in the desktop app.\n` +
+        "// Conversion Test Run for a plugin language stays on Mapping preview.\n";
+      return { ok: false, output: message, error: message.trim(), warnings: [] };
+    }
     if (isConversionScriptLanguage(mode) && mode !== "typescript" && mode !== "handlebars" && mode !== "go-template" && mode !== "xquery") {
       const message = unimplementedTestRunMessage(mode);
       return {

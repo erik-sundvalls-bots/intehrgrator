@@ -37,7 +37,7 @@ import {
 import { leaseCovers, SlotLeaseRegistry, type SlotLease } from "../agent/leases.ts";
 import { filterSlotRows } from "../agent/inspect.ts";
 import { slotDetail } from "../agent/slot_detail.ts";
-import { buildSlotTree, resolveSlotPrefix, resolveSlotRef } from "../core/ai/slot_tree.ts";
+import { buildSlotTree, compactSlotId, resolveSlotPrefix, resolveSlotRef } from "../core/ai/slot_tree.ts";
 import { importBundle, exportBundle as zipBundle, validateBundle } from "../core/persistence/mod.ts";
 import type { ExampleSet } from "../core/example_sets/mod.ts";
 import type {
@@ -174,11 +174,16 @@ export class WorkbenchService {
     const slots = listSlotsInspect(s.skeleton, s.model);
     const unmapped = slots.filter((row) => !row.mapped && row.mandatory).map((row) => row.slotId);
     const constraintWarnings = this.listConstraintWarnings();
+    const applied = slots.filter((row) => row.mapped);
+    // A Default point or a scaffolded term_pick is not a mapping yet (#312, #320).
+    const defaulted = applied.filter((row) => isScaffoldedSlotExpression(row.expression)).length;
     return {
       revision: this.revision,
       templateId: s.templateId,
       projectId: s.projectId,
-      appliedSlots: slots.filter((row) => row.mapped).length,
+      appliedSlots: applied.length,
+      mappedSlots: applied.length - defaulted,
+      defaultedSlots: defaulted,
       loops: s.model.loops?.length ?? 0,
       unmappedMandatory: s.unmappedMandatory,
       statusMessage: s.statusMessage,
@@ -348,7 +353,7 @@ export class WorkbenchService {
       this.syncBlocklyFromModel();
     }, {
       ...ctx,
-      kind: "import",
+      kind: ctx?.kind ?? "import",
       summary: ctx?.summary ?? "Import AI suggestions",
       affectedSlotIds: ctx?.affectedSlotIds,
     });
@@ -377,7 +382,7 @@ export class WorkbenchService {
     }, {
       ...ctx,
       kind: "map_slot",
-      summary: ctx?.summary ?? `Map ${path} → ${slotId}`,
+      summary: ctx?.summary ?? `Map ${path} → ${compactSlotId(slotId)}`,
       affectedSlotIds: [slotId],
     });
   }
@@ -549,6 +554,7 @@ export class WorkbenchService {
           sheetNames: extract.sheetNames,
           instanceEncodings: extract.instanceEncodings,
           functions: extract.functions,
+          includes: extract.includes,
         });
       }, {
         ...ctx,
@@ -717,42 +723,50 @@ export class WorkbenchService {
   }
 
   async loadExampleSet(set: ExampleSet, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.loadExampleSet(set);
     this.hydrateSkeletonCanvas();
     this.recordMutation(before, {
       ...ctx,
+      actor,
       kind: "load_bundle",
       summary: ctx?.summary ?? `Load example set ${set.id}`,
     });
   }
 
   async loadTargetFromUrl(url: string, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.openTemplateFromUrl(url);
     this.hydrateSkeletonCanvas();
     this.recordMutation(before, {
       ...ctx,
+      actor,
       kind: "load_bundle",
       summary: ctx?.summary ?? `Load target ${url}`,
     });
   }
 
   async loadSchemaFromUrl(url: string, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.loadSchemaFromUrl(url);
     this.recordMutation(before, {
       ...ctx,
+      actor,
       kind: "load_bundle",
       summary: ctx?.summary ?? `Load schema ${url}`,
     });
   }
 
   async addExampleFromUrl(url: string, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.addExampleFromUrl(url);
     this.recordMutation(before, {
       ...ctx,
+      actor,
       summary: ctx?.summary ?? `Load example ${url}`,
     });
   }
@@ -770,20 +784,16 @@ export class WorkbenchService {
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? "Replace sheets" });
   }
 
-  generateScript(language: ConversionScriptLanguage): {
-    language: ConversionScriptLanguage;
+  async generateScript(language: string): Promise<{
+    language: string;
     extension: string;
     mime: string;
     code: string;
     revision: string;
-  } {
-    if (!isConversionScriptLanguage(language)) {
-      throw new Error(`Unsupported conversion script language: ${language}`);
-    }
+  }> {
     initBlocklyGenerators();
     const s = this.controller.getState();
-    const adapter = getExportTargetAdapter(language);
-    const code = generate(s.model, language, {
+    const scriptOptions = {
       handlebarsTemplate: s.handlebarsTemplate,
       blocklyState: s.blocklyState,
       skeleton: s.skeleton,
@@ -791,7 +801,22 @@ export class WorkbenchService {
         ? instanceShapeForEncoding(preferredInstanceEncoding(s.model))
         : s.settings.openEhrInstanceShape,
       webTemplateJson: s.target?.webTemplateJson,
-    });
+    };
+    if (!isConversionScriptLanguage(language)) {
+      const { externalLanguageGenerator } = await import("../core/codegen/language_plugin.ts");
+      const gen = externalLanguageGenerator();
+      if (!gen) throw new Error(`Unsupported conversion script language: ${language}`);
+      const generated = await gen(language, s.model, scriptOptions);
+      return {
+        language,
+        extension: generated.extension,
+        mime: generated.mime,
+        code: generated.code,
+        revision: this.revision,
+      };
+    }
+    const adapter = getExportTargetAdapter(language);
+    const code = generate(s.model, language, scriptOptions);
     return {
       language,
       extension: adapter.extension,
@@ -917,6 +942,11 @@ export class WorkbenchService {
     return hit;
   }
 
+  /** Actor for this call, read before an await so a later request cannot replace it (#317). */
+  private actorNow(ctx?: MutationContext): HistoryActor {
+    return ctx?.actor ?? this.currentActor;
+  }
+
   private agentIdForLeases(): string | undefined {
     return this.currentActor.kind === "agent" ? this.currentActor.id : undefined;
   }
@@ -943,6 +973,7 @@ export class WorkbenchService {
           sheetNames: extract.sheetNames,
           instanceEncodings: extract.instanceEncodings,
           functions: extract.functions,
+          includes: extract.includes,
         },
       );
       return;
@@ -970,6 +1001,7 @@ export class WorkbenchService {
         sheetNames: extract.sheetNames,
         instanceEncodings: extract.instanceEncodings,
         functions: extract.functions,
+        includes: extract.includes,
       },
     );
   }
@@ -988,6 +1020,7 @@ export class WorkbenchService {
         sheetNames: extract.sheetNames,
         instanceEncodings: extract.instanceEncodings,
         functions: extract.functions,
+        includes: extract.includes,
       },
     );
   }
@@ -1047,6 +1080,19 @@ export class WorkbenchService {
       throw new AgentRevisionConflictError(this.revision, expected);
     }
   }
+}
+
+/**
+ * A slot expression the skeleton placed, not a person or an agent (#312, #320).
+ * Default-context lookups, and a term_pick whose code and terminology are literals.
+ * A `map_slot` constant is a flat `map("value", …, "code_string", …)` and stays mapped.
+ */
+export function isScaffoldedSlotExpression(expression: string | undefined): boolean {
+  if (!expression) return false;
+  if (/^maps_get\(\s*"defaults"\s*,/.test(expression)) return true;
+  return /^map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)$/.test(expression) ||
+    /^map\("value",\s*"[^"]*",\s*"defining_code",\s*map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)\)$/
+      .test(expression);
 }
 
 function parseBundleBytes(bytes: Uint8Array): ProjectBundle {

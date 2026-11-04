@@ -17,6 +17,7 @@ import {
   unwrapExecuteEnvelope,
 } from "./json_document.ts";
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
+import { namedLoopRead } from "../named_loop_path.ts";
 
 export interface SourceContext {
   format: SourceFormatId;
@@ -27,6 +28,11 @@ export interface SourceContext {
   xmlDocument?: Document;
   /** Loop variables (`for_each_list` VAR → current source node or list item). */
   vars?: Record<string, unknown>;
+  /**
+   * Loop item names in lexical scope, outermost first. A path `dag.StartTid`
+   * reads from `vars.dag` when `dag` is listed here.
+   */
+  loopNames?: readonly string[];
   /**
    * When set, relative source paths walk this node instead of `json`.
    * Used while evaluating a DL restriction predicate against a list item.
@@ -111,7 +117,7 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
         case "change_case":
           return changeCase(args[0], String(args[1] ?? "LOWERCASE"));
         case "concat":
-          return args.map(String).join("");
+          return args.map((arg) => arg === null || arg === undefined ? "" : String(arg)).join("");
         case "round":
           return Math.round(Number(args[0] ?? 0));
         case "modulo": {
@@ -231,9 +237,55 @@ function isRelativeJsonPath(expr: string): boolean {
   return expr.length > 0 && !expr.startsWith("$") && !expr.startsWith("/");
 }
 
+function namedJsonRoot(
+  path: string,
+  ctx: SourceContext,
+): { rest: string; root: unknown } | null {
+  const named = namedLoopRead(path, ctx.loopNames ?? []);
+  if (!named) return null;
+  return { rest: named.rest, root: ctx.vars?.[named.name] };
+}
+
+function jsonAt(path: string, root: unknown): unknown {
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "." || trimmed === "$") return root;
+  if (looksLikeOpenEhrLocator(trimmed)) {
+    const query = compileAuthoringPath(trimmed, "json");
+    return fontoxpath.evaluateXPathToString(query, null, null, { source: root });
+  }
+  const asPath = trimmed.startsWith("$")
+    ? trimmed
+    : `$.${trimmed.replace(/^\./, "")}`;
+  if (/\[\*\]/.test(asPath)) return evalJsonWildcard(asPath, root);
+  return walkJsonSegments(root, parseJsonAuthoringPath(asPath));
+}
+
 function xpathEval(expr: string, ctx: SourceContext, type: string): unknown {
+  const value = xpathEvalRaw(expr, ctx, type);
+  if (type !== "boolean") return value;
+  if (Array.isArray(value)) return value.map((item) => booleanValue(item));
+  return booleanValue(value);
+}
+
+function xpathEvalRaw(expr: string, ctx: SourceContext, type: string): unknown {
   if (ctx.kind === "json") {
     const trimmed = expr.trim();
+    const named = namedJsonRoot(trimmed, ctx);
+    if (named) {
+      if (looksLikeOpenEhrLocator(named.rest) && named.rest !== ".") {
+        const query = compileAuthoringPath(named.rest, "json");
+        const variables = { source: named.root };
+        switch (type) {
+          case "number":
+            return fontoxpath.evaluateXPathToNumber(query, null, null, variables);
+          case "boolean":
+            return fontoxpath.evaluateXPathToBoolean(query, null, null, variables);
+          default:
+            return fontoxpath.evaluateXPathToString(query, null, null, variables);
+        }
+      }
+      return jsonAt(named.rest, named.root);
+    }
     const relative = isRelativeJsonPath(trimmed);
     if (looksLikeOpenEhrLocator(trimmed)) {
       const query = compileAuthoringPath(trimmed, "json");
@@ -364,23 +416,40 @@ function changeCase(value: unknown, mode: string): string {
 function coerceReturn(value: unknown, returnType: string): unknown {
   if (returnType === "node" || returnType === "source") return value;
   if (Array.isArray(value)) return value.map((item) => coerceReturn(item, returnType));
+  // A boolean source block is the cast. Absence is false, the same as XPath
+  // boolean() and Handlebars {{#if}}: a missing path, null, or "" is false;
+  // any other string (including the word "false") is true. Number 0 is false.
+  // Callers do not need a ternary that rewrites the boolean into true/false.
+  if (returnType === "boolean") return booleanValue(value);
   if (value === null || value === undefined) return value;
   // Keep `map(...)` records so DV_QUANTITY / DV_CODED_TEXT shells can unpack fields.
   if (typeof value === "object") return value;
   switch (returnType) {
     case "number":
       return Number(value);
-    case "boolean":
-      return Boolean(value);
     default:
       return String(value);
   }
+}
+
+function booleanValue(value: unknown): boolean {
+  if (value == null || value === "") return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0 && !Number.isNaN(value);
+  if (typeof value === "string") return true;
+  return true;
 }
 
 /** First node / subtree at a fontoxpath-authored path, as a Handlebars-friendly value. */
 export function evalSourceNode(expr: string, ctx: SourceContext): unknown {
   const trimmed = expr.trim();
   if (ctx.kind === "json") {
+    const named = namedJsonRoot(trimmed, ctx);
+    if (named) {
+      if (!named.rest || named.rest === ".") return named.root ?? null;
+      const nodes = collectJsonNodes(named.rest, named.root);
+      return nodes.length <= 1 ? (nodes[0] ?? null) : nodes;
+    }
     const relative = isRelativeJsonPath(trimmed);
     const root = relative ? (ctx.relativeRoot ?? ctx.json) : ctx.json;
     if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "/") {
@@ -451,6 +520,7 @@ function itemContext(ctx: SourceContext, name: string, item: unknown): SourceCon
   return {
     ...ctx,
     vars: { ...(ctx.vars ?? {}), [name]: item },
+    loopNames: [...(ctx.loopNames ?? []), name],
     relativeRoot: item,
     data: item,
   };

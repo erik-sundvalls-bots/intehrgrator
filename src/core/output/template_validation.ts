@@ -4,7 +4,11 @@
 
 import { parseTemplateInput } from "ehrtslib/parser/mod.ts";
 import {
-  deserializeFromFlatJson,
+  CodedTextMismatchError,
+  deserializeFromFlatWithIssues,
+  deserializeFromStructuredWithIssues,
+  type FlatPayload,
+  type FlatRmDefaultIssue,
   parseWebTemplate,
   webTemplateToOpt,
 } from "ehrtslib/serialization/simplified/mod.ts";
@@ -12,7 +16,11 @@ import { registerOpenEhrModelTypes } from "ehrtslib/serialization/common/openehr
 import { JsonConfigurableDeserializer } from "ehrtslib/serialization/json/mod.ts";
 import { XmlDeserializer } from "ehrtslib/serialization/xml/mod.ts";
 import { TemplateValidator } from "ehrtslib/validation/mod.ts";
-import type { OpenEhrJsonDeserializeMode, OutputValidation } from "../../types/mod.ts";
+import type {
+  OpenEhrJsonDeserializeMode,
+  OutputValidation,
+  OutputValidationMessage,
+} from "../../types/mod.ts";
 import type { TargetDefinition } from "../target/mod.ts";
 import { jsonDeserializationConfigForMode } from "./json_deserialize_config.ts";
 import {
@@ -39,6 +47,7 @@ const validator = new TemplateValidator({
   validateTerminology: true,
   validateRMSpecification: true,
   validateInvariants: true,
+  validateIntervals: true,
 });
 
 await validator.initialize();
@@ -115,21 +124,29 @@ export function validateConvertedOutput(
         }],
       };
     }
-    const flatRm = rmFromFlatDocument(output, target);
-    const rmInstance = flatRm ?? asRmInstance(output, jsonText, deserializeMode);
+    const flat = rmFromFlatDocument(output, target);
+    const rmInstance = flat?.composition ?? asRmInstance(output, jsonText, deserializeMode);
     const result = validator.validate(rmInstance, opt);
-    const messages = [...result.errors, ...result.warnings].map((msg) => ({
-      path: msg.path || "/",
-      message: msg.message,
-      severity: msg.severity,
-      line: lineNumberForRmPath(jsonText, msg.path || "/"),
-    }));
+    const flatMessages = flat?.messages ?? [];
+    const messages = [
+      ...flatMessages,
+      ...[...result.errors, ...result.warnings].map((msg) => ({
+        path: msg.path || "/",
+        message: msg.message,
+        severity: msg.severity,
+        line: lineNumberForRmPath(jsonText, msg.path || "/"),
+      })),
+    ];
     return {
       applicable: true,
-      valid: result.valid && result.errors.length === 0,
+      valid: result.valid && result.errors.length === 0 &&
+        !flatMessages.some((msg) => msg.severity === "error"),
       messages,
     };
   } catch (err) {
+    if (err instanceof FlatIssuesError) {
+      return { applicable: true, valid: false, messages: err.messages };
+    }
     const message = err instanceof Error ? err.message : String(err);
     return {
       applicable: true,
@@ -147,16 +164,53 @@ export function validateConvertedOutput(
 /**
  * Simplified FLAT documents are path maps (`ctx/category`, `.../value`), not
  * canonical RM JSON. Rebuild the composition before OPT validation.
+ *
+ * ehrtslib's FLAT reader runs with its defaults (since v0.8:
+ * `codedTextMismatch: "reject"`, `codedTextDisplayValue: "keep"`). Its issues,
+ * such as a coded text whose `|code` or `|value` is not in the template's
+ * list, are returned as output validation messages on the FLAT path.
  */
-function rmFromFlatDocument(output: unknown, target: TargetDefinition): unknown | null {
+function rmFromFlatDocument(
+  output: unknown,
+  target: TargetDefinition,
+): { composition: unknown; messages: OutputValidationMessage[] } | null {
   const json = flatCompositionJson(output);
-  if (!json || !target.webTemplateJson?.trim()) return null;
+  const structured = json ? null : structuredCompositionJson(output);
+  if ((!json && !structured) || !target.webTemplateJson?.trim()) return null;
   try {
     ensureRmTypeRegistry();
-    return deserializeFromFlatJson(json, parseWebTemplate(target.webTemplateJson));
-  } catch {
+    const webTemplate = parseWebTemplate(target.webTemplateJson);
+    const { composition, issues } = json
+      ? deserializeFromFlatWithIssues(JSON.parse(json) as FlatPayload, webTemplate)
+      : deserializeFromStructuredWithIssues(
+        JSON.parse(structured!) as Parameters<typeof deserializeFromStructuredWithIssues>[0],
+        webTemplate,
+      );
+    return { composition, messages: flatIssueMessages(issues) };
+  } catch (err) {
+    // deserializeFromFlatWithIssues collects mismatches as issues; if one is
+    // thrown anyway, report its issues instead of trying canonical JSON.
+    if (err instanceof CodedTextMismatchError) {
+      throw new FlatIssuesError(flatIssueMessages(err.issues));
+    }
     return null;
   }
+}
+
+class FlatIssuesError extends Error {
+  constructor(readonly messages: OutputValidationMessage[]) {
+    super(messages.map((msg) => `${msg.path}: ${msg.message}`).join("\n"));
+    this.name = "FlatIssuesError";
+  }
+}
+
+/** Issue paths are RM paths in the rebuilt composition, so no FLAT line. */
+function flatIssueMessages(issues: FlatRmDefaultIssue[]): OutputValidationMessage[] {
+  return issues.map((issue) => ({
+    path: issue.path || "/",
+    message: issue.message,
+    severity: issue.severity,
+  }));
 }
 
 function flatCompositionJson(output: unknown): string | null {
@@ -175,6 +229,30 @@ function flatCompositionJson(output: unknown): string | null {
   if ("_type" in record || "archetype_node_id" in record) return null;
   const keys = Object.keys(record);
   if (!keys.some((key) => key.startsWith("ctx/") || key.includes("/"))) return null;
+  return JSON.stringify(record);
+}
+
+/**
+ * Simplified STRUCTURED: one key (the template id) holding the nested tree.
+ * ehrtslib reads it back through FLAT, so its issues use FLAT paths.
+ */
+function structuredCompositionJson(output: unknown): string | null {
+  let value: unknown = output;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("{")) return null;
+    try {
+      value = JSON.parse(trimmed) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (keys.length !== 1 || keys[0]!.startsWith("_") || keys[0]!.includes("/")) return null;
+  const tree = record[keys[0]!];
+  if (!tree || typeof tree !== "object") return null;
   return JSON.stringify(record);
 }
 

@@ -99,7 +99,7 @@ including custom Source, openEHR types, Maps (`maps_*` in **Lists & maps**), and
   leads the **Loops & Logic** drawer, then stock Logic value blocks and list
   restrictions. `for_each_list` iterates a list / map-keys / sheet-rows **value**,
   or iterable source nodes when `source_query*` is plugged into **in** (Click-to-Map
-  wraps a repeating container and stores **relative** `source_query` paths). Mapping
+  wraps a repeating container and stores **relative** `source_query` paths). A path may name an enclosing item (`dag.StartTid`). **Include when** (`include_when`) in the same drawer emits its stack only when a boolean condition is true; `controls_if` stays out of the toolbox. Mapping
   Model `loops[]` records `kind: "list"` or `kind: "source"` from that LIST child.
   The **in** slot shows a union glyph (lists ☰ and source nodes 📂) and only those
   checks connect. Do not duplicate EVENT (or other repeating) blocks on the canvas;

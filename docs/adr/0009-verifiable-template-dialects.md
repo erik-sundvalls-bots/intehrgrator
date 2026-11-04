@@ -23,7 +23,7 @@ CodeMirror only **token-colours** `{{…}}`. Restricting the highlighter cannot 
 
 ### VMS-Hbs whitelist
 
-Allowed: `{{path}}` (bracket FLAT keys), comments, `~`, `{{else}}`, `{{#if}}` / `{{#unless}}` / `{{#each}}`, `@index`/`@first`/`@last`/`@key`, `eq` `ne` `lt` `gt` `lte` `gte` `and` `or`, `toLowerCase` `toUpperCase`, `slot`, Mustache-style `{{#path}}` / `{{^path}}`.
+Allowed: `{{path}}` (bracket FLAT keys), comments, `~`, `{{else}}`, `{{#if}}` / `{{#unless}}` / `{{#each}}`, `@index`/`@first`/`@last`/`@key`, `eq` `ne` `lt` `gt` `lte` `gte` `inc` `dec` `and` `or`, `toLowerCase` `toUpperCase`, `slot`, Mustache-style `{{#path}}` / `{{^path}}`. `inc` is `v + 1` and `dec` is `v - 1` (Kintegrate; `{{inc @index}}` is a 1-based row number).
 
 Forbidden: `lookup`, `#with`, `#log`, partials, `{{{…}}}` / `{{&}}`, `json` of arbitrary context, set-delimiter, decorators, unregistered helpers, lambdas.
 
@@ -62,3 +62,7 @@ Prefer promoting `cleanAndQuoteFreeTextInput` to a named FuncMap helper later so
 **Legacy examples:** older mapping examples with out-of-dialect constructs are kept only as **comparative material for one-off tests**, after translation to VMS-Hbs / VMS-Go (or Decision tables with VMS-Mustache cells). They are not a supported input.
 
 See [formal-verification-export.md — Out-of-dialect templates: not accepted](../future/formal-verification-export.md#out-of-dialect-templates-not-accepted).
+
+## Amendment 2026-11-03
+
+**Change:** VMS-Hbs allows the Kintegrate helpers `inc` and `dec` (`v + 1` and `v - 1`). They were already in the Integration Builder helper set this dialect tracks. Mapping preview and every conversion-script runtime that renders VMS-Hbs register the same functions.

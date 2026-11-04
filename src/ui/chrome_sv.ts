@@ -3,7 +3,7 @@ import { en, type ChromeMessages } from "./chrome_en.ts";
 /** Swedish web app chrome. Unlisted keys stay English (product names and tokens). */
 export const sv: ChromeMessages = {
   ...en,
-  menuAttachOriginalTarget: "Bifoga ursprungligt mål",
+  menuAttachOriginalTarget: "Bifoga ursprungligt målformat också",
   menuAttachOriginalTargetTitle: "Skicka även den råa målfilen (OPT / schema). Av: bara det kompakta slot-trädet, mycket mindre.",
   menuAiLanguages: "Språk…",
   aiLanguagesTitle: "Språk",
@@ -257,6 +257,10 @@ export const sv: ChromeMessages = {
   jointIntroHtml:
     "Välj mål och standardkontextkarta tillsammans. Bekräfta bygger <strong>mallskelettet</strong> och <strong>standardpunkter</strong>. <strong>Ny</strong> laddar målet bara till fliken Målschema så att du kan dra brickor och värden och sedan tillämpa på arbetsytan.",
   targetLegend: "Mål",
+  schemalessSchema: "Schema, mall eller fil",
+  schemalessJson: "Minimalt JSON-exempel",
+  schemalessXml: "Minimalt XML-exempel",
+  schemalessText: "Minimalt textexempel",
   noTargetYet: "Inget mål valt ännu.",
   fromFile: "Från fil…",
   useLoadedTarget: "Använd laddat mål",

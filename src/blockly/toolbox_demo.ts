@@ -268,6 +268,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
           { kind: "block", type: "logic_current_item" },
           { kind: "block", type: "logic_loop_index" },
           { kind: "block", type: "logic_loop_length" },
+          { kind: "block", type: "include_when" },
           { kind: "block", type: "logic_compare" },
           { kind: "block", type: "logic_operation" },
           { kind: "block", type: "logic_negate" },

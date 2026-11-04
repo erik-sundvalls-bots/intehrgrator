@@ -379,10 +379,16 @@ Deno.test("openEHR preview keeps language only beside a clinical value", () => {
       "pulse/value": 72,
     },
   }) as {
-    items?: Array<{ name?: { value?: string }; language?: { value?: string }; value?: { magnitude?: number } }>;
+    items?: Array<{
+      name?: { value?: string };
+      language?: { code_string?: string; terminology_id?: { value?: string } };
+      value?: { magnitude?: number };
+    }>;
   };
   assertEquals(output.items?.map((item) => item.name?.value), ["Pulse"]);
-  assertEquals(output.items?.[0]?.language?.value, "en");
+  // Canonical CODE_PHRASE, not a stray `value` (#310).
+  assertEquals(output.items?.[0]?.language?.code_string, "en");
+  assertEquals(output.items?.[0]?.language?.terminology_id?.value, "ISO_639-1");
   assertEquals(output.items?.[0]?.value?.magnitude, 72);
 });
 

@@ -118,7 +118,7 @@ Actions are split between the **header toolbar** (project-wide) and **pane heade
 |--------|----------|--------|-----|
 | Load Schema | Source → Schema section | Split control: main click loads a schema file; chevron offers **From file**, **From URL**, and recent URLs | ✓ |
 | + Add Example | Source → Examples section | Split control: main click opens a JSON/XML instance; chevron offers file, URL, and recent URLs | ✓ |
-| Load target & default context map | Target & Previews header | Split control: main click opens the joint target + default context map dialog; chevron offers file, URL, GitHub, and non-destructive refresh | ✓ |
+| Load target & default context map | Target & Previews header | Split control: main click opens the joint target + default context map dialog (schema file, or a minimal JSON, XML, or text example); chevron offers file, URL, GitHub, and non-destructive refresh | ✓ |
 | Slide-away | Source / Target & Previews headers | Hide the pane so the Mapping Editor takes the width; rail tabs restore it | ✓ |
 | Export TS | Target & Previews pane header | Download the generated TypeScript mapping script | ✓ |
 | Run Test | Output → Conversion Test Run(s) | Run every test file once (active first); marks all tabs | ✓ |

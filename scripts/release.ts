@@ -3,7 +3,7 @@
  * Cut a desktop + GitHub Pages release.
  *
  * Bumps version files (unless --current), runs tests/build, commits, tags, and pushes.
- * GitHub Actions (release.yml) publishes desktop binaries and a frozen Pages subdirectory.
+ * GitHub Actions (release.yml) publishes desktop binaries, the VS Code VSIX, and a frozen Pages subdirectory.
  *
  * Usage:
  *   deno task release -- --version 0.6.0
@@ -17,6 +17,7 @@ import {
   assertGhAuth,
   assertReleasePrerequisites,
   bumpVersionFiles,
+  promoteUnreleasedFile,
   readCurrentVersion,
   releaseTagMessage,
   releaseTagForVersion,
@@ -108,6 +109,11 @@ if (args.version) {
   releaseVersion = args.version;
 }
 
+const changelogChanged = await promoteUnreleasedFile(releaseVersion);
+if (changelogChanged) {
+  console.log(`Moved CHANGELOG Unreleased notes under ${releaseVersion}`);
+}
+
 await run("deno", ["task", "vendor"]);
 if (args.noTest) {
   console.log("Skipping local tests (--no-test); CI still runs unit + UI on the tag");
@@ -118,17 +124,24 @@ await run("deno", ["task", "build"]);
 
 if (args.dryRun) {
   console.log("Dry run complete — no commit, tag, or push performed.");
-  console.log(`Would tag ${releaseTag} and push to origin; Actions publishes desktop + Pages /${releaseTag}/`);
+  console.log(
+    `Would tag ${releaseTag} and push to origin; Actions publishes desktop + VS Code VSIX + Pages /${releaseTag}/`,
+  );
   Deno.exit(0);
 }
 
+const commitFiles: string[] = [];
 if (args.version) {
-  await run("git", ["add", ...[
+  commitFiles.push(
     "deno.json",
     "package.json",
     "scripts/desktop.compile.json",
     "src/core/persistence/mod.ts",
-  ]]);
+  );
+}
+if (changelogChanged) commitFiles.push("CHANGELOG.md");
+if (commitFiles.length) {
+  await run("git", ["add", ...commitFiles]);
   await run("git", ["commit", "-m", `chore: release ${releaseVersion}`]);
 }
 
@@ -137,4 +150,6 @@ await run("git", ["push", "origin", "HEAD"]);
 await run("git", ["push", "origin", releaseTag]);
 
 console.log(`Pushed ${releaseTag}.`);
-console.log(`GitHub Actions will publish desktop binaries and https://regionstockholm.github.io/intehrgrator/${releaseTag}/`);
+console.log(
+  `GitHub Actions will publish desktop binaries, intEHRgrator.vsix, and https://regionstockholm.github.io/intehrgrator/${releaseTag}/`,
+);

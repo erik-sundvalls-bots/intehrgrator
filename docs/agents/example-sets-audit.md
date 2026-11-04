@@ -96,10 +96,53 @@ AI-generated envelopes (`pass-*-ai.*`, `ai-created-*`) stay on disk and are not 
 
 | Set ID | Mapping | Sheets |
 | --- | --- | --- |
-| Simple-vitals | `simple-vitals.blockly.json` | `simple-vitals.sheets.json` |
-| Simple-vitals-series | `bp-series.blockly.json` | `bp-series.sheets.json` |
-| obx-mhv1-unmapped-json-to-openehr | `Obstetrix-MHV1/mapping/mapping.blockly.json` | `mapping.sheets.json` |
-| karda-ordinationsdata-to-openehr-flat | `mapping.blockly.json` | `mapping.sheets.json` |
-| karda-administreringsdata-to-openehr-flat | `mapping.blockly.json` | `mapping.sheets.json` |
+| Simple-vitals | `simple-vitals.blockly.json` | — |
+| Simple-vitals-series | `bp-series.blockly.json` | — |
+| obx-mhv1-mapped-json-to-openehr | `Obstetrix-MHV1/mapping/mapping.blockly.json` | `mapping.sheets.json` |
+| karda-ordinationsdata-to-openehr-flat | `mapping.blockly.json` | `mapping.sheets.json` (lookup Sheets beredningsform, administreringsvag) |
+| karda-administreringsdata-to-openehr-flat | `mapping.blockly.json` | — |
 
 Unchanged manual mappings: chemo, lung-MDT, dummy-json-vitals-mapped.
+
+## MCP remap on ehrtslib v0.9 (2026-11-01)
+
+The Simple-vitals, series and both Karda mappings were redone through the headless MCP tools (`load_example_set` with `includeMapping: false`, `import_suggestions`, `run_test` in preview and TypeScript). Each `*.intehrgrator-suggestions.json` next to the Blockly file is the envelope that produced it.
+
+| Set | Preview | TypeScript | Known gaps |
+| --- | --- | --- | --- |
+| Simple-vitals | valid | valid | — |
+| Simple-vitals-series | valid | valid except `bp-series-inst-2` | Pulse left out; a row without position gives an empty ELEMENT in TypeScript |
+| karda-ordinationsdata-to-openehr-flat | valid | valid for the 3 instances with a trial id | TypeScript writes an empty trial-name text when the source has none; preview drops DV_IDENTIFIER type; Vårdgivare cluster missing |
+| karda-administreringsdata-to-openehr-flat | valid | valid | Preview drops DV_IDENTIFIER type; Vårdgivare cluster missing |
+| obx-mhv1-mapped-json-to-openehr | valid | valid | Partial mapping; OPT without term definitions (at-code labels); mapping not redone |
+| chemo / lung-MDT (+ decision-table siblings) | valid | — (XML targets) | Kept as production-parity rebuilds |
+| dummy-json-vitals-mapped | valid | valid | — |
+
+Composer and health care facility are party blocks (name + identifier) on the canvas: a `map(...)` from `import_suggestions` on those slots is not kept in the saved Blockly. Interval validation was switched off on ehrtslib v0.9 (DV_IDENTIFIER crash); it is on again since v0.10.
+
+App bugs behind the gaps are listed with repros in the 0.9 findings (F-M1 … F-M12).
+
+## Rerun on ehrtslib v0.10 (2026-11-01)
+
+Same headless MCP flow. Karda ordination: the substance loops use the relative path `Substanser` inside the treatment-day loop, course number and trial id map directly (empty values are left out), and the trial name comes from the template. The planned administration date is `dag.StartTid`, read from the day loop item inside the substance loop. Output is unchanged. Karda administration and both Simple-vitals envelopes had no ehrtslib workarounds; their reruns give the same output and were not re-exported. Pulse in Simple-vitals-series stays unmapped: an iteration without a pulse still keeps an EVENT with only a time.
+
+| Set | Default encoding | Simplified FLAT | Simplified STRUCTURED | Canonical JSON |
+| --- | --- | --- | --- | --- |
+| Simple-vitals | valid | valid | valid | valid |
+| Simple-vitals-series | valid | invalid: coded diagnosis on a DV_TEXT-only node has no FLAT field | same as FLAT | valid |
+| karda-ordinationsdata-to-openehr-flat | valid | valid | valid | valid |
+| karda-administreringsdata-to-openehr-flat | valid | valid | valid | valid |
+| obx-mhv1-mapped-json-to-openehr | valid | invalid: ELEMENTs without a value constraint get a bare FLAT key | same as FLAT | valid |
+
+## Rerun on ehrtslib 0.11.0 (2026-11-02)
+
+Pinned to release `v0.11`. The name-predicate workaround is gone (`webTemplateToOpt` keeps the name constraint, ehrtslib#256). Slot ids for the two accident-report headings are `[openEHR-EHR-SECTION.adhoc.v1, 'Vital signs']` and `[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']`.
+
+| Set | Default encoding | Simplified FLAT | Simplified STRUCTURED | Canonical JSON |
+| --- | --- | --- | --- | --- |
+| Simple-vitals-series | valid | valid (ehrtslib#255) | valid | valid |
+| obx-mhv1-mapped-json-to-openehr | valid | valid (`<type>_value`, ehrtslib#255) | valid | valid |
+| karda-administreringsdata-to-openehr-flat | not re-run | valid; 0..* identifiers and the diagnosis are `:0` (ehrtslib#268) | not re-run | valid |
+
+Preview and TypeScript give the same verdict in every cell; the `*-invalid.json` instances fail as intended.
+

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE — openEHR source tree RM (#86)</title>
+  <style>
+    /* Throwaway UI prototype for https://github.com/regionstockholm/intehrgrator/issues/86
+       Three variants of Source Schema tree when source is openEHR Web Template.
+       Switch via ?variant=A|B|C or the floating bar. Not production. */
+    :root {
+      --primary: #005c53;
+      --primary-dark: #003b49;
+      --accent: #e87722;
+      --surface: #ffffff;
+      --surface-alt: #f5f5f0;
+      --text: #1a1a1a;
+      --text-secondary: #666666;
+      --border: #d9d9d9;
+      --rm-mute: #6b7c8a;
+      --rm-bg: #f0f3f6;
+      --optional-bg: #fff8f2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; color: var(--text); background: var(--surface-alt); }
+    body { display: flex; flex-direction: column; }
+
+    .banner {
+      background: #3e2723; color: #fff3e0; padding: 8px 14px; font-size: 13px;
+      display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+    }
+    .banner strong { color: #ffe0b2; }
+    .banner a { color: #ffcc80; }
+    .banner .qid { opacity: 0.85; }
+
+    .workbench {
+      flex: 1; min-height: 0; display: grid;
+      grid-template-columns: 340px 1fr 280px;
+      gap: 0; border-top: 1px solid var(--border);
+    }
+    .pane {
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .pane:last-child { border-right: none; }
+    .pane-h {
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+      display: flex; align-items: center; gap: 8px; background: #fafaf8;
+    }
+    .pane-h .chip {
+      font-weight: 500; font-size: 11px; padding: 2px 6px; border-radius: 3px;
+      background: #e8f5f3; color: var(--primary-dark);
+    }
+    .pane-body { flex: 1; overflow: auto; padding: 6px 0 48px; }
+    .ghost {
+      opacity: 0.45; font-size: 12px; padding: 16px; color: var(--text-secondary);
+      line-height: 1.45;
+    }
+    .ghost .block {
+      margin: 8px 0; padding: 10px; border: 2px solid #90caf9; border-radius: 4px;
+      background: #e3f2fd; color: #1565c0; font-family: ui-monospace, monospace; font-size: 11px;
+    }
+
+    /* Shared tree */
+    .tree-row {
+      display: flex; align-items: baseline; gap: 6px;
+      padding: 2px 10px 2px 0; font-size: 13px; line-height: 1.35;
+      cursor: pointer; user-select: none;
+    }
+    .tree-row:hover .tree-name { color: var(--primary); }
+    .tree-row.selected { background: #e8f5f3; }
+    .tree-row.selected .tree-name { color: var(--primary-dark); font-weight: 600; }
+    .tree-name { flex: 0 1 auto; }
+    .tree-meta {
+      color: var(--text-secondary); font-family: ui-monospace, monospace;
+      font-size: 11px; white-space: nowrap;
+    }
+    .tree-badge {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; padding: 0 4px; border-radius: 2px;
+      font-family: system-ui, sans-serif;
+    }
+
+    /* Variant A — Blockly mirror: mute RM + per-node + optional */
+    .v-a .tree-row.rm-mandatory .tree-name {
+      color: var(--rm-mute); font-weight: 400; font-style: italic;
+    }
+    .v-a .tree-row.rm-mandatory .tree-meta { color: #8a9aaa; font-style: italic; }
+    .v-a .tree-row.rm-mandatory { background: transparent; }
+    .v-a .tree-row.rm-optional .tree-name {
+      color: var(--accent); font-weight: 400; font-style: italic;
+    }
+    .v-a .tree-row.rm-optional { background: var(--optional-bg); }
+    .v-a .opt-affordance {
+      margin-left: auto; border: 1px solid var(--border); background: #fff;
+      color: var(--text-secondary); font-size: 11px; padding: 0 6px; border-radius: 3px;
+      cursor: pointer; font-family: system-ui, sans-serif;
+    }
+    .v-a .opt-affordance:hover { border-color: var(--accent); color: var(--accent); }
+    .v-a .opt-affordance[aria-expanded="true"] {
+      background: var(--optional-bg); border-color: var(--accent); color: #b35c00;
+    }
+
+    /* Variant B — Fold layers: chevron groups */
+    .v-b .fold-hdr {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 10px; font-size: 11px; color: var(--rm-mute);
+      cursor: pointer; background: var(--rm-bg); border-top: 1px solid #e2e8ee;
+      border-bottom: 1px solid #e2e8ee; margin: 2px 0;
+    }
+    .v-b .fold-hdr:hover { color: var(--primary-dark); }
+    .v-b .fold-hdr.optional { background: var(--optional-bg); color: #b35c00; border-color: #f0dcc8; }
+    .v-b .fold-chevron { width: 1em; font-family: ui-monospace, monospace; }
+    .v-b .tree-row.rm-mandatory .tree-name { color: var(--rm-mute); font-weight: 400; }
+    .v-b .tree-row.rm-optional .tree-name { color: #b35c00; font-weight: 400; }
+    .v-b .badge-rm {
+      background: #dfe6ec; color: #4a5a68;
+    }
+    .v-b .badge-opt {
+      background: #ffe8d4; color: #8a4500;
+    }
+
+    /* Variant C — Scope filter */
+    .v-c .scope-bar {
+      display: flex; gap: 0; padding: 6px 10px; border-bottom: 1px solid var(--border);
+      background: #fafaf8; position: sticky; top: 0; z-index: 1;
+    }
+    .v-c .scope-bar button {
+      flex: 1; font-size: 11px; padding: 5px 4px; border: 1px solid var(--border);
+      background: #fff; color: var(--text-secondary); cursor: pointer;
+    }
+    .v-c .scope-bar button:first-child { border-radius: 4px 0 0 4px; }
+    .v-c .scope-bar button:last-child { border-radius: 0 4px 4px 0; }
+    .v-c .scope-bar button + button { border-left: none; }
+    .v-c .scope-bar button[aria-pressed="true"] {
+      background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600;
+    }
+    .v-c .tree-row.rm-mandatory .tree-name {
+      color: var(--rm-mute); font-weight: 500;
+    }
+    .v-c .tree-row.rm-optional .tree-name {
+      color: var(--accent); font-weight: 500; font-style: italic;
+    }
+    .v-c .tree-row.rm-mandatory,
+    .v-c .tree-row.rm-optional {
+      border-left: 2px solid transparent;
+    }
+    .v-c .tree-row.rm-mandatory { border-left-color: #9aafbd; background: #f7f9fb; }
+    .v-c .tree-row.rm-optional { border-left-color: var(--accent); background: var(--optional-bg); }
+    .v-c .legend {
+      font-size: 11px; color: var(--text-secondary); padding: 6px 10px 2px;
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+    .v-c .legend span::before {
+      content: ""; display: inline-block; width: 8px; height: 8px;
+      margin-right: 4px; border-radius: 1px; vertical-align: middle;
+    }
+    .v-c .legend .l-t::before { background: var(--text); }
+    .v-c .legend .l-m::before { background: #9aafbd; }
+    .v-c .legend .l-o::before { background: var(--accent); }
+
+    .state-panel {
+      font-family: ui-monospace, monospace; font-size: 11px;
+      padding: 10px; white-space: pre-wrap; color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .state-panel h3 {
+      font-family: system-ui, sans-serif; font-size: 12px; margin: 0 0 8px;
+      color: var(--text); font-weight: 600;
+    }
+    .notes {
+      padding: 10px 12px; font-size: 12px; line-height: 1.45; color: var(--text);
+      border-top: 1px solid var(--border); background: #fffef8;
+    }
+    .notes h3 { margin: 0 0 6px; font-size: 12px; }
+    .notes ul { margin: 0; padding-left: 18px; }
+    .notes li { margin: 4px 0; }
+
+    .switcher {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 0;
+      background: #1a1a1a; color: #fff; border-radius: 999px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35); z-index: 100;
+      font-size: 13px; overflow: hidden;
+    }
+    .switcher button {
+      background: transparent; color: #fff; border: none;
+      padding: 10px 14px; cursor: pointer; font-size: 16px; line-height: 1;
+    }
+    .switcher button:hover { background: #333; }
+    .switcher .label {
+      padding: 10px 16px; min-width: 220px; text-align: center;
+      border-left: 1px solid #444; border-right: 1px solid #444;
+      font-weight: 600; letter-spacing: 0.02em;
+    }
+    .switcher .sub {
+      display: block; font-weight: 400; font-size: 10px; opacity: 0.7; margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <strong>PROTOTYPE · throwaway</strong>
+    <span class="qid">Issue <a href="https://github.com/regionstockholm/intehrgrator/issues/86">#86</a> — mandatory + optional RM in openEHR Source Schema tree</span>
+    <span>Question: how should RM-only nodes look and unfold next to template paths?</span>
+  </div>
+
+  <div class="workbench">
+    <section class="pane" id="source-pane">
+      <div class="pane-h">
+        Source · Schema
+        <span class="chip">openehr-web-template</span>
+      </div>
+      <div class="pane-body" id="tree-host"></div>
+      <div class="notes" id="variant-notes"></div>
+    </section>
+
+    <section class="pane">
+      <div class="pane-h">Mapping Editor <span style="font-weight:400;color:var(--text-secondary)">(ghost)</span></div>
+      <div class="ghost">
+        Listening Mode armed — click a source node to bind.
+        <div class="block">source_query → waiting…</div>
+        Target still shows silent-mandatory + cogwheel Optional RM Insertion. This prototype only changes the <em>source</em> tree.
+      </div>
+    </section>
+
+    <section class="pane">
+      <div class="pane-h">Prototype state</div>
+      <div class="state-panel" id="state-panel"></div>
+    </section>
+  </div>
+
+  <div class="switcher" role="toolbar" aria-label="Prototype variant switcher">
+    <button type="button" id="prev" aria-label="Previous variant">←</button>
+    <div class="label" id="switcher-label">A</div>
+    <button type="button" id="next" aria-label="Next variant">→</button>
+  </div>
+
+  <script>
+    /**
+     * Synthetic chemo-like COMPOSITION Web Template slice.
+     * origin: "template" | "rm-mandatory" | "rm-optional"
+     * Children listed in a didactic order (not full BMM order).
+     */
+    const DEMO_TREE = {
+      name: "$",
+      type: "COMPOSITION",
+      multiplicity: "[1]",
+      origin: "template",
+      path: "$",
+      children: [
+        {
+          name: "name", type: "DV_TEXT", multiplicity: "[1]", origin: "rm-mandatory",
+          path: "$.name", note: "LOCATABLE.name — silent-mandatory, often auto-fixed on target",
+          children: [
+            { name: "value", type: "String", multiplicity: "[1]", origin: "rm-mandatory", path: "$.name.value", children: [] },
+          ],
+        },
+        {
+          name: "archetype_node_id", type: "String", multiplicity: "[1]", origin: "rm-mandatory",
+          path: "$.archetype_node_id", children: [],
+        },
+        {
+          name: "language", type: "CODE_PHRASE", multiplicity: "[1]", origin: "template",
+          path: "$.language", children: [
+            { name: "|code", type: "String", multiplicity: "[1]", origin: "template", path: "$.language|code", children: [] },
+            { name: "|terminology", type: "String", multiplicity: "[1]", origin: "template", path: "$.language|terminology", children: [] },
+          ],
+        },
+        {
+          name: "territory", type: "CODE_PHRASE", multiplicity: "[1]", origin: "template",
+          path: "$.territory", children: [],
+        },
+        {
+          name: "category", type: "DV_CODED_TEXT", multiplicity: "[1]", origin: "template",
+          path: "$.category", children: [],
+        },
+        {
+          name: "composer", type: "PARTY_PROXY", multiplicity: "[1]", origin: "template",
+          path: "$.composer", children: [],
+        },
+        {
+          name: "context", type: "EVENT_CONTEXT", multiplicity: "[1]", origin: "template",
+          path: "$.context",
+          children: [
+            {
+              name: "start_time", type: "DV_DATE_TIME", multiplicity: "[1]", origin: "template",
+              path: "$.context.start_time", children: [],
+            },
+            {
+              name: "setting", type: "DV_CODED_TEXT", multiplicity: "[1]", origin: "template",
+              path: "$.context.setting", children: [],
+            },
+            {
+              name: "vårdenhet", type: "CLUSTER", multiplicity: "[0..1]", origin: "template",
+              path: "$.context.vårdenhet", children: [],
+            },
+            {
+              name: "end_time", type: "DV_DATE_TIME", multiplicity: "[0..1]", origin: "rm-optional",
+              path: "$.context.end_time", children: [],
+            },
+            {
+              name: "health_care_facility", type: "PARTY_IDENTIFIED", multiplicity: "[0..1]", origin: "rm-optional",
+              path: "$.context.health_care_facility", children: [],
+            },
+            {
+              name: "location", type: "String", multiplicity: "[0..1]", origin: "rm-optional",
+              path: "$.context.location", children: [],
+            },
+            {
+              name: "participations", type: "List<PARTICIPATION>", multiplicity: "[0..*]", origin: "rm-optional",
+              path: "$.context.participations", children: [],
+            },
+          ],
+        },
+        {
+          name: "frågeformulär_…", type: "OBSERVATION", multiplicity: "[0..1]", origin: "template",
+          path: "$.frågeformulär",
+          children: [
+            {
+              name: "data", type: "HISTORY", multiplicity: "[1]", origin: "template",
+              path: "$.frågeformulär.data", children: [
+                {
+                  name: "events", type: "EVENT", multiplicity: "[1]", origin: "template",
+                  path: "$.frågeformulär.data.events", children: [
+                    {
+                      name: "data", type: "ITEM_TREE", multiplicity: "[1]", origin: "template",
+                      path: "$.frågeformulär.data.events.data", children: [
+                        {
+                          name: "symptom", type: "ELEMENT", multiplicity: "[0..*]", origin: "template",
+                          path: "$.frågeformulär.data.events.data.symptom", children: [],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: "feeder_audit", type: "FEEDER_AUDIT", multiplicity: "[0..1]", origin: "rm-optional",
+              path: "$.frågeformulär.feeder_audit", children: [],
+            },
+            {
+              name: "links", type: "List<LINK>", multiplicity: "[0..*]", origin: "rm-optional",
+              path: "$.frågeformulär.links", children: [],
+            },
+          ],
+        },
+        {
+          name: "uid", type: "UID_BASED_ID", multiplicity: "[0..1]", origin: "rm-optional",
+          path: "$.uid", children: [],
+        },
+        {
+          name: "feeder_audit", type: "FEEDER_AUDIT", multiplicity: "[0..1]", origin: "rm-optional",
+          path: "$.feeder_audit", children: [],
+        },
+        {
+          name: "links", type: "List<LINK>", multiplicity: "[0..*]", origin: "rm-optional",
+          path: "$.links", children: [],
+        },
+      ],
+    };
+
+    const VARIANTS = {
+      A: {
+        key: "A",
+        name: "Blockly mirror",
+        blurb: "Mute silent-mandatory inline; + optional per node",
+        notes: [
+          "Mirrors target policy: silent-mandatory always visible; optional behind an affordance.",
+          "RM-only names use muted italic; template names keep current weight/colour.",
+          "Per-container “+ optional RM” expands those children in place (like cogwheel, but tree-native).",
+          "No new collapse for template content — tree stays mostly always-open.",
+        ],
+      },
+      B: {
+        key: "B",
+        name: "Fold layers",
+        blurb: "Template body + RM required fold + optional fold",
+        notes: [
+          "Structurally different: RM nodes leave the main indent stream and sit in labelled folds.",
+          "“RM required (n)” always present under each container that has silent-mandatory gaps.",
+          "“Optional RM (n)” starts collapsed — first real expand/collapse in the Source Schema tree.",
+          "Badges mark origin; template clinical paths stay visually primary.",
+        ],
+      },
+      C: {
+        key: "C",
+        name: "Scope filter",
+        blurb: "Header mode: Template · + mandatory · Full RM",
+        notes: [
+          "Density control at the pane, not per node — good when many containers have RM extras.",
+          "Accent left-rail + italic for optional; slate rail for silent-mandatory.",
+          "“Template” mode matches today’s tree (no RM fill-in).",
+          "Trade-off: optional nodes are either all hidden or all shown — no surgical reveal.",
+        ],
+      },
+    };
+
+    const KEYS = ["A", "B", "C"];
+
+    /** @type {{ variant: string, selectedPath: string|null, aExpanded: Set<string>, bFolds: Record<string, boolean>, cScope: string }} */
+    const state = {
+      variant: "A",
+      selectedPath: null,
+      aExpanded: new Set(),
+      bFolds: {},
+      cScope: "mandatory", // template | mandatory | full
+    };
+
+    function getVariant() {
+      const p = new URLSearchParams(location.search).get("variant");
+      return KEYS.includes(p) ? p : "A";
+    }
+
+    function setVariant(v) {
+      const url = new URL(location.href);
+      url.searchParams.set("variant", v);
+      history.replaceState(null, "", url);
+      state.variant = v;
+      render();
+    }
+
+    function cycle(dir) {
+      const i = KEYS.indexOf(state.variant);
+      setVariant(KEYS[(i + dir + KEYS.length) % KEYS.length]);
+    }
+
+    function partitionChildren(node) {
+      const kids = node.children || [];
+      return {
+        template: kids.filter((c) => c.origin === "template"),
+        mandatory: kids.filter((c) => c.origin === "rm-mandatory"),
+        optional: kids.filter((c) => c.origin === "rm-optional"),
+      };
+    }
+
+    function indent(depth) {
+      return `${depth * 12}px`;
+    }
+
+    function selectRow(path) {
+      state.selectedPath = path;
+      render();
+    }
+
+    function rowEl(node, depth, extraClass = "") {
+      const row = document.createElement("div");
+      row.className = `tree-row ${extraClass}`.trim();
+      if (node.origin === "rm-mandatory") row.classList.add("rm-mandatory");
+      if (node.origin === "rm-optional") row.classList.add("rm-optional");
+      if (state.selectedPath === node.path) row.classList.add("selected");
+      row.style.paddingLeft = indent(depth);
+      row.dataset.path = node.path;
+
+      const name = document.createElement("span");
+      name.className = "tree-name";
+      name.textContent = node.name;
+
+      const meta = document.createElement("span");
+      meta.className = "tree-meta";
+      meta.textContent = `${node.type} ${node.multiplicity}`;
+
+      row.append(name, meta);
+      row.addEventListener("click", (e) => {
+        if (e.target.closest("button, .fold-hdr, .opt-affordance")) return;
+        selectRow(node.path);
+      });
+      return row;
+    }
+
+    // ——— Variant A ———
+    function renderA(host, node, depth) {
+      const parts = partitionChildren(node);
+      const row = rowEl(node, depth);
+      if (parts.optional.length && node.origin === "template") {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "opt-affordance";
+        const open = state.aExpanded.has(node.path);
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        btn.textContent = open
+          ? `Hide optional RM (−${parts.optional.length})`
+          : `+ optional RM (${parts.optional.length})`;
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (state.aExpanded.has(node.path)) state.aExpanded.delete(node.path);
+          else state.aExpanded.add(node.path);
+          render();
+        });
+        row.append(btn);
+      }
+      host.append(row);
+
+      // Always show template + silent-mandatory; optional only when expanded
+      for (const c of parts.mandatory) renderA(host, c, depth + 1);
+      for (const c of parts.template) renderA(host, c, depth + 1);
+      if (state.aExpanded.has(node.path)) {
+        for (const c of parts.optional) renderA(host, c, depth + 1);
+      }
+    }
+
+    // ——— Variant B ———
+    function foldKey(path, kind) {
+      return `${path}::${kind}`;
+    }
+
+    function isFoldOpen(path, kind, defaultOpen) {
+      const k = foldKey(path, kind);
+      return k in state.bFolds ? state.bFolds[k] : defaultOpen;
+    }
+
+    function toggleFold(path, kind, defaultOpen) {
+      const k = foldKey(path, kind);
+      state.bFolds[k] = !isFoldOpen(path, kind, defaultOpen);
+      render();
+    }
+
+    function renderB(host, node, depth) {
+      // Skip rendering RM nodes at top-level walk — they appear inside folds of parents
+      if (node.origin !== "template" && depth === 0) {
+        /* root is template */
+      }
+      const parts = partitionChildren(node);
+      const row = rowEl(node, depth);
+      if (node.origin === "rm-mandatory") {
+        const b = document.createElement("span");
+        b.className = "tree-badge badge-rm";
+        b.textContent = "RM";
+        row.append(b);
+      }
+      if (node.origin === "rm-optional") {
+        const b = document.createElement("span");
+        b.className = "tree-badge badge-opt";
+        b.textContent = "opt";
+        row.append(b);
+      }
+      host.append(row);
+
+      if (parts.mandatory.length) {
+        const open = isFoldOpen(node.path, "m", true);
+        const hdr = document.createElement("div");
+        hdr.className = "fold-hdr";
+        hdr.style.paddingLeft = indent(depth + 1);
+        hdr.innerHTML = `<span class="fold-chevron">${open ? "▾" : "▸"}</span> RM required (${parts.mandatory.length})`;
+        hdr.addEventListener("click", () => toggleFold(node.path, "m", true));
+        host.append(hdr);
+        if (open) for (const c of parts.mandatory) renderB(host, c, depth + 2);
+      }
+
+      for (const c of parts.template) renderB(host, c, depth + 1);
+
+      if (parts.optional.length) {
+        const open = isFoldOpen(node.path, "o", false);
+        const hdr = document.createElement("div");
+        hdr.className = "fold-hdr optional";
+        hdr.style.paddingLeft = indent(depth + 1);
+        hdr.innerHTML = `<span class="fold-chevron">${open ? "▾" : "▸"}</span> Optional RM (${parts.optional.length})`;
+        hdr.addEventListener("click", () => toggleFold(node.path, "o", false));
+        host.append(hdr);
+        if (open) for (const c of parts.optional) renderB(host, c, depth + 2);
+      }
+    }
+
+    // ——— Variant C ———
+    function renderC(host, node, depth) {
+      const parts = partitionChildren(node);
+      const row = rowEl(node, depth);
+      host.append(row);
+
+      const showM = state.cScope !== "template";
+      const showO = state.cScope === "full";
+
+      if (showM) for (const c of parts.mandatory) renderC(host, c, depth + 1);
+      for (const c of parts.template) renderC(host, c, depth + 1);
+      if (showO) for (const c of parts.optional) renderC(host, c, depth + 1);
+    }
+
+    function renderCChrome(host) {
+      const bar = document.createElement("div");
+      bar.className = "scope-bar";
+      const scopes = [
+        ["template", "Template"],
+        ["mandatory", "+ Mandatory RM"],
+        ["full", "Full RM"],
+      ];
+      for (const [id, label] of scopes) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = label;
+        b.setAttribute("aria-pressed", state.cScope === id ? "true" : "false");
+        b.addEventListener("click", () => {
+          state.cScope = id;
+          render();
+        });
+        bar.append(b);
+      }
+      host.append(bar);
+
+      const legend = document.createElement("div");
+      legend.className = "legend";
+      legend.innerHTML =
+        `<span class="l-t">Template</span>` +
+        `<span class="l-m">Silent-mandatory RM</span>` +
+        `<span class="l-o">Optional RM</span>`;
+      host.append(legend);
+    }
+
+    function countOrigins(node, acc = { template: 0, "rm-mandatory": 0, "rm-optional": 0 }) {
+      acc[node.origin] = (acc[node.origin] || 0) + 1;
+      for (const c of node.children || []) countOrigins(c, acc);
+      return acc;
+    }
+
+    function renderState() {
+      const counts = countOrigins(DEMO_TREE);
+      const v = VARIANTS[state.variant];
+      const panel = document.getElementById("state-panel");
+      panel.innerHTML = `<h3>Live prototype state</h3>` +
+        JSON.stringify(
+          {
+            variant: state.variant,
+            name: v.name,
+            selectedPath: state.selectedPath,
+            aExpandedPaths: [...state.aExpanded],
+            bFolds: state.bFolds,
+            cScope: state.cScope,
+            demoNodeCounts: counts,
+          },
+          null,
+          2,
+        );
+    }
+
+    function render() {
+      state.variant = getVariant();
+      const host = document.getElementById("tree-host");
+      host.className = `pane-body v-${state.variant.toLowerCase()}`;
+      host.replaceChildren();
+
+      if (state.variant === "A") {
+        renderA(host, DEMO_TREE, 0);
+      } else if (state.variant === "B") {
+        renderB(host, DEMO_TREE, 0);
+      } else {
+        renderCChrome(host);
+        renderC(host, DEMO_TREE, 0);
+      }
+
+      const v = VARIANTS[state.variant];
+      document.getElementById("switcher-label").innerHTML =
+        `${v.key} (${v.name})<span class="sub">${v.blurb}</span>`;
+
+      const notes = document.getElementById("variant-notes");
+      notes.innerHTML = `<h3>Design intent — ${v.name}</h3><ul>` +
+        v.notes.map((n) => `<li>${n}</li>`).join("") +
+        `</ul>`;
+
+      renderState();
+    }
+
+    document.getElementById("prev").addEventListener("click", () => cycle(-1));
+    document.getElementById("next").addEventListener("click", () => cycle(1));
+    document.addEventListener("keydown", (e) => {
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.key === "ArrowLeft") cycle(-1);
+      if (e.key === "ArrowRight") cycle(1);
+    });
+
+    state.variant = getVariant();
+    render();
+  </script>
+</body>
+</html>

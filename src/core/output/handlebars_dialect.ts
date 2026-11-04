@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerKintegrateHandlebarsHelpers } from "../codegen/helpers/handlebars.ts";
 import { VMS_HBS_ALLOWED_HELPERS } from "./vms_hbs.ts";
 
 export interface HandlebarsRenderOptions {
@@ -11,21 +12,7 @@ export interface HandlebarsRenderOptions {
 /** Kintegrate-compatible Handlebars runtime, isolated from global registrations. */
 export function createKintegrateHandlebars(): typeof Handlebars {
   const engine = Handlebars.create();
-  engine.registerHelper({
-    eq: (left: unknown, right: unknown) => left === right,
-    ne: (left: unknown, right: unknown) => left !== right,
-    lt: (left: unknown, right: unknown) => Number(left) < Number(right),
-    gt: (left: unknown, right: unknown) => Number(left) > Number(right),
-    lte: (left: unknown, right: unknown) => Number(left) <= Number(right),
-    gte: (left: unknown, right: unknown) => Number(left) >= Number(right),
-    and: (...args: unknown[]) => args.slice(0, -1).every(Boolean),
-    or: (...args: unknown[]) => args.slice(0, -1).some(Boolean),
-    toLowerCase: (value: unknown) => value == null ? value : String(value).toLowerCase(),
-    toUpperCase: (value: unknown) => value == null ? value : String(value).toUpperCase(),
-    slot(this: unknown, slotId: unknown, options: { data?: { root?: { _slots?: Record<string, unknown> } } }) {
-      return options.data?.root?._slots?.[String(slotId)];
-    },
-  });
+  registerKintegrateHandlebarsHelpers(engine);
   return engine;
 }
 

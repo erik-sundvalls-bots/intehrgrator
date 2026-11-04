@@ -14,7 +14,17 @@ server or CI JVM. Conversion Test Run for Java remains unimplemented
 
 ## What the class looks like
 
-Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`:
+Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`.
+
+Shared helpers live in `se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime`
+(`src/core/codegen/helpers/java/IntehrgratorRuntime.java`). Compile that file
+with the generated class. XPath uses Jackson, which Archie already brings in.
+When the script calls `handlebars`, also compile `HandlebarsSupport.java` and
+add Handlebars.java (below). When it calls `codedText`, also compile
+`CodedTextSupport.java` (Archie `DvCodedText`, same value-set lookup as
+TypeScript). The generated file imports only the static helpers it calls
+(`asString`, `rm`, …) and uses `ig.xpathString` / `ig.sheetLookup` for helpers
+that read the source or the sheet map.
 
 - `convert(Object source, Map<String, Object> defaults)` — JSON (`Map` /
   Jackson tree / JSON string) or XML (`org.w3c.dom.Node` / XML string).
@@ -23,7 +33,9 @@ Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`:
   compact constructors for data values (`new DvQuantity(units, magnitude, null)`,
   `new DvText(…)`, `new CodePhrase("ISO_639-1::en")`).
 - `for_each_list` (source-node grain) → `xpathNodes(path).stream().map(var -> …).toList()` with
-  relative xpath against the loop node. **Loop index / Loop length** are not bound yet;
+  relative xpath against the loop node. A BMM `List<…>` attribute wraps that in
+  `new ArrayList<ElementType>(…)` and a stream type witness, so a `PointEvent`
+  can be passed to `setEvents(List<Event<…>>)`. **Loop index / Loop length** are not bound yet;
   see [loop-index-length-codegen-investigation.md](future/loop-index-length-codegen-investigation.md)
   (#137).
 - `maps_get("defaults", key)` → `defaults.get(key)`.
