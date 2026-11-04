@@ -1,6 +1,7 @@
-# Publish desktop binaries and a frozen GitHub Pages subdirectory for each release tag.
-# Triggered by `deno task release` (push annotated tag) or manual tag push.
-# Maintainer flow, tag naming, recovery dispatch: README_DEVELOPERS.md § Releases.
+# Publish desktop binaries, the VS Code VSIX, and a frozen GitHub Pages subdirectory
+# for each release tag. Triggered by `deno task release` (push annotated tag) or
+# manual tag push. Maintainer flow, tag naming, recovery dispatch:
+# README_DEVELOPERS.md § Releases.
 
 name: Release
 
@@ -86,6 +87,10 @@ jobs:
       - name: Compile desktop binaries
         run: deno task compile:desktop
 
+      # Build already ran above; package the extension into dist/release/.
+      - name: Package VS Code extension
+        run: deno run -A scripts/package-extension.ts --no-build
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,18 +98,22 @@ jobs:
           TAG="${{ steps.rel.outputs.tag }}"
           PAGES_URL="https://regionstockholm.github.io/intehrgrator/${TAG}/"
           {
-            echo "## intEHRgrator desktop ${TAG#v}"
+            echo "## intEHRgrator ${TAG#v}"
             echo
-            echo "Local Integration Workbench as a Deno desktop app (OS webview). Same Mapping Editor as the [web app for this release](${PAGES_URL}), packaged for offline use on \`127.0.0.1\`."
+            echo "Same Mapping Editor as the [web app for this release](${PAGES_URL}), as a Deno desktop app (OS webview on \`127.0.0.1\`) and as a VS Code extension (file projects)."
             echo
             echo "### Web app (frozen for this release)"
             echo
             echo "- **This version:** [${PAGES_URL}](${PAGES_URL})"
-            echo "- **Bleeding edge (main) always aveilable at:** https://regionstockholm.github.io/intehrgrator/"
+            echo "- **Bleeding edge (main) always available at:** https://regionstockholm.github.io/intehrgrator/"
             echo
-            echo "### Linux"
+            echo "### Desktop"
             echo
-            echo "The AppImage uses the system WebKitGTK 4.1 (with libsoup 3), also with \`--headless\`. If it fails with \`libwebkit2gtk-4.1.so.0: cannot open shared object file\`, install it: \`sudo apt install libwebkit2gtk-4.1-0\` (Debian/Ubuntu) or \`sudo dnf install webkit2gtk4.1\` (Fedora)."
+            echo "Download the AppImage or zip for your OS. On Linux the AppImage uses the system WebKitGTK 4.1 (with libsoup 3), also with \`--headless\`. If it fails with \`libwebkit2gtk-4.1.so.0: cannot open shared object file\`, install it: \`sudo apt install libwebkit2gtk-4.1-0\` (Debian/Ubuntu) or \`sudo dnf install webkit2gtk4.1\` (Fedora)."
+            echo
+            echo "### VS Code"
+            echo
+            echo "Download \`intEHRgrator.vsix\`, then in VS Code run **Extensions: Install from VSIX…**. See [VS Code file projects](https://github.com/regionstockholm/intehrgrator/blob/${TAG}/docs/VS_CODE.md)."
             echo
             echo "### What's new"
             echo
@@ -114,10 +123,11 @@ jobs:
             echo "Release $TAG already exists — uploading assets only"
           else
             gh release create "$TAG" \
-              --title "intEHRgrator desktop ${TAG#v}" \
+              --title "intEHRgrator ${TAG#v}" \
               --notes-file /tmp/release-notes.md
           fi
           gh release upload "$TAG" dist/release/intEHRgrator-linux-x64.AppImage --clobber
           gh release upload "$TAG" dist/release/intEHRgrator-windows-x64.zip --clobber
           gh release upload "$TAG" dist/release/intEHRgrator-macos-x64.zip --clobber
           gh release upload "$TAG" dist/release/intEHRgrator-macos-arm64.zip --clobber
+          gh release upload "$TAG" dist/release/intEHRgrator.vsix --clobber

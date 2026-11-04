@@ -1,0 +1,16 @@
+**/*
+!package.json
+!README.md
+!LICENSE
+!CHANGELOG.md
+# vsce keeps a file when any ! pattern matches, even if a later ignore also matches.
+# List the dist trees the workbench needs. dist/release is the desktop binaries.
+!dist/*
+!dist/docs/**
+!dist/examples/**
+!dist/function-library/**
+!dist/icons/**
+!dist/test/**
+!dist/vendor/**
+!dist/wasm/**
+dist/**/*.map

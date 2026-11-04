@@ -11,6 +11,7 @@ import {
   type GitHubTemplateLoadProgress,
 } from "ehrtslib/parser/mod.ts";
 import { OptXmlSerializer } from "ehrtslib/generation/opt_xml_serializer.ts";
+import { collectTemplateJsonExternalRefsFromText } from "ehrtslib/parser/template_json_dependencies.ts";
 import { buildWebTemplate } from "ehrtslib/serialization/simplified/web_template_builder.ts";
 import { generateSkeletonFromOperational } from "../skeleton/generate_skeleton.ts";
 import {
@@ -106,7 +107,23 @@ export function scaffoldClinicalModelFileset(
     workspace.setGenerationRootPath(fileset.rootPath);
     workspace.setActivePath(fileset.rootPath);
   }
-  return scaffoldWorkspace(workspace, fileset.rootPath, language);
+  const scaffolded = scaffoldWorkspace(workspace, fileset.rootPath, language);
+  const missing: string[] = [];
+  for (const file of workspace.listFiles()) {
+    const archetype = file.loadResult?.archetypeId
+      ? workspace.repository.resolve(file.loadResult.archetypeId)
+      : undefined;
+    const parent = archetype?.parent_archetype_id?.value;
+    const refs = /\.t\.json$/i.test(file.path)
+      ? collectTemplateJsonExternalRefsFromText(file.content)
+      : parent ? [parent] : [];
+    for (const ref of refs) {
+      if (!workspace.repository.resolve(ref) && !workspace.repository.getOperationalTemplate(ref)) {
+        missing.push(`Missing target dependency ${ref} (referenced by ${file.path})`);
+      }
+    }
+  }
+  return { ...scaffolded, warnings: [...new Set([...scaffolded.warnings, ...workspace.getWarnings(), ...missing])] };
 }
 
 /** The OPERATIONAL_TEMPLATE of a stored closure (#289: Web Template ids in another language). */

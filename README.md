@@ -12,6 +12,7 @@ Visual integration workbench for healthcare informaticians: map source data (JSO
 | **Web app (latest / bleeding-edge)** | [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/) |
 | **Pinned web versions** | [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists stable URLs such as `…/v0.7/` |
 | **Desktop app** | [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) — Windows, Linux, macOS; no install of Deno required |
+| **VS Code extension** | [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) — download `intEHRgrator.vsix`, then **Extensions: Install from VSIX…** ([file projects](docs/VS_CODE.md)) |
 
 On Linux the desktop AppImage uses the system WebKitGTK 4.1 (with libsoup 3), also for `--headless`. If it stops with `libwebkit2gtk-4.1.so.0: cannot open shared object file`, install it: `sudo apt install libwebkit2gtk-4.1-0` (Debian/Ubuntu) or `sudo dnf install webkit2gtk4.1` (Fedora). Windows and macOS need nothing extra.
 

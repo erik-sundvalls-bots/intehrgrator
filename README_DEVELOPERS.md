@@ -14,6 +14,11 @@ The desktop app also saves data using IndexedDB, through its embedded browser en
 
 Saves are done as debounced **autosave** (~10 s after edits) plus named **Save as** snapshots. Details: [docs/PROJECT_PERSISTENCE.md](docs/PROJECT_PERSISTENCE.md) and [Autosave & Status Bar](docs/UI_ARCHITECTURE.md#autosave--status-bar) in `docs/UI_ARCHITECTURE.md`. Portable backup is the `.intehrgrator` export/import path.
 
+
+## VS Code file projects
+
+In addition to the web and desktop storage above, the VS Code extension works on file projects: a Git-backed project with separate source, mapping and output files. The same files can be checked headlessly with `deno task project:run`. See [VS Code file projects](docs/VS_CODE.md) for setup, reviewable results and the CI runner.
+
 ## Prerequisites
 
 - **[Deno](https://docs.deno.com/runtime/getting_started/installation/)** 2.9+ — the project runtime, task runner, test runner, and desktop packager. We use Deno instead of Node/npm for installs, linting, testing, and builds.
@@ -77,7 +82,7 @@ CI runs **`deno task vendor`** (example archetypes, plus the local TemplateValid
 
 ## Releases
 
-Maintainers cut releases with **`deno task release`** (not GitHub **Releases → Draft a new release** alone). The Deno script bumps version files, runs vendor/build/tests locally, commits if needed, creates an annotated tag, and pushes `HEAD` + the tag. **GitHub Actions** (`.github/workflows/release.yml`) runs on the tag: vendor → unit tests → build → UI tests → frozen GitHub Pages under `https://regionstockholm.github.io/intehrgrator/<tag>/` → desktop binaries → GitHub Release assets.
+Maintainers cut releases with **`deno task release`** (not GitHub **Releases → Draft a new release** alone). The Deno script bumps version files, runs vendor/build/tests locally, commits if needed, creates an annotated tag, and pushes `HEAD` + the tag. **GitHub Actions** (`.github/workflows/release.yml`) runs on the tag: vendor → unit tests → build → UI tests → frozen GitHub Pages under `https://regionstockholm.github.io/intehrgrator/<tag>/` → desktop binaries → VS Code VSIX (`dist/release/intEHRgrator.vsix`) → GitHub Release assets.
 
 ### Happy path (new version)
 
@@ -111,7 +116,7 @@ Frozen Pages builds for a tag are **immutable**: `assembleReleasePagesSite` erro
 |--|--|--|
 | Bumps version files | Yes (unless `--current`) | No |
 | Enforces `releaseTagForVersion` | Yes | Easy to pick a mismatched tag |
-| Tests, frozen `/v…/` Pages, desktop via CI | On tag push | Only if a new `v*` tag is created/pushed; no version bump |
+| Tests, frozen `/v…/` Pages, desktop + VSIX via CI | On tag push | Only if a new `v*` tag is created/pushed; no version bump |
 | Creates GitHub Release assets | Via Actions after tag | Yes (primary UI purpose) |
 
 Release notes go in `CHANGELOG.md` (Unreleased until `deno task release` moves them), not in the GitHub Release UI; use that UI only for extra attachments, not as a substitute for the guided release path. A future Actions “make new release” UI is tracked in [#220](https://github.com/regionstockholm/intehrgrator/issues/220).

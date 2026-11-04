@@ -1,4 +1,5 @@
 import type {
+  ClinicalModelFileset,
   ImportSuggestionsReport,
   MappingLoop,
   MappingModel,
@@ -116,6 +117,7 @@ import {
 import {
   isGitHubClinicalModelUrl,
   loadGitHubClinicalModel,
+  scaffoldClinicalModelFileset,
   type GitHubClinicalModelLoadResult,
 } from "../core/clinical_model/github_template.ts";
 import { loadGitHubExampleDirectory } from "../core/source/github_examples.ts";
@@ -241,6 +243,8 @@ export class WorkbenchController {
   private pluginGen = 0;
   private postLoadTimer: number | null = null;
   private autosaveTimer: number | null = null;
+  /** Set by a host that owns saving (VS Code file project): no autosave, host dirty state. */
+  private hostSaveState: { dirty: boolean } | null = null;
   private dirty = false;
   private lastAutosaveAt: string | null = null;
   private statusMessage = "Ready";
@@ -426,6 +430,23 @@ export class WorkbenchController {
   /** Load a target file (OPT, schema, or free-form). Used by the Workbench Test API. */
   loadTemplateContent(filename: string, content: string): void {
     this.loadTargetContent(filename, content);
+  }
+
+  /** Load an existing clinical-model closure from local project files. */
+  loadTargetFileset(fileset: ClinicalModelFileset): string[] {
+    const loaded = scaffoldClinicalModelFileset(fileset, this.settings.display?.targetLabelLang);
+    this.applyLoadedTarget(this.inDisplayLanguage({
+      format: "openehr-template",
+      filename: fileset.rootPath,
+      targetId: loaded.templateId,
+      content: loaded.optXml,
+      skeleton: loaded.skeleton,
+      webTemplateJson: loaded.webTemplateJson,
+      language: loaded.language,
+      languages: loaded.languages,
+      fileset,
+    }), "replace");
+    return loaded.warnings;
   }
 
   /** Load an openEHR Template, JSON Schema, XML Schema, or free-form target. */
@@ -2100,7 +2121,36 @@ export class WorkbenchController {
     this.markDirty();
   }
 
+  /**
+   * The host saves the project itself (VS Code file projects): stop autosave and
+   * show the host's unsaved state. Web, desktop and headless hosts never call this.
+   */
+  useHostSaveState(dirty = false): void {
+    if (this.autosaveTimer !== null) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
+    this.hostSaveState = { dirty };
+    this.notifyChange();
+  }
+
+  /** Unsaved state reported by a host that owns saving. */
+  setHostDirty(dirty: boolean): void {
+    if (!this.hostSaveState || this.hostSaveState.dirty === dirty) return;
+    this.hostSaveState = { dirty };
+    this.notifyChange();
+  }
+
+  usesHostSaveState(): boolean {
+    return this.hostSaveState !== null;
+  }
+
   getSaveStatus(): { dirty: boolean; label: string } {
+    if (this.hostSaveState) {
+      return this.hostSaveState.dirty
+        ? { dirty: true, label: "unsaved changes" }
+        : { dirty: false, label: "" };
+    }
     if (this.dirty) return { dirty: true, label: "unsaved changes" };
     if (this.lastAutosaveAt) {
       return { dirty: false, label: `autosaved at ${formatSaveTime(this.lastAutosaveAt)}` };
@@ -2112,7 +2162,13 @@ export class WorkbenchController {
     const active = this.examples.getActive();
     if (!active) return null;
     const rootName = active.filename.replace(/\.[^.]+$/, "");
-    return getSourceFormatHandler(active.format).loadInstance(active.content, rootName);
+    try {
+      return getSourceFormatHandler(active.format).loadInstance(active.content, rootName);
+    } catch {
+      // A file-backed Example Instance can be invalid while being edited.
+      // Test Run and source validation report its error; keep the Mapping Editor usable.
+      return null;
+    }
   }
 
   private buildExampleValidations(): Record<string, InstanceValidationIssue[]> {
@@ -2330,6 +2386,7 @@ export class WorkbenchController {
   }
 
   private scheduleAutosave(): void {
+    if (this.hostSaveState) return;
     if (this.autosaveTimer !== null) clearTimeout(this.autosaveTimer);
     this.autosaveTimer = setTimeout(() => {
       this.autosaveTimer = null;
@@ -2347,7 +2404,7 @@ export class WorkbenchController {
   }
 
   private async performAutosave(): Promise<void> {
-    if (!this.dirty) return;
+    if (!this.dirty || this.hostSaveState) return;
     try {
       const bundle = this.toBundle();
       await this.host.saveAutosave(bundle);
