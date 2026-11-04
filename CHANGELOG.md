@@ -7,6 +7,11 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 ## [Unreleased]
 
 - **VS Code file projects** ([#305](https://github.com/regionstockholm/intehrgrator/pull/305)): create, edit and reopen mappings backed by workspace files, with native save/undo and unsaved-document recovery. Per-file language settings and local multi-file targets survive reopening. Saving refreshes generated code, mapping-preview results and diagnostics; `project:run --check` verifies the committed artifacts in CI. File projects are an extra option: the web app, desktop app and headless runner, and the Project Bundle / `.intehrgrator` format, are unchanged. In VS Code there is one undo history (VS Code's), no autosave, and opening a project never rewrites its output; generated files stay inside the project folder (not in `.git` or other dot-folders, not through outward symlinks). Without a Source Schema, source languages are saved as `source.languageSettings`. Each GitHub Release uploads `intEHRgrator.vsix` next to the desktop binaries (`deno task extension:package` / `release.yml`). **VS Code migration:** the extension's earlier standalone workbench (development builds only; no VSIX was published), which kept projects in VS Code's extension storage, is replaced by file projects, and projects saved there are no longer listed. To keep one, export it as `.intehrgrator` with the earlier build before upgrading, then open it in the web or desktop app or create a file project with the same target, Source Schema and examples ([VS Code file projects](docs/VS_CODE.md)).
+
+## [0.14.0] - 2026-11-04
+
+A target can start from a minimal JSON, XML, or text example, Handlebars gains `inc` and `dec`, and Java conversion scripts follow TypeScript on lists, identifiers, counts, and coded text. Sheets and decision tables use the pane width, and the obstetric fixtures add OPT2, Web Templates, and canonical JSON beside Simplified FLAT.
+
 - **Schema-less target** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#198](https://github.com/regionstockholm/intehrgrator/issues/198)): Load target & default context map can start from a minimal JSON, XML, or text example. A conversion start sits above that document, and the default context map you picked still applies.
 - **Java conversion scripts** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#333](https://github.com/regionstockholm/intehrgrator/issues/333)): generic lists use the reference-model element type, identifiers call `setId`, counts use `long`, and nodes that are not LOCATABLE omit the archetype node id. Coded text follows the template value set, and a quantity with units but no magnitude is left out, as in TypeScript.
 - **Desktop dev window** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#334](https://github.com/regionstockholm/intehrgrator/issues/334)): `deno task desktop` includes the workbench files, so the Linux window can start, and flags after `--` (`--headless`, `--load`, `--language-plugin`, and the rest) reach the app.
@@ -242,7 +247,8 @@ Minor release: one shared, append-only change history for you, the AI chat and M
 
 - First web app and core modules ([#2](https://github.com/regionstockholm/intehrgrator/pull/2)): Click-to-Map ([#4](https://github.com/regionstockholm/intehrgrator/pull/4)), source format handlers ([#5](https://github.com/regionstockholm/intehrgrator/pull/5)), Mapping Spec download / upload ([#7](https://github.com/regionstockholm/intehrgrator/pull/7)), readable TypeScript codegen ([#9](https://github.com/regionstockholm/intehrgrator/pull/9)).
 
-[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.13...main
+[Unreleased]: https://github.com/regionstockholm/intehrgrator/compare/v0.14...main
+[0.14.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.14
 [0.13.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.13
 [0.12.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.12
 [0.11.0]: https://github.com/regionstockholm/intehrgrator/releases/tag/v0.11

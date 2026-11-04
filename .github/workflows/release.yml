@@ -40,6 +40,11 @@ jobs:
         with:
           deno-version: v2.x
 
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - name: Resolve release tag
         id: rel
         run: |
