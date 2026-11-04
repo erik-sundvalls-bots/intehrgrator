@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+A target can start from a minimal JSON, XML, or text example, Handlebars gains `inc` and `dec`, and Java conversion scripts follow TypeScript on lists, identifiers, counts, and coded text. Sheets and decision tables use the pane width, and the obstetric fixtures add OPT2, Web Templates, and canonical JSON beside Simplified FLAT.
+
 - **Schema-less target** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#198](https://github.com/regionstockholm/intehrgrator/issues/198)): Load target & default context map can start from a minimal JSON, XML, or text example. A conversion start sits above that document, and the default context map you picked still applies.
 - **Java conversion scripts** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#333](https://github.com/regionstockholm/intehrgrator/issues/333)): generic lists use the reference-model element type, identifiers call `setId`, counts use `long`, and nodes that are not LOCATABLE omit the archetype node id. Coded text follows the template value set, and a quantity with units but no magnitude is left out, as in TypeScript.
 - **Desktop dev window** ([#345](https://github.com/regionstockholm/intehrgrator/pull/345), [#334](https://github.com/regionstockholm/intehrgrator/issues/334)): `deno task desktop` includes the workbench files, so the Linux window can start, and flags after `--` (`--headless`, `--load`, `--language-plugin`, and the rest) reach the app.

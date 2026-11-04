@@ -155,6 +155,10 @@ Deno.test({
       console.warn("skip: java not on PATH");
       return;
     }
+    if (!(await javacReleaseSupported("21"))) {
+      console.warn("skip: javac does not support --release 21");
+      return;
+    }
     initBlocklyGenerators();
     const model = createEmptyModel("inc-dec");
     model.targetFormat = "free-form";
@@ -241,6 +245,22 @@ public class IncDecMain {
 async function javaAvailable(): Promise<boolean> {
   try {
     const out = await new Deno.Command("java", { args: ["-version"], stdout: "piped", stderr: "piped" }).output();
+    return out.success || out.code === 0;
+  } catch {
+    return false;
+  }
+}
+
+/** GitHub's default JDK is often older than 21; `--release 21` then errors instead of compiling. */
+async function javacReleaseSupported(release: string): Promise<boolean> {
+  try {
+    const out = await new Deno.Command("javac", {
+      args: ["--release", release, "-version"],
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    const text = `${new TextDecoder().decode(out.stderr)}\n${new TextDecoder().decode(out.stdout)}`;
+    if (/release version \d+ not supported/i.test(text)) return false;
     return out.success || out.code === 0;
   } catch {
     return false;
