@@ -5,3 +5,5 @@
 !CHANGELOG.md
 !dist/**
 dist/**/*.map
+# Desktop binaries are written to dist/release before the VSIX is packed.
+dist/release/**
