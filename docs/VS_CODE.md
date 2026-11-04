@@ -7,11 +7,13 @@ export); that does not change. In VS Code, a project is instead a **file project
 files in your repository, so source examples, the mapping and generated output can be
 reviewed together in Git. A `project:run` command checks the same files in CI.
 
-The VSIX is built locally for now (see [Building and testing the extension](#building-and-testing-the-extension)).
-Install the intEHRgrator VSIX using **Extensions: Install from VSIX…**, then run
+Each [GitHub Release](https://github.com/regionstockholm/intehrgrator/releases)
+includes `intEHRgrator.vsix` next to the desktop binaries. Download it and install
+with **Extensions: Install from VSIX…**, then run
 **intEHRgrator: Create File Project** to create a synthetic starter project, or
 **intEHRgrator: Open File Project** to open an existing `intehrgrator.json`.
-You can also right-click that file in Explorer.
+You can also right-click that file in Explorer. For a local build, see
+[Building and testing the extension](#building-and-testing-the-extension).
 
 In VS Code, the workbench always works on a file project.
 **intEHRgrator: Open Integration Workbench** resumes the most recently opened
@@ -140,9 +142,11 @@ The VSIX runs the bundled mapping engine; users do not need Deno installed.
 
 ## Building and testing the extension
 
-`deno task extension:package` builds `intehrgrator.vsix` locally using Microsoft's
-VSIX packager. The normal UI suite covers opening a file project, a visual edit,
-File-menu Save and text-field undo. To test the real extension host, set
+`deno task extension:package` builds `dist/release/intEHRgrator.vsix` locally using
+Microsoft's VSIX packager (the same path the release workflow uploads). After an
+existing `deno task build`, `deno run -A scripts/package-extension.ts --no-build`
+packages without rebuilding. The normal UI suite covers opening a file project, a
+visual edit, File-menu Save and text-field undo. To test the real extension host, set
 `VSCODE_EXECUTABLE` to a VS Code executable (`Code.exe` on Windows) and run
 `deno task test:vscode`. The test uses synthetic files and an isolated profile.
 

@@ -56,7 +56,7 @@
     "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/sheets.xqm": "./src/core/codegen/helpers/xquery/sheets.xqm"
   },
   "tasks": {
-    "extension:package": "deno task build && deno run -A --no-lock npm:@vscode/vsce@4.0.0 package --no-dependencies --out intehrgrator.vsix",
+    "extension:package": "deno run -A scripts/package-extension.ts",
     "project:run": "deno run -A --no-check scripts/file-project.ts",
     "vendor": "deno run -A scripts/vendor-ehrtslib.ts",
     "convert:kintegrate-hbs": "deno run -A scripts/convert-kintegrate-hbs-to-blockly.ts",
