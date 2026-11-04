@@ -4,6 +4,7 @@
  */
 import { ensureDir } from "@std/fs";
 import { dirname, fromFileUrl, join } from "@std/path";
+import { desktopCompileArgs } from "./desktop_bundle.ts";
 
 const root = join(dirname(fromFileUrl(import.meta.url)), "..");
 
@@ -45,30 +46,11 @@ if (!stage.success) Deno.exit(stage.code);
 
 await ensureDir(join(root, "dist", "release"));
 
-const entry = "src/desktop/main.ts";
 let failed = 0;
 
 for (const { target, output } of TARGETS) {
   console.log(`Desktop ${target} → ${output}`);
-  const args = [
-    "desktop",
-    "-A",
-    "--no-check",
-    "--config",
-    "deno.json",
-    "--backend",
-    "webview",
-    "--target",
-    target,
-    "--output",
-    output,
-    "--include",
-    "src/desktop/www",
-    // Browser bundles must not be .js in the include tree; staging writes *.js.dat.
-    "--exclude",
-    "**/*.js",
-    entry,
-  ];
+  const args = desktopCompileArgs(target, output);
   const cmd = new Deno.Command("deno", {
     args,
     cwd: root,

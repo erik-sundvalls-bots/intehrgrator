@@ -22,6 +22,7 @@ export const XML_NEST_CHECK = [
   "xml_element",
   "controls_if",
   "for_each_list",
+  "include_when",
 ] as const;
 
 export type XmlNamespaceDecl = { prefix: string; uri: string };

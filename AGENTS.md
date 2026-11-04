@@ -55,6 +55,8 @@ Project-specific: `intehrgrator-mapping` for desktop Agent API / MCP mapping wor
 when a contribution issue is accepted, [`function-library/AGENTS.md`](function-library/AGENTS.md));
 `convert-mappings` when translating an existing mapping (Go `text/template`, Handlebars, TypeScript, …) into intEHRgrator Blockly / `intehrgrator-suggestions`.
 
+Conversion script language plugins (desktop Deno worker, `--language-plugin`, a new script language): [`docs/agents/conversion-script-plugins.md`](docs/agents/conversion-script-plugins.md).
+
 **Tests.** When adding, changing, or reviewing tests, read [docs/TESTING.md](docs/TESTING.md) first: pick the existing seam (unit, WorkbenchController, Playwright UI, or Agent/MCP), keep the UI green-path covering major authoring steps, and skip cloning an assertion onto a second layer unless that layer can miss a real bug.
 
 **End-user UI.** The web UI must work on Windows in Microsoft Edge; prefer
@@ -62,7 +64,7 @@ compatibility with other common OS/browser combinations as well. Desktop builds
 target Windows, Linux, and macOS (no Deno required on the user’s machine). See
 [docs/UI_ARCHITECTURE.md](docs/UI_ARCHITECTURE.md).
 
-**Changelog.** PRs that change user-visible behaviour add a concise line (with PR link) under **Unreleased** in [CHANGELOG.md](CHANGELOG.md); release PRs move it to the new version (see README_DEVELOPERS.md § Releases).
+**Changelog.** PRs that change user-visible behaviour add a concise line (with PR link) under **Unreleased** in [CHANGELOG.md](CHANGELOG.md); `deno task release` moves that section into the version it tags (see README_DEVELOPERS.md § Releases).
 
 For specs and design documents, use `docs/prd/` and `docs/design/`.
 Planning lives in **GitHub Issues** ([docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)).

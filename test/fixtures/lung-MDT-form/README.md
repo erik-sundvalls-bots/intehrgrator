@@ -19,9 +19,12 @@ blocks.
 | `../TakeCare/TakeCare-CasenoteWrite-edit01.xsd` | Canonical target schema |
 
 Header fields come from the Defaults Map. Each `TextKeyWord` / `DatetimeKeyword`
-keeps its TakeCare `TermId` as a number and the original Handlebars `Note` body
-in a `text_code` block. Outer `{{#if}}` wrappers become `controls_if` so empty
-keywords are omitted.
+keeps its TakeCare `TermId` as a number. A Note that is only `{{path}}` is a
+source path (`source_query`). Notes that still branch (`{{#if}}`, `{{#each}}`)
+stay Handlebars in a `text_code` block. Outer `{{#if}}` wrappers are
+**Include when**, so an empty keyword is omitted. A path guard is a boolean
+source. `(eq)` / `(ne)` are compares, `(and)` is boolean and, and a path-only
+`(or path path …)` is an any-of list.
 
 `TemplateId` / `TemplateType` in the Defaults Map are placeholders — set them to
 the casenote template used in the target TakeCare environment.

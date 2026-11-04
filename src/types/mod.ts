@@ -126,6 +126,17 @@ export interface MappingSlot {
   label?: string;
   mandatory?: boolean;
   hatch?: MappingSlotHatch;
+  /**
+   * DV_QUANTITY units on the canvas, as an expression: a mapped `units` input or
+   * the block's unit dropdown as a string literal. Mapping preview adds them to
+   * the magnitude, as TypeScript output does.
+   */
+  unitsExpression?: string;
+  /**
+   * DV_IDENTIFIER type / issuer / assigner mapped on the canvas, as expressions.
+   * Mapping preview adds them to the id, as TypeScript output does.
+   */
+  fieldExpressions?: Record<string, string>;
   /** Unreviewed AI suggestion marker (note / confidence); cleared on edit or *Mark as reviewed*. */
   review?: MappingSlotReview;
 }
@@ -166,6 +177,17 @@ export interface MappingLoop {
   collection?: string;
 }
 
+/**
+ * Guarded emit of one target node (`include_when`). The condition is a pure
+ * boolean Mapping Expression. Absent `elseEmits`, a false condition omits the
+ * node. `elseEmits` means the else stack still emits this same node.
+ */
+export interface MappingInclude {
+  slotId: string;
+  when: string;
+  elseEmits?: boolean;
+}
+
 export type MappingUnsupportedReason = "escape" | "unsupported" | "removed";
 
 /** Block that is not first-class IR — recorded so exporters do not drop it silently. */
@@ -195,6 +217,8 @@ export interface MappingModel {
   optionalRm: OptionalRmInsertion[];
   /** Repeatable iteration (`for_each_list`; source-node grain when LIST is a source query). */
   loops?: MappingLoop[];
+  /** Conditional emit of a target node (`include_when`). */
+  includes?: MappingInclude[];
   /** Nested target structure (optional RM / schema extras marked `optional`). */
   targetSignature?: TargetSignatureNode[];
   /** Escape-hatch, leftover Remove-list, or unknown blocks. */
@@ -502,6 +526,15 @@ export interface SuggestionEnvelope {
     block: SuggestionBlock;
     note?: string;
   }>;
+  /**
+   * Omit a target node unless `when` is true (`include_when`).
+   * The node must be optional in the template unless an else stack emits it.
+   */
+  includes?: Array<{
+    slotId: string;
+    when: SuggestionBlock;
+    note?: string;
+  }>;
   suggestions: Array<{
     slotId: string;
     block: SuggestionBlock;
@@ -531,6 +564,8 @@ export interface ImportSuggestionsReport {
   errors: string[];
   /** Validated `loops[]` entries; the canvas wraps `attachSlotId` with `for_each_list`. */
   loopsAccepted: number;
+  /** Validated `includes[]` entries; the canvas wraps `slotId` with `include_when`. */
+  includesAccepted?: number;
   /** JSON Schema issues against docs/AI_SUGGESTION_FORMAT.schema.json. */
   schemaIssues: SchemaIssue[];
 }

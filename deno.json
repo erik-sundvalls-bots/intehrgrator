@@ -1,6 +1,6 @@
 {
   "name": "@regionstockholm/intehrgrator",
-  "version": "0.11.0",
+  "version": "0.13.0",
   "exports": "./src/mod.ts",
   "nodeModulesDir": "auto",
   "compilerOptions": {
@@ -49,7 +49,11 @@
     "fontoxpath": "npm:fontoxpath@^3.33.2/dist/fontoxpath.esm.js",
     "slimdom": "npm:slimdom@^4.3.5",
     "@cfworker/json-schema": "npm:@cfworker/json-schema@^4.1.1",
-    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.7/"
+    "ehrtslib/": "https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.11/",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/typescript.ts": "./src/core/codegen/helpers/typescript.ts",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/source.xqm": "./src/core/codegen/helpers/xquery/source.xqm",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/rm.xqm": "./src/core/codegen/helpers/xquery/rm.xqm",
+    "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/sheets.xqm": "./src/core/codegen/helpers/xquery/sheets.xqm"
   },
   "tasks": {
     "extension:package": "deno task build && deno run -A --no-lock npm:@vscode/vsce@4.0.0 package --no-dependencies --out intehrgrator.vsix",
@@ -66,7 +70,8 @@
     "check": "deno check src/**/*.ts web/main.ts web/better_form_viewer.ts scripts/*.ts",
     "build": "deno run -A scripts/build.ts && deno run -A scripts/stage-desktop-www.ts",
     "dev": "deno run -A scripts/dev-server.ts",
-    "desktop": "deno task build && deno desktop -A --no-check --config deno.json --backend webview --hmr src/desktop/main.ts",
+    "prototype:source-rm-tree": "deno run -A scripts/serve-file.ts web/prototype-openehr-source-rm-tree.html",
+    "desktop": "deno run -A scripts/desktop-dev.ts",
     "compile:desktop": "deno run -A scripts/compile-desktop.ts",
     "compile:ehrtslib": "deno run -A scripts/compile-ehrtslib.ts",
     "release": "deno run -A scripts/release.ts",
@@ -75,6 +80,7 @@
     "mcp": "deno run -A src/agent/mcp_stdio.ts",
     "generate:function-library": "deno run -A --no-check scripts/generate-function-library.ts"
   },
+  "unstable": ["worker-options"],
   "lint": {
     "include": ["src", "test", "scripts", "web"],
     "rules": {

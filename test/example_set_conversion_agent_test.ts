@@ -191,12 +191,6 @@ Deno.test("Agent API import_suggestions maps Simple-vitals-unmapped (local OPT)"
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { revision: string };
   await maybeFacility(service, snap.revision);
-  const rawSheets = JSON.parse(
-    await Deno.readTextFile(
-      join(fixtures, "legacy-simulated-json", "mapping", "simple-vitals.sheets.json"),
-    ),
-  );
-  await callAgentTool(service, "replace_sheets", { sheets: sheetsArg(rawSheets) });
   const envelope = await Deno.readTextFile(
     join(fixtures, "legacy-simulated-json", "mapping", "simple-vitals.intehrgrator-suggestions.json"),
   );
@@ -249,21 +243,17 @@ Deno.test("Agent API import_suggestions maps Simple-vitals-series-unmapped (loca
   });
   const snap = await callAgentTool(service, "get_snapshot", {}) as { revision: string };
   await maybeFacility(service, snap.revision);
-  const rawSheets = JSON.parse(
-    await Deno.readTextFile(
-      join(fixtures, "legacy-simulated-json", "mapping", "bp-series.sheets.json"),
-    ),
-  );
-  await callAgentTool(service, "replace_sheets", { sheets: sheetsArg(rawSheets) });
   const envelope = await Deno.readTextFile(
     join(fixtures, "legacy-simulated-json", "mapping", "bp-series.intehrgrator-suggestions.json"),
   );
   const imported = await callAgentTool(service, "import_suggestions", { text: envelope }) as {
-    report: { applied: number; errors: string[]; loopsAccepted?: number };
+    report: { applied: number; errors: string[]; loopsAccepted?: number; includesAccepted?: number };
   };
   assertEquals(imported.report.errors, [], imported.report.errors.join("; "));
   assertEquals(imported.report.applied >= 6, true, `applied ${imported.report.applied}`);
-  assertEquals(imported.report.loopsAccepted, 1);
+  // Blood pressure events, plus pulse events guarded by include-when.
+  assertEquals(imported.report.loopsAccepted, 2);
+  assertEquals(imported.report.includesAccepted, 1);
 
   const ts = await runMode(service, "typescript");
   assertExecuted(ts, "Simple-vitals-series inst typescript");
@@ -330,6 +320,20 @@ const LOCAL_MAPPED_SETS: Array<{
     expect: ["Epirubicin"],
     extraExpect: ["Epirubicin"],
   },
+  {
+    setId: "mhv1-generic-entry-to-prenatal-visit",
+    ts: true,
+    extra: "preview",
+    expect: ["Barnmorska 10421", "229", "68", "Basprogram"],
+    extraExpect: ["Barnmorska 10421", "229", "68", "Basprogram"],
+  },
+  {
+    setId: "mhv1-generic-entry-flat-wt",
+    ts: true,
+    extra: "preview",
+    expect: ["Barnmorska 10421", "229", "68", "Basprogram"],
+    extraExpect: ["Barnmorska 10421", "229", "68", "Basprogram"],
+  },
 ];
 
 Deno.test("Agent API Conversion Test Run on local mapped catalog Example Sets", async () => {
@@ -386,6 +390,30 @@ Deno.test("Agent API Conversion Test Run on local mapped catalog Example Sets", 
     }
   }
   assertEquals(failures, [], failures.join("\n"));
+});
+
+Deno.test("obstetric format example sets load OPT2 and Canonical JSON", async () => {
+  const service = await agent("obstetric-formats");
+  const sets = [
+    ["mhv1-generic-entry-canonical-wt-unmapped", "MHV1- Prenatal visit.encounter.v1"],
+    ["mhv1-generic-entry-flat-opt2-unmapped", "MHV1- Prenatal visit.encounter.v1"],
+    ["mhv1-generic-entry-canonical-opt2-unmapped", "MHV1- Prenatal visit.encounter.v1"],
+    ["partogram-generic-entry-flat-wt-unmapped", "Partogram.v1"],
+    ["partogram-generic-entry-flat-opt2-unmapped", "Partogram.v1"],
+    ["partogram-generic-entry-canonical-wt-unmapped", "Partogram.v1"],
+    ["partogram-generic-entry-canonical-opt2-unmapped", "Partogram.v1"],
+  ] as const;
+  for (const [setId, templateId] of sets) {
+    const snap = await loadSet(service, setId, false);
+    assertEquals(snap.exampleCount, 4, setId);
+    assertEquals(snap.templateId, templateId, setId);
+    const tree = await callAgentTool(service, "get_source_tree", {}) as {
+      examples: Array<{ filename: string }>;
+    };
+    const names = tree.examples.map((ex) => ex.filename).sort();
+    const canonical = setId.includes("canonical");
+    assertEquals(names.every((name) => name.endsWith(canonical ? ".canonical.json" : ".flat.json")), true, names.join(", "));
+  }
 });
 
 function keywordPairs(xml: string): Array<{ termId: string; note: string }> {

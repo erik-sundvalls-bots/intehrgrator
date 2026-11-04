@@ -6,6 +6,7 @@ import { extractMappingIr, type MappingModelExtract } from "./mapping_ir.ts";
 import { registerRmBlocks, rmAttributeInputName } from "./blocks/rm_blocks.ts";
 import { registerTargetBlocks } from "./blocks/target_blocks.ts";
 import { registerExpressionBlocks } from "./blocks/expression_blocks.ts";
+import { INCLUDE_WHEN_BLOCK, registerIncludeWhenBlock } from "./blocks/include_when.ts";
 import { registerMapBlocks } from "./blocks/map_blocks.ts";
 import { registerSheetBlocks } from "./blocks/sheet_blocks.ts";
 import {
@@ -129,6 +130,7 @@ export {
   findDefaultsBlock,
   hydrateDefaultsMapArgument,
   placeDefaultsBesideSkeleton,
+  separateContextMapFromProductTree,
   restoreDefaultsBlockState,
   serializeDefaultsMapArgument,
 } from "./defaults_canvas.ts";
@@ -219,6 +221,7 @@ export function initBlocklyGenerators(): void {
     registerRmBlocks();
     registerTargetBlocks();
     registerExpressionBlocks();
+    registerIncludeWhenBlock();
     registerMapBlocks();
     registerSheetBlocks();
     registerDecisionTableBlocks();
@@ -282,6 +285,17 @@ function registerGenerators(): void {
   };
 
   javascriptGenerator.forBlock["for_each_list"] = (block) => emitForEachListJs(block);
+
+  javascriptGenerator.forBlock[INCLUDE_WHEN_BLOCK] = (block) => {
+    const cond = javascriptGenerator.valueToCode(block, "WHEN", Order.NONE) || "false";
+    const doCode = javascriptGenerator.statementToCode(block, "DO");
+    const elseCode = block.getInput("ELSE")
+      ? javascriptGenerator.statementToCode(block, "ELSE")
+      : "";
+    return elseCode.trim()
+      ? `if (${cond}) {\n${doCode}} else {\n${elseCode}}\n`
+      : `if (${cond}) {\n${doCode}}\n`;
+  };
 
   javascriptGenerator.forBlock["maps_get"] = (block) => {
     const name = String(block.getFieldValue("NAME") || "defaults");

@@ -49,7 +49,7 @@
         </button>
         <label class="split-btn-menu-item split-btn-menu-item--icon split-btn-menu-check" data-i18n-title="menuAttachOriginalTargetTitle" title="Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.">
           <input id="menu-ai-attach-target" type="checkbox" />
-          <span data-i18n="menuAttachOriginalTarget">Attach original target</span>
+          <span data-i18n="menuAttachOriginalTarget">Attach original target format too</span>
         </label>
         <button id="menu-ai-languages" type="button" class="split-btn-menu-item split-btn-menu-item--icon" role="menuitem" data-ai-action="languages">
           <span class="split-btn-menu-icon" aria-hidden="true">💬</span>
@@ -421,8 +421,9 @@
               Conversion scripts (so far): TypeScript, Java, Handlebars, XQuery, and Go Template.
               TypeScript, Handlebars, Go Template, and XQuery also run in Conversion Test Run.
               Java generates an Archie class but does not execute in the web app.
+              The desktop app can add another language with --language-plugin.
               For openEHR targets, JSON vs XML instance chooses how XQuery serializes the composition.<br>
-              Download on the script editor saves the generated script. The overlay Download on Conversion Test Run saves that instance.
+              Download on the script editor saves the generated script. Imports in that script open the helper or library source. The overlay Download on Conversion Test Run saves that instance.
             </span>
           </span>
           <label class="pane-select-label" for="export-target">
@@ -749,6 +750,22 @@
       </p>
       <fieldset class="joint-load-fieldset">
         <legend data-i18n="targetLegend">Target</legend>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="schema" checked />
+          <span data-i18n="schemalessSchema">Schema, template, or file</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="json" />
+          <span data-i18n="schemalessJson">Minimal JSON example</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="xml" />
+          <span data-i18n="schemalessXml">Minimal XML example</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="text" />
+          <span data-i18n="schemalessText">Minimal text example</span>
+        </label>
         <p id="joint-target-summary" class="joint-load-summary" data-i18n="noTargetYet">No target selected yet.</p>
         <div class="dialog-actions">
           <button type="button" id="joint-target-file" data-i18n="fromFile">From file…</button>

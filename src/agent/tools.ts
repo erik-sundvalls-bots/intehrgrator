@@ -4,17 +4,21 @@
 
 import { applySuggestionReviewDefaults, parseAiConfidence, slotReviewFrom, TOOL_REVIEW_PARAMS } from "../core/ai/mod.ts";
 import { isSourceFormatId } from "../core/source/format_handler.ts";
-import { filterSlotRows, getExampleInspect, listExamplesInspect } from "./inspect.ts";
-import { basename, dirname, resolve, toFileUrl } from "@std/path";
+import { filterSlotRows, getExampleInspect, listExamplesInspect, type SlotInspectRow } from "./inspect.ts";
+import { termSetForRmAttribute } from "../core/openehr_term_catalog.ts";
+import { basename, dirname, fromFileUrl, resolve, toFileUrl } from "@std/path";
 import { ensureDir } from "@std/fs";
 import type { MutationContext, WorkbenchService } from "../workbench/service.ts";
-import { mcpClientActor } from "./actor.ts";
+import { mcpClientActor, type HistoryActor } from "./actor.ts";
 import type { ConversionScriptLanguage, SourceFormatId } from "../types/mod.ts";
 import { isConversionScriptLanguage, isInstanceEncoding, isOutputMode } from "../types/mod.ts";
 import { exportBundle } from "../core/persistence/mod.ts";
 import type { ProjectBundle } from "../types/mod.ts";
 import type { SheetDocument } from "../core/sheets/mod.ts";
-import { parseExampleSetCatalog } from "../core/example_sets/mod.ts";
+import { BUNDLED_EXAMPLE_SETS_PATH, type ExampleSetCatalog, parseExampleSetCatalog } from "../core/example_sets/mod.ts";
+import { pinnedDocUrl } from "../core/ai/pinned_links.ts";
+import { compactSlotId } from "../core/ai/slot_tree.ts";
+import { projectHistory } from "../workbench/history.ts";
 import {
   BUNDLED_FUNCTION_LIBRARY_PATH,
   DEFAULT_GITHUB_FUNCTION_LIBRARY_URL,
@@ -48,13 +52,14 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "get_snapshot",
-    description: "Project revision, template id, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status.",
+    description:
+      "Project revision, template id, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status. appliedSlots counts every slot with an expression: mappedSlots are mapped from the source or a constant, defaultedSlots only read the default context map (maps_get(\"defaults\", …), wired by the scaffold).",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "list_slots",
     description:
-      "Target value slots as the compact slot tree: groups (repeating container with loop: true, or archetype / parent node) with rows {id, type, label, mult, mandatory, fixed, units, values, expr when mapped}. A slot id is group + row id; full ids work too. Filter with unmappedOnly and/or query (substring of slot id, label or path label). view: \"rows\" returns the older flat rows with full slotId, pathLabel, attachSlotId plus repeatable containers. get_slot gives one slot in full.",
+      "Target value slots as the compact slot tree: groups (repeating container with loop: true, or archetype / parent node) with rows {id, type, label, mult, mandatory, fixed, units, values, expr when mapped}. A slot id is group + row id (the root group \"/\" + row \"context/…\" → \"/context/…\"); full ids work too. Filter with unmappedOnly and/or query (substring of slot id, label or path label). view: \"rows\" returns the older flat rows with full slotId, pathLabel, attachSlotId plus repeatable containers. get_slot gives one slot in full.",
     inputSchema: {
       type: "object",
       properties: {
@@ -119,8 +124,17 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "get_history",
-    description: "Attributed semantic history timeline.",
-    inputSchema: { type: "object", properties: {} },
+    description:
+      "Attributed history for undo and revert. Each entry is seq, revisionAfter, actor, kind, summary, affectedSlotIds, timestamp (and undone / targetSeqs when set). Project Bundles are omitted unless includeBundles is true, or seq is set (that one entry, with its bundles). sinceSeq returns entries after that seq, oldest first; limit caps the page (the first limit after sinceSeq, or the newest limit when sinceSeq is omitted). undo, revert and restore_at take seq and do not need the bundles.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        includeBundles: { type: "boolean", description: "Include beforeBundle and afterBundle on each entry." },
+        limit: { type: "number", description: "Maximum entries. With sinceSeq, the next page; otherwise the newest entries." },
+        sinceSeq: { type: "number", description: "Only entries with seq greater than this." },
+        seq: { type: "number", description: "One entry, including its Project Bundles." },
+      },
+    },
   },
   {
     name: "get_activity",
@@ -185,9 +199,21 @@ export const AGENT_TOOLS: AgentToolDef[] = [
     },
   },
   {
+    name: "list_example_sets",
+    description:
+      "List the Example Sets in a catalog: id, title, description, mapped (has a gold mapping) or unmapped. Default catalog: the one bundled with the app (examples/example-sets.json, also served at <agent_url>/examples/example-sets.json). Load one with load_example_set; sets ending in -unmapped are for mapping yourself.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        catalogPath: { type: "string", description: "Local catalog file (default: the bundled catalog)" },
+        catalogUrl: { type: "string", description: "Catalog URL (http(s) or GitHub blob)" },
+      },
+    },
+  },
+  {
     name: "load_example_set",
     description:
-      "Load a catalogued Example Set (target, Source Schema, instances, optional mapping/defaults) from a local catalogPath or catalogUrl.",
+      "Load a catalogued Example Set (target, Source Schema, instances, optional mapping/defaults) by setId from list_example_sets. Default catalog: the one bundled with the app; pass catalogPath or catalogUrl for another. includeMapping: false loads an unmapped start (the gold mapping is left out).",
     inputSchema: {
       type: "object",
       required: ["setId"],
@@ -271,7 +297,9 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "import_suggestions",
     description:
-      "Apply intehrgrator-suggestions JSON envelope. Per-suggestion note/confidence are honoured; call-level note/confidence apply to suggestions without their own.",
+      "Apply an intehrgrator-suggestions JSON envelope (text = the JSON). Use it for what map_slot cannot express: loops, Decision tables, Sheet lookups, coded maps, expressions. Minimal envelope: {\"format\":\"intehrgrator-suggestions\",\"version\":\"2\",\"suggestions\":[{\"slotId\":\"<group + row id>\",\"block\":{\"type\":\"source_query_number\",\"fields\":{\"EXPRESSION\":\"$.systolic\"}}}]} (target defaults to the loaded target). Block types: source_query / _number / _boolean, text, math_number, decision_table, sheet_lookup, maps_get, … Full format: " +
+      pinnedDocUrl("docs/AI_SUGGESTION_FORMAT.md") +
+      ". Per-suggestion note/confidence are honoured; call-level note/confidence apply to suggestions without their own.",
     inputSchema: {
       type: "object",
       required: ["text"],
@@ -280,14 +308,22 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "map_slot",
-    description: "Map a source path to a target value slotId. Optional note (risks only) and confidence (0–100 %).",
+    description:
+      "Map a source path (from get_source_tree, e.g. $.systolic) to a target value slotId (group + row id from list_slots). Or set a constant: pass value instead of path (e.g. a fixed name; for a coded slot a code or text from values, or terse \"terminology::code|text|\" such as context/setting \"openehr::238|other care|\"; for openEHR groups such as setting the text alone, e.g. \"home\", also works). Coded slots (DV_CODED_TEXT, CODE_PHRASE: list_slots shows values): the source value must equal a code or a text from values; preview and the generated script then write that code and its text. Other source values (\"sitting\" for a local code with a different text, codes from another system) need a Decision table or a Sheet lookup: list_function_library, import_suggestions. Optional note (risks only) and confidence (0–100 %).",
     inputSchema: {
       type: "object",
-      required: ["slotId", "path"],
+      required: ["slotId"],
       properties: {
         slotId: { type: "string" },
-        path: { type: "string" },
-        format: { type: "string" },
+        path: { type: "string", description: "Source path (JSONPath for JSON sources, XPath for XML)" },
+        value: {
+          type: ["string", "number", "boolean"],
+          description: "Constant instead of path: a text, number or boolean written to the slot",
+        },
+        format: {
+          type: "string",
+          description: "Source format of path: json (default) or xml. Leave out unless the source is XML.",
+        },
         revision: { type: "string" },
         ...TOOL_REVIEW_PARAMS,
       },
@@ -363,21 +399,22 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "run_test",
     description:
-      "Run Conversion Test against the Active Example. Returns full TestResult including output and Output validation. Pass outputMode typescript to execute the Generated TypeScript Conversion Script (not Mapping preview).",
+      "Run Conversion Test against the Active Example. valid is the result: true only when the conversion ran and Output validation passed (testResult.ok only means the conversion ran; testResult.outputValidation has the messages). outputMode preview runs the Mapping preview; typescript runs the generated TypeScript Conversion Script, which is what runs in production. Check both: they can disagree. Without outputMode the workbench's current Output mode is used (the last one set, also by the person in the UI); the result names it.",
     inputSchema: {
       type: "object",
       properties: {
         revision: { type: "string" },
         outputMode: {
           type: "string",
-          description: "preview | typescript | handlebars | xquery | go-template | java",
+          description: "preview | typescript | handlebars | xquery | go-template | java. Omitted: the current Output mode (sticky).",
         },
       },
     },
   },
   {
     name: "generate_script",
-    description: "Generate a Conversion Script (typescript|java|handlebars|xquery|go-template). Optionally write to path.",
+    description:
+      "Generate a Conversion Script (typescript|java|handlebars|xquery|go-template, or a desktop plugin id from GET /api/v1/language-plugins). Optionally write to path.",
     inputSchema: {
       type: "object",
       required: ["language"],
@@ -386,7 +423,8 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   },
   {
     name: "export_bundle",
-    description: "Export the Project Bundle as json or .intehrgrator zip. Optionally write to path.",
+    description:
+      "Export the Project Bundle as json or .intehrgrator zip. With path, the file is written and only {format, path, bytes, revision} is returned; without path the bundle (json) or bytesBase64 (zip) is returned.",
     inputSchema: {
       type: "object",
       properties: {
@@ -468,6 +506,7 @@ export const AGENT_TOOL_HTTP: Record<string, AgentToolHttp> = {
   load_target: { method: "POST", path: "/load-target", body: "json" },
   load_source_schema: { method: "POST", path: "/load-source-schema", body: "json" },
   add_example: { method: "POST", path: "/add-example", body: "json" },
+  list_example_sets: { method: "GET", path: "/example-sets", body: "none" },
   load_example_set: { method: "POST", path: "/load-example-set", body: "json" },
   list_function_library: { method: "GET", path: "/function-library", body: "none" },
   load_function: { method: "POST", path: "/load-function", body: "json" },
@@ -527,11 +566,15 @@ export async function callAgentTool(
   service: WorkbenchService,
   name: string,
   args: Record<string, unknown>,
+  options?: { actor?: HistoryActor },
 ): Promise<unknown> {
   args = withResolvedSlotRefs(service, name, args);
   const revision = args.revision as string | undefined;
-  const ctx = mutationContextFromArgs(args);
-  if (ctx?.actor) service.setActor(ctx.actor);
+  // Capture the actor before any await. A later request must not change it (#317).
+  const fromArgs = mutationContextFromArgs(args);
+  const actor = options?.actor ?? fromArgs?.actor;
+  const ctx: MutationContext | undefined = actor ? { ...fromArgs, actor } : fromArgs;
+  if (actor) service.setActor(actor);
   switch (name) {
     case "register_agent": {
       const reg = service.registerAgent({
@@ -572,7 +615,15 @@ export async function callAgentTool(
     case "list_constraint_warnings":
       return { revision: service.getRevision(), warnings: service.listConstraintWarnings() };
     case "get_history":
-      return { revision: service.getRevision(), entries: service.listHistory() };
+      return {
+        revision: service.getRevision(),
+        entries: projectHistory(service.listHistory(), {
+          includeBundles: flagArg(args.includeBundles),
+          limit: numberArg(args.limit),
+          sinceSeq: numberArg(args.sinceSeq),
+          seq: numberArg(args.seq),
+        }),
+      };
     case "get_activity":
       return { activity: service.getActivity(), agents: service.registry.list() };
     case "get_bundle":
@@ -593,7 +644,7 @@ export async function callAgentTool(
       return { revision: service.getRevision() };
     case "load_target":
       if (typeof args.url === "string") {
-        await service.loadTargetFromUrl(args.url);
+        await service.loadTargetFromUrl(args.url, ctx);
       } else {
         const file = await readTextInput(args, "target");
         service.loadTemplateContent(file.filename, file.content);
@@ -601,7 +652,7 @@ export async function callAgentTool(
       return { revision: service.getRevision(), snapshot: service.getSnapshot() };
     case "load_source_schema":
       if (typeof args.url === "string") {
-        await service.loadSchemaFromUrl(args.url);
+        await service.loadSchemaFromUrl(args.url, ctx);
       } else {
         const file = await readTextInput(args, "schema");
         service.loadSchemaContent(file.filename, file.content);
@@ -609,14 +660,26 @@ export async function callAgentTool(
       return { revision: service.getRevision() };
     case "add_example":
       if (typeof args.url === "string") {
-        await service.addExampleFromUrl(args.url);
+        await service.addExampleFromUrl(args.url, ctx);
       } else {
         const file = await readTextInput(args, "example");
         service.addExampleContent(file.filename, file.content);
       }
       return { revision: service.getRevision(), ...service.getSourceTree() };
+    case "list_example_sets": {
+      const catalog = await loadExampleSetCatalogFromArgs(args);
+      return {
+        catalogUrl: catalog.catalogUrl,
+        sets: catalog.sets.map((set) => ({
+          id: set.id,
+          title: set.title,
+          ...(set.description ? { description: set.description } : {}),
+          mapped: Boolean(set.mapping),
+        })),
+      };
+    }
     case "load_example_set": {
-      const loaded = await loadExampleSetFromArgs(service, args);
+      const loaded = await loadExampleSetFromArgs(service, args, ctx);
       return { ...loaded, revision: service.getRevision(), snapshot: service.getSnapshot() };
     }
     case "list_function_library": {
@@ -641,7 +704,7 @@ export async function callAgentTool(
       };
     }
     case "set_active_example":
-      service.setActiveExample(String(args.id));
+      service.setActiveExample(String(args.id), ctx);
       return { revision: service.getRevision() };
     case "replace_sheets":
       if (!Array.isArray(args.sheets)) throw new Error("replace_sheets requires sheets[]");
@@ -675,20 +738,54 @@ export async function callAgentTool(
       };
     case "map_slot": {
       const slotId = String(args.slotId ?? "");
-      const path = String(args.path ?? "");
-      if (!slotId || !path) throw new Error("map_slot requires slotId and path");
-      const formatRaw = String(args.format ?? "json");
-      const format: SourceFormatId = isSourceFormatId(formatRaw) ? formatRaw : "json";
+      const path = typeof args.path === "string" ? args.path : "";
+      const hasValue = ["string", "number", "boolean"].includes(typeof args.value);
+      if (!slotId || (!path && !hasValue)) throw new Error("map_slot requires slotId and path (or value for a constant)");
+      if (path && hasValue) throw new Error("map_slot takes path or value, not both");
       const row = service.listSlots().find((r) => r.slotId === slotId);
       if (!row) throw new Error(`Unknown slotId: ${slotId}`);
-      service.mapNodeToSlot(slotId, path, format, revision, ctx, slotReviewFrom(args.note, args.confidence));
-      const ignored = args.confidence !== undefined && parseAiConfidence(args.confidence) === undefined;
+      const warnings: string[] = [];
+      if (hasValue) {
+        const shown = compactSlotId(slotId);
+        const report = service.importSuggestions(
+          JSON.stringify({
+            format: "intehrgrator-suggestions",
+            version: "2",
+            suggestions: [{
+              slotId,
+              block: row.valueType === "DV_CODED_TEXT"
+                ? codedConstantBlock(row, args.value as string | number | boolean)
+                : constantBlock(args.value as string | number | boolean),
+              ...(typeof args.note === "string" && args.note ? { note: args.note } : {}),
+              ...(args.confidence !== undefined ? { confidence: args.confidence } : {}),
+            }],
+          }),
+          revision,
+          {
+            ...ctx,
+            kind: "map_slot",
+            summary: `Set ${shown} = ${String(args.value)}`,
+            affectedSlotIds: [slotId],
+          },
+        );
+        if (report.errors?.length) throw new Error(report.errors.join("; "));
+      } else {
+        const formatRaw = String(args.format ?? "json");
+        const format: SourceFormatId = isSourceFormatId(formatRaw) ? formatRaw : "json";
+        service.mapNodeToSlot(slotId, path, format, revision, ctx, slotReviewFrom(args.note, args.confidence));
+        const coded = codedSlotWarning(row);
+        if (coded) warnings.push(coded);
+      }
+      if (args.confidence !== undefined && parseAiConfidence(args.confidence) === undefined) {
+        warnings.push("confidence must be a number 0–100 (percent); ignored");
+      }
       return {
         revision: service.getRevision(),
         slotId,
         ...(row.label ? { label: row.label } : {}),
         mapped: true,
-        ...(ignored ? { warning: "confidence must be a number 0–100 (percent); ignored" } : {}),
+        ...(hasValue ? { value: args.value } : {}),
+        ...(warnings.length ? { warning: warnings.join(" ") } : {}),
       };
     }
     case "optional_rm_add":
@@ -742,20 +839,24 @@ export async function callAgentTool(
         }
         service.setOutputMode(args.outputMode);
       }
+      const testResult = service.runTest();
       return {
-        testResult: service.runTest(),
+        valid: testResult.ok && testResult.outputValidation?.valid !== false,
+        testResult,
         outputMode: service.getOutputMode(),
         revision: service.getRevision(),
       };
     }
     case "generate_script": {
-      const language = String(args.language) as ConversionScriptLanguage;
-      if (!isConversionScriptLanguage(language)) {
-        throw new Error(`Unsupported conversion script language: ${language}`);
-      }
-      const generated = service.generateScript(language);
+      const language = String(args.language);
+      const generated = await service.generateScript(language);
       if (typeof args.path === "string") {
         await writeTextPath(args.path, generated.code);
+        return {
+          language: generated.language,
+          path: args.path,
+          bytes: new TextEncoder().encode(generated.code).length,
+        };
       }
       return { ...generated, path: args.path };
     }
@@ -764,19 +865,21 @@ export async function callAgentTool(
       if (format === "json") {
         const bundle = service.exportBundle();
         if (typeof args.path === "string") {
-          await writeTextPath(args.path, JSON.stringify(bundle, null, 2));
+          const text = JSON.stringify(bundle, null, 2);
+          await writeTextPath(args.path, text);
+          return { format, path: args.path, bytes: new TextEncoder().encode(text).length, revision: service.getRevision() };
         }
-        return { format, revision: service.getRevision(), bundle, path: args.path };
+        return { format, revision: service.getRevision(), bundle };
       }
       const bytes = exportBundle(service.exportBundle());
       if (typeof args.path === "string") {
         await writeBytesPath(args.path, bytes);
+        return { format: "zip", path: args.path, bytes: bytes.length, revision: service.getRevision() };
       }
       return {
         format: "zip",
         revision: service.getRevision(),
         bytesBase64: uint8ToBase64(bytes),
-        path: args.path,
       };
     }
     case "put_blockly":
@@ -811,6 +914,16 @@ export function suggestionTextFromArgs(args: Record<string, unknown>): string {
   if (args.format === "intehrgrator-suggestions") return JSON.stringify(args);
   if (args.envelope && typeof args.envelope === "object") return JSON.stringify(args.envelope);
   throw new Error("import_suggestions requires text (intehrgrator-suggestions JSON)");
+}
+
+function flagArg(value: unknown): boolean {
+  return value === true || value === "true" || value === "1";
+}
+
+function numberArg(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
 }
 
 function mutationContextFromArgs(args: Record<string, unknown>): MutationContext | undefined {
@@ -897,17 +1010,11 @@ function projectBundleFromArgs(args: Record<string, unknown>): ProjectBundle {
 async function loadExampleSetFromArgs(
   service: WorkbenchService,
   args: Record<string, unknown>,
+  ctx?: MutationContext,
 ): Promise<{ setId: string; title: string; catalogUrl: string }> {
   const setId = String(args.setId ?? "").trim();
   if (!setId) throw new Error("load_example_set requires setId");
-  const catalogUrl = resolveCatalogUrl(args);
-  const text = catalogUrl.startsWith("file:")
-    ? await Deno.readTextFile(new URL(catalogUrl))
-    : await (await fetch(toFetchableUrl(catalogUrl))).then(async (res) => {
-      if (!res.ok) throw new Error(`Could not load catalog ${catalogUrl} (${res.status})`);
-      return await res.text();
-    });
-  const catalog = parseExampleSetCatalog(text, catalogUrl);
+  const catalog = await loadExampleSetCatalogFromArgs(args);
   const set = catalog.sets.find((row) => row.id === setId);
   if (!set) {
     throw new Error(
@@ -917,8 +1024,26 @@ async function loadExampleSetFromArgs(
   const includeMapping = args.includeMapping !== false;
   await service.loadExampleSet(
     includeMapping ? set : { ...set, mapping: undefined, sheets: undefined },
+    ctx,
   );
   return { setId: set.id, title: set.title, catalogUrl: catalog.catalogUrl };
+}
+
+/** Read and parse an Example Set catalog from catalogPath, catalogUrl, or the bundled default. */
+export async function loadExampleSetCatalogFromArgs(args: Record<string, unknown>): Promise<ExampleSetCatalog> {
+  const catalogUrl = resolveCatalogUrl(args);
+  let text: string;
+  if (catalogUrl.startsWith("file:")) {
+    text = await Deno.readTextFile(new URL(catalogUrl));
+  } else {
+    const res = await fetch(toFetchableUrl(catalogUrl));
+    if (!res.ok) {
+      await res.body?.cancel();
+      throw new Error(`Could not load catalog ${catalogUrl} (${res.status})`);
+    }
+    text = await res.text();
+  }
+  return parseExampleSetCatalog(text, catalogUrl);
 }
 
 function resolveCatalogUrl(args: Record<string, unknown>): string {
@@ -928,7 +1053,105 @@ function resolveCatalogUrl(args: Record<string, unknown>): string {
   if (typeof args.catalogUrl === "string" && args.catalogUrl.trim()) {
     return toFetchableUrl(args.catalogUrl.trim());
   }
-  throw new Error("load_example_set requires catalogPath or catalogUrl");
+  return defaultExampleSetCatalogUrl();
+}
+
+/**
+ * The example-set catalog for this process.
+ *
+ * The repo catalog (`examples/example-sets.json`, two levels above this
+ * module) wins over `src/desktop/www/` and `dist/`. Those directories are
+ * gitignored build output; a previous `deno task build` would otherwise hide
+ * fixture updates from `deno task test` and from the Agent API. Staged copies
+ * are still used when this module is not sitting in a source checkout. Then
+ * the working directory, else the version-pinned GitHub Pages copy.
+ */
+export function defaultExampleSetCatalogUrl(): string {
+  const candidates: string[] = [];
+  for (const rel of ["../../", "../desktop/www/", "../../dist/"]) {
+    try {
+      candidates.push(fromFileUrl(new URL(`${rel}${BUNDLED_EXAMPLE_SETS_PATH}`, import.meta.url)));
+    } catch {
+      // import.meta.url is not a file: URL in this host
+    }
+  }
+  candidates.push(resolve(BUNDLED_EXAMPLE_SETS_PATH));
+  for (const path of candidates) {
+    try {
+      if (Deno.statSync(path).isFile) return toFileUrl(path).href;
+    } catch {
+      // try the next one
+    }
+  }
+  return pinnedDocUrl(BUNDLED_EXAMPLE_SETS_PATH);
+}
+
+/** Blockly literal block for a map_slot constant. */
+function constantBlock(value: string | number | boolean): Record<string, unknown> {
+  if (typeof value === "number") return { type: "math_number", fields: { NUM: value } };
+  if (typeof value === "boolean") return { type: "logic_boolean", fields: { BOOL: value ? "TRUE" : "FALSE" } };
+  return { type: "text", fields: { TEXT: value } };
+}
+
+/**
+ * A map_slot constant on a DV_CODED_TEXT slot needs a code, not only a text:
+ * a code or text from the value set, or terse `terminology::code|text|`.
+ */
+function codedConstantBlock(row: SlotInspectRow, value: string | number | boolean): Record<string, unknown> {
+  const raw = String(value).trim();
+  let code = "";
+  let text = "";
+  let terminology = row.terminologyFixed ?? "";
+  const terse = /^([^:|]+)::([^|]+)(?:\|([^|]*)\|?)?$/.exec(raw);
+  if (terse) {
+    terminology = terse[1]!.trim();
+    code = terse[2]!.trim();
+    text = (terse[3] ?? "").trim();
+  }
+  const values: Array<{ code: string; label?: string; terminologyId?: string }> = row.allowedValues?.length
+    ? row.allowedValues
+    : openEhrTermValues(row.slotId);
+  const key = (code || raw).toLowerCase();
+  const hits = values.filter((v) => v.code.toLowerCase() === key || (!code && (v.label ?? "").toLowerCase() === key));
+  if (hits.length === 1) {
+    code = hits[0]!.code;
+    text ||= hits[0]!.label || code;
+    terminology = hits[0]!.terminologyId || terminology;
+  }
+  if (!code && row.codeFixed && (!values.length)) code = row.codeFixed;
+  if (!code || !text || !terminology) {
+    const sample = values.slice(0, 6).map((v) => `${v.code} (${v.label ?? ""})`).join(", ");
+    throw new Error(
+      `Coded slot ${row.slotId}: a constant needs a code and its text. Pass ${
+        values.length ? `a code or text of its value set (${sample}${values.length > 6 ? ", …" : ""}), or ` : ""
+      }terse "terminology::code|text|", e.g. "${terminology || "openehr"}::238|other care|".`,
+    );
+  }
+  const textBlock = (t: string) => ({ block: { type: "text", fields: { TEXT: t } } });
+  return {
+    type: "maps_create_with",
+    extraState: { itemCount: 3 },
+    fields: { KEY0: "value", KEY1: "code_string", KEY2: "terminology_id" },
+    inputs: { VAL0: textBlock(text), VAL1: textBlock(code), VAL2: textBlock(terminology) },
+  };
+}
+
+/** openEHR terminology group of an RM attribute slot (`…/EVENT_CONTEXT/setting/value` → setting codes). */
+function openEhrTermValues(slotId: string): Array<{ code: string; label: string; terminologyId: string }> {
+  const m = /\/([A-Z][A-Z_]+)\/([a-z_]+)\/value$/.exec(slotId);
+  const set = m ? termSetForRmAttribute(m[1]!, m[2]!) : undefined;
+  if (!set || set.valueRmType !== "DV_CODED_TEXT") return [];
+  return set.codes.map((c) => ({ code: c.code, label: c.rubric, terminologyId: set.terminologyId }));
+}
+
+/** map_slot from a source path onto a coded slot: say what the source value must be (#309, #313). */
+function codedSlotWarning(row: { valueType?: string; allowedValues?: Array<{ code: string; label?: string }> }): string | undefined {
+  const values = row.allowedValues ?? [];
+  if (!values.length) return undefined;
+  const sample = values.slice(0, 6).map((v) => v.label ? `${v.code} (${v.label})` : v.code).join(", ");
+  return `Coded slot: each source value must equal a code or a text of its value set (${sample}${
+    values.length > 6 ? ", …" : ""
+  }), matched case-insensitively; other values give an invalid coded text. If the source uses other words or codes, map it with a Decision table or a Sheet lookup instead (list_function_library, import_suggestions).`;
 }
 
 async function loadFunctionLibraryCatalogFromArgs(

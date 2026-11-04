@@ -13,6 +13,8 @@ Visual integration workbench for healthcare informaticians: map source data (JSO
 | **Pinned web versions** | [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists stable URLs such as `…/v0.7/` |
 | **Desktop app** | [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) — Windows, Linux, macOS; no install of Deno required |
 
+On Linux the desktop AppImage uses the system WebKitGTK 4.1 (with libsoup 3), also for `--headless`. If it stops with `libwebkit2gtk-4.1.so.0: cannot open shared object file`, install it: `sudo apt install libwebkit2gtk-4.1-0` (Debian/Ubuntu) or `sudo dnf install webkit2gtk4.1` (Fedora). Windows and macOS need nothing extra.
+
 The recommended web app link redirects to the current stable pinned release from `versions.json`. The site root tracks the latest `main` (bleeding-edge) build and may change day to day. Use the recommended build, a pinned `/vX.Y/` URL, or a desktop release when you need a stable baseline for production mapping work.
 
 ## Get started

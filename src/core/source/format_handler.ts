@@ -8,6 +8,7 @@
  * See docs/SOURCE_FORMATS.md and architecture review candidate 1.
  */
 
+import { generateSkeleton } from "../skeleton/generate_skeleton.ts";
 import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
 import {
   appendJsonPath,
@@ -99,6 +100,7 @@ const openEhrHandlers: SourceFormatHandler[] = [
   createJsonHandler("openehr-structured-json"),
   createJsonHandler("openehr-web-template", loadOpenEhrWebTemplateSchema),
   createJsonHandler("openehr-composition"),
+  operationalTemplateSourceHandler(),
 ];
 
 const handlers = new Map<string, SourceFormatHandler>([
@@ -128,9 +130,48 @@ export function isSourceFormatId(value: string): value is SourceFormatId {
   return handlers.has(value);
 }
 
+const OPERATIONAL_TEMPLATE_FILE = /\.(?:opt2?|oet)$/i;
+
+/**
+ * An operational template as a source schema: integration archetype → another
+ * template. The source tree is that OPT's Web Template (the same ids Simplified
+ * FLAT uses). A composition instance is still a separate example file.
+ */
+function loadOperationalTemplateSchema(content: string, rootName = "root"): SchemaTreeNode {
+  const generated = generateSkeleton(content);
+  if (!generated.webTemplateJson) {
+    throw new Error("Could not build a Web Template from this operational template");
+  }
+  return loadOpenEhrWebTemplateSchema(generated.webTemplateJson, rootName);
+}
+
+function operationalTemplateSourceHandler(): SourceFormatHandler {
+  return {
+    id: "openehr-operational-template",
+    loadSchema(content, rootName = "root") {
+      return loadOperationalTemplateSchema(content, rootName);
+    },
+    loadInstance() {
+      throw new Error(
+        "An operational template is a source schema. Add a FLAT, STRUCTURED, or canonical composition as the example instance.",
+      );
+    },
+    pathToExpression(schemaPath) {
+      return pathToFontoxpath(schemaPath, "json");
+    },
+    createContext(content) {
+      return createSourceContext(content, "openehr-operational-template", "json");
+    },
+    evaluate(expression, ctx, returnType) {
+      return evaluate(expression, ctx, returnType);
+    },
+  };
+}
+
 /** Infer format from filename extension; defaults to JSON. */
 export function detectSourceFormat(filename: string, content?: string): SourceFormatId {
   const lower = filename.toLowerCase();
+  if (OPERATIONAL_TEMPLATE_FILE.test(lower)) return "openehr-operational-template";
   if (lower.endsWith(".xml") || lower.endsWith(".xsd")) return "xml";
   if (content) {
     try {

@@ -158,7 +158,9 @@ Use when source has repeating nodes (e.g. several vitals in one encounter) and t
 2. Map child value slots with `loopVar` = that `VAR` and **relative** `EXPRESSION` (child step(s) only).
 3. One source loop ↔ one repeating target container. Do not unroll `[1]`,`[2]`,… unless the user asked for a single instance.
 
-**Path dialects** (`PATH` / absolute `EXPRESSION`): JSON/`$…` · XML `/…` · FLAT bracket keys as in the source tree. Relative `EXPRESSION` stays relative to the loop node (e.g. `pulse`, not `$.measurements[*].pulse`).
+**Path dialects** (`PATH` / absolute `EXPRESSION`): JSON/`$…` · XML `/…` · FLAT bracket keys as in the source tree. Relative `EXPRESSION` stays relative to the innermost loop item (e.g. `pulse`, not `$.measurements[*].pulse`). A path may also name an enclosing loop item: `dag.StartTid` reads `StartTid` from the `for each` named `dag`, at any depth. No `$` on that name.
+
+**Include when** (`includes[]`): omit an optional target node unless a boolean `when` block is true. `slotId` is the container (for example an EVENT). `when` is `source_query_boolean`, `logic_compare`, and/or `logic_operation`. The template occurrence or cardinality minimum must be 0 unless an else stack on the canvas emits the same node. Do not use `controls_if`.
 
 ## Prompt / input
 

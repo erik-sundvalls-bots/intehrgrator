@@ -39,6 +39,17 @@ export interface HostAdapter {
   resolveAppUrl(path: string): string;
   /** Fetch a remote text file (schema, example, or target). GitHub blob URLs are rewritten to raw. */
   fetchTextUrl(url: string): Promise<PickedTextFile>;
+  /**
+   * Desktop-only: ask the local server to run a conversion-script plugin.
+   * Absent on GitHub Pages.
+   */
+  generateConversionScript?(
+    language: string,
+    request: {
+      model: unknown;
+      options: unknown;
+    },
+  ): Promise<{ code: string; extension: string; mime: string }>;
 }
 
 export { createHostAdapter } from "./create_host.ts";

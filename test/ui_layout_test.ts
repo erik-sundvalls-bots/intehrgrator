@@ -1,6 +1,9 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { yJustBelowDefaults } from "@intehrgrator/blockly/defaults_canvas.ts";
+import {
+  productTreeShiftToClearContextMap,
+  yJustBelowDefaults,
+} from "@intehrgrator/blockly/defaults_canvas.ts";
 import { startYAboveRoot } from "@intehrgrator/blockly/conversion_start_canvas.ts";
 import {
   mappingPaneLeadsOnNarrow,
@@ -18,6 +21,40 @@ Deno.test("scaffold top sits a small gap under Defaults, not a Defaults-height j
   assertEquals(yJustBelowDefaults(4000) > 20 + 160, true);
   // Must not subtract the (possibly huge) skeleton height.
   assertEquals(yJustBelowDefaults(4000) < 20 + 4000 + 50, true);
+});
+
+Deno.test("a context map that covers the product tree pushes the tree below it", () => {
+  const shift = productTreeShiftToClearContextMap(
+    { x: 20, y: 20, width: 280, height: 400 },
+    { x: 20, y: 196, width: 640, height: 900 },
+  );
+  assertEquals(shift, { dx: 0, dy: 240 });
+});
+
+Deno.test("a product tree already clear of the context map stays put", () => {
+  const shift = productTreeShiftToClearContextMap(
+    { x: 20, y: 20, width: 280, height: 160 },
+    { x: 20, y: 196, width: 640, height: 900 },
+  );
+  assertEquals(shift, { dx: 0, dy: 0 });
+});
+
+Deno.test("an unmeasured context map does not move the product tree", () => {
+  assertEquals(
+    productTreeShiftToClearContextMap(
+      { x: 20, y: 20, width: 0, height: 0 },
+      { x: 20, y: 196, width: 640, height: 900 },
+    ),
+    { dx: 0, dy: 0 },
+  );
+});
+
+Deno.test("a product tree that only clips the context map's right edge moves right", () => {
+  const shift = productTreeShiftToClearContextMap(
+    { x: 20, y: 20, width: 200, height: 100 },
+    { x: 180, y: 20, width: 400, height: 120 },
+  );
+  assertEquals(shift, { dx: 56, dy: 0 });
 });
 
 Deno.test("Conversion start parks above the root using start height, not root height", () => {
@@ -38,6 +75,15 @@ Deno.test("narrow viewports treat Mapping Editors as the lead pane", () => {
   assertEquals(mappingPaneLeadsOnNarrow(NARROW_MAIN_PANES_MAX_WIDTH_PX), true);
   assertEquals(mappingPaneLeadsOnNarrow(375), true);
   assertEquals(mappingPaneLeadsOnNarrow(1280), false);
+});
+
+Deno.test("sheet tabs use the pane width and still scroll when names overflow", async () => {
+  const css = await Deno.readTextFile(join(import.meta.dirname!, "..", "web", "styles.css"));
+  const tabsRule = css.slice(css.indexOf(".sheets-tabs {"), css.indexOf(".sheets-tab {"));
+  assert(tabsRule.includes("flex: 1 1 auto"), tabsRule);
+  assert(tabsRule.includes("overflow-x: auto"), tabsRule);
+  assert(tabsRule.includes("min-width: 0"), tabsRule);
+  assert(!tabsRule.includes("420px"), tabsRule);
 });
 
 Deno.test("example and test-output tabs scroll sideways instead of wrapping", async () => {

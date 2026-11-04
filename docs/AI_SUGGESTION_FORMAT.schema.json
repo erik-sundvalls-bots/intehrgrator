@@ -18,6 +18,20 @@
     "target": {
       "$ref": "#/$defs/target"
     },
+    "includes": {
+      "type": "array",
+      "description": "Omit an optional target node unless when is true (include_when). when is a boolean value block. Do not use controls_if.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slotId", "when"],
+        "properties": {
+          "slotId": { "type": "string" },
+          "when": { "$ref": "#/$defs/valueBlock" },
+          "note": { "type": "string" }
+        }
+      }
+    },
     "loops": {
       "type": "array",
       "description": "One for_each_list per repeating target container (source_query_node in LIST for source nodes). Do not nest loops inside suggestions[].",

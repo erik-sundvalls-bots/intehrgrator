@@ -106,6 +106,11 @@ for (
     assertEquals(sv.lang, "sv");
     assertEquals(en.paths, sv.paths);
     assertEquals(en.paths.filter((p) => p.includes("/name/value")), []);
-    assert(en.paths.length <= 24, `${en.paths.length} messages`);
+    // Unmapped RM-mandatory attributes (setting, description, …) are expected in an
+    // unmapped set since strict RM validation (ehrtslib #217/#219); cap the rest.
+    const other = en.paths.filter((p) =>
+      !/required by RM specification|Required attribute missing/.test(p)
+    );
+    assert(other.length <= 24, `${other.length} messages:\n${other.join("\n")}`);
   });
 }

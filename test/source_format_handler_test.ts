@@ -17,6 +17,7 @@ Deno.test("built-in format handlers are registered", () => {
   assertEquals(ids.includes("xml"), true);
   assertEquals(ids.includes("openehr-flat-json"), true);
   assertEquals(ids.includes("openehr-composition"), true);
+  assertEquals(ids.includes("openehr-operational-template"), true);
   assertEquals(isSourceFormatId("json"), true);
   assertEquals(isSourceFormatId("openehr-canonical-json"), true);
 });
@@ -34,6 +35,78 @@ Deno.test("detectSourceFormat from filename", () => {
     "openehr-flat-json",
   );
   assertEquals(detectSourceFormat("unknown.bin"), "json");
+  assertEquals(detectSourceFormat("generic.opt"), "openehr-operational-template");
+  assertEquals(detectSourceFormat("generic.OPT2"), "openehr-operational-template");
+  assertEquals(detectSourceFormat("generic.oet"), "openehr-operational-template");
+});
+
+Deno.test("an operational template loads as an openEHR source schema", () => {
+  const opt = Deno.readTextFileSync(
+    join(
+      import.meta.dirname!,
+      "fixtures",
+      "Obstetric-legacy-via-generic-entry",
+      "MHV1",
+      "source-schema",
+      "generic_obstetrix_mhv1_v1_TEMPLATE.opt",
+    ),
+  );
+  const handler = getSourceFormatHandler("openehr-operational-template");
+  const tree = handler.loadSchema(opt, "generic");
+  assertEquals(tree.name, "generic-obstetrix-mhv1-v1");
+  const names: string[] = [];
+  const walk = (node: { name: string; children: typeof tree.children }) => {
+    names.push(node.name);
+    for (const child of node.children) walk(child);
+  };
+  walk(tree);
+  assertEquals(names.includes("vikt"), true);
+  assertEquals(names.includes("senastmens"), true);
+  assertEquals(names.includes("bedomningtext"), true);
+});
+
+Deno.test("obstetric OPT2 files and canonical examples load as openEHR documents", () => {
+  const root = join(
+    import.meta.dirname!,
+    "fixtures",
+    "Obstetric-legacy-via-generic-entry",
+  );
+  const opt2Paths = [
+    join(root, "MHV1", "source-schema", "generic_obstetrix_mhv1_v1_TEMPLATE.opt2"),
+    join(root, "anteckning", "source-schema", "generic_obstetrix_anteckning_v1_TEMPLATE.opt2"),
+    join(root, "partogram", "source-schema", "generic_obstetrix_partogram_v1_TEMPLATE.opt2"),
+    join(root, "MHV1", "target-schema", "mhv1-prenatal-visit.encounter.v1.opt2"),
+    join(root, "partogram", "target-schema", "partogram.v1.opt2"),
+  ];
+  const handler = getSourceFormatHandler("openehr-operational-template");
+  for (const path of opt2Paths) {
+    const opt2 = Deno.readTextFileSync(path);
+    assertEquals(detectSourceFormat(path, opt2), "openehr-operational-template");
+    const tree = handler.loadSchema(opt2, "template");
+    assertEquals(tree.children.length > 0, true, path);
+  }
+  const dir = join(root, "MHV1");
+  const canonical = Deno.readTextFileSync(
+    join(dir, "source-instance", "1-primigravida-basprogram.canonical.json"),
+  );
+  assertEquals(
+    detectSourceFormat("1-primigravida-basprogram.canonical.json", canonical),
+    "openehr-composition",
+  );
+  const flat = Deno.readTextFileSync(
+    join(dir, "source-instance", "1-primigravida-basprogram.flat.json"),
+  );
+  assertEquals(
+    detectSourceFormat("1-primigravida-basprogram.flat.json", flat),
+    "openehr-flat-json",
+  );
+  const partogramCanonical = Deno.readTextFileSync(
+    join(root, "partogram", "source-instance", "1-primip-left-of-alert.canonical.json"),
+  );
+  assertEquals(
+    detectSourceFormat("1-primip-left-of-alert.canonical.json", partogramCanonical),
+    "openehr-composition",
+  );
 });
 
 Deno.test("Avro .avsc record schema loads as field tree, not Avro meta document", async () => {

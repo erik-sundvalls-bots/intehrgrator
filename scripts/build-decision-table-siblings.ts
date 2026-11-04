@@ -60,17 +60,12 @@ function literal(workspace: Blockly.Workspace, text: string): Blockly.Block {
   return block;
 }
 
-/** True when the path is filled. A missing path is false, not "unequal to empty". */
+/**
+ * True when the path is filled. `source_query_boolean` already returns false
+ * for a missing path, so a true/false ternary around it is the same value.
+ */
 function present(workspace: Blockly.Workspace, path: string): Blockly.Block {
-  const tern = workspace.newBlock("logic_ternary");
-  tern.getInput("IF")?.connection?.connect(source(workspace, path, "boolean").outputConnection!);
-  const yes = workspace.newBlock("logic_boolean");
-  yes.setFieldValue("TRUE", "BOOL");
-  const no = workspace.newBlock("logic_boolean");
-  no.setFieldValue("FALSE", "BOOL");
-  tern.getInput("THEN")?.connection?.connect(yes.outputConnection!);
-  tern.getInput("ELSE")?.connection?.connect(no.outputConnection!);
-  return tern;
+  return source(workspace, path, "boolean");
 }
 
 /** Display fold. Snippet cells cannot call toLowerCase (ADR 0009). */
@@ -98,18 +93,50 @@ function anyFilled(workspace: Blockly.Workspace, paths: string[]): Blockly.Block
   return restriction;
 }
 
-/** Replace a long Handlebars `(or path path …)` gate with any-of-these-fields. */
+/** Paths from a path-only `(or …)`, or from the any-of block that replaced it. */
+function orPathsFromGuard(block: Blockly.Block | null): string[] | null {
+  if (!block) return null;
+  if (
+    block.type === "source_query" || block.type === "source_query_boolean" ||
+    block.type === "source_query_node"
+  ) {
+    return extractOrPaths(String(block.getFieldValue("EXPRESSION") ?? ""));
+  }
+  if (block.type === "logic_list_restriction") {
+    const list = block.getInputTargetBlock("LIST");
+    if (!list || list.type !== "lists_create_with") return null;
+    const count = Number((list as ListCreate).itemCount_ ?? 0);
+    const paths: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const expr = String(list.getInputTargetBlock(`ADD${i}`)?.getFieldValue("EXPRESSION") ?? "");
+      if (expr) paths.push(expr);
+    }
+    return paths.length ? paths : null;
+  }
+  if (block.type === "logic_operation" || block.type === "logic_negate") {
+    for (const name of ["A", "B", "BOOL"]) {
+      const found = orPathsFromGuard(block.getInputTargetBlock(name));
+      if (found?.length) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * The decision-table sibling keeps one imaging keyword. Its guard is "any of
+ * these fields is filled", the same list the production `(or path path …)`
+ * tested, without the modality compare (the term table owns that).
+ */
 function replaceLongOrGates(workspace: Blockly.Workspace): void {
   for (const block of workspace.getAllBlocks(false)) {
-    if (block.type !== "controls_if") continue;
-    const cond = block.getInputTargetBlock("IF0");
-    if (!cond || (cond.type !== "source_query_boolean" && cond.type !== "source_query")) continue;
-    const expr = String(cond.getFieldValue("EXPRESSION") ?? "");
-    if (expr.length < 400 || !expr.includes("(or")) continue;
-    const paths = extractOrPaths(expr);
-    if (!paths?.length) continue;
-    cond.dispose(false);
-    block.getInput("IF0")?.connection?.connect(anyFilled(workspace, paths).outputConnection!);
+    if (block.type !== "include_when" && block.type !== "controls_if") continue;
+    const socket = block.type === "include_when" ? "WHEN" : "IF0";
+    const cond = block.getInputTargetBlock(socket);
+    if (!cond || cond.type === "logic_list_restriction") continue;
+    const paths = orPathsFromGuard(cond);
+    if (!paths || paths.length < 4) continue;
+    cond.dispose(true);
+    block.getInput(socket)?.connection?.connect(anyFilled(workspace, paths).outputConnection!);
   }
 }
 
@@ -138,11 +165,15 @@ function termIdOf(block: Blockly.Block): string | null {
   return null;
 }
 
-/** The `controls_if` whose DO socket holds this keyword, not an earlier sibling if. */
+/** The include-when (or legacy if) whose body holds this keyword. */
 function owningIf(keyword: Blockly.Block): Blockly.Block | null {
   const parent = keyword.getParent();
-  if (parent?.type !== "controls_if") return null;
+  if (parent?.type !== "include_when" && parent?.type !== "controls_if") return null;
   return parent;
+}
+
+function guardSocket(block: Blockly.Block): string {
+  return block.type === "include_when" ? "WHEN" : "IF0";
 }
 
 function textKeywords(workspace: Blockly.Workspace): Blockly.Block[] {
@@ -229,16 +260,16 @@ function patchLung(workspace: Blockly.Workspace, sheets: SheetDocument[]): void 
   );
   const wrap = owningIf(imaging);
   if (wrap) {
-    const old = wrap.getInputTargetBlock("IF0");
-    const expr = String(old?.getFieldValue("EXPRESSION") ?? "");
-    const paths = extractOrPaths(expr);
+    const socket = guardSocket(wrap);
+    const old = wrap.getInputTargetBlock(socket);
+    const paths = orPathsFromGuard(old);
     if (!paths?.length) {
       throw new Error(
-        `imaging keyword is missing its presence list (${old?.type ?? "none"}, ${expr.length} chars, ${JSON.stringify(expr.slice(0, 80))})`,
+        `imaging keyword is missing its presence list (${old?.type ?? "none"})`,
       );
     }
     if (old) old.dispose(false);
-    wrap.getInput("IF0")?.connection?.connect(anyFilled(workspace, paths).outputConnection!);
+    wrap.getInput(socket)?.connection?.connect(anyFilled(workspace, paths).outputConnection!);
   }
   replaceLongOrGates(workspace);
 

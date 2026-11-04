@@ -518,3 +518,57 @@ Deno.test("web template skeleton labels follow requested ontology language", asy
   assertEquals(findInjury(en.skeleton)?.label, "Injury");
   assertEquals(findInjury(sv.skeleton)?.label, "Skada");
 });
+
+Deno.test("a template's name constraint labels a renamed archetype node in the primary language", async () => {
+  const dir = join(
+    import.meta.dirname!,
+    "../vendor/openEHR-model-examples/local/theme-packs/sport-event-details/templates",
+  );
+  const sections = (skeleton: SkeletonNode[]) =>
+    flattenSkeleton(skeleton).filter((n) => n.rmType === "SECTION" && n.archetypeRef?.includes("SECTION.adhoc"));
+
+  // Both headings are SECTION.adhoc; the archetype term text is the same for
+  // both, so only the template's name constraint tells them apart.
+  const en = generateSkeleton(
+    await Deno.readTextFile(join(dir, "Accident report including vital signs.opt")),
+    { language: "en" },
+  );
+  assertEquals(sections(en.skeleton).map((n) => n.label), ["Vital signs", "Calculated scales"]);
+
+  const sv = await Deno.readTextFile(join(dir, "Accident report including vital signs.sv.opt"));
+  assertEquals(
+    sections(generateSkeleton(sv, { language: "sv" }).skeleton).map((n) => n.label),
+    ["Vitalparametrar", "Beräkningar"],
+  );
+  // Another display language shows archetype term text; output names stay the template's.
+  const de = sections(generateSkeleton(sv, { language: "de" }).skeleton);
+  assertEquals(de.map((n) => n.label), ["Ad hoc Überschrift", "Ad hoc Überschrift"]);
+  assertEquals(de.map((n) => n.primaryName), ["Vitalparametrar", "Beräkningar"]);
+});
+
+Deno.test("web template renamed sections keep their own names in every language", async () => {
+  const wt = await Deno.readTextFile(
+    join(
+      import.meta.dirname!,
+      "../vendor/openEHR-model-examples/local/theme-packs/sport-event-details/templates/Accident report including vital signs.wt.json",
+    ),
+  );
+  for (const language of ["en", "sv", "de"]) {
+    const sections = flattenSkeleton(generateSkeletonFromWebTemplate(wt, { language }).skeleton)
+      .filter((n) => n.rmType === "SECTION");
+    assertEquals(
+      sections.map((n) => n.primaryName ?? n.label),
+      ["Vital signs", "Calculated scales"],
+      language,
+    );
+    // Spec locator: a space after the comma (ehrtslib#256).
+    assertEquals(
+      sections.map((n) => n.slotId.split("//")[1]),
+      [
+        "content[openEHR-EHR-SECTION.adhoc.v1, 'Vital signs']",
+        "content[openEHR-EHR-SECTION.adhoc.v1, 'Calculated scales']",
+      ],
+      language,
+    );
+  }
+});

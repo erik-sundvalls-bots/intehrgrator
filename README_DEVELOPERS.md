@@ -37,7 +37,7 @@ deno task build  # build web app into /dist
 deno task dev`  # start and serve on `http://localhost:5173`
 ```
 
-NOTE: ehrtslib is not cloned. `deno.json` imports it, unpatched, from the jsDelivr URL for release [v0.7](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.7). `deno task vendor` only clones the example archetypes.
+NOTE: ehrtslib is not cloned. `deno.json` (and `scripts/ehrtslib.compile.json`) import it, unpatched, from the jsDelivr URL for release [v0.11](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.11). `deno task vendor` only clones the example archetypes.
 
 ## Tests
 
@@ -65,7 +65,7 @@ The UI **green-path** (`test/ui/green_path_test.ts`) walks load → Click-to-Map
 | `deno task test:xquery-engine` | Optional BaseX golden (`test/xquery_engine_test.ts`) |
 | `deno task lint` | `deno lint` on `src`, `test`, `scripts` |
 | `deno task check` | Type-check TypeScript sources |
-| `deno task desktop` | Build + run native window (`deno desktop`) |
+| `deno task desktop` | Build + run native window. Flags after `--` are forwarded (`--headless`, `--load`, `--language-plugin`, …) |
 | `deno task compile:desktop` | Platform binaries → `dist/release/` |
 | `deno task mcp` | Stdio MCP server for IDE agents (proxies to `INTEHR_AGENT_URL` or embeds a headless `WorkbenchService`) |
 | `deno task release -- --version X.Y.Z` | Bump, tag, push; CI publishes desktop + pinned Pages |
@@ -91,7 +91,7 @@ Maintainers cut releases with **`deno task release`** (not GitHub **Releases →
 3. Locally the script may bump `deno.json`, `package.json`, `scripts/desktop.compile.json`, and `APP_VERSION`; run `deno task vendor` (unless skipped), unit tests (unless `--no-test`), and `deno task build`; then commit, tag, and push.
 4. The tag push triggers `release.yml` (unit + UI must pass before publish).
 
-**Release notes** live in [`CHANGELOG.md`](CHANGELOG.md). Feature and fix PRs add a line under **Unreleased**; the release PR (version bump) renames that section to the new version and date. The GitHub Release description and the annotated tag message link to `CHANGELOG.md` at the tag.
+**Release notes** live in [`CHANGELOG.md`](CHANGELOG.md). Feature and fix PRs add a line under **Unreleased**. `deno task release` moves those notes under `## [X.Y.Z]` (the heading and date already there, or a new one) before the tests, leaves **Unreleased** empty, and points the compare link at the new tag. The GitHub Release description and the annotated tag message link to `CHANGELOG.md` at the tag.
 
 Example: package version `0.8.8` → tag **`v0.8.8`**. Patch segment `0` is special: `0.8.0` → tag **`v0.8`** (see `releaseTagForVersion` in `scripts/release_version.ts`).
 
@@ -119,7 +119,7 @@ Frozen Pages builds for a tag are **immutable**: `assembleReleasePagesSite` erro
 | Tests, frozen `/v…/` Pages, desktop via CI | On tag push | Only if a new `v*` tag is created/pushed; no version bump |
 | Creates GitHub Release assets | Via Actions after tag | Yes (primary UI purpose) |
 
-Release notes go in `CHANGELOG.md` (in the release PR), not in the GitHub Release UI; use that UI only for extra attachments, not as a substitute for the guided release path. A future Actions “make new release” UI is tracked in [#220](https://github.com/regionstockholm/intehrgrator/issues/220).
+Release notes go in `CHANGELOG.md` (Unreleased until `deno task release` moves them), not in the GitHub Release UI; use that UI only for extra attachments, not as a substitute for the guided release path. A future Actions “make new release” UI is tracked in [#220](https://github.com/regionstockholm/intehrgrator/issues/220).
 
 ### Recommended end-user version
 

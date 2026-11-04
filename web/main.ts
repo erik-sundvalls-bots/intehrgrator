@@ -1,5 +1,6 @@
 import * as Blockly from "blockly/core";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
+import type { SchemalessExampleKind } from "../src/core/output/canvas_example_seed.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
 import { VsCodeWebviewHostAdapter } from "../src/host/vscode_webview_adapter.ts";
 import { connectFileProjectEditor } from "../src/workbench/file_project_editor.ts";
@@ -92,6 +93,7 @@ import {
   enforceConversionStartUniqueness,
   CONVERSION_START_TYPE,
   hydrateDefaultsMapArgument,
+  separateContextMapFromProductTree,
   serializeDefaultsMapArgument,
   applyDefaultContextMap,
   setDefaultsMapPickHandler,
@@ -837,15 +839,46 @@ uploadSpecBtn?.addEventListener("click", () =>
   void withUndoableDocumentReplace(() => controller.importBlocklyDefinition())
 );
 exportTargetSelect.addEventListener("change", () => {
-  const target = exportTargetSelect.value as
-    | "preview"
-    | "typescript"
-    | "java"
-    | "handlebars"
-    | "xquery"
-    | "go-template";
-  controller.setExportTarget(target);
+  controller.setExportTarget(exportTargetSelect.value);
 });
+
+if (isDesktopEnvironment()) {
+  void loadDesktopLanguagePlugins();
+}
+
+async function loadDesktopLanguagePlugins(): Promise<void> {
+  const token = (globalThis as unknown as { __INTEHR_AGENT_TOKEN__?: string }).__INTEHR_AGENT_TOKEN__;
+  try {
+    const res = await fetch("/api/v1/language-plugins", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return;
+    const body = await res.json() as {
+      plugins?: Array<{ id: string; label: string; extension: string; mime: string; runnable: boolean }>;
+    };
+    const { registerDesktopPluginLanguage, setExternalLanguageGenerator } = await import(
+      "../src/core/codegen/language_plugin.ts"
+    );
+    for (const plugin of body.plugins ?? []) {
+      if (!plugin.id || plugin.id.startsWith("plugin-error-")) continue;
+      registerDesktopPluginLanguage(plugin);
+      if ([...exportTargetSelect.options].some((option) => option.value === plugin.id)) continue;
+      const opt = document.createElement("option");
+      opt.value = plugin.id;
+      opt.textContent = plugin.label;
+      exportTargetSelect.appendChild(opt);
+    }
+    if (host.generateConversionScript) {
+      const generate = host.generateConversionScript.bind(host);
+      setExternalLanguageGenerator(async (language, model, options) => {
+        const generated = await generate(language, { model, options });
+        return { ...generated, label: language };
+      });
+    }
+  } catch {
+    // Static GitHub Pages has no plugin endpoint.
+  }
+}
 instanceShapeSelect?.addEventListener("change", () => {
   controller.setOpenEhrInstanceShape(
     instanceShapeSelect.value as import("@intehrgrator/types/mod.ts").OpenEhrInstanceShape,
@@ -1323,6 +1356,7 @@ async function bootBlockly(): Promise<void> {
     if (event.type === Blockly.Events.FINISHED_LOADING || event.isUiEvent) return;
     if (suppressBlocklyModelSync || applyingDocumentUndo) return;
     if (!isSemanticBlocklyEvent(event)) return;
+    separateContextMapFromProductTree(workspace);
     lastSemanticEventSummary = summarizeBlocklyEvent(event);
     persistBlocklyCanvas({ summary: lastSemanticEventSummary });
   });
@@ -1436,6 +1470,7 @@ function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }):
       sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
     },
   );
   const s = controller.getState();
@@ -2028,9 +2063,27 @@ function applyPendingDefaultsMap(): boolean {
   if (!pending) return false;
   runWithoutBlocklyEvents(() => {
     hydrateDefaultsMapArgument(workspace, pending, blocklyLocale, targetFormatOf(controller.getState()));
+    separateContextMapFromProductTree(workspace);
   });
   persistBlocklyCanvas();
   return true;
+}
+
+let contextMapClearFrame = 0;
+
+/** Re-measure after the browser has laid out the blocks. Headless workspaces report no size and stay put. */
+function scheduleContextMapClearance(): void {
+  if (typeof requestAnimationFrame !== "function") return;
+  if (contextMapClearFrame) cancelAnimationFrame(contextMapClearFrame);
+  contextMapClearFrame = requestAnimationFrame(() => {
+    contextMapClearFrame = requestAnimationFrame(() => {
+      contextMapClearFrame = 0;
+      if (!workspace) return;
+      if (separateContextMapFromProductTree(workspace)) {
+        persistBlocklyCanvas({ notify: false });
+      }
+    });
+  });
 }
 
 function applyDefaultContextMapFromCanvas(): void {
@@ -2148,6 +2201,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       });
       lockWorkspaceRootsExpanded(workspace);
       refreshAiReviewMarkers(workspace);
+      separateContextMapFromProductTree(workspace);
       blocklySkeletonKey = skeletonKey;
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
@@ -2164,10 +2218,12 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
           },
         );
       }
       applyPendingDefaultsMap();
+      scheduleContextMapClearance();
       return;
     } else {
       const hadPending = applyPendingDefaultsMap();
@@ -2193,6 +2249,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
           },
         );
       }
@@ -2201,6 +2258,8 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
     blocklyLabelLanguage = labelLanguage;
     blocklySlotSignature = slotSignature;
     applyPendingDefaultsMap();
+    separateContextMapFromProductTree(workspace);
+    scheduleContextMapClearance();
     return;
   }
 
@@ -3310,15 +3369,50 @@ function emptyContextMapJson(): Record<string, unknown> {
   return { type: "default_context_map", extraState: { itemCount: 0, targets: [] }, fields: {} };
 }
 
+function selectedJointTargetKind(): "schema" | SchemalessExampleKind {
+  const dialog = document.getElementById("dialog-joint-load");
+  const checked = dialog?.querySelector<HTMLInputElement>('input[name="joint-target-kind"]:checked');
+  const value = checked?.value;
+  if (value === "json" || value === "xml" || value === "text") return value;
+  return "schema";
+}
+
 function jointHasTarget(): boolean {
+  if (selectedJointTargetKind() !== "schema") return true;
   return Boolean(jointPendingTarget || controller.getState().templateId);
+}
+
+function refreshJointTargetSummary(): void {
+  const summary = document.getElementById("joint-target-summary");
+  if (!summary) return;
+  const kind = selectedJointTargetKind();
+  if (kind === "json") {
+    summary.textContent = uiChrome().schemalessJson;
+    return;
+  }
+  if (kind === "xml") {
+    summary.textContent = uiChrome().schemalessXml;
+    return;
+  }
+  if (kind === "text") {
+    summary.textContent = uiChrome().schemalessText;
+    return;
+  }
+  if (jointPendingTarget) {
+    summary.textContent = formatMessage(uiChrome().selectedFile, { name: jointPendingTarget.name });
+    return;
+  }
+  const state = controller.getState();
+  summary.textContent = state.templateId
+    ? formatMessage(uiChrome().loadedColon, { name: state.templateFilename || state.templateId })
+    : uiChrome().noTargetYet;
 }
 
 function syncJointConfirmButton(): void {
   const confirm = document.getElementById("joint-load-confirm") as HTMLButtonElement | null;
   if (!confirm) return;
   confirm.disabled = !jointHasTarget();
-  confirm.textContent = selectedJointMapChoice() === "new"
+  confirm.textContent = selectedJointTargetKind() === "schema" && selectedJointMapChoice() === "new"
     ? uiChrome().loadIntoSchema
     : uiChrome().loadAndScaffold;
 }
@@ -3336,9 +3430,11 @@ async function openJointLoadDialog(): Promise<void> {
   const fileOption = document.getElementById("joint-map-file-option");
   if (fileOption) fileOption.hidden = true;
   const state = controller.getState();
-  summary.textContent = state.templateId
-    ? formatMessage(uiChrome().loadedColon, { name: state.templateFilename || state.templateId })
-    : uiChrome().noTargetYet;
+  const schemaKind = dialog.querySelector<HTMLInputElement>(
+    'input[name="joint-target-kind"][value="schema"]',
+  );
+  if (schemaKind) schemaKind.checked = true;
+  refreshJointTargetSummary();
   if (useCurrent) useCurrent.hidden = !state.templateId;
   catalogEl.replaceChildren();
   try {
@@ -3372,7 +3468,8 @@ function selectedJointMapChoice(): string {
 
 async function confirmJointLoad(): Promise<void> {
   const dialog = document.getElementById("dialog-joint-load") as HTMLDialogElement | null;
-  if (!jointHasTarget()) {
+  const targetKind = selectedJointTargetKind();
+  if (targetKind === "schema" && !jointHasTarget()) {
     controller.setStatusMessage("Pick a target file or URL first.");
     return;
   }
@@ -3390,7 +3487,12 @@ async function confirmJointLoad(): Promise<void> {
   } else if (choice.startsWith("catalog:")) {
     mapBlock = await defaultsCatalog.load(choice.slice("catalog:".length));
   }
-  if (jointPendingTarget) {
+  if (targetKind !== "schema") {
+    controller.queuePendingDefaultsMap(mapBlock);
+    await withUndoableDocumentReplace(() => {
+      controller.startSchemalessTarget(targetKind);
+    });
+  } else if (jointPendingTarget) {
     controller.queuePendingDefaultsMap(mapBlock);
     if (isNew) {
       await withUndoableDocumentReplace(() => {
@@ -3437,18 +3539,22 @@ document.getElementById("joint-target-file")?.addEventListener("click", () => {
     );
     if (!file) return;
     jointPendingTarget = { name: file.name, text: file.text };
-    const summary = document.getElementById("joint-target-summary");
-    if (summary) summary.textContent = formatMessage(uiChrome().selectedFile, { name: file.name });
+    refreshJointTargetSummary();
     syncJointConfirmButton();
   })();
 });
 document.getElementById("joint-target-current")?.addEventListener("click", () => {
   jointPendingTarget = null;
-  const state = controller.getState();
+  const schemaKind = document.querySelector<HTMLInputElement>(
+    '#dialog-joint-load input[name="joint-target-kind"][value="schema"]',
+  );
+  if (schemaKind) schemaKind.checked = true;
+  refreshJointTargetSummary();
+  const loaded = controller.getState();
   const summary = document.getElementById("joint-target-summary");
-  if (summary) {
+  if (summary && loaded.templateId) {
     summary.textContent = formatMessage(uiChrome().usingLoaded, {
-      name: state.templateFilename || state.templateId,
+      name: loaded.templateFilename || loaded.templateId,
     });
   }
   syncJointConfirmButton();
@@ -3464,8 +3570,7 @@ document.getElementById("joint-target-url-load")?.addEventListener("click", () =
     try {
       const file = await host.fetchTextUrl(url);
       jointPendingTarget = { name: file.name, text: file.text };
-      const summary = document.getElementById("joint-target-summary");
-      if (summary) summary.textContent = formatMessage(uiChrome().fetchedFile, { name: file.name });
+      refreshJointTargetSummary();
       syncJointConfirmButton();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -3495,7 +3600,11 @@ document.getElementById("joint-load-cancel")?.addEventListener("click", () => {
 });
 document.getElementById("dialog-joint-load")?.addEventListener("change", (event) => {
   const target = event.target;
-  if (target instanceof HTMLInputElement && target.name === "joint-map") {
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.name === "joint-target-kind") {
+    refreshJointTargetSummary();
+    syncJointConfirmButton();
+  } else if (target.name === "joint-map") {
     syncJointConfirmButton();
   }
 });

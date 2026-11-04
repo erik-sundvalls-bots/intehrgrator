@@ -1,6 +1,7 @@
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
 import type { SkeletonNode, TargetFormatId } from "../types/mod.ts";
 import { Blockly } from "./blockly_core.ts";
+import { CONVERSION_START_TYPE, isInstanceRootBlockType } from "./instance_root.ts";
 import {
   bindDefaultPoints,
   contextMapFromDefaultsJson,
@@ -165,6 +166,113 @@ export function restoreDefaultsBlockState(
 
 export function yJustBelowDefaults(defaultsHeight: number, gap = SKELETON_GAP): number {
   return DEFAULTS_Y + defaultsHeight + gap;
+}
+
+export interface WorkspaceRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Clearance kept between the default context map and the product target tree. */
+export const CONTEXT_MAP_TREE_GAP = SKELETON_GAP;
+
+/**
+ * How far to move the product tree so its box clears the context map.
+ * A tree whose left edge sits in the map is pushed down (the scaffold layout).
+ * A tree that only clips the map's right edge is nudged right.
+ * Unmeasured boxes (headless workspace) stay put.
+ */
+export function productTreeShiftToClearContextMap(
+  map: WorkspaceRect,
+  tree: WorkspaceRect,
+  gap = CONTEXT_MAP_TREE_GAP,
+): { dx: number; dy: number } {
+  if (map.width <= 1 || map.height <= 1 || tree.width <= 1 || tree.height <= 1) {
+    return { dx: 0, dy: 0 };
+  }
+  const separated =
+    tree.x >= map.x + map.width + gap ||
+    map.x >= tree.x + tree.width + gap ||
+    tree.y >= map.y + map.height + gap ||
+    map.y >= tree.y + tree.height + gap;
+  if (separated) return { dx: 0, dy: 0 };
+  const down = map.y + map.height + gap - tree.y;
+  const right = map.x + map.width + gap - tree.x;
+  const stacked = tree.x < map.x + map.width / 2;
+  if (stacked && down > 0) return { dx: 0, dy: down };
+  if (right > 0 && (down <= 0 || right < down)) return { dx: right, dy: 0 };
+  if (down > 0) return { dx: 0, dy: down };
+  return { dx: 0, dy: 0 };
+}
+
+function isProductTreeTop(block: Blockly.Block): boolean {
+  if (block.type === DEFAULT_CONTEXT_MAP_TYPE || block.type === "maps_create_with") return false;
+  if (block.type === CONVERSION_START_TYPE) return true;
+  return isInstanceRootBlockType(block.type) || block.type === "composition";
+}
+
+function workspaceRectOf(block: Blockly.Block): WorkspaceRect | null {
+  const svg = block as BlockSvg & {
+    getBoundingRectangle?: () => { top: number; bottom: number; left: number; right: number };
+  };
+  try {
+    const bounds = svg.getBoundingRectangle?.();
+    if (bounds && Number.isFinite(bounds.left) && Number.isFinite(bounds.top)) {
+      const width = bounds.right - bounds.left;
+      const height = bounds.bottom - bounds.top;
+      if (width > 1 && height > 1) {
+        return { x: bounds.left, y: bounds.top, width, height };
+      }
+    }
+  } catch {
+    // Unrendered or headless block.
+  }
+  if (typeof svg.getRelativeToSurfaceXY !== "function") return null;
+  const pos = svg.getRelativeToSurfaceXY();
+  const size = typeof svg.getHeightWidth === "function" ? svg.getHeightWidth() : null;
+  const width = size?.width ?? 0;
+  const height = size?.height ?? 0;
+  if (width <= 1 || height <= 1) return null;
+  return { x: pos.x, y: pos.y, width, height };
+}
+
+/**
+ * Move each product-tree top block until it no longer covers the default
+ * context map. Returns whether anything moved. A workspace that cannot
+ * measure blocks (no SVG) is left unchanged.
+ */
+export function separateContextMapFromProductTree(workspace: Blockly.Workspace): boolean {
+  const map = findDefaultsBlock(workspace);
+  if (!map) return false;
+  const mapRect = workspaceRectOf(map);
+  if (!mapRect) return false;
+  let moved = false;
+  const eventsOn = typeof Blockly.Events?.isEnabled !== "function" || Blockly.Events.isEnabled();
+  if (eventsOn && typeof Blockly.Events?.disable === "function") Blockly.Events.disable();
+  try {
+    for (const block of workspace.getTopBlocks(false)) {
+      if (block.id === map.id || !isProductTreeTop(block)) continue;
+      const rect = workspaceRectOf(block);
+      if (!rect) continue;
+      const shift = productTreeShiftToClearContextMap(mapRect, rect);
+      if (shift.dx === 0 && shift.dy === 0) continue;
+      const svg = block as BlockSvg;
+      if (typeof svg.moveBy !== "function") continue;
+      const before = typeof svg.getRelativeToSurfaceXY === "function"
+        ? svg.getRelativeToSurfaceXY()
+        : { x: 0, y: 0 };
+      svg.moveBy(shift.dx, shift.dy);
+      const after = typeof svg.getRelativeToSurfaceXY === "function"
+        ? svg.getRelativeToSurfaceXY()
+        : before;
+      if (after.x !== before.x || after.y !== before.y) moved = true;
+    }
+  } finally {
+    if (eventsOn && typeof Blockly.Events?.enable === "function") Blockly.Events.enable();
+  }
+  return moved;
 }
 
 export function placeDefaultsBesideSkeleton(workspace: Blockly.Workspace): void {

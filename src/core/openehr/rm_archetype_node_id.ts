@@ -45,13 +45,16 @@ export function rmLocatableName(node: { nameConstraint?: string; primaryName?: s
 
 /**
  * Output name of a block named `shown`: a block still showing its node's label
- * (not renamed by the user) gets `rmLocatableName`; a renamed one keeps its name.
+ * or its primary-language term (not renamed by the user) gets
+ * `rmLocatableName`; a renamed one keeps its name.
  */
 export function outputLocatableName(
   shown: string,
   node: { nameConstraint?: string; primaryName?: string; label?: string } | undefined,
 ): string {
-  return node && shown === (node.label?.trim() ?? "") ? rmLocatableName(node) || shown : shown;
+  if (!node) return shown;
+  const own = [node.label, node.primaryName].map((x) => x?.trim() ?? "");
+  return own.includes(shown) ? rmLocatableName(node) || shown : shown;
 }
 
 /** True when every emitted field is identity or RM boilerplate. */
@@ -59,13 +62,18 @@ export function propsLackClinicalContent(props: ReadonlyArray<[string, unknown]>
   return props.every(([key]) => isRmBoilerplateAttribute(key));
 }
 
+const ARCHETYPE_ROOT_AT_CODE = /^at0000(\.\d+)*$/;
+
 export function rmArchetypeNodeId(
   node: Pick<SkeletonNode, "archetypeNodeId" | "archetypeRef">,
   parentArchetypeRef?: string,
 ): string | undefined {
   const ref = node.archetypeRef;
-  if (ref && isArchetypeId(ref) && ref !== parentArchetypeRef) return ref;
   const at = node.archetypeNodeId?.trim();
+  if (ref && isArchetypeId(ref) && ref !== parentArchetypeRef) return ref;
+  // The same archetype nested in itself (organisation in organisation, F-M12):
+  // its root node (at0000) is still an archetype root.
+  if (ref && isArchetypeId(ref) && at && ARCHETYPE_ROOT_AT_CODE.test(at)) return ref;
   return at || undefined;
 }
 

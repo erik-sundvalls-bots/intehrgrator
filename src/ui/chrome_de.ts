@@ -15,6 +15,7 @@ export const de: ChromeMessages = {
   menuEmbedFiles: "Dateien in den Prompt einbetten",
   menuAttachFiles: "Dateien im Chat anhängen",
   menuBrowseUris: "URIs durchsuchen (falls vorhanden)",
+  menuAttachOriginalTarget: "Ursprüngliches Zielformat auch anhängen",
   menuAiCopyHeading: "kopieren/einfügen für externen KI-Chat",
   menuAiOwnHeading: "Eigene KI",
   menuAiDesktopHeading: "Desktop-App",
@@ -212,6 +213,10 @@ export const de: ChromeMessages = {
   jointIntroHtml:
     "Ziel und Standardkontextabbildung gemeinsam wählen. Bestätigen baut das <strong>Vorlagenskelett</strong> und die <strong>Standardpunkte</strong>. <strong>Neu</strong> lädt das Ziel nur in den Reiter Zielschema, damit Sie Chips und Werte ziehen und dann auf der Fläche anwenden.",
   targetLegend: "Ziel",
+  schemalessSchema: "Schema, Vorlage oder Datei",
+  schemalessJson: "Minimales JSON-Beispiel",
+  schemalessXml: "Minimales XML-Beispiel",
+  schemalessText: "Minimales Textbeispiel",
   noTargetYet: "Noch kein Ziel gewählt.",
   fromFile: "Aus Datei…",
   useLoadedTarget: "Geladenes Ziel verwenden",

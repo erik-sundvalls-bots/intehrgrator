@@ -17,6 +17,7 @@ import {
   assertGhAuth,
   assertReleasePrerequisites,
   bumpVersionFiles,
+  promoteUnreleasedFile,
   readCurrentVersion,
   releaseTagMessage,
   releaseTagForVersion,
@@ -108,6 +109,11 @@ if (args.version) {
   releaseVersion = args.version;
 }
 
+const changelogChanged = await promoteUnreleasedFile(releaseVersion);
+if (changelogChanged) {
+  console.log(`Moved CHANGELOG Unreleased notes under ${releaseVersion}`);
+}
+
 await run("deno", ["task", "vendor"]);
 if (args.noTest) {
   console.log("Skipping local tests (--no-test); CI still runs unit + UI on the tag");
@@ -122,13 +128,18 @@ if (args.dryRun) {
   Deno.exit(0);
 }
 
+const commitFiles: string[] = [];
 if (args.version) {
-  await run("git", ["add", ...[
+  commitFiles.push(
     "deno.json",
     "package.json",
     "scripts/desktop.compile.json",
     "src/core/persistence/mod.ts",
-  ]]);
+  );
+}
+if (changelogChanged) commitFiles.push("CHANGELOG.md");
+if (commitFiles.length) {
+  await run("git", ["add", ...commitFiles]);
   await run("git", ["commit", "-m", `chore: release ${releaseVersion}`]);
 }
 

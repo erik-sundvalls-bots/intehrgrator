@@ -12,7 +12,7 @@ export const en = {
   menuEmbedFiles: "Embed files in prompt",
   menuAttachFiles: "Attach files in chat",
   menuBrowseUris: "Browse URIs (when available)",
-  menuAttachOriginalTarget: "Attach original target",
+  menuAttachOriginalTarget: "Attach original target format too",
   menuAttachOriginalTargetTitle: "Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.",
   menuAiLanguages: "Languages…",
   aiLanguagesTitle: "Languages",
@@ -176,7 +176,7 @@ export const en = {
   modelLanguageAria: "Target model ontology language",
   scriptFormatsAria: "Conversion script formats",
   scriptFormatsHtml:
-    "Mapping preview interprets the mapping without generating a script. Conversion scripts (so far): TypeScript, Java, Handlebars, XQuery, and Go Template. TypeScript, Handlebars, Go Template, and XQuery also run in Conversion Test Run. Java generates an Archie class but does not execute in the web app. For openEHR targets, JSON vs XML instance chooses how XQuery serializes the composition.<br>Download on the script editor saves the generated script. The overlay Download on Conversion Test Run saves that instance.",
+    "Mapping preview interprets the mapping without generating a script. Conversion scripts (so far): TypeScript, Java, Handlebars, XQuery, and Go Template. TypeScript, Handlebars, Go Template, and XQuery also run in Conversion Test Run. Java generates an Archie class but does not execute in the web app. The desktop app can add another language with --language-plugin. For openEHR targets, JSON vs XML instance chooses how XQuery serializes the composition.<br>Download on the script editor saves the generated script. Imports in that script open the helper or library source. The overlay Download on Conversion Test Run saves that instance.",
   mappingPreview: "Mapping preview",
   instance: "Instance",
   instanceTitle: "Desired openEHR instance shape. XQuery export and Test Run use this serialization.",
@@ -251,6 +251,10 @@ export const en = {
   jointIntroHtml:
     "Pick a target and a default context map together. Confirm scaffolds the <strong>Template Skeleton</strong> and <strong>Default point</strong>s. <strong>New</strong> loads the target into the Target schema tab only so you can pull chips and values, then Apply on the canvas block.",
   targetLegend: "Target",
+  schemalessSchema: "Schema, template, or file",
+  schemalessJson: "Minimal JSON example",
+  schemalessXml: "Minimal XML example",
+  schemalessText: "Minimal text example",
   noTargetYet: "No target selected yet.",
   fromFile: "From file…",
   useLoadedTarget: "Use loaded target",

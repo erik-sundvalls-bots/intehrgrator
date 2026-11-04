@@ -6,7 +6,7 @@ Back to the [tutorial index](../TUTORIAL.md). Calling a model from inside the ap
 
 ## Start or stop the local MCP server
 
-1. Install and run a [desktop release](https://github.com/regionstockholm/intehrgrator/releases).
+1. Install and run a [desktop release](https://github.com/regionstockholm/intehrgrator/releases). On Linux the AppImage needs WebKitGTK 4.1 on the system (`sudo apt install libwebkit2gtk-4.1-0` on Debian/Ubuntu, `sudo dnf install webkit2gtk4.1` on Fedora), also when started with `--headless`.
 2. Open **AI → Desktop → Local MCP server…**. This item is not in the web app on GitHub Pages.
 3. The panel shows **Running** or **Stopped**, the Agent API URL, a token if you started the app with one, and an `mcp.json` snippet.
 4. **Stop** makes agent tools refuse new calls. **Start** allows them again. Call AI and your own edits keep working either way.
@@ -28,7 +28,7 @@ A source checkout, instead of the release binary, gets a Deno command in that sa
 }
 ```
 
-Replace the URL with the one the panel shows. If the panel lists a token, the snippet includes `INTEHR_AGENT_TOKEN`.
+Replace the URL with the one the panel shows. If the panel lists a token, the snippet includes `INTEHR_AGENT_TOKEN`. Add `INTEHR_AGENT_ID` and `INTEHR_AGENT_NAME` to `env` if you want the agent to keep one name and colour in the observer across restarts.
 
 The mapping skill, from a clone:
 
@@ -41,7 +41,7 @@ npx skills@latest add regionstockholm/intehrgrator --agent cursor --skill intehr
 - Map **node by node** (`map_slot`), which is the transparent default while you watch the canvas, or apply a suggestion envelope (`import_suggestions`)
 - Inspect slots, source trees, sheets, decision tables, and constraint warnings
 - Run tests, export a project or a conversion script, undo and redo
-- **Open observer** shows a live timeline of agent edits
+- The **Open viewer window** button (icon in the Mapping Editor header) shows the live canvas, an agent legend and a timeline of agent edits
 - Several agents at once, each leasing its own slots or subtrees: [Parallel IDE agents](parallel-agents.md)
 
 Headless, with no window:
@@ -63,4 +63,4 @@ Full API reference: [AGENT_WORKFLOW.md](../AGENT_WORKFLOW.md).
 | **openEHR assistant** | Archetype and template lookup, terminology, spec guidance |
 | **DeepWiki** | Questions about ehrtslib and openEHR libraries |
 
-The web app does not expose this server. Use **Call AI** or copy-and-paste there, or install the desktop build.
+The web app does not expose this server. Use the **AI chat** panel (**Call AI**) or copy-and-paste there, or install the desktop build. The VS Code extension and the headless app (`intEHRgrator --headless`) are the other ways to run the workbench.

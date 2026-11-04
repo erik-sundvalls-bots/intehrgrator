@@ -28,6 +28,10 @@ import {
 } from "./tools.ts";
 import { forwardChatCompletionsProxy } from "../core/ai/credentials.ts";
 import { forwardModelsProxy } from "../core/ai/models.ts";
+import {
+  generateWithLanguagePlugin,
+  listLanguagePlugins,
+} from "../desktop/language_plugins.ts";
 
 export function createAgentApiHandler(
   service: WorkbenchService,
@@ -62,6 +66,23 @@ export function createAgentApiHandler(
           token: options?.token,
           execPath: execPath(),
         }));
+      }
+
+      if (req.method === "GET" && path === "/language-plugins") {
+        return json({ plugins: await listLanguagePlugins() });
+      }
+
+      if (req.method === "POST" && path === "/language-plugins/generate") {
+        const body = await req.json().catch(() => null) as {
+          language?: unknown;
+          model?: unknown;
+          options?: unknown;
+        } | null;
+        if (!body || typeof body.language !== "string" || !body.language) {
+          return json({ error: "language is required" }, 400);
+        }
+        const generated = await generateWithLanguagePlugin(body.language, body.model ?? {}, body.options ?? {});
+        return json(generated);
       }
 
       if (!localMcp.enabled && !localMcpStaysUp(req.method, path)) {
@@ -116,10 +137,11 @@ export function createAgentApiHandler(
       if (!tool) return json({ error: "Not found" }, 404);
 
       const args = await argsFromHttpRequest(req, tool, url, revisionHeader);
-      // Set the actor after the body is read, right before the call: two
-      // agents' requests can interleave at that await.
-      service.setActorFromHeaders(req.headers);
-      const result = await callAgentTool(service, tool, args);
+      // Resolve the actor after the body is read and pass it into the call.
+      // Do not read the shared actor again after an await: the webview's own
+      // requests have no X-Agent-Id and would record the agent as "You" (#317).
+      const actor = service.setActorFromHeaders(req.headers);
+      const result = await callAgentTool(service, tool, args, { actor });
       return json(result);
     } catch (err) {
       if (err instanceof AgentRevisionConflictError) {

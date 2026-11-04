@@ -74,12 +74,16 @@ XML character data emitted as `<![CDATA[ … ]]>` instead of escaped text. Plugs
 _Avoid_: using **Code text** as the only way to emit CDATA
 
 **Source iteration (`for_each_list`)**:
-Blockly loop that binds each item from a list or each node from a multi-valued Source Path to a named variable, plus **Loop index** (0-based) and **Loop length** (collection size at loop entry). Plug a list (☰) or a `source_query_node` (📂) into the **in** slot. Same block, two grains: nested inside an **Instance root** it repeats a target container (Click-to-Map wraps `HISTORY.events` and stores relative paths); in the **Product stack** it wraps **Instance roots** and each iteration appends fragments. Preferred way to map over a substructure — not a Source Pane “context root” framing (kintegrate Handlebars pattern). See `docs/future/source-context-root.md`. Not a driver for many output files.
+Blockly loop that binds each item from a list or each node from a multi-valued Source Path to a named variable, plus **Loop index** (0-based) and **Loop length** (collection size at loop entry). Plug a list (☰) or a `source_query_node` (📂) into the **in** slot. The name is a lexical binding: a source path inside the body, at any depth, can read that item (`dag.StartTid`). A path with no name stays on the innermost item. Same block, two grains: nested inside an **Instance root** it repeats a target container (Click-to-Map wraps `HISTORY.events` and stores relative paths); in the **Product stack** it wraps **Instance roots** and each iteration appends fragments. Preferred way to map over a substructure — not a Source Pane “context root” framing (kintegrate Handlebars pattern). See `docs/future/source-context-root.md`. Not a driver for many output files.
 _Avoid_: Context boundary, frame as context root (unless discussing kintegrate), using this loop as NDJSON/multi-file packaging, a second product-only loop type, a dedicated `for_each_source` block, a compact `join_list` builtin (grammatical lists are a Function + this loop + a Decision table; see #85)
 
 **Loop index** / **Loop length**:
 Number reporters (`logic_loop_index` / `logic_loop_length`) for the enclosing `for_each_list`. Same nearest-enclosing dropdown pattern as **Current item**; nested loops can pick an outer item name from the dropdown. They serialize as Mapping Expression `var("item_index")` / `var("item_length")` — not workspace Variables. `is first` is `index = 0`; `is last` is `index = length − 1`; odd/even is the stock Math block `index is odd`. Not bound on **List restriction** (quantifiers stay order-insensitive).
 _Avoid_: Handlebars `@index` / `@first` / `@last` as product names, binding index on `logic_list_restriction`, using index to mint `:n` slot ids
+
+**Include when**:
+Statement block that emits its target stack only when a pure boolean condition is true, with an optional else stack. A guarded emit (`if` / `ite`), visible on the canvas. On an openEHR template it may wrap only a node whose occurrence or cardinality minimum is 0, unless else emits that same node.
+_Avoid_: statement `controls_if`, a hidden condition on a cogwheel, treating empty-value pruning as the way to drop a container that still holds a time
 
 **Map**:
 A key-value collection in the Mapping Editor, parallel to a Blockly List. Entries are retrieved by key, not by index. Used for nested values, quantity unpack, and other 1D lookups. Not the **default context map**. Toolbox: list and map blocks share one **Lists & maps** drawer. **Decision tables** and **Sheets** are separate drawers below the divider, with **Variables** and **Functions**. A flyout button adds the grid; the blocks pick its name from a dropdown.
@@ -279,7 +283,7 @@ The product profile for mappings that are safe to verify and to codegen consiste
 _Avoid_: treating every Blockly block as VMS, re-adding sheet mutators to the default toolbox, treating all Handlebars or Go templates as unverified
 
 **VMS-Hbs**:
-The Handlebars dialect editors and `renderHandlebars` accept: paths, `#if`/`#unless`/`#each`/`else`, comparison helpers (`eq`/`ne`/…/`and`/`or`), `toLowerCase`/`toUpperCase`, `slot`, `~` whitespace, Mustache-style `{{#path}}` sections. Not the same syntax as **VMS-Mustache** or **VMS-Go**. See [ADR 0009](docs/adr/0009-verifiable-template-dialects.md).
+The Handlebars dialect editors and `renderHandlebars` accept: paths, `#if`/`#unless`/`#each`/`else`, comparison helpers (`eq`/`ne`/…/`and`/`or`), `inc`/`dec` (one more / one less; `{{inc @index}}` is a 1-based row number), `toLowerCase`/`toUpperCase`, `slot`, `~` whitespace, Mustache-style `{{#path}}` sections. Not the same syntax as **VMS-Mustache** or **VMS-Go**. See [ADR 0009](docs/adr/0009-verifiable-template-dialects.md).
 _Avoid_: full Handlebars.js, `#with`/`lookup`/`#log`/partials, calling VMS-Hbs “Mustache”
 
 **VMS-Go**:
@@ -379,8 +383,12 @@ _Avoid_: anonymous agent rows when registration is available
 _Avoid_: auto-scrolling the main canvas by default while a human is editing elsewhere
 
 **Conversion script language** (older docs said Export dialect / Export Target; code key `exportTarget` was a persisted setting — no longer saved):
-An **Output mode** value that generates a Conversion Script (`typescript` | `java` | `handlebars` | `xquery`). Downstream of the Mapping Model — Blockly blocks and mappings are language-agnostic. A File project's generation language is a persistent choice for its generated review artifacts; the workbench's Output mode remains a session choice. Distinct from Target instance format and from Mapping preview. Not stored in the Project Bundle.
+An **Output mode** value that generates a Conversion Script (`typescript` | `java` | `handlebars` | `xquery` | `go-template`, or a desktop plugin id). Downstream of the Mapping Model — Blockly blocks and mappings are language-agnostic. A File project's generation language is a persistent choice for its generated review artifacts; the workbench's Output mode remains a session choice. Distinct from Target instance format and from Mapping preview. Not stored in the Project Bundle. Reusable helper functions are imported from static modules, not pasted into each script.
 _Avoid_: Export dialect, Export Target (prefer this term), Target language alone, conflating with Target instance format or Mapping preview
+
+**Conversion script language plugin**:
+A Deno module, declared by a manifest URL, that the desktop app lazy-loads in a worker sandbox and offers as an extra **Conversion script language**. It implements `generate(model)` and does not run inside Conversion Test Run. The GitHub Pages app does not load plugins. See [CONVERSION_SCRIPT_PLUGINS.md](docs/CONVERSION_SCRIPT_PLUGINS.md) and [ADR 0015](docs/adr/0015-conversion-script-plugins.md).
+_Avoid_: calling a plugin a Target instance format, bundling plugin code into the web app
 
 **File project**:
 A project whose canonical Mapping Specification, Sheets, source files, target files and per-file language settings are stored as separate, Git-reviewable workspace files. Generated Conversion Scripts, mapping-preview results (see **Mapping preview**) and diagnostics are review artifacts rebuilt from those files; undo history and other session data remain local. An alternative to the **Project Bundle**, used by the VS Code host and `deno task project:run`; the Project Bundle and `.intehrgrator` export remain the format of the web and desktop apps.
