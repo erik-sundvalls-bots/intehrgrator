@@ -1,7 +1,7 @@
 /**
  * "You are not on the recommended version" popup for the GitHub Pages web app.
  *
- * The bleeding-edge build lives at the site root and every `deno task release` also
+ * The bleeding-edge build lives at the site root and every release also
  * freezes an immutable copy under `/vX.Y(.Z)/`. `versions.json` (see
  * `scripts/pages_site.ts`) names one of those frozen tags as `recommended` — the
  * version end users should stick to for production mapping work. This module decides

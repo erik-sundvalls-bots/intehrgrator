@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   deploy:
-    # release.yml owns Pages deploy when `deno task release` pushes main + tag together.
+    # release.yml owns Pages deploy when `deno task release` or Release create
+    # pushes a `chore: release …` commit together with its tag.
     # head_commit is often null on merge/push webhooks — treat that as a normal main deploy.
     if: >-
       github.event_name == 'workflow_dispatch' ||
