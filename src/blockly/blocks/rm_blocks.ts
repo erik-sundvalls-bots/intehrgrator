@@ -80,6 +80,10 @@ export const OPTIONAL_INPUT_PREFIX = "OPT_";
 const OPTIONAL_DV_FIELD_PREFIX = "OPTFLD_";
 export const RM_ATTR_INPUT_PREFIX = "ATTR_";
 export const DV_FIELD_PREFIX = "FLD_";
+/** Supporting RM value, not a DATA_VALUE. Plugs into `mappings`. */
+export const TERM_MAPPING_BLOCK = "term_mapping";
+/** Supporting RM value. Plugs into `other_reference_ranges`. */
+export const REFERENCE_RANGE_BLOCK = "reference_range";
 /** Puzzle slot on abstract PARTY_PROXY for a concrete subclass. */
 export const RM_SPECIALIZATION_INPUT = "KIND";
 
@@ -258,6 +262,8 @@ export function registerRmBlocks(): void {
   }
   defineDataValueBlocksFromMeta();
   defineCodePhraseBlock();
+  defineRmValueShell("TERM_MAPPING", TERM_MAPPING_BLOCK, "TERM_MAPPING");
+  defineRmValueShell("REFERENCE_RANGE", REFERENCE_RANGE_BLOCK, "REFERENCE_RANGE");
   registerTermPickBlock();
   registerOptionalRmMutator();
   registerDvFieldsMutator();
@@ -815,6 +821,37 @@ export function dvFieldInputName(attr: string): string {
   return `${DV_FIELD_PREFIX}${attr}`;
 }
 
+/** Cogwheel mouth for an optional DATA_VALUE attribute (`OPTFLD_mappings`). */
+export function optionalDvFieldInputName(attr: string): string {
+  return `${OPTIONAL_DV_FIELD_PREFIX}${attr}`;
+}
+
+/** `FLD_value` / `OPTFLD_mappings` → attribute name. Other inputs return null. */
+export function dvAttributeNameFromInput(name: string): string | null {
+  if (name.startsWith(OPTIONAL_DV_FIELD_PREFIX)) {
+    return name.slice(OPTIONAL_DV_FIELD_PREFIX.length);
+  }
+  if (name.startsWith(DV_FIELD_PREFIX)) return name.slice(DV_FIELD_PREFIX.length);
+  return null;
+}
+
+/**
+ * DATA_VALUE shells plus TERM_MAPPING and REFERENCE_RANGE, which use the same
+ * field mouths and cogwheel but are not DATA_VALUE.
+ */
+export function isRmValueObjectBlock(block: Blockly.Block): boolean {
+  return isDataValueBlock(block) ||
+    block.type === TERM_MAPPING_BLOCK ||
+    block.type === REFERENCE_RANGE_BLOCK;
+}
+
+/** Optional attribute names the cogwheel offers for this RM class. */
+export function dvOptionalFieldNames(rmType: string): string[] {
+  return optionalAttributes(rmType)
+    .filter((attr) => isMappableField(attr))
+    .map((attr) => attr.name);
+}
+
 /** ELEMENT.value accepts a typed DATA_VALUE shell (not raw expressions). RM existence is 0..1. */
 export function configureElementValueSlot(block: Blockly.Block, rmType: string): void {
   const input = block.getInput("VALUE");
@@ -1336,10 +1373,21 @@ function defineDataValueBlocksFromMeta(): void {
 }
 
 function defineDataValueBlock(rmType: string): void {
-  const type = blockTypeForRm(rmType);
-  if (Blockly.Blocks[type]) return;
+  defineRmValueShell(rmType, blockTypeForRm(rmType), blocklyOutputForDv(rmType));
+}
 
-  Blockly.Blocks[type] = {
+/**
+ * Value shell driven by ehrtslib attribute meta. Mandatory mouths are visible.
+ * Optional mouths stay hidden until the cogwheel adds them.
+ */
+function defineRmValueShell(
+  rmType: string,
+  blockType: string,
+  output: string | string[] | null,
+): void {
+  if (Blockly.Blocks[blockType]) return;
+
+  Blockly.Blocks[blockType] = {
     init: function (this: Blockly.Block) {
       const header = this.appendDummyInput("HEADER").setAlign(inputAlignLeft());
       appendBlockOutputEmoji(header, rmType);
@@ -1351,9 +1399,7 @@ function defineDataValueBlock(rmType: string): void {
       appendHiddenSerializable(this, "RM_TYPE", rmType);
       appendHiddenSerializable(this, "MANDATORY", "");
 
-      const mandatory = mandatoryAttributes(rmType).filter((a) =>
-        isMappableField(a)
-      );
+      const mandatory = mandatoryAttributes(rmType).filter((a) => isMappableField(a));
       for (const attr of mandatory) {
         appendDvFieldInput(this, attr, false);
       }
@@ -1362,7 +1408,7 @@ function defineDataValueBlock(rmType: string): void {
         Blockly.Extensions.apply("dv_fields_mutator", this, true);
       }
 
-      this.setOutput(true, blocklyOutputForDv(rmType));
+      this.setOutput(true, output);
       this.setColour(DV_COLOUR);
       this.setTooltip(rmType);
       enforceOpenEhrBlockLayout(this);
@@ -1450,11 +1496,61 @@ function defineCodePhraseBlock(): void {
   };
 }
 
+type DvMouth = {
+  check: string | string[];
+  /** RM type drawn on the slot caption. */
+  labelType: string;
+  /** `List<T>` — one value or a `lists_create_with` array. */
+  list?: boolean;
+  /** `Array<Octet>` — base64 text, or a list of byte numbers. */
+  octets?: boolean;
+};
+
+function withArrayCheck(check: string | string[]): string[] {
+  const base = Array.isArray(check) ? [...check] : [check];
+  return base.includes("Array") ? base : [...base, "Array"];
+}
+
+/**
+ * Blockly mouth for an RM attribute type. Null means the cogwheel still hides
+ * it (no block or primitive we can plug in).
+ */
+function dvMouthForType(typeName: string): DvMouth | null {
+  if (typeName === "Array<Octet>" || typeName.startsWith("Array<Octet")) {
+    return { check: ["String", "Array"], labelType: "Octet", octets: true };
+  }
+  if (typeName.startsWith("List<") && typeName.endsWith(">")) {
+    const inner = typeName.slice("List<".length, -1);
+    const mouth = dvMouthForType(inner);
+    if (!mouth) return null;
+    return {
+      check: withArrayCheck(mouth.check),
+      labelType: mouth.labelType,
+      list: true,
+    };
+  }
+  if (isPrimitiveRmType(typeName)) {
+    const check = blocklyCheckForPrimitiveType(typeName);
+    if (!check) return null;
+    return { check, labelType: baseRmTypeName(typeName) };
+  }
+  const base = baseRmTypeName(typeName);
+  if (base === "T") return { check: "DATA_VALUE", labelType: "DATA_VALUE" };
+  if (base === "CODE_PHRASE" || base === "Terminology_code") {
+    return { check: ["String", "CODE_PHRASE"], labelType: "CODE_PHRASE" };
+  }
+  if (base === "TERM_MAPPING") return { check: "TERM_MAPPING", labelType: "TERM_MAPPING" };
+  if (base === "REFERENCE_RANGE") {
+    return { check: "REFERENCE_RANGE", labelType: "REFERENCE_RANGE" };
+  }
+  if (isDataValueType(base)) {
+    return { check: blocklyCheckForDv(base) ?? "DATA_VALUE", labelType: base };
+  }
+  return null;
+}
+
 function isMappableField(attr: RmAttributeMeta): boolean {
-  if (isPrimitiveRmType(attr.typeName)) return true;
-  const base = attr.typeName.split("<")[0]!;
-  return base === "CODE_PHRASE" || base === "Terminology_code" ||
-    base === "DV_CODED_TEXT";
+  return dvMouthForType(attr.typeName) != null;
 }
 
 function appendDvFieldInput(
@@ -1462,20 +1558,16 @@ function appendDvFieldInput(
   attr: RmAttributeMeta,
   optional: boolean,
 ): void {
+  const mouth = dvMouthForType(attr.typeName);
+  if (!mouth) return;
   const name = optional
-    ? `${OPTIONAL_DV_FIELD_PREFIX}${attr.name}`
+    ? optionalDvFieldInputName(attr.name)
     : dvFieldInputName(attr.name);
   if (block.getInput(name)) return;
-  const check = blocklyCheckForPrimitiveType(attr.typeName) ??
-    (attr.typeName.startsWith("CODE_PHRASE") || attr.typeName === "CODE_PHRASE"
-      ? ["String", "CODE_PHRASE"]
-      : attr.typeName === "DV_CODED_TEXT"
-      ? blocklyCheckForDv("DV_CODED_TEXT")
-      : "String");
   const input = block.appendValueInput(name)
     .setAlign(inputAlignRight())
-    .setCheck(check);
-  appendSlotLabel(input, attr.name, { rmType: baseRmTypeName(attr.typeName) });
+    .setCheck(mouth.check);
+  appendSlotLabel(input, attr.name, { rmType: mouth.labelType });
 }
 
 function ensureDvFieldVisible(block: Blockly.Block, attrName: string): void {

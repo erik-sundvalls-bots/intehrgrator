@@ -118,6 +118,16 @@ export interface MappingSlotHatch {
   lang?: string;
 }
 
+/**
+ * Nested RM on a DATA_VALUE shell (mappings, normal_range, hyperlink, …).
+ * Mapping preview evaluates this beside the slot's primary expression.
+ */
+export type RmShellFragment =
+  | { kind: "expr"; expression: string }
+  | { kind: "octets"; expression: string }
+  | { kind: "list"; items: RmShellFragment[] }
+  | { kind: "object"; rmType: string; fields: Record<string, RmShellFragment> };
+
 export interface MappingSlot {
   slotId: string;
   rmType: string;
@@ -137,6 +147,12 @@ export interface MappingSlot {
    * Mapping preview adds them to the id, as TypeScript output does.
    */
   fieldExpressions?: Record<string, string>;
+  /**
+   * Optional (and other non-primary) mouths on the DATA_VALUE shell. Mapping
+   * preview adds them to the value. The canvas TypeScript script reads the
+   * same mouths from the blocks.
+   */
+  shellFragments?: Record<string, RmShellFragment>;
   /** Unreviewed AI suggestion marker (note / confidence); cleared on edit or *Mark as reviewed*. */
   review?: MappingSlotReview;
 }

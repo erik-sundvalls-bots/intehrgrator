@@ -10,8 +10,8 @@ import type { Block, Workspace } from "blockly/core";
 import { Blockly } from "./blockly_core.ts";
 import { blockToExpression } from "./expression_serialize.ts";
 import {
-  isDataValueBlock,
   isRmContainerBlockType,
+  isRmValueObjectBlock,
   OPTIONAL_INPUT_PREFIX,
   RM_ATTR_INPUT_PREFIX,
   RM_SPECIALIZATION_INPUT,
@@ -26,7 +26,8 @@ import {
   findInstanceRootUnderStart,
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
-import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
+import { attributesFor } from "../core/rm_meta.ts";
+import { octetBytes } from "../core/rm_shell_fragment.ts";
 import type { MappingModel } from "../types/mod.ts";
 import {
   createGoEmitContext,
@@ -207,7 +208,7 @@ function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
   if (block.type === "element" || isRmContainerBlockType(block.type)) {
     return emitRmAsJson(block, ctx, indent);
   }
-  if (isDataValueBlock(block)) {
+  if (isRmValueObjectBlock(block)) {
     return emitDvAsJson(block, ctx, indent);
   }
   if (
@@ -507,7 +508,6 @@ function emitDvAsJson(block: Block, ctx: GoEmitContext, indent: number): string[
   const rmType = String(block.getFieldValue("RM_TYPE") || block.type.replace(/-/g, "_")).toUpperCase();
   const props: string[] = [`"_type": ${goQuote(rmType)}`];
   for (const attr of attributesFor(rmType)) {
-    if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") continue;
     const inputName = block.getInput(`FLD_${attr.name}`)
       ? `FLD_${attr.name}`
       : block.getInput(`OPTFLD_${attr.name}`)
@@ -516,9 +516,25 @@ function emitDvAsJson(block: Block, ctx: GoEmitContext, indent: number): string[
     if (!inputName) continue;
     const child = block.getInputTargetBlock(inputName);
     if (!child || child.isShadow()) continue;
-    props.push(`"${attr.name}": ${emitBlock(child, ctx, indent + 1).join("")}`);
+    props.push(`"${attr.name}": ${emitDvChildJson(child, attr.typeName, ctx, indent)}`);
   }
   return [`{${props.join(", ")}}`];
+}
+
+function emitDvChildJson(
+  child: Block,
+  typeName: string,
+  ctx: GoEmitContext,
+  indent: number,
+): string {
+  const octets = typeName === "Array<Octet>" || typeName.startsWith("Array<Octet");
+  const list = typeName.startsWith("List<");
+  if (octets && (child.type === "text" || child.type === "text_code")) {
+    return JSON.stringify(octetBytes(String(child.getFieldValue("TEXT") ?? "")));
+  }
+  const rendered = emitBlock(child, ctx, indent + 1).join("");
+  if (list && child.type !== "lists_create_with") return `[${rendered}]`;
+  return rendered;
 }
 
 function emitXmlTextishLive(block: Block, ctx: GoEmitContext, indent: number): string[] {

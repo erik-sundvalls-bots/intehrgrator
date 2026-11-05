@@ -125,6 +125,8 @@ function openEhrTypeToolboxContents(m: ReturnType<typeof msg>): Array<Record<str
     { kind: "label", text: m.CAT_OPENEHR_TERMS },
     { kind: "block", type: "term_pick", gap: 8 },
     { kind: "block", type: "code_phrase", gap: 8 },
+    { kind: "block", type: "term_mapping", gap: 8 },
+    { kind: "block", type: "reference_range", gap: 8 },
   ];
 }
 

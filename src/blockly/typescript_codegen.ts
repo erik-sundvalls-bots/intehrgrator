@@ -12,6 +12,7 @@ import { blockToExpression } from "./expression_serialize.ts";
 import {
   isDataValueBlock,
   isRmContainerBlockType,
+  isRmValueObjectBlock,
   rmAttributeInputName,
   OPTIONAL_INPUT_PREFIX,
   RM_ATTR_INPUT_PREFIX,
@@ -34,7 +35,8 @@ import {
   productStackBlocks,
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
-import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
+import { attributesFor, blocklyCheckForPrimitiveType, isPrimitiveRmType } from "../core/rm_meta.ts";
+import { octetBytesCall } from "../core/rm_shell_fragment.ts";
 import { DEFAULT_ACTION_ARCHETYPE_ID, LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
 import type { InstanceEncoding, MappingModel } from "../types/mod.ts";
 import {
@@ -359,7 +361,7 @@ function emitBlock(block: Block, ctx: TsEmitContext, indent: number): string {
   if (block.type === "element" || isRmContainerBlockType(block.type)) {
     return emitRmContainer(block, ctx, indent);
   }
-  if (isDataValueBlock(block)) return emitDvShell(block, ctx, indent);
+  if (isRmValueObjectBlock(block)) return emitDvShell(block, ctx, indent);
   if (isGenericValueBlockType(block.type) || isSchemaStructureBlock(block)) {
     return emitGeneric(block, ctx, indent);
   }
@@ -703,6 +705,46 @@ function emitVariableSet(block: Block, ctx: TsEmitContext, indent: number): stri
   return `(__vars[${JSON.stringify(name)}] = ${value}, null)`;
 }
 
+function emitDvAttributeCode(
+  child: Block,
+  typeName: string,
+  ctx: TsEmitContext,
+  indent: number,
+): string {
+  const list = typeName.startsWith("List<");
+  const octets = typeName === "Array<Octet>" || typeName.startsWith("Array<Octet");
+  if ((list || octets) && child.type === "lists_create_with") {
+    return emitListsCreate(child, ctx);
+  }
+  const code = emitBlock(child, ctx, indent + 1);
+  if (!code || isBlankGeneratedExpr(code)) return "";
+  if (octets) return octetBytesCall(code);
+  if (list) return `[${code}]`;
+  return code;
+}
+
+function wrapDvPrimitive(
+  rmType: string,
+  name: string,
+  typeName: string,
+  code: string,
+  ctx: TsEmitContext,
+): string {
+  if (name === "magnitude") return code;
+  if (rmType === "DV_BOOLEAN" && name === "value") return wrapBooleanValue(code, ctx);
+  if (
+    blocklyCheckForPrimitiveType(typeName) === "String" ||
+    typeName === "String" ||
+    name === "value" ||
+    name === "code_string" ||
+    name === "units" ||
+    name === "terminology_id"
+  ) {
+    return asStringExpr(code);
+  }
+  return code;
+}
+
 function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
   const rmType = String(block.getFieldValue("RM_TYPE") || block.type.replace(/-/g, "_"))
     .toUpperCase();
@@ -712,7 +754,6 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
   const props: Array<[string, string]> = [];
   let rawValue: string | undefined;
   for (const attr of attributesFor(rmType)) {
-    if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") continue;
     const inputName = block.getInput(`FLD_${attr.name}`)
       ? `FLD_${attr.name}`
       : block.getInput(`OPTFLD_${attr.name}`)
@@ -735,16 +776,11 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
       props.push([attr.name, shadow]);
       continue;
     }
-    const code = emitBlock(child, ctx, indent + 1);
-    if (isBlankGeneratedExpr(code)) continue;
+    const code = emitDvAttributeCode(child, attr.typeName, ctx, indent);
+    if (!code || isBlankGeneratedExpr(code)) continue;
     if (attr.name === "value") rawValue = code;
-    const wrapped = attr.name === "magnitude"
-      ? code
-      : rmType === "DV_BOOLEAN" && attr.name === "value"
-      ? wrapBooleanValue(code, ctx)
-      : (attr.typeName === "String" || attr.name === "value" || attr.name === "code_string" ||
-          attr.name === "units" || attr.name === "terminology_id")
-      ? asStringExpr(code)
+    const wrapped = isPrimitiveRmType(attr.typeName) || attr.typeName === "CODE_PHRASE"
+      ? wrapDvPrimitive(rmType, attr.name, attr.typeName, code, ctx)
       : code;
     props.push([attr.name, wrapped]);
   }

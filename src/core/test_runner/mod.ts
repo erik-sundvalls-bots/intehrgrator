@@ -15,6 +15,7 @@ import {
 } from "../../types/mod.ts";
 import { getSourceFormatHandler } from "../source/format_handler.ts";
 import { collectJsonNodes, evaluate, type SourceContext } from "../source/query_runtime.ts";
+import { evaluateShellFragment } from "../rm_shell_fragment.ts";
 import { parseExpression, type ExprAst } from "../expression/mod.ts";
 import { expressionUsesRelativeSourcePath } from "../mapping_model/loops.ts";
 import {
@@ -437,7 +438,12 @@ function evaluateSlotValues(
   for (const slot of model.slots) {
     if (handled.has(slot.slotId)) continue;
     try {
-      values[slot.slotId] = withSlotUnits(slot, handler.evaluate(slot.expression, ctx, slot.returnType), handler, ctx);
+      values[slot.slotId] = withCanvasDvFields(
+        slot,
+        handler.evaluate(slot.expression, ctx, slot.returnType),
+        handler,
+        ctx,
+      );
     } catch (e) {
       warnings.push(
         `${slot.slotId}: ${e instanceof Error ? e.message : String(e)}`,
@@ -454,6 +460,34 @@ function evaluateSlotValues(
     }
   }
   return { values, guards };
+}
+
+/** Primary value plus units, identifier fields, and shell mouths from the canvas. */
+function withCanvasDvFields(
+  slot: MappingModel["slots"][number],
+  value: unknown,
+  handler: ReturnType<typeof getSourceFormatHandler>,
+  ctx: SourceContext,
+): unknown {
+  const next = withSlotUnits(slot, value, handler, ctx);
+  const fragments = slot.shellFragments;
+  if (!fragments || !Object.keys(fragments).length) return next;
+  const extra: Record<string, unknown> = {};
+  for (const [name, fragment] of Object.entries(fragments)) {
+    try {
+      // "node" keeps literal numbers and strings; string coercion would turn 1 into "1".
+      const field = evaluateShellFragment(
+        fragment,
+        (expression) => handler.evaluate(expression, ctx, "node"),
+      );
+      if (field === undefined || field === null || field === "") continue;
+      extra[name] = field;
+    } catch {
+      // A mouth that does not evaluate is left out, as TypeScript output omits a blank field.
+    }
+  }
+  if (!Object.keys(extra).length) return next;
+  return { __dv: next, __extra: extra };
 }
 
 /** A DV_QUANTITY magnitude with the units mapped on the canvas, as TypeScript output writes it. */
@@ -579,7 +613,12 @@ function evaluateLoopSlots(
     handled.add(slot.slotId);
     try {
       values[slot.slotId] = nodes.map((node) =>
-        withSlotUnits(slot, handler.evaluate(slot.expression, itemCtx(node), slot.returnType), handler, itemCtx(node))
+        withCanvasDvFields(
+          slot,
+          handler.evaluate(slot.expression, itemCtx(node), slot.returnType),
+          handler,
+          itemCtx(node),
+        )
       );
     } catch (e) {
       warnings.push(

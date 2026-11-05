@@ -3,7 +3,12 @@ import "blockly/blocks";
 import { javascriptGenerator, Order } from "blockly/javascript";
 import type { SkeletonNode } from "../types/mod.ts";
 import { extractMappingIr, type MappingModelExtract } from "./mapping_ir.ts";
-import { registerRmBlocks, rmAttributeInputName } from "./blocks/rm_blocks.ts";
+import {
+  REFERENCE_RANGE_BLOCK,
+  TERM_MAPPING_BLOCK,
+  registerRmBlocks,
+  rmAttributeInputName,
+} from "./blocks/rm_blocks.ts";
 import { registerTargetBlocks } from "./blocks/target_blocks.ts";
 import { registerExpressionBlocks } from "./blocks/expression_blocks.ts";
 import { INCLUDE_WHEN_BLOCK, registerIncludeWhenBlock } from "./blocks/include_when.ts";
@@ -30,7 +35,8 @@ import {
 import { registerExtractToFunctionMenu } from "./extract_function.ts";
 import { registerTypeScriptExportAdapter } from "./typescript_codegen.ts";
 import { registerGoTemplateExportAdapter } from "./go_template_codegen.ts";
-import { attributesFor, dataValueLeafTypes, blockTypeForRm, isPrimitiveRmType } from "../core/rm_meta.ts";
+import { attributesFor, dataValueLeafTypes, blockTypeForRm } from "../core/rm_meta.ts";
+import { octetBytesCall } from "../core/rm_shell_fragment.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
 import { TERM_PICK_BLOCK_TYPE } from "./blocks/term_pick.ts";
 import {
@@ -252,6 +258,10 @@ function registerGenerators(): void {
     const type = blockTypeForRm(rmType);
     javascriptGenerator.forBlock[type] = (block) => generateDvConstructor(block, rmType);
   }
+  javascriptGenerator.forBlock[TERM_MAPPING_BLOCK] = (block) =>
+    generateDvConstructor(block, "TERM_MAPPING");
+  javascriptGenerator.forBlock[REFERENCE_RANGE_BLOCK] = (block) =>
+    generateDvConstructor(block, "REFERENCE_RANGE");
   javascriptGenerator.forBlock["dv_quantity_value"] = (block) =>
     generateDvConstructor(block, "DV_QUANTITY");
 
@@ -663,17 +673,19 @@ function generateRmAttributeCode(
 function generateDvConstructor(block: Blockly.Block, rmType: string): [string, number] {
   const parts: string[] = [];
   for (const attr of attributesFor(rmType)) {
-    if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") {
-      continue;
-    }
     const inputName = block.getInput(`FLD_${attr.name}`)
       ? `FLD_${attr.name}`
       : block.getInput(`OPTFLD_${attr.name}`)
       ? `OPTFLD_${attr.name}`
       : null;
     if (!inputName) continue;
-    const code = javascriptGenerator.valueToCode(block, inputName, Order.NONE);
+    let code = javascriptGenerator.valueToCode(block, inputName, Order.NONE);
     if (!code) continue;
+    const child = block.getInputTargetBlock(inputName);
+    const octets = attr.typeName === "Array<Octet>" || attr.typeName.startsWith("Array<Octet");
+    const list = attr.typeName.startsWith("List<");
+    if (octets && child?.type !== "lists_create_with") code = octetBytesCall(code);
+    else if (list && child?.type !== "lists_create_with") code = `[${code}]`;
     parts.push(`${attr.name}: ${code}`);
   }
   if (rmType === "DV_QUANTITY" && !parts.some((p) => p.startsWith("magnitude"))) {

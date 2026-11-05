@@ -6,6 +6,7 @@ import type {
   MappingFunction,
   MappingSlotHatch,
   MappingSlotReview,
+  RmShellFragment,
   MappingUnsupportedBlock,
   TargetSignatureNode,
   OpenEhrInstanceShape,
@@ -1429,6 +1430,7 @@ export class WorkbenchController {
       review?: MappingSlotReview;
       unitsExpression?: string;
       fieldExpressions?: Record<string, string>;
+      shellFragments?: Record<string, RmShellFragment>;
     }>,
     loops: MappingLoop[] = [],
     optionalRm?: MappingModel["optionalRm"],
@@ -1477,7 +1479,7 @@ export class WorkbenchController {
         label: targetSlot?.label,
         mandatory: targetSlot?.mandatory,
       });
-      if (item.hatch || item.unitsExpression || item.fieldExpressions) {
+      if (item.hatch || item.unitsExpression || item.fieldExpressions || item.shellFragments) {
         next = {
           ...next,
           slots: next.slots.map((slot) =>
@@ -1487,6 +1489,7 @@ export class WorkbenchController {
                 ...(item.hatch ? { hatch: item.hatch } : {}),
                 ...(item.unitsExpression ? { unitsExpression: item.unitsExpression } : {}),
                 ...(item.fieldExpressions ? { fieldExpressions: item.fieldExpressions } : {}),
+                ...(item.shellFragments ? { shellFragments: item.shellFragments } : {}),
               }
               : slot
           ),
