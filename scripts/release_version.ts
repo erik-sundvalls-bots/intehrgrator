@@ -1,7 +1,7 @@
 /**
  * Shared release version helpers for desktop tags and GitHub Pages paths.
  */
-import { dirname, fromFileUrl, join } from "@std/path";
+import { dirname, fromFileUrl, join, relative } from "@std/path";
 
 const root = join(dirname(fromFileUrl(import.meta.url)), "..");
 
@@ -11,6 +11,30 @@ export const VERSION_FILES = [
   join(root, "scripts/desktop.compile.json"),
   join(root, "src/core/persistence/mod.ts"),
 ] as const;
+
+/** Repo-relative paths committed with a version bump. Same files as `VERSION_FILES`. */
+export const VERSION_COMMIT_PATHS = VERSION_FILES.map((path) => relative(root, path).replaceAll("\\", "/"));
+
+/**
+ * Commit subject for a version bump. `pages.yml` skips main deploys whose message
+ * starts with this prefix so `release.yml` owns the Pages deploy for the tag.
+ */
+export function releaseCommitMessage(version: string): string {
+  return `chore: release ${version}`;
+}
+
+/** Paths to stage for a release commit. Empty when nothing in the release changed. */
+export function releaseCommitFiles(opts: {
+  versionBump: boolean;
+  changelogChanged: boolean;
+  updateRecommended?: boolean;
+}): string[] {
+  const files: string[] = [];
+  if (opts.versionBump) files.push(...VERSION_COMMIT_PATHS);
+  if (opts.changelogChanged) files.push("CHANGELOG.md");
+  if (opts.updateRecommended) files.push("RECOMMENDED_VERSION");
+  return files;
+}
 
 /** Map package version to release tag (matches existing tags v0.5, v0.2.1). */
 export function releaseTagForVersion(version: string): string {
@@ -131,15 +155,26 @@ export async function readCurrentVersion(): Promise<string> {
   return readVersionFromDenoJson(denoJson);
 }
 
+/** Rewrite one version file's text. Throws if the version field is missing. */
+export function rewriteVersionFile(path: string, before: string, version: string): string {
+  const appVersion = path.endsWith("mod.ts");
+  const next = appVersion
+    ? before.replace(/export const APP_VERSION = "[^"]+";/, `export const APP_VERSION = "${version}";`)
+    : before.replace(/"version": "[^"]+"/, `"version": "${version}"`);
+  const expected = appVersion
+    ? `export const APP_VERSION = "${version}";`
+    : `"version": "${version}"`;
+  if (!next.includes(expected)) {
+    throw new Error(`Could not update version in ${path}`);
+  }
+  return next;
+}
+
 export async function bumpVersionFiles(version: string): Promise<void> {
+  releaseTagForVersion(version);
   for (const path of VERSION_FILES) {
-    let text = await Deno.readTextFile(path);
-    if (path.endsWith("mod.ts")) {
-      text = text.replace(/export const APP_VERSION = "[^"]+";/, `export const APP_VERSION = "${version}";`);
-    } else {
-      text = text.replace(/"version": "[^"]+"/, `"version": "${version}"`);
-    }
-    await Deno.writeTextFile(path, text);
+    const before = await Deno.readTextFile(path);
+    await Deno.writeTextFile(path, rewriteVersionFile(path, before, version));
   }
 }
 
@@ -156,10 +191,12 @@ async function run(cmd: string, args: string[]): Promise<void> {
 }
 
 export async function assertReleasePrerequisites(): Promise<void> {
-  for (const cmd of ["git", "gh"]) {
-    const status = await new Deno.Command(cmd, { args: ["--version"], stdout: "null", stderr: "null" }).output();
-    if (!status.success) throw new Error(`${cmd} is required for deno task release`);
-  }
+  const status = await new Deno.Command("git", {
+    args: ["--version"],
+    stdout: "null",
+    stderr: "null",
+  }).output();
+  if (!status.success) throw new Error("git is required for deno task release");
 }
 
 export async function assertCleanGitTree(): Promise<void> {
@@ -172,16 +209,6 @@ export async function assertCleanGitTree(): Promise<void> {
   if (dirty) {
     throw new Error("Working tree is not clean — commit or stash changes before releasing");
   }
-}
-
-export async function assertGhAuth(): Promise<void> {
-  const status = await new Deno.Command("gh", {
-    args: ["auth", "status"],
-    cwd: root,
-    stdout: "inherit",
-    stderr: "inherit",
-  }).output();
-  if (!status.success) throw new Error("gh is not authenticated");
 }
 
 export { run };
