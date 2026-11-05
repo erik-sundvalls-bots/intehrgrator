@@ -46,6 +46,21 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Recovery dispatch requires an existing tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RECOVERY_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s\n' "$RECOVERY_TAG" | grep -Eq '^v[0-9]+(\.[0-9]+)*$'; then
+            echo "Recovery only re-runs publish for an existing v* tag. Release create makes a new release." >&2
+            exit 1
+          fi
+          if [ -z "$(git ls-remote --tags origin "refs/tags/${RECOVERY_TAG}")" ]; then
+            echo "Tag ${RECOVERY_TAG} does not exist. Recovery does not create a release." >&2
+            exit 1
+          fi
+
       - name: Resolve release tag
         id: rel
         run: |

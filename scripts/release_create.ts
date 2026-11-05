@@ -8,7 +8,8 @@
  * is already on GitHub Pages.
  *
  * Actions passes RELEASE_VERSION, RELEASE_REF, RELEASE_UPDATE_RECOMMENDED,
- * and RELEASE_DRY_RUN. Locally:
+ * and RELEASE_DRY_RUN. Outside Actions the script only dry-runs;
+ * `deno task release` is the maintainer-machine entry point.
  *   deno run -A scripts/release_create.ts --version 0.8.9 --dry-run
  */
 import { dirname, fromFileUrl, join } from "@std/path";
@@ -81,6 +82,15 @@ export function assertBranchRef(ref: string | undefined): string {
     );
   }
   return branch;
+}
+
+/** A real create pushes only on Actions. Local use of this script is `--dry-run`. */
+export function assertCreateRunsInActions(dryRun: boolean, githubActions: string | undefined): void {
+  if (!dryRun && githubActions !== "true") {
+    throw new ReleaseCreateRefused(
+      "Refusing to commit or push outside GitHub Actions. Use --dry-run here, or deno task release on a maintainer machine.",
+    );
+  }
 }
 
 export function planReleaseCreate(req: ReleaseCreateRequest): ReleaseCreatePlan {
@@ -360,6 +370,8 @@ async function main(): Promise<void> {
 
   console.log(`Release ${plan.version} → tag ${plan.tag} on ${plan.ref}`);
   console.log(`Checked origin and ${PAGES_SITE_URL}/${VERSIONS_MANIFEST} plus /${plan.tag}/index.html.`);
+
+  assertCreateRunsInActions(plan.dryRun, Deno.env.get("GITHUB_ACTIONS"));
 
   if (plan.dryRun) {
     if (plan.updateRecommended) console.log(`Would set RECOMMENDED_VERSION to ${plan.tag}`);

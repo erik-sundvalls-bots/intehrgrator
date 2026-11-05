@@ -1,7 +1,7 @@
 /**
  * Shared release version helpers for desktop tags and GitHub Pages paths.
  */
-import { dirname, fromFileUrl, join } from "@std/path";
+import { dirname, fromFileUrl, join, relative } from "@std/path";
 
 const root = join(dirname(fromFileUrl(import.meta.url)), "..");
 
@@ -13,12 +13,7 @@ export const VERSION_FILES = [
 ] as const;
 
 /** Repo-relative paths committed with a version bump. Same files as `VERSION_FILES`. */
-export const VERSION_COMMIT_PATHS = [
-  "deno.json",
-  "package.json",
-  "scripts/desktop.compile.json",
-  "src/core/persistence/mod.ts",
-] as const;
+export const VERSION_COMMIT_PATHS = VERSION_FILES.map((path) => relative(root, path).replaceAll("\\", "/"));
 
 /**
  * Commit subject for a version bump. `pages.yml` skips main deploys whose message

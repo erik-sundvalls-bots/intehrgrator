@@ -101,7 +101,7 @@ The tag name comes from `releaseTagForVersion` in `scripts/release_version.ts`. 
 
 The run refuses when the derived tag already exists on `origin`, when Pages [`versions.json`](https://regionstockholm.github.io/intehrgrator/versions.json) already lists it, or when `/<tag>/index.html` is already published. If Pages cannot be read, or the index status is anything other than 200 or 404, the run stops and pushes nothing. The push is `git push --atomic` (no `--force`): the branch and the tag land together, and a branch that moved is rejected.
 
-Dispatches of the same `version` share a concurrency group and do not cancel each other, so two runs cannot both create that tag. A second version can run at the same time; if both try to push the same branch, the atomic push rejects the one that loses the race.
+All Release create runs share one concurrency group and do not cancel each other. `0.9` and `0.9.0` are different inputs and the same tag (`v0.9`), so a group keyed only by the typed version would let both pass the tag check. The waiting run then sees the tag and refuses.
 
 The commit message is `chore: release X.Y.Z`. [`pages.yml`](.github/workflows/pages.yml) skips those commits, so the tag workflow owns the Pages deploy. The annotated tag title is the default (`intEHRgrator desktop <version>` plus the changelog link). Use the CLI `--message` flag when the title should be different.
 
@@ -109,7 +109,7 @@ The commit message is `chore: release X.Y.Z`. [`pages.yml`](.github/workflows/pa
 
 **Token.** Store a fine-grained personal access token or GitHub App installation token as the Actions secret `RELEASE_PAT` (an environment secret on `release` is the tighter place). It needs Contents read and write on this repository. The workflow's own `GITHUB_TOKEN` stays read-only. A push made with `GITHUB_TOKEN` does not start other workflows, so `release.yml` would not publish Pages, desktop binaries, or the GitHub Release. `dry_run` checks out with the read-only token and does not need `RELEASE_PAT`.
 
-The same script can be dry-run locally (it still refuses a tag that exists or is on Pages; it does not push):
+The same checks can be dry-run locally. Without `--dry-run` the script refuses to commit or push; `deno task release` is the entry point on a maintainer machine.
 
 ```bash
 deno run -A scripts/release_create.ts --version 0.8.9 --dry-run
@@ -139,7 +139,7 @@ Frozen Pages builds for a tag are **immutable**: `assembleReleasePagesSite` erro
 
 - **Routine fix after a successful release:** ship a **new** version with **Release create** or `deno task release` (for example `0.8.9` / `v0.8.9`). Rebuilding an existing `/v0.8.8/` in place is not available.
 - **Release create** is how you make a **new** tag from Actions.
-- **`release.yml` → Run workflow → “Existing release tag”** is recovery for a tag that **already exists**, when the first publish stopped before that version reached Pages. It does not bump version files and it does not create a tag. Re-dispatching a tag already on Pages fails at assemble and leaves the frozen site as it is.
+- **`release.yml` → Run workflow → “Existing release tag”** is recovery for a tag that **already exists on origin**, when the first publish stopped before that version reached Pages. The run stops unless `git ls-remote` finds that `v*` tag. It does not bump version files and it does not create a tag. Re-dispatching a tag already on Pages fails at assemble and leaves the frozen site as it is.
 
 ### Why GitHub “Draft a new release” is not this flow
 

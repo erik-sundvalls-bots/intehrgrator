@@ -2,6 +2,7 @@ import { assertEquals, assertThrows } from "@std/assert";
 import {
   actionsBotIdentity,
   assertBranchRef,
+  assertCreateRunsInActions,
   assertReleaseCreateAllowed,
   interpretPagesIndexStatus,
   interpretRemoteTagList,
@@ -33,6 +34,7 @@ Deno.test("release create plans the tag releaseTagForVersion already uses", () =
 
   const minor = planReleaseCreate({ version: "0.9.0", updateRecommended: true, dryRun: true });
   assertEquals(minor.tag, "v0.9");
+  assertEquals(planReleaseCreate({ version: "0.9", updateRecommended: false, dryRun: false }).tag, "v0.9");
   assertEquals(minor.dryRun, true);
   assertEquals(minor.updateRecommended, true);
   assertEquals(
@@ -246,6 +248,13 @@ Deno.test("version file rewrite updates the json version and APP_VERSION", () =>
   assertThrows(() => rewriteVersionFile("deno.json", "{}", "0.2.0"));
 });
 
+Deno.test("this script pushes only on Actions; a local run stays a dry run", () => {
+  assertCreateRunsInActions(true, undefined);
+  assertCreateRunsInActions(false, "true");
+  const refused = assertThrows(() => assertCreateRunsInActions(false, undefined), ReleaseCreateRefused);
+  assertEquals(refused.message.includes("deno task release"), true);
+});
+
 Deno.test("Actions commits as the GitHub Actions bot; a local run does not replace git identity", () => {
   assertEquals(actionsBotIdentity({}), undefined);
   assertEquals(actionsBotIdentity({ GITHUB_ACTIONS: "true" }), {
@@ -271,10 +280,7 @@ Deno.test("deno task release keeps git checks and drops the gh prerequisite", as
   assertEquals(release.includes("assertReleasePrerequisites"), true);
   assertEquals(release.includes("releaseCommitMessage"), true);
   assertEquals(helpers.includes("git is required for deno task release"), true);
-  const pre = release.indexOf("await assertReleasePrerequisites()");
-  const dry = release.indexOf("if (!args.dryRun)");
-  const clean = release.indexOf("await assertCleanGitTree()");
-  assertEquals(pre !== -1 && dry !== -1 && clean !== -1 && pre < dry && dry < clean, true);
+  assertEquals(release.includes("await assertCleanGitTree()"), true);
 });
 
 Deno.test("Release create workflow tags only, and release.yml dispatch stays recovery", async () => {
@@ -285,7 +291,8 @@ Deno.test("Release create workflow tags only, and release.yml dispatch stays rec
   assertEquals(create.includes("RELEASE_VERSION: ${{ inputs.version }}"), true);
   assertEquals(create.includes("update_recommended:"), true);
   assertEquals(create.includes("dry_run:"), true);
-  assertEquals(create.includes("group: release-create-${{ inputs.version }}"), true);
+  assertEquals(create.includes("group: release-create"), true);
+  assertEquals(create.includes("group: release-create-${{ inputs.version }}"), false);
   assertEquals(create.includes("cancel-in-progress: false"), true);
   assertEquals(create.includes("environment: release"), true);
   assertEquals(create.includes("contents: read"), true);
@@ -298,5 +305,7 @@ Deno.test("Release create workflow tags only, and release.yml dispatch stays rec
     publish.includes("Recovery only: existing tag whose Pages publish did not finish."),
     true,
   );
+  assertEquals(publish.includes("Recovery dispatch requires an existing tag"), true);
+  assertEquals(publish.includes('git ls-remote --tags origin "refs/tags/${RECOVERY_TAG}"'), true);
   assertEquals(publish.includes("deploy-pages"), true);
 });

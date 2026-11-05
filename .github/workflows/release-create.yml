@@ -35,10 +35,11 @@ on:
 permissions:
   contents: read
 
-# A second dispatch of the same version waits, then the tag check refuses it.
-# Do not cancel the run that is already tagging.
+# One create at a time. 0.9 and 0.9.0 are different inputs and the same tag
+# (v0.9); a group keyed only by the input string would let both pass the
+# tag check. Do not cancel the run that is already tagging.
 concurrency:
-  group: release-create-${{ inputs.version }}
+  group: release-create
   cancel-in-progress: false
 
 jobs:
