@@ -41,7 +41,7 @@ Individual tests can be run in isolation using `deno test -A --no-check --filter
 | Gate | Workflow | Suites |
 |------|----------|--------|
 | Pull request and `main` / `cursor/**` push | `.github/workflows/ci.yml` | `deno task test` **and** `deno task test:ui` |
-| Release tag (`deno task release`) | `.github/workflows/release.yml` | unit then UI (Temurin 21, same as CI); UI must pass before Pages / desktop publish. `deno task release:no-test` / `--no-test` skips only the local unit suite before tagging. Maintainer flow: [README_DEVELOPERS.md § Releases](../README_DEVELOPERS.md#releases) |
+| Release tag (`deno task release` or Actions **Release create**) | `.github/workflows/release.yml` | unit then UI (Temurin 21, same as CI); UI must pass before Pages / desktop publish. `deno task release:no-test` / `--no-test` skips only the local unit suite before tagging. **Release create** (`.github/workflows/release-create.yml`) only bumps, commits, and pushes the annotated tag. Maintainer flow: [README_DEVELOPERS.md § Releases](../README_DEVELOPERS.md#releases) |
 | GitHub Pages (bleeding-edge `main`) | `.github/workflows/pages.yml` | unit only, with Temurin 21 (UI already gated on the same push via `ci.yml`) |
 
 Optional goldens are not a CI fail when BaseX / `javac` are missing.

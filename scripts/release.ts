@@ -1,9 +1,11 @@
 #!/usr/bin/env -S deno run -A
 /**
- * Cut a desktop + GitHub Pages release.
+ * Cut a desktop + GitHub Pages release from a maintainer machine.
  *
  * Bumps version files (unless --current), runs tests/build, commits, tags, and pushes.
- * GitHub Actions (release.yml) publishes desktop binaries, the VS Code VSIX, and a frozen Pages subdirectory.
+ * Needs git and a clean tree. Does not need the GitHub CLI: publish runs in
+ * GitHub Actions (release.yml) when the tag is pushed. Actions → Release create
+ * (scripts/release_create.ts) is the other way to bump and tag.
  *
  * Usage:
  *   deno task release -- --version 0.6.0
@@ -14,11 +16,12 @@
  */
 import {
   assertCleanGitTree,
-  assertGhAuth,
   assertReleasePrerequisites,
   bumpVersionFiles,
   promoteUnreleasedFile,
   readCurrentVersion,
+  releaseCommitFiles,
+  releaseCommitMessage,
   releaseTagMessage,
   releaseTagForVersion,
   run,
@@ -88,7 +91,6 @@ const args = parseArgs(Deno.args);
 
 await assertReleasePrerequisites();
 if (!args.dryRun) {
-  await assertGhAuth();
   await assertCleanGitTree();
 }
 
@@ -130,19 +132,13 @@ if (args.dryRun) {
   Deno.exit(0);
 }
 
-const commitFiles: string[] = [];
-if (args.version) {
-  commitFiles.push(
-    "deno.json",
-    "package.json",
-    "scripts/desktop.compile.json",
-    "src/core/persistence/mod.ts",
-  );
-}
-if (changelogChanged) commitFiles.push("CHANGELOG.md");
+const commitFiles = releaseCommitFiles({
+  versionBump: Boolean(args.version),
+  changelogChanged,
+});
 if (commitFiles.length) {
-  await run("git", ["add", ...commitFiles]);
-  await run("git", ["commit", "-m", `chore: release ${releaseVersion}`]);
+  await run("git", ["add", "--", ...commitFiles]);
+  await run("git", ["commit", "-m", releaseCommitMessage(releaseVersion)]);
 }
 
 await run("git", ["tag", "-a", releaseTag, "-m", tagMessage]);

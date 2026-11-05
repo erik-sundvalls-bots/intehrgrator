@@ -1,7 +1,8 @@
 # Publish desktop binaries, the VS Code VSIX, and a frozen GitHub Pages subdirectory
-# for each release tag. Triggered by `deno task release` (push annotated tag) or
-# manual tag push. Maintainer flow, tag naming, recovery dispatch:
-# README_DEVELOPERS.md § Releases.
+# for an existing release tag. The tag is pushed by `deno task release` or by
+# Release create (release-create.yml). workflow_dispatch re-runs publish for a
+# tag that already exists; it does not bump versions or create a tag.
+# Maintainer flow: README_DEVELOPERS.md § Releases.
 
 name: Release
 
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing release tag (e.g. v0.6)"
+        description: "Recovery only: existing tag whose Pages publish did not finish. Does not create a release."
         required: true
         type: string
 
