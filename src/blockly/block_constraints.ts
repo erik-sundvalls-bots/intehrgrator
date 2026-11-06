@@ -46,6 +46,16 @@ export const ABSTRACT_ITEM_STRUCTURE_WARNING =
 
 export const UNMAPPED_OPTIONAL_SCAFFOLD_WARNING = "Unmapped optional scaffold";
 
+/** Optional unmapped slot that still has a value-set hint. Not a mapping failure. */
+export const VALUE_SET_HINT_NOTE = "Value-set hint";
+
+const hintNoteSlots = new WeakMap<Workspace, Set<string>>();
+
+/** Slot ids whose optional unmapped block should say "Value-set hint". */
+export function setValueSetHintNoteSlots(workspace: Workspace, slotIds: Iterable<string>): void {
+  hintNoteSlots.set(workspace, new Set(slotIds));
+}
+
 const PROTECTED_SPEC_BLOCK_TYPES = new Set([
   "conversion_start",
   "default_context_map",
@@ -95,7 +105,9 @@ export function blockConstraintMessages(block: Block): string[] {
     block.getFieldValue("SLOT_ID") &&
     isUnmappedBlockTree(block)
   ) {
-    messages.push(UNMAPPED_OPTIONAL_SCAFFOLD_WARNING);
+    const slotId = String(block.getFieldValue("SLOT_ID") ?? "");
+    const hinted = hintNoteSlots.get(block.workspace)?.has(slotId) ?? false;
+    messages.push(hinted ? VALUE_SET_HINT_NOTE : UNMAPPED_OPTIONAL_SCAFFOLD_WARNING);
   }
 
   for (const unmet of unmetSlotCards(block)) {

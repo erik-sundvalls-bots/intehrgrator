@@ -314,14 +314,13 @@ export interface SkeletonNode {
   fixedFields?: Record<string, string>;
   /**
    * Template-constrained value set (C_CODE_PHRASE `code_list`, C_STRING list, …)
-   * when more than one code/string is allowed. Scaffolded as a Blockly list of
-   * complete `DV_CODED_TEXT` / `CODE_PHRASE` objects wrapped in `lists_getIndex`.
+   * when more than one code/string is allowed. Shown as a value-set hint, not
+   * a mapping. A single allowed code stays a term pick or a fixed field.
    */
   allowedValues?: AllowedValue[];
   /**
    * Template-constrained ordinal/scale choices (`C_ORDINAL` / `C_DV_ORDINAL` list)
-   * when more than one value is allowed. Scaffolded as a Blockly list of complete
-   * `DV_ORDINAL` / `DV_SCALE` objects wrapped in `lists_getIndex`.
+   * when more than one value is allowed. Shown as a value-set hint, not a mapping.
    */
   allowedOrdinals?: AllowedOrdinal[];
   /**
@@ -427,6 +426,32 @@ export interface ProjectSettings {
   display?: { targetLabelLang?: string; sourceLabelLang?: string };
   /** Copy & paste AI prompt also attaches the raw target file (#277; off: slot tree only). */
   aiAttachOriginalTarget?: boolean;
+  /**
+   * Value-set hints the author dismissed. Each entry is kept only while the
+   * slot's allowed codes are still `codes` (sorted identities). A changed
+   * code list brings the hint back.
+   */
+  dismissedHints?: DismissedValueSetHint[];
+  /**
+   * Value-set hints narrowed with "pick subset". Dropped when the allowed
+   * codes change.
+   */
+  hintSubsets?: ValueSetHintSubset[];
+}
+
+/** One dismissed value-set hint, bound to the allowed codes at dismiss time. */
+export interface DismissedValueSetHint {
+  slotId: string;
+  /** Sorted code identities (at-code, ordinal code, string, or unit). */
+  codes: string[];
+}
+
+/** Codes still shown for one value-set hint. */
+export interface ValueSetHintSubset {
+  slotId: string;
+  codes: string[];
+  /** Sorted full set this subset was taken from. */
+  full: string[];
 }
 
 /**
