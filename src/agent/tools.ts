@@ -53,13 +53,13 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "get_snapshot",
     description:
-      "Project revision, template id, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status. appliedSlots counts every slot with an expression: mappedSlots are mapped from the source or a constant, defaultedSlots only read the default context map (maps_get(\"defaults\", …), wired by the scaffold).",
+      "Project revision, template id, mapped counts, unmapped mandatory slot ids, sheets, product stack, leases, Constraint warning count, test status. appliedSlots counts every slot with an expression: mappedSlots are mapped from the source or a constant, defaultedSlots only read the default context map (maps_get(\"defaults\", …), wired by the scaffold). hintSlots counts value-set hints (unmapped; not emitted).",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "list_slots",
     description:
-      "Target value slots as the compact slot tree: groups (repeating container with loop: true, or archetype / parent node) with rows {id, type, label, mult, mandatory, fixed, units, values, expr when mapped}. A slot id is group + row id (the root group \"/\" + row \"context/…\" → \"/context/…\"); full ids work too. Filter with unmappedOnly and/or query (substring of slot id, label or path label). view: \"rows\" returns the older flat rows with full slotId, pathLabel, attachSlotId plus repeatable containers. get_slot gives one slot in full.",
+      "Target value slots as the compact slot tree: groups (repeating container with loop: true, or archetype / parent node) with rows {id, type, label, mult, mandatory, fixed, units, values, expr when mapped, hint when the slot has a value-set hint}. hint is {kind, codes, assumed} and is not a mapping. A slot id is group + row id (the root group \"/\" + row \"context/…\" → \"/context/…\"); full ids work too. Filter with unmappedOnly and/or query (substring of slot id, label or path label). view: \"rows\" returns the older flat rows with full slotId, pathLabel, attachSlotId plus repeatable containers. get_slot gives one slot in full.",
     inputSchema: {
       type: "object",
       properties: {
@@ -309,7 +309,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "map_slot",
     description:
-      "Map a source path (from get_source_tree, e.g. $.systolic) to a target value slotId (group + row id from list_slots). Or set a constant: pass value instead of path (e.g. a fixed name; for a coded slot a code or text from values, or terse \"terminology::code|text|\" such as context/setting \"openehr::238|other care|\"; for openEHR groups such as setting the text alone, e.g. \"home\", also works). Coded slots (DV_CODED_TEXT, CODE_PHRASE: list_slots shows values): the source value must equal a code or a text from values; preview and the generated script then write that code and its text. Other source values (\"sitting\" for a local code with a different text, codes from another system) need a Decision table or a Sheet lookup: list_function_library, import_suggestions. Optional note (risks only) and confidence (0–100 %).",
+      "Map a source path (from get_source_tree, e.g. $.systolic) to a target value slotId (group + row id from list_slots). Or set a constant: pass value instead of path (e.g. a fixed name; for a coded slot a code or text from values, or terse \"terminology::code|text|\" such as context/setting \"openehr::238|other care|\"; for openEHR groups such as setting the text alone, e.g. \"home\", also works). Coded slots (DV_CODED_TEXT, CODE_PHRASE: list_slots shows values): the source value must equal a code or a text from values; preview and the generated script then write that code and its text. Other source values (\"sitting\" for a local code with a different text, codes from another system) need a Decision table or a Sheet lookup: list_function_library, import_suggestions, or apply_hint when the slot has a hint. Optional note (risks only) and confidence (0–100 %).",
     inputSchema: {
       type: "object",
       required: ["slotId"],
@@ -326,6 +326,28 @@ export const AGENT_TOOLS: AgentToolDef[] = [
         },
         revision: { type: "string" },
         ...TOOL_REVIEW_PARAMS,
+      },
+    },
+  },
+  {
+    name: "apply_hint",
+    description:
+      "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise the shell that slot needs; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank — they do not read the source schema or an example. Selected codes limit which rows those grids get. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
+    inputSchema: {
+      type: "object",
+      required: ["action"],
+      properties: {
+        slotId: { type: "string" },
+        action: {
+          type: "string",
+          enum: ["constant", "decision_table", "sheet_lookup", "dismiss", "restore"],
+        },
+        codes: {
+          type: "array",
+          items: { type: "string" },
+          description: "decision_table/sheet_lookup: codes to prefill (default: all). constant: one code (default: assumed_value, else the first).",
+        },
+        revision: { type: "string" },
       },
     },
   },
@@ -516,6 +538,7 @@ export const AGENT_TOOL_HTTP: Record<string, AgentToolHttp> = {
   build_patch_prompt: { method: "POST", path: "/patch-prompt", body: "json" },
   import_suggestions: { method: "POST", path: "/import-suggestions", body: "text" },
   map_slot: { method: "POST", path: "/map-slot", body: "json" },
+  apply_hint: { method: "POST", path: "/apply-hint", body: "json" },
   optional_rm_add: { method: "POST", path: "/optional-rm/add", body: "json" },
   optional_rm_remove: { method: "POST", path: "/optional-rm/remove", body: "json" },
   set_instance_encoding: { method: "POST", path: "/set-instance-encoding", body: "json" },
@@ -786,6 +809,30 @@ export async function callAgentTool(
         mapped: true,
         ...(hasValue ? { value: args.value } : {}),
         ...(warnings.length ? { warning: warnings.join(" ") } : {}),
+      };
+    }
+    case "apply_hint": {
+      const action = String(args.action ?? "");
+      const allowed = new Set(["constant", "decision_table", "sheet_lookup", "dismiss", "restore"]);
+      if (!allowed.has(action)) {
+        throw new Error("apply_hint action must be constant, decision_table, sheet_lookup, dismiss, or restore");
+      }
+      const codes = Array.isArray(args.codes) ? args.codes.map((code) => String(code)) : undefined;
+      const applied = service.applyHint(
+        {
+          ...(typeof args.slotId === "string" && args.slotId ? { slotId: args.slotId } : {}),
+          action: action as "constant" | "decision_table" | "sheet_lookup" | "dismiss" | "restore",
+          ...(codes ? { codes } : {}),
+        },
+        revision,
+        ctx,
+      );
+      return {
+        revision: service.getRevision(),
+        action,
+        summary: applied.summary,
+        ...(applied.slotId ? { slotId: applied.slotId } : {}),
+        ...(applied.grid ? { grid: applied.grid.name, gridKind: applied.grid.kind } : {}),
       };
     }
     case "optional_rm_add":

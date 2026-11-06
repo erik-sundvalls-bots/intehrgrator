@@ -6,6 +6,8 @@ import {
   ModelListError,
   modelsRequestHeaders,
   modelsUrlFromEndpoint,
+  parseModelPricing,
+  parseModelsDetailed,
   parseModelsResponse,
 } from "@intehrgrator/core/ai/models.ts";
 import { REDACTED_KEY } from "@intehrgrator/core/ai/redact.ts";
@@ -129,7 +131,8 @@ Deno.test("fetchModelList GETs <base>/models with the key and parses the list", 
     "sk-test",
     { fetch: fetchStub },
   );
-  assertEquals(models, ["m1", "m2"]);
+  assertEquals(models.ids, ["m1", "m2"]);
+  assertEquals(models.rates, {});
   assertEquals(calls[0]!.url, "https://api.openai.com/v1/models");
   assertEquals(calls[0]!.init?.method, "GET");
   assertEquals(
@@ -253,5 +256,29 @@ Deno.test("modelAfterProviderChange drops stale models", () => {
   assertEquals(
     modelAfterProviderChange("", "opencode-zen", undefined),
     "big-pickle",
+  );
+});
+
+Deno.test("parseModelsDetailed reads OpenRouter pricing as USD per token (#354)", () => {
+  const detailed = parseModelsDetailed({
+    data: [
+      {
+        id: "openai/gpt-4o",
+        pricing: { prompt: "0.0000025", completion: "0.00001" },
+      },
+      { id: "free/model", pricing: { prompt: "0", completion: "0" } },
+      { id: "no-price" },
+    ],
+  });
+  assertEquals(detailed.ids, ["free/model", "no-price", "openai/gpt-4o"]);
+  assertEquals(detailed.rates["openai/gpt-4o"], {
+    prompt: 0.0000025,
+    completion: 0.00001,
+  });
+  assertEquals(detailed.rates["free/model"], { prompt: 0, completion: 0 });
+  assertEquals(detailed.rates["no-price"], undefined);
+  assertEquals(
+    parseModelPricing({ pricing: { prompt: "x", completion: "1" } }),
+    undefined,
   );
 });

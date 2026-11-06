@@ -57,6 +57,11 @@ export interface SlotTreeRow {
   default?: unknown;
   /** Current mapping expression (`list_slots` only). */
   expr?: string;
+  /**
+   * Value-set hint for an unmapped slot. Not a mapping. Absent when dismissed
+   * or when the slot is already mapped.
+   */
+  hint?: { kind: string; codes: Array<{ code: string; text?: string; assumed?: boolean; value?: number }>; assumed?: string };
 }
 
 export interface SlotTreeGroup {
@@ -252,6 +257,7 @@ function rowFor(
   model?: Map<string, string>,
   info?: SlotInfo,
   extra?: Array<[string, Map<string, string>]>,
+  hint?: SlotTreeRow["hint"],
 ): SlotTreeRow {
   const fixed: Record<string, string> = {};
   const ff = node.fixedFields ?? {};
@@ -302,6 +308,7 @@ function rowFor(
     ...(info?.annotations ? { annotations: info.annotations } : {}),
     ...(info?.bindings?.length ? { bindings: info.bindings } : {}),
     ...(expr ? { expr } : {}),
+    ...(hint ? { hint } : {}),
   };
 }
 
@@ -317,6 +324,8 @@ export interface BuildSlotTreeOptions {
    * already has): slot id → label per language, added as `labels` when they differ (#279).
    */
   extraLabels?: Array<[string, Map<string, string>]>;
+  /** Active value-set hints keyed by skeleton slot id. */
+  hints?: Map<string, NonNullable<SlotTreeRow["hint"]>>;
 }
 
 function langPick(map: Record<string, string> | undefined, lang: string): string | undefined {
@@ -394,7 +403,14 @@ export function buildSlotTree(input: SkeletonNode[], options: BuildSlotTreeOptio
       groups.set(key, group);
     }
     const info = options.info ? slotInfoFor(options.info, slot.slotId) : undefined;
-    group.slots.push(rowFor(slot, key ? tailAfter(c(slot.slotId), key) : c(slot.slotId), exprs, info, options.extraLabels));
+    group.slots.push(rowFor(
+      slot,
+      key ? tailAfter(c(slot.slotId), key) : c(slot.slotId),
+      exprs,
+      info,
+      options.extraLabels,
+      options.hints?.get(slot.slotId),
+    ));
   }
   return [...groups.values()];
 }
@@ -412,4 +428,4 @@ export function formatSlotTree(groups: SlotTreeGroup[]): string {
 
 /** Slot-tree reading guide, shared by the prompt and the tool description. */
 export const SLOT_TREE_GUIDE =
-  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`; the root group `/` + `context/start_time/value` → `/context/start_time/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";
+  "Groups hold the slots under one repeating container (`loop`, map its children inside a `for_each_list` with `attachSlotId` = `group`) or one archetype/parent node. A slot id is `group` + row `id` (e.g. `/a/b` + `/c/value` → `/a/b/c/value`; the root group `/` + `context/start_time/value` → `/context/start_time/value`); the full ids from older prompts and list_slots `view: \"rows\"` work too. `fixed` values are set by the template; `values` / `units` are the allowed choices. `hint` is a value-set hint (codes and assumed): the slot is unmapped, the hint is not emitted, and `apply_hint` turns it into a constant, decision table, or sheet lookup. A `DV_TEXT` slot may also be mapped as `DV_CODED_TEXT`. `label` and `description` are in the first listed target language; `labels` gives the label in other languages the source uses.";

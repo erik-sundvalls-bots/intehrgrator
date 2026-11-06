@@ -288,6 +288,7 @@
                 </div>
               </div>
               <button id="tab-sheets" class="mapping-editor-tab" type="button">Tables & Sheets</button>
+              <button id="tab-hints" class="mapping-editor-tab" type="button" data-i18n="hints">Hints</button>
             </div>
             <button
               id="btn-upload-spec"
@@ -375,6 +376,7 @@
             <div id="spec-editor" class="editor-host"></div>
           </div>
           <div id="sheets-host" class="sheets-host" hidden></div>
+          <div id="hints-host" class="hints-host" hidden></div>
         </div>
       </div>
     </section>
@@ -643,6 +645,16 @@
         <button type="button" id="function-clash-cancel" value="cancel" data-i18n="cancel">Cancel</button>
         <button type="submit" value="replace" data-i18n="replace">Replace</button>
         <button type="submit" value="rename" data-i18n="rename">Rename</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialog-hint-ai" class="app-dialog">
+    <form method="dialog" class="dialog-form" id="hint-ai-form">
+      <h2 data-i18n="hintsAiTitle">Fill the source column</h2>
+      <p data-i18n="hintsAiOffer">The source column is blank. Insert a prompt that asks the AI to fill the source-to-code mapping from the loaded source?</p>
+      <div class="dialog-actions">
+        <button type="submit" value="decline" data-i18n="hintsAiDecline">Not now</button>
+        <button type="submit" value="insert" data-i18n="hintsAiInsert">Insert prompt</button>
       </div>
     </form>
   </dialog>

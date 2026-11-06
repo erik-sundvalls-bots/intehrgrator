@@ -33,12 +33,17 @@ import {
   trimChatSessionToTokens,
 } from "../core/ai/chat_history.ts";
 import {
+  budgetKind,
   budgetState,
   contextWindowFor,
+  effectiveCost,
   emptyUsageTotals,
   formatTokens,
+  formatUsd,
   loadAiChatLimits,
   mergeUsageTotals,
+  raisedBudget,
+  raisedBudgetUsd,
   saveAiChatLimits,
   totalTokens,
   type UsageTotals,
@@ -101,8 +106,12 @@ export interface AiChatTurnRequest {
   signal: AbortSignal;
   /** Live progress for the streaming bubble. */
   onEvent: (event: MappingAgentEvent) => void;
-  /** Tokens this turn may use before it pauses (what is left of the chat's budget, #276). */
+  /** Tokens this turn may use before it pauses (what is left of the chat's token budget, #276). */
   tokenBudget?: number;
+  /** USD this turn may spend before it pauses (what is left of the chat's USD budget, #354). */
+  costBudget?: number;
+  /** Rates for cost estimates when the provider omits `usage.cost`. */
+  modelRate?: import("../core/ai/token_usage.ts").ModelRate;
 }
 
 export interface AiChatTurnResult {
@@ -119,7 +128,7 @@ export interface AiChatTurnResult {
   stopped?: boolean;
   /** Token use of this turn (#276). */
   usage?: UsageTotals;
-  /** The turn paused at `tokenBudget`. */
+  /** The turn paused at `tokenBudget` / `costBudget`. */
   budgetReached?: boolean;
 }
 
@@ -226,13 +235,7 @@ export function readCollapsed(storage: Storage): boolean {
   return !legacyOpen;
 }
 
-/** Next budget after a pause: double it, and at least a quarter above what is used. */
-export function raisedBudget(budget: number | undefined, used: number): number {
-  const next = Math.max((budget ?? 0) * 2, Math.ceil(used * 1.25));
-  // Round to two significant digits so the setting reads well (2.5M, 120k).
-  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(next)) - 1);
-  return Math.ceil(next / magnitude) * magnitude;
-}
+export { raisedBudget, raisedBudgetUsd } from "../core/ai/token_usage.ts";
 
 export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHandle {
   const { panel, stack, tabs, storage } = options;
@@ -430,7 +433,7 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
   stopBtn.hidden = true;
   const currentModel = () => options.model?.() ?? "";
   const meter = installUsageMeter({
-    onSave: ({ budget, contextWindow }) => {
+    onSave: ({ budgetUsd, budgetTokens, contextWindow }) => {
       const limits = loadAiChatLimits(storage);
       const model = currentModel();
       const windows = { ...limits.contextWindows };
@@ -438,9 +441,16 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         if (contextWindow) windows[model] = contextWindow;
         else delete windows[model];
       }
-      saveAiChatLimits(storage, { ...(budget ? { budget } : {}), contextWindows: windows });
+      saveAiChatLimits(storage, {
+        ...(budgetUsd ? { budgetUsd } : {}),
+        ...(budgetTokens ? { budgetTokens } : {}),
+        contextWindows: windows,
+        modelRates: limits.modelRates,
+      });
       // A higher budget clears the 80 % note so it can warn again later.
-      if (session.budgetWarned && budgetState(chatTokens(), budget) === "ok") {
+      const used = budgetUsd ? (chatCost()?.cost ?? 0) : chatTokens();
+      const cap = budgetUsd ?? budgetTokens;
+      if (session.budgetWarned && budgetState(used, cap) === "ok") {
         session.budgetWarned = false;
         persist();
       }
@@ -586,13 +596,38 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     }
   });
 
-  // ── token meter (#276) ───────────────────────────────────────────────────
+  // ── token / cost meter (#276, #354) ───────────────────────────────────────
   const chatTokens = () => totalTokens(session.usage ?? emptyUsageTotals()) + totalTokens(turnUsage ?? emptyUsageTotals());
+  const liveUsage = () => {
+    const chat = session.usage ?? emptyUsageTotals();
+    const turn = turnUsage ?? emptyUsageTotals();
+    if (!turn.requests) return chat;
+    return mergeUsageTotals(chat, turn);
+  };
+  const chatCost = () => {
+    const limits = loadAiChatLimits(storage);
+    const model = currentModel();
+    return effectiveCost(liveUsage(), model ? limits.modelRates[model] : undefined);
+  };
   const limitsNow = () => {
     const limits = loadAiChatLimits(storage);
     const model = currentModel();
     const override = model ? limits.contextWindows[model] : undefined;
-    return { budget: limits.budget, override, contextWindow: contextWindowFor(model, override), model };
+    const rate = model ? limits.modelRates[model] : undefined;
+    const hasReportedCost = (session.usage?.cost !== undefined) || (turnUsage?.cost !== undefined);
+    const kind = budgetKind(limits, model, hasReportedCost);
+    const canPrice = Boolean(rate) || hasReportedCost;
+    return {
+      limits,
+      kind,
+      canPrice,
+      rate,
+      budgetUsd: limits.budgetUsd,
+      budgetTokens: limits.budgetTokens,
+      override,
+      contextWindow: contextWindowFor(model, override),
+      model,
+    };
   };
   const refreshMeter = () => {
     const limits = limitsNow();
@@ -601,16 +636,31 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       turn: turnUsage ?? undefined,
       running: Boolean(running),
       model: limits.model,
-      budget: limits.budget,
+      budgetKind: limits.kind,
+      budgetUsd: limits.budgetUsd,
+      budgetTokens: limits.budgetTokens,
+      modelRate: limits.rate,
+      canPrice: limits.canPrice,
       contextWindow: limits.contextWindow,
       contextWindowOverride: limits.override,
       contextEstimate: estimateChatTokens(session.messages),
     });
   };
+  const formatBudgetAmount = (kind: "usd" | "tokens", n: number, estimated = false) =>
+    kind === "usd" ? formatUsd(n, estimated) : formatTokens(n);
   /** Raise the budget past what is used and send "continue" (the paused turn goes on). */
   const raiseBudgetAndContinue = () => {
     const limits = loadAiChatLimits(storage);
-    saveAiChatLimits(storage, { ...limits, budget: raisedBudget(limits.budget, chatTokens()) });
+    const model = currentModel();
+    const rate = model ? limits.modelRates[model] : undefined;
+    const hasReportedCost = session.usage?.cost !== undefined;
+    const kind = budgetKind(limits, model, hasReportedCost);
+    if (kind === "usd") {
+      const used = effectiveCost(liveUsage(), rate)?.cost ?? 0;
+      saveAiChatLimits(storage, { ...limits, budgetUsd: raisedBudgetUsd(limits.budgetUsd, used) });
+    } else {
+      saveAiChatLimits(storage, { ...limits, budgetTokens: raisedBudget(limits.budgetTokens, chatTokens()) });
+    }
     session.budgetWarned = false;
     setInputParts([{ text: "continue" }]);
     void send();
@@ -770,7 +820,18 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         const limits = loadAiChatLimits(storage);
         const raise = el("button", {
           className: "pane-btn ai-chat-raise-budget",
-          text: formatMessage(ui().aiChatBudgetRaise, { budget: formatTokens(raisedBudget(limits.budget, chatTokens())) }),
+          text: formatMessage(ui().aiChatBudgetRaise, {
+            budget: (() => {
+              const model = currentModel();
+              const rate = model ? limits.modelRates[model] : undefined;
+              const kind = budgetKind(limits, model, session.usage?.cost !== undefined);
+              if (kind === "usd") {
+                const used = effectiveCost(liveUsage(), rate)?.cost ?? 0;
+                return formatUsd(raisedBudgetUsd(limits.budgetUsd, used));
+              }
+              return formatTokens(raisedBudget(limits.budgetTokens, chatTokens()));
+            })(),
+          }),
           type: "button",
         });
         raise.id = "ai-chat-raise-budget";
@@ -874,10 +935,18 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     }
     if (!readInputParts(input).some((part) => "chip" in part || part.text.trim())) return;
     const limits = limitsNow();
-    // Token budget (#276): a spending warner, not a police. At 100 % Send pauses
-    // until the user raises the budget.
-    if (limits.budget && chatTokens() >= limits.budget) {
-      pushBudgetPause(limits.budget);
+    // Budget (#276, #354): a spending warner, not a police. At 100 % Send pauses
+    // until the user raises the budget. USD when priceable, else tokens.
+    if (limits.kind === "usd" && limits.budgetUsd) {
+      const spent = chatCost();
+      if (spent && spent.cost >= limits.budgetUsd) {
+        pushBudgetPause("usd", spent.cost, limits.budgetUsd, spent.estimated);
+        persist();
+        renderLog();
+        return;
+      }
+    } else if (limits.kind === "tokens" && limits.budgetTokens && chatTokens() >= limits.budgetTokens) {
+      pushBudgetPause("tokens", chatTokens(), limits.budgetTokens);
       persist();
       renderLog();
       return;
@@ -928,7 +997,14 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
         history,
         signal: controller.signal,
         onEvent: onTurnEvent,
-        ...(limits.budget ? { tokenBudget: limits.budget - chatTokens() } : {}),
+        ...(limits.kind === "usd" && limits.budgetUsd
+          ? {
+            costBudget: Math.max(0, limits.budgetUsd - (chatCost()?.cost ?? 0)),
+            ...(limits.rate ? { modelRate: limits.rate } : {}),
+          }
+          : limits.kind === "tokens" && limits.budgetTokens
+          ? { tokenBudget: limits.budgetTokens - chatTokens() }
+          : {}),
       });
       if (result.usage) turnUsage = result.usage;
       paused = Boolean(result.budgetReached);
@@ -960,15 +1036,34 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
       // Requests made before an error or Stop still count.
       if (turnUsage?.requests) session.usage = mergeUsageTotals(session.usage ?? emptyUsageTotals(), turnUsage);
       turnUsage = null;
-      const budget = loadAiChatLimits(storage).budget;
-      if (paused && budget) pushBudgetPause(budget);
-      else if (budget && budgetState(chatTokens(), budget) === "warn" && !session.budgetWarned) {
+      const after = limitsNow();
+      if (paused) {
+        if (after.kind === "usd" && after.budgetUsd) {
+          const spent = chatCost();
+          pushBudgetPause("usd", spent?.cost ?? 0, after.budgetUsd, spent?.estimated);
+        } else if (after.budgetTokens) {
+          pushBudgetPause("tokens", chatTokens(), after.budgetTokens);
+        }
+      } else if (after.kind === "usd" && after.budgetUsd) {
+        const spent = chatCost();
+        if (spent && budgetState(spent.cost, after.budgetUsd) === "warn" && !session.budgetWarned) {
+          session.budgetWarned = true;
+          session.display.push({
+            role: "note",
+            text: formatMessage(ui().aiChatBudgetWarn, {
+              percent: Math.round((spent.cost / after.budgetUsd) * 100),
+              budget: formatUsd(after.budgetUsd),
+              used: formatUsd(spent.cost, spent.estimated),
+            }),
+          });
+        }
+      } else if (after.budgetTokens && budgetState(chatTokens(), after.budgetTokens) === "warn" && !session.budgetWarned) {
         session.budgetWarned = true;
         session.display.push({
           role: "note",
           text: formatMessage(ui().aiChatBudgetWarn, {
-            percent: Math.round((chatTokens() / budget) * 100),
-            budget: formatTokens(budget),
+            percent: Math.round((chatTokens() / after.budgetTokens) * 100),
+            budget: formatTokens(after.budgetTokens),
             used: formatTokens(chatTokens()),
           }),
         });
@@ -986,11 +1081,14 @@ export function installAiChatPanel(options: AiChatPanelOptions): AiChatPanelHand
     }
   };
 
-  const pushBudgetPause = (budget: number) => {
+  const pushBudgetPause = (kind: "usd" | "tokens", used: number, budget: number, estimated = false) => {
     session.display.push({
       role: "note",
       action: "raise-budget",
-      text: formatMessage(ui().aiChatBudgetReached, { used: formatTokens(chatTokens()), budget: formatTokens(budget) }),
+      text: formatMessage(ui().aiChatBudgetReached, {
+        used: formatBudgetAmount(kind, used, estimated),
+        budget: formatBudgetAmount(kind, budget),
+      }),
     });
   };
 

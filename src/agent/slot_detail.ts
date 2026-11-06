@@ -36,6 +36,8 @@ export interface SlotDetail {
   units?: string[];
   values?: SkeletonNode["allowedValues"];
   ordinals?: SkeletonNode["allowedOrdinals"];
+  /** Active value-set hint. Not a mapping. */
+  hint?: { kind: string; codes: Array<{ code: string; text?: string; assumed?: boolean; value?: number }>; assumed?: string };
   /** The constraint as the target file has it: JSON Schema subschema, XSD element/attribute, or the template node. */
   constraint?: { kind: "json-schema" | "xsd" | "openehr"; value: unknown };
   /** Full meaning, comment, bindings, ranges, value descriptions and per-language texts (#277). */

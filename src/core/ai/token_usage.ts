@@ -1,7 +1,8 @@
 /**
- * Token use of AI chat calls (#276): what the provider reports per request,
- * running totals per turn and per chat, an optional token budget, and the
- * model's context window for the ring next to Stop.
+ * Token / cost use of AI chat calls (#276, #354): what the provider reports
+ * per request, running totals per turn and per chat, an optional USD (or
+ * token) budget, OpenRouter rates, and the model's context window for the
+ * ring next to Stop.
  *
  * Chat Completions is stateless: every step resends the whole conversation,
  * so `input` grows with the chat. Providers with prompt caching bill the
@@ -42,11 +43,20 @@ export interface UsageTotals {
 }
 
 export function emptyUsageTotals(): UsageTotals {
-  return { input: 0, output: 0, cachedInput: 0, requests: 0, estimated: false, lastContext: 0 };
+  return {
+    input: 0,
+    output: 0,
+    cachedInput: 0,
+    requests: 0,
+    estimated: false,
+    lastContext: 0,
+  };
 }
 
 export function addUsage(totals: UsageTotals, usage: TokenUsage): UsageTotals {
-  const cost = usage.cost !== undefined ? (totals.cost ?? 0) + usage.cost : totals.cost;
+  const cost = usage.cost !== undefined
+    ? (totals.cost ?? 0) + usage.cost
+    : totals.cost;
   return {
     input: totals.input + usage.input,
     output: totals.output + usage.output,
@@ -60,7 +70,9 @@ export function addUsage(totals: UsageTotals, usage: TokenUsage): UsageTotals {
 
 /** Add two totals (a finished turn into the chat). `lastContext` comes from `b` when it made requests. */
 export function mergeUsageTotals(a: UsageTotals, b: UsageTotals): UsageTotals {
-  const cost = a.cost !== undefined || b.cost !== undefined ? (a.cost ?? 0) + (b.cost ?? 0) : undefined;
+  const cost = a.cost !== undefined || b.cost !== undefined
+    ? (a.cost ?? 0) + (b.cost ?? 0)
+    : undefined;
   return {
     input: a.input + b.input,
     output: a.output + b.output,
@@ -73,19 +85,25 @@ export function mergeUsageTotals(a: UsageTotals, b: UsageTotals): UsageTotals {
 }
 
 /** Tokens that count against the budget: everything sent and received (cached input included). */
-export function totalTokens(totals: Pick<UsageTotals, "input" | "output">): number {
+export function totalTokens(
+  totals: Pick<UsageTotals, "input" | "output">,
+): number {
   return totals.input + totals.output;
 }
 
 export function parseUsageTotals(raw: unknown): UsageTotals | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0);
+  const n = (
+    v: unknown,
+  ) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0);
   return {
     input: n(r.input),
     output: n(r.output),
     cachedInput: n(r.cachedInput),
-    ...(typeof r.cost === "number" && Number.isFinite(r.cost) ? { cost: r.cost } : {}),
+    ...(typeof r.cost === "number" && Number.isFinite(r.cost)
+      ? { cost: r.cost }
+      : {}),
     requests: n(r.requests),
     estimated: r.estimated === true,
     lastContext: n(r.lastContext),
@@ -106,14 +124,19 @@ function num(v: unknown): number | undefined {
 export function parseProviderUsage(raw: unknown): TokenUsage | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const u = raw as Record<string, unknown>;
-  const details = (u.prompt_tokens_details ?? u.input_tokens_details) as Record<string, unknown> | undefined;
+  const details = (u.prompt_tokens_details ?? u.input_tokens_details) as
+    | Record<string, unknown>
+    | undefined;
   const openAiIn = num(u.prompt_tokens);
   const openAiOut = num(u.completion_tokens);
   // Anthropic reports cache reads / writes next to (not inside) input_tokens.
   const cacheRead = num(u.cache_read_input_tokens);
   const cacheWrite = num(u.cache_creation_input_tokens);
   const anthropicIn = num(u.input_tokens);
-  const input = openAiIn ?? (anthropicIn !== undefined ? anthropicIn + (cacheRead ?? 0) + (cacheWrite ?? 0) : undefined);
+  const input = openAiIn ??
+    (anthropicIn !== undefined
+      ? anthropicIn + (cacheRead ?? 0) + (cacheWrite ?? 0)
+      : undefined);
   const output = openAiOut ?? num(u.output_tokens);
   if (input === undefined && output === undefined) return undefined;
   const cached = num(details?.cached_tokens) ?? cacheRead;
@@ -136,7 +159,9 @@ export function estimateTokens(text: string): number {
  * families with a published fixed window; anything else needs the user's
  * value, otherwise the ring is hidden. Checked 2026-10.
  */
-export const KNOWN_CONTEXT_WINDOWS: ReadonlyArray<{ pattern: RegExp; tokens: number }> = [
+export const KNOWN_CONTEXT_WINDOWS: ReadonlyArray<
+  { pattern: RegExp; tokens: number }
+> = [
   { pattern: /gpt-4\.1/i, tokens: 1_047_576 },
   { pattern: /gpt-5/i, tokens: 400_000 },
   { pattern: /gpt-4o|gpt-4-turbo/i, tokens: 128_000 },
@@ -150,7 +175,10 @@ export const KNOWN_CONTEXT_WINDOWS: ReadonlyArray<{ pattern: RegExp; tokens: num
 ];
 
 /** Context window for a model: the user's value first, else the known table, else undefined. */
-export function contextWindowFor(model: string, override?: number): number | undefined {
+export function contextWindowFor(
+  model: string,
+  override?: number,
+): number | undefined {
   if (override && override > 0) return override;
   const id = model.trim();
   if (!id) return undefined;
@@ -162,7 +190,10 @@ export const BUDGET_WARN_SHARE = 0.8;
 
 export type BudgetState = "none" | "ok" | "warn" | "over";
 
-export function budgetState(used: number, budget: number | undefined): BudgetState {
+export function budgetState(
+  used: number,
+  budget: number | undefined,
+): BudgetState {
   if (!budget || budget <= 0) return "none";
   if (used >= budget) return "over";
   if (used >= budget * BUDGET_WARN_SHARE) return "warn";
@@ -172,27 +203,66 @@ export function budgetState(used: number, budget: number | undefined): BudgetSta
 /** Short token count: 950, 12.3k, 1.05M. */
 export function formatTokens(n: number): string {
   if (n < 1000) return String(Math.round(n));
-  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
+  if (n < 1_000_000) {
+    return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
+  }
   return `${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
 }
 
 /** Parse "200k", "1.5M", "64000" (spaces / underscores allowed). Undefined for empty or invalid. */
 export function parseTokenCount(text: string): number | undefined {
-  const m = text.trim().replace(/[\s_,]/g, "").match(/^(\d+(?:\.\d+)?)([kKmM]?)$/);
+  const m = text.trim().replace(/[\s_,]/g, "").match(
+    /^(\d+(?:\.\d+)?)([kKmM]?)$/,
+  );
   if (!m) return undefined;
-  const scale = m[2]!.toLowerCase() === "k" ? 1000 : m[2]!.toLowerCase() === "m" ? 1_000_000 : 1;
+  const scale = m[2]!.toLowerCase() === "k"
+    ? 1000
+    : m[2]!.toLowerCase() === "m"
+    ? 1_000_000
+    : 1;
   const value = Math.round(Number(m[1]) * scale);
   return value > 0 ? value : undefined;
 }
 
-/** Host localStorage key for the chat's token budget and context-window overrides. */
+/** USD per token for one model (OpenRouter `pricing.prompt` / `pricing.completion`). */
+export interface ModelRate {
+  prompt: number;
+  completion: number;
+}
+
+/** Host localStorage key for the chat's budget, rates and context-window overrides. */
 export const AI_CHAT_LIMITS_KEY = "intehrgrator.ai.chatLimits";
 
 export interface AiChatLimits {
-  /** Token budget per chat (input + output, until Clear history). Undefined = no budget. */
-  budget?: number;
+  /**
+   * USD budget per chat (until Clear history). Preferred when rates or reported
+   * costs are known (#354).
+   */
+  budgetUsd?: number;
+  /**
+   * Token budget per chat (input + output). Fallback when the model has no
+   * price (local LM Studio, etc.).
+   */
+  budgetTokens?: number;
   /** Context window per model id, set by the user. */
   contextWindows: Record<string, number>;
+  /** Prompt/completion USD-per-token rates, refreshed on Connect & fetch models. */
+  modelRates: Record<string, ModelRate>;
+}
+
+/** How the meter / pause should treat the budget for this model. */
+export type BudgetKind = "usd" | "tokens" | "none";
+
+export function budgetKind(
+  limits: AiChatLimits,
+  model: string,
+  hasReportedCost: boolean,
+): BudgetKind {
+  const rate = model.trim() ? limits.modelRates[model.trim()] : undefined;
+  if (limits.budgetUsd && (rate || hasReportedCost)) return "usd";
+  if (limits.budgetUsd && !limits.budgetTokens) return "usd"; // user set $; pause when we can price
+  if (limits.budgetTokens) return "tokens";
+  return "none";
 }
 
 interface StorageLike {
@@ -200,28 +270,140 @@ interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
+function parseModelRate(raw: unknown): ModelRate | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const prompt = num(r.prompt);
+  const completion = num(r.completion);
+  if (prompt === undefined || completion === undefined) return undefined;
+  return { prompt, completion };
+}
+
 export function loadAiChatLimits(storage: StorageLike): AiChatLimits {
   try {
-    const raw = JSON.parse(storage.getItem(AI_CHAT_LIMITS_KEY) ?? "null") as Record<string, unknown> | null;
-    const budget = num(raw?.budget);
+    const raw = JSON.parse(storage.getItem(AI_CHAT_LIMITS_KEY) ?? "null") as
+      | Record<string, unknown>
+      | null;
+    const budgetUsd = num(raw?.budgetUsd);
+    // Pre-1.0 (#354): legacy `budget` was tokens; migrate to budgetTokens.
+    const budgetTokens = num(raw?.budgetTokens) ?? num(raw?.budget);
     const windows: Record<string, number> = {};
     const rawWindows = raw?.contextWindows;
     if (rawWindows && typeof rawWindows === "object") {
-      for (const [model, value] of Object.entries(rawWindows as Record<string, unknown>)) {
+      for (
+        const [model, value] of Object.entries(
+          rawWindows as Record<string, unknown>,
+        )
+      ) {
         const n = num(value);
         if (model && n) windows[model] = n;
       }
     }
-    return { ...(budget ? { budget } : {}), contextWindows: windows };
+    const modelRates: Record<string, ModelRate> = {};
+    const rawRates = raw?.modelRates;
+    if (rawRates && typeof rawRates === "object") {
+      for (
+        const [model, value] of Object.entries(
+          rawRates as Record<string, unknown>,
+        )
+      ) {
+        const rate = parseModelRate(value);
+        if (model && rate) modelRates[model] = rate;
+      }
+    }
+    return {
+      ...(budgetUsd ? { budgetUsd } : {}),
+      ...(budgetTokens ? { budgetTokens } : {}),
+      contextWindows: windows,
+      modelRates,
+    };
   } catch {
-    return { contextWindows: {} };
+    return { contextWindows: {}, modelRates: {} };
   }
 }
 
-export function saveAiChatLimits(storage: StorageLike, limits: AiChatLimits): void {
+export function saveAiChatLimits(
+  storage: StorageLike,
+  limits: AiChatLimits,
+): void {
   try {
-    storage.setItem(AI_CHAT_LIMITS_KEY, JSON.stringify(limits));
+    // Never write the legacy `budget` key again (#354).
+    const { budgetUsd, budgetTokens, contextWindows, modelRates } = limits;
+    storage.setItem(
+      AI_CHAT_LIMITS_KEY,
+      JSON.stringify({
+        ...(budgetUsd ? { budgetUsd } : {}),
+        ...(budgetTokens ? { budgetTokens } : {}),
+        contextWindows,
+        modelRates,
+      }),
+    );
   } catch {
     // quota / private mode
   }
+}
+
+/** Cost of totals: prefer summed reported `usage.cost`, else rates × tokens (~). */
+export function effectiveCost(
+  totals: Pick<UsageTotals, "input" | "output" | "cost">,
+  rate?: ModelRate,
+): { cost: number; estimated: boolean } | undefined {
+  if (totals.cost !== undefined) return { cost: totals.cost, estimated: false };
+  if (!rate) return undefined;
+  return {
+    cost: totals.input * rate.prompt + totals.output * rate.completion,
+    estimated: true,
+  };
+}
+
+/** Input / output USD from rates (for dual counters). Undefined without a rate. */
+export function costBreakdown(
+  totals: Pick<UsageTotals, "input" | "output">,
+  rate?: ModelRate,
+): { input: number; output: number } | undefined {
+  if (!rate) return undefined;
+  return {
+    input: totals.input * rate.prompt,
+    output: totals.output * rate.completion,
+  };
+}
+
+/** Short USD: $0.0042, $1.25, ~$0.50 when estimated. */
+export function formatUsd(n: number, estimated = false): string {
+  const prefix = estimated ? "~$" : "$";
+  if (!Number.isFinite(n) || n < 0) return `${prefix}0`;
+  if (n > 0 && n < 0.01) return `${prefix}${n.toFixed(4)}`;
+  return `${prefix}${n.toFixed(2)}`;
+}
+
+/** Parse "$1.50", "1.50", "0.05". Undefined for empty or invalid. */
+export function parseUsdAmount(text: string): number | undefined {
+  const m = text.trim().replace(/,/g, "").match(/^\$?(\d+(?:\.\d+)?)$/);
+  if (!m) return undefined;
+  const value = Number(m[1]);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+/**
+ * Next budget after a pause: double it, and at least a quarter above what is
+ * used. Rounds to two significant digits so the setting reads well (2.5M, 120k).
+ * For USD, call with cents (see {@link raisedBudgetUsd}).
+ */
+export function raisedBudget(budget: number | undefined, used: number): number {
+  const next = Math.max((budget ?? 0) * 2, Math.ceil(used * 1.25));
+  if (next <= 0) return 1;
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(next)) - 1);
+  return Math.ceil(next / magnitude) * magnitude;
+}
+
+/** Next USD budget after a pause (same shape as {@link raisedBudget}, in dollars). */
+export function raisedBudgetUsd(
+  budget: number | undefined,
+  used: number,
+): number {
+  const cents = raisedBudget(
+    budget !== undefined ? Math.round(budget * 100) : undefined,
+    Math.max(1, Math.ceil(used * 100)),
+  );
+  return cents / 100;
 }

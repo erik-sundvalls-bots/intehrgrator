@@ -46,17 +46,25 @@ Use this when intEHRgrator should call the model itself.
 
 If a provider does not support function tools, the chat asks once for suggestions JSON and applies it directly, also as one Undo step.
 
+### Fill a hint-created grid
+
+After **Decision table: source → code** or **Sheet lookup** in the **Hints** tab, an optional dialog offers a prompt for the new grid. **Insert prompt** only puts that text in the AI chat input: review it, then send it yourself (or copy it to an external chat). Declining keeps the grid and its connected blocks.
+
+The prompt asks the AI to fill only the blank **source** column using the loaded Source Schema and Active Example, preserving the allowed target codes, rubrics, ordinals, or units. Review those matches and wire the reader's source input before **Run Test**. The offer is interactive UI only: MCP/Agent `apply_hint` creates the mapping scaffold but neither offers nor runs an AI prompt. See [Value-set hints](value-set-hints.md).
+
 ### Token use, context window and budget
 
-Next to **Stop** / **Send** a meter shows the tokens this chat has used, updated after every step while the model works. It counts what the provider reports (input, cached input, output, and the cost when the provider gives one, such as OpenRouter); a `~` means the provider reported nothing and the number is an estimate. The ring shows how full the model's context window is: the last request's input plus output against the window. The window is known for common models (GPT-4o, GPT-4.1, GPT-5, o-series, Claude, Gemini, DeepSeek, …); for any other model set it in the meter's popover, otherwise the ring is hidden.
+Next to **Stop** / **Send** a meter shows what this chat has used, updated after every step while the model works. It counts what the provider reports (input, cached input, output, and the cost when the provider gives one, such as OpenRouter) and shows **input vs output** side by side — tokens always, and USD when the model is priceable. A `~` means an estimate (no provider usage, or cost from rates × tokens). The ring shows how full the model's context window is: the last request's input plus output against the window. The window is known for common models (GPT-4o, GPT-4.1, GPT-5, o-series, Claude, Gemini, DeepSeek, …); for any other model set it in the meter's popover, otherwise the ring is hidden.
+
+**Connect & fetch models** on OpenRouter stores each model's `pricing.prompt` / `pricing.completion` (USD per token) in this browser. Reported `usage.cost` wins when present; otherwise the meter estimates from those rates.
 
 The chat API keeps no session on the provider's side: every step sends the whole chat again, so the input grows with each step and turn. Providers with prompt caching bill the repeated start of the chat cheaper ("cached" in the popover). When the history gets too long for the model's context window (half of it; 64k tokens for an unknown model), the oldest turns are dropped and the next message re-attaches the project context.
 
-Click the meter to set an optional **token budget per chat** (input + output until **Clear history**, for example `2M`). At 80 % the chat warns; at 100 % it pauses after the step that reached it. **Raise budget … and continue** raises it and lets the model go on where it stopped. The budget is a spending warning, not a hard limit, and it is kept in this browser only. A model that keeps calling tools without finishing is stopped after 100 steps; send "continue" to let it go on.
+Click the meter to set an optional **budget per chat** until **Clear history**. When rates or a reported cost are known, the field is **USD** (for example `1.00`); otherwise it stays a **token** budget (input + output, for example `2M`) for local models with no price. At 80 % the chat warns; at 100 % it pauses after the step that reached it. **Raise budget … and continue** raises it and lets the model go on where it stopped. The budget is a spending warning, not a hard limit, and it is kept in this browser only. A model that keeps calling tools without finishing is stopped after 100 steps; send "continue" to let it go on.
 
-<img src="../assets/tutorial/ai-chat-tokens.png" alt="Token meter popover: context 41k of 128k tokens, input, cached and output tokens of this chat, token budget and context-window fields" />
+<img src="../assets/tutorial/ai-chat-tokens.png" alt="Token meter popover: context 41k of 128k tokens, dual input/output tokens and cost of this chat, budget and context-window fields" />
 
-<img src="../assets/tutorial/ai-chat-budget-paused.png" alt="AI chat paused at the token budget, with a Raise budget to 200k and continue button and the red meter 126k / 100k" />
+<img src="../assets/tutorial/ai-chat-budget-paused.png" alt="AI chat paused at the budget, with a Raise budget … and continue button and the red meter" />
 
 On GitHub Pages the browser often cannot reach a cloud API (CORS). The desktop app forwards AI chat requests through its own server, so Gemini, OpenAI, Anthropic, Hugging Face, and OpenCode Zen work there. Key pages: [AI chat credentials](../AI_CREDENTIALS.md).
 

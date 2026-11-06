@@ -32,6 +32,14 @@ On a decision table, **Add input/condition** adds a condition column. **Add outp
 
 Each column header shows a cogwheel. The cogwheel and a right-click on the header open the same menu: **Move left**, **Move right**, and **Delete {name}** (red). Columns and rows can also be dragged. Deleting a column confirms in a short toast; Undo on the canvas restores it. An output column has one kind dropdown in that menu, labeled **Output type** — string, number, boolean, or **string pattern** — and each option shows the same mark as the header (`🔤`, `🔢`, `✓`, `{}`). The header mark updates as soon as the type changes. A string pattern column holds a VMS-Mustache snippet (bound names such as `{{word}}`). Branching stays in the table, not inside the cell.
 
+## Start a grid from a value-set hint
+
+If the template already lists the target codes, open the slot's 💡 badge or the **Hints** tab instead of creating a grid from scratch. **Decision table: source → code** or **Sheet lookup** creates the grid **and connects its reader block to the target slot**. For quantities, the reader goes into **units**, leaving the magnitude mapping alone.
+
+The target columns are prefilled; **source starts blank**. You still need to bind the block's source input and fill the source column with reviewed source values. A hint-created decision table uses **UNIQUE**, so the initial blank (don't-care) rows cannot silently select the first target. A sheet lookup starts with a placeholder match value rather than matching the blank cells. Do not treat either as a finished conversion yet.
+
+The UI offers to insert an AI prompt for filling the source column; it does not send the prompt automatically. See [Value-set hints](value-set-hints.md) for a worked flow and screenshots.
+
 ## Hit policy
 
 The hit policy sits next to the decision table, with an **(i)** that summarises the three choices.

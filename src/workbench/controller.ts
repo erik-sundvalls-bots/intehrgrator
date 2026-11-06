@@ -25,6 +25,7 @@ import type {
   TestResult,
 } from "../types/mod.ts";
 import { textSubtype } from "../core/openehr/coded_text.ts";
+import { pruneHintSettings } from "../core/hints/value_set_hint.ts";
 import {
   APP_VERSION,
   AUTOSAVE_STORAGE_KEY,
@@ -294,6 +295,18 @@ export class WorkbenchController {
   }
 
   /** Replace project Sheets. Caller records Blockly undo when the change is user-authored. */
+  /** Replace project settings after a value-set hint edit. Session output choices stay. */
+  replaceSettings(settings: ProjectSettings): void {
+    this.settings = {
+      ...settings,
+      autoplay: this.settings.autoplay,
+      exportTarget: this.settings.exportTarget,
+      openEhrInstanceShape: this.settings.openEhrInstanceShape,
+      openEhrJsonDeserializeMode: this.settings.openEhrJsonDeserializeMode,
+    };
+    this.markDirty();
+  }
+
   replaceSheets(sheets: SheetDocument[], options: { silent?: boolean } = {}): void {
     this.sheets = normalizeSheets(sheets);
     if (options.silent) {
@@ -2609,7 +2622,7 @@ export class WorkbenchController {
         handlebarsTemplate: this.handlebarsTemplate,
         sheets: cloneSheets(this.sheets),
       },
-      settings: { ...this.settings },
+      settings: pruneHintSettings(this.skeleton, this.model, this.settings),
       urlHistory: this.captureUrlHistory(),
     };
   }
