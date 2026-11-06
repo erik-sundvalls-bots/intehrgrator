@@ -116,6 +116,11 @@ import {
   installExtractToFunctionOnWorkspace,
   installFunctionLibraryMenus,
 } from "../src/blockly/mod.ts";
+import { renderHintBadges } from "../src/blockly/hint_badges.ts";
+import { applyValueSetHint, type ApplyValueSetHintRequest } from "../src/blockly/hint_actions.ts";
+import { setValueSetHintNoteSlots } from "../src/blockly/block_constraints.ts";
+import { collectValueSetHints, countActiveHints } from "../src/core/hints/value_set_hint.ts";
+import { mountHintsPanel } from "../src/ui/hints_panel.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
 import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
 import { installCodedTextMenu } from "../src/blockly/coded_text_menu.ts";
@@ -343,6 +348,8 @@ const instanceShapeSelect = document.getElementById("openehr-instance-shape") as
 const instanceShapeWrap = document.getElementById("openehr-instance-shape-wrap") as HTMLLabelElement;
 const mappingJsonTab = document.getElementById("tab-mapping-json") as HTMLButtonElement;
 const sheetsTab = document.getElementById("tab-sheets") as HTMLButtonElement;
+const hintsTab = document.getElementById("tab-hints") as HTMLButtonElement;
+const hintsHost = document.getElementById("hints-host")!;
 const uploadSpecBtn = document.getElementById("btn-upload-spec") as HTMLButtonElement;
 const mappingJsonHost = document.getElementById("spec-editor")!;
 const specEditorWrap = document.getElementById("spec-editor-wrap")!;
@@ -379,6 +386,7 @@ const specEditor = createMappingSpecEditor(mappingJsonHost, {
   copyAll: copyAllToClipboard,
 });
 let sheetsPanel: ReturnType<typeof mountSheetsPanel> | null = null;
+let hintsPanel: ReturnType<typeof mountHintsPanel> | null = null;
 let specChromeUi: ReturnType<typeof mountMappingSpecChrome> | null = null;
 let functionLibraryUi: ReturnType<typeof mountFunctionLibraryDialog> | null = null;
 let specCheckedBlockIds = new Set<string>();
@@ -818,21 +826,72 @@ function flashSheetsChrome(): void {
   globalThis.setTimeout(() => tab.classList.remove("sheets-flash"), 4000);
 }
 
-function showTextView(view: "mapping-json" | "sheets"): void {
+function showTextView(view: "mapping-json" | "sheets" | "hints"): void {
   const showSheets = view === "sheets";
-  mappingJsonHost.hidden = showSheets;
-  if (specEditorWrap) specEditorWrap.hidden = showSheets;
+  const showHints = view === "hints";
+  mappingJsonHost.hidden = showSheets || showHints;
+  if (specEditorWrap) specEditorWrap.hidden = showSheets || showHints;
   sheetsHost.hidden = !showSheets;
-  specBulkBar.hidden = showSheets;
+  if (hintsHost) hintsHost.hidden = !showHints;
+  specBulkBar.hidden = showSheets || showHints;
   if (sheetsActions) sheetsActions.hidden = !showSheets;
   mappingJsonTab.classList.toggle("active", view === "mapping-json");
   sheetsTab?.classList.toggle("active", showSheets);
-  if (uploadSpecBtn) uploadSpecBtn.hidden = showSheets;
+  hintsTab?.classList.toggle("active", showHints);
+  if (uploadSpecBtn) uploadSpecBtn.hidden = showSheets || showHints;
   if (showSheets) sheetsPanel?.refresh();
+  if (showHints) hintsPanel?.refresh();
 }
 
 mappingJsonTab.addEventListener("click", () => showTextView("mapping-json"));
 sheetsTab?.addEventListener("click", () => showTextView("sheets"));
+hintsTab?.addEventListener("click", () => showTextView("hints"));
+
+function blockForHintSlot(slotId: string): Blockly.Block | null {
+  const matches = workspace.getAllBlocks(false).filter((block) => {
+    try {
+      return String(block.getFieldValue("SLOT_ID") ?? "") === slotId;
+    } catch {
+      return false;
+    }
+  });
+  return matches.find((block) => block.type === "element") ?? matches[0] ?? null;
+}
+
+function focusHintSlot(slotId: string): void {
+  const block = blockForHintSlot(slotId);
+  if (!block) return;
+  applyBlockSelection(block.id, "spec");
+}
+
+function applyHintFromUi(request: ApplyValueSetHintRequest) {
+  const s = controller.getState();
+  const result = applyValueSetHint(workspace, s.skeleton, s.model, s.settings, s.sheets, request);
+  controller.replaceSheets(result.sheets, { silent: true });
+  controller.replaceSettings(result.settings);
+  persistBlocklyCanvas({ summary: result.summary });
+  if (result.grid) {
+    const kind = result.grid.kind === "decision-table" ? "decision-table" : "sheet";
+    sheetsPanel?.showSheet(result.grid.name, kind);
+    showTextView("sheets");
+  }
+  return result;
+}
+
+let pendingHintPrompt: string | null = null;
+function offerHintPrompt(prompt: string): void {
+  pendingHintPrompt = prompt;
+  const dialog = document.getElementById("dialog-hint-ai");
+  if (dialog instanceof HTMLDialogElement) dialog.showModal();
+}
+
+document.getElementById("hint-ai-form")?.addEventListener("submit", (event) => {
+  const submitter = (event as SubmitEvent).submitter;
+  const choice = submitter instanceof HTMLButtonElement ? submitter.value : "decline";
+  const prompt = pendingHintPrompt;
+  pendingHintPrompt = null;
+  if (choice === "insert" && prompt) aiChat?.prefill(prompt);
+});
 specMarkWarnedBtn.addEventListener("click", () => markAllWarnedOptionalUnmapped());
 specDeleteMarkedBtn.addEventListener("click", () => deleteMarkedSpecBlocksFromCanvas());
 uploadSpecBtn?.addEventListener("click", () =>
@@ -1220,6 +1279,38 @@ async function bootBlockly(): Promise<void> {
     (sheets) => controller.replaceSheets(sheets),
   );
   if (sheetsTab) sheetsTab.textContent = sheetsChrome(blocklyLocale).tab;
+  hintsPanel = mountHintsPanel(
+    hintsHost,
+    () => collectValueSetHints(controller.getState().skeleton, controller.getState().model, controller.getState().settings),
+    {
+      apply: (request) => applyHintFromUi(request),
+      onGrid: (prompt) => offerHintPrompt(prompt),
+      onSelect: (slotId) => focusHintSlot(slotId),
+    },
+    () => {
+      const messages = uiChrome();
+      return {
+        filter: messages.hintsFilter,
+        filterAria: messages.hintsFilterAria,
+        kindAll: messages.hintsKindAll,
+        kindCoded: messages.hintsKindCoded,
+        kindOrdinal: messages.hintsKindOrdinal,
+        kindString: messages.hintsKindString,
+        kindUnits: messages.hintsKindUnits,
+        useConstant: messages.hintsUseConstant,
+        decisionTable: messages.hintsDecisionTable,
+        sheetLookup: messages.hintsSheetLookup,
+        pickSubset: messages.hintsPickSubset,
+        dismiss: messages.hintsDismiss,
+        restore: messages.hintsRestore,
+        empty: messages.hintsEmpty,
+        dismissed: messages.hintsDismissed,
+        assumed: messages.hintsAssumed,
+        noAssumed: messages.hintsNoAssumed,
+        blankSource: messages.hintsBlankSource,
+      };
+    },
+  );
 
   attachWorkspaceMinimap(workspace, blocklyMount);
   installToolboxSearchInputFix(blocklyMount, () => workspace);
@@ -1495,6 +1586,8 @@ function documentCommitSignature(): string {
     s.model,
     s.sheets,
     s.handlebarsTemplate ?? "",
+    s.settings.dismissedHints ?? [],
+    s.settings.hintSubsets ?? [],
   ]);
   let hash = 2166136261;
   for (let i = 0; i < payload.length; i++) {
@@ -4453,6 +4546,9 @@ function render(): void {
       ? formatMessage(messages.statusExample, { name: s.activeExample.filename })
       : messages.statusNoExample,
     formatMessage(messages.statusUnmapped, { n: s.unmappedMandatory }),
+    formatMessage(messages.statusHints, {
+      n: countActiveHints(collectValueSetHints(s.skeleton, s.model, s.settings)),
+    }),
     localizeStatus(locale, s.statusMessage),
   ].join(" · ");
 
@@ -4537,7 +4633,21 @@ function render(): void {
   suppressBlocklyModelSync = true;
   try {
     syncBlocklyWorkspace(s);
+    const hints = collectValueSetHints(s.skeleton, s.model, s.settings);
+    setValueSetHintNoteSlots(
+      workspace,
+      hints.filter((hint) => !hint.dismissed && !hint.mandatory).map((hint) => hint.slotId),
+    );
     refreshWorkspaceConstraints(workspace);
+    renderHintBadges(
+      workspace,
+      hints.filter((hint) => !hint.dismissed).map((hint) => ({ slotId: hint.slotId, label: hint.label })),
+      (slotId) => {
+        hintsPanel?.select(slotId);
+        showTextView("hints");
+        focusHintSlot(slotId);
+      },
+    );
     highlightListeningSlot(workspace, controller.getState().listeningSlotId, controller.getState().listeningSourceBlockId);
   } finally {
     suppressBlocklyModelSync = false;
@@ -4549,6 +4659,7 @@ function render(): void {
 
   specChromeUi?.refresh();
   sheetsPanel?.refresh();
+  hintsPanel?.refresh();
   const generated = afterCanvas.generatedCode || "// Generated Export";
   setEditorDoc(exportEditor, generated, languageForExportTarget(s.settings.exportTarget, generated));
   const testOutput = afterCanvas.testResult?.output;
