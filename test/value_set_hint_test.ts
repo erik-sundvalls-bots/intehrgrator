@@ -17,7 +17,6 @@ import {
   dismissHint,
   planHintGrid,
   pruneHintSettings,
-  subsetHint,
 } from "@intehrgrator/core/hints/value_set_hint.ts";
 import { createEmptyModel } from "@intehrgrator/core/mapping_model/mod.ts";
 import { DEFAULT_SETTINGS, type ProjectSettings, type SkeletonNode } from "@intehrgrator/types/mod.ts";
@@ -98,16 +97,6 @@ Deno.test("a changed allowed-code list restores a dismissed hint", () => {
   assertEquals(collectValueSetHints(changed, model, dismissed)[0]?.dismissed, false);
   const pruned = pruneHintSettings(changed, model, dismissed);
   assertEquals(pruned.dismissedHints, undefined);
-});
-
-Deno.test("pick subset keeps only the chosen codes", () => {
-  const skeleton = positionSkeleton();
-  const model = createEmptyModel("t");
-  const hint = collectValueSetHints(skeleton, model, settings)[0]!;
-  const next = subsetHint(settings, hint, ["at1001", "at1002"]);
-  const shown = collectValueSetHints(skeleton, model, next)[0]!;
-  assertEquals(shown.codes.map((code) => code.code), ["at1001", "at1002"]);
-  assertEquals(shown.assumed, "at1001");
 });
 
 Deno.test("decision table from a hint prefills codes and leaves source blank", () => {

@@ -501,7 +501,6 @@ export const de: ChromeMessages = {
   hintsUseConstant: "Als Konstante verwenden",
   hintsDecisionTable: "Entscheidungstabelle: Quelle → Code",
   hintsSheetLookup: "Tabellensuche",
-  hintsPickSubset: "Teilmenge wählen",
   hintsDismiss: "Ausblenden",
   hintsRestore: "Ausgeblendete Hinweise wiederherstellen",
   hintsEmpty: "Keine Wertemengen-Hinweise in dieser Vorlage.",

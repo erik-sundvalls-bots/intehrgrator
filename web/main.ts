@@ -1308,7 +1308,6 @@ async function bootBlockly(): Promise<void> {
         useConstant: messages.hintsUseConstant,
         decisionTable: messages.hintsDecisionTable,
         sheetLookup: messages.hintsSheetLookup,
-        pickSubset: messages.hintsPickSubset,
         dismiss: messages.hintsDismiss,
         restore: messages.hintsRestore,
         empty: messages.hintsEmpty,
@@ -1595,7 +1594,6 @@ function documentCommitSignature(): string {
     s.sheets,
     s.handlebarsTemplate ?? "",
     s.settings.dismissedHints ?? [],
-    s.settings.hintSubsets ?? [],
   ]);
   let hash = 2166136261;
   for (let i = 0; i < payload.length; i++) {

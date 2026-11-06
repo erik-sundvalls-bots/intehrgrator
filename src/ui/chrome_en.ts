@@ -708,7 +708,6 @@ export const en = {
   hintsUseConstant: "Use as constant",
   hintsDecisionTable: "Decision table: source → code",
   hintsSheetLookup: "Sheet lookup",
-  hintsPickSubset: "Pick subset",
   hintsDismiss: "Dismiss",
   hintsRestore: "Restore dismissed hints",
   hintsEmpty: "No value-set hints on this template.",

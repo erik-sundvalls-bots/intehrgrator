@@ -332,7 +332,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "apply_hint",
     description:
-      "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise the shell that slot needs; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank — they do not read the source schema or an example. subset keeps only codes on the hint. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
+      "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise the shell that slot needs; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank — they do not read the source schema or an example. Selected codes limit which rows those grids get. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
     inputSchema: {
       type: "object",
       required: ["action"],
@@ -340,12 +340,12 @@ export const AGENT_TOOLS: AgentToolDef[] = [
         slotId: { type: "string" },
         action: {
           type: "string",
-          enum: ["constant", "decision_table", "sheet_lookup", "subset", "dismiss", "restore"],
+          enum: ["constant", "decision_table", "sheet_lookup", "dismiss", "restore"],
         },
         codes: {
           type: "array",
           items: { type: "string" },
-          description: "subset: codes to keep. constant: one code (default: assumed_value, else the first).",
+          description: "decision_table/sheet_lookup: codes to prefill (default: all). constant: one code (default: assumed_value, else the first).",
         },
         revision: { type: "string" },
       },
@@ -813,15 +813,15 @@ export async function callAgentTool(
     }
     case "apply_hint": {
       const action = String(args.action ?? "");
-      const allowed = new Set(["constant", "decision_table", "sheet_lookup", "subset", "dismiss", "restore"]);
+      const allowed = new Set(["constant", "decision_table", "sheet_lookup", "dismiss", "restore"]);
       if (!allowed.has(action)) {
-        throw new Error("apply_hint action must be constant, decision_table, sheet_lookup, subset, dismiss, or restore");
+        throw new Error("apply_hint action must be constant, decision_table, sheet_lookup, dismiss, or restore");
       }
       const codes = Array.isArray(args.codes) ? args.codes.map((code) => String(code)) : undefined;
       const applied = service.applyHint(
         {
           ...(typeof args.slotId === "string" && args.slotId ? { slotId: args.slotId } : {}),
-          action: action as "constant" | "decision_table" | "sheet_lookup" | "subset" | "dismiss" | "restore",
+          action: action as "constant" | "decision_table" | "sheet_lookup" | "dismiss" | "restore",
           ...(codes ? { codes } : {}),
         },
         revision,

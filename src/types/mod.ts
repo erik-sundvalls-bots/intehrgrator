@@ -432,11 +432,6 @@ export interface ProjectSettings {
    * code list brings the hint back.
    */
   dismissedHints?: DismissedValueSetHint[];
-  /**
-   * Value-set hints narrowed with "pick subset". Dropped when the allowed
-   * codes change.
-   */
-  hintSubsets?: ValueSetHintSubset[];
 }
 
 /** One dismissed value-set hint, bound to the allowed codes at dismiss time. */
@@ -444,14 +439,6 @@ export interface DismissedValueSetHint {
   slotId: string;
   /** Sorted code identities (at-code, ordinal code, string, or unit). */
   codes: string[];
-}
-
-/** Codes still shown for one value-set hint. */
-export interface ValueSetHintSubset {
-  slotId: string;
-  codes: string[];
-  /** Sorted full set this subset was taken from. */
-  full: string[];
 }
 
 /**

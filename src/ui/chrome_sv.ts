@@ -546,7 +546,6 @@ export const sv: ChromeMessages = {
   hintsUseConstant: "Använd som konstant",
   hintsDecisionTable: "Beslutstabell: källa → kod",
   hintsSheetLookup: "Bladuppslag",
-  hintsPickSubset: "Välj delmängd",
   hintsDismiss: "Dölj",
   hintsRestore: "Återställ dolda ledtrådar",
   hintsEmpty: "Inga värdemängdsledtrådar i den här mallen.",

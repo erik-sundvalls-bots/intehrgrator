@@ -3,18 +3,28 @@
  *
  * A template slot with more than one allowed code, ordinal, string, or unit
  * stays empty on the canvas. The hint is derived from the Template Skeleton.
- * It is not a block, not a mapping, and not emitted. Dismissals and subsets
- * live in project settings and are kept only while the allowed codes are the
- * same list.
+ * It is not a block, not a mapping, and not emitted. Dismissals live in
+ * project settings and are kept only while the allowed codes are the same
+ * list.
  */
-import type { MappingModel, MappingSlot, ProjectSettings, SkeletonNode } from "../../types/mod.ts";
+import type {
+  MappingModel,
+  MappingSlot,
+  ProjectSettings,
+  SkeletonNode,
+} from "../../types/mod.ts";
 import {
   collectValueSlots,
   findSkeletonTrail,
   pathLabelFromTrail,
 } from "../skeleton/generate_skeleton.ts";
 import { emptySheet } from "../sheets/model.ts";
-import type { DecisionColumnMeta, DecisionValueType, SheetCell, SheetDocument } from "../sheets/types.ts";
+import type {
+  DecisionColumnMeta,
+  DecisionValueType,
+  SheetCell,
+  SheetDocument,
+} from "../sheets/types.ts";
 
 export type ValueSetHintKind = "coded" | "ordinal" | "string_list" | "units";
 
@@ -22,12 +32,11 @@ export type ValueSetHintAction =
   | "constant"
   | "decision_table"
   | "sheet_lookup"
-  | "subset"
   | "dismiss"
   | "restore";
 
 export interface ValueSetHintCode {
-  /** Identity used by subset, dismiss, and constant (at-code, ordinal code, string, or unit). */
+  /** Identity used by dismiss and constant (at-code, ordinal code, string, or unit). */
   code: string;
   text: string;
   terminologyId?: string;
@@ -43,11 +52,9 @@ export interface ValueSetHint {
   pathLabel?: string;
   rmType: string;
   mandatory: boolean;
-  /** Codes currently shown (a subset, when the author picked one). */
+  /** Allowed codes from the template. */
   codes: ValueSetHintCode[];
-  /** Sorted identities of the full allowed set. */
-  fullCodes: string[];
-  /** Assumed code when it is still among `codes`. */
+  /** Assumed code when it is among `codes`. */
   assumed?: string;
   dismissed: boolean;
 }
@@ -55,7 +62,9 @@ export interface ValueSetHint {
 /** `list_slots` / `get_slot` shape. Omitted when the slot is not an active hint. */
 export interface ValueSetHintPayload {
   kind: ValueSetHintKind;
-  codes: Array<{ code: string; text?: string; assumed?: boolean; value?: number }>;
+  codes: Array<
+    { code: string; text?: string; assumed?: boolean; value?: number }
+  >;
   assumed?: string;
 }
 
@@ -75,20 +84,21 @@ function codesKey(codes: readonly string[]): string {
   return [...codes].sort().join("\n");
 }
 
-function codeId(code: string): string {
-  return code;
-}
-
 function rawKind(node: SkeletonNode): ValueSetHintKind | null {
   const rm = node.rmType;
-  if ((node.allowedOrdinals?.length ?? 0) > 1 && ORDINAL.has(rm)) return "ordinal";
+  if ((node.allowedOrdinals?.length ?? 0) > 1 && ORDINAL.has(rm)) {
+    return "ordinal";
+  }
   if ((node.allowedValues?.length ?? 0) > 1 && CODED.has(rm)) return "coded";
   if ((node.allowedValues?.length ?? 0) > 1) return "string_list";
   if ((node.allowedUnits?.length ?? 0) > 1) return "units";
   return null;
 }
 
-function allCodes(node: SkeletonNode, kind: ValueSetHintKind): ValueSetHintCode[] {
+function allCodes(
+  node: SkeletonNode,
+  kind: ValueSetHintKind,
+): ValueSetHintCode[] {
   if (kind === "ordinal") {
     return (node.allowedOrdinals ?? []).map((item) => ({
       code: item.code || String(item.value),
@@ -99,7 +109,10 @@ function allCodes(node: SkeletonNode, kind: ValueSetHintKind): ValueSetHintCode[
     }));
   }
   if (kind === "units") {
-    return (node.allowedUnits ?? []).map((unit) => ({ code: unit, text: unit }));
+    return (node.allowedUnits ?? []).map((unit) => ({
+      code: unit,
+      text: unit,
+    }));
   }
   return (node.allowedValues ?? []).map((item) => ({
     code: item.code,
@@ -109,7 +122,10 @@ function allCodes(node: SkeletonNode, kind: ValueSetHintKind): ValueSetHintCode[
   }));
 }
 
-function mappedAway(kind: ValueSetHintKind, slot: MappingSlot | undefined): boolean {
+function mappedAway(
+  kind: ValueSetHintKind,
+  slot: MappingSlot | undefined,
+): boolean {
   if (kind === "units") return Boolean(slot?.unitsExpression?.trim());
   return Boolean(slot?.expression?.trim());
 }
@@ -122,7 +138,6 @@ interface RawHint {
   rmType: string;
   mandatory: boolean;
   codes: ValueSetHintCode[];
-  fullCodes: string[];
 }
 
 function rawHints(skeleton: SkeletonNode[], model: MappingModel): RawHint[] {
@@ -137,7 +152,6 @@ function rawHints(skeleton: SkeletonNode[], model: MappingModel): RawHint[] {
     if (mappedAway(kind, mapped.get(node.slotId))) continue;
     const codes = allCodes(node, kind);
     if (codes.length < 2) continue;
-    const fullCodes = codes.map((item) => codeId(item.code)).sort();
     const trail = findSkeletonTrail(skeleton, node.slotId);
     const pathLabel = pathLabelFromTrail(trail);
     out.push({
@@ -148,7 +162,6 @@ function rawHints(skeleton: SkeletonNode[], model: MappingModel): RawHint[] {
       rmType: node.rmType,
       mandatory: Boolean(node.mandatory),
       codes,
-      fullCodes,
     });
   }
   return out;
@@ -161,18 +174,16 @@ function kindLabel(kind: ValueSetHintKind): string {
   return "Coded";
 }
 
+function codesIdentities(codes: readonly ValueSetHintCode[]): string[] {
+  return codes.map((item) => item.code).sort();
+}
+
 function applyRecords(raw: RawHint, settings: ProjectSettings): ValueSetHint {
-  const fullKey = codesKey(raw.fullCodes);
+  const fullKey = codesKey(codesIdentities(raw.codes));
   const dismissed = (settings.dismissedHints ?? []).some(
     (row) => row.slotId === raw.slotId && codesKey(row.codes) === fullKey,
   );
-  const subset = (settings.hintSubsets ?? []).find(
-    (row) => row.slotId === raw.slotId && codesKey(row.full) === fullKey,
-  );
-  const keep = subset ? new Set(subset.codes) : null;
-  const codes = keep ? raw.codes.filter((item) => keep.has(item.code)) : raw.codes;
-  const shown = codes.length ? codes : raw.codes;
-  const assumed = shown.find((item) => item.assumed)?.code;
+  const assumed = raw.codes.find((item) => item.assumed)?.code;
   return {
     slotId: raw.slotId,
     kind: raw.kind,
@@ -180,8 +191,7 @@ function applyRecords(raw: RawHint, settings: ProjectSettings): ValueSetHint {
     ...(raw.pathLabel ? { pathLabel: raw.pathLabel } : {}),
     rmType: raw.rmType,
     mandatory: raw.mandatory,
-    codes: shown,
-    fullCodes: raw.fullCodes,
+    codes: raw.codes,
     ...(assumed ? { assumed } : {}),
     dismissed,
   };
@@ -209,73 +219,69 @@ export function hintPayload(hint: ValueSetHint): ValueSetHintPayload {
   };
 }
 
-/** Drop dismissals and subsets whose slot or allowed codes are gone. */
+/** Drop dismissals whose slot or allowed codes are gone. */
 export function pruneHintSettings(
   skeleton: SkeletonNode[],
   model: MappingModel,
   settings: ProjectSettings,
 ): ProjectSettings {
-  const live = new Map(rawHints(skeleton, model).map((hint) => [hint.slotId, codesKey(hint.fullCodes)]));
+  const live = new Map(
+    rawHints(skeleton, model).map((
+      hint,
+    ) => [hint.slotId, codesKey(codesIdentities(hint.codes))]),
+  );
   const dismissed = (settings.dismissedHints ?? []).filter(
     (row) => live.get(row.slotId) === codesKey(row.codes),
   );
-  const subsets = (settings.hintSubsets ?? []).filter(
-    (row) => live.get(row.slotId) === codesKey(row.full),
-  );
-  return writeHintRecords(settings, dismissed, subsets);
+  return writeDismissed(settings, dismissed);
 }
 
-function writeHintRecords(
+function writeDismissed(
   settings: ProjectSettings,
   dismissed: NonNullable<ProjectSettings["dismissedHints"]>,
-  subsets: NonNullable<ProjectSettings["hintSubsets"]>,
 ): ProjectSettings {
   const next: ProjectSettings = { ...settings };
   if (dismissed.length) next.dismissedHints = dismissed;
   else delete next.dismissedHints;
-  if (subsets.length) next.hintSubsets = subsets;
-  else delete next.hintSubsets;
   return next;
 }
 
-function forgetSlot(settings: ProjectSettings, slotId: string): ProjectSettings {
-  return writeHintRecords(
+function forgetSlot(
+  settings: ProjectSettings,
+  slotId: string,
+): ProjectSettings {
+  return writeDismissed(
     settings,
     (settings.dismissedHints ?? []).filter((row) => row.slotId !== slotId),
-    (settings.hintSubsets ?? []).filter((row) => row.slotId !== slotId),
   );
 }
 
-export function dismissHint(settings: ProjectSettings, hint: ValueSetHint): ProjectSettings {
-  const dismissed = (settings.dismissedHints ?? []).filter((row) => row.slotId !== hint.slotId);
-  dismissed.push({ slotId: hint.slotId, codes: [...hint.fullCodes] });
-  return writeHintRecords(settings, dismissed, settings.hintSubsets ?? []);
+export function dismissHint(
+  settings: ProjectSettings,
+  hint: ValueSetHint,
+): ProjectSettings {
+  const dismissed = (settings.dismissedHints ?? []).filter((row) =>
+    row.slotId !== hint.slotId
+  );
+  dismissed.push({ slotId: hint.slotId, codes: codesIdentities(hint.codes) });
+  return writeDismissed(settings, dismissed);
 }
 
-export function restoreHints(settings: ProjectSettings, slotId?: string): ProjectSettings {
-  if (!slotId) return writeHintRecords(settings, [], settings.hintSubsets ?? []);
-  return writeHintRecords(
+export function restoreHints(
+  settings: ProjectSettings,
+  slotId?: string,
+): ProjectSettings {
+  if (!slotId) return writeDismissed(settings, []);
+  return writeDismissed(
     settings,
     (settings.dismissedHints ?? []).filter((row) => row.slotId !== slotId),
-    settings.hintSubsets ?? [],
   );
 }
 
-/** Keep only `codes` in the hint. The full set clears the subset. */
-export function subsetHint(settings: ProjectSettings, hint: ValueSetHint, codes: string[]): ProjectSettings {
-  const allowed = new Set(hint.fullCodes);
-  const picked = [...new Set(codes.filter((code) => allowed.has(code)))];
-  if (picked.length < 1) {
-    throw new Error(`Pick at least one code for ${hint.label}`);
-  }
-  const subsets = (settings.hintSubsets ?? []).filter((row) => row.slotId !== hint.slotId);
-  if (picked.length < hint.fullCodes.length) {
-    subsets.push({ slotId: hint.slotId, codes: picked, full: [...hint.fullCodes] });
-  }
-  return writeHintRecords(settings, settings.dismissedHints ?? [], subsets);
-}
-
-export function clearHintMemory(settings: ProjectSettings, slotId: string): ProjectSettings {
+export function clearHintMemory(
+  settings: ProjectSettings,
+  slotId: string,
+): ProjectSettings {
   return forgetSlot(settings, slotId);
 }
 
@@ -287,7 +293,10 @@ function uniqueName(sheets: SheetDocument[], base: string): string {
   return `${base} ${n}`;
 }
 
-function gridBase(hint: ValueSetHint, kind: "decision-table" | "sheet"): string {
+function gridBase(
+  hint: ValueSetHint,
+  kind: "decision-table" | "sheet",
+): string {
   const label = hint.label.replace(/\s+/g, " ").trim() || "Value set";
   return kind === "decision-table" ? `${label} codes` : `${label} lookup`;
 }
@@ -298,7 +307,9 @@ interface GridColumn {
   valueType?: DecisionValueType;
 }
 
-function gridColumns(hint: ValueSetHint): { columns: GridColumn[]; output: string; rows: SheetCell[][] } {
+function gridColumns(
+  hint: ValueSetHint,
+): { columns: GridColumn[]; output: string; rows: SheetCell[][] } {
   const source: GridColumn = { header: "source", role: "condition" };
   if (hint.kind === "ordinal") {
     return {
@@ -309,7 +320,9 @@ function gridColumns(hint: ValueSetHint): { columns: GridColumn[]; output: strin
         { header: "rubric", role: "output" },
       ],
       output: "value",
-      rows: hint.codes.map((item) => ["", item.value ?? "", item.code, item.text]),
+      rows: hint.codes.map((
+        item,
+      ) => ["", item.value ?? "", item.code, item.text]),
     };
   }
   if (hint.kind === "units") {
@@ -353,7 +366,11 @@ export function planHintGrid(
   const base = emptySheet(name, headers.length, Math.max(spec.rows.length, 1));
   const decisionColumns: DecisionColumnMeta[] = spec.columns.map((column) =>
     column.role === "output"
-      ? { role: "output", outputKind: "value", valueType: column.valueType ?? "string" }
+      ? {
+        role: "output",
+        outputKind: "value",
+        valueType: column.valueType ?? "string",
+      }
       : { role: "condition" }
   );
   const sheet: SheetDocument = {

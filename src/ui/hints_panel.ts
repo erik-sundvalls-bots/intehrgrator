@@ -15,7 +15,6 @@ export interface HintsPanelChrome {
   useConstant: string;
   decisionTable: string;
   sheetLookup: string;
-  pickSubset: string;
   dismiss: string;
   restore: string;
   empty: string;
@@ -26,7 +25,7 @@ export interface HintsPanelChrome {
 }
 
 export interface HintsPanelActions {
-  apply(request: { slotId?: string; action: "constant" | "decision_table" | "sheet_lookup" | "subset" | "dismiss" | "restore"; codes?: string[] }): {
+  apply(request: { slotId?: string; action: "constant" | "decision_table" | "sheet_lookup" | "dismiss" | "restore"; codes?: string[] }): {
     grid?: { prompt: string };
   };
   /** Called after a decision table or sheet lookup, so the UI can offer a prompt once. */
@@ -103,7 +102,7 @@ export function mountHintsPanel(
     paint();
   }
 
-  function run(hint: ValueSetHint, action: "constant" | "decision_table" | "sheet_lookup" | "subset" | "dismiss"): void {
+  function run(hint: ValueSetHint, action: "constant" | "decision_table" | "sheet_lookup" | "dismiss"): void {
     const codes = action === "dismiss" ? undefined : selectedCodes(hint);
     const result = actions.apply({
       slotId: hint.slotId,
@@ -218,11 +217,10 @@ export function mountHintsPanel(
     note.textContent = t.blankSource;
     const buttons = document.createElement("div");
     buttons.className = "hints-actions";
-    const specs: Array<{ action: "constant" | "decision_table" | "sheet_lookup" | "subset" | "dismiss"; label: string }> = [
+    const specs: Array<{ action: "constant" | "decision_table" | "sheet_lookup" | "dismiss"; label: string }> = [
       { action: "constant", label: t.useConstant },
       { action: "decision_table", label: t.decisionTable },
       { action: "sheet_lookup", label: t.sheetLookup },
-      { action: "subset", label: t.pickSubset },
       { action: "dismiss", label: t.dismiss },
     ];
     for (const spec of specs) {

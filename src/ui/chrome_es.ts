@@ -501,7 +501,6 @@ export const es: ChromeMessages = {
   hintsUseConstant: "Usar como constante",
   hintsDecisionTable: "Tabla de decisión: origen → código",
   hintsSheetLookup: "Búsqueda en hoja",
-  hintsPickSubset: "Elegir subconjunto",
   hintsDismiss: "Ocultar",
   hintsRestore: "Restaurar pistas ocultas",
   hintsEmpty: "No hay pistas de conjuntos de valores en esta plantilla.",

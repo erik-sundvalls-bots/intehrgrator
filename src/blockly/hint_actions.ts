@@ -28,7 +28,6 @@ import {
   hintFillPrompt,
   planHintGrid,
   restoreHints,
-  subsetHint,
   type ValueSetHint,
   type ValueSetHintAction,
   type ValueSetHintCode,
@@ -37,7 +36,7 @@ import {
 export interface ApplyValueSetHintRequest {
   slotId?: string;
   action: ValueSetHintAction;
-  /** Subset codes, or the one code for "use as constant". */
+  /** Selected codes for grids, or the one code for "use as constant". */
   codes?: string[];
 }
 
@@ -277,14 +276,6 @@ export function applyValueSetHint(
       settings: dismissHint(settings, hint),
       sheets,
       summary: `Dismiss value-set hint ${hint.label}`,
-      slotId: hint.slotId,
-    };
-  }
-  if (action === "subset") {
-    return {
-      settings: subsetHint(settings, hint, request.codes ?? []),
-      sheets,
-      summary: `Pick value-set subset ${hint.label}`,
       slotId: hint.slotId,
     };
   }
