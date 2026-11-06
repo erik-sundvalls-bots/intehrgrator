@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Sheet-driven term mappings** ([#358](https://github.com/regionstockholm/intehrgrator/pull/359)): generic `coded_text_from_sheet` library Function keeps the primary coding and adds equivalent terminology mappings from project Sheet columns. Cytodos order form/route now emit their SNOMED mappings; treatment reuses the Function for existing role codes without inventing unavailable form/route data.
+
 - **Deprecated fields in Contribution Builder** ([#352](https://github.com/regionstockholm/intehrgrator/pull/352)): the `hyperlink` mouth on text and coded text is struck through, with a “deprecated” link under the label to the openEHR Data Types specification (Formatting and Hyperlinking).
 
 - **Optional DATA_VALUE fields** ([#351](https://github.com/regionstockholm/intehrgrator/pull/351), [#350](https://github.com/regionstockholm/intehrgrator/issues/350)): the cogwheel on text, coded text, quantity, count, proportion, ordinal, scale, duration, date, date-time, time, multimedia, and interval shells offers the reference-model attributes that were missing (`mappings`, `hyperlink`, `normal_range`, `other_reference_ranges`, temporal `accuracy`, multimedia `data` / `integrity_check` / `thumbnail` / `uri`, interval `lower` / `upper`). New blocks: Term mapping (`match`, `target`, optional `purpose`) and Reference range (`meaning`, `range`). Paragraph `items` and time-specification `value` show on those shells. Mapping preview and every conversion script (TypeScript, Java, XQuery, Go template) emit the mouths you add. A quantity with no magnitude is left out, even if a range is filled. Multimedia bytes are a base64 text block (or a list of numbers).

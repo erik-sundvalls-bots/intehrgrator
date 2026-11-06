@@ -171,7 +171,12 @@ export function mergeFunctionBundle(
   }
   const incoming = stripGridDeclarationBlocks(structuredClone(asWorkspaceJson(next.blocklyState)));
   uniquifyIncomingVariables(incoming, workspace, next.parameters);
-  remapWorkspaceIds(incoming);
+  const existingVariableIds = new Map<string, string>();
+  for (const variable of incoming.variables ?? []) {
+    const existing = variable.name ? workspace.getVariable(variable.name, variable.type || undefined) : null;
+    if (variable.id && existing) existingVariableIds.set(variable.id, existing.getId());
+  }
+  remapWorkspaceIds(incoming, existingVariableIds);
   offsetTopBlocks(incoming, 24, 24 + maxTopY(workspace));
   for (const variable of incoming.variables ?? []) {
     if (!variable.name) continue;

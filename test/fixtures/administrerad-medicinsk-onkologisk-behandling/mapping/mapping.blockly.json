@@ -2232,55 +2232,71 @@
                                                   "inputs": {
                                                     "FLD_value": {
                                                       "block": {
-                                                        "type": "text",
-                                                        "id": "/FNh.09)Hh0HU;l9lD~*",
-                                                        "fields": {
-                                                          "TEXT": "vårdenhet"
-                                                        }
-                                                      }
-                                                    },
-                                                    "FLD_defining_code": {
-                                                      "block": {
-                                                        "type": "code_phrase",
-                                                        "id": "kyzV#r/@Tl{x%RA5SD)m",
-                                                        "fields": {
-                                                          "NAME": "Code Phrase",
-                                                          "RM_TYPE": "CODE_PHRASE",
-                                                          "SLOT_ID": ""
+                                                        "type": "procedures_callreturn",
+                                                        "extraState": {
+                                                          "name": "coded_text_from_sheet",
+                                                          "params": [
+                                                            "sheet_name",
+                                                            "key_column",
+                                                            "key",
+                                                            "value_column",
+                                                            "code_column",
+                                                            "primary_terminology",
+                                                            "mapping_columns"
+                                                          ]
                                                         },
                                                         "inputs": {
-                                                          "FLD_code_string": {
-                                                            "shadow": {
-                                                              "type": "text",
-                                                              "id": "3l(Jd*W7IL4M|,nC2L`=",
-                                                              "inline": false,
-                                                              "fields": {
-                                                                "TEXT": "43741000"
-                                                              }
-                                                            },
+                                                          "ARG0": {
                                                             "block": {
                                                               "type": "text",
-                                                              "id": "lhc8uMIOa?)~e5v7H)SO",
                                                               "fields": {
-                                                                "TEXT": "43741000"
+                                                                "TEXT": "organisation_roles"
                                                               }
                                                             }
                                                           },
-                                                          "FLD_terminology_id": {
-                                                            "shadow": {
-                                                              "type": "text",
-                                                              "id": "Rcd}E.:k7(v`])fs.Z^|",
-                                                              "inline": false,
-                                                              "fields": {
-                                                                "TEXT": "http://snomed.info/sct/900000000000207008"
-                                                              }
-                                                            },
+                                                          "ARG1": {
                                                             "block": {
                                                               "type": "text",
-                                                              "id": "]ED/:T%ieO{})bF+Y0Q/",
+                                                              "fields": {
+                                                                "TEXT": "key"
+                                                              }
+                                                            }
+                                                          },
+                                                          "ARG2": {
+                                                            "block": {
+                                                              "type": "text",
+                                                              "fields": {
+                                                                "TEXT": "care_unit"
+                                                              }
+                                                            }
+                                                          },
+                                                          "ARG3": {
+                                                            "block": {
+                                                              "type": "text",
+                                                              "fields": {
+                                                                "TEXT": "text"
+                                                              }
+                                                            }
+                                                          },
+                                                          "ARG4": {
+                                                            "block": {
+                                                              "type": "text",
+                                                              "fields": {
+                                                                "TEXT": "code"
+                                                              }
+                                                            }
+                                                          },
+                                                          "ARG5": {
+                                                            "block": {
+                                                              "type": "text",
                                                               "fields": {
                                                                 "TEXT": "http://snomed.info/sct/900000000000207008"
                                                               }
+                                                            }
+                                                          },
+                                                          "ARG6": {
+                                                            "block": {
+                                                              "type": "maps_create_empty"
                                                             }
                                                           }
                                                         }
@@ -2743,55 +2759,71 @@
                                                                                     "inputs": {
                                                                                       "FLD_value": {
                                                                                         "block": {
-                                                                                          "type": "text",
-                                                                                          "id": "RKJL3],Ib{CIKSHQMFus",
-                                                                                          "fields": {
-                                                                                            "TEXT": "vårdgivare"
-                                                                                          }
-                                                                                        }
-                                                                                      },
-                                                                                      "FLD_defining_code": {
-                                                                                        "block": {
-                                                                                          "type": "code_phrase",
-                                                                                          "id": "`-vv{;CzA45l^wGc.2S5",
-                                                                                          "fields": {
-                                                                                            "NAME": "Code Phrase",
-                                                                                            "RM_TYPE": "CODE_PHRASE",
-                                                                                            "SLOT_ID": ""
+                                                                                          "type": "procedures_callreturn",
+                                                                                          "extraState": {
+                                                                                            "name": "coded_text_from_sheet",
+                                                                                            "params": [
+                                                                                              "sheet_name",
+                                                                                              "key_column",
+                                                                                              "key",
+                                                                                              "value_column",
+                                                                                              "code_column",
+                                                                                              "primary_terminology",
+                                                                                              "mapping_columns"
+                                                                                            ]
                                                                                           },
                                                                                           "inputs": {
-                                                                                            "FLD_code_string": {
-                                                                                              "shadow": {
-                                                                                                "type": "text",
-                                                                                                "id": "Dve/RT]|#OW~G$aYJ/HW",
-                                                                                                "inline": false,
-                                                                                                "fields": {
-                                                                                                  "TEXT": "143591000052106"
-                                                                                                }
-                                                                                              },
+                                                                                            "ARG0": {
                                                                                               "block": {
                                                                                                 "type": "text",
-                                                                                                "id": "#u}/Ub,jw!hhaWLm(*A-",
                                                                                                 "fields": {
-                                                                                                  "TEXT": "143591000052106"
+                                                                                                  "TEXT": "organisation_roles"
                                                                                                 }
                                                                                               }
                                                                                             },
-                                                                                            "FLD_terminology_id": {
-                                                                                              "shadow": {
-                                                                                                "type": "text",
-                                                                                                "id": "NlKmc:/FOI5d`*47Nkw3",
-                                                                                                "inline": false,
-                                                                                                "fields": {
-                                                                                                  "TEXT": "http://snomed.info/sct/45991000052106"
-                                                                                                }
-                                                                                              },
+                                                                                            "ARG1": {
                                                                                               "block": {
                                                                                                 "type": "text",
-                                                                                                "id": "(jc9PHm{JoF=IG`JXN_3",
+                                                                                                "fields": {
+                                                                                                  "TEXT": "key"
+                                                                                                }
+                                                                                              }
+                                                                                            },
+                                                                                            "ARG2": {
+                                                                                              "block": {
+                                                                                                "type": "text",
+                                                                                                "fields": {
+                                                                                                  "TEXT": "care_provider"
+                                                                                                }
+                                                                                              }
+                                                                                            },
+                                                                                            "ARG3": {
+                                                                                              "block": {
+                                                                                                "type": "text",
+                                                                                                "fields": {
+                                                                                                  "TEXT": "text"
+                                                                                                }
+                                                                                              }
+                                                                                            },
+                                                                                            "ARG4": {
+                                                                                              "block": {
+                                                                                                "type": "text",
+                                                                                                "fields": {
+                                                                                                  "TEXT": "code"
+                                                                                                }
+                                                                                              }
+                                                                                            },
+                                                                                            "ARG5": {
+                                                                                              "block": {
+                                                                                                "type": "text",
                                                                                                 "fields": {
                                                                                                   "TEXT": "http://snomed.info/sct/45991000052106"
                                                                                                 }
+                                                                                              }
+                                                                                            },
+                                                                                            "ARG6": {
+                                                                                              "block": {
+                                                                                                "type": "maps_create_empty"
                                                                                               }
                                                                                             }
                                                                                           }
@@ -3303,7 +3335,165 @@
             }
           }
         }
+      },
+      {
+        "type": "procedures_defreturn",
+        "id": "coded_text_from_sheet_definition",
+        "x": 40,
+        "y": 40,
+        "fields": {
+          "NAME": "coded_text_from_sheet"
+        },
+        "extraState": {
+          "params": [
+            {
+              "name": "sheet_name",
+              "id": "coded_text_from_sheet_sheet_name"
+            },
+            {
+              "name": "key_column",
+              "id": "coded_text_from_sheet_key_column"
+            },
+            {
+              "name": "key",
+              "id": "coded_text_from_sheet_key"
+            },
+            {
+              "name": "value_column",
+              "id": "coded_text_from_sheet_value_column"
+            },
+            {
+              "name": "code_column",
+              "id": "coded_text_from_sheet_code_column"
+            },
+            {
+              "name": "primary_terminology",
+              "id": "coded_text_from_sheet_primary_terminology"
+            },
+            {
+              "name": "mapping_columns",
+              "id": "coded_text_from_sheet_mapping_columns"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Looks up the first exact key match in a project Sheet. Parameters: sheet_name, key_column, key, value_column, code_column, primary_terminology, mapping_columns. Column references are header names; mapping_columns is a map of terminology ID to code-column header (e.g. SNOMED-CT → snomed). Returns a complete DV_CODED_TEXT with the primary value/code/terminology and one equivalent TERM_MAPPING (match =) for each nonblank mapping cell. Missing key, text, code or primary terminology returns null; no codes are guessed. Keep codes as text to preserve leading zeroes/decimals. Sheets stay project data and are not bundled.",
+            "pinned": false,
+            "height": 100,
+            "width": 260
+          }
+        },
+        "inputs": {
+          "RETURN": {
+            "block": {
+              "type": "sheet_coded_text",
+              "inputs": {
+                "SHEET": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_sheet_name"
+                      }
+                    }
+                  }
+                },
+                "KEY_COLUMN": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_key_column"
+                      }
+                    }
+                  }
+                },
+                "KEY": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_key"
+                      }
+                    }
+                  }
+                },
+                "VALUE_COLUMN": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_value_column"
+                      }
+                    }
+                  }
+                },
+                "CODE_COLUMN": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_code_column"
+                      }
+                    }
+                  }
+                },
+                "TERMINOLOGY": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_primary_terminology"
+                      }
+                    }
+                  }
+                },
+                "MAPPING_COLUMNS": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_mapping_columns"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     ]
-  }
+  },
+  "variables": [
+    {
+      "name": "sheet_name",
+      "id": "coded_text_from_sheet_sheet_name"
+    },
+    {
+      "name": "key_column",
+      "id": "coded_text_from_sheet_key_column"
+    },
+    {
+      "name": "key",
+      "id": "coded_text_from_sheet_key"
+    },
+    {
+      "name": "value_column",
+      "id": "coded_text_from_sheet_value_column"
+    },
+    {
+      "name": "code_column",
+      "id": "coded_text_from_sheet_code_column"
+    },
+    {
+      "name": "primary_terminology",
+      "id": "coded_text_from_sheet_primary_terminology"
+    },
+    {
+      "name": "mapping_columns",
+      "id": "coded_text_from_sheet_mapping_columns"
+    }
+  ]
 }

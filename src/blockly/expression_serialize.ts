@@ -193,6 +193,11 @@ export function blockToExpression(block: Block | null): string | null {
       const name = String(block.getFieldValue("NAME") || "Sheet1");
       return `sheet_get_data(${JSON.stringify(name)})`;
     }
+    case "sheet_coded_text": {
+      const args = ["SHEET", "KEY_COLUMN", "KEY", "VALUE_COLUMN", "CODE_COLUMN", "TERMINOLOGY", "MAPPING_COLUMNS"]
+        .map((name) => blockToExpression(block.getInputTargetBlock(name)) ?? (name === "MAPPING_COLUMNS" ? "map()" : '""'));
+      return `sheet_coded_text(${args.join(", ")})`;
+    }
     case "sheet_lookup": {
       const name = String(block.getFieldValue("NAME") || "Sheet1");
       const col = blockToExpression(block.getInputTargetBlock("MATCH_COL")) ?? '""';
@@ -410,6 +415,16 @@ export function astToExpressionBlock(
       if (ast.args[1]) {
         const inputs = astToExpressionBlock(workspace, ast.args[1], "string", finalize);
         block.getInput("INPUTS")?.connection?.connect(inputs.outputConnection!);
+      }
+      return finalize(block);
+    }
+    if (ast.name === "sheet_coded_text") {
+      registerSheetBlocks();
+      const block = workspace.newBlock("sheet_coded_text") as BlockSvg;
+      for (const [i, name] of ["SHEET", "KEY_COLUMN", "KEY", "VALUE_COLUMN", "CODE_COLUMN", "TERMINOLOGY", "MAPPING_COLUMNS"].entries()) {
+        if (!ast.args[i]) continue;
+        const child = astToExpressionBlock(workspace, ast.args[i]!, "string", finalize);
+        if (child?.outputConnection) block.getInput(name)?.connection?.connect(child.outputConnection);
       }
       return finalize(block);
     }

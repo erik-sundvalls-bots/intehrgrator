@@ -362,6 +362,11 @@ function registerGenerators(): void {
     const name = JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
     return [`sheetGetData(${name})`, Order.FUNCTION_CALL] as [string, number];
   };
+  javascriptGenerator.forBlock["sheet_coded_text"] = (block) => {
+    const args = ["SHEET", "KEY_COLUMN", "KEY", "VALUE_COLUMN", "CODE_COLUMN", "TERMINOLOGY", "MAPPING_COLUMNS"]
+      .map((name) => javascriptGenerator.valueToCode(block, name, Order.NONE) || (name === "MAPPING_COLUMNS" ? "{}" : '\"\"'));
+    return [`sheetCodedText(${args.join(", ")})`, Order.FUNCTION_CALL] as [string, number];
+  };
   javascriptGenerator.forBlock["sheet_lookup"] = (block) => {
     const name = JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
     const col = javascriptGenerator.valueToCode(block, "MATCH_COL", Order.NONE) || '""';

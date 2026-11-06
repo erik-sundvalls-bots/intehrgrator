@@ -748,6 +748,7 @@ function assignDataValueFields(
         output.value = "";
       }
       if (phrase) output.defining_code = phrase;
+      if (Array.isArray(record.mappings)) output.mappings = record.mappings;
     } else {
       output.value = value;
     }

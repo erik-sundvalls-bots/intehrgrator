@@ -800,16 +800,11 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     rmType === "DV_CODED_TEXT" && props.length === 1 && props[0]![0] === "value"
   ) {
     const choices = codedChoices(ctx, String(block.getFieldValue("SLOT_ID") ?? "").trim());
-    // A value that can be a coded record ({ value, code_string, terminology_id }
-    // from an if/else or Decision table) must not be turned into "[object Object]".
-    const record = rawValue != null && /["']?code_string["']?\s*:/.test(rawValue);
-    if (choices.length || record) {
-      // Free text into a coded slot: look the text up in the template value set
-      // so the output carries defining_code and the template rubric (#309, #310).
-      ctx.types.add("DV_CODED_TEXT");
-      ctx.helpers.add("coded");
-      return `codedText(${record ? rawValue : props[0]![1]}, ${JSON.stringify(choices)})`;
-    }
+    // Function calls may return a complete coded record at runtime. Do not
+    // stringify the input before codedText can read its code and mappings.
+    ctx.types.add("DV_CODED_TEXT");
+    ctx.helpers.add("coded");
+    return `codedText(${rawValue ?? props[0]![1]}, ${JSON.stringify(choices)})`;
   }
   if (rmType === "DV_TEXT" && props.length === 1 && props[0]![0] === "value") {
     ctx.types.add("DV_TEXT");

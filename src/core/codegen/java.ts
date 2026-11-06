@@ -454,6 +454,7 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
+        case "sheet_coded_text":
         case "sheet_lookup":
         case "decision_table":
           ctx.helpers.add("sheets");
@@ -1184,11 +1185,8 @@ function emitSkeletonValue(
     }
     if (expr) {
       const choices = codedChoicesForNode(node);
-      if (choices.length) {
-        ctx.helpers.add("coded");
-        return attachJavaShell(`codedText(${expr}, ${javaChoicesLiteral(choices)})`, slot, ctx, rmType, indent);
-      }
-      return attachJavaShell(`new DvCodedText(${asStringExpr(expr)}, new CodePhrase())`, slot, ctx, rmType, indent);
+      ctx.helpers.add("coded");
+      return attachJavaShell(`codedText(${expr}, ${javaChoicesLiteral(choices)})`, slot, ctx, rmType, indent);
     }
     return null;
   }

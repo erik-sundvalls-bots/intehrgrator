@@ -1101,6 +1101,8 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "sheet_get_header":
         case "sheet_get_data":
           return `/* ${ast.name} not available in Go template */`;
+        case "sheet_coded_text":
+          return "/* sheet_coded_text: object-valued Functions are not available in Go templates */";
         case "sheet_lookup": {
           const name = args[0] ?? `""`;
           const col = args[1] ?? `""`;

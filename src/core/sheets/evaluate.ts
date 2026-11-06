@@ -1,3 +1,4 @@
+import { sheetCodedText } from "./coded_text.ts";
 import { evaluateDecisionTable } from "./decision_table.ts";
 import {
   deleteColumn,
@@ -28,6 +29,7 @@ export const SHEET_ACCESSOR_NAMES = [
   "sheet_get_header",
   "sheet_get_data",
   "sheet_lookup",
+  "sheet_coded_text",
   "decision_table",
 ] as const;
 
@@ -58,6 +60,8 @@ export function evalSheetCall(
         return getHeader(sheet, Number(args[1] ?? 0));
       case "sheet_get_data":
         return getData(sheet);
+      case "sheet_coded_text":
+        return sheetCodedText(bag, String(args[0]), String(args[1]), args[2], String(args[3]), String(args[4]), String(args[5]), args[6]);
       case "sheet_lookup":
         return sheetLookup(
           sheet,

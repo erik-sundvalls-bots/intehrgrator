@@ -1,6 +1,10 @@
 package se.regionstockholm.intehrgrator.runtime;
 
 import com.nedap.archie.rm.datavalues.DvCodedText;
+import com.nedap.archie.rm.datavalues.TermMapping;
+import com.nedap.archie.rm.datatypes.CodePhrase;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,7 +31,22 @@ public final class CodedTextSupport {
       String term = termRaw instanceof Map<?, ?> termMap ? textOf(termMap.get("value")) : textOf(termRaw);
       if (!code.isEmpty()) {
         String value = textOf(map.get("value"));
-        return new DvCodedText(value.isEmpty() ? code : value, (term.isEmpty() ? "local" : term) + "::" + code);
+        DvCodedText result = new DvCodedText(value.isEmpty() ? code : value, (term.isEmpty() ? "local" : term) + "::" + code);
+        if (map.get("mappings") instanceof List<?> mappings) {
+          List<TermMapping> converted = new ArrayList<>();
+          for (Object item : mappings) {
+            if (!(item instanceof Map<?, ?> mapping) || !(mapping.get("target") instanceof Map<?, ?> target)) continue;
+            Object targetTerm = target.get("terminology_id");
+            String terminology = targetTerm instanceof Map<?, ?> id ? textOf(id.get("value")) : textOf(targetTerm);
+            TermMapping m = new TermMapping();
+            String match = textOf(mapping.get("match"));
+            m.setMatch(match.isEmpty() ? '=' : match.charAt(0));
+            m.setTarget(new CodePhrase(terminology + "::" + textOf(target.get("code_string"))));
+            converted.add(m);
+          }
+          result.setMappings(converted);
+        }
+        return result;
       }
       text = map.get("value");
     }

@@ -19,6 +19,7 @@ export const SHEET_GET_COLUMN = "sheet_get_column";
 export const SHEET_GET_HEADER = "sheet_get_header";
 export const SHEET_GET_DATA = "sheet_get_data";
 export const SHEET_LOOKUP = "sheet_lookup";
+export const SHEET_CODED_TEXT = "sheet_coded_text";
 export const SHEET_SET_CELL = "sheet_set_cell";
 export const SHEET_SET_XY = "sheet_set_xy";
 export const SHEET_SET_ROW = "sheet_set_row";
@@ -37,6 +38,7 @@ export const SHEET_ACCESSOR_TYPES = [
   SHEET_GET_HEADER,
   SHEET_GET_DATA,
   SHEET_LOOKUP,
+  SHEET_CODED_TEXT,
 ] as const;
 
 export const SHEET_MUTATOR_TYPES = [
@@ -184,6 +186,27 @@ export function registerSheetBlocks(): void {
       this.setColour(SHEET_COLOUR);
       this.setInputsInline(true);
       this.setTooltip("First row where a header/column equals a value; return that row or a column.");
+    },
+  };
+
+  // Value inputs (including Sheet name) let a library Function remain generic.
+  Blockly.Blocks[SHEET_CODED_TEXT] = {
+    init: function (this: import("blockly/core").Block) {
+      this.appendDummyInput().appendField("coded text from Sheet");
+      for (const [name, label, check] of [
+        ["SHEET", "Sheet name", "String"],
+        ["KEY_COLUMN", "key column", "String"],
+        ["KEY", "key", null],
+        ["VALUE_COLUMN", "value column", "String"],
+        ["CODE_COLUMN", "code column", "String"],
+        ["TERMINOLOGY", "primary terminology", "String"],
+        ["MAPPING_COLUMNS", "terminology → code column", null],
+      ] as const) {
+        this.appendValueInput(name).setCheck(check).appendField(label);
+      }
+      this.setOutput(true, ["DV_CODED_TEXT", "DATA_VALUE"]);
+      this.setColour(SHEET_COLOUR);
+      this.setTooltip("First matching row → primary coded text plus equivalent mappings; blank codes are omitted. Column references are header names.");
     },
   };
 
