@@ -96108,7 +96108,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/agent/repos/intehrgrator/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/workspace/hint-canvas-fix/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -206564,6 +206564,12 @@ function renderHintBadges(workspace2, hints, onClick) {
 }
 
 // src/blockly/hint_actions.ts
+function finalizeBlock3(block) {
+  const svg2 = block;
+  svg2.initSvg?.();
+  svg2.render?.();
+  return block;
+}
 function connectOutput(parent, inputName, child) {
   const input = parent.getInput(inputName);
   if (!input?.connection || !child.outputConnection) return;
@@ -206591,7 +206597,7 @@ function connectOutput(parent, inputName, child) {
 function connectRealText(workspace2, parent, inputName, value) {
   const text = workspace2.newBlock("text");
   text.setFieldValue(value, "TEXT");
-  connectOutput(parent, inputName, text);
+  connectOutput(parent, inputName, finalizeBlock3(text));
 }
 function findHosts(workspace2, slotId) {
   const matches = [];
@@ -206658,7 +206664,7 @@ function fillCodedShell(workspace2, shell, item) {
   ensureRmBlockType("code_phrase", "CODE_PHRASE");
   const phrase2 = workspace2.newBlock("code_phrase");
   if (phrase2.getField("RM_TYPE")) phrase2.setFieldValue("CODE_PHRASE", "RM_TYPE");
-  connectOutput(shell, dvFieldInputName("defining_code"), phrase2);
+  connectOutput(shell, dvFieldInputName("defining_code"), finalizeBlock3(phrase2));
   if (item.terminologyId) {
     showField(phrase2, "terminology_id");
     connectRealText(workspace2, phrase2, dvFieldInputName("terminology_id"), item.terminologyId);
@@ -206675,7 +206681,7 @@ function chosenCode(hint, codes) {
 function textBlock2(workspace2, value) {
   const text = workspace2.newBlock("text");
   text.setFieldValue(value, "TEXT");
-  return text;
+  return finalizeBlock3(text);
 }
 function sourceMap(workspace2, sourceColumn) {
   registerMapBlocks();
@@ -206683,13 +206689,14 @@ function sourceMap(workspace2, sourceColumn) {
   map.itemCount_ = 1;
   map.updateShape_();
   map.setFieldValue(sourceColumn, "KEY0");
-  return map;
+  return finalizeBlock3(map);
 }
 function decisionBlock(workspace2, name2, output, sourceColumn) {
   registerDecisionTableBlocks();
   const block = workspace2.newBlock(DECISION_TABLE_BLOCK);
   block.setFieldValue(name2, "NAME");
   block.setFieldValue(output, "OUTPUT");
+  finalizeBlock3(block);
   const map = sourceMap(workspace2, sourceColumn);
   connectOutput(block, "INPUTS", map);
   return block;
@@ -206698,6 +206705,7 @@ function lookupBlock(workspace2, name2, sourceColumn, output) {
   registerSheetBlocks();
   const block = workspace2.newBlock(SHEET_LOOKUP);
   block.setFieldValue(name2, "NAME");
+  finalizeBlock3(block);
   connectOutput(block, "MATCH_COL", textBlock2(workspace2, sourceColumn));
   connectOutput(block, "MATCH_VAL", textBlock2(workspace2, "\u2026"));
   connectOutput(block, "RETURN_COL", textBlock2(workspace2, output));
@@ -206748,7 +206756,7 @@ function applyValueSetHint(workspace2, skeleton, model, settings, sheets, reques
     if (hint.kind === "coded") {
       const set = termSetForMandatedCode(item.terminologyId, item.code);
       if (set) {
-        const pick2 = createTermPickBlock(workspace2, set, item.code, hint.slotId);
+        const pick2 = finalizeBlock3(createTermPickBlock(workspace2, set, item.code, hint.slotId));
         placeTermPick(workspace2, host2, pick2);
       } else {
         const rm3 = hint.rmType === "CODE_PHRASE" ? "CODE_PHRASE" : "DV_CODED_TEXT";
@@ -209661,8 +209669,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "10f4b92" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-06T12:57:10.220Z" : "not built";
+var BUILD_ID = true ? "beac54b" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-06T13:26:01.024Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
@@ -219856,10 +219864,16 @@ function focusHintSlot(slotId) {
 }
 function applyHintFromUi(request) {
   const s8 = controller.getState();
-  const result = applyValueSetHint(workspace, s8.skeleton, s8.model, s8.settings, s8.sheets, request);
-  controller.replaceSheets(result.sheets, { silent: true });
-  controller.replaceSettings(result.settings);
-  persistBlocklyCanvas({ summary: result.summary });
+  const before = controller.exportDocumentSnapshot();
+  let result;
+  runWithoutBlocklyEvents(() => {
+    result = applyValueSetHint(workspace, s8.skeleton, s8.model, s8.settings, s8.sheets, request);
+    controller.replaceSheets(result.sheets, { silent: true });
+    controller.replaceSettings(result.settings);
+    persistBlocklyCanvas({ summary: result.summary });
+  });
+  fireDocumentSwap(workspace, before, controller.exportDocumentSnapshot(), restoreDocumentFromUndo);
+  refreshUndoButtons();
   if (result.grid) {
     const kind = result.grid.kind === "decision-table" ? "decision-table" : "sheet";
     sheetsPanel?.showSheet(result.grid.name, kind);
