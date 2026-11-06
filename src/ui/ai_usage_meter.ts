@@ -1,10 +1,22 @@
 /**
- * Token meter next to Stop in the AI chat (#276): tokens used by this chat
- * (live while a turn runs), a ring for how full the model's context window
- * is, and a popover with the numbers, the optional token budget and the
- * context-window setting.
+ * Token / cost meter next to Stop in the AI chat (#276, #354): tokens (and $
+ * when priceable) used by this chat, a ring for the model's context window,
+ * and a popover with dual in/out counters, the optional USD or token budget,
+ * and the context-window setting.
  */
-import { budgetState, formatTokens, parseTokenCount, totalTokens, type UsageTotals } from "../core/ai/token_usage.ts";
+import {
+  type BudgetKind,
+  budgetState,
+  costBreakdown,
+  effectiveCost,
+  formatTokens,
+  formatUsd,
+  type ModelRate,
+  parseTokenCount,
+  parseUsdAmount,
+  totalTokens,
+  type UsageTotals,
+} from "../core/ai/token_usage.ts";
 import { chrome, formatMessage } from "./chrome_i18n.ts";
 import { detectLocale } from "../blockly/i18n/locale.ts";
 
@@ -19,7 +31,16 @@ export interface UsageMeterState {
   turn?: UsageTotals;
   running: boolean;
   model: string;
-  budget?: number;
+  /** Active budget kind for the current model. */
+  budgetKind: BudgetKind;
+  /** Token budget when `budgetKind === "tokens"`. */
+  budgetTokens?: number;
+  /** USD budget when `budgetKind === "usd"`. */
+  budgetUsd?: number;
+  /** Rates for the current model (dual $ + estimates). */
+  modelRate?: ModelRate;
+  /** Whether the meter may offer a USD budget (rates or reported cost). */
+  canPrice: boolean;
   /** Window used for the ring: the user's value, else the known table. */
   contextWindow?: number;
   /** The user's value for this model, if any (shown in the field). */
@@ -30,7 +51,13 @@ export interface UsageMeterState {
 
 export interface UsageMeterOptions {
   /** The user saved a budget / context window (undefined = cleared). */
-  onSave: (limits: { budget?: number; contextWindow?: number }) => void;
+  onSave: (
+    limits: {
+      budgetUsd?: number;
+      budgetTokens?: number;
+      contextWindow?: number;
+    },
+  ) => void;
 }
 
 export interface UsageMeterHandle {
@@ -43,9 +70,15 @@ const RING_R = 7;
 const RING_C = 2 * Math.PI * RING_R;
 
 /** Context the model holds now: the newest request's input + output, else the estimate. */
-export function contextUsed(state: Pick<UsageMeterState, "chat" | "turn" | "contextEstimate">): { tokens: number; estimated: boolean } {
-  if (state.turn?.requests) return { tokens: state.turn.lastContext, estimated: state.turn.estimated };
-  if (state.chat?.requests) return { tokens: state.chat.lastContext, estimated: state.chat.estimated };
+export function contextUsed(
+  state: Pick<UsageMeterState, "chat" | "turn" | "contextEstimate">,
+): { tokens: number; estimated: boolean } {
+  if (state.turn?.requests) {
+    return { tokens: state.turn.lastContext, estimated: state.turn.estimated };
+  }
+  if (state.chat?.requests) {
+    return { tokens: state.chat.lastContext, estimated: state.chat.estimated };
+  }
   return { tokens: state.contextEstimate ?? 0, estimated: true };
 }
 
@@ -53,20 +86,61 @@ function percent(part: number, whole: number): number {
   return whole > 0 ? Math.round((part / whole) * 100) : 0;
 }
 
-function usageLine(label: string, u: UsageTotals | undefined): string {
+function mergeLive(
+  chat?: UsageTotals,
+  turn?: UsageTotals,
+): UsageTotals | undefined {
+  if (!chat?.requests && !turn?.requests) return undefined;
+  if (!chat?.requests) return turn;
+  if (!turn?.requests) return chat;
+  return {
+    input: chat.input + turn.input,
+    output: chat.output + turn.output,
+    cachedInput: chat.cachedInput + turn.cachedInput,
+    ...((chat.cost !== undefined || turn.cost !== undefined)
+      ? { cost: (chat.cost ?? 0) + (turn.cost ?? 0) }
+      : {}),
+    requests: chat.requests + turn.requests,
+    estimated: chat.estimated || turn.estimated,
+    lastContext: turn.lastContext,
+  };
+}
+
+function usageLine(
+  label: string,
+  u: UsageTotals | undefined,
+  rate?: ModelRate,
+): string {
   if (!u?.requests) return formatMessage(ui().aiUsageLineNone, { label });
-  const cached = u.cachedInput ? formatMessage(ui().aiUsageCached, { cached: formatTokens(u.cachedInput) }) : "";
-  const cost = u.cost !== undefined ? ` · $${u.cost.toFixed(u.cost < 0.1 ? 4 : 2)}` : "";
-  return formatMessage(ui().aiUsageLine, {
+  const cached = u.cachedInput
+    ? formatMessage(ui().aiUsageCached, { cached: formatTokens(u.cachedInput) })
+    : "";
+  const tokens = formatMessage(ui().aiUsageLine, {
     label,
     input: formatTokens(u.input),
     cached,
     output: formatTokens(u.output),
     requests: u.requests,
-  }) + cost + (u.estimated ? ` ${ui().aiUsageEstimatedMark}` : "");
+  });
+  const split = costBreakdown(u, rate);
+  const spent = effectiveCost(u, rate);
+  let money = "";
+  if (split) {
+    money = ` · ${
+      formatMessage(ui().aiUsageCostSplit, {
+        input: formatUsd(split.input, spent?.estimated ?? true),
+        output: formatUsd(split.output, spent?.estimated ?? true),
+      })
+    }`;
+  } else if (spent) {
+    money = ` · ${formatUsd(spent.cost, spent.estimated)}`;
+  }
+  return tokens + money + (u.estimated ? ` ${ui().aiUsageEstimatedMark}` : "");
 }
 
-export function installUsageMeter(options: UsageMeterOptions): UsageMeterHandle {
+export function installUsageMeter(
+  options: UsageMeterOptions,
+): UsageMeterHandle {
   const wrap = document.createElement("span");
   wrap.className = "ai-usage";
   const btn = document.createElement("button");
@@ -117,14 +191,22 @@ export function installUsageMeter(options: UsageMeterOptions): UsageMeterHandle 
     const input = document.createElement("input");
     input.id = id;
     input.type = "text";
-    input.inputMode = "numeric";
+    input.inputMode = "decimal";
     input.autocomplete = "off";
     input.placeholder = hint;
     row.append(span, input);
-    return { row, input };
+    return { row, input, span };
   };
-  const budgetField = field("ai-chat-budget", ui().aiUsageBudgetLabel, ui().aiUsageBudgetHint);
-  const windowField = field("ai-chat-context-window", ui().aiUsageWindowLabel, "");
+  const budgetField = field(
+    "ai-chat-budget",
+    ui().aiUsageBudgetLabelUsd,
+    ui().aiUsageBudgetHintUsd,
+  );
+  const windowField = field(
+    "ai-chat-context-window",
+    ui().aiUsageWindowLabel,
+    "",
+  );
   const help = document.createElement("p");
   help.className = "ai-usage-help";
   help.textContent = ui().aiUsageHelp;
@@ -144,23 +226,54 @@ export function installUsageMeter(options: UsageMeterOptions): UsageMeterHandle 
   pop.append(details, form);
   wrap.append(btn, pop);
 
-  let state: UsageMeterState = { running: false, model: "" };
+  let state: UsageMeterState = {
+    running: false,
+    model: "",
+    budgetKind: "none",
+    canPrice: false,
+  };
 
   const render = () => {
-    const used = totalTokens(state.chat ?? { input: 0, output: 0 }) + totalTokens(state.turn ?? { input: 0, output: 0 });
-    const estimated = Boolean(state.chat?.estimated || state.turn?.estimated);
-    const level = budgetState(used, state.budget);
+    const live = mergeLive(state.chat, state.turn);
+    const tokensUsed = totalTokens(live ?? { input: 0, output: 0 });
+    const spent = live ? effectiveCost(live, state.modelRate) : undefined;
+    const estimated = Boolean(live?.estimated || spent?.estimated);
+    const tokenCap = state.budgetKind === "tokens"
+      ? state.budgetTokens
+      : undefined;
+    const usdCap = state.budgetKind === "usd" ? state.budgetUsd : undefined;
+    const showUsd = state.budgetKind === "usd" ||
+      (state.canPrice && state.budgetKind !== "tokens" && spent !== undefined);
+    const usedForBudget = usdCap !== undefined
+      ? (spent?.cost ?? 0)
+      : tokensUsed;
+    const budgetCap = usdCap ?? tokenCap;
+    const level = budgetState(usedForBudget, budgetCap);
     btn.classList.toggle("ai-usage-btn--warn", level === "warn");
     btn.classList.toggle("ai-usage-btn--over", level === "over");
     btn.classList.toggle("ai-usage-btn--running", state.running);
-    const tokens = `${estimated ? "~" : ""}${formatTokens(used)}`;
-    label.textContent = state.budget ? `${tokens} / ${formatTokens(state.budget)}` : tokens;
+    if (showUsd || usdCap !== undefined) {
+      const usedLabel = spent ? formatUsd(spent.cost, estimated) : formatUsd(0);
+      label.textContent = usdCap !== undefined
+        ? `${usedLabel} / ${formatUsd(usdCap)}`
+        : usedLabel;
+    } else {
+      const tokens = `${estimated && !spent ? "~" : ""}${
+        formatTokens(tokensUsed)
+      }`;
+      label.textContent = tokenCap
+        ? `${tokens} / ${formatTokens(tokenCap)}`
+        : tokens;
+    }
     const ctx = contextUsed(state);
     const lines: string[] = [];
     if (state.contextWindow) {
       const share = Math.min(1, ctx.tokens / state.contextWindow);
       ring.style.display = "";
-      arc.setAttribute("stroke-dasharray", `${(share * RING_C).toFixed(2)} ${RING_C.toFixed(2)}`);
+      arc.setAttribute(
+        "stroke-dasharray",
+        `${(share * RING_C).toFixed(2)} ${RING_C.toFixed(2)}`,
+      );
       ring.classList.toggle("ai-usage-ring--high", share >= 0.8);
       lines.push(formatMessage(ui().aiUsageContext, {
         used: `${ctx.estimated ? "~" : ""}${formatTokens(ctx.tokens)}`,
@@ -171,13 +284,21 @@ export function installUsageMeter(options: UsageMeterOptions): UsageMeterHandle 
       ring.style.display = "none";
       lines.push(ui().aiUsageContextUnknown);
     }
-    if (state.running) lines.push(usageLine(ui().aiUsageThisTurn, state.turn));
-    lines.push(usageLine(ui().aiUsageThisChat, state.chat));
-    if (state.budget) {
+    if (state.running) {
+      lines.push(usageLine(ui().aiUsageThisTurn, state.turn, state.modelRate));
+    }
+    lines.push(usageLine(ui().aiUsageThisChat, state.chat, state.modelRate));
+    if (usdCap !== undefined) {
       lines.push(formatMessage(ui().aiUsageBudgetLine, {
-        used: formatTokens(used),
-        budget: formatTokens(state.budget),
-        percent: percent(used, state.budget),
+        used: spent ? formatUsd(spent.cost, spent.estimated) : formatUsd(0),
+        budget: formatUsd(usdCap),
+        percent: percent(spent?.cost ?? 0, usdCap),
+      }));
+    } else if (tokenCap !== undefined) {
+      lines.push(formatMessage(ui().aiUsageBudgetLine, {
+        used: formatTokens(tokensUsed),
+        budget: formatTokens(tokenCap),
+        percent: percent(tokensUsed, tokenCap),
       }));
     }
     btn.title = [ui().aiUsageTitle, ...lines].join("\n");
@@ -187,21 +308,55 @@ export function installUsageMeter(options: UsageMeterOptions): UsageMeterHandle 
       p.textContent = text;
       return p;
     }));
-    windowField.input.placeholder = state.contextWindow && !state.contextWindowOverride
-      ? formatMessage(ui().aiUsageWindowKnown, { tokens: formatTokens(state.contextWindow) })
-      : ui().aiUsageWindowUnknownHint;
+    windowField.input.placeholder =
+      state.contextWindow && !state.contextWindowOverride
+        ? formatMessage(ui().aiUsageWindowKnown, {
+          tokens: formatTokens(state.contextWindow),
+        })
+        : ui().aiUsageWindowUnknownHint;
+  };
+
+  const syncBudgetField = () => {
+    const usd = state.canPrice || state.budgetKind === "usd";
+    budgetField.span.textContent = usd
+      ? ui().aiUsageBudgetLabelUsd
+      : ui().aiUsageBudgetLabelTokens;
+    budgetField.input.placeholder = usd
+      ? ui().aiUsageBudgetHintUsd
+      : ui().aiUsageBudgetHintTokens;
+    budgetField.input.inputMode = usd ? "decimal" : "numeric";
+    help.textContent = usd ? ui().aiUsageHelpUsd : ui().aiUsageHelpTokens;
+    if (usd) {
+      budgetField.input.value = state.budgetUsd
+        ? formatUsd(state.budgetUsd).replace(/^~/, "")
+        : "";
+    } else {
+      budgetField.input.value = state.budgetTokens
+        ? formatTokens(state.budgetTokens)
+        : "";
+    }
   };
 
   const open = () => {
-    budgetField.input.value = state.budget ? formatTokens(state.budget) : "";
-    windowField.input.value = state.contextWindowOverride ? formatTokens(state.contextWindowOverride) : "";
-    (windowField.row.firstChild as HTMLElement).textContent = formatMessage(ui().aiUsageWindowLabel, { model: state.model || "?" });
+    syncBudgetField();
+    windowField.input.value = state.contextWindowOverride
+      ? formatTokens(state.contextWindowOverride)
+      : "";
+    (windowField.row.firstChild as HTMLElement).textContent = formatMessage(
+      ui().aiUsageWindowLabel,
+      { model: state.model || "?" },
+    );
     pop.hidden = false;
     // Fixed above the button, kept inside the window (the chat pane clips overflow).
     const rect = btn.getBoundingClientRect();
     const width = Math.min(320, globalThis.innerWidth - 16);
     pop.style.width = `${width}px`;
-    pop.style.left = `${Math.max(8, Math.min(rect.right - width, globalThis.innerWidth - width - 8))}px`;
+    pop.style.left = `${
+      Math.max(
+        8,
+        Math.min(rect.right - width, globalThis.innerWidth - width - 8),
+      )
+    }px`;
     const height = pop.getBoundingClientRect().height;
     pop.style.top = `${Math.max(8, rect.top - height - 6)}px`;
     btn.setAttribute("aria-expanded", "true");
@@ -215,8 +370,18 @@ export function installUsageMeter(options: UsageMeterOptions): UsageMeterHandle 
   close.addEventListener("click", hide);
   form.addEventListener("submit", (ev) => {
     ev.preventDefault();
+    const usd = state.canPrice || state.budgetKind === "usd";
+    const raw = budgetField.input.value.trim();
     options.onSave({
-      budget: parseTokenCount(budgetField.input.value),
+      ...(usd
+        ? {
+          budgetUsd: raw ? parseUsdAmount(raw) : undefined,
+          budgetTokens: undefined,
+        }
+        : {
+          budgetTokens: raw ? parseTokenCount(raw) : undefined,
+          budgetUsd: undefined,
+        }),
       contextWindow: parseTokenCount(windowField.input.value),
     });
     hide();

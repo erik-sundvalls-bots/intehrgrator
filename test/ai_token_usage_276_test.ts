@@ -3,7 +3,10 @@
  * token budget, and the context window for the ring.
  */
 import { assert, assertEquals } from "@std/assert";
-import { type ChatMessage, postChatCompletions } from "@intehrgrator/core/ai/credentials.ts";
+import {
+  type ChatMessage,
+  postChatCompletions,
+} from "@intehrgrator/core/ai/credentials.ts";
 import {
   DEFAULT_MAX_STEPS,
   type MappingAgentEvent,
@@ -13,14 +16,21 @@ import {
 import {
   addUsage,
   AI_CHAT_LIMITS_KEY,
+  budgetKind,
   budgetState,
   contextWindowFor,
+  costBreakdown,
+  effectiveCost,
   emptyUsageTotals,
   formatTokens,
+  formatUsd,
   loadAiChatLimits,
   mergeUsageTotals,
   parseProviderUsage,
   parseTokenCount,
+  parseUsdAmount,
+  raisedBudget,
+  raisedBudgetUsd,
   saveAiChatLimits,
 } from "@intehrgrator/core/ai/token_usage.ts";
 import {
@@ -31,11 +41,19 @@ import {
   saveChatSession,
 } from "@intehrgrator/core/ai/chat_history.ts";
 
-const creds = { endpoint: "https://api.example/v1/chat/completions", apiKey: "sk-test", model: "m" };
+const creds = {
+  endpoint: "https://api.example/v1/chat/completions",
+  apiKey: "sk-test",
+  model: "m",
+};
 
 function sse(chunks: unknown[]): Response {
-  const text = chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("") + "data: [DONE]\n\n";
-  return new Response(text, { status: 200, headers: { "content-type": "text/event-stream" } });
+  const text = chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("") +
+    "data: [DONE]\n\n";
+  return new Response(text, {
+    status: 200,
+    headers: { "content-type": "text/event-stream" },
+  });
 }
 
 function memoryStorage(): Storage {
@@ -53,7 +71,10 @@ function memoryStorage(): Storage {
 }
 
 /** A provider that answers each request with the next scripted JSON body. */
-function scripted(bodies: Array<Record<string, unknown>>, sent: Array<Record<string, unknown>> = []): typeof fetch {
+function scripted(
+  bodies: Array<Record<string, unknown>>,
+  sent: Array<Record<string, unknown>> = [],
+): typeof fetch {
   let i = 0;
   return ((_u: string, init?: RequestInit) => {
     sent.push(JSON.parse(String(init?.body)));
@@ -67,39 +88,65 @@ const toolCall = (id: string, usage?: Record<string, unknown>) => ({
     message: {
       role: "assistant",
       content: "",
-      tool_calls: [{ id, type: "function", function: { name: "list_slots", arguments: "{}" } }],
+      tool_calls: [{
+        id,
+        type: "function",
+        function: { name: "list_slots", arguments: "{}" },
+      }],
     },
     finish_reason: "tool_calls",
   }],
   ...(usage ? { usage } : {}),
 });
 const answer = (text: string, usage?: Record<string, unknown>) => ({
-  choices: [{ message: { role: "assistant", content: text }, finish_reason: "stop" }],
+  choices: [{
+    message: { role: "assistant", content: text },
+    finish_reason: "stop",
+  }],
   ...(usage ? { usage } : {}),
 });
 
 Deno.test("parseProviderUsage reads OpenAI, Anthropic and OpenRouter usage (#276)", () => {
   assertEquals(
-    parseProviderUsage({ prompt_tokens: 1200, completion_tokens: 80, prompt_tokens_details: { cached_tokens: 1024 } }),
+    parseProviderUsage({
+      prompt_tokens: 1200,
+      completion_tokens: 80,
+      prompt_tokens_details: { cached_tokens: 1024 },
+    }),
     { input: 1200, output: 80, cachedInput: 1024 },
   );
   // Anthropic counts cache reads / writes next to input_tokens.
   assertEquals(
-    parseProviderUsage({ input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 900, cache_creation_input_tokens: 90 }),
+    parseProviderUsage({
+      input_tokens: 10,
+      output_tokens: 5,
+      cache_read_input_tokens: 900,
+      cache_creation_input_tokens: 90,
+    }),
     { input: 1000, output: 5, cachedInput: 900 },
   );
-  assertEquals(parseProviderUsage({ prompt_tokens: 10, completion_tokens: 2, cost: 0.0004 }), {
-    input: 10,
-    output: 2,
-    cost: 0.0004,
-  });
+  assertEquals(
+    parseProviderUsage({
+      prompt_tokens: 10,
+      completion_tokens: 2,
+      cost: 0.0004,
+    }),
+    {
+      input: 10,
+      output: 2,
+      cost: 0.0004,
+    },
+  );
   assertEquals(parseProviderUsage({ total_tokens: 5 }), undefined);
   assertEquals(parseProviderUsage(null), undefined);
 });
 
 Deno.test("streaming asks for include_usage and reads the final usage chunk without choices (#276)", async () => {
   let body: Record<string, unknown> = {};
-  const result = await postChatCompletions(creds, [{ role: "user", content: "hi" }], {
+  const result = await postChatCompletions(creds, [{
+    role: "user",
+    content: "hi",
+  }], {
     onDelta: () => {},
     fetch: ((_u: string, init?: RequestInit) => {
       body = JSON.parse(String(init?.body));
@@ -117,15 +164,31 @@ Deno.test("streaming asks for include_usage and reads the final usage chunk with
 
 Deno.test("a 400 about stream_options retries streaming without it (#276)", async () => {
   const bodies: Array<Record<string, unknown>> = [];
-  const result = await postChatCompletions(creds, [{ role: "user", content: "hi" }], {
+  const result = await postChatCompletions(creds, [{
+    role: "user",
+    content: "hi",
+  }], {
     onDelta: () => {},
     fetch: ((_u: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body));
       bodies.push(body);
       if (body.stream_options) {
-        return Promise.resolve(new Response('{"error":"Unrecognized request argument: stream_options"}', { status: 400 }));
+        return Promise.resolve(
+          new Response(
+            '{"error":"Unrecognized request argument: stream_options"}',
+            { status: 400 },
+          ),
+        );
       }
-      return Promise.resolve(sse([{ choices: [{ index: 0, delta: { content: "ok" }, finish_reason: "stop" }] }]));
+      return Promise.resolve(
+        sse([{
+          choices: [{
+            index: 0,
+            delta: { content: "ok" },
+            finish_reason: "stop",
+          }],
+        }]),
+      );
     }) as typeof fetch,
   });
   assertEquals(bodies.length, 2);
@@ -141,8 +204,16 @@ Deno.test("runMappingAgent reports usage after each step and totals for the turn
     credentials: creds,
     prompt: "map",
     fetch: scripted([
-      toolCall("c1", { prompt_tokens: 1000, completion_tokens: 20, prompt_tokens_details: { cached_tokens: 0 } }),
-      answer("Done.", { prompt_tokens: 1500, completion_tokens: 30, prompt_tokens_details: { cached_tokens: 1000 } }),
+      toolCall("c1", {
+        prompt_tokens: 1000,
+        completion_tokens: 20,
+        prompt_tokens_details: { cached_tokens: 0 },
+      }),
+      answer("Done.", {
+        prompt_tokens: 1500,
+        completion_tokens: 30,
+        prompt_tokens_details: { cached_tokens: 1000 },
+      }),
     ]),
     executeTool: () => Promise.resolve({ slots: [] }),
     onEvent: (e) => events.push(e),
@@ -217,21 +288,40 @@ Deno.test("the suggestions fallback turn reports usage too (#276)", async () => 
   const result = await runSuggestionsChatTurn({
     credentials: creds,
     prompt: "map",
-    fetch: scripted([answer("```intehrgrator-suggestions\n{}\n```", { prompt_tokens: 40, completion_tokens: 9 })]),
+    fetch: scripted([
+      answer("```intehrgrator-suggestions\n{}\n```", {
+        prompt_tokens: 40,
+        completion_tokens: 9,
+      }),
+    ]),
   });
   assertEquals(result.usage.input, 40);
   assertEquals(result.usage.output, 9);
 });
 
 Deno.test("usage totals add up and merge into the chat (#276)", () => {
-  const turn = addUsage(addUsage(emptyUsageTotals(), { input: 100, output: 10, cost: 0.01 }), {
-    input: 200,
-    output: 20,
+  const turn = addUsage(
+    addUsage(emptyUsageTotals(), { input: 100, output: 10, cost: 0.01 }),
+    {
+      input: 200,
+      output: 20,
+      cachedInput: 100,
+      estimated: true,
+    },
+  );
+  assertEquals(turn, {
+    input: 300,
+    output: 30,
     cachedInput: 100,
+    cost: 0.01,
+    requests: 2,
     estimated: true,
+    lastContext: 220,
   });
-  assertEquals(turn, { input: 300, output: 30, cachedInput: 100, cost: 0.01, requests: 2, estimated: true, lastContext: 220 });
-  const chat = mergeUsageTotals(turn, addUsage(emptyUsageTotals(), { input: 500, output: 5 }));
+  const chat = mergeUsageTotals(
+    turn,
+    addUsage(emptyUsageTotals(), { input: 500, output: 5 }),
+  );
   assertEquals(chat.input, 800);
   assertEquals(chat.requests, 3);
   assertEquals(chat.lastContext, 505);
@@ -266,18 +356,33 @@ Deno.test("history is trimmed relative to a known context window (#276)", () => 
 
 Deno.test("chat usage is stored with the chat session; limits are stored per browser (#276)", () => {
   const storage = memoryStorage();
-  const session = { ...emptyChatSession(), usage: addUsage(emptyUsageTotals(), { input: 10, output: 2 }), budgetWarned: true };
+  const session = {
+    ...emptyChatSession(),
+    usage: addUsage(emptyUsageTotals(), { input: 10, output: 2 }),
+    budgetWarned: true,
+  };
   saveChatSession(storage, "p1", session);
   const loaded = loadChatSession(storage, "p1");
   assertEquals(loaded.usage?.input, 10);
   assertEquals(loaded.budgetWarned, true);
   assertEquals(loadChatSession(storage, "p2").usage, undefined);
 
-  saveAiChatLimits(storage, { budget: 2_000_000, contextWindows: { "local-llm": 32_000 } });
+  saveAiChatLimits(storage, {
+    budgetTokens: 2_000_000,
+    contextWindows: { "local-llm": 32_000 },
+    modelRates: {},
+  });
   assert(storage.getItem(AI_CHAT_LIMITS_KEY));
-  assertEquals(loadAiChatLimits(storage), { budget: 2_000_000, contextWindows: { "local-llm": 32_000 } });
+  assertEquals(loadAiChatLimits(storage), {
+    budgetTokens: 2_000_000,
+    contextWindows: { "local-llm": 32_000 },
+    modelRates: {},
+  });
   storage.setItem(AI_CHAT_LIMITS_KEY, "{broken");
-  assertEquals(loadAiChatLimits(storage), { contextWindows: {} });
+  assertEquals(loadAiChatLimits(storage), {
+    contextWindows: {},
+    modelRates: {},
+  });
 });
 
 Deno.test("formatTokens / parseTokenCount (#276)", () => {
@@ -291,4 +396,113 @@ Deno.test("formatTokens / parseTokenCount (#276)", () => {
   assertEquals(parseTokenCount("64 000"), 64_000);
   assertEquals(parseTokenCount(""), undefined);
   assertEquals(parseTokenCount("lots"), undefined);
+});
+
+Deno.test("legacy token budget migrates to budgetTokens; USD budget and rates load (#354)", () => {
+  const storage = memoryStorage();
+  storage.setItem(
+    AI_CHAT_LIMITS_KEY,
+    JSON.stringify({ budget: 500_000, contextWindows: {} }),
+  );
+  assertEquals(loadAiChatLimits(storage).budgetTokens, 500_000);
+  assertEquals(loadAiChatLimits(storage).budgetUsd, undefined);
+  saveAiChatLimits(storage, {
+    budgetUsd: 1.5,
+    contextWindows: {},
+    modelRates: { "openai/gpt-4o": { prompt: 0.0000025, completion: 0.00001 } },
+  });
+  const loaded = loadAiChatLimits(storage);
+  assertEquals(loaded.budgetUsd, 1.5);
+  assertEquals(loaded.budgetTokens, undefined);
+  assertEquals(loaded.modelRates["openai/gpt-4o"]?.completion, 0.00001);
+  assert(
+    !JSON.parse(storage.getItem(AI_CHAT_LIMITS_KEY)!).budget,
+    "legacy budget key not rewritten",
+  );
+});
+
+Deno.test("effectiveCost prefers reported cost, else rates; dual split from rates (#354)", () => {
+  const rate = { prompt: 0.000001, completion: 0.000002 };
+  assertEquals(effectiveCost({ input: 1000, output: 500, cost: 0.42 }, rate), {
+    cost: 0.42,
+    estimated: false,
+  });
+  assertEquals(effectiveCost({ input: 1000, output: 500 }, rate), {
+    cost: 0.002,
+    estimated: true,
+  });
+  assertEquals(
+    effectiveCost({ input: 1000, output: 500 }, undefined),
+    undefined,
+  );
+  assertEquals(costBreakdown({ input: 1000, output: 500 }, rate), {
+    input: 0.001,
+    output: 0.001,
+  });
+});
+
+Deno.test("formatUsd / parseUsdAmount / raisedBudgetUsd (#354)", () => {
+  assertEquals(formatUsd(0.0042), "$0.0042");
+  assertEquals(formatUsd(1.2, true), "~$1.20");
+  assertEquals(parseUsdAmount("$1.50"), 1.5);
+  assertEquals(parseUsdAmount("0.05"), 0.05);
+  assertEquals(parseUsdAmount(""), undefined);
+  assertEquals(raisedBudgetUsd(1, 0.9), 2);
+  assertEquals(raisedBudget(100_000, 90_000), 200_000);
+});
+
+Deno.test("budgetKind is USD when priced, else tokens (#354)", () => {
+  const base = {
+    contextWindows: {},
+    modelRates: {} as Record<string, { prompt: number; completion: number }>,
+  };
+  assertEquals(budgetKind({ ...base, budgetUsd: 1 }, "m", false), "usd");
+  assertEquals(
+    budgetKind(
+      {
+        ...base,
+        budgetUsd: 1,
+        modelRates: { m: { prompt: 1, completion: 2 } },
+      },
+      "m",
+      false,
+    ),
+    "usd",
+  );
+  assertEquals(
+    budgetKind({ ...base, budgetTokens: 1000 }, "m", false),
+    "tokens",
+  );
+  assertEquals(budgetKind(base, "m", false), "none");
+});
+
+Deno.test("costBudget pauses the turn after the request that reached it (#354)", async () => {
+  const sent: Array<Record<string, unknown>> = [];
+  const result = await runMappingAgent({
+    credentials: creds,
+    prompt: "map",
+    costBudget: 0.015,
+    modelRate: { prompt: 0.00001, completion: 0.00001 },
+    fetch: scripted([
+      toolCall("c1", {
+        prompt_tokens: 1000,
+        completion_tokens: 10,
+        cost: 0.01,
+      }),
+      toolCall("c2", {
+        prompt_tokens: 1600,
+        completion_tokens: 10,
+        cost: 0.01,
+      }),
+      toolCall("c3", {
+        prompt_tokens: 2200,
+        completion_tokens: 10,
+        cost: 0.01,
+      }),
+    ], sent),
+    executeTool: () => Promise.resolve({ ok: true }),
+  });
+  assertEquals(result.budgetReached, true);
+  assertEquals(sent.length, 2);
+  assertEquals(result.usage.cost, 0.02);
 });

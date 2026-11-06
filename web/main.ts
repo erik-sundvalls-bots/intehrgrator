@@ -254,6 +254,7 @@ import {
 } from "../src/core/ai/credentials.ts";
 import { AI_PROVIDER_PRESETS, applyAiProviderPreset, findAiProviderPreset } from "../src/core/ai/providers.ts";
 import { fetchModelList, ModelListError, modelAfterProviderChange } from "../src/core/ai/models.ts";
+import { loadAiChatLimits, saveAiChatLimits } from "../src/core/ai/token_usage.ts";
 import {
   type AiProviderConfig,
   type AiProviderConfigs,
@@ -4034,10 +4035,18 @@ async function fetchModelsForDialog(): Promise<void> {
   const proxyUrl = chatProxy?.replace(/ai-chat-completions$/, "ai-models");
   const testedAt = new Date().toISOString();
   try {
-    const models = await fetchModelList(endpoint?.value ?? "", apiKey?.value ?? "", {
+    const listed = await fetchModelList(endpoint?.value ?? "", apiKey?.value ?? "", {
       proxyUrl,
       signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(30_000) : undefined,
     });
+    const models = listed.ids;
+    if (Object.keys(listed.rates).length) {
+      const limits = loadAiChatLimits(localStorage);
+      saveAiChatLimits(localStorage, {
+        ...limits,
+        modelRates: { ...limits.modelRates, ...listed.rates },
+      });
+    }
     const text = messages.aiModelsFound.replace("{count}", String(models.length));
     aiCredDrafts[id] = { ...aiCredFormConfig(aiCredDrafts[id]), testOk: true, testedAt, testMessage: text, models };
     renderModelPicker(models);
@@ -4226,6 +4235,8 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       signal: request.signal,
       onEvent: request.onEvent,
       tokenBudget: request.tokenBudget,
+      costBudget: request.costBudget,
+      modelRate: request.modelRate,
       onAfterMutation: () => {
         persistBlocklyCanvas({ summary: "AI chat" });
         render();
