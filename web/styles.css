@@ -1309,6 +1309,14 @@ body.sheets-fullscreen::before {
   fill: #E2E8F0;
   text-decoration: line-through;
 }
+.blockly-mount .blocklyText .blockly-slot-attr-name--deprecated {
+  text-decoration: line-through;
+}
+.blockly-mount .blockly-slot-deprecated-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 1px;
+}
 
 /* Native Blockly collapsed labels (ZipEHR HTML uses .collapsed-hover). */
 .blockly-mount .blocklyCollapsed > .blocklyText:hover,
