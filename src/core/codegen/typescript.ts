@@ -33,6 +33,8 @@ import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locato
 import { attributesFor } from "../rm_meta.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
+import { octetBytesCall } from "../rm_shell_fragment.ts";
 import { terminologyValuesForSlot } from "../ai/slot_tree.ts";
 import {
   functionIdentMap,
@@ -902,6 +904,28 @@ function skeletonContainerProps(
   return props;
 }
 
+function tsShellGen(ctx: TsEmitContext, indent: number): ShellCodegen {
+  return {
+    expr: (expression) => emitTsExpressionSource(expression, ctx),
+    object: (rmType, fields) => formatRmConstruct(rmType, fields, indent, ctx),
+    list: (items) => `[${items.join(", ")}]`,
+    octets: (code) => octetBytesCall(code),
+  };
+}
+
+/** Optional shell mouths (mappings, ranges, …) on a value that already has its primary field. */
+function assignTsShell(
+  base: string,
+  slot: MappingSlot | undefined,
+  ctx: TsEmitContext,
+  indent: number,
+): string {
+  const extra = emitShellFields(slot?.shellFragments, tsShellGen(ctx, indent));
+  if (!extra.length) return base;
+  const body = extra.map(([key, value]) => `${key}: ${value}`).join(", ");
+  return `Object.assign(${base}, { ${body} })`;
+}
+
 function emitSkeletonValue(
   node: SkeletonNode,
   slot: MappingSlot | undefined,
@@ -942,18 +966,28 @@ function emitSkeletonValue(
       const part = (ast: ExprAst | undefined, lit: string) => ast ? asStringExpr(emitTsExpression(ast, ctx)) : JSON.stringify(lit);
       ctx.types.add("DV_CODED_TEXT");
       ctx.types.add("CODE_PHRASE");
-      return `new DV_CODED_TEXT({ value: ${part(coded.value, rubric)}, defining_code: new CODE_PHRASE({ terminology_id: ${
-        part(coded.terminology, term)
-      }, code_string: ${part(coded.code, code ?? "")} }) })`;
+      return assignTsShell(
+        `new DV_CODED_TEXT({ value: ${part(coded.value, rubric)}, defining_code: new CODE_PHRASE({ terminology_id: ${
+          part(coded.terminology, term)
+        }, code_string: ${part(coded.code, code ?? "")} }) })`,
+        slot,
+        ctx,
+        indent,
+      );
     }
     if (code) {
       if (codePhraseTerseSafe(term) && !code.includes("::")) {
-        return JSON.stringify(`${term}::${code}|${rubric}|`);
+        return assignTsShell(JSON.stringify(`${term}::${code}|${rubric}|`), slot, ctx, indent);
       }
       ctx.types.add("DV_CODED_TEXT");
-      return `new DV_CODED_TEXT({ value: ${JSON.stringify(rubric)}, defining_code: ${
-        emitCodePhraseLiteral(term, code)
-      } })`;
+      return assignTsShell(
+        `new DV_CODED_TEXT({ value: ${JSON.stringify(rubric)}, defining_code: ${
+          emitCodePhraseLiteral(term, code)
+        } })`,
+        slot,
+        ctx,
+        indent,
+      );
     }
     if (expr) {
       ctx.types.add("DV_CODED_TEXT");
@@ -962,19 +996,20 @@ function emitSkeletonValue(
         // Text into a coded slot: look it up in the value set so the output has
         // defining_code (FLAT output has no ctx/ fallback since ehrtslib v0.9).
         ctx.helpers.add("coded");
-        return `codedText(${expr}, ${JSON.stringify(choices)})`;
+        return assignTsShell(`codedText(${expr}, ${JSON.stringify(choices)})`, slot, ctx, indent);
       }
-      return `new DV_CODED_TEXT({ value: String(${expr} ?? "") })`;
+      return assignTsShell(`new DV_CODED_TEXT({ value: String(${expr} ?? "") })`, slot, ctx, indent);
     }
     return null;
   }
 
   if (rmType === "DV_QUANTITY") {
+    // No magnitude: scaffolding only (fixed units, or a range with nothing to attach it to).
     if (!expr) return null;
     return guardNumericConstruct(expr, (m) => {
       const props: Array<[string, string]> = [["magnitude", m]];
       if (fields.units) props.push(["units", JSON.stringify(fields.units)]);
-      return formatRmConstruct("DV_QUANTITY", props, indent, ctx);
+      return assignTsShell(formatRmConstruct("DV_QUANTITY", props, indent, ctx), slot, ctx, indent);
     }, ctx);
   }
 
@@ -982,7 +1017,7 @@ function emitSkeletonValue(
     if (!expr) return null;
     return guardNumericConstruct(
       expr,
-      (m) => formatRmConstruct(rmType, [["magnitude", m]], indent, ctx),
+      (m) => assignTsShell(formatRmConstruct(rmType, [["magnitude", m]], indent, ctx), slot, ctx, indent),
       ctx,
     );
   }
@@ -990,7 +1025,7 @@ function emitSkeletonValue(
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
     const value = /^xpathBoolean\(/.test(expr) ? expr : wrapBooleanValue(expr, ctx);
-    return formatRmConstruct("DV_BOOLEAN", [["value", value]], indent, ctx);
+    return assignTsShell(formatRmConstruct("DV_BOOLEAN", [["value", value]], indent, ctx), slot, ctx, indent);
   }
 
   if (
@@ -1006,9 +1041,9 @@ function emitSkeletonValue(
     if (!value) return null;
     if (rmType === "DV_TEXT") {
       ctx.types.add("DV_TEXT");
-      return `new DV_TEXT(${value})`;
+      return assignTsShell(`new DV_TEXT(${value})`, slot, ctx, indent);
     }
-    return formatRmConstruct(rmType, [["value", value]], indent, ctx);
+    return assignTsShell(formatRmConstruct(rmType, [["value", value]], indent, ctx), slot, ctx, indent);
   }
 
   if (rmType === "PARTY_IDENTIFIED") {

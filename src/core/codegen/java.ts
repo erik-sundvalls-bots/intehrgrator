@@ -29,6 +29,7 @@ import {
   valueFunctions,
 } from "./user_functions.ts";
 import { JAVA_CODED_TEXT_BLOB, JAVA_HANDLEBARS_BLOB, JAVA_RUNTIME_BLOB } from "./helpers/locations.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 
 const GENERIC_RM = new Set(["HISTORY", "POINT_EVENT", "INTERVAL_EVENT", "EVENT"]);
 
@@ -85,6 +86,7 @@ const JAVA_PACKAGES: Record<string, string> = {
   Item: "com.nedap.archie.rm.datastructures",
   ItemStructure: "com.nedap.archie.rm.datastructures",
   DvText: "com.nedap.archie.rm.datavalues",
+  TermMapping: "com.nedap.archie.rm.datavalues",
   DvCodedText: "com.nedap.archie.rm.datavalues",
   DvBoolean: "com.nedap.archie.rm.datavalues",
   DvIdentifier: "com.nedap.archie.rm.datavalues",
@@ -93,6 +95,8 @@ const JAVA_PACKAGES: Record<string, string> = {
   DvParagraph: "com.nedap.archie.rm.datavalues",
   DvState: "com.nedap.archie.rm.datavalues",
   DvQuantity: "com.nedap.archie.rm.datavalues.quantity",
+  DvInterval: "com.nedap.archie.rm.datavalues.quantity",
+  ReferenceRange: "com.nedap.archie.rm.datavalues.quantity",
   DvCount: "com.nedap.archie.rm.datavalues.quantity",
   DvOrdinal: "com.nedap.archie.rm.datavalues.quantity",
   DvProportion: "com.nedap.archie.rm.datavalues.quantity",
@@ -102,6 +106,9 @@ const JAVA_PACKAGES: Record<string, string> = {
   DvTime: "com.nedap.archie.rm.datavalues.quantity.datetime",
   DvDuration: "com.nedap.archie.rm.datavalues.quantity.datetime",
   CodePhrase: "com.nedap.archie.rm.datatypes",
+  TerminologyId: "com.nedap.archie.rm.support.identification",
+  DvMultimedia: "com.nedap.archie.rm.datavalues.encapsulated",
+  DvParsable: "com.nedap.archie.rm.datavalues.encapsulated",
   PartySelf: "com.nedap.archie.rm.generic",
   PartyIdentified: "com.nedap.archie.rm.generic",
   PartyRelated: "com.nedap.archie.rm.generic",
@@ -680,12 +687,131 @@ function formatRmConstruct(
   return `rm(new ${cls}${diamond}(), ${ident} -> {\n${setters.join("\n")}\n${close}})`;
 }
 
+function hasExtraConstructKeys(map: Map<string, string>, allowed: string[]): boolean {
+  for (const key of map.keys()) {
+    if (!allowed.includes(key)) return true;
+  }
+  return false;
+}
+
+/** Archie `TermMapping.setMatch` takes a char, not a String. */
+function javaCharExpr(code: string): string {
+  const trimmed = code.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const text = JSON.parse(trimmed) as string;
+      if (text.length === 1) {
+        const ch = text === "\\" ? "\\\\" : text === "'" ? "\\'" : text;
+        return `'${ch}'`;
+      }
+    } catch {
+      /* dynamic string */
+    }
+  }
+  return `${asStringExpr(code)}.charAt(0)`;
+}
+
+function javaApplyExtras(
+  base: string,
+  extras: Array<[string, string]>,
+  ctx: JavaEmitContext,
+  rmType: string,
+  indent: number,
+): string {
+  if (!extras.length) return base;
+  ctx.helpers.add("rm");
+  const ident = freshIdent(ctx, rmType);
+  const pad = "  ".repeat(indent + 1);
+  const close = "  ".repeat(indent);
+  const setters = extras.map(([attr, value]) => `${pad}${ident}.${javaSetterName(attr)}(${value});`);
+  return `rm(${base}, ${ident} -> {\n${setters.join("\n")}\n${close}})`;
+}
+
+function javaShellGen(ctx: JavaEmitContext, indent: number): ShellCodegen {
+  return {
+    expr: (expression) => emitJavaExpressionSource(expression, ctx) ?? "null",
+    object: (rmType, fields) => javaShellObject(rmType, fields, ctx, indent),
+    list: (items, attribute) => attribute === "data" || attribute === "integrity_check"
+      ? `new byte[] { ${items.join(", ")} }`
+      : `java.util.List.of(${items.join(", ")})`,
+    octets: (code) => `java.util.Base64.getDecoder().decode(${asStringExpr(code)})`,
+  };
+}
+
+function javaShellObject(
+  rmType: string,
+  fields: Array<[string, string]>,
+  ctx: JavaEmitContext,
+  indent: number,
+): string {
+  if (rmType === "TERM_MAPPING") {
+    const rewritten = fields.map(([key, value]) =>
+      key === "match" ? [key, javaCharExpr(value)] as [string, string] : [key, value]
+    );
+    return formatRmConstruct(rmType, rewritten, indent, ctx);
+  }
+  if (rmType === "CODE_PHRASE") {
+    ctx.types.add("CODE_PHRASE");
+    ctx.types.add("TERMINOLOGY_ID");
+    const term = fields.find(([key]) => key === "terminology_id")?.[1];
+    const code = fields.find(([key]) => key === "code_string")?.[1] ?? '""';
+    if (term) return `new CodePhrase(new TerminologyId(${asStringExpr(term)}), ${asStringExpr(code)})`;
+    return `new CodePhrase(${asStringExpr(code)})`;
+  }
+  const value = fields.find(([key]) => key === "value")?.[1];
+  const rest = fields.filter(([key]) => key !== "value");
+  if (
+    value &&
+    (rmType === "DV_TEXT" || rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
+      rmType === "DV_DATE" || rmType === "DV_DATE_TIME" || rmType === "DV_TIME" ||
+      rmType === "DV_DURATION" || rmType === "DV_PARSABLE")
+  ) {
+    ctx.types.add(rmType);
+    return javaApplyExtras(`new ${javaClassName(rmType)}(${asStringExpr(value)})`, rest, ctx, rmType, indent);
+  }
+  if (rmType === "DV_QUANTITY") {
+    const magnitude = fields.find(([key]) => key === "magnitude")?.[1];
+    const units = fields.find(([key]) => key === "units")?.[1] ?? "null";
+    const restQ = fields.filter(([key]) => key !== "magnitude" && key !== "units");
+    if (magnitude) {
+      ctx.types.add("DV_QUANTITY");
+      return javaApplyExtras(
+        `new DvQuantity(${units}, ${asDoubleExpr(magnitude)}, null)`,
+        restQ,
+        ctx,
+        rmType,
+        indent,
+      );
+    }
+  }
+  return formatRmConstruct(rmType, fields, indent, ctx);
+}
+
+function attachJavaShell(
+  base: string,
+  slot: MappingSlot | undefined,
+  ctx: JavaEmitContext,
+  rmType: string,
+  indent: number,
+): string {
+  return javaApplyExtras(
+    base,
+    emitShellFields(slot?.shellFragments, javaShellGen(ctx, indent)),
+    ctx,
+    rmType,
+    indent,
+  );
+}
+
 function compactConstruct(
   rmType: string,
   props: Array<[string, string]>,
   ctx: JavaEmitContext,
 ): string | null {
   const map = new Map(props);
+  if (hasExtraConstructKeys(map, ["value", "magnitude", "units", "precision", "code_string", "terminology_id", "defining_code"])) {
+    return null;
+  }
   if (rmType === "DV_TEXT" && map.size === 1 && map.has("value")) {
     ctx.types.add("DV_TEXT");
     return `new DvText(${map.get("value")})`;
@@ -1045,44 +1171,67 @@ function emitSkeletonValue(
       const phrase = t.kind === "literal" && c.kind === "literal"
         ? JSON.stringify(`${t.value}::${c.value}`)
         : `${part(t, "")} + "::" + ${part(c, "")}`;
-      return `new DvCodedText(${part(coded.value, rubric)}, ${phrase})`;
+      return attachJavaShell(`new DvCodedText(${part(coded.value, rubric)}, ${phrase})`, slot, ctx, rmType, indent);
     }
     if (code) {
-      return `new DvCodedText(${JSON.stringify(rubric)}, ${
-        JSON.stringify(`${term}::${code}`)
-      })`;
+      return attachJavaShell(
+        `new DvCodedText(${JSON.stringify(rubric)}, ${JSON.stringify(`${term}::${code}`)})`,
+        slot,
+        ctx,
+        rmType,
+        indent,
+      );
     }
     if (expr) {
       const choices = codedChoicesForNode(node);
       if (choices.length) {
         ctx.helpers.add("coded");
-        return `codedText(${expr}, ${javaChoicesLiteral(choices)})`;
+        return attachJavaShell(`codedText(${expr}, ${javaChoicesLiteral(choices)})`, slot, ctx, rmType, indent);
       }
-      return `new DvCodedText(${asStringExpr(expr)}, new CodePhrase())`;
+      return attachJavaShell(`new DvCodedText(${asStringExpr(expr)}, new CodePhrase())`, slot, ctx, rmType, indent);
     }
     return null;
   }
 
   if (rmType === "DV_QUANTITY") {
+    // No magnitude: omit, even when a reference range was added on the shell.
     if (!expr) return null;
     const props: Array<[string, string]> = [["magnitude", asDoubleExpr(expr)]];
     if (fields.units) props.push(["units", JSON.stringify(fields.units)]);
-    return formatRmConstruct("DV_QUANTITY", props, indent, ctx);
+    return attachJavaShell(formatRmConstruct("DV_QUANTITY", props, indent, ctx), slot, ctx, rmType, indent);
   }
 
   if (rmType === "DV_COUNT") {
     if (!expr) return null;
-    return formatRmConstruct(rmType, [["magnitude", `(long) ${asDoubleExpr(expr)}`]], indent, ctx);
+    return attachJavaShell(
+      formatRmConstruct(rmType, [["magnitude", `(long) ${asDoubleExpr(expr)}`]], indent, ctx),
+      slot,
+      ctx,
+      rmType,
+      indent,
+    );
   }
 
   if (rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
-    return formatRmConstruct(rmType, [["magnitude", asDoubleExpr(expr)]], indent, ctx);
+    return attachJavaShell(
+      formatRmConstruct(rmType, [["magnitude", asDoubleExpr(expr)]], indent, ctx),
+      slot,
+      ctx,
+      rmType,
+      indent,
+    );
   }
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
-    return formatRmConstruct("DV_BOOLEAN", [["value", asBooleanExpr(expr)]], indent, ctx);
+    return attachJavaShell(
+      formatRmConstruct("DV_BOOLEAN", [["value", asBooleanExpr(expr)]], indent, ctx),
+      slot,
+      ctx,
+      rmType,
+      indent,
+    );
   }
 
   if (
@@ -1096,7 +1245,7 @@ function emitSkeletonValue(
       : null;
     if (!value) return null;
     ctx.types.add(rmType);
-    return `new ${javaClassName(rmType)}(${value})`;
+    return attachJavaShell(`new ${javaClassName(rmType)}(${value})`, slot, ctx, rmType, indent);
   }
 
   if (
@@ -1111,12 +1260,13 @@ function emitSkeletonValue(
     if (!value) return null;
     if (rmType === "DV_TEXT") {
       ctx.types.add("DV_TEXT");
-      return `new DvText(${value})`;
+      return attachJavaShell(`new DvText(${value})`, slot, ctx, rmType, indent);
     }
     if (rmType === "DV_IDENTIFIER") {
-      return formatRmConstruct(rmType, [["id", value]], indent, ctx);
+      return attachJavaShell(formatRmConstruct(rmType, [["id", value]], indent, ctx), slot, ctx, rmType, indent);
     }
-    return formatRmConstruct(rmType, [["value", value]], indent, ctx);
+    ctx.types.add(rmType);
+    return attachJavaShell(`new ${javaClassName(rmType)}(${value})`, slot, ctx, rmType, indent);
   }
 
   if (rmType === "PARTY_IDENTIFIED") {

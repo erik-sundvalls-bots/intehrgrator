@@ -532,6 +532,13 @@ function emitDvChildJson(
   if (octets && (child.type === "text" || child.type === "text_code")) {
     return JSON.stringify(octetBytes(String(child.getFieldValue("TEXT") ?? "")));
   }
+  if (child.type === "text" || child.type === "text_code") {
+    return JSON.stringify(String(child.getFieldValue("TEXT") ?? ""));
+  }
+  if (child.type === "math_number") return String(child.getFieldValue("NUM") ?? "0");
+  if (child.type === "logic_boolean") {
+    return child.getFieldValue("BOOL") === "TRUE" ? "true" : "false";
+  }
   const rendered = emitBlock(child, ctx, indent + 1).join("");
   if (list && child.type !== "lists_create_with") return `[${rendered}]`;
   return rendered;
