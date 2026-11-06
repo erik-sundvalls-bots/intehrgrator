@@ -19,7 +19,6 @@ export const SHEET_GET_COLUMN = "sheet_get_column";
 export const SHEET_GET_HEADER = "sheet_get_header";
 export const SHEET_GET_DATA = "sheet_get_data";
 export const SHEET_LOOKUP = "sheet_lookup";
-export const SHEET_CODED_TEXT = "sheet_coded_text";
 export const SHEET_SET_CELL = "sheet_set_cell";
 export const SHEET_SET_XY = "sheet_set_xy";
 export const SHEET_SET_ROW = "sheet_set_row";
@@ -38,7 +37,6 @@ export const SHEET_ACCESSOR_TYPES = [
   SHEET_GET_HEADER,
   SHEET_GET_DATA,
   SHEET_LOOKUP,
-  SHEET_CODED_TEXT,
 ] as const;
 
 export const SHEET_MUTATOR_TYPES = [
@@ -77,6 +75,7 @@ function focusSheetOnSelect(
   if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "sheet");
   if (this.isInFlyout) return;
   if (event?.type !== "selected" || event.newElementId !== this.id) return;
+  if (this.getInputTargetBlock("SHEET")) return;
   const name = String(this.getFieldValue("NAME") || "").trim();
   if (!name) return;
   sheetFocusHandler?.(name, { highlight: true });
@@ -182,31 +181,10 @@ export function registerSheetBlocks(): void {
       appendInputTypeGlyph(matchVal, null);
       const returnCol = this.appendValueInput("RETURN_COL").setAlign(inputAlignRight()).setCheck(["String", "Number"]).appendField("return");
       appendInputTypeGlyph(returnCol, ["String", "Number"]);
-      this.setOutput(true, ["String", "Number", "Boolean"]);
+      this.setOutput(true, ["String", "Number", "Boolean", "Map", "Array"]);
       this.setColour(SHEET_COLOUR);
       this.setInputsInline(true);
-      this.setTooltip("First row where a header/column equals a value; return that row or a column.");
-    },
-  };
-
-  // Value inputs (including Sheet name) let a library Function remain generic.
-  Blockly.Blocks[SHEET_CODED_TEXT] = {
-    init: function (this: import("blockly/core").Block) {
-      this.appendDummyInput().appendField("coded text from Sheet");
-      for (const [name, label, check] of [
-        ["SHEET", "Sheet name", "String"],
-        ["KEY_COLUMN", "key column", "String"],
-        ["KEY", "key", null],
-        ["VALUE_COLUMN", "value column", "String"],
-        ["CODE_COLUMN", "code column", "String"],
-        ["TERMINOLOGY", "primary terminology", "String"],
-        ["MAPPING_COLUMNS", "terminology → code column", null],
-      ] as const) {
-        this.appendValueInput(name).setCheck(check).appendField(label);
-      }
-      this.setOutput(true, ["DV_CODED_TEXT", "DATA_VALUE"]);
-      this.setColour(SHEET_COLOUR);
-      this.setTooltip("First matching row → primary coded text plus equivalent mappings; blank codes are omitted. Column references are header names.");
+      this.setTooltip("First row where a header/column equals a value; return that row or a column. A connected Sheet name overrides the picker.");
     },
   };
 
@@ -318,6 +296,16 @@ export function registerSheetBlocks(): void {
       this.setInputsInline(true);
     },
   };
+
+  // A connected name overrides the picker; the picker remains convenient for project grids.
+  for (const type of [...SHEET_ACCESSOR_TYPES, ...SHEET_MUTATOR_TYPES]) {
+    const definition = Blockly.Blocks[type];
+    const init = definition.init;
+    definition.init = function (this: import("blockly/core").Block) {
+      init.call(this);
+      this.appendValueInput("SHEET").setCheck("String").appendField("Sheet name (optional)");
+    };
+  }
 
   for (const type of SHEET_ACCESSOR_TYPES) {
     (Blockly.Blocks[type] as { onchange?: typeof focusSheetOnSelect }).onchange = focusSheetOnSelect;

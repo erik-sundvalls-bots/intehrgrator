@@ -68,77 +68,959 @@
             }
           },
           "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "fields": {
+                  "VAR": {
+                    "id": "coded_text_from_sheet_row",
+                    "name": "row"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "sheet_lookup",
+                      "inputs": {
+                        "SHEET": {
+                          "block": {
+                            "type": "variables_get",
+                            "fields": {
+                              "VAR": {
+                                "id": "coded_text_from_sheet_sheet_name",
+                                "name": "sheet_name"
+                              }
+                            }
+                          }
+                        },
+                        "MATCH_COL": {
+                          "block": {
+                            "type": "variables_get",
+                            "fields": {
+                              "VAR": {
+                                "id": "coded_text_from_sheet_key_column",
+                                "name": "key_column"
+                              }
+                            }
+                          }
+                        },
+                        "MATCH_VAL": {
+                          "block": {
+                            "type": "variables_get",
+                            "fields": {
+                              "VAR": {
+                                "id": "coded_text_from_sheet_key",
+                                "name": "key"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "variables_set",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_label",
+                        "name": "label"
+                      }
+                    },
+                    "inputs": {
+                      "VALUE": {
+                        "block": {
+                          "type": "text_trim",
+                          "fields": {
+                            "MODE": "BOTH"
+                          },
+                          "inputs": {
+                            "TEXT": {
+                              "block": {
+                                "type": "maps_get",
+                                "inputs": {
+                                  "MAP": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "coded_text_from_sheet_row",
+                                          "name": "row"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "KEY": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "coded_text_from_sheet_value_column",
+                                          "name": "value_column"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "variables_set",
+                        "fields": {
+                          "VAR": {
+                            "id": "coded_text_from_sheet_code",
+                            "name": "code"
+                          }
+                        },
+                        "inputs": {
+                          "VALUE": {
+                            "block": {
+                              "type": "text_trim",
+                              "fields": {
+                                "MODE": "BOTH"
+                              },
+                              "inputs": {
+                                "TEXT": {
+                                  "block": {
+                                    "type": "maps_get",
+                                    "inputs": {
+                                      "MAP": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "coded_text_from_sheet_row",
+                                              "name": "row"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "KEY": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "coded_text_from_sheet_code_column",
+                                              "name": "code_column"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "procedures_ifreturn",
+                            "inputs": {
+                              "CONDITION": {
+                                "block": {
+                                  "type": "logic_operation",
+                                  "fields": {
+                                    "OP": "OR"
+                                  },
+                                  "inputs": {
+                                    "A": {
+                                      "block": {
+                                        "type": "logic_operation",
+                                        "fields": {
+                                          "OP": "OR"
+                                        },
+                                        "inputs": {
+                                          "A": {
+                                            "block": {
+                                              "type": "logic_compare",
+                                              "fields": {
+                                                "OP": "EQ"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "text_trim",
+                                                    "fields": {
+                                                      "MODE": "BOTH"
+                                                    },
+                                                    "inputs": {
+                                                      "TEXT": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "coded_text_from_sheet_key",
+                                                              "name": "key"
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "text",
+                                                    "fields": {
+                                                      "TEXT": ""
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "B": {
+                                            "block": {
+                                              "type": "logic_compare",
+                                              "fields": {
+                                                "OP": "EQ"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "text_trim",
+                                                    "fields": {
+                                                      "MODE": "BOTH"
+                                                    },
+                                                    "inputs": {
+                                                      "TEXT": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "coded_text_from_sheet_primary_terminology",
+                                                              "name": "primary_terminology"
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "text",
+                                                    "fields": {
+                                                      "TEXT": ""
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "B": {
+                                      "block": {
+                                        "type": "logic_operation",
+                                        "fields": {
+                                          "OP": "OR"
+                                        },
+                                        "inputs": {
+                                          "A": {
+                                            "block": {
+                                              "type": "logic_compare",
+                                              "fields": {
+                                                "OP": "EQ"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "coded_text_from_sheet_label",
+                                                        "name": "label"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "text",
+                                                    "fields": {
+                                                      "TEXT": ""
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "B": {
+                                            "block": {
+                                              "type": "logic_compare",
+                                              "fields": {
+                                                "OP": "EQ"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "coded_text_from_sheet_code",
+                                                        "name": "code"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "text",
+                                                    "fields": {
+                                                      "TEXT": ""
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "VALUE": {
+                                "block": {
+                                  "type": "logic_null"
+                                }
+                              }
+                            },
+                            "extraState": "<mutation value=\"1\"></mutation>",
+                            "next": {
+                              "block": {
+                                "type": "variables_set",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "coded_text_from_sheet_mappings",
+                                    "name": "mappings"
+                                  }
+                                },
+                                "inputs": {
+                                  "VALUE": {
+                                    "block": {
+                                      "type": "lists_create_with",
+                                      "extraState": {
+                                        "itemCount": 0
+                                      }
+                                    }
+                                  }
+                                },
+                                "next": {
+                                  "block": {
+                                    "type": "controls_forEach",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "coded_text_from_sheet_entry",
+                                        "name": "entry"
+                                      }
+                                    },
+                                    "inputs": {
+                                      "LIST": {
+                                        "block": {
+                                          "type": "maps_entries",
+                                          "inputs": {
+                                            "MAP": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "coded_text_from_sheet_mapping_columns",
+                                                    "name": "mapping_columns"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "DO": {
+                                        "block": {
+                                          "type": "variables_set",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "coded_text_from_sheet_mapped_code",
+                                              "name": "mapped_code"
+                                            }
+                                          },
+                                          "inputs": {
+                                            "VALUE": {
+                                              "block": {
+                                                "type": "text_trim",
+                                                "fields": {
+                                                  "MODE": "BOTH"
+                                                },
+                                                "inputs": {
+                                                  "TEXT": {
+                                                    "block": {
+                                                      "type": "maps_get",
+                                                      "inputs": {
+                                                        "MAP": {
+                                                          "block": {
+                                                            "type": "variables_get",
+                                                            "fields": {
+                                                              "VAR": {
+                                                                "id": "coded_text_from_sheet_row",
+                                                                "name": "row"
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        "KEY": {
+                                                          "block": {
+                                                            "type": "lists_getIndex",
+                                                            "fields": {
+                                                              "MODE": "GET",
+                                                              "WHERE": "FROM_START"
+                                                            },
+                                                            "inputs": {
+                                                              "VALUE": {
+                                                                "block": {
+                                                                  "type": "variables_get",
+                                                                  "fields": {
+                                                                    "VAR": {
+                                                                      "id": "coded_text_from_sheet_entry",
+                                                                      "name": "entry"
+                                                                    }
+                                                                  }
+                                                                }
+                                                              },
+                                                              "AT": {
+                                                                "block": {
+                                                                  "type": "math_number",
+                                                                  "fields": {
+                                                                    "NUM": 2
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "next": {
+                                            "block": {
+                                              "type": "controls_if",
+                                              "inputs": {
+                                                "IF0": {
+                                                  "block": {
+                                                    "type": "logic_operation",
+                                                    "fields": {
+                                                      "OP": "AND"
+                                                    },
+                                                    "inputs": {
+                                                      "A": {
+                                                        "block": {
+                                                          "type": "logic_compare",
+                                                          "fields": {
+                                                            "OP": "NEQ"
+                                                          },
+                                                          "inputs": {
+                                                            "A": {
+                                                              "block": {
+                                                                "type": "text_trim",
+                                                                "fields": {
+                                                                  "MODE": "BOTH"
+                                                                },
+                                                                "inputs": {
+                                                                  "TEXT": {
+                                                                    "block": {
+                                                                      "type": "lists_getIndex",
+                                                                      "fields": {
+                                                                        "MODE": "GET",
+                                                                        "WHERE": "FROM_START"
+                                                                      },
+                                                                      "inputs": {
+                                                                        "VALUE": {
+                                                                          "block": {
+                                                                            "type": "variables_get",
+                                                                            "fields": {
+                                                                              "VAR": {
+                                                                                "id": "coded_text_from_sheet_entry",
+                                                                                "name": "entry"
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        },
+                                                                        "AT": {
+                                                                          "block": {
+                                                                            "type": "math_number",
+                                                                            "fields": {
+                                                                              "NUM": 1
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                            "B": {
+                                                              "block": {
+                                                                "type": "text",
+                                                                "fields": {
+                                                                  "TEXT": ""
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "B": {
+                                                        "block": {
+                                                          "type": "logic_compare",
+                                                          "fields": {
+                                                            "OP": "NEQ"
+                                                          },
+                                                          "inputs": {
+                                                            "A": {
+                                                              "block": {
+                                                                "type": "variables_get",
+                                                                "fields": {
+                                                                  "VAR": {
+                                                                    "id": "coded_text_from_sheet_mapped_code",
+                                                                    "name": "mapped_code"
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                            "B": {
+                                                              "block": {
+                                                                "type": "text",
+                                                                "fields": {
+                                                                  "TEXT": ""
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "DO0": {
+                                                  "block": {
+                                                    "type": "lists_setIndex",
+                                                    "fields": {
+                                                      "MODE": "INSERT",
+                                                      "WHERE": "LAST"
+                                                    },
+                                                    "inputs": {
+                                                      "LIST": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "coded_text_from_sheet_mappings",
+                                                              "name": "mappings"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "TO": {
+                                                        "block": {
+                                                          "type": "maps_create_with",
+                                                          "fields": {
+                                                            "KEY0": "_type",
+                                                            "KEY1": "match",
+                                                            "KEY2": "target"
+                                                          },
+                                                          "inputs": {
+                                                            "VAL0": {
+                                                              "block": {
+                                                                "type": "text",
+                                                                "fields": {
+                                                                  "TEXT": "TERM_MAPPING"
+                                                                }
+                                                              }
+                                                            },
+                                                            "VAL1": {
+                                                              "block": {
+                                                                "type": "text",
+                                                                "fields": {
+                                                                  "TEXT": "="
+                                                                }
+                                                              }
+                                                            },
+                                                            "VAL2": {
+                                                              "block": {
+                                                                "type": "maps_create_with",
+                                                                "fields": {
+                                                                  "KEY0": "_type",
+                                                                  "KEY1": "code_string",
+                                                                  "KEY2": "terminology_id"
+                                                                },
+                                                                "inputs": {
+                                                                  "VAL0": {
+                                                                    "block": {
+                                                                      "type": "text",
+                                                                      "fields": {
+                                                                        "TEXT": "CODE_PHRASE"
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "VAL1": {
+                                                                    "block": {
+                                                                      "type": "variables_get",
+                                                                      "fields": {
+                                                                        "VAR": {
+                                                                          "id": "coded_text_from_sheet_mapped_code",
+                                                                          "name": "mapped_code"
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "VAL2": {
+                                                                    "block": {
+                                                                      "type": "maps_create_with",
+                                                                      "fields": {
+                                                                        "KEY0": "_type",
+                                                                        "KEY1": "value"
+                                                                      },
+                                                                      "inputs": {
+                                                                        "VAL0": {
+                                                                          "block": {
+                                                                            "type": "text",
+                                                                            "fields": {
+                                                                              "TEXT": "TERMINOLOGY_ID"
+                                                                            }
+                                                                          }
+                                                                        },
+                                                                        "VAL1": {
+                                                                          "block": {
+                                                                            "type": "lists_getIndex",
+                                                                            "fields": {
+                                                                              "MODE": "GET",
+                                                                              "WHERE": "FROM_START"
+                                                                            },
+                                                                            "inputs": {
+                                                                              "VALUE": {
+                                                                                "block": {
+                                                                                  "type": "variables_get",
+                                                                                  "fields": {
+                                                                                    "VAR": {
+                                                                                      "id": "coded_text_from_sheet_entry",
+                                                                                      "name": "entry"
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              },
+                                                                              "AT": {
+                                                                                "block": {
+                                                                                  "type": "math_number",
+                                                                                  "fields": {
+                                                                                    "NUM": 1
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      },
+                                                                      "extraState": {
+                                                                        "itemCount": 2
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                },
+                                                                "extraState": {
+                                                                  "itemCount": 3
+                                                                }
+                                                              }
+                                                            }
+                                                          },
+                                                          "extraState": {
+                                                            "itemCount": 3
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
             "RETURN": {
               "block": {
-                "type": "sheet_coded_text",
+                "type": "logic_ternary",
                 "inputs": {
-                  "SHEET": {
+                  "IF": {
                     "block": {
-                      "type": "variables_get",
+                      "type": "logic_compare",
                       "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_sheet_name"
+                        "OP": "GT"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "lists_length",
+                            "inputs": {
+                              "VALUE": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "coded_text_from_sheet_mappings",
+                                      "name": "mappings"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "math_number",
+                            "fields": {
+                              "NUM": 0
+                            }
+                          }
                         }
                       }
                     }
                   },
-                  "KEY_COLUMN": {
+                  "THEN": {
                     "block": {
-                      "type": "variables_get",
+                      "type": "maps_create_with",
                       "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_key_column"
+                        "KEY0": "_type",
+                        "KEY1": "value",
+                        "KEY2": "defining_code",
+                        "KEY3": "mappings"
+                      },
+                      "inputs": {
+                        "VAL0": {
+                          "block": {
+                            "type": "text",
+                            "fields": {
+                              "TEXT": "DV_CODED_TEXT"
+                            }
+                          }
+                        },
+                        "VAL1": {
+                          "block": {
+                            "type": "variables_get",
+                            "fields": {
+                              "VAR": {
+                                "id": "coded_text_from_sheet_label",
+                                "name": "label"
+                              }
+                            }
+                          }
+                        },
+                        "VAL2": {
+                          "block": {
+                            "type": "maps_create_with",
+                            "fields": {
+                              "KEY0": "_type",
+                              "KEY1": "code_string",
+                              "KEY2": "terminology_id"
+                            },
+                            "inputs": {
+                              "VAL0": {
+                                "block": {
+                                  "type": "text",
+                                  "fields": {
+                                    "TEXT": "CODE_PHRASE"
+                                  }
+                                }
+                              },
+                              "VAL1": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "coded_text_from_sheet_code",
+                                      "name": "code"
+                                    }
+                                  }
+                                }
+                              },
+                              "VAL2": {
+                                "block": {
+                                  "type": "maps_create_with",
+                                  "fields": {
+                                    "KEY0": "_type",
+                                    "KEY1": "value"
+                                  },
+                                  "inputs": {
+                                    "VAL0": {
+                                      "block": {
+                                        "type": "text",
+                                        "fields": {
+                                          "TEXT": "TERMINOLOGY_ID"
+                                        }
+                                      }
+                                    },
+                                    "VAL1": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "coded_text_from_sheet_primary_terminology",
+                                            "name": "primary_terminology"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "extraState": {
+                                    "itemCount": 2
+                                  }
+                                }
+                              }
+                            },
+                            "extraState": {
+                              "itemCount": 3
+                            }
+                          }
+                        },
+                        "VAL3": {
+                          "block": {
+                            "type": "variables_get",
+                            "fields": {
+                              "VAR": {
+                                "id": "coded_text_from_sheet_mappings",
+                                "name": "mappings"
+                              }
+                            }
+                          }
                         }
+                      },
+                      "extraState": {
+                        "itemCount": 4
                       }
                     }
                   },
-                  "KEY": {
+                  "ELSE": {
                     "block": {
-                      "type": "variables_get",
+                      "type": "maps_create_with",
                       "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_key"
+                        "KEY0": "_type",
+                        "KEY1": "value",
+                        "KEY2": "defining_code"
+                      },
+                      "inputs": {
+                        "VAL0": {
+                          "block": {
+                            "type": "text",
+                            "fields": {
+                              "TEXT": "DV_CODED_TEXT"
+                            }
+                          }
+                        },
+                        "VAL1": {
+                          "block": {
+                            "type": "variables_get",
+                            "fields": {
+                              "VAR": {
+                                "id": "coded_text_from_sheet_label",
+                                "name": "label"
+                              }
+                            }
+                          }
+                        },
+                        "VAL2": {
+                          "block": {
+                            "type": "maps_create_with",
+                            "fields": {
+                              "KEY0": "_type",
+                              "KEY1": "code_string",
+                              "KEY2": "terminology_id"
+                            },
+                            "inputs": {
+                              "VAL0": {
+                                "block": {
+                                  "type": "text",
+                                  "fields": {
+                                    "TEXT": "CODE_PHRASE"
+                                  }
+                                }
+                              },
+                              "VAL1": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "coded_text_from_sheet_code",
+                                      "name": "code"
+                                    }
+                                  }
+                                }
+                              },
+                              "VAL2": {
+                                "block": {
+                                  "type": "maps_create_with",
+                                  "fields": {
+                                    "KEY0": "_type",
+                                    "KEY1": "value"
+                                  },
+                                  "inputs": {
+                                    "VAL0": {
+                                      "block": {
+                                        "type": "text",
+                                        "fields": {
+                                          "TEXT": "TERMINOLOGY_ID"
+                                        }
+                                      }
+                                    },
+                                    "VAL1": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "coded_text_from_sheet_primary_terminology",
+                                            "name": "primary_terminology"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "extraState": {
+                                    "itemCount": 2
+                                  }
+                                }
+                              }
+                            },
+                            "extraState": {
+                              "itemCount": 3
+                            }
+                          }
                         }
-                      }
-                    }
-                  },
-                  "VALUE_COLUMN": {
-                    "block": {
-                      "type": "variables_get",
-                      "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_value_column"
-                        }
-                      }
-                    }
-                  },
-                  "CODE_COLUMN": {
-                    "block": {
-                      "type": "variables_get",
-                      "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_code_column"
-                        }
-                      }
-                    }
-                  },
-                  "TERMINOLOGY": {
-                    "block": {
-                      "type": "variables_get",
-                      "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_primary_terminology"
-                        }
-                      }
-                    }
-                  },
-                  "MAPPING_COLUMNS": {
-                    "block": {
-                      "type": "variables_get",
-                      "fields": {
-                        "VAR": {
-                          "id": "coded_text_from_sheet_mapping_columns"
-                        }
+                      },
+                      "extraState": {
+                        "itemCount": 3
                       }
                     }
                   }
@@ -151,32 +1033,56 @@
     },
     "variables": [
       {
-        "name": "sheet_name",
-        "id": "coded_text_from_sheet_sheet_name"
+        "id": "coded_text_from_sheet_key",
+        "name": "key"
       },
       {
-        "name": "key_column",
-        "id": "coded_text_from_sheet_key_column"
+        "id": "coded_text_from_sheet_primary_terminology",
+        "name": "primary_terminology"
       },
       {
-        "name": "key",
-        "id": "coded_text_from_sheet_key"
+        "id": "coded_text_from_sheet_label",
+        "name": "label"
       },
       {
-        "name": "value_column",
-        "id": "coded_text_from_sheet_value_column"
+        "id": "coded_text_from_sheet_code",
+        "name": "code"
       },
       {
-        "name": "code_column",
-        "id": "coded_text_from_sheet_code_column"
+        "id": "coded_text_from_sheet_entry",
+        "name": "entry"
       },
       {
-        "name": "primary_terminology",
-        "id": "coded_text_from_sheet_primary_terminology"
+        "id": "coded_text_from_sheet_mapped_code",
+        "name": "mapped_code"
       },
       {
-        "name": "mapping_columns",
-        "id": "coded_text_from_sheet_mapping_columns"
+        "id": "coded_text_from_sheet_mappings",
+        "name": "mappings"
+      },
+      {
+        "id": "coded_text_from_sheet_sheet_name",
+        "name": "sheet_name"
+      },
+      {
+        "id": "coded_text_from_sheet_key_column",
+        "name": "key_column"
+      },
+      {
+        "id": "coded_text_from_sheet_value_column",
+        "name": "value_column"
+      },
+      {
+        "id": "coded_text_from_sheet_code_column",
+        "name": "code_column"
+      },
+      {
+        "id": "coded_text_from_sheet_mapping_columns",
+        "name": "mapping_columns"
+      },
+      {
+        "id": "coded_text_from_sheet_row",
+        "name": "row"
       }
     ]
   },

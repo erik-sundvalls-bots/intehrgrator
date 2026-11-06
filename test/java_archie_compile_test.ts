@@ -11,6 +11,8 @@ import { initBlocklyGenerators, workspaceToModelJson } from "@intehrgrator/block
 import { ensureRmBlockType } from "@intehrgrator/blockly/blocks/rm_blocks.ts";
 import { registerSchemaBlocksFromSkeleton } from "@intehrgrator/blockly/schema_blocks.ts";
 import { createEmptyModel, applyExpressionEdit, upsertLoop } from "@intehrgrator/core/mapping_model/mod.ts";
+import { mergeFunctionBundle } from "@intehrgrator/blockly/function_bundle.ts";
+import { parseFunctionBundle } from "@intehrgrator/core/function_library/mod.ts";
 import { generate } from "@intehrgrator/core/codegen/mod.ts";
 import { parseExampleSetCatalog } from "@intehrgrator/core/example_sets/mod.ts";
 import { applyOptionalRmToSkeleton, generateSkeleton, collectValueSlots } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
@@ -171,6 +173,8 @@ Deno.test({
     );
     await compileJavaFiles(classpath, classes, javaSources(java, srcPath, runtimeDir), "synthetic blood pressure");
 
+    await checkPortableFunctions(classpath, classes, srcDir, runtimeDir);
+
     const repoRoot = join(import.meta.dirname!, "..");
     const catalogPath = join(repoRoot, "examples", "example-sets.json");
     const catalog = parseExampleSetCatalog(
@@ -306,4 +310,46 @@ async function compileJavaFiles(
   const stderr = new TextDecoder().decode(result.stderr);
   const stdout = new TextDecoder().decode(result.stdout);
   assertEquals(result.success, true, `javac failed for ${label}:\n${stderr}\n${stdout}`);
+}
+
+/** Real JVM execution catches Object-valued parameters, 1-based getters and accumulator types. */
+async function checkPortableFunctions(classpath: string, classes: string, srcDir: string, runtimeDir: string): Promise<void> {
+  ensureBlockly();
+  const workspace = new Blockly.Workspace();
+  try {
+    let sheets: import("@intehrgrator/core/sheets/types.ts").SheetDocument[] = [];
+    for (const name of ["coded_text_from_sheet", "join_swedish"]) {
+      const bundle = parseFunctionBundle(await Deno.readTextFile(new URL(`../function-library/${name}.intehr-function.json`, import.meta.url)));
+      sheets = mergeFunctionBundle(workspace, bundle, {clash: "rename", sheets}).sheets;
+    }
+    let model = createEmptyModel("portable-functions"); model.targetFormat = "json-schema";
+    model.functions = workspaceToModelJson(workspace).functions;
+    model = applyExpressionEdit(model, "coded", 'call("coded_text_from_sheet", "local", "id", "A", "label", "primary", "Local", map("Other", "other"))', {rmType: "string", returnType: "string"});
+    model = applyExpressionEdit(model, "joined", 'call("join_swedish_words", list("Ada", "Bo", "Cia"))', {rmType: "string", returnType: "string"});
+    model.functions!.push({name: "pick", kind: "return", params: ["record", "key"], body: 'maps_get(var("record"), var("key"))'});
+    model = applyExpressionEdit(model, "picked", 'call("pick", map("code", "003"), "code")', {rmType: "string", returnType: "string"});
+    const java = generate(model, "java");
+    const script = join(srcDir, "ConversionScript.java"); await Deno.writeTextFile(script, java);
+    const runner = join(srcDir, "FunctionRunner.java");
+    await Deno.writeTextFile(runner, `
+import java.util.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import se.regionstockholm.intehrgrator.generated.ConversionScript;
+import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;
+public class FunctionRunner {
+  public static void main(String[] args) throws Exception {
+    var local = new Sheet("local", List.of("id", "label", "primary", "other"), List.of(List.of("A", "Tablet", "003", "X7")));
+    var join = new Sheet("SweJoinWords", List.of("first", "last", "snippet"), List.of(List.of(true, "—", "{{word}}"), List.of(false, false, ", {{word}}"), List.of(false, true, " och {{word}}")), List.of(), "FIRST", "; ", List.of("snippet"));
+    System.out.print(new ObjectMapper().writeValueAsString(new ConversionScript().convert(Map.of(), Map.of(), Map.of("local", local, "SweJoinWords", join))));
+  }
+}`);
+    await compileJavaFiles(classpath, classes, [...javaSources(java, script, runtimeDir), runner], "ordinary Function bodies");
+    const run = await new Deno.Command("java", {args: ["-cp", `${classes}:${classpath}`, "FunctionRunner"], stdout: "piped", stderr: "piped"}).output();
+    assertEquals(run.success, true, new TextDecoder().decode(run.stderr));
+    const result = JSON.parse(new TextDecoder().decode(run.stdout));
+    assertEquals(result.joined, "Ada, Bo och Cia");
+    assertEquals(result.picked, "003");
+    assertEquals(result.coded.defining_code.code_string, "003");
+    assertEquals(result.coded.mappings[0].target.code_string, "X7");
+  } finally { workspace.dispose(); }
 }

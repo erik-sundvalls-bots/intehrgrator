@@ -1,3 +1,4 @@
+import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 /**
  * Evaluate a Blockly XML / XSD schema canvas to an instance string.
  *
@@ -36,6 +37,8 @@ interface BlocklyNode {
   fields?: Record<string, unknown>;
   inputs?: Record<string, BlocklyInput>;
   extraState?: {
+    name?: string;
+    params?: unknown[];
     elseIfCount?: number;
     hasElse?: boolean;
     itemCount?: number;
@@ -103,9 +106,40 @@ export function renderXmlCanvasFromBlockly(
 ): string | null {
   const root = xmlCanvasRoot(state);
   if (!root) return null;
-  const lines = renderBlock(root, ctx);
+  const names = new Map<string, string>();
+  const variables = (state as {variables?: Array<{id: string; name: string}>}).variables ?? [];
+  for (const variable of variables) names.set(variable.id, variable.name);
+  const prepared = structuredClone(root);
+  bindExpressionNames(prepared, names);
+  const lines = renderBlock(prepared, ctx);
   if (!lines.length) return null;
   return lines.join("\n");
+}
+
+/** Resolve saved variable IDs and implicit lexical loop reporters without live Blockly. */
+function variableName(value: unknown, names = new Map<string, string>()): string {
+  if (value && typeof value === "object") {
+    const field = value as {id?: string; name?: string};
+    return names.get(field.id ?? "") ?? field.name ?? field.id ?? "";
+  }
+  const name = String(value ?? "");
+  return names.get(name) ?? name;
+}
+
+function bindExpressionNames(block: BlocklyNode, names: Map<string, string>, item = "item", loop = "item"): void {
+  const fields = block.fields ??= {};
+  if (fields.VAR != null) fields.VAR = variableName(fields.VAR, names);
+  if (block.type === "logic_current_item" && !fields.VAR) fields.VAR = item;
+  if ((block.type === "logic_loop_index" || block.type === "logic_loop_length") && !fields.VAR) fields.VAR = loop;
+  const isLoop = block.type === "for_each_list" || block.type === "for_each_source";
+  for (const [input, child] of Object.entries(block.inputs ?? {})) {
+    const nestedLoop = isLoop && input === "DO" ? String(fields.VAR || "item") : loop;
+    const nestedItem = isLoop && input === "DO" ? nestedLoop
+      : block.type === "logic_list_restriction" && input === "PRED" ? String(fields.VAR || "item") : item;
+    if (child.block) bindExpressionNames(child.block, names, nestedItem, nestedLoop);
+    if (child.shadow) bindExpressionNames(child.shadow, names, nestedItem, nestedLoop);
+  }
+  if (block.next?.block) bindExpressionNames(block.next.block, names, item, loop);
 }
 
 function renderBlock(block: BlocklyNode, ctx: SourceContext): string[] {
@@ -178,10 +212,12 @@ function renderForEach(block: BlocklyNode, ctx: SourceContext): string[] {
   const body = inputChild(block.inputs?.DO);
   if (!body) return [];
   const lines: string[] = [];
-  for (const node of nodes) {
+  for (const [index, node] of nodes.entries()) {
     const inner: SourceContext = {
       ...ctx,
-      vars: { ...(ctx.vars ?? {}), [varName]: node },
+      vars: { ...(ctx.vars ?? {}), [varName]: node,
+        [loopIndexBinderName(varName)]: index, [loopLengthBinderName(varName)]: nodes.length },
+      loopNames: [...(ctx.loopNames ?? []), varName],
       relativeRoot: node,
     };
     lines.push(...renderChain(body, inner));
@@ -344,11 +380,37 @@ function serializeBlock(block: BlocklyNode | undefined): string | null {
         : "xpathString";
       return `${fn}(${JSON.stringify(expr)})`;
     }
+    case "logic_null": return "null";
+    case "variables_get": return `var(${JSON.stringify(variableName(block.fields?.VAR))})`;
+    case "logic_loop_index": return `var(${JSON.stringify(loopIndexBinderName(String(block.fields?.VAR || "item")))})`;
+    case "logic_loop_length": return `var(${JSON.stringify(loopLengthBinderName(String(block.fields?.VAR || "item")))})`;
+    case "procedures_callreturn": {
+      const name = String(block.fields?.NAME || block.extraState?.name || "");
+      const args: string[] = [];
+      // Disconnected inputs are absent from saved JSON; preserve their argument positions.
+      const connected = Object.keys(block.inputs ?? {}).filter(key => /^ARG\d+$/.test(key)).map(key => Number(key.slice(3)) + 1);
+      const count = Math.max(block.extraState?.params?.length ?? 0, ...connected);
+      for (let i = 0; i < count; i++) args.push(serializeBlock(inputChild(block.inputs?.[`ARG${i}`])) ?? "null");
+      return `call(${[JSON.stringify(name), ...args].join(", ")})`;
+    }
+    case "text_trim": return `trim(${serializeBlock(inputChild(block.inputs?.TEXT)) ?? '""'})`;
+    case "maps_entries": return `maps_entries(${serializeBlock(inputChild(block.inputs?.MAP)) ?? "map()"})`;
+    case "lists_length": return `lists_length(${serializeBlock(inputChild(block.inputs?.VALUE)) ?? "list()"})`;
+    case "lists_getIndex": {
+      const list = serializeBlock(inputChild(block.inputs?.VALUE)) ?? "list()";
+      const where = JSON.stringify(String(block.fields?.WHERE || "FIRST"));
+      const at = serializeBlock(inputChild(block.inputs?.AT)) ?? "1";
+      return `lists_getIndex(${list}, ${where}, ${at})`;
+    }
+    case "math_arithmetic": {
+      const op = {ADD: "+", MINUS: "-", MULTIPLY: "*", DIVIDE: "/"}[String(block.fields?.OP)] ?? "+";
+      return `(${serializeBlock(inputChild(block.inputs?.A)) ?? "0"} ${op} ${serializeBlock(inputChild(block.inputs?.B)) ?? "0"})`;
+    }
     case "maps_get": {
       const name = String(block.fields?.NAME ?? "defaults");
-      const key = inputChild(block.inputs?.KEY);
-      const keyStr = key ? String(key.fields?.TEXT ?? "") : "";
-      return `maps_get(${JSON.stringify(name)}, ${JSON.stringify(keyStr)})`;
+      const key = serializeBlock(inputChild(block.inputs?.KEY)) ?? '""';
+      const map = serializeBlock(inputChild(block.inputs?.MAP)) ?? JSON.stringify(name);
+      return `maps_get(${map}, ${key})`;
     }
     case "maps_create_empty":
       return "map()";
@@ -373,13 +435,13 @@ function serializeBlock(block: BlocklyNode | undefined): string | null {
       return `decision_table(${JSON.stringify(name)}, ${inputs}, ${JSON.stringify(output)})`;
     }
     case "sheet_lookup": {
-      const name = String(block.fields?.NAME ?? "Sheet1");
+      const name = serializeBlock(inputChild(block.inputs?.SHEET)) ?? JSON.stringify(String(block.fields?.NAME ?? "Sheet1"));
       const col = serializeBlock(inputChild(block.inputs?.MATCH_COL)) ?? '""';
       const val = serializeBlock(inputChild(block.inputs?.MATCH_VAL)) ?? '""';
       const ret = serializeBlock(inputChild(block.inputs?.RETURN_COL));
       return ret
-        ? `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val}, ${ret})`
-        : `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val})`;
+        ? `sheet_lookup(${name}, ${col}, ${val}, ${ret})`
+        : `sheet_lookup(${name}, ${col}, ${val})`;
     }
     case "logic_compare": {
       const op = String(block.fields?.OP ?? "EQ");

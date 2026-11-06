@@ -9,15 +9,43 @@ import {
   ensureXQueryRuntime,
   runGeneratedXQuery,
 } from "@intehrgrator/core/codegen/run_xquery.ts";
-import { xquerySheetsImport } from "@intehrgrator/core/codegen/xquery_sheets.ts";
+import { generate } from "@intehrgrator/core/codegen/mod.ts";
+import { runGeneratedTypeScript } from "@intehrgrator/core/codegen/run_typescript.ts";
+import {
+  applyExpressionEdit,
+  createEmptyModel,
+} from "@intehrgrator/core/mapping_model/mod.ts";
 import { assertEquals } from "@std/assert";
 import {
   createSourceContext,
   evaluate,
 } from "@intehrgrator/core/source/query_runtime.ts";
 
-Deno.test("Sheet coded text keeps the primary code and adds equivalent terminology mappings", () => {
+initBlocklyGenerators();
+const libraryBundle = parseFunctionBundle(
+  await Deno.readTextFile(
+    new URL(
+      "../function-library/coded_text_from_sheet.intehr-function.json",
+      import.meta.url,
+    ),
+  ),
+);
+function libraryFunctions() {
+  const workspace = new Blockly.Workspace();
+  try {
+    mergeFunctionBundle(workspace, libraryBundle, {
+      clash: "rename",
+      sheets: [],
+    });
+    return workspaceToModelJson(workspace).functions;
+  } finally {
+    workspace.dispose();
+  }
+}
+
+Deno.test("Sheet Function coded text keeps the primary code and adds equivalent terminology mappings", () => {
   const ctx = createSourceContext("{}", "json");
+  ctx.functions = libraryFunctions();
   ctx.sheets = {
     medicines: {
       name: "medicines",
@@ -27,7 +55,7 @@ Deno.test("Sheet coded text keeps the primary code and adds equivalent terminolo
   };
   assertEquals(
     evaluate(
-      'sheet_coded_text("medicines", "key", "A", "text", "code", "Local", map("SNOMED-CT", "snomed", "Other", "other", "Empty", "empty"))',
+      'call("coded_text_from_sheet", "medicines", "key", "A", "text", "code", "Local", map("SNOMED-CT", "snomed", "Other", "other", "Empty", "empty"))',
       ctx,
       "string",
     ),
@@ -63,8 +91,9 @@ Deno.test("Sheet coded text keeps the primary code and adds equivalent terminolo
   );
 });
 
-Deno.test("Sheet coded text omits missing primaries and blank mapping codes without inventing a value", () => {
+Deno.test("Sheet Function coded text omits missing primaries and blank mapping codes without inventing a value", () => {
   const ctx = createSourceContext("{}", "json");
+  ctx.functions = libraryFunctions();
   ctx.sheets = {
     codes: {
       name: "codes",
@@ -78,7 +107,7 @@ Deno.test("Sheet coded text omits missing primaries and blank mapping codes with
   };
   const run = (key: string, term = "Local") =>
     evaluate(
-      `sheet_coded_text("codes", "key", "${key}", "text", "code", "${term}", map("SNOMED-CT", "snomed"))`,
+      `call("coded_text_from_sheet", "codes", "key", "${key}", "text", "code", "${term}", map("SNOMED-CT", "snomed"))`,
       ctx,
       "string",
     );
@@ -116,6 +145,7 @@ Deno.test("the library Function imports without project data and returns a compl
     });
     assertEquals(merged.sheets, []);
     const ctx = createSourceContext("{}", "json");
+    ctx.functions = libraryFunctions();
     ctx.functions = workspaceToModelJson(workspace).functions;
     ctx.sheets = {
       local: {
@@ -156,9 +186,13 @@ Deno.test("the library Function imports without project data and returns a compl
 
 Deno.test("XQuery Sheet coded text returns equivalent mappings without stringifying the record", async () => {
   await ensureXQueryRuntime();
-  const query = `${xquerySheetsImport()}
-declare variable $sheets as map(*) external;
-igsh:sheet-coded-text($sheets, "local", "id", "A", "label", "primary", "Local", map { "Other": "other", "Empty": "empty" })`;
+  const model = createEmptyModel("Function parity");
+  model.targetFormat = "json-schema";
+  model.functions = libraryFunctions();
+  const query = generate(model, "xquery").replace(
+    /local:convert\(\$source\)\s*$/,
+    'local:coded-text-from-sheet("local", "id", "A", "label", "primary", "Local", map { "Other": "other", "Empty": "empty" })',
+  );
   const output = runGeneratedXQuery(query, {
     source: {},
     sheets: {
@@ -167,6 +201,28 @@ igsh:sheet-coded-text($sheets, "local", "id", "A", "label", "primary", "Local", 
         headers: ["id", "label", "primary", "other", "empty"],
         values: [["A", "Tablet", "003", "X7", ""]],
       },
+    },
+  });
+  const primaryOnly = runGeneratedXQuery(
+    query.replace('map { "Other": "other", "Empty": "empty" }', "map {}"),
+    {
+      source: {},
+      sheets: {
+        local: {
+          name: "local",
+          headers: ["id", "label", "primary"],
+          values: [["A", "Tablet", "003"]],
+        },
+      },
+    },
+  );
+  assertEquals(primaryOnly, {
+    _type: "DV_CODED_TEXT",
+    value: "Tablet",
+    defining_code: {
+      _type: "CODE_PHRASE",
+      code_string: "003",
+      terminology_id: { _type: "TERMINOLOGY_ID", value: "Local" },
     },
   });
   assertEquals(output, {
@@ -187,4 +243,35 @@ igsh:sheet-coded-text($sheets, "local", "id", "A", "label", "primary", "Local", 
       },
     }],
   });
+});
+
+Deno.test("generated TypeScript executes the ordinary coded Function STACK without a canvas", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("coded"),
+    "coded",
+    'call("coded_text_from_sheet", "local", "id", "A", "label", "primary", "Local", map("Other", "other"))',
+    { rmType: "string", returnType: "string" },
+  );
+  model.targetFormat = "json-schema";
+  model.functions = libraryFunctions();
+  const output = runGeneratedTypeScript(
+    generate(model, "typescript"),
+    { format: "json", data: {} },
+    {},
+    undefined,
+    {
+      local: {
+        name: "local",
+        headers: ["id", "label", "primary", "other"],
+        values: [["A", "Tablet", "003", "X7"]],
+      },
+    },
+  ) as {
+    coded: {
+      defining_code: { code_string: string };
+      mappings: Array<{ target: { code_string: string } }>;
+    };
+  };
+  assertEquals(output.coded.defining_code.code_string, "003");
+  assertEquals(output.coded.mappings[0]?.target.code_string, "X7");
 });

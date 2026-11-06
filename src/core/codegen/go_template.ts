@@ -91,6 +91,7 @@ export function emitGoFunctionDefines(model: MappingModel, ctx: GoEmitContext): 
   ctx.mappingFunctions = fns;
   const lines: string[] = [];
   for (const fn of fns) {
+    if (fn.stack?.length) throw new Error(`Go templates cannot return values from statement-bodied Function ${fn.name}; use TypeScript, Java or XQuery`);
     const inner: GoEmitContext = { ...ctx, fnParams: new Set(fn.params) };
     const body = emitGoExpressionTemplate(parseExpression(fn.body!), inner);
     lines.push(`{{- define ${goQuote(fn.name)} -}}${body}{{- end -}}`);
@@ -291,13 +292,13 @@ function serializeBlockNodeExpression(block: BlockNode | undefined): string | nu
       return `decision_table(${JSON.stringify(name)}, ${inputs}, ${JSON.stringify(output)})`;
     }
     case "sheet_lookup": {
-      const name = String(block.fields?.NAME ?? "Sheet1");
+      const name = serializeBlockNodeExpression(inputChild(block.inputs?.SHEET)) ?? JSON.stringify(String(block.fields?.NAME ?? "Sheet1"));
       const col = serializeBlockNodeExpression(inputChild(block.inputs?.MATCH_COL)) ?? '""';
       const val = serializeBlockNodeExpression(inputChild(block.inputs?.MATCH_VAL)) ?? '""';
       const ret = serializeBlockNodeExpression(inputChild(block.inputs?.RETURN_COL));
       return ret
-        ? `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val}, ${ret})`
-        : `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val})`;
+        ? `sheet_lookup(${name}, ${col}, ${val}, ${ret})`
+        : `sheet_lookup(${name}, ${col}, ${val})`;
     }
     default:
       return null;
@@ -396,6 +397,7 @@ export function emitBlock(block: BlockNode, ctx: GoEmitContext = createGoEmitCon
       break;
     }
     case "maps_get": {
+      if (inputChild(block.inputs?.MAP)) throw new Error("Go templates do not support Map-value getters; use TypeScript, Java or XQuery");
       const name = String(block.fields?.NAME ?? "defaults");
       const key = inputChild(block.inputs?.KEY);
       const keyStr = key ? extractTextValue(key) : "";
@@ -467,6 +469,7 @@ export function emitValueExpression(
       )];
     }
     case "maps_get": {
+      if (inputChild(block.inputs?.MAP)) throw new Error("Go templates do not support Map-value getters; use TypeScript, Java or XQuery");
       const name = String(block.fields?.NAME ?? "defaults");
       const key = inputChild(block.inputs?.KEY);
       const keyStr = key ? extractTextValue(key) : "";
@@ -531,6 +534,7 @@ function blockNodeToExpression(block: BlockNode): string | null {
       return `${fn}(${JSON.stringify(expr)})`;
     }
     case "maps_get": {
+      if (inputChild(block.inputs?.MAP)) throw new Error("Go templates do not support Map-value getters; use TypeScript, Java or XQuery");
       const name = String(block.fields?.NAME ?? "defaults");
       const key = inputChild(block.inputs?.KEY);
       const keyStr = key ? extractTextValue(key) : "";
@@ -1017,7 +1021,12 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "xpathNode":
         case "xpath":
           return emitXPathGo(ast.args[0], ctx);
+        case "maps_entries":
+          throw new Error("Go templates do not support Map-value entries; use TypeScript, Java or XQuery");
         case "maps_get": {
+          if (ast.args[0]?.kind !== "literal" || ast.args[1]?.kind !== "literal") {
+            throw new Error("Go templates do not support Map-value getters or computed Map keys; use TypeScript, Java or XQuery");
+          }
           const mapName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "defaults";
           const key = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "";
           if (mapName === "defaults" || mapName === "Parameters") {
@@ -1101,8 +1110,6 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "sheet_get_header":
         case "sheet_get_data":
           return `/* ${ast.name} not available in Go template */`;
-        case "sheet_coded_text":
-          return "/* sheet_coded_text: object-valued Functions are not available in Go templates */";
         case "sheet_lookup": {
           const name = args[0] ?? `""`;
           const col = args[1] ?? `""`;

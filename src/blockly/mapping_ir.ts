@@ -1,3 +1,5 @@
+import { loopIsInsideProcedure } from "./loop_block.ts";
+import { functionStatements } from "./function_statements.ts";
 /**
  * Blockly workspace → Mapping Model extract (#37).
  * Public seam: `workspaceToModelJson` in `mod.ts`.
@@ -526,6 +528,8 @@ function unsupportedFromWorkspace(
 
   for (const block of workspace.getAllBlocks(false)) {
     if (block.isShadow?.()) continue;
+    // Function statements are validated by functionStatements, not the RM-product VMS.
+    if (loopIsInsideProcedure(block) && ["controls_forEach", "controls_if", "lists_setIndex"].includes(block.type)) continue;
     if (isVmsRemovedBlockType(block.type)) {
       record(block, "removed");
       continue;
@@ -578,14 +582,18 @@ function functionsFromWorkspace(workspace: Workspace): MappingFunction[] {
     const name = String(block.getFieldValue("NAME") || "").trim();
     if (!name) continue;
     const params = liveProcedureParams(block);
+    const stack = functionStatements(block.getInputTargetBlock("STACK"));
+    const statements = stack.length ? { stack } : {};
     if (block.type === "procedures_defnoreturn") {
-      out.push({ name, kind: "statement", params });
+      out.push({ name, kind: "statement", params, ...statements });
       continue;
     }
     const bodyBlock = block.getInputTargetBlock("RETURN") ??
       block.getInputTargetBlock("VALUE");
-    const body = blockToExpression(bodyBlock) ?? undefined;
-    out.push({ name, kind: "return", params, ...(body ? { body } : {}) });
+    const expression = blockToExpression(bodyBlock);
+    if (bodyBlock && expression === null) throw new Error(`Unsupported Function return expression: ${bodyBlock.type}`);
+    const body = expression ?? (stack.length ? "null" : undefined);
+    out.push({ name, kind: "return", params, ...statements, ...(body ? { body } : {}) });
   }
   return out;
 }

@@ -1,3 +1,4 @@
+import { emitImperativeStack } from "./function_statements.ts";
 /**
  * TypeScript conversion-script generation (ehrtslib simplified constructors).
  *
@@ -77,6 +78,7 @@ export interface TsEmitContext {
   skeletonNodes?: Map<string, SkeletonNode>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
+  fnLocals?: boolean;
   fnIdents?: Map<string, string>;
 }
 
@@ -103,7 +105,9 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
       if (typeof ast.value === "string") return JSON.stringify(ast.value);
       return String(ast.value);
     case "binary":
-      return `(${emitTsExpression(ast.left, ctx)} ${ast.op} ${emitTsExpression(ast.right, ctx)})`;
+      return ctx.fnLocals
+        ? `(Number(${emitTsExpression(ast.left, ctx)}) ${ast.op} Number(${emitTsExpression(ast.right, ctx)}))`
+        : `(${emitTsExpression(ast.left, ctx)} ${ast.op} ${emitTsExpression(ast.right, ctx)})`;
     case "call": {
       if (isQuantifyCall(ast.name)) return emitQuantifierTs(ast, ctx);
       const args = ast.args.map((a) => emitTsExpression(a, ctx));
@@ -126,6 +130,7 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
           return emitSwitchTs(args);
         case "var": {
           const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (ctx.fnLocals) return `__fnVars[${args[0]}]`;
           if (name && ctx.fnParams?.has(name)) return jsFunctionIdent(name);
           ctx.helpers.add("logic");
           return `__vars[${args[0]}]`;
@@ -169,6 +174,11 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
         case "difference":
           ctx.helpers.add("logic");
           return `setDifference(asList(${args[0]}), asList(${args[1]}))`;
+        case "maps_entries":
+          return `mapEntries(${args[0]})`;
+        case "lists_length":
+          ctx.helpers.add("logic");
+          return `asList(${args[0]}).length`;
         case "maps_get":
           return emitMapsGet(ast, args);
         case "sheet_get_cell":
@@ -177,7 +187,6 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
-        case "sheet_coded_text":
         case "sheet_lookup":
         case "decision_table":
           ctx.helpers.add("sheets");
@@ -224,14 +233,21 @@ export function emitTsUserFunctions(ctx: TsEmitContext): string {
   const lines: string[] = [];
   for (const fn of fns) {
     const ident = idents.get(fn.name) ?? `fn_${jsFunctionIdent(fn.name)}`;
-    const params = fn.params.map((p) => `${jsFunctionIdent(p)}: unknown`).join(", ");
+    const params = fn.params.map((p, i) => `${fn.stack?.length ? `arg${i}` : jsFunctionIdent(p)}: unknown`).join(", ");
     const inner: TsEmitContext = {
       ...ctx,
       fnParams: new Set(fn.params),
+      fnLocals: Boolean(fn.stack?.length),
       fnIdents: idents,
     };
     const body = emitTsExpressionSource(fn.body!, inner) ?? "null";
     lines.push(`function ${ident}(${params}): unknown {`);
+    if (fn.stack?.length) {
+      ctx.helpers.add("logic");
+      lines.push(`  const __fnVars: Record<string, unknown> = Object.create(null);`);
+      fn.params.forEach((p, i) => lines.push(`  __fnVars[${JSON.stringify(p)}] = arg${i};`));
+      lines.push(emitImperativeStack(fn.stack, source => emitTsExpressionSource(source, inner) ?? "null"));
+    }
     lines.push(`  return ${body};`);
     lines.push(`}`);
     lines.push("");
@@ -253,11 +269,18 @@ function emitMapsGet(ast: Extract<ExprAst, { kind: "call" }>, args: string[]): s
   if (mapArg?.kind === "literal" && mapArg.value === "defaults") {
     return `defaults[${key}]`;
   }
+  if (mapArg?.kind !== "literal" || typeof mapArg.value !== "string") return `mapValueGet(${args[0]}, ${key})`;
   return `((${args[0]} === "defaults" ? defaults : {})[${key}])`;
 }
 
 function emitSheetCall(name: string, args: string[]): string {
-  return `${jsName(name)}(${args.join(", ")})`;
+  const converted = [...args];
+  converted[0] = `String(${args[0]})`;
+  if (name === "sheet_get_cell") converted[1] = `String(${args[1]})`;
+  if (["sheet_get_xy", "sheet_get_row", "sheet_get_column", "sheet_get_header"].includes(name)) {
+    for (let i = 1; i < converted.length; i++) converted[i] = `Number(${args[i]})`;
+  }
+  return `${jsName(name)}(${converted.join(", ")})`;
 }
 
 function jsName(name: string): string {
@@ -436,12 +459,13 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
   lines.push(
     "",
     "export type SourceContext = { format: string; data: unknown };",
+    ...(parts.helpers.has("sheets") ? [`export type ConversionSheets = Parameters<typeof ${helperNames.find(name => name.startsWith("igSheet") || name === "igDecisionTable")}>[0];`] : []),
     "",
     "export function convertSourceToComposition(",
     "  sourceCtx: SourceContext,",
     "  defaults: Record<string, unknown> = {},",
     ...(parts.helpers.has("sheets")
-      ? ["  sheets: Record<string, unknown> = {},"]
+      ? ["  sheets: ConversionSheets = {},"]
       : []),
     `)${root !== "unknown" ? `: ${root}` : ""} {`,
   );
@@ -471,6 +495,8 @@ function typescriptHelperImportNames(helpers: Set<string>, body: string): string
   if (helpers.has("node") || uses("xpathNode(")) names.push("igXpathNode");
   if (uses("asList(")) names.push("asList");
   if (uses("listGetIndex(")) names.push("listGetIndex");
+  if (uses("mapEntries(")) names.push("mapEntries");
+  if (uses("mapValueGet(")) names.push("mapValueGet");
   if (uses("sameItem(")) names.push("sameItem");
   if (uses("setDifference(")) names.push("setDifference");
   if (uses("setIntersection(")) names.push("setIntersection");
@@ -490,7 +516,6 @@ function typescriptHelperImportNames(helpers: Set<string>, body: string): string
   if (uses("sheetGetRow(")) names.push("igSheetGetRow");
   if (uses("sheetGetXy(")) names.push("igSheetGetXy");
   if (uses("sheetLookup(")) names.push("igSheetLookup");
-  if (uses("sheetCodedText(")) names.push("igSheetCodedText");
   return [...new Set(names)].sort();
 }
 
@@ -570,15 +595,10 @@ function typescriptHelperWrappers(helpers: Set<string>, body: string): string[] 
   }
   if (uses("sheetLookup(")) {
     add(
-      "function sheetLookup(name: string, matchCol: string | number, matchValue: unknown, returnCol?: string | number) {",
-      "  return igSheetLookup(sheets, name, matchCol, matchValue, returnCol);",
-      "}",
-    );
-  }
-  if (uses("sheetCodedText(")) {
-    add(
-      "function sheetCodedText(name: string, keyColumn: string, key: unknown, valueColumn: string, codeColumn: string, terminology: string, mappingColumns: unknown) {",
-      "  return igSheetCodedText(sheets, name, keyColumn, key, valueColumn, codeColumn, terminology, mappingColumns);",
+      "function sheetLookup(name: unknown, matchCol: unknown, matchValue: unknown, returnCol?: unknown) {",
+      "  const col = typeof matchCol === \"number\" ? matchCol : String(matchCol ?? \"\");",
+      "  const ret = returnCol == null ? undefined : typeof returnCol === \"number\" ? returnCol : String(returnCol);",
+      "  return igSheetLookup(sheets, String(name ?? \"\"), col, matchValue, ret);",
       "}",
     );
   }

@@ -1,6 +1,9 @@
+import { mapEntries, mapValueGet } from "../map_values.ts";
 import fontoxpath from "fontoxpath";
 import { parseXmlDocument } from "../xml/xml_dom.ts";
 import type { SourceFormatId } from "../../types/mod.ts";
+import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
+import type { MappingStatement } from "../../types/mod.ts";
 import type { MappingFunction } from "../../types/mod.ts";
 import type { ExprAst } from "../expression/mod.ts";
 import {
@@ -110,6 +113,7 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
       if (ast.name === "not") {
         return !evalAst(ast.args[0]!, ctx);
       }
+      if (ast.name === "if") return evalAst(ast.args[0]!, ctx) ? evalAst(ast.args[1]!, ctx) : evalAst(ast.args[2]!, ctx);
       const args = ast.args.map((a) => evalAst(a, ctx));
       switch (ast.name) {
         case "trim":
@@ -130,8 +134,6 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
           const high = Number(args[2] ?? 0);
           return Math.min(high, Math.max(low, value));
         }
-        case "if":
-          return args[0] ? args[1] : args[2];
         case "eq":
           return sameItem(args[0], args[1]);
         case "ne":
@@ -182,12 +184,13 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
         }
         case "var":
           return ctx.vars?.[String(args[0])] ?? null;
+        case "maps_entries":
+          return mapEntries(args[0]);
+        case "lists_length":
+          return asList(args[0]).length;
         case "maps_get": {
-          const mapName = String(args[0] ?? "defaults");
-          const key = String(args[1] ?? "");
-          const map = ctx.namedMaps?.[mapName];
-          if (!map || typeof map !== "object") return null;
-          return (map as Record<string, unknown>)[key] ?? null;
+          const map = typeof args[0] === "string" ? ctx.namedMaps?.[args[0]] : args[0];
+          return mapValueGet(map, args[1]);
         }
         case "call": {
           const name = String(args[0] ?? "");
@@ -195,15 +198,13 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
           if (!fn?.body) return null;
           const depth = (ctx.callDepth ?? 0) + 1;
           if (depth > 32) return null;
-          const paramVars: Record<string, unknown> = { ...(ctx.vars ?? {}) };
+          const paramVars: Record<string, unknown> = Object.create(null);
           for (let i = 0; i < fn.params.length; i++) {
             paramVars[fn.params[i]!] = args[i + 1];
           }
-          return evalAst(parseExpression(fn.body), {
-            ...ctx,
-            vars: paramVars,
-            callDepth: depth,
-          });
+          const inner = { ...ctx, vars: paramVars, callDepth: depth };
+          const returned = executeFunctionStatements(fn.stack ?? [], inner);
+          return returned ? returned.value : evalAst(parseExpression(fn.body), inner);
         }
       }
       if (isSheetAccessor(ast.name)) {
@@ -212,6 +213,35 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
     }
   }
   return null;
+}
+
+/** A wrapper distinguishes an early null return from no return. */
+function executeFunctionStatements(stack: MappingStatement[], ctx: SourceContext): {value: unknown} | undefined {
+  const vars = ctx.vars!;
+  const expr = (source: string) => evalAst(parseExpression(source), ctx);
+  for (const statement of stack) {
+    switch (statement.kind) {
+      case "set": vars[statement.name] = expr(statement.value); break;
+      case "append": vars[statement.name] = [...asList(vars[statement.name]), expr(statement.value)]; break;
+      case "return": if (expr(statement.condition)) return {value: expr(statement.value)}; break;
+      case "if": {
+        const returned = executeFunctionStatements(expr(statement.condition) ? statement.then : statement.else, ctx);
+        if (returned) return returned;
+        break;
+      }
+      case "forEach": {
+        const items = asList(expr(statement.list));
+        for (let index = 0; index < items.length; index++) {
+          vars[statement.name] = items[index];
+          vars[loopIndexBinderName(statement.name)] = index;
+          vars[loopLengthBinderName(statement.name)] = items.length;
+          const returned = executeFunctionStatements(statement.body, ctx);
+          if (returned) return returned;
+        }
+        break;
+      }
+    }
+  }
 }
 
 /** Resolve a JSON authoring path to an array of nodes (`$.measurements`). */

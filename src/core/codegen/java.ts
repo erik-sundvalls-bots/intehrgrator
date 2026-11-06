@@ -1,3 +1,4 @@
+import { emitImperativeStack } from "./function_statements.ts";
 /**
  * Java conversion-script generation (Archie RM constructors).
  *
@@ -154,6 +155,7 @@ export interface JavaEmitContext {
   idents: Map<string, number>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
+  fnLocals?: boolean;
   fnIdents?: Map<string, string>;
 }
 
@@ -405,6 +407,7 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
           return emitSwitchJava(args);
         case "var": {
           const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (ctx.fnLocals) return `__fnVars.get(${args[0]})`;
           if (name && ctx.fnParams?.has(name)) return jsFunctionIdent(name);
           ctx.helpers.add("logic");
           return `vars.get(${args[0]})`;
@@ -415,9 +418,9 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
           return `${ident}(${args.slice(1).join(", ")})`;
         }
         case "eq":
-          return `java.util.Objects.equals(${args[0]}, ${args[1]})`;
+          return `sameItem(${args[0]}, ${args[1]})`;
         case "ne":
-          return `(!java.util.Objects.equals(${args[0]}, ${args[1]}))`;
+          return `(!sameItem(${args[0]}, ${args[1]}))`;
         case "lt":
           return `(${asDoubleExpr(args[0] ?? "0")} < ${asDoubleExpr(args[1] ?? "0")})`;
         case "le":
@@ -436,7 +439,7 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
           return `java.util.List.of(${args.join(", ")})`;
         case "lists_getIndex":
           ctx.helpers.add("logic");
-          return `listGet(asList(${args[0]}), ${args[2] ?? args[1] ?? "0"})`;
+          return `listGetIndex(${args[0]}, asString(${args[1] ?? '"FIRST"'}), ${args[2] ?? "1"})`;
         case "intersection":
           ctx.helpers.add("logic");
           return `setIntersection(asList(${args[0]}), asList(${args[1]}))`;
@@ -446,6 +449,10 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
         case "difference":
           ctx.helpers.add("logic");
           return `setDifference(asList(${args[0]}), asList(${args[1]}))`;
+        case "maps_entries":
+          return `mapEntries(${args[0]})`;
+        case "lists_length":
+          return `asList(${args[0]}).size()`;
         case "maps_get":
           return emitMapsGet(ast, args);
         case "sheet_get_cell":
@@ -454,7 +461,6 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
-        case "sheet_coded_text":
         case "sheet_lookup":
         case "decision_table":
           ctx.helpers.add("sheets");
@@ -502,14 +508,20 @@ function emitJavaUserFunctions(ctx: JavaEmitContext): string {
   const lines: string[] = [];
   for (const fn of fns) {
     const ident = idents.get(fn.name) ?? `fn_${jsFunctionIdent(fn.name)}`;
-    const params = fn.params.map((p) => `Object ${jsFunctionIdent(p)}`).join(", ");
+    const params = fn.params.map((p, i) => `Object ${fn.stack?.length ? `arg${i}` : jsFunctionIdent(p)}`).join(", ");
     const inner: JavaEmitContext = {
       ...ctx,
       fnParams: new Set(fn.params),
+      fnLocals: Boolean(fn.stack?.length),
       fnIdents: idents,
     };
     const body = emitJavaExpressionSource(fn.body!, inner) ?? "null";
     lines.push(`  private Object ${ident}(${params}) {`);
+    if (fn.stack?.length) {
+      lines.push(`    java.util.Map<String, Object> __fnVars = new java.util.LinkedHashMap<>();`);
+      fn.params.forEach((p, i) => lines.push(`    __fnVars.put(${JSON.stringify(p)}, arg${i});`));
+      lines.push(emitImperativeStack(fn.stack, source => emitJavaExpressionSource(source, inner) ?? "null", true));
+    }
     lines.push(`    return ${body};`);
     lines.push("  }");
     lines.push("");
@@ -530,11 +542,13 @@ function emitMapsGet(ast: Extract<ExprAst, { kind: "call" }>, args: string[]): s
   if (mapArg?.kind === "literal" && mapArg.value === "defaults") {
     return `defaults.get(${key})`;
   }
+  if (mapArg?.kind !== "literal") return `mapValueGet(${args[0]}, ${key})`;
   return `(("defaults".equals(${args[0]}) ? defaults : java.util.Map.of()).get(${key}))`;
 }
 
 function emitSheetCall(name: string, args: string[]): string {
-  return `ig.${javaMethodName(name)}(${args.join(", ")})`;
+  const sheet = args[0]?.startsWith('"') ? args[0] : `asString(${args[0]})`;
+  return `ig.${javaMethodName(name)}(${[sheet, ...args.slice(1)].join(", ")})`;
 }
 
 function javaMethodName(name: string): string {
@@ -1463,6 +1477,10 @@ function javaStaticHelperNames(body: string): string[] {
     "asBoolean",
     "asList",
     "listGet",
+    "mapEntries",
+    "mapValueGet",
+    "appendList",
+    "listGetIndex",
     "mapOf",
     "sameItem",
     "setIntersection",
