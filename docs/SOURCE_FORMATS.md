@@ -12,8 +12,8 @@
 | openEHR Composition (canonical JSON) as source | ✓ | `openehr-composition` / `openehr-canonical-json` | fontoxpath over JSON tree |
 | openEHR FLAT JSON as source | ✓ | `openehr-flat-json` | Bracketed path keys (`ctx/…`, `\|magnitude`) |
 | openEHR STRUCTURED JSON as source | ✓ | `openehr-structured-json` | Same JSON evaluator; simplified-format leaf detection |
-| openEHR Web Template as Source Schema | ✓ | `openehr-web-template` | Tree from `templateId` + `tree` |
-| openEHR operational template as Source Schema | ✓ | `openehr-operational-template` | `.opt`, `.opt2`, `.oet` read as that template's Web Template tree (integration archetype → another template). Example instances stay FLAT, STRUCTURED, or canonical compositions. |
+| openEHR Web Template as Source Schema | ✓ | `openehr-web-template` | Tree from `templateId` + `tree`, plus silent-mandatory RM the template omitted. Optional RM stays behind the row’s plus ([#86](https://github.com/regionstockholm/intehrgrator/issues/86)). |
+| openEHR operational template as Source Schema | ✓ | `openehr-operational-template` | `.opt`, `.opt2`, `.oet` read as that template's Web Template tree (integration archetype → another template), with the same RM disclosure. Example instances stay FLAT, STRUCTURED, or canonical compositions. |
 
 ## Source Format Handler
 

@@ -9,7 +9,14 @@
  */
 
 import { generateSkeleton } from "../skeleton/generate_skeleton.ts";
+import { attributesFor, baseRmTypeName, hasRmType } from "../rm_meta.ts";
 import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
+import {
+  aliasRmAttribute,
+  discloseOpenEhrSourceRm,
+  rmAttributeFromAql,
+  rmAttributesCoveredByInputs,
+} from "./rm_tree_disclosure.ts";
 import {
   appendJsonPath,
   inferSchemaFromInstance,
@@ -201,13 +208,17 @@ function loadOpenEhrWebTemplateSchema(content: string, rootName = "root"): Schem
   if (!isRecord(document) || !isRecord(document.tree)) {
     throw new Error("Invalid openEHR Web Template: missing tree");
   }
-  return webTemplateNodeToTree(document.tree, rootName, "$", true);
+  return discloseOpenEhrSourceRm(
+    webTemplateNodeToTree(document.tree, rootName, "$", "", "", true),
+  );
 }
 
 function webTemplateNodeToTree(
   node: Record<string, unknown>,
   fallbackName: string,
   parentPath: string,
+  parentAql: string,
+  parentRmType: string,
   root = false,
 ): SchemaTreeNode {
   const name = typeof node.id === "string" ? node.id : fallbackName;
@@ -215,32 +226,61 @@ function webTemplateNodeToTree(
   const max = typeof node.max === "number" ? node.max : 1;
   const min = typeof node.min === "number" ? node.min : 0;
   const multiplicity = max === 1 ? (min > 0 ? "1" : "0..1") : (min > 0 ? "1..*" : "0..*");
+  const rmType = typeof node.rmType === "string" ? node.rmType : "";
+  const aqlPath = typeof node.aqlPath === "string" ? node.aqlPath : "";
+  const rmAttribute = root ? undefined : rmAttributeOnParent(parentRmType, parentAql, aqlPath, name);
+  const childPath = max === 1 ? path : `${path}[*]`;
   const children = Array.isArray(node.children)
     ? node.children.filter(isRecord).map((child) =>
-      webTemplateNodeToTree(child, "node", max === 1 ? path : `${path}[*]`)
+      webTemplateNodeToTree(child, "node", childPath, aqlPath || parentAql, rmType)
     )
     : [];
-  if (Array.isArray(node.inputs)) {
-    for (const input of node.inputs.filter(isRecord)) {
-      const suffix = typeof input.suffix === "string" ? input.suffix : "";
-      if (!suffix) continue;
-      const leafName = `|${suffix}`;
-      children.push({
-        path: appendJsonPath(path, leafName),
-        name: leafName,
-        type: typeof input.type === "string" ? input.type.toLowerCase() : "string",
-        multiplicity,
-        children: [],
-      });
-    }
+  const inputs = Array.isArray(node.inputs) ? node.inputs.filter(isRecord) : [];
+  const known = rmAttributeNames(rmType);
+  for (const input of inputs) {
+    const suffix = typeof input.suffix === "string" ? input.suffix : "";
+    if (!suffix) continue;
+    const leafName = `|${suffix}`;
+    const covered = aliasRmAttribute(suffix, known);
+    children.push({
+      path: appendJsonPath(path, leafName),
+      name: leafName,
+      type: typeof input.type === "string" ? input.type.toLowerCase() : "string",
+      multiplicity,
+      ...(covered ? { rmAttribute: covered } : {}),
+      children: [],
+    });
   }
+  const rmCoveredAttributes = rmAttributesCoveredByInputs(rmType, inputs);
   return {
     path,
     name,
-    type: typeof node.rmType === "string" ? node.rmType : children.length ? "object" : "string",
+    ...(rmAttribute ? { rmAttribute } : {}),
+    type: rmType || (children.length ? "object" : "string"),
     multiplicity,
+    ...(rmCoveredAttributes.length ? { rmCoveredAttributes } : {}),
     children,
   };
+}
+
+function rmAttributeOnParent(
+  parentRmType: string,
+  parentAql: string,
+  childAql: string,
+  childId: string,
+): string | undefined {
+  const known = rmAttributeNames(parentRmType);
+  if (!known.size) return undefined;
+  const fromAql = rmAttributeFromAql(parentAql, childAql);
+  if (fromAql && known.has(fromAql)) return fromAql;
+  if (known.has(childId)) return childId;
+  return undefined;
+}
+
+function rmAttributeNames(rmType: string): Set<string> {
+  const base = baseRmTypeName(rmType);
+  if (!base || !hasRmType(base)) return new Set();
+  return new Set(attributesFor(base).map((attr) => attr.name));
 }
 
 function containsSimplifiedFormatLeaf(value: unknown, depth = 0): boolean {
