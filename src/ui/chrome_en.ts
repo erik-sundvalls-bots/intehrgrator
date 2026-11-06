@@ -204,6 +204,8 @@ export const en = {
   downloadTestTitle: "Download Conversion Test Run output",
   ready: "Ready",
   loadSchemaEmpty: "Load a schema file.",
+  sourceRmShowOptional: "Show optional reference-model attributes for {name}",
+  sourceRmHideOptional: "Hide optional reference-model attributes for {name}",
   selectExampleTab: "Select an example tab.",
   addExamplesEmpty: 'Add example instance(s) to enable "Conversion Test Run(s)" in Target & Previews',
   loadTargetEmpty: "Load a target schema or template.",

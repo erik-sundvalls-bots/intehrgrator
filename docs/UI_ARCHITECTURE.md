@@ -37,7 +37,7 @@ The left pane has two stacked sections: **schema** (upper) and **example instanc
 
 #### Upper — Source Schema
 
-- **Purpose:** Structural view for authoring mappings (field names, types, cardinality)
+- **Purpose:** Structural view for authoring mappings (field names, types, cardinality). An openEHR Web Template also shows silent-mandatory RM the template left out (muted italic). Optional RM stays behind a small encircled plus on that row; opening it reveals those paths for click-to-map.
 - **Pane action:** **Load Schema** button in the Schema section header
 - **Inputs:** Schema file (JSON, XML, or other structural definition), or structure inferred when only instances are loaded
 - **Interactions:** Click or drag tree nodes → insert fontoxpath expression into focused mapping slot

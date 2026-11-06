@@ -1,5 +1,6 @@
 ﻿import type { SchemaTreeNode, SourceFormatId } from "../types/mod.ts";
 import { canonicalSyncPath, isSourceFormatId } from "../core/source/mod.ts";
+import { optionalSourceRmGaps } from "../core/source/rm_tree_disclosure.ts";
 
 /** Custom MIME for Source Pane to value-slot drag-and-drop mapping. */
 export const SOURCE_DRAG_MIME = "application/x-intehrgrator-source";
@@ -60,6 +61,11 @@ export interface SchemaTreeRenderOptions {
   onHighlight?: (syncPath: string | null, origin: "schema" | "instance") => void;
   /** Instance-tree path â†’ validation message, for JSON Schema / structural mismatches. */
   invalidByPath?: Record<string, string>;
+  /**
+   * Accessible name for the optional-RM plus on an openEHR source row (#86).
+   * The button itself shows only an encircled plus or minus.
+   */
+  rmOptionalToggleLabel?: (action: "show" | "hide", nodeName: string) => string;
 }
 
 export function applyTreeHighlights(
@@ -83,6 +89,8 @@ export function applyTreeHighlights(
 
 export type SourceTreeSelectHandler = (path: string, event?: MouseEvent) => void;
 
+const rmExpandedByContainer = new WeakMap<HTMLElement, { key: string; paths: Set<string> }>();
+
 export function renderSchemaTree(
   container: HTMLElement,
   node: SchemaTreeNode,
@@ -92,8 +100,18 @@ export function renderSchemaTree(
 ): void {
   container.classList.add("schema-tree");
   container.classList.remove("instance-tree");
+  const expanded = expandedPaths(container, `${format}\0${node.path}\0${node.name}\0${node.type}`);
+  const rerender = () => renderSchemaTree(container, node, onSelect, options, format);
   container.innerHTML = "";
-  container.appendChild(buildSchemaNode(node, onSelect, options, 0, format));
+  container.appendChild(buildSchemaNode(node, onSelect, options, 0, format, expanded, rerender));
+}
+
+function expandedPaths(container: HTMLElement, key: string): Set<string> {
+  const current = rmExpandedByContainer.get(container);
+  if (current && current.key === key) return current.paths;
+  const paths = new Set<string>();
+  rmExpandedByContainer.set(container, { key, paths });
+  return paths;
 }
 
 export function renderInstanceTree(
@@ -115,9 +133,13 @@ function buildSchemaNode(
   options: SchemaTreeRenderOptions,
   depth: number,
   format: SourceFormatId,
+  expanded: Set<string>,
+  rerender: () => void,
 ): HTMLElement {
   const syncPath = canonicalSyncPath(node.path);
   const row = createTreeRow(node.path, syncPath, depth);
+  if (node.rmOrigin === "rm-mandatory") row.classList.add("tree-row-rm-mandatory");
+  if (node.rmOrigin === "rm-optional") row.classList.add("tree-row-rm-optional");
 
   const label = document.createElement("span");
   label.className = "tree-label tree-label-schema";
@@ -128,12 +150,61 @@ function buildSchemaNode(
   attachTreeInteractions(label, node, syncPath, "schema", format, onSelect, options);
   row.appendChild(label);
 
+  const optionalGaps = optionalSourceRmGaps(node);
+  if (optionalGaps.length > 0) {
+    row.appendChild(optionalRmToggle(node, expanded, options, rerender));
+  }
+
   const wrap = document.createElement("div");
   wrap.appendChild(row);
   for (const child of node.children) {
-    wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format));
+    wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format, expanded, rerender));
+  }
+  if (expanded.has(node.path)) {
+    for (const child of optionalGaps) {
+      wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format, expanded, rerender));
+    }
   }
   return wrap;
+}
+
+function optionalRmToggle(
+  node: SchemaTreeNode,
+  expanded: Set<string>,
+  options: SchemaTreeRenderOptions,
+  rerender: () => void,
+): HTMLButtonElement {
+  const open = expanded.has(node.path);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "tree-rm-toggle";
+  button.setAttribute("aria-expanded", open ? "true" : "false");
+  const label = rmToggleLabel(options, open ? "hide" : "show", node.name);
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  const glyph = document.createElement("span");
+  glyph.setAttribute("aria-hidden", "true");
+  glyph.textContent = open ? "\u2212" : "+";
+  button.appendChild(glyph);
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (expanded.has(node.path)) expanded.delete(node.path);
+    else expanded.add(node.path);
+    rerender();
+  });
+  return button;
+}
+
+function rmToggleLabel(
+  options: SchemaTreeRenderOptions,
+  action: "show" | "hide",
+  nodeName: string,
+): string {
+  if (options.rmOptionalToggleLabel) return options.rmOptionalToggleLabel(action, nodeName);
+  return action === "show"
+    ? `Show optional reference-model attributes for ${nodeName}`
+    : `Hide optional reference-model attributes for ${nodeName}`;
 }
 
 function buildInstanceNode(

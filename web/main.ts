@@ -1517,10 +1517,16 @@ function handleTreeHighlight(
 }
 
 function treeHighlightOptions() {
+  const messages = uiChrome();
   return {
     onHighlight: (syncPath: string | null, origin: "schema" | "instance") => {
       handleTreeHighlight(syncPath, origin, false);
     },
+    rmOptionalToggleLabel: (action: "show" | "hide", name: string) =>
+      formatMessage(
+        action === "show" ? messages.sourceRmShowOptional : messages.sourceRmHideOptional,
+        { name },
+      ),
   };
 }
 

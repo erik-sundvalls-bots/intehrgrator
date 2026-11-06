@@ -30,7 +30,20 @@ export function validateInstanceAgainstSchema(
       message: err instanceof Error ? err.message : String(err),
     }];
   }
-  return collectInstanceValidationIssues(instanceTree, schema);
+  return collectInstanceValidationIssues(instanceTree, schemaWithoutRmDisclosure(schema));
+}
+
+/** RM disclosure nodes are not template fields. They must not become mismatches. */
+function schemaWithoutRmDisclosure(node: SchemaTreeNode): SchemaTreeNode {
+  if (!treeHasRmOrigin(node)) return node;
+  return {
+    ...node,
+    children: node.children.filter((child) => !child.rmOrigin).map(schemaWithoutRmDisclosure),
+  };
+}
+
+function treeHasRmOrigin(node: SchemaTreeNode): boolean {
+  return node.children.some((child) => Boolean(child.rmOrigin) || treeHasRmOrigin(child));
 }
 
 function validateAgainstJsonSchemaDocument(

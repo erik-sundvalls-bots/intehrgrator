@@ -2174,6 +2174,30 @@ export class WorkbenchController {
     return { dirty: false, label: "" };
   }
 
+  /**
+   * Web Template / OPT source trees are rebuilt from the stored document so
+   * RM disclosure (#86) follows the template, including bundles saved before it.
+   */
+  private sourceTreeFromBundle(bundle: ProjectBundle): SchemaTreeNode | null {
+    const stored = bundle.sourceSchema;
+    if (!stored?.tree?.[0]) return null;
+    const format = stored.format ?? detectSourceFormat(stored.filename, stored.content);
+    if (
+      stored.content &&
+      (format === "openehr-web-template" || format === "openehr-operational-template")
+    ) {
+      try {
+        return getSourceFormatHandler(format).loadSchema(
+          stored.content,
+          stored.filename.replace(/\.[^.]+$/, "") || "root",
+        );
+      } catch {
+        return stored.tree[0];
+      }
+    }
+    return stored.tree[0];
+  }
+
   private buildExampleTree(): SchemaTreeNode | null {
     const active = this.examples.getActive();
     if (!active) return null;
@@ -2672,11 +2696,11 @@ export class WorkbenchController {
       this.model.targetFormat = storedTarget.format;
     }
     if (bundle.sourceSchema?.tree?.[0]) {
-      this.schemaTree = bundle.sourceSchema.tree[0];
       this.schemaFilename = bundle.sourceSchema.filename;
       this.schemaContent = bundle.sourceSchema.content;
       this.schemaFormat = bundle.sourceSchema.format ??
         detectSourceFormat(bundle.sourceSchema.filename, bundle.sourceSchema.content);
+      this.schemaTree = this.sourceTreeFromBundle(bundle) ?? bundle.sourceSchema.tree[0];
     }
     for (const ex of bundle.examples) this.examples.addExample(ex);
     this.restoreFileLanguageSettings(bundle);
