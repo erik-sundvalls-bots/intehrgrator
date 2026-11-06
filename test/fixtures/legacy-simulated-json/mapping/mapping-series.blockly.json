@@ -2833,61 +2833,6 @@
                                                                         "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.body_temperature.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
                                                                         "RM_TYPE": "DV_QUANTITY",
                                                                         "MANDATORY": ""
-                                                                      },
-                                                                      "inputs": {
-                                                                        "FLD_units": {
-                                                                          "block": {
-                                                                            "type": "lists_getIndex",
-                                                                            "id": "S6lIVxs8B[ehq$ji-s~=",
-                                                                            "fields": {
-                                                                              "MODE": "GET",
-                                                                              "WHERE": "FROM_START"
-                                                                            },
-                                                                            "inputs": {
-                                                                              "VALUE": {
-                                                                                "block": {
-                                                                                  "type": "lists_create_with",
-                                                                                  "id": "}oMekxn@7b!{2N[-({;Y",
-                                                                                  "extraState": {
-                                                                                    "itemCount": 2
-                                                                                  },
-                                                                                  "inputs": {
-                                                                                    "ADD0": {
-                                                                                      "block": {
-                                                                                        "type": "text",
-                                                                                        "id": "F(+]tY^IQ#4;1KjPQb~D",
-                                                                                        "inline": false,
-                                                                                        "fields": {
-                                                                                          "TEXT": "Cel"
-                                                                                        }
-                                                                                      }
-                                                                                    },
-                                                                                    "ADD1": {
-                                                                                      "block": {
-                                                                                        "type": "text",
-                                                                                        "id": "8:jarQ#Agaz=i_(cFpHv",
-                                                                                        "inline": false,
-                                                                                        "fields": {
-                                                                                          "TEXT": "[degF]"
-                                                                                        }
-                                                                                      }
-                                                                                    }
-                                                                                  }
-                                                                                }
-                                                                              },
-                                                                              "AT": {
-                                                                                "block": {
-                                                                                  "type": "math_number",
-                                                                                  "id": "@vrVlqQLv.MA5}[qeDx2",
-                                                                                  "inline": false,
-                                                                                  "fields": {
-                                                                                    "NUM": 1
-                                                                                  }
-                                                                                }
-                                                                              }
-                                                                            }
-                                                                          }
-                                                                        }
                                                                       }
                                                                     }
                                                                   }
@@ -3331,7 +3276,7 @@
                                                                       "rmCards": {}
                                                                     },
                                                                     "fields": {
-                                                                      "NAME": "SpO₂",
+                                                                      "NAME": "SpO\u2082",
                                                                       "RM_TYPE": "DV_PROPORTION",
                                                                       "MANDATORY": "1",
                                                                       "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse_oximetry.v1]/data/at0001/events/at0002/data/at0003/items/at0006/value/DV_PROPORTION/value",
@@ -3498,61 +3443,6 @@
                                                                                   "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse_oximetry.v1]/data/at0001/events/at0002/state/at0014/items/at0000/items/at0051/value/value/value",
                                                                                   "RM_TYPE": "DV_QUANTITY",
                                                                                   "MANDATORY": ""
-                                                                                },
-                                                                                "inputs": {
-                                                                                  "FLD_units": {
-                                                                                    "block": {
-                                                                                      "type": "lists_getIndex",
-                                                                                      "id": "et4N2w=:Nh^HedBJ-6N$",
-                                                                                      "fields": {
-                                                                                        "MODE": "GET",
-                                                                                        "WHERE": "FROM_START"
-                                                                                      },
-                                                                                      "inputs": {
-                                                                                        "VALUE": {
-                                                                                          "block": {
-                                                                                            "type": "lists_create_with",
-                                                                                            "id": "P2#e?Axo7#|I;5Pvj,_n",
-                                                                                            "extraState": {
-                                                                                              "itemCount": 2
-                                                                                            },
-                                                                                            "inputs": {
-                                                                                              "ADD0": {
-                                                                                                "block": {
-                                                                                                  "type": "text",
-                                                                                                  "id": "0zLiKvGJVU,-E%QS|Sx}",
-                                                                                                  "inline": false,
-                                                                                                  "fields": {
-                                                                                                    "TEXT": "ml/min"
-                                                                                                  }
-                                                                                                }
-                                                                                              },
-                                                                                              "ADD1": {
-                                                                                                "block": {
-                                                                                                  "type": "text",
-                                                                                                  "id": "QQvZc*T}p:JQ]SBF1U|0",
-                                                                                                  "inline": false,
-                                                                                                  "fields": {
-                                                                                                    "TEXT": "l/min"
-                                                                                                  }
-                                                                                                }
-                                                                                              }
-                                                                                            }
-                                                                                          }
-                                                                                        },
-                                                                                        "AT": {
-                                                                                          "block": {
-                                                                                            "type": "math_number",
-                                                                                            "id": "MK1$_cSATWB[}Yw#t#$m",
-                                                                                            "inline": false,
-                                                                                            "fields": {
-                                                                                              "NUM": 1
-                                                                                            }
-                                                                                          }
-                                                                                        }
-                                                                                      }
-                                                                                    }
-                                                                                  }
                                                                                 }
                                                                               }
                                                                             }

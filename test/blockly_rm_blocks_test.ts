@@ -977,7 +977,7 @@ Deno.test("applyFixedFieldsToDataValueShell fills CODE_PHRASE terminology", () =
   workspace.dispose();
 });
 
-Deno.test("skeleton canvas picks Position from a list of complete DV_CODED_TEXT objects", () => {
+Deno.test("skeleton canvas leaves Position empty for a value-set hint", () => {
   ensureBlocks();
   const { skeleton } = generateSkeleton(fixture);
   const workspace = new Blockly.Workspace();
@@ -987,51 +987,16 @@ Deno.test("skeleton canvas picks Position from a list of complete DV_CODED_TEXT 
     (b) => b.type === "element" && b.getFieldValue("NAME") === "Position",
   );
   assert(position, "expected Position ELEMENT on the canvas");
-  const selector = position.getInputTargetBlock("VALUE");
-  assertEquals(selector?.type, "lists_getIndex");
-  assertEquals(selector?.getFieldValue("MODE"), "GET");
-  // Template assumed_value is Sitting (at1001), the second list item (1-based index 2).
-  assertEquals(selector?.getFieldValue("WHERE"), "FROM_START");
-  assertEquals(selector?.getInputTargetBlock("AT")?.getFieldValue("NUM"), 2);
-
-  const list = selector?.getInputTargetBlock("VALUE");
-  assertEquals(list?.type, "lists_create_with");
-  assertEquals((list as { itemCount_?: number } | null)?.itemCount_, 6);
-
-  const standing = list?.getInputTargetBlock("ADD0");
-  assert(standing && isDataValueBlock(standing), "expected a DV_CODED_TEXT list item");
-  assertEquals(standing.getFieldValue("RM_TYPE"), "DV_CODED_TEXT");
+  assertEquals(position.getInputTargetBlock("VALUE"), null);
   assertEquals(
-    standing.getInputTargetBlock(dvFieldInputName("value"))?.getFieldValue("TEXT"),
-    "Standing",
-  );
-  const standingCode = standing.getInputTargetBlock(dvFieldInputName("defining_code"));
-  assertEquals(standingCode?.type, "code_phrase");
-  assertEquals(
-    standingCode?.getInputTargetBlock(dvFieldInputName("code_string"))?.getFieldValue("TEXT"),
-    "at1000",
-  );
-  assertEquals(
-    standingCode?.getInputTargetBlock(dvFieldInputName("terminology_id"))?.getFieldValue("TEXT"),
-    "local",
-  );
-
-  const sitting = list?.getInputTargetBlock("ADD1");
-  assertEquals(
-    sitting?.getInputTargetBlock(dvFieldInputName("value"))?.getFieldValue("TEXT"),
-    "Sitting",
-  );
-  assertEquals(
-    sitting?.getInputTargetBlock(dvFieldInputName("defining_code"))
-      ?.getInputTargetBlock(dvFieldInputName("code_string"))
-      ?.getFieldValue("TEXT"),
-    "at1001",
+    workspace.getAllBlocks(false).some((block) => block.type === "lists_getIndex"),
+    false,
   );
 
   workspace.dispose();
 });
 
-Deno.test("skeleton canvas picks Vocalization from a list of complete DV_ORDINAL objects", () => {
+Deno.test("skeleton canvas leaves an ordinal value set empty", () => {
   ensureBlocks();
   // Synthetic ELEMENT: constrain_test marks Abbey Vocalization optional, so the
   // full OPT walk would hide it; exercise the ordinal choice-list scaffolder directly.
@@ -1066,37 +1031,16 @@ Deno.test("skeleton canvas picks Vocalization from a list of complete DV_ORDINAL
     (b) => b.type === "element" && b.getFieldValue("NAME") === "Vocalization",
   );
   assert(vocalization, "expected Vocalization ELEMENT on the canvas");
-  const selector = vocalization.getInputTargetBlock("VALUE");
-  assertEquals(selector?.type, "lists_getIndex");
-  const list = selector?.getInputTargetBlock("VALUE");
-  assertEquals(list?.type, "lists_create_with");
-  assertEquals((list as { itemCount_?: number } | null)?.itemCount_, 4);
-
-  const absent = list?.getInputTargetBlock("ADD0");
-  assert(absent && isDataValueBlock(absent), "expected a DV_ORDINAL list item");
-  assertEquals(absent.getFieldValue("RM_TYPE"), "DV_ORDINAL");
+  assertEquals(vocalization.getInputTargetBlock("VALUE"), null);
   assertEquals(
-    absent.getInputTargetBlock(dvFieldInputName("value"))?.getFieldValue("NUM"),
-    0,
-  );
-  const absentSymbol = absent.getInputTargetBlock(dvFieldInputName("symbol"));
-  assert(absentSymbol && isDataValueBlock(absentSymbol));
-  assertEquals(absentSymbol.getFieldValue("RM_TYPE"), "DV_CODED_TEXT");
-  assertEquals(
-    absentSymbol.getInputTargetBlock(dvFieldInputName("value"))?.getFieldValue("TEXT"),
-    "Absent",
-  );
-  assertEquals(
-    absentSymbol.getInputTargetBlock(dvFieldInputName("defining_code"))
-      ?.getInputTargetBlock(dvFieldInputName("code_string"))
-      ?.getFieldValue("TEXT"),
-    "at0010",
+    workspace.getAllBlocks(false).some((block) => block.type === "lists_getIndex"),
+    false,
   );
 
   workspace.dispose();
 });
 
-Deno.test("skeleton canvas scaffolds DV_SCALE choices as complete objects", () => {
+Deno.test("skeleton canvas leaves DV_SCALE choices empty", () => {
   ensureBlocks();
   const skeleton: SkeletonNode[] = [{
     slotId: "borg/content/breathlessness/value",
@@ -1115,18 +1059,12 @@ Deno.test("skeleton canvas scaffolds DV_SCALE choices as complete objects", () =
   const workspace = new Blockly.Workspace();
   loadSkeletonIntoWorkspace(workspace, skeleton, createEmptyModel("borg"), null);
 
-  const selector = workspace.getAllBlocks(false).find((b) => b.type === "lists_getIndex");
-  assert(selector, "expected lists_getIndex for DV_SCALE choices");
-  assertEquals(selector.getFieldValue("WHERE"), "FROM_START");
-  assertEquals(selector.getInputTargetBlock("AT")?.getFieldValue("NUM"), 2);
-
-  const list = selector.getInputTargetBlock("VALUE");
-  const slight = list?.getInputTargetBlock("ADD2");
-  assert(slight && isDataValueBlock(slight));
-  assertEquals(slight.getFieldValue("RM_TYPE"), "DV_SCALE");
+  const scale = workspace.getAllBlocks(false).find((block) => block.getFieldValue("RM_TYPE") === "DV_SCALE");
+  assert(scale, "expected an empty DV_SCALE shell");
+  assertEquals(scale.getInputTargetBlock(dvFieldInputName("value")), null);
   assertEquals(
-    slight.getInputTargetBlock(dvFieldInputName("value"))?.getFieldValue("NUM"),
-    1,
+    workspace.getAllBlocks(false).some((block) => block.type === "lists_getIndex"),
+    false,
   );
 
   workspace.dispose();
@@ -1178,16 +1116,12 @@ Deno.test("simple-diagnose-and-vitals OPT scaffolds unique and alternative quant
   );
   assert(temperature, "expected Temperature ELEMENT");
   const tempShell = temperature.getInputTargetBlock("VALUE");
-  assert(tempShell, "expected DV_QUANTITY on Temperature");
-  const tempUnits = tempShell.getInputTargetBlock(dvFieldInputName("units"));
-  assert(tempUnits, "Temperature units mouth must be scaffolded");
-  const unitList = tempUnits.getInputTargetBlock("VALUE");
-  const listed = [
-    unitList?.getInputTargetBlock("ADD0")?.getFieldValue("TEXT"),
-    unitList?.getInputTargetBlock("ADD1")?.getFieldValue("TEXT"),
-  ];
-  assertEquals(listed.includes("Cel"), true, String(listed));
-  assertEquals(listed.includes("[degF]"), true, String(listed));
+  assert(tempShell && isDataValueBlock(tempShell), "expected DV_QUANTITY on Temperature");
+  assertEquals(tempShell.getInputTargetBlock(dvFieldInputName("units")) ?? null, null);
+  assertEquals(
+    workspace.getAllBlocks(false).some((block) => block.type === "lists_getIndex"),
+    false,
+  );
 
   workspace.dispose();
 });

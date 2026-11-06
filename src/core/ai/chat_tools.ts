@@ -21,6 +21,7 @@ export const CALL_AI_TOOL_NAMES = [
   "list_constraint_warnings",
   "import_suggestions",
   "map_slot",
+  "apply_hint",
   "optional_rm_add",
   "optional_rm_remove",
   "replace_sheets",
@@ -35,6 +36,7 @@ export type CallAiToolName = typeof CALL_AI_TOOL_NAMES[number];
 const MUTATING = new Set<string>([
   "import_suggestions",
   "map_slot",
+  "apply_hint",
   "optional_rm_add",
   "optional_rm_remove",
   "replace_sheets",
