@@ -1,6 +1,7 @@
 package se.regionstockholm.intehrgrator.runtime;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +49,39 @@ public class IntehrgratorRuntime {
     return Boolean.parseBoolean(String.valueOf(value));
   }
 
+  public static Object mapValueGet(Object value, Object key) {
+    return value instanceof Map<?, ?> map ? map.get(asString(key)) : null;
+  }
+
+  public static List<Object> mapEntries(Object value) {
+    List<Object> out = new ArrayList<>();
+    if (value instanceof Map<?, ?> map) {
+      for (Map.Entry<?, ?> entry : map.entrySet()) out.add(Arrays.asList(entry.getKey(), entry.getValue()));
+    }
+    return out;
+  }
+
   public static List<Object> asList(Object value) {
     if (value instanceof List<?> list) return new ArrayList<>(list);
     if (value == null) return new ArrayList<>();
     return new ArrayList<>(List.of(value));
+  }
+
+  public static List<Object> appendList(Object list, Object value) {
+    List<Object> result = asList(list);
+    result.add(value);
+    return result;
+  }
+
+  public static Object listGetIndex(Object value, String where, Object at) {
+    List<Object> list = asList(value);
+    int i = switch (where) {
+      case "LAST" -> list.size() - 1;
+      case "FROM_START" -> (int) toDouble(at) - 1;
+      case "FROM_END" -> list.size() - (int) toDouble(at);
+      default -> 0;
+    };
+    return i >= 0 && i < list.size() ? list.get(i) : null;
   }
 
   public static Object listGet(List<Object> list, Object index) {
@@ -67,6 +97,7 @@ public class IntehrgratorRuntime {
   }
 
   public static boolean sameItem(Object a, Object b) {
+    if (a instanceof Number x && b instanceof Number y) return Double.compare(x.doubleValue(), y.doubleValue()) == 0;
     return java.util.Objects.equals(a, b);
   }
 
@@ -319,41 +350,6 @@ public class IntehrgratorRuntime {
     return out;
   }
 
-  /** Header-name lookup returning canonical coded text and equivalent mappings. */
-  public Object sheetCodedText(Object name, Object keyColumn, Object key, Object valueColumn,
-      Object codeColumn, Object terminology, Object mappingColumns) {
-    if (key == null || asString(key).isBlank() || asString(terminology).isBlank()) return null;
-    Object found = sheetLookup(asString(name), keyColumn, key);
-    if (!(found instanceof Map<?, ?> row)) return null;
-    String value = asString(row.get(asString(valueColumn))).trim();
-    String code = asString(row.get(asString(codeColumn))).trim();
-    if (value.isBlank() || code.isBlank()) return null;
-    Map<String, Object> result = new LinkedHashMap<>();
-    result.put("_type", "DV_CODED_TEXT");
-    result.put("value", value);
-    result.put("defining_code", codedPhrase(asString(terminology), code));
-    List<Object> mappings = new ArrayList<>();
-    if (mappingColumns instanceof Map<?, ?> columns) {
-      for (Map.Entry<?, ?> entry : columns.entrySet()) {
-        String term = asString(entry.getKey());
-        String target = asString(row.get(asString(entry.getValue()))).trim();
-        if (term.isBlank() || target.isBlank()) continue;
-        Map<String, Object> mapping = new LinkedHashMap<>();
-        mapping.put("_type", "TERM_MAPPING");
-        mapping.put("match", "=");
-        mapping.put("target", codedPhrase(term, target));
-        mappings.add(mapping);
-      }
-    }
-    if (!mappings.isEmpty()) result.put("mappings", mappings);
-    return result;
-  }
-
-  private static Map<String, Object> codedPhrase(String terminology, String code) {
-    return Map.of("_type", "CODE_PHRASE", "code_string", code,
-        "terminology_id", Map.of("_type", "TERMINOLOGY_ID", "value", terminology));
-  }
-
   public Object sheetLookup(String name, Object matchCol, Object matchValue, Object returnCol) {
     Sheet s = sheetOf(name);
     if (s == null) return null;
@@ -413,12 +409,18 @@ public class IntehrgratorRuntime {
       List<String> parts = new ArrayList<>();
       for (int y : matches) {
         Object cell = oi < s.values.get(y).size() ? s.values.get(y).get(oi) : null;
-        parts.add(cell == null ? "" : String.valueOf(cell));
+        parts.add(asString(decisionCell(s, oi, cell, inputs)));
       }
       return String.join(join, parts);
     }
     int y = matches.get(0);
-    return oi < s.values.get(y).size() ? s.values.get(y).get(oi) : null;
+    return decisionCell(s, oi, oi < s.values.get(y).size() ? s.values.get(y).get(oi) : null, inputs);
+  }
+
+  private static Object decisionCell(Sheet sheet, int column, Object value, Map<String, Object> inputs) {
+    if (column < 0 || column >= sheet.headers.size() || !sheet.snippetColumns.contains(sheet.headers.get(column))) return value;
+    var pattern = java.util.regex.Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    return pattern.matcher(asString(value)).replaceAll(match -> java.util.regex.Matcher.quoteReplacement(asString(inputs.get(match.group(1)))));
   }
 
   public Object decisionTable(String name, Map<String, Object> inputs) {
@@ -459,6 +461,8 @@ public class IntehrgratorRuntime {
     public final List<String> rowNames;
     public final String hitPolicy;
     public final String collectJoin;
+    /** Output headers whose cells are simple {{input}} snippets. */
+    public final List<String> snippetColumns;
 
     public Sheet(String name, List<String> headers, List<List<Object>> values) {
       this(name, headers, values, List.of(), "FIRST", "; ");
@@ -472,6 +476,12 @@ public class IntehrgratorRuntime {
       String hitPolicy,
       String collectJoin
     ) {
+      this(name, headers, values, rowNames, hitPolicy, collectJoin, List.of());
+    }
+
+    public Sheet(String name, List<String> headers, List<List<Object>> values,
+        List<String> rowNames, String hitPolicy, String collectJoin, List<String> snippetColumns) {
+      this.snippetColumns = snippetColumns != null ? snippetColumns : List.of();
       this.name = name;
       this.headers = headers != null ? headers : List.of();
       this.values = values != null ? values : List.of();

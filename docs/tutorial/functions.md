@@ -16,6 +16,51 @@ Click **Functions** in the toolbar.
 Decision tables that belong to the function travel with the bundle. Grids that are only project lookup data stay with the project; see [Sheets and decision tables](sheets-and-decision-tables.md).
 
 
+## Ordinary blocks inside Functions
+
+Value Functions keep their statement body in Mapping preview and TypeScript, Java
+and XQuery exports, not just their final return socket. Supported statements are
+variable assignment, text append, numeric change, `for_each_list` / stock
+`controls_forEach`, `controls_if` (including else-if/else), conditional return,
+and list **insert at last** into a variable (`lists_setIndex`, INSERT/LAST).
+These cover both join starters and sheet-coded-text composition. Other statement
+blocks and other list mutation modes report an error rather than silently
+exporting an incomplete Function. Locals and accumulators are private to each
+portable Function call; lists are value accumulators (assigning one does not
+mutate an aliased caller list).
+
+- **Maps → entries of map** (`maps_entries`) accepts a Map value, including a
+  Function parameter, and returns a list of `[key, value]` pairs. Use ordinary
+  list getters (1-based positions) inside a loop. Do not rely on entry order
+  across export languages. **Get** (`maps_get`) also has an optional Map-value
+  socket: connect a record parameter, another Function's Map result, or a Map
+  literal. A missing key returns null; with no Map connected, the named-Map
+  convenience field still applies.
+- Sheet accessors (including `sheet_lookup`) have an optional **Sheet name**
+  value socket. A connected parameter or expression overrides the name picker;
+  with the socket empty, the picker works as before. Sheet editor mutators also
+  accept the socket in Blockly JavaScript; they are not portable Function
+  statements.
+- XQuery uses arrays for lists built inside statement-bodied Functions, preserving
+  nested lists and empty accumulators. Generated loops explicitly retain their
+  initial state for empty lists.
+- Java callers mark snippet output columns with the optional final
+  `Sheet(..., snippetColumns)` constructor argument, e.g. `List.of("snippet")`
+  for the join starters. Its snippet renderer supports simple `{{input}}`
+  substitution, not arbitrary Handlebars helpers.
+- Go `text/template` cannot return object values or execute a value Function's
+  statement body. Map-value getters/entries and computed Map keys are also
+  unsupported there; Go Map getters require a named Map and literal key. Export
+  rejects these unsupported operations with an explanation rather than silently
+  dropping statements or treating record parameters as named Maps. Use TypeScript,
+  Java or XQuery for these Functions. Saving statement/no-return Function bundles is
+  supported, but portable no-return calls are not implemented.
+
+XML/schema value sockets, including Notes, accept ordinary Function calls in
+both Mapping preview and Handlebars Output mode. Function locals and XML-loop
+current-item/index/length reporters use the same portable evaluator; returned
+text is XML-escaped like any other text value.
+
 ## Coded text and term mappings from a Sheet
 
 Load **Sheet coded text with equivalent term mappings** (`coded_text_from_sheet`)
@@ -49,8 +94,11 @@ cells. The function assumes that your project data contains **equivalent**
 concepts—review the clinical mappings before using them.
 
 The bundle contains no lookup data. Keep Sheets in the project. Mapping preview,
-TypeScript, Java and XQuery support the accessor. Go templates do not support
-this object-valued Function.
+TypeScript, Java and XQuery use the same ordinary Function path. The body is
+composed of one Sheet-row lookup, Map getters/entries, variables, a loop, list
+accumulation, conditionals and Map literals—there is no dedicated coded-text Sheet block or
+runtime helper. Go templates do not support this statement-bodied, object-valued
+Function.
 
 ### Cytodos / Karda examples
 

@@ -16,7 +16,7 @@ export type LogicCardinalityName = typeof LOGIC_CARDINALITY_NAMES[number];
 export type LogicSetName = typeof LOGIC_SET_NAMES[number];
 
 export type ExprAst =
-  | { kind: "literal"; value: string | number | boolean }
+  | { kind: "literal"; value: string | number | boolean | null }
   | {
     kind: "call";
     name:
@@ -38,6 +38,8 @@ export type ExprAst =
       | "handlebars"
       | "map"
       | "list"
+      | "maps_entries"
+      | "lists_length"
       | "lists_getIndex"
       | "call"
       | LogicCompareName
@@ -69,6 +71,8 @@ const BUILTIN_NAMES = new Set([
   "handlebars",
   "map",
   "list",
+  "maps_entries",
+  "lists_length",
   "lists_getIndex",
   "call",
   ...LOGIC_COMPARE_NAMES,
@@ -191,6 +195,7 @@ class Parser {
     }
     if (token.type === "ident") {
       const name = this.consume().value;
+      if (name === "null") return { kind: "literal", value: null };
       if (this.peek()?.type === "(") {
         if (!BUILTIN_NAMES.has(name)) {
           throw new Error(`Unknown function: ${name}`);

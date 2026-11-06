@@ -1,3 +1,4 @@
+export { mapEntries, mapValueGet } from "../../map_values.ts";
 // The helpers mirror the loose values a generated script passes through.
 // deno-lint-ignore-file no-explicit-any
 /**
@@ -12,7 +13,6 @@
 
 import { registerKintegrateHandlebarsHelpers } from "./handlebars.ts";
 
-export { sheetCodedText as igSheetCodedText } from "../../sheets/coded_text.ts";
 
 export type XPathEval = (...args: any[]) => any;
 

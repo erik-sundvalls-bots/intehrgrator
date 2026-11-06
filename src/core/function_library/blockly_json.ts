@@ -94,6 +94,7 @@ export function referencedGridNames(state: unknown): string[] {
   const names = new Set<string>();
   walkWorkspace(state, (block) => {
     if (!block.type || !GRID_NAME_TYPES.has(block.type)) return;
+    if (block.inputs?.SHEET?.block || block.inputs?.SHEET?.shadow) return;
     const name = block.fields?.NAME;
     if (typeof name === "string" && name.trim()) names.add(name.trim());
   });
@@ -143,6 +144,7 @@ export function renameGridInState(
 ): void {
   walkWorkspace(state, (block) => {
     if (!block.type || !GRID_NAME_TYPES.has(block.type)) return;
+    if (block.inputs?.SHEET?.block || block.inputs?.SHEET?.shadow) return;
     if (block.fields?.NAME === from) block.fields.NAME = to;
   });
 }

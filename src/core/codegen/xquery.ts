@@ -1,3 +1,4 @@
+import { emitXQueryStack } from "./function_statements.ts";
 /**
  * XQuery conversion script language — Mapping Model → self-contained `.xq`.
  *
@@ -55,6 +56,7 @@ export interface XQueryEmitEnv {
   /** Context node for xpath* — defaults to `$source`; loop bodies use the loop var. */
   sourceVar?: string;
   fnIdents?: Map<string, string>;
+  functionState?: string;
 }
 
 function userFunctionXqEnv(model: MappingModel, base: XQueryEmitEnv = {}): XQueryEmitEnv {
@@ -74,7 +76,13 @@ function emitXQueryUserFunctions(model: MappingModel, env: XQueryEmitEnv): strin
     const params = fn.params.map((p) => `$${xqueryLocalName(p)} as item()*`).join(", ");
     const bind = Object.fromEntries(fn.params.map((p) => [p, xqueryLocalName(p)]));
     const inner: XQueryEmitEnv = { ...env, bind: { ...env.bind, ...bind }, fnIdents: idents };
-    const body = emitXQueryExpr(parseExpression(fn.body!), inner);
+    let body = emitXQueryExpr(parseExpression(fn.body!), inner);
+    if (fn.stack?.length) {
+      const vars = `map { ${fn.params.map(p => `${xqString(p)}: $${xqueryLocalName(p)}`).join(", ")} }`;
+      const stack = emitXQueryStack(fn.stack, "$initial", (source, state) => emitXQueryExpr(parseExpression(source), {...inner, functionState: state}));
+      const result = emitXQueryExpr(parseExpression(fn.body!), {...inner, functionState: "$finished"});
+      body = `(let $initial := map { 'vars': ${vars}, 'returned': false(), 'value': () } let $finished := ${stack} return if ($finished?returned) then $finished?value else ${result})`;
+    }
     lines.push(`declare function local:${ident}(${params}) as item()* {`);
     lines.push(`  ${body}`);
     lines.push("};");
@@ -480,6 +488,7 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
   const sourceVar = env.sourceVar ?? "$source";
   switch (ast.kind) {
     case "literal":
+      if (ast.value === null) return "()";
       if (typeof ast.value === "string") return xqString(ast.value);
       if (typeof ast.value === "boolean") return ast.value ? "true()" : "false()";
       return String(ast.value);
@@ -507,6 +516,7 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
           return emitSwitchXq(args);
         case "var": {
           const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (env.functionState) return `${env.functionState}?vars(${args[0]})`;
           if (name && env.bind?.[name]) return `$${env.bind[name]}`;
           return `$vars(${args[0]})`;
         }
@@ -529,15 +539,27 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
         case "not":
           return `not(${args[0]})`;
         case "list":
-          return `(${args.join(", ")})`;
+          return env.functionState ? `[ ${args.join(", ")} ]` : `(${args.join(", ")})`;
+        case "lists_getIndex": {
+          const where = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "FIRST";
+          const index = where === "LAST" ? "array:size($list)" : where === "FROM_END" ? `array:size($list) - (${args[2] ?? "1"}) + 1` : where === "FROM_START" ? (args[2] ?? "1") : "1";
+          return `(let $items := ${args[0]} let $list := if ($items instance of array(*)) then $items else array { $items } let $at := xs:integer(${index}) return if ($at ge 1 and $at le array:size($list)) then $list($at) else ())`;
+        }
         case "intersection":
           return `(${args[0]}[some $b in ${args[1]} satisfies deep-equal(., $b)])`;
         case "union":
           return `(${args[0]}, ${args[1]}[not(some $a in ${args[0]} satisfies deep-equal(., $a))])`;
         case "difference":
           return `(${args[0]}[not(some $b in ${args[1]} satisfies deep-equal(., $b))])`;
+        case "maps_entries":
+          return `(let $map := ${args[0]} return if ($map instance of map(*)) then array { for $key in map:keys($map) return [ $key, map:get($map, $key) ] } else [])`;
+        case "lists_length":
+          return `(let $items := ${args[0]} return if ($items instance of array(*)) then array:size($items) else count($items))`;
         case "maps_get":
-          return `(if (${args[0]} eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
+          if (ast.args[0]?.kind === "literal" && typeof ast.args[0].value === "string") {
+            return `(if (${args[0]} eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
+          }
+          return `(let $map := ${args[0]} return if ($map instance of map(*)) then map:get($map, string(${args[1]})) else if ($map eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
         case "sheet_get_cell":
           return `igsh:sheet-get-cell($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_xy":
@@ -550,8 +572,6 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
           return `igsh:sheet-get-header($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_data":
           return `igsh:sheet-get-data($sheets, ${args[0]})`;
-        case "sheet_coded_text":
-          return `igsh:sheet-coded-text($sheets, ${args.join(", ")})`;
         case "sheet_lookup":
           return args.length >= 4
             ? `igsh:sheet-lookup($sheets, ${args[0]}, ${args[1]}, ${args[2]}, ${args[3]})`

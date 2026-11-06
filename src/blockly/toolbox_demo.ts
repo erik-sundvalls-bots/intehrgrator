@@ -478,6 +478,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
             },
           },
           { kind: "block", type: "maps_keys" },
+          { kind: "block", type: "maps_entries" },
           { kind: "block", type: "maps_length" },
           { kind: "block", type: "maps_isEmpty" },
         ],

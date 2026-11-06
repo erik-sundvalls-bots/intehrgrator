@@ -103,10 +103,19 @@ export type MappingFunctionKind = "return" | "statement";
  * `call("name", …)` and codegen emits a reusable named function where the
  * Conversion script language allows it.
  */
+export type MappingStatement =
+  | { kind: "set"; name: string; value: string }
+  | { kind: "append"; name: string; value: string }
+  | { kind: "if"; condition: string; then: MappingStatement[]; else: MappingStatement[] }
+  | { kind: "forEach"; name: string; list: string; body: MappingStatement[] }
+  | { kind: "return"; condition: string; value: string };
+
 export interface MappingFunction {
   name: string;
   kind: MappingFunctionKind;
   params: string[];
+  /** Portable, ordered Blockly statement body. Function locals never leak into the caller. */
+  stack?: MappingStatement[];
   /** Mapping Expression body for value Functions. */
   body?: string;
 }
