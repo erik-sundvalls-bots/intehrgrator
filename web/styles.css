@@ -674,6 +674,31 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 .mapping-pane { display: flex; flex-direction: column; }
 .mapping-bottom { min-height: 0; display: flex; flex-direction: column; padding: 8px; }
 .mapping-editor-tabs { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+
+.hints-host { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.hints-panel { display: flex; flex-direction: column; gap: 8px; min-height: 0; height: 100%; }
+.hints-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hints-filter { flex: 1 1 12rem; min-width: 8rem; }
+.hints-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+.hints-kind { border: 1px solid var(--sl-color-neutral-300, #ccc); background: transparent; border-radius: 999px; padding: 2px 8px; cursor: pointer; }
+.hints-kind[aria-pressed="true"] { background: var(--sl-color-primary-600, #005eb8); color: #fff; border-color: transparent; }
+.hints-body { display: grid; grid-template-columns: minmax(12rem, 22rem) 1fr; gap: 12px; min-height: 0; overflow: auto; }
+.hints-list, .hints-detail { min-height: 0; }
+.hints-row { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; background: transparent; padding: 4px 6px; cursor: pointer; }
+.hints-row[aria-selected="true"] { background: var(--sl-color-primary-50, #e8f2fb); }
+.hints-row--dismissed { color: var(--sl-color-neutral-500, #6b7280); }
+.hints-row-name { flex: 1; }
+.hints-row-kind, .hints-row-dismissed { font-size: 0.75rem; border-radius: 999px; padding: 0 6px; background: var(--sl-color-neutral-100, #f3f4f6); }
+.hints-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hints-chip { border: 1px solid var(--sl-color-neutral-300, #ccc); background: #fff; border-radius: 999px; padding: 2px 8px; cursor: pointer; }
+.hints-chip[aria-pressed="true"] { border-color: var(--sl-color-primary-600, #005eb8); background: var(--sl-color-primary-50, #e8f2fb); }
+.hints-chip--assumed { font-weight: 600; }
+.hints-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.hints-note, .hints-empty, .hints-assumed { margin: 0; color: var(--sl-color-neutral-700, #374151); }
+.hints-restore { align-self: flex-start; }
+.hint-badge { cursor: pointer; }
+.hint-badge circle { fill: #fff8e1; stroke: #b58105; }
+.hint-badge text { font-size: 12px; }
 .mapping-editor-tab-group { display: flex; gap: 4px; }
 .mapping-spec-upload { margin-left: auto; font-size: 11px; padding: 3px 6px; }
 .sheets-actions {
