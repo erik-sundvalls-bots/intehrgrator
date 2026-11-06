@@ -12,7 +12,7 @@ The web app persists projects in IndexedDB and can export/import the same data a
 | Source | Source Schema content + metadata |
 | Examples | Array of example instances `{ id, filename, format, content }`, plus `activeExampleId` |
 | Mapping | Native Blockly workspace JSON (canonical) and a derived Mapping Model snapshot |
-| Settings | Theme, validation, shown target / source languages (`display`, #279; older bundles' `modelLanguage` becomes the target choice), `sourceLanguages`, `aiContextLanguages`, `dismissedHints` and `hintSubsets` (value-set hints the author hid or narrowed; dropped when that slot's allowed codes change). **Output mode** is session-only and is not restored |
+| Settings | Theme, validation, shown target / source languages (`display`, #279; older bundles' `modelLanguage` becomes the target choice), `sourceLanguages`, `aiContextLanguages`, `dismissedHints` (value-set hints the author hid; dropped when that slot's allowed codes change). **Output mode** is session-only and is not restored |
 | Metadata | Project id, app version, created/updated timestamps |
 
 Generated Export and Test Run output are **not** stored in a Project Bundle — they are rebuilt from the Mapping Specification after load. VS Code [file projects](VS_CODE.md) additionally save generated scripts, mapping-preview results and diagnostics as Git-reviewable files. Their manifest stores the generation language and per-file language settings; Output mode remains session-only. The ProjectBundle and `.intehrgrator` export format are unchanged.

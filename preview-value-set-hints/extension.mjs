@@ -265884,7 +265884,6 @@ var en2 = {
   hintsUseConstant: "Use as constant",
   hintsDecisionTable: "Decision table: source \u2192 code",
   hintsSheetLookup: "Sheet lookup",
-  hintsPickSubset: "Pick subset",
   hintsDismiss: "Dismiss",
   hintsRestore: "Restore dismissed hints",
   hintsEmpty: "No value-set hints on this template.",
@@ -266383,7 +266382,6 @@ var ca = {
   hintsUseConstant: "Fer servir com a constant",
   hintsDecisionTable: "Taula de decisi\xF3: origen \u2192 codi",
   hintsSheetLookup: "Cerca en un full",
-  hintsPickSubset: "Triar un subconjunt",
   hintsDismiss: "Amagar",
   hintsRestore: "Restaurar les pistes amagades",
   hintsEmpty: "No hi ha pistes de conjunts de valors en aquesta plantilla.",
@@ -266882,7 +266880,6 @@ var de2 = {
   hintsUseConstant: "Als Konstante verwenden",
   hintsDecisionTable: "Entscheidungstabelle: Quelle \u2192 Code",
   hintsSheetLookup: "Tabellensuche",
-  hintsPickSubset: "Teilmenge w\xE4hlen",
   hintsDismiss: "Ausblenden",
   hintsRestore: "Ausgeblendete Hinweise wiederherstellen",
   hintsEmpty: "Keine Wertemengen-Hinweise in dieser Vorlage.",
@@ -267381,7 +267378,6 @@ var es = {
   hintsUseConstant: "Usar como constante",
   hintsDecisionTable: "Tabla de decisi\xF3n: origen \u2192 c\xF3digo",
   hintsSheetLookup: "B\xFAsqueda en hoja",
-  hintsPickSubset: "Elegir subconjunto",
   hintsDismiss: "Ocultar",
   hintsRestore: "Restaurar pistas ocultas",
   hintsEmpty: "No hay pistas de conjuntos de valores en esta plantilla.",
@@ -267880,7 +267876,6 @@ var fr2 = {
   hintsUseConstant: "Utiliser comme constante",
   hintsDecisionTable: "Table de d\xE9cision : source \u2192 code",
   hintsSheetLookup: "Recherche dans une feuille",
-  hintsPickSubset: "Choisir un sous-ensemble",
   hintsDismiss: "Masquer",
   hintsRestore: "R\xE9tablir les indications masqu\xE9es",
   hintsEmpty: "Aucune indication d'ensemble de valeurs dans ce mod\xE8le.",
@@ -268423,7 +268418,6 @@ var sv = {
   hintsUseConstant: "Anv\xE4nd som konstant",
   hintsDecisionTable: "Beslutstabell: k\xE4lla \u2192 kod",
   hintsSheetLookup: "Bladuppslag",
-  hintsPickSubset: "V\xE4lj delm\xE4ngd",
   hintsDismiss: "D\xF6lj",
   hintsRestore: "\xC5terst\xE4ll dolda ledtr\xE5dar",
   hintsEmpty: "Inga v\xE4rdem\xE4ngdsledtr\xE5dar i den h\xE4r mallen.",
@@ -268820,41 +268814,6 @@ function optionalSchemaChildren(slotId, blockType) {
   const node = (slotId ? findSkeletonNode(slotId) : void 0) ?? (blockType ? findSkeletonNodeByBlockType(blockType) : void 0);
   if (!node) return [];
   return node.children.filter((child) => child.mandatory !== true);
-}
-
-// src/core/rm_deprecation.ts
-var DV_TEXT_HYPERLINK_DEPRECATION_HREF = "https://specifications.openehr.org/releases/RM/development/data_types.html#_formatting_and_hyperlinking";
-function isDeprecatedFieldDocumentation(documentation2) {
-  return /^DEPRECATED\s*:/i.test(documentation2.trim());
-}
-function deprecatedRmField(className, attributeName) {
-  const typeName2 = className.trim();
-  const attrName2 = attributeName.trim();
-  if (!typeName2 || !attrName2) return null;
-  for (const type of ancestorChain(typeName2)) {
-    const attr = attributeSpec(type, attrName2, { component: "RM" }) ?? attributeSpec(type, attrName2);
-    const documentation2 = attr?.documentation?.trim() ?? "";
-    if (!documentation2) continue;
-    if (!isDeprecatedFieldDocumentation(documentation2)) return null;
-    const href = deprecationHref(type, attrName2);
-    return href ? { href } : null;
-  }
-  return null;
-}
-function ancestorChain(className) {
-  try {
-    const chain = ancestorsOf(className);
-    if (chain.length) return chain;
-  } catch {
-  }
-  return [className];
-}
-function deprecationHref(definingClass, attributeName) {
-  if (definingClass === "DV_TEXT" && attributeName === "hyperlink") {
-    return DV_TEXT_HYPERLINK_DEPRECATION_HREF;
-  }
-  const row = classSpec(definingClass, { component: "RM" }) ?? classSpec(definingClass);
-  return row?.specHtmlUrl ?? null;
 }
 
 // https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/zipehr/symbol_table.ts
@@ -269389,9 +269348,6 @@ function orderHeaderTrailingChrome(block) {
 
 // src/blockly/slot_label.ts
 var SLOT_LABEL_FIELD_PREFIX = "SLOT_LABEL_";
-var DEPRECATED_CAPTION = "deprecated";
-var DEPRECATED_FONT_PX = 9;
-var DEPRECATED_LINE_PX = 11;
 var FieldLabelBase4 = Blockly.FieldLabel;
 var FieldSlotLabel = class extends FieldLabelBase4 {
   isSlotLabelField = true;
@@ -269412,9 +269368,6 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
   documentation_ = "";
   attrTspan_ = null;
   glyphElement_ = null;
-  deprecatedEl_ = null;
-  /** Extra height under the attribute name when it is a deprecated RM field. */
-  deprecatedLinePx_ = 0;
   standing_ = false;
   /** Lets block_constraints refresh unmet cardinality on this caption. */
   get isSlotCardinalityField() {
@@ -269484,13 +269437,6 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
   }
   documentation() {
     return this.documentation_;
-  }
-  /**
-   * Spec URL when this caption is a deprecated RM attribute, otherwise null.
-   * Inherited attributes count (coded text `hyperlink` is defined on DV_TEXT).
-   */
-  deprecationHref() {
-    return deprecatedRmField(this.parentRmClass_(), this.attrLabel)?.href ?? null;
   }
   setUnmet(unmet) {
     if (this.unmet === unmet) return;
@@ -269574,13 +269520,9 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
       bodyParts.push(card);
     }
     const bodyPx = 12;
-    const deprecatedHref = this.deprecationHref();
-    this.deprecatedLinePx_ = deprecatedHref ? DEPRECATED_LINE_PX : 0;
     const glyphPx = this.rmType_ && typeGlyph ? abstract ? Math.max(bodyPx, Math.round(rmEmojiFontPx(this.rmType_) * 0.75)) : isHardToReadRmEmoji(this.rmType_) ? 13 : rmEmojiFontPx(this.rmType_) : bodyPx;
     const bodyText = bodyParts.join(" ");
-    const nameBodyWidth = measureCaptionWidth(bodyText, bodyPx, false);
-    const deprecatedWidth = deprecatedHref ? measureCaptionWidth(DEPRECATED_CAPTION, DEPRECATED_FONT_PX, false) : 0;
-    const bodyWidth = Math.max(nameBodyWidth, deprecatedWidth);
+    const bodyWidth = measureCaptionWidth(bodyText, bodyPx, false);
     const glyphWidth = typeGlyph ? measureCaptionWidth(` ${typeGlyph}`, glyphPx, abstract) : 0;
     const childH = connectedChildHeightPx(this);
     const metrics = slotCaptionStandMetrics({
@@ -269590,10 +269532,6 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
       bodyPx,
       glyphPx: typeGlyph ? glyphPx : bodyPx
     });
-    if (this.deprecatedLinePx_) {
-      metrics.height += this.deprecatedLinePx_;
-      if (metrics.stand) metrics.width = Math.max(metrics.width, deprecatedWidth);
-    }
     this.standing_ = metrics.stand;
     this.size_.width = metrics.width;
     this.size_.height = metrics.height;
@@ -269619,7 +269557,7 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
       el.removeAttribute("transform");
       el.setAttribute("text-anchor", "end");
       el.setAttribute("x", String(slotCaptionBodyEndXPx(metrics.width, glyphWidth)));
-      el.setAttribute("y", String(this.captionLineCenterY_()));
+      el.setAttribute("y", String(this.size_.height / 2));
     }
     this.rebuildCaption_(
       el,
@@ -269631,77 +269569,6 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
       glyphPx,
       metrics.stand
     );
-    this.syncDeprecatedLink_(deprecatedHref, metrics, glyphWidth);
-  }
-  /** Vertical center of the attribute-name line (the "deprecated" line sits under it). */
-  captionLineCenterY_() {
-    const height = Number(this.size_?.height ?? 0);
-    return (height - this.deprecatedLinePx_) / 2;
-  }
-  applyColour() {
-    super.applyColour?.();
-    this.copyDeprecatedFill_();
-  }
-  syncDeprecatedLink_(href, metrics, glyphWidth) {
-    const group = this.fieldGroup_;
-    if (!group || typeof document === "undefined") return;
-    if (!href) {
-      this.deprecatedEl_?.remove();
-      this.deprecatedEl_ = null;
-      return;
-    }
-    const text = this.ensureDeprecatedLink_();
-    const anchor = metrics.stand ? "middle" : "end";
-    const x4 = metrics.stand ? metrics.width / 2 : slotCaptionBodyEndXPx(metrics.width, glyphWidth);
-    const y4 = metrics.height - DEPRECATED_LINE_PX / 2;
-    text.setAttribute("text-anchor", anchor);
-    text.setAttribute("x", String(x4));
-    text.setAttribute("y", String(y4));
-    const link = text.querySelector("a");
-    if (link) {
-      link.setAttribute("href", href);
-      link.setAttribute("target", "_blank");
-      link.setAttribute("rel", "noopener noreferrer");
-      const title = link.querySelector("title");
-      if (title) title.textContent = href;
-    }
-    this.copyDeprecatedFill_();
-  }
-  ensureDeprecatedLink_() {
-    if (this.deprecatedEl_) return this.deprecatedEl_;
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("class", "blocklyText blockly-slot-deprecated");
-    text.setAttribute("dominant-baseline", "central");
-    text.setAttribute("alignment-baseline", "central");
-    text.style.setProperty("font-size", `${DEPRECATED_FONT_PX}px`, "important");
-    const link = document.createElementNS("http://www.w3.org/2000/svg", "a");
-    link.setAttribute("class", "blockly-slot-deprecated-link");
-    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    link.appendChild(title);
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    label.textContent = DEPRECATED_CAPTION;
-    label.style.setProperty("font-size", `${DEPRECATED_FONT_PX}px`, "important");
-    label.style.setProperty("text-decoration", "underline");
-    label.style.setProperty("text-underline-offset", "1px");
-    label.style.cursor = "pointer";
-    link.appendChild(label);
-    const open = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const url = link.getAttribute("href");
-      if (url) globalThis.open(url, "_blank", "noopener,noreferrer");
-    };
-    link.addEventListener("pointerdown", (event) => event.stopPropagation());
-    link.addEventListener("mousedown", (event) => event.stopPropagation());
-    link.addEventListener("click", open);
-    text.appendChild(link);
-    this.fieldGroup_.appendChild(text);
-    this.deprecatedEl_ = text;
-    return text;
-  }
-  copyDeprecatedFill_() {
-    const fill = this.textElement_?.getAttribute("fill");
-    if (this.deprecatedEl_ && fill) this.deprecatedEl_.setAttribute("fill", fill);
   }
   rebuildCaption_(el, card, rmCard, glyph, abstractGlyph, bodyPx, glyphPx, stand) {
     if (typeof document === "undefined") return;
@@ -269718,13 +269585,6 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
       tspan.setAttribute("alignment-baseline", "central");
       tspan.textContent = this.attrLabel;
       tspan.style.setProperty("font-size", `${bodyPx}px`, "important");
-      if (this.deprecatedLinePx_) {
-        tspan.setAttribute(
-          "class",
-          `${tspan.getAttribute("class")} blockly-slot-attr-name--deprecated`
-        );
-        tspan.style.setProperty("text-decoration", "line-through");
-      }
       if (attrHelp) {
         tspan.style.cursor = "pointer";
         tspan.addEventListener("mousedown", (event) => event.stopPropagation());
@@ -269774,6 +269634,7 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
     glyphEl.onclick = null;
     glyphEl.onpointerenter = null;
     const width = Number(this.size_?.width ?? 0);
+    const height = Number(this.size_?.height ?? 0);
     if (stand) {
       const pivotX = stoodCaptionPivotXPx(
         width,
@@ -269789,7 +269650,7 @@ var FieldSlotLabel = class extends FieldLabelBase4 {
     } else {
       const bodyW = Math.max(0, width - measureCaptionWidth(` ${glyph}`, glyphPx, abstractGlyph));
       glyphEl.setAttribute("x", String(bodyW));
-      glyphEl.setAttribute("y", String(this.captionLineCenterY_()));
+      glyphEl.setAttribute("y", String(height / 2));
     }
     const tip = this.rmType_ ? rmTypeConnectionTooltip(this.rmType_) : "";
     bindSlotElementTooltip(glyphEl, tip, "data-rm-type-tip");
@@ -276715,12 +276576,11 @@ var ORDINAL2 = /* @__PURE__ */ new Set(["DV_ORDINAL", "DV_SCALE"]);
 function codesKey(codes) {
   return [...codes].sort().join("\n");
 }
-function codeId(code) {
-  return code;
-}
 function rawKind(node) {
   const rm3 = node.rmType;
-  if ((node.allowedOrdinals?.length ?? 0) > 1 && ORDINAL2.has(rm3)) return "ordinal";
+  if ((node.allowedOrdinals?.length ?? 0) > 1 && ORDINAL2.has(rm3)) {
+    return "ordinal";
+  }
   if ((node.allowedValues?.length ?? 0) > 1 && CODED.has(rm3)) return "coded";
   if ((node.allowedValues?.length ?? 0) > 1) return "string_list";
   if ((node.allowedUnits?.length ?? 0) > 1) return "units";
@@ -276737,7 +276597,10 @@ function allCodes(node, kind) {
     }));
   }
   if (kind === "units") {
-    return (node.allowedUnits ?? []).map((unit) => ({ code: unit, text: unit }));
+    return (node.allowedUnits ?? []).map((unit) => ({
+      code: unit,
+      text: unit
+    }));
   }
   return (node.allowedValues ?? []).map((item) => ({
     code: item.code,
@@ -276762,7 +276625,6 @@ function rawHints(skeleton, model) {
     if (mappedAway(kind, mapped.get(node.slotId))) continue;
     const codes = allCodes(node, kind);
     if (codes.length < 2) continue;
-    const fullCodes = codes.map((item) => codeId(item.code)).sort();
     const trail = findSkeletonTrail(skeleton, node.slotId);
     const pathLabel = pathLabelFromTrail(trail);
     out.push({
@@ -276772,8 +276634,7 @@ function rawHints(skeleton, model) {
       ...pathLabel ? { pathLabel } : {},
       rmType: node.rmType,
       mandatory: Boolean(node.mandatory),
-      codes,
-      fullCodes
+      codes
     });
   }
   return out;
@@ -276784,22 +276645,22 @@ function kindLabel(kind) {
   if (kind === "units") return "Units";
   return "Coded";
 }
+function codesIdentities(codes) {
+  return codes.map((item) => item.code).sort();
+}
 function pruneHintSettings(skeleton, model, settings) {
-  const live = new Map(rawHints(skeleton, model).map((hint) => [hint.slotId, codesKey(hint.fullCodes)]));
+  const live = new Map(
+    rawHints(skeleton, model).map((hint) => [hint.slotId, codesKey(codesIdentities(hint.codes))])
+  );
   const dismissed = (settings.dismissedHints ?? []).filter(
     (row) => live.get(row.slotId) === codesKey(row.codes)
   );
-  const subsets = (settings.hintSubsets ?? []).filter(
-    (row) => live.get(row.slotId) === codesKey(row.full)
-  );
-  return writeHintRecords(settings, dismissed, subsets);
+  return writeDismissed(settings, dismissed);
 }
-function writeHintRecords(settings, dismissed, subsets) {
+function writeDismissed(settings, dismissed) {
   const next = { ...settings };
   if (dismissed.length) next.dismissedHints = dismissed;
   else delete next.dismissedHints;
-  if (subsets.length) next.hintSubsets = subsets;
-  else delete next.hintSubsets;
   return next;
 }
 

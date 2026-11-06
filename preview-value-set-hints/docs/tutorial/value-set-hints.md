@@ -24,7 +24,7 @@ Click the **💡 badge** on the canvas, or open **Hints** next to **Mapping Spec
 
 For a constant, click the chip you want, then **Use as constant**. For a built-in term pick, the resulting dropdown remains editable. A **Units** hint connects its chosen constant or grid reader to the quantity's **units** socket; it does not replace the magnitude expression. Mapping only the units does not supply a missing magnitude.
 
-To restrict a grid to fewer targets, select the chips and choose **Pick subset** first. That changes the hint's choices, not the mapping. Then choose the grid action.
+To restrict a grid to fewer targets, select only those chips before choosing the grid action. Chip selection limits what that action uses; it does not change the hint itself.
 
 ## Complete a grid mapping
 
@@ -55,6 +55,6 @@ This offer is only in the interactive UI. Agent/MCP `list_slots` exposes the hin
 
 ## Dismiss, restore, undo
 
-**Dismiss** hides the active hint; it does not fill the slot or make missing mandatory data valid. **Restore dismissed hints** brings it back. Dismissals and subsets belong to the project and are forgotten when that slot's allowed choices change.
+**Dismiss** hides the active hint; it does not fill the slot or make missing mandatory data valid. **Restore dismissed hints** brings it back. Dismissals belong to the project and are forgotten when that slot's allowed choices change.
 
 An applied constant or grid mapping replaces the hint. One **Undo** restores the canvas, grid, and hint settings together; **Redo** reapplies them.
