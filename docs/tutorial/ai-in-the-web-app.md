@@ -46,7 +46,13 @@ Use this when intEHRgrator should call the model itself.
 
 If a provider does not support function tools, the chat asks once for suggestions JSON and applies it directly, also as one Undo step.
 
-### Token use, cost, context window and budget
+### Fill a hint-created grid
+
+After **Decision table: source → code** or **Sheet lookup** in the **Hints** tab, an optional dialog offers a prompt for the new grid. **Insert prompt** only puts that text in the AI chat input: review it, then send it yourself (or copy it to an external chat). Declining keeps the grid and its connected blocks.
+
+The prompt asks the AI to fill only the blank **source** column using the loaded Source Schema and Active Example, preserving the allowed target codes, rubrics, ordinals, or units. Review those matches and wire the reader's source input before **Run Test**. The offer is interactive UI only: MCP/Agent `apply_hint` creates the mapping scaffold but neither offers nor runs an AI prompt. See [Value-set hints](value-set-hints.md).
+
+### Token use, context window and budget
 
 Next to **Stop** / **Send** a meter shows what this chat has used, updated after every step while the model works. It counts what the provider reports (input, cached input, output, and the cost when the provider gives one, such as OpenRouter) and shows **input vs output** side by side — tokens always, and USD when the model is priceable. A `~` means an estimate (no provider usage, or cost from rates × tokens). The ring shows how full the model's context window is: the last request's input plus output against the window. The window is known for common models (GPT-4o, GPT-4.1, GPT-5, o-series, Claude, Gemini, DeepSeek, …); for any other model set it in the meter's popover, otherwise the ring is hidden.
 

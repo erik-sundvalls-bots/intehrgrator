@@ -38,6 +38,13 @@ import { leaseCovers, SlotLeaseRegistry, type SlotLease } from "../agent/leases.
 import { filterSlotRows } from "../agent/inspect.ts";
 import { slotDetail } from "../agent/slot_detail.ts";
 import { buildSlotTree, compactSlotId, resolveSlotPrefix, resolveSlotRef } from "../core/ai/slot_tree.ts";
+import {
+  collectValueSetHints,
+  countActiveHints,
+  hintPayload,
+  type ValueSetHintPayload,
+} from "../core/hints/value_set_hint.ts";
+import { applyValueSetHint, type ApplyValueSetHintRequest, type ApplyValueSetHintResult } from "../blockly/hint_actions.ts";
 import { importBundle, exportBundle as zipBundle, validateBundle } from "../core/persistence/mod.ts";
 import type { ExampleSet } from "../core/example_sets/mod.ts";
 import type {
@@ -184,6 +191,7 @@ export class WorkbenchService {
       appliedSlots: applied.length,
       mappedSlots: applied.length - defaulted,
       defaultedSlots: defaulted,
+      hintSlots: countActiveHints(collectValueSetHints(s.skeleton, s.model, s.settings)),
       loops: s.model.loops?.length ?? 0,
       unmappedMandatory: s.unmappedMandatory,
       statusMessage: s.statusMessage,
@@ -596,7 +604,20 @@ export class WorkbenchService {
 
   listSlots() {
     const s = this.controller.getState();
-    return listSlotsInspect(s.skeleton, s.model);
+    const hints = this.activeHintPayloads();
+    return listSlotsInspect(s.skeleton, s.model).map((row) => {
+      const hint = hints.get(row.slotId);
+      return hint ? { ...row, hint } : row;
+    });
+  }
+
+  private activeHintPayloads(): Map<string, ValueSetHintPayload> {
+    const s = this.controller.getState();
+    const hints = new Map<string, ValueSetHintPayload>();
+    for (const hint of collectValueSetHints(s.skeleton, s.model, s.settings)) {
+      if (!hint.dismissed) hints.set(hint.slotId, hintPayload(hint));
+    }
+    return hints;
   }
 
   listRepeatable() {
@@ -632,6 +653,7 @@ export class WorkbenchService {
       model: s.model,
       info: this.controller.getSlotInfoIndex(),
       extraLabels: this.controller.getAiExtraLabels(),
+      hints: this.activeHintPayloads(),
     });
   }
 
@@ -656,7 +678,50 @@ export class WorkbenchService {
         : undefined,
     );
     if (!detail) throw new Error(`Unknown slotId: ${ref}`);
-    return detail;
+    const hint = this.activeHintPayloads().get(slotId);
+    return hint ? { ...detail, hint } : detail;
+  }
+
+  /**
+   * Same refactor as the Hints tab. `grid.prompt` is for the interactive UI
+   * only; MCP callers must not treat it as something to run.
+   */
+  applyHint(
+    request: ApplyValueSetHintRequest,
+    expectedRevision?: string,
+    ctx?: MutationContext,
+  ): ApplyValueSetHintResult {
+    this.assertRevision(expectedRevision);
+    let result!: ApplyValueSetHintResult;
+    const recorded: MutationContext = {
+      ...ctx,
+      kind: ctx?.kind ?? "expression",
+      summary: ctx?.summary ?? "Apply value-set hint",
+    };
+    this.mutate(() => {
+      const s = this.controller.getState();
+      initBlocklyGenerators();
+      const workspace = new Blockly.Workspace();
+      try {
+        if (s.blocklyState && typeof s.blocklyState === "object") {
+          Blockly.serialization.workspaces.load(
+            JSON.parse(JSON.stringify(s.blocklyState)) as Record<string, unknown>,
+            workspace,
+          );
+        }
+        result = applyValueSetHint(workspace, s.skeleton, s.model, s.settings, s.sheets, request);
+        this.controller.replaceSheets(result.sheets, { silent: true });
+        this.controller.replaceSettings(result.settings);
+        if (s.blocklyState || workspace.getAllBlocks(false).length) {
+          this.commitWorkspace(workspace);
+        }
+        if (!ctx?.summary) recorded.summary = result.summary;
+        recorded.affectedSlotIds = result.slotId ? [result.slotId] : [];
+      } finally {
+        workspace.dispose();
+      }
+    }, recorded);
+    return result;
   }
 
   /** Examples + Active Example tree for `list_examples` / `get_example` (shared with AI chat). */

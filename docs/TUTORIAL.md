@@ -7,6 +7,7 @@ Start with the basic lecture, then open the one that matches what you are trying
 | Lecture | What you learn |
 |---------|----------------|
 | [Basic mapping](tutorial/basic-mapping.md) | Open the workbench, load source and target, click-to-map a field that does not repeat, try an Example Set, save, get help |
+| [Value-set hints](tutorial/value-set-hints.md) | Turn allowed codes, ordinals, text choices, or units into connected constants or grid lookups |
 | [Default context](tutorial/default-context.md) | Factory defaults, scaffold targets, and values that come from the runtime rather than the source |
 | [Optional RM fields](tutorial/optional-rm.md) | Add Reference Model structure the template does not mention (feeder audit and similar) |
 | [Loops](tutorial/loops.md) | Repeated source rows: `for each`, loop index, and loop length |

@@ -12,6 +12,8 @@ export interface AgentSnapshot {
   mappedSlots: number;
   /** Scaffolded Default points and term_picks (`maps_get("defaults", …)`, a literal term_pick). Not a person or agent mapping. */
   defaultedSlots: number;
+  /** Unmapped slots that still show a value-set hint. Not included in mappedSlots or defaultedSlots. */
+  hintSlots: number;
   loops: number;
   unmappedMandatory: number;
   statusMessage: string;

@@ -1570,7 +1570,7 @@ function appendDvFieldInput(
   appendSlotLabel(input, attr.name, { rmType: mouth.labelType });
 }
 
-function ensureDvFieldVisible(block: Blockly.Block, attrName: string): void {
+export function ensureDvFieldVisible(block: Blockly.Block, attrName: string): void {
   if (block.getInput(dvFieldInputName(attrName))) return;
   if (block.getInput(`${OPTIONAL_DV_FIELD_PREFIX}${attrName}`)) return;
   const rmType = block.getFieldValue("RM_TYPE");
