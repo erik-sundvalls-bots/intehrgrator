@@ -37,6 +37,8 @@ import {
 } from "../output/instance_encoding.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
+import { octetBytes } from "../rm_shell_fragment.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { namedLoopRead } from "../named_loop_path.ts";
@@ -1002,6 +1004,87 @@ function xmlChild(key: string, value: string): string {
   return `element rm:${xmlLocalName(key)} { ${value} }`;
 }
 
+function xqShellGen(ctx: XqSkelCtx): ShellCodegen {
+  const json = ctx.shape === "json";
+  return {
+    expr: (expression) => {
+      try {
+        return emitXQueryExpr(parseExpression(expression), ctx.env);
+      } catch {
+        return "()";
+      }
+    },
+    object: (rmType, fields) => xqShellObject(rmType, fields, json),
+    list: (items, attribute) => json
+      ? `array { ${items.join(", ")} }`
+      : `(${items.map((item) => `element rm:${xmlLocalName(attribute)} { ${item} }`).join(", ")})`,
+    octets: (code) => xqOctets(code, json),
+  };
+}
+
+function xqShellObject(
+  rmType: string,
+  fields: Array<[string, string]>,
+  json: boolean,
+): string {
+  const normalized = rmType === "CODE_PHRASE"
+    ? fields.map(([key, value]) => {
+      if (key !== "terminology_id" || value.includes("_type") || value.includes("xsi:type")) {
+        return [key, value] as [string, string];
+      }
+      return json
+        ? [key, `map { "_type": "TERMINOLOGY_ID", "value": ${value} }`] as [string, string]
+        : [key, `element rm:value { ${value} }`] as [string, string];
+    })
+    : fields;
+  if (json) {
+    const body = [
+      `"_type": ${xqString(rmType)}`,
+      ...normalized.map(([key, value]) => `${xqString(key)}: ${value}`),
+    ];
+    return `map { ${body.join(", ")} }`;
+  }
+  const inner = [
+    `attribute xsi:type { ${xqString(rmType)} }`,
+    ...normalized.map(([key, value]) => `element rm:${xmlLocalName(key)} { ${value} }`),
+  ];
+  return inner.join(", ");
+}
+
+function xqOctets(code: string, json: boolean): string {
+  const literal = xqStringLiteral(code);
+  const bytes = literal != null ? octetBytes(literal) : null;
+  if (bytes) {
+    return json ? `array { ${bytes.join(", ")} }` : bytes.join(", ");
+  }
+  const call = `ig:octet-bytes(xs:string(${code}))`;
+  return json ? `array { ${call} }` : call;
+}
+
+function xqStringLiteral(code: string): string | null {
+  const trimmed = code.trim();
+  if (trimmed.length < 2 || !trimmed.startsWith('"')) return null;
+  try {
+    const value = JSON.parse(trimmed.replace(/""/g, '\\"'));
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function xqShellSuffix(slot: MappingSlot | undefined, ctx: XqSkelCtx): string {
+  const fields = emitShellFields(slot?.shellFragments, xqShellGen(ctx));
+  if (!fields.length) return "";
+  if (ctx.shape === "json") {
+    return ", " + fields.map(([key, value]) => `${xqString(key)}: ${value}`).join(", ");
+  }
+  return ", " + fields.map(([key, value]) => {
+    const trimmed = value.trimStart();
+    if (trimmed.startsWith("element ") || trimmed.startsWith("(")) return value;
+    return `element rm:${xmlLocalName(key)} { ${value} }`;
+  }).join(", ");
+}
+
 function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
   const slot = ctx.slots.get(node.slotId);
   let expr: string | null = null;
@@ -1034,25 +1117,36 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
   }
 
   if (rmType === "DV_QUANTITY") {
-    if (!expr && !fields.units) return null;
-    const mag = expr ?? "()";
-    const units = fields.units ? xqString(fields.units) : "()";
-    if (ctx.shape === "json") {
-      return `map { "_type": "DV_QUANTITY", "magnitude": ${mag}, "units": ${units} }`;
+    // No magnitude: omit a range-only quantity. A template-fixed unit with no
+    // mapped magnitude stays, as before, and does not carry shell mouths.
+    if (!expr) {
+      if (!fields.units) return null;
+      const units = xqString(fields.units);
+      if (ctx.shape === "json") {
+        return `map { "_type": "DV_QUANTITY", "magnitude": (), "units": ${units} }`;
+      }
+      return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { () }, element rm:units { ${units} }`;
     }
-    return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { ${mag} }, element rm:units { ${units} }`;
+    const units = fields.units ? xqString(fields.units) : "()";
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") {
+      return `map { "_type": "DV_QUANTITY", "magnitude": ${expr}, "units": ${units}${shell} }`;
+    }
+    return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { ${expr} }, element rm:units { ${units} }${shell}`;
   }
 
   if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "magnitude": ${expr} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:magnitude { ${expr} }`;
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "magnitude": ${expr}${shell} }`;
+    return `attribute xsi:type { ${xqString(rmType)} }, element rm:magnitude { ${expr} }${shell}`;
   }
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
-    if (ctx.shape === "json") return `map { "_type": "DV_BOOLEAN", "value": ${expr} }`;
-    return `attribute xsi:type { "DV_BOOLEAN" }, element rm:value { ${expr} }`;
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") return `map { "_type": "DV_BOOLEAN", "value": ${expr}${shell} }`;
+    return `attribute xsi:type { "DV_BOOLEAN" }, element rm:value { ${expr} }${shell}`;
   }
 
   if (
@@ -1067,18 +1161,20 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
       const term = part(coded?.terminology) ?? xqString(fields.terminology_id ?? "openehr");
       const code = part(coded?.code) ?? (fixedCode ? xqString(fixedCode) : null);
       if (!code && !value) return null;
+      const shell = xqShellSuffix(slot, ctx);
       if (ctx.shape === "json") {
-        return `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} } }`;
+        return `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} }${shell} }`;
       }
       return `attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { ${
         value ?? '""'
       } }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${
         code ?? '""'
-      } } }`;
+      } } }${shell}`;
     }
     if (!value) return null;
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "value": ${value} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:value { ${value} }`;
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "value": ${value}${shell} }`;
+    return `attribute xsi:type { ${xqString(rmType)} }, element rm:value { ${value} }${shell}`;
   }
 
   if (rmType === "PARTY_SELF") {

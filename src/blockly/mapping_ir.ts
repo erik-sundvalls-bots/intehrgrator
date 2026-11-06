@@ -12,6 +12,7 @@ import type {
   MappingSlotHatch,
   MappingUnsupportedBlock,
   OptionalRmInsertion,
+  RmShellFragment,
   TargetSignatureNode,
 } from "../types/mod.ts";
 import { procedureParamNames } from "../core/function_library/blockly_json.ts";
@@ -41,6 +42,7 @@ import { isLoopBlockType, sourcePathFromLoopList } from "./loop_block.ts";
 import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { readAiReview } from "./ai_review.ts";
 import type { MappingSlotReview } from "../types/mod.ts";
+import { shellFragmentsFromValueBlock } from "./shell_fragment.ts";
 
 export interface MappingModelExtract {
   slots: Array<{
@@ -50,6 +52,7 @@ export interface MappingModelExtract {
     hatch?: MappingSlotHatch;
     unitsExpression?: string;
     fieldExpressions?: Record<string, string>;
+    shellFragments?: Record<string, RmShellFragment>;
     review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
@@ -243,6 +246,7 @@ function collectSlots(workspace: Workspace): {
       const hatch = hatchFromExprTree(exprBlock);
       const unitsExpression = shellRm === "DV_QUANTITY" ? quantityUnitsExpression(shell!) : "";
       const fieldExpressions = shellRm === "DV_IDENTIFIER" ? identifierFieldExpressions(shell!) : undefined;
+      const shellFragments = shell ? shellFragmentsFromValueBlock(shell) : undefined;
       record({
         slotId,
         rmType,
@@ -250,6 +254,7 @@ function collectSlots(workspace: Workspace): {
         ...(hatch ? { hatch } : {}),
         ...(unitsExpression ? { unitsExpression } : {}),
         ...(fieldExpressions ? { fieldExpressions } : {}),
+        ...(shellFragments ? { shellFragments } : {}),
       }, exprBlock);
     }
   }

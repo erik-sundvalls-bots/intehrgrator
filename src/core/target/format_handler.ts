@@ -702,6 +702,10 @@ function assignDataValueFields(
   rmType: string,
   value: unknown,
 ): void {
+  const split = splitCanvasDvExtras(value);
+  const extra = split.extra;
+  value = split.core;
+  const finish = () => applyCanvasDvExtras(output, extra);
   const record = asStringKeyedRecord(value);
   if (rmType === "DV_QUANTITY") {
     if (record) {
@@ -710,14 +714,17 @@ function assignDataValueFields(
     } else {
       output.magnitude = value;
     }
+    finish();
     return;
   }
   if (rmType === "DV_BOOLEAN") {
     output.value = booleanValue(record && "value" in record ? record.value : value);
+    finish();
     return;
   }
   if (rmType === "DV_COUNT") {
     output.magnitude = record && "magnitude" in record ? Number(record.magnitude) : Number(value);
+    finish();
     return;
   }
   if (rmType === "DV_IDENTIFIER") {
@@ -729,6 +736,7 @@ function assignDataValueFields(
     } else {
       output.id = value;
     }
+    finish();
     return;
   }
   if (rmType === "DV_CODED_TEXT") {
@@ -743,6 +751,7 @@ function assignDataValueFields(
     } else {
       output.value = value;
     }
+    finish();
     return;
   }
   if (rmType === "CODE_PHRASE") {
@@ -750,17 +759,46 @@ function assignDataValueFields(
       const phrase = codedPhraseFromRecord(record);
       if (phrase) {
         Object.assign(output, phrase);
+        finish();
         return;
       }
     }
     output.value = value;
+    finish();
     return;
   }
   if (record && record.value !== undefined) {
     output.value = record.value;
+    finish();
     return;
   }
   output.value = value;
+  finish();
+}
+
+/** Shell mouths travel beside the primary value as `{ __dv, __extra }`. */
+function splitCanvasDvExtras(value: unknown): { core: unknown; extra: Record<string, unknown> } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { core: value, extra: {} };
+  }
+  const record = value as Record<string, unknown>;
+  const extra = record.__extra;
+  if (!Object.hasOwn(record, "__dv") || !extra || typeof extra !== "object" || Array.isArray(extra)) {
+    return { core: value, extra: {} };
+  }
+  return { core: record.__dv, extra: extra as Record<string, unknown> };
+}
+
+function applyCanvasDvExtras(
+  output: Record<string, unknown>,
+  extra: Record<string, unknown>,
+): void {
+  for (const [key, item] of Object.entries(extra)) {
+    if (key.startsWith("__")) continue;
+    if (output[key] !== undefined) continue;
+    if (item === undefined || item === null || item === "") continue;
+    output[key] = item;
+  }
 }
 
 /** A mapped rubric ("Sitting") fills the template code when exactly one choice matches. */

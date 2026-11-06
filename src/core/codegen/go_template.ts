@@ -16,9 +16,12 @@
  * workspace snapshot is available.
  */
 import type { ExprAst } from "../expression/mod.ts";
-import type { MappingFunction, MappingModel } from "../../types/mod.ts";
+import type { MappingFunction, MappingModel, MappingSlot } from "../../types/mod.ts";
+import { primaryMappingAttribute } from "../rm_meta.ts";
 import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
 import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
+import { octetBytes } from "../rm_shell_fragment.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 import { valueFunctions } from "./user_functions.ts";
 import { isRelativeAuthoringPath } from "../mapping_model/loops.ts";
 import { namedLoopBinding } from "../named_loop_path.ts";
@@ -101,7 +104,8 @@ function generateFromSlots(model: MappingModel, ctx: GoEmitContext): string {
     const ast = parseExpression(slot.expression);
     const goExpr = emitGoExpressionTemplate(ast, ctx);
     lines.push(`{{- /* ${slot.label ?? slot.slotId} */ -}}`);
-    lines.push(goExpr);
+    const shell = goShellJson(slot, goExpr, ctx);
+    lines.push(shell ?? goExpr);
   }
   return lines.join("\n");
 }
@@ -148,6 +152,102 @@ export interface BlockNode {
 /** Blockly serializes unused default values as shadows; maps_get KEY is typically a shadow. */
 export function inputChild(input: BlockInput | undefined): BlockNode | undefined {
   return input?.block ?? input?.shadow;
+}
+
+const GO_RM_VALUE_TYPES = new Set([
+  "code_phrase",
+  "term_mapping",
+  "reference_range",
+]);
+
+function isGoRmValueType(type: string): boolean {
+  return type.startsWith("dv_") || GO_RM_VALUE_TYPES.has(type);
+}
+
+/** JSON walker: a DATA_VALUE / TERM_MAPPING / REFERENCE_RANGE shell, including cogwheel mouths. */
+function goRmJson(block: BlockNode, ctx: GoEmitContext): string | null {
+  if (!isGoRmValueType(block.type)) return null;
+  const rmType = String(block.fields?.RM_TYPE ?? block.type.replace(/-/g, "_")).toUpperCase();
+  const fields: string[] = [`"_type": ${goQuote(rmType)}`];
+  for (const [name, input] of Object.entries(block.inputs ?? {})) {
+    const attr = name.startsWith("OPTFLD_")
+      ? name.slice("OPTFLD_".length)
+      : name.startsWith("FLD_")
+      ? name.slice("FLD_".length)
+      : "";
+    if (!attr) continue;
+    const child = inputChild(input);
+    if (!child) continue;
+    const value = goRmChildJson(child, attr, ctx);
+    if (value) fields.push(`${goQuote(attr)}: ${value}`);
+  }
+  return `{${fields.join(", ")}}`;
+}
+
+function goRmChildJson(block: BlockNode, attr: string, ctx: GoEmitContext): string | null {
+  if (block.type === "text" || block.type === "text_code") {
+    const text = String(block.fields?.TEXT ?? "");
+    if (attr === "data" || attr === "integrity_check") return JSON.stringify(octetBytes(text));
+    return goQuote(text);
+  }
+  if (block.type === "math_number") return String(block.fields?.NUM ?? "0");
+  if (block.type === "logic_boolean") return block.fields?.BOOL === "TRUE" ? "true" : "false";
+  if (block.type === "lists_create_with") {
+    const count = Number(block.extraState?.itemCount ?? 0);
+    const items: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const child = inputChild(block.inputs?.[`ADD${i}`]);
+      if (!child) continue;
+      const value = goRmChildJson(child, attr, ctx);
+      if (value) items.push(value);
+    }
+    return `[${items.join(", ")}]`;
+  }
+  const nested = goRmJson(block, ctx);
+  if (nested) return nested;
+  const serialized = blockNodeToExpression(block);
+  if (!serialized) return null;
+  return emitGoExpressionTemplate(parseExpression(serialized), ctx);
+}
+
+function goShellJson(slot: MappingSlot, primaryCode: string, ctx: GoEmitContext): string | null {
+  const fragments = slot.shellFragments;
+  if (!fragments || !Object.keys(fragments).length) return null;
+  const gen: ShellCodegen = {
+    expr: (expression) => emitGoExpressionTemplate(parseExpression(expression), ctx),
+    object: (type, fields) => {
+      const body = [
+        `"_type": ${goQuote(type)}`,
+        ...fields.map(([key, value]) => `${goQuote(key)}: ${value}`),
+      ];
+      return `{${body.join(", ")}}`;
+    },
+    list: (items) => `[${items.join(", ")}]`,
+    octets: (code) => {
+      const literal = goQuotedLiteral(code);
+      return literal != null ? JSON.stringify(octetBytes(literal)) : code;
+    },
+  };
+  const extra = emitShellFields(fragments, gen);
+  if (!extra.length) return null;
+  const primary = primaryMappingAttribute(slot.rmType)?.name ?? "value";
+  const body = [
+    `"_type": ${goQuote(slot.rmType)}`,
+    `${goQuote(primary)}: ${primaryCode}`,
+    ...extra.map(([key, value]) => `${goQuote(key)}: ${value}`),
+  ];
+  return `{${body.join(", ")}}`;
+}
+
+function goQuotedLiteral(code: string): string | null {
+  const trimmed = code.trim();
+  if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return null;
+  try {
+    const value = JSON.parse(trimmed) as unknown;
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function serializeBlockNodeExpression(block: BlockNode | undefined): string | null {
@@ -311,7 +411,9 @@ export function emitBlock(block: BlockNode, ctx: GoEmitContext = createGoEmitCon
       } else if (block.type.startsWith("json_")) {
         lines.push(...emitJsonStructure(block, ctx));
       } else {
-        lines.push(`{{- /* unsupported block: ${block.type} */ -}}`);
+        const rmJson = goRmJson(block, ctx);
+        if (rmJson) lines.push(rmJson);
+        else lines.push(`{{- /* unsupported block: ${block.type} */ -}}`);
       }
   }
 
@@ -392,6 +494,8 @@ export function emitValueExpression(
       return [];
     }
     default: {
+      const rm = goRmJson(block, ctx);
+      if (rm) return [rm];
       const fromSerialized = emitValueFromSerialized(block, ctx);
       if (fromSerialized) return fromSerialized;
       return [`{{- /* value: ${block.type} */ -}}`];
