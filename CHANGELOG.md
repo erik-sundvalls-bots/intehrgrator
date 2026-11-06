@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Hint actions on the canvas** ([#353](https://github.com/regionstockholm/intehrgrator/pull/353)): applying a constant (including units), decision table, or sheet lookup initializes and renders its connected Blockly blocks. Each action undoes and redoes the canvas, grid, and hint settings together. The tutorials show the Hints flow and connected grid scaffold.
+
 - **Value-set hints** ([#353](https://github.com/regionstockholm/intehrgrator/pull/353), [#322](https://github.com/regionstockholm/intehrgrator/issues/322)): a coded, ordinal, string-list, or multi-unit slot stays empty. A 💡 badge and the Hints tab (next to Mapping Spec and Tables & Sheets) list the allowed values. `assumed_value` is only a star. Use as constant, a decision table, or a sheet lookup turns the hint into a mapping; the source column starts blank, and the interactive Contribution Builder can insert a prompt that asks the AI to fill it. Dismissed hints are remembered until the allowed codes change. Hints are not mapped and are not emitted, so an unmapped Position no longer becomes Standing. Headless and MCP use the same actions through `apply_hint` and `list_slots`.
 
 - **Deprecated fields in Contribution Builder** ([#352](https://github.com/regionstockholm/intehrgrator/pull/352)): the `hyperlink` mouth on text and coded text is struck through, with a “deprecated” link under the label to the openEHR Data Types specification (Formatting and Hyperlinking).

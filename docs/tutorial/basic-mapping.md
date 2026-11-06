@@ -65,6 +65,10 @@ You can also drag a source node onto a slot. Yellow **constraint warning** trian
 
 *Click a magnitude slot (Systolic), then a node in the source tree. The slot stays in listening mode until that click.*
 
+## When a slot has allowed values
+
+A 💡 badge marks a **value-set hint**: the template offers several codes, ordinals, text choices, or units. The slot stays empty until you map it. Click the badge or open **Hints** beside Mapping Spec and Tables & Sheets. Choose **Use as constant**, **Decision table: source → code**, or **Sheet lookup** to insert connected blocks; ★ marks an assumed value, not an applied default. Follow [Value-set hints](value-set-hints.md) for the steps.
+
 ## Try an Example Set
 
 1. In the toolbar, open **Example Sets** and pick a row.

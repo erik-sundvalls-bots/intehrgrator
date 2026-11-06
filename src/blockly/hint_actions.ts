@@ -52,6 +52,14 @@ export interface ApplyValueSetHintResult {
 
 type MapCreateBlock = Block & { itemCount_: number; updateShape_: () => void };
 
+/** newBlock() alone only creates the model, even on a rendered workspace. */
+function finalizeBlock<T extends Block>(block: T): T {
+  const svg = block as Block & { initSvg?: () => void; render?: () => void };
+  svg.initSvg?.();
+  svg.render?.();
+  return block;
+}
+
 function connectOutput(parent: Block, inputName: string, child: Block): void {
   const input = parent.getInput(inputName);
   if (!input?.connection || !child.outputConnection) return;
@@ -81,7 +89,7 @@ function connectOutput(parent: Block, inputName: string, child: Block): void {
 function connectRealText(workspace: Workspace, parent: Block, inputName: string, value: string): void {
   const text = workspace.newBlock("text");
   text.setFieldValue(value, "TEXT");
-  connectOutput(parent, inputName, text);
+  connectOutput(parent, inputName, finalizeBlock(text));
 }
 
 function findHosts(workspace: Workspace, slotId: string): Block[] {
@@ -164,7 +172,7 @@ function fillCodedShell(
   ensureRmBlockType("code_phrase", "CODE_PHRASE");
   const phrase = workspace.newBlock("code_phrase");
   if (phrase.getField("RM_TYPE")) phrase.setFieldValue("CODE_PHRASE", "RM_TYPE");
-  connectOutput(shell, dvFieldInputName("defining_code"), phrase);
+  connectOutput(shell, dvFieldInputName("defining_code"), finalizeBlock(phrase));
   if (item.terminologyId) {
     showField(phrase, "terminology_id");
     connectRealText(workspace, phrase, dvFieldInputName("terminology_id"), item.terminologyId);
@@ -185,7 +193,7 @@ function chosenCode(hint: ValueSetHint, codes: string[] | undefined): ValueSetHi
 function textBlock(workspace: Workspace, value: string): Block {
   const text = workspace.newBlock("text");
   text.setFieldValue(value, "TEXT");
-  return text;
+  return finalizeBlock(text);
 }
 
 function sourceMap(workspace: Workspace, sourceColumn: string): Block {
@@ -194,7 +202,7 @@ function sourceMap(workspace: Workspace, sourceColumn: string): Block {
   map.itemCount_ = 1;
   map.updateShape_();
   map.setFieldValue(sourceColumn, "KEY0");
-  return map;
+  return finalizeBlock(map);
 }
 
 function decisionBlock(workspace: Workspace, name: string, output: string, sourceColumn: string): Block {
@@ -202,6 +210,7 @@ function decisionBlock(workspace: Workspace, name: string, output: string, sourc
   const block = workspace.newBlock(DECISION_TABLE_BLOCK);
   block.setFieldValue(name, "NAME");
   block.setFieldValue(output, "OUTPUT");
+  finalizeBlock(block);
   const map = sourceMap(workspace, sourceColumn);
   connectOutput(block, "INPUTS", map);
   return block;
@@ -216,6 +225,7 @@ function lookupBlock(
   registerSheetBlocks();
   const block = workspace.newBlock(SHEET_LOOKUP);
   block.setFieldValue(name, "NAME");
+  finalizeBlock(block);
   connectOutput(block, "MATCH_COL", textBlock(workspace, sourceColumn));
   // A blank match would equal the blank source cells and return the first code.
   connectOutput(block, "MATCH_VAL", textBlock(workspace, "…"));
@@ -285,7 +295,7 @@ export function applyValueSetHint(
     if (hint.kind === "coded") {
       const set = termSetForMandatedCode(item.terminologyId, item.code);
       if (set) {
-        const pick = createTermPickBlock(workspace, set, item.code, hint.slotId);
+        const pick = finalizeBlock(createTermPickBlock(workspace, set, item.code, hint.slotId));
         placeTermPick(workspace, host, pick);
       } else {
         const rm = hint.rmType === "CODE_PHRASE" ? "CODE_PHRASE" : "DV_CODED_TEXT";

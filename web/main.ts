@@ -866,10 +866,18 @@ function focusHintSlot(slotId: string): void {
 
 function applyHintFromUi(request: ApplyValueSetHintRequest) {
   const s = controller.getState();
-  const result = applyValueSetHint(workspace, s.skeleton, s.model, s.settings, s.sheets, request);
-  controller.replaceSheets(result.sheets, { silent: true });
-  controller.replaceSettings(result.settings);
-  persistBlocklyCanvas({ summary: result.summary });
+  const before = controller.exportDocumentSnapshot();
+  let result!: ReturnType<typeof applyValueSetHint>;
+  // This is one document edit (canvas + grid + hint settings). In particular,
+  // do not send half-built block events to the minimap while creating shells.
+  runWithoutBlocklyEvents(() => {
+    result = applyValueSetHint(workspace, s.skeleton, s.model, s.settings, s.sheets, request);
+    controller.replaceSheets(result.sheets, { silent: true });
+    controller.replaceSettings(result.settings);
+    persistBlocklyCanvas({ summary: result.summary });
+  });
+  fireDocumentSwap(workspace, before, controller.exportDocumentSnapshot(), restoreDocumentFromUndo);
+  refreshUndoButtons();
   if (result.grid) {
     const kind = result.grid.kind === "decision-table" ? "decision-table" : "sheet";
     sheetsPanel?.showSheet(result.grid.name, kind);
