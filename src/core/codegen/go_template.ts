@@ -16,10 +16,15 @@
  * workspace snapshot is available.
  */
 import type { ExprAst } from "../expression/mod.ts";
-import type { MappingFunction, MappingModel } from "../../types/mod.ts";
+import type { MappingFunction, MappingModel, MappingSlot } from "../../types/mod.ts";
+import { primaryMappingAttribute } from "../rm_meta.ts";
+import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
 import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
+import { octetBytes } from "../rm_shell_fragment.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 import { valueFunctions } from "./user_functions.ts";
 import { isRelativeAuthoringPath } from "../mapping_model/loops.ts";
+import { namedLoopBinding } from "../named_loop_path.ts";
 import {
   injectXmlnsOnOpenTag,
   wrapXmlCdata,
@@ -34,6 +39,8 @@ import {
 export interface GoEmitContext {
   /** When set, relative xpath paths evaluate against the loop item (`.`). */
   loopVar?: string;
+  /** Loop item name → Go variable (`$dag`). Inner names shadow. */
+  loopBindings?: Readonly<Record<string, string>>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
@@ -62,11 +69,18 @@ export function generateGoTemplate(
   const defines = emitGoFunctionDefines(model, ctx);
   if (defines) lines.push(defines);
 
-  if (options?.blocklyState) {
-    lines.push(generateFromBlockly(options.blocklyState, model));
-  } else {
-    lines.push(generateFromSlots(model, ctx));
+  const body = options?.blocklyState
+    ? generateFromBlockly(options.blocklyState, model)
+    : generateFromSlots(model, ctx);
+  const helperNames = ["sheetLookup", "decisionTable", "handlebars", "dict"].filter((name) =>
+    body.includes(name)
+  );
+  if (helperNames.length) {
+    lines.push(
+      `{{- /* Helpers: ${helperNames.join(", ")} — ${GO_TEMPLATE_HELPERS_BLOB} */ -}}`,
+    );
   }
+  lines.push(body);
 
   return lines.join("\n");
 }
@@ -77,6 +91,7 @@ export function emitGoFunctionDefines(model: MappingModel, ctx: GoEmitContext): 
   ctx.mappingFunctions = fns;
   const lines: string[] = [];
   for (const fn of fns) {
+    if (fn.stack?.length) throw new Error(`Go templates cannot return values from statement-bodied Function ${fn.name}; use TypeScript, Java or XQuery`);
     const inner: GoEmitContext = { ...ctx, fnParams: new Set(fn.params) };
     const body = emitGoExpressionTemplate(parseExpression(fn.body!), inner);
     lines.push(`{{- define ${goQuote(fn.name)} -}}${body}{{- end -}}`);
@@ -90,7 +105,8 @@ function generateFromSlots(model: MappingModel, ctx: GoEmitContext): string {
     const ast = parseExpression(slot.expression);
     const goExpr = emitGoExpressionTemplate(ast, ctx);
     lines.push(`{{- /* ${slot.label ?? slot.slotId} */ -}}`);
-    lines.push(goExpr);
+    const shell = goShellJson(slot, goExpr, ctx);
+    lines.push(shell ?? goExpr);
   }
   return lines.join("\n");
 }
@@ -139,6 +155,102 @@ export function inputChild(input: BlockInput | undefined): BlockNode | undefined
   return input?.block ?? input?.shadow;
 }
 
+const GO_RM_VALUE_TYPES = new Set([
+  "code_phrase",
+  "term_mapping",
+  "reference_range",
+]);
+
+function isGoRmValueType(type: string): boolean {
+  return type.startsWith("dv_") || GO_RM_VALUE_TYPES.has(type);
+}
+
+/** JSON walker: a DATA_VALUE / TERM_MAPPING / REFERENCE_RANGE shell, including cogwheel mouths. */
+function goRmJson(block: BlockNode, ctx: GoEmitContext): string | null {
+  if (!isGoRmValueType(block.type)) return null;
+  const rmType = String(block.fields?.RM_TYPE ?? block.type.replace(/-/g, "_")).toUpperCase();
+  const fields: string[] = [`"_type": ${goQuote(rmType)}`];
+  for (const [name, input] of Object.entries(block.inputs ?? {})) {
+    const attr = name.startsWith("OPTFLD_")
+      ? name.slice("OPTFLD_".length)
+      : name.startsWith("FLD_")
+      ? name.slice("FLD_".length)
+      : "";
+    if (!attr) continue;
+    const child = inputChild(input);
+    if (!child) continue;
+    const value = goRmChildJson(child, attr, ctx);
+    if (value) fields.push(`${goQuote(attr)}: ${value}`);
+  }
+  return `{${fields.join(", ")}}`;
+}
+
+function goRmChildJson(block: BlockNode, attr: string, ctx: GoEmitContext): string | null {
+  if (block.type === "text" || block.type === "text_code") {
+    const text = String(block.fields?.TEXT ?? "");
+    if (attr === "data" || attr === "integrity_check") return JSON.stringify(octetBytes(text));
+    return goQuote(text);
+  }
+  if (block.type === "math_number") return String(block.fields?.NUM ?? "0");
+  if (block.type === "logic_boolean") return block.fields?.BOOL === "TRUE" ? "true" : "false";
+  if (block.type === "lists_create_with") {
+    const count = Number(block.extraState?.itemCount ?? 0);
+    const items: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const child = inputChild(block.inputs?.[`ADD${i}`]);
+      if (!child) continue;
+      const value = goRmChildJson(child, attr, ctx);
+      if (value) items.push(value);
+    }
+    return `[${items.join(", ")}]`;
+  }
+  const nested = goRmJson(block, ctx);
+  if (nested) return nested;
+  const serialized = blockNodeToExpression(block);
+  if (!serialized) return null;
+  return emitGoExpressionTemplate(parseExpression(serialized), ctx);
+}
+
+function goShellJson(slot: MappingSlot, primaryCode: string, ctx: GoEmitContext): string | null {
+  const fragments = slot.shellFragments;
+  if (!fragments || !Object.keys(fragments).length) return null;
+  const gen: ShellCodegen = {
+    expr: (expression) => emitGoExpressionTemplate(parseExpression(expression), ctx),
+    object: (type, fields) => {
+      const body = [
+        `"_type": ${goQuote(type)}`,
+        ...fields.map(([key, value]) => `${goQuote(key)}: ${value}`),
+      ];
+      return `{${body.join(", ")}}`;
+    },
+    list: (items) => `[${items.join(", ")}]`,
+    octets: (code) => {
+      const literal = goQuotedLiteral(code);
+      return literal != null ? JSON.stringify(octetBytes(literal)) : code;
+    },
+  };
+  const extra = emitShellFields(fragments, gen);
+  if (!extra.length) return null;
+  const primary = primaryMappingAttribute(slot.rmType)?.name ?? "value";
+  const body = [
+    `"_type": ${goQuote(slot.rmType)}`,
+    `${goQuote(primary)}: ${primaryCode}`,
+    ...extra.map(([key, value]) => `${goQuote(key)}: ${value}`),
+  ];
+  return `{${body.join(", ")}}`;
+}
+
+function goQuotedLiteral(code: string): string | null {
+  const trimmed = code.trim();
+  if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return null;
+  try {
+    const value = JSON.parse(trimmed) as unknown;
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 function serializeBlockNodeExpression(block: BlockNode | undefined): string | null {
   if (!block?.type) return null;
   switch (block.type) {
@@ -180,13 +292,13 @@ function serializeBlockNodeExpression(block: BlockNode | undefined): string | nu
       return `decision_table(${JSON.stringify(name)}, ${inputs}, ${JSON.stringify(output)})`;
     }
     case "sheet_lookup": {
-      const name = String(block.fields?.NAME ?? "Sheet1");
+      const name = serializeBlockNodeExpression(inputChild(block.inputs?.SHEET)) ?? JSON.stringify(String(block.fields?.NAME ?? "Sheet1"));
       const col = serializeBlockNodeExpression(inputChild(block.inputs?.MATCH_COL)) ?? '""';
       const val = serializeBlockNodeExpression(inputChild(block.inputs?.MATCH_VAL)) ?? '""';
       const ret = serializeBlockNodeExpression(inputChild(block.inputs?.RETURN_COL));
       return ret
-        ? `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val}, ${ret})`
-        : `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val})`;
+        ? `sheet_lookup(${name}, ${col}, ${val}, ${ret})`
+        : `sheet_lookup(${name}, ${col}, ${val})`;
     }
     default:
       return null;
@@ -236,6 +348,10 @@ export function emitBlock(block: BlockNode, ctx: GoEmitContext = createGoEmitCon
       lines.push(...emitControlsIf(block, ctx));
       break;
     }
+    case "include_when": {
+      lines.push(...emitIncludeWhen(block, ctx));
+      break;
+    }
     case "for_each_source": {
       lines.push(...emitForEachSource(block, ctx));
       break;
@@ -281,6 +397,7 @@ export function emitBlock(block: BlockNode, ctx: GoEmitContext = createGoEmitCon
       break;
     }
     case "maps_get": {
+      if (inputChild(block.inputs?.MAP)) throw new Error("Go templates do not support Map-value getters; use TypeScript, Java or XQuery");
       const name = String(block.fields?.NAME ?? "defaults");
       const key = inputChild(block.inputs?.KEY);
       const keyStr = key ? extractTextValue(key) : "";
@@ -296,7 +413,9 @@ export function emitBlock(block: BlockNode, ctx: GoEmitContext = createGoEmitCon
       } else if (block.type.startsWith("json_")) {
         lines.push(...emitJsonStructure(block, ctx));
       } else {
-        lines.push(`{{- /* unsupported block: ${block.type} */ -}}`);
+        const rmJson = goRmJson(block, ctx);
+        if (rmJson) lines.push(rmJson);
+        else lines.push(`{{- /* unsupported block: ${block.type} */ -}}`);
       }
   }
 
@@ -350,6 +469,7 @@ export function emitValueExpression(
       )];
     }
     case "maps_get": {
+      if (inputChild(block.inputs?.MAP)) throw new Error("Go templates do not support Map-value getters; use TypeScript, Java or XQuery");
       const name = String(block.fields?.NAME ?? "defaults");
       const key = inputChild(block.inputs?.KEY);
       const keyStr = key ? extractTextValue(key) : "";
@@ -377,6 +497,8 @@ export function emitValueExpression(
       return [];
     }
     default: {
+      const rm = goRmJson(block, ctx);
+      if (rm) return [rm];
       const fromSerialized = emitValueFromSerialized(block, ctx);
       if (fromSerialized) return fromSerialized;
       return [`{{- /* value: ${block.type} */ -}}`];
@@ -412,6 +534,7 @@ function blockNodeToExpression(block: BlockNode): string | null {
       return `${fn}(${JSON.stringify(expr)})`;
     }
     case "maps_get": {
+      if (inputChild(block.inputs?.MAP)) throw new Error("Go templates do not support Map-value getters; use TypeScript, Java or XQuery");
       const name = String(block.fields?.NAME ?? "defaults");
       const key = inputChild(block.inputs?.KEY);
       const keyStr = key ? extractTextValue(key) : "";
@@ -477,14 +600,38 @@ function blockNodeToExpression(block: BlockNode): string | null {
   }
 }
 
-function emitForEachSource(block: BlockNode, _ctx: GoEmitContext): string[] {
+function goLoopIdent(name: string): string {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "item";
+}
+
+function withGoLoop(ctx: GoEmitContext, varName: string): { ident: string; ctx: GoEmitContext } {
+  const ident = goLoopIdent(varName);
+  return {
+    ident,
+    ctx: {
+      ...ctx,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [varName]: `$${ident}` },
+    },
+  };
+}
+
+function goIndexChain(root: string, rest: string): string {
+  let expr = root;
+  for (const seg of rest.split(".").filter(Boolean)) {
+    expr = `index ${expr} ${goQuote(seg)}`;
+  }
+  return expr;
+}
+
+function emitForEachSource(block: BlockNode, ctx: GoEmitContext): string[] {
   const varName = String(block.fields?.VAR ?? "item");
   const path = String(block.fields?.PATH ?? "");
-  const rangeExpr = loopRangeExpr(path);
+  const rangeExpr = loopRangeExpr(path, ctx);
+  const bound = withGoLoop(ctx, varName);
   const body = inputChild(block.inputs?.DO);
-  const lines = [`{{- range ${rangeExpr} }}`];
-  const innerCtx: GoEmitContext = { ..._ctx, loopVar: varName };
-  if (body) lines.push(...emitStatementChain(body, innerCtx));
+  const lines = [`{{- range $${bound.ident} := ${rangeExpr} }}`];
+  if (body) lines.push(...emitStatementChain(body, bound.ctx));
   lines.push(`{{- end }}`);
   return lines;
 }
@@ -500,9 +647,9 @@ function emitForEachList(block: BlockNode, ctx: GoEmitContext): string[] {
     ? stripDelimiters(emitValueExpression(list, ctx).join(""))
     : "index .Data \"\"";
   const body = inputChild(block.inputs?.DO);
-  const lines = [`{{- range ${listExpr} }}`];
-  const innerCtx: GoEmitContext = { ...ctx, loopVar: varName };
-  if (body) lines.push(...emitStatementChain(body, innerCtx));
+  const bound = withGoLoop(ctx, varName);
+  const lines = [`{{- range $${bound.ident} := ${listExpr} }}`];
+  if (body) lines.push(...emitStatementChain(body, bound.ctx));
   lines.push(`{{- end }}`);
   return lines;
 }
@@ -512,8 +659,12 @@ function isSourceQueryNodeType(type: string | undefined): boolean {
     type === "source_query_boolean" || type === "source_query_node";
 }
 
-function loopRangeExpr(path: string): string {
+function loopRangeExpr(path: string, ctx: GoEmitContext): string {
   const trimmed = path.trim();
+  const named = namedLoopBinding(trimmed, ctx.loopBindings);
+  if (named) {
+    return named.rest === "." ? named.ident : goIndexChain(named.ident, named.rest);
+  }
   if (trimmed.startsWith("$.")) {
     const body = trimmed.replace(/^\$\.?/, "").replace(/\[(\d+|\*)\]/g, ".$1");
     const segments = body.split(".").filter(Boolean);
@@ -523,6 +674,9 @@ function loopRangeExpr(path: string): string {
       expr = `index ${expr} ${goQuote(seg)}`;
     }
     return expr;
+  }
+  if (ctx.loopVar && isRelativeAuthoringPath(trimmed)) {
+    return `index . ${goQuote(trimmed)}`;
   }
   return `index .Data ${goQuote(trimmed)}`;
 }
@@ -550,6 +704,21 @@ function emitJsonStructure(block: BlockNode, ctx: GoEmitContext): string[] {
     props.push(`"${fieldName}": ${emitValueExpression(child, ctx).join("")}`);
   }
   return [`{${props.join(", ")}}`];
+}
+
+function emitIncludeWhen(block: BlockNode, ctx: GoEmitContext): string[] {
+  const cond = inputChild(block.inputs?.WHEN);
+  const condStr = cond ? emitConditionExpression(cond, ctx) : "false";
+  const lines = [`{{- if ${condStr} }}`];
+  const body = inputChild(block.inputs?.DO);
+  if (body) lines.push(...emitStatementChain(body, ctx));
+  const elseBody = inputChild(block.inputs?.ELSE);
+  if (elseBody) {
+    lines.push(`{{- else }}`);
+    lines.push(...emitStatementChain(elseBody, ctx));
+  }
+  lines.push(`{{- end }}`);
+  return lines;
 }
 
 function emitControlsIf(block: BlockNode, ctx: GoEmitContext): string[] {
@@ -648,7 +817,8 @@ function emitXmlOrSchemaElement(block: BlockNode, ctx: GoEmitContext): string[] 
 
 function isXmlStructureBlockType(type: string): boolean {
   return type === "xml_element" || type === "target_structure" || type.startsWith("schema_") ||
-    type === "controls_if" || type === "for_each_source" || type === "for_each_list" ||
+    type === "controls_if" || type === "include_when" ||
+    type === "for_each_source" || type === "for_each_list" ||
     type === "json_object" || type === "json_array";
 }
 
@@ -851,7 +1021,12 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "xpathNode":
         case "xpath":
           return emitXPathGo(ast.args[0], ctx);
+        case "maps_entries":
+          throw new Error("Go templates do not support Map-value entries; use TypeScript, Java or XQuery");
         case "maps_get": {
+          if (ast.args[0]?.kind !== "literal" || ast.args[1]?.kind !== "literal") {
+            throw new Error("Go templates do not support Map-value getters or computed Map keys; use TypeScript, Java or XQuery");
+          }
           const mapName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "defaults";
           const key = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "";
           if (mapName === "defaults" || mapName === "Parameters") {
@@ -961,6 +1136,11 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
 
 function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
   const path = pathArg?.kind === "literal" ? String(pathArg.value) : "";
+  const named = namedLoopBinding(path, ctx.loopBindings);
+  if (named) {
+    if (named.rest === ".") return named.ident;
+    return `(${goIndexChain(named.ident, named.rest)})`;
+  }
   if (ctx.loopVar && isRelativeAuthoringPath(path)) {
     if (path === ".") return ".";
     return `(index . ${goQuote(path)})`;

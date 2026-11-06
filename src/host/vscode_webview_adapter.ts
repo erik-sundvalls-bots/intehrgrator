@@ -1,4 +1,5 @@
 import type { ProjectBundle } from "../types/mod.ts";
+import type { ProjectEditorMessage, ProjectHostMessage } from "../workbench/file_project_editor.ts";
 import type {
   LoadableProjectEntry,
   StoredProjectRecord,
@@ -39,6 +40,18 @@ export class VsCodeWebviewHostAdapter implements HostAdapter {
       if (message.error) pending.reject(new Error(message.error));
       else pending.resolve(message.result);
     });
+  }
+
+  postProjectMessage(message: ProjectEditorMessage): void {
+    this.vscode.postMessage(message);
+  }
+
+  onProjectMessage(listener: (message: ProjectHostMessage) => void): () => void {
+    const handler = (event: MessageEvent<ProjectHostMessage>) => {
+      if (event.data?.type?.startsWith("intehrgrator:project-")) listener(event.data);
+    };
+    globalThis.addEventListener("message", handler);
+    return () => globalThis.removeEventListener("message", handler);
   }
 
   async pickTextFile(accept?: string, kind?: FilePickerKind): Promise<PickedTextFile | null> {

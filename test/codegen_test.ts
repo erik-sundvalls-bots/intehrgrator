@@ -156,7 +156,7 @@ Deno.test("java expression emit maps xpath, maps_get, and sheet_lookup", () => {
   const ctx = createJavaEmitContext();
   assertEquals(
     emitJavaExpression(parseExpression('xpathNumber("$.systolic")'), ctx),
-    'xpathNumber("$.systolic")',
+    'ig.xpathNumber("$.systolic")',
   );
   assertEquals(
     emitJavaExpression(parseExpression('maps_get("defaults", "language")'), ctx),
@@ -166,7 +166,7 @@ Deno.test("java expression emit maps xpath, maps_get, and sheet_lookup", () => {
     parseExpression('sheet_lookup("icd10_snomed", "code", "I10", "snomed")'),
     ctx,
   );
-  assertEquals(sheet, 'sheetLookup("icd10_snomed", "code", "I10", "snomed")');
+  assertEquals(sheet, 'ig.sheetLookup("icd10_snomed", "code", "I10", "snomed")');
   assert(ctx.helpers.has("sheets"));
 });
 
@@ -178,8 +178,8 @@ Deno.test("java codegen emits sheetLookup helper for sheet_lookup slots", () => 
     { rmType: "DV_TEXT", returnType: "string" },
   );
   const java = generate(model, "java");
-  assertStringIncludes(java, "sheetLookup(");
-  assertStringIncludes(java, "class Sheet");
+  assertStringIncludes(java, "ig.sheetLookup(");
+  assertStringIncludes(java, "import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;");
   assertStringIncludes(java, "Map<String, Sheet> sheets");
 });
 
@@ -227,9 +227,162 @@ Deno.test("java codegen emits source-node for_each_list iteration with relative 
   const java = generate(model, "java", { skeleton });
   assertStringIncludes(java, 'xpathNodes("$.measurements")');
   assertStringIncludes(java, ".stream().map(measurements ->");
-  assertStringIncludes(java, 'xpathNumber("pulse", measurements)');
+  assertStringIncludes(java, 'ig.xpathNumber("pulse", measurements)');
   assertStringIncludes(java, "new PointEvent<>()");
-  assertStringIncludes(java, 'new DvQuantity("/min", xpathNumber("pulse", measurements), null)');
+  assertStringIncludes(java, 'new DvQuantity("/min", ig.xpathNumber("pulse", measurements), null)');
+  assertEquals(java.includes("ArrayList<"), false);
+});
+
+function container(
+  slotId: string,
+  rmType: string,
+  children: Array<Record<string, unknown>>,
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    slotId,
+    blockType: rmType.toLowerCase(),
+    rmType,
+    label: rmType,
+    kind: "container",
+    mandatory: true,
+    children,
+    ...extra,
+  };
+}
+
+function valueNode(
+  slotId: string,
+  rmType: string,
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    slotId,
+    blockType: rmType.toLowerCase(),
+    rmType,
+    label: rmType,
+    kind: "value",
+    mandatory: true,
+    children: [],
+    ...extra,
+  };
+}
+
+Deno.test("java list attributes use the BMM element type", () => {
+  let model = createEmptyModel("series");
+  model = upsertLoop(model, {
+    attachSlotId: "evt",
+    varName: "measurements",
+    path: "$.measurements",
+    kind: "source",
+  });
+  model = applyExpressionEdit(model, "rate", 'xpathNumber("pulse")', {
+    rmType: "DV_QUANTITY",
+    returnType: "number",
+  });
+  const skeleton = [container("hist", "HISTORY", [
+    container("evt", "POINT_EVENT", [
+      valueNode("rate", "DV_QUANTITY", { rmAttribute: "data", fixedFields: { units: "/min" } }),
+    ], { rmAttribute: "events" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, "new java.util.ArrayList<Event<ItemStructure>>(");
+  assertStringIncludes(java, ".stream().<Event<ItemStructure>>map(measurements ->");
+  assertStringIncludes(java, "new PointEvent<>()");
+});
+
+Deno.test("java composition content widens Section to ContentItem", () => {
+  let model = createEmptyModel("note");
+  model = applyExpressionEdit(model, "text", '"hello"', { rmType: "DV_TEXT", returnType: "string" });
+  const skeleton = [container("comp", "COMPOSITION", [
+    container("sec", "SECTION", [
+      container("el", "ELEMENT", [
+        valueNode("text", "DV_TEXT", { rmAttribute: "value" }),
+      ], { rmAttribute: "items" }),
+    ], { rmAttribute: "content" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, "new java.util.ArrayList<ContentItem>(");
+  assertStringIncludes(java, "java.util.List.<ContentItem>of(");
+  const cluster = generate(
+    applyExpressionEdit(createEmptyModel("cluster"), "text", '"hello"', {
+      rmType: "DV_TEXT",
+      returnType: "string",
+    }),
+    "java",
+    {
+      skeleton: [container("cl", "CLUSTER", [
+        container("el", "ELEMENT", [
+          valueNode("text", "DV_TEXT", { rmAttribute: "value" }),
+        ], { rmAttribute: "items" }),
+      ])] as never,
+    },
+  );
+  assertStringIncludes(cluster, "new java.util.ArrayList<Item>(");
+  assertStringIncludes(cluster, "java.util.List.<Item>of(");
+});
+
+Deno.test("java ISM_TRANSITION does not call setArchetypeNodeId", () => {
+  let model = createEmptyModel("action");
+  model = applyExpressionEdit(model, "state", '"at0016"', { rmType: "DV_CODED_TEXT", returnType: "string" });
+  const skeleton = [container("act", "ACTION", [
+    container("ism", "ISM_TRANSITION", [
+      valueNode("state", "DV_CODED_TEXT", {
+        rmAttribute: "current_state",
+        allowedValues: [{ code: "at0016", label: "planned", terminologyId: "openehr" }],
+      }),
+    ], { rmAttribute: "ism_transition", archetypeNodeId: "at0016" }),
+  ], { archetypeNodeId: "at0001" })];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, "new IsmTransition()");
+  assertEquals(java.includes("ismTransition.setArchetypeNodeId"), false);
+  assertStringIncludes(java, "action.setArchetypeNodeId(");
+});
+
+Deno.test("java DvIdentifier uses setId and DvCount uses long", () => {
+  let model = createEmptyModel("ids");
+  model = applyExpressionEdit(model, "id", '"abc"', { rmType: "DV_IDENTIFIER", returnType: "string" });
+  model = applyExpressionEdit(model, "count", 'xpathNumber("$.n")', { rmType: "DV_COUNT", returnType: "number" });
+  const skeleton = [container("comp", "COMPOSITION", [
+    container("el1", "ELEMENT", [
+      valueNode("id", "DV_IDENTIFIER", { rmAttribute: "value" }),
+    ], { rmAttribute: "content" }),
+    container("el2", "ELEMENT", [
+      valueNode("count", "DV_COUNT", { rmAttribute: "value" }),
+    ], { rmAttribute: "content" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, '.setId("abc")');
+  assertStringIncludes(java, ".setMagnitude((long) ig.xpathNumber(");
+  assertEquals(java.includes("dvIdentifier.setValue"), false);
+});
+
+Deno.test("java coded text looks up the value set and omits an empty quantity", () => {
+  let model = createEmptyModel("bp");
+  model = applyExpressionEdit(model, "pos", 'xpathString("$.position")', {
+    rmType: "DV_CODED_TEXT",
+    returnType: "string",
+  });
+  const skeleton = [container("obs", "OBSERVATION", [
+    container("pulse", "POINT_EVENT", [
+      valueNode("rate", "DV_QUANTITY", { rmAttribute: "data", fixedFields: { units: "/min" } }),
+    ], { rmAttribute: "events" }),
+    container("el", "ELEMENT", [
+      valueNode("pos", "DV_CODED_TEXT", {
+        rmAttribute: "value",
+        allowedValues: [{ code: "at1001", label: "Sitting", terminologyId: "local" }],
+      }),
+    ], { rmAttribute: "protocol" }),
+  ])];
+  const java = generate(model, "java", { skeleton: skeleton as never });
+  assertStringIncludes(java, 'codedText(ig.xpathString("$.position")');
+  assertStringIncludes(java, 'new String[][]{{"at1001", "Sitting", "local"}}');
+  assertStringIncludes(
+    java,
+    "import static se.regionstockholm.intehrgrator.runtime.CodedTextSupport.codedText;",
+  );
+  assertEquals(java.includes('new DvQuantity("/min"'), false);
+  assertEquals(java.includes("new CodePhrase()"), false);
 });
 
 Deno.test("java codegen from BP skeleton emits Archie RM constructors", async () => {
@@ -304,7 +457,7 @@ Deno.test("xquery codegen emits mapping-result module from Blockly slots", () =>
   assertStringIncludes(xq, "element mapping-result");
   assertStringIncludes(xq, "element slots");
   assertStringIncludes(xq, 'attribute id { "s1" }');
-  assertStringIncludes(xq, "local:as-value");
+  assertStringIncludes(xq, "igrm:as-value");
   assertStringIncludes(xq, "DV_QUANTITY");
   assertStringIncludes(xq, "$source?systolic");
   assertStringIncludes(xq, "declare variable $defaults");
@@ -360,7 +513,7 @@ Deno.test("xquery expression emit maps builtins and JSON paths", () => {
   );
   assertEquals(
     emitXQueryExpr(parseExpression('sheet_lookup("t", "code", "I10", "snomed")')),
-    'local:sheet-lookup("t", "code", "I10", "snomed")',
+    'igsh:sheet-lookup($sheets, "t", "code", "I10", "snomed")',
   );
 });
 
@@ -373,8 +526,9 @@ Deno.test("xquery export emits $sheets helpers for sheet accessors", () => {
   );
   const xq = generate(model, "xquery");
   assertStringIncludes(xq, "declare variable $sheets");
-  assertStringIncludes(xq, "local:sheet-lookup");
-  assertStringIncludes(xq, "local:decision-table");
+  assertStringIncludes(xq, "igsh:sheet-lookup");
+  assertStringIncludes(xq, "import module namespace igsh");
+  assertEquals(xq.includes("declare function igsh:decision-table"), false);
   assertStringIncludes(xq, '"icd10_snomed"');
 });
 
@@ -403,7 +557,7 @@ Deno.test("xquery export emits source-node for_each_list iteration with relative
   });
 
   const xq = generate(model, "xquery");
-  assertStringIncludes(xq, "let $measurements_col := local:iterable-sequence($source?measurements)");
+  assertStringIncludes(xq, "let $measurements_col := ig:iterable-sequence($source?measurements)");
   assertStringIncludes(xq, "for $measurements at $measurements_pos in $measurements_col");
   assertStringIncludes(xq, "let $measurements_index := $measurements_pos - 1");
   assertStringIncludes(xq, "let $measurements_length := count($measurements_col)");
@@ -417,7 +571,7 @@ Deno.test("xquery export emits source-node for_each_list iteration with relative
   assertEquals(xq.includes('attribute id { "slot/rate" }'), xq.indexOf("element loops") < xq.indexOf('attribute id { "slot/rate" }'));
   assertEquals(
     compileLoopSequence({ attachSlotId: "e", varName: "items", path: "$.readings[*]", kind: "source" }),
-    "local:iterable-sequence($source?readings)",
+    "ig:iterable-sequence($source?readings)",
   );
 });
 
@@ -523,9 +677,11 @@ Deno.test("typescript codegen from Blockly canvas updates when a source query is
     assertStringIncludes(before, "new COMPOSITION({");
     assertEquals(before.includes("$.systolic"), false);
     assertStringIncludes(before, "Blockly canvas");
-    assertStringIncludes(before, "mm[Hg]");
+    // A units-only DV_QUANTITY is scaffolding, not output (#310).
+    assertEquals(before.includes("mm[Hg]"), false);
     assertStringIncludes(before, "new DV_CODED_TEXT");
-    assertStringIncludes(before, "at1001");
+    // A value-set picker on an unmapped coded leaf is not a mapping (#320).
+    assertEquals(before.includes("at1001"), false);
 
     const mapped = applyExpressionEdit(empty, systolic.slotId, 'xpathNumber("$.systolic")', {
       rmType: systolic.rmType,
@@ -538,6 +694,7 @@ Deno.test("typescript codegen from Blockly canvas updates when a source query is
     assertStringIncludes(after, "xpathNumber");
     assertStringIncludes(after, "$.systolic");
     assertStringIncludes(after, "DV_QUANTITY");
+    assertStringIncludes(after, "mm[Hg]");
     assertEquals(after.includes("void evalExpr"), false);
 
     const saved = Blockly.serialization.workspaces.save(workspace);
@@ -722,6 +879,74 @@ export function convertSourceToComposition() {
 `);
   assertEquals(body.includes("composer: { name: xpathString"), true, body);
   assertEquals(body.includes("composer,"), false, body);
+});
+
+Deno.test("generated TypeScript treats authoring index 0 as the first element", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("items"),
+    "name",
+    'xpathString("$.items[0].name")',
+    { rmType: "string", returnType: "string", label: "Name" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [{ name: "first" }, { name: "second" }] },
+  });
+  assertStringIncludes(JSON.stringify(serializedConversionOutput(out)), "first");
+});
+
+Deno.test("generated TypeScript walks a missing JSON index instead of throwing", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("name"),
+    "name",
+    'xpathString("$.items[0].name")',
+    { rmType: "string", returnType: "string", label: "Name" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [] },
+  });
+  const text = JSON.stringify(serializedConversionOutput(out));
+  assertEquals(text.includes("undefined"), false);
+  assertEquals(text.includes("FOAY0001"), false);
+});
+
+Deno.test("generated TypeScript returns a JSON array from a node path", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("items"),
+    "items",
+    'xpathNode("$.items")',
+    { rmType: "string", returnType: "node", label: "Items" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { items: [{ name: "first" }, { name: "second" }] },
+  });
+  const text = JSON.stringify(serializedConversionOutput(out));
+  assertStringIncludes(text, "first");
+  assertStringIncludes(text, "second");
+});
+
+Deno.test("generated TypeScript reads a quoted flat JSON key", () => {
+  const model = applyExpressionEdit(
+    createEmptyModel("flat"),
+    "magnitude",
+    "xpathString('$[\"vitals/systolic|magnitude\"]')",
+    { rmType: "string", returnType: "string", label: "Magnitude" },
+  );
+  model.targetFormat = "json-schema";
+  const ts = generate(model, "typescript");
+  const out = runGeneratedTypeScript(ts, {
+    format: "json",
+    data: { "vitals/systolic|magnitude": 120 },
+  });
+  assertStringIncludes(JSON.stringify(serializedConversionOutput(out)), "120");
 });
 
 Deno.test("TypeScript Test Run xpath helpers coerce non-string paths", () => {

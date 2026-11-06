@@ -5,6 +5,7 @@
  */
 import type { Field, Input } from "blockly/core";
 import { Blockly } from "./blockly_core.ts";
+import { deprecatedRmField } from "../core/rm_deprecation.ts";
 import { documentationHelp, rmAttributeHelp } from "../core/spec_help.ts";
 import { dismissSpecHelpPopup, showSpecHelpPopup } from "../ui/spec_help_popup.ts";
 import {
@@ -28,6 +29,11 @@ import {
 import { isStatementInput } from "./mouth_layout.ts";
 
 export const SLOT_LABEL_FIELD_PREFIX = "SLOT_LABEL_";
+
+/** Second line under a deprecated attribute name. */
+const DEPRECATED_CAPTION = "deprecated";
+const DEPRECATED_FONT_PX = 9;
+const DEPRECATED_LINE_PX = 11;
 
 /** Which overlay field-level showEditor_ should open when both could apply. */
 export type SlotLabelOverlay = "abstract-tip" | "help" | null;
@@ -68,6 +74,9 @@ export class FieldSlotLabel extends FieldLabelBase {
   private documentation_ = "";
   private attrTspan_: SVGTSpanElement | null = null;
   private glyphElement_: SVGTextElement | null = null;
+  private deprecatedEl_: SVGTextElement | null = null;
+  /** Extra height under the attribute name when it is a deprecated RM field. */
+  private deprecatedLinePx_ = 0;
   private standing_ = false;
 
   /** Lets block_constraints refresh unmet cardinality on this caption. */
@@ -155,6 +164,14 @@ export class FieldSlotLabel extends FieldLabelBase {
 
   documentation(): string {
     return this.documentation_;
+  }
+
+  /**
+   * Spec URL when this caption is a deprecated RM attribute, otherwise null.
+   * Inherited attributes count (coded text `hyperlink` is defined on DV_TEXT).
+   */
+  deprecationHref(): string | null {
+    return deprecatedRmField(this.parentRmClass_(), this.attrLabel)?.href ?? null;
   }
 
   setUnmet(unmet: boolean): void {
@@ -270,6 +287,8 @@ export class FieldSlotLabel extends FieldLabelBase {
     }
     // Caption body stays 12px; only the type glyph may be larger.
     const bodyPx = 12;
+    const deprecatedHref = this.deprecationHref();
+    this.deprecatedLinePx_ = deprecatedHref ? DEPRECATED_LINE_PX : 0;
     const glyphPx = this.rmType_ && typeGlyph
       ? (abstract
         ? Math.max(bodyPx, Math.round(rmEmojiFontPx(this.rmType_) * 0.75))
@@ -278,7 +297,11 @@ export class FieldSlotLabel extends FieldLabelBase {
         : rmEmojiFontPx(this.rmType_))
       : bodyPx;
     const bodyText = bodyParts.join(" ");
-    const bodyWidth = measureCaptionWidth(bodyText, bodyPx, false);
+    const nameBodyWidth = measureCaptionWidth(bodyText, bodyPx, false);
+    const deprecatedWidth = deprecatedHref
+      ? measureCaptionWidth(DEPRECATED_CAPTION, DEPRECATED_FONT_PX, false)
+      : 0;
+    const bodyWidth = Math.max(nameBodyWidth, deprecatedWidth);
     const glyphWidth = typeGlyph
       ? measureCaptionWidth(` ${typeGlyph}`, glyphPx, abstract)
       : 0;
@@ -290,6 +313,10 @@ export class FieldSlotLabel extends FieldLabelBase {
       bodyPx,
       glyphPx: typeGlyph ? glyphPx : bodyPx,
     });
+    if (this.deprecatedLinePx_) {
+      metrics.height += this.deprecatedLinePx_;
+      if (metrics.stand) metrics.width = Math.max(metrics.width, deprecatedWidth);
+    }
     this.standing_ = metrics.stand;
     this.size_.width = metrics.width;
     this.size_.height = metrics.height;
@@ -318,7 +345,7 @@ export class FieldSlotLabel extends FieldLabelBase {
       el.removeAttribute("transform");
       el.setAttribute("text-anchor", "end");
       el.setAttribute("x", String(slotCaptionBodyEndXPx(metrics.width, glyphWidth)));
-      el.setAttribute("y", String(this.size_.height / 2));
+      el.setAttribute("y", String(this.captionLineCenterY_()));
     }
     this.rebuildCaption_(
       el,
@@ -330,6 +357,88 @@ export class FieldSlotLabel extends FieldLabelBase {
       glyphPx,
       metrics.stand,
     );
+    this.syncDeprecatedLink_(deprecatedHref, metrics, glyphWidth);
+  }
+
+  /** Vertical center of the attribute-name line (the "deprecated" line sits under it). */
+  private captionLineCenterY_(): number {
+    const height = Number(this.size_?.height ?? 0);
+    return (height - this.deprecatedLinePx_) / 2;
+  }
+
+  applyColour(): void {
+    super.applyColour?.();
+    this.copyDeprecatedFill_();
+  }
+
+  private syncDeprecatedLink_(
+    href: string | null,
+    metrics: { stand: boolean; width: number; height: number },
+    glyphWidth: number,
+  ): void {
+    const group = this.fieldGroup_ as SVGGElement | null;
+    if (!group || typeof document === "undefined") return;
+    if (!href) {
+      this.deprecatedEl_?.remove();
+      this.deprecatedEl_ = null;
+      return;
+    }
+    const text = this.ensureDeprecatedLink_();
+    const anchor = metrics.stand ? "middle" : "end";
+    const x = metrics.stand
+      ? metrics.width / 2
+      : slotCaptionBodyEndXPx(metrics.width, glyphWidth);
+    const y = metrics.height - DEPRECATED_LINE_PX / 2;
+    text.setAttribute("text-anchor", anchor);
+    text.setAttribute("x", String(x));
+    text.setAttribute("y", String(y));
+    const link = text.querySelector("a");
+    if (link) {
+      link.setAttribute("href", href);
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
+      const title = link.querySelector("title");
+      if (title) title.textContent = href;
+    }
+    this.copyDeprecatedFill_();
+  }
+
+  private ensureDeprecatedLink_(): SVGTextElement {
+    if (this.deprecatedEl_) return this.deprecatedEl_;
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("class", "blocklyText blockly-slot-deprecated");
+    text.setAttribute("dominant-baseline", "central");
+    text.setAttribute("alignment-baseline", "central");
+    text.style.setProperty("font-size", `${DEPRECATED_FONT_PX}px`, "important");
+    const link = document.createElementNS("http://www.w3.org/2000/svg", "a");
+    link.setAttribute("class", "blockly-slot-deprecated-link");
+    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    link.appendChild(title);
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    label.textContent = DEPRECATED_CAPTION;
+    label.style.setProperty("font-size", `${DEPRECATED_FONT_PX}px`, "important");
+    label.style.setProperty("text-decoration", "underline");
+    label.style.setProperty("text-underline-offset", "1px");
+    label.style.cursor = "pointer";
+    link.appendChild(label);
+    const open = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const url = link.getAttribute("href");
+      if (url) globalThis.open(url, "_blank", "noopener,noreferrer");
+    };
+    link.addEventListener("pointerdown", (event) => event.stopPropagation());
+    link.addEventListener("mousedown", (event) => event.stopPropagation());
+    link.addEventListener("click", open);
+    text.appendChild(link);
+    (this.fieldGroup_ as SVGGElement).appendChild(text);
+    this.deprecatedEl_ = text;
+    return text;
+  }
+
+  private copyDeprecatedFill_(): void {
+    const fill = (this.textElement_ as SVGTextElement | null)?.getAttribute("fill");
+    if (this.deprecatedEl_ && fill) this.deprecatedEl_.setAttribute("fill", fill);
   }
 
   private rebuildCaption_(
@@ -359,6 +468,13 @@ export class FieldSlotLabel extends FieldLabelBase {
       tspan.setAttribute("alignment-baseline", "central");
       tspan.textContent = this.attrLabel;
       tspan.style.setProperty("font-size", `${bodyPx}px`, "important");
+      if (this.deprecatedLinePx_) {
+        tspan.setAttribute(
+          "class",
+          `${tspan.getAttribute("class")} blockly-slot-attr-name--deprecated`,
+        );
+        tspan.style.setProperty("text-decoration", "line-through");
+      }
       if (attrHelp) {
         tspan.style.cursor = "pointer";
         // Stop Blockly field mousedown→showEditor_ so attr help does not
@@ -417,7 +533,6 @@ export class FieldSlotLabel extends FieldLabelBase {
     glyphEl.onclick = null;
     glyphEl.onpointerenter = null;
     const width = Number(this.size_?.width ?? 0);
-    const height = Number(this.size_?.height ?? 0);
     if (stand) {
       const pivotX = stoodCaptionPivotXPx(
         width,
@@ -433,7 +548,7 @@ export class FieldSlotLabel extends FieldLabelBase {
     } else {
       const bodyW = Math.max(0, width - measureCaptionWidth(` ${glyph}`, glyphPx, abstractGlyph));
       glyphEl.setAttribute("x", String(bodyW));
-      glyphEl.setAttribute("y", String(height / 2));
+      glyphEl.setAttribute("y", String(this.captionLineCenterY_()));
     }
     const tip = this.rmType_ ? rmTypeConnectionTooltip(this.rmType_) : "";
     bindSlotElementTooltip(glyphEl, tip, "data-rm-type-tip");

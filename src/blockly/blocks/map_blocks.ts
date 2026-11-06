@@ -260,8 +260,18 @@ export function registerMapBlocks(): void {
       appendHiddenSerializable(this, "RM_TYPE", "");
       this.setOutput(true, null);
       this.setColour(MAP_COLOUR);
-      this.setTooltip("Look up a value in a named Map");
+      this.appendValueInput("MAP").setCheck("Map").appendField("Map value (optional)");
+      this.setTooltip("Look up a key in a connected Map value, or in the named Map when the socket is empty. Missing keys return null.");
       enforceMouthCaptionLayout(this);
+    },
+  };
+
+  Blockly.Blocks["maps_entries"] = {
+    init: function (this: import("blockly/core").Block) {
+      this.appendValueInput("MAP").setCheck("Map").appendField("entries of map");
+      this.setOutput(true, "Array");
+      this.setColour(MAP_COLOUR);
+      this.setTooltip("A list of [key, value] pairs from a Map value, including a Function parameter.");
     },
   };
 

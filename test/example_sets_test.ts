@@ -152,10 +152,7 @@ Deno.test("parseExampleSetCatalog resolves in-repo fixture URIs against the cata
     simpleVitals.mapping,
     `${localFixtures}legacy-simulated-json/mapping/simple-vitals.blockly.json`,
   );
-  assertEquals(
-    simpleVitals.sheets,
-    `${localFixtures}legacy-simulated-json/mapping/simple-vitals.sheets.json`,
-  );
+  assertEquals(simpleVitals.sheets, undefined);
   const series = catalog.sets.find((set) => set.id === "Simple-vitals-series");
   if (!series) throw new Error("expected Simple-vitals-series example set");
   assertEquals(series.source.instances.length, 4);
@@ -163,10 +160,7 @@ Deno.test("parseExampleSetCatalog resolves in-repo fixture URIs against the cata
     series.mapping,
     `${localFixtures}legacy-simulated-json/mapping/bp-series.blockly.json`,
   );
-  assertEquals(
-    series.sheets,
-    `${localFixtures}legacy-simulated-json/mapping/bp-series.sheets.json`,
-  );
+  assertEquals(series.sheets, undefined);
   const obx = catalog.sets.find((set) => set.id === "obx-mhv1-unmapped-json-to-openehr");
   if (!obx) throw new Error("expected OBX MHV1 unmapped example set");
   assertEquals(obx.mapping, undefined);
@@ -267,6 +261,8 @@ Deno.test("catalog titles put mapping state last with a shared family+route pref
     ["lung-mdt-form-to-tc-xml-unmapped", "lung-mdt-form-to-tc-xml", "lung-mdt-form-to-tc-xml-decision-tables"],
     ["karda-ordinationsdata-to-openehr-flat-unmapped", "karda-ordinationsdata-to-openehr-flat"],
     ["karda-administreringsdata-to-openehr-flat-unmapped", "karda-administreringsdata-to-openehr-flat"],
+    ["mhv1-generic-entry-to-prenatal-visit-unmapped", "mhv1-generic-entry-to-prenatal-visit"],
+    ["mhv1-generic-entry-flat-wt-unmapped", "mhv1-generic-entry-flat-wt"],
   ];
   for (const set of catalog.sets) {
     assertEquals(
@@ -305,6 +301,8 @@ Deno.test("catalog has an unmapped and a mapped Example Set for each source sche
     ["lung-mdt-form-to-tc-xml-unmapped", "lung-mdt-form-to-tc-xml"],
     ["karda-ordinationsdata-to-openehr-flat-unmapped", "karda-ordinationsdata-to-openehr-flat"],
     ["karda-administreringsdata-to-openehr-flat-unmapped", "karda-administreringsdata-to-openehr-flat"],
+    ["mhv1-generic-entry-to-prenatal-visit-unmapped", "mhv1-generic-entry-to-prenatal-visit"],
+    ["mhv1-generic-entry-flat-wt-unmapped", "mhv1-generic-entry-flat-wt"],
   ];
   for (const [unmappedId, mappedId] of pairs) {
     const unmapped = catalog.sets.find((set) => set.id === unmappedId);

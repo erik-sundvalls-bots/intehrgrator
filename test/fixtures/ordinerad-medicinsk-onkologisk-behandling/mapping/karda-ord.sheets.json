@@ -1,80 +1,156 @@
 [
   {
     "name": "beredningsform",
-    "kind": "decision-table",
-    "hitPolicy": "FIRST",
-    "headers": ["form_code", "cytodos", "snomed", "label"],
-    "decisionColumns": [
-      { "role": "condition" },
-      { "role": "output", "outputKind": "value", "valueType": "string" },
-      { "role": "output", "outputKind": "value", "valueType": "string" },
-      { "role": "output", "outputKind": "value", "valueType": "string" }
+    "headers": [
+      "Form_CodeValue",
+      "code",
+      "text",
+      "snomed"
     ],
     "values": [
-      ["1.0000", "1", "1237267003", "Inf. koncentrat"],
-      ["2.0000", "2", "385223009", "Inf. substans"],
-      ["3.0000", "3", "421378002", "Tablett, kapsel mm."],
-      ["4.0000", "4", "385219001", "Färdig lösning"],
-      ["1", "1", "1237267003", "Inf. koncentrat"],
-      ["2", "2", "385223009", "Inf. substans"],
-      ["3", "3", "421378002", "Tablett, kapsel mm."],
-      ["4", "4", "385219001", "Färdig lösning"],
-      ["—", "", "", ""]
+      [
+        "1.0000",
+        "1",
+        "Inf. koncentrat",
+        "1237267003"
+      ],
+      [
+        "2.0000",
+        "2",
+        "Inf. substans",
+        "385223009"
+      ],
+      [
+        "3.0000",
+        "3",
+        "Tablett, kapsel mm.",
+        "421378002"
+      ],
+      [
+        "4.0000",
+        "4",
+        "Färdig lösning",
+        "385219001"
+      ]
     ],
-    "rowCatchAll": [false, false, false, false, false, false, false, false, true]
+    "columnTypes": [
+      "text",
+      "text",
+      "text",
+      "text"
+    ]
   },
   {
     "name": "administreringsvag",
-    "kind": "decision-table",
-    "hitPolicy": "FIRST",
-    "headers": ["route_code", "cytodos", "snomed", "label"],
-    "decisionColumns": [
-      { "role": "condition" },
-      { "role": "output", "outputKind": "value", "valueType": "string" },
-      { "role": "output", "outputKind": "value", "valueType": "string" },
-      { "role": "output", "outputKind": "value", "valueType": "string" }
+    "headers": [
+      "Route_CodeValue",
+      "code",
+      "text",
+      "snomed"
     ],
     "values": [
-      ["1.0000", "1", "78421000", "Intramuskulärt"],
-      ["2.0000", "2", "26643006", "Peroralt"],
-      ["3.0000", "3", "47625008", "Intravenöst"],
-      ["4.0000", "4", "72607000", "Intrathecalt"],
-      ["5.0000", "5", "38239002", "Intraperitonealt"],
-      ["6.0000", "6", "58100008", "Intraarteriellt"],
-      ["7.0000", "7", "34206005", "Subcutant"],
-      ["9.0000", "9", "37839007", "Sublingualt"],
-      ["11.0000", "11", "372471009", "Intravesicalt"],
-      ["12.0000", "12", "372466002", "Intralesionalt"],
-      ["14.0000", "14", "372464004", "Intracutant"],
-      ["15.0000", "15", "47625008", "IV infusion"],
-      ["16.0000", "16", "47625008", "IV injektion"],
-      ["17.0000", "17", "47625008", "IV Infusor"],
-      ["18.0000", "18", "26643006", "Oralt (apotek)"],
-      ["19.0000", "19", "47625008", "IVINF"],
-      ["1", "1", "78421000", "Intramuskulärt"],
-      ["2", "2", "26643006", "Peroralt"],
-      ["3", "3", "47625008", "Intravenöst"],
-      ["4", "4", "72607000", "Intrathecalt"],
-      ["5", "5", "38239002", "Intraperitonealt"],
-      ["6", "6", "58100008", "Intraarteriellt"],
-      ["7", "7", "34206005", "Subcutant"],
-      ["9", "9", "37839007", "Sublingualt"],
-      ["11", "11", "372471009", "Intravesicalt"],
-      ["12", "12", "372466002", "Intralesionalt"],
-      ["14", "14", "372464004", "Intracutant"],
-      ["15", "15", "47625008", "IV infusion"],
-      ["16", "16", "47625008", "IV injektion"],
-      ["17", "17", "47625008", "IV Infusor"],
-      ["18", "18", "26643006", "Oralt (apotek)"],
-      ["19", "19", "47625008", "IVINF"],
-      ["—", "", "", ""]
+      [
+        "1.0000",
+        "1",
+        "Intramuskulärt",
+        "78421000"
+      ],
+      [
+        "2.0000",
+        "2",
+        "Peroralt",
+        "26643006"
+      ],
+      [
+        "3.0000",
+        "3",
+        "Intravenöst",
+        "47625008"
+      ],
+      [
+        "4.0000",
+        "4",
+        "Intrathecalt",
+        "72607000"
+      ],
+      [
+        "5.0000",
+        "5",
+        "Intraperitonealt",
+        "38239002"
+      ],
+      [
+        "6.0000",
+        "6",
+        "Intraarteriellt",
+        "58100008"
+      ],
+      [
+        "7.0000",
+        "7",
+        "Subcutant",
+        "34206005"
+      ],
+      [
+        "9.0000",
+        "9",
+        "Sublingualt",
+        "37839007"
+      ],
+      [
+        "11.0000",
+        "11",
+        "Intravesicalt",
+        "372471009"
+      ],
+      [
+        "12.0000",
+        "12",
+        "Intralesionalt",
+        "372466002"
+      ],
+      [
+        "14.0000",
+        "14",
+        "Intracutant",
+        "372464004"
+      ],
+      [
+        "15.0000",
+        "15",
+        "IV infusion",
+        "47625008"
+      ],
+      [
+        "16.0000",
+        "16",
+        "IV injektion",
+        "47625008"
+      ],
+      [
+        "17.0000",
+        "17",
+        "IV Infusor",
+        "47625008"
+      ],
+      [
+        "18.0000",
+        "18",
+        "Oralt (apotek)",
+        "26643006"
+      ],
+      [
+        "19.0000",
+        "19",
+        "IVINF",
+        "47625008"
+      ]
     ],
-    "rowCatchAll": [
-      false, false, false, false, false, false, false, false,
-      false, false, false, false, false, false, false, false,
-      false, false, false, false, false, false, false, false,
-      false, false, false, false, false, false, false, false,
-      true
+    "columnTypes": [
+      "text",
+      "text",
+      "text",
+      "text"
     ]
   }
 ]

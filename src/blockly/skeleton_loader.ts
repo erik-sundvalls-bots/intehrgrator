@@ -1,7 +1,7 @@
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
 import { applySlotReviews } from "./ai_review.ts";
 import { extractMappingIr, slotExpressionBlocks } from "./mapping_ir.ts";
-import type { AllowedOrdinal, AllowedValue, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../types/mod.ts";
+import type { MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../types/mod.ts";
 import { AUTO_FIXED_LOCATABLE_ATTRS } from "../core/rm_mandatory.ts";
 import {
   attributesFor,
@@ -13,20 +13,17 @@ import {
 import { parseExpression } from "../core/expression/mod.ts";
 import { skeletonNodeForOptionalRm, isRepeatingMultiplicity } from "../core/skeleton/generate_skeleton.ts";
 import { termSetById, termSetForMandatedCode, termSetForRmAttribute, TERM_PICK_NONE } from "../core/openehr_term_catalog.ts";
-import { astToExpressionBlock } from "./expression_serialize.ts";
+import { astToExpressionBlock, blockToExpression } from "./expression_serialize.ts";
 import { Blockly } from "./blockly_core.ts";
 import "blockly/blocks";
-import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import {
   applyFixedFieldsToDataValueShell,
-  applyOrdinalFieldsToDataValueShell,
   collapseEntryBoilerplateChildren,
   configureElementValueSlot,
   connectExpressionToDataValueShell,
   elementContainerSlotId,
   elementValueDvType,
   rmTypeOfBlock,
-  dvFieldInputName,
   ensureElementDataValueShell,
   ensureRmBlockType,
   isDataValueBlock,
@@ -41,10 +38,12 @@ import { createTermPickBlock, isTermPickBlock } from "./blocks/term_pick.ts";
 import { applySkeletonBlockLabels } from "./block_labels.ts";
 import { createSourceQueryBlock, isSourceQueryBlockType } from "./source_query.ts";
 import { FOR_EACH_LIST_BLOCK, isLoopBlockType } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import {
   attachDefaultPointLookups,
   captureDefaultsBlockState,
   placeDefaultsBesideSkeleton,
+  separateContextMapFromProductTree,
   restoreDefaultsBlockState,
 } from "./defaults_canvas.ts";
 import { attachStartToInstanceRoot } from "./conversion_start_canvas.ts";
@@ -72,8 +71,6 @@ import {
   type SlotCardinality,
 } from "./slot_cardinality.ts";
 import { runWithoutBlocklyEvents } from "./blockly_events.ts";
-import { blocklyCheckForDv } from "./block_checks.ts";
-
 export function loadSkeletonIntoWorkspace(
   workspace: WorkspaceSvg,
   skeleton: SkeletonNode[],
@@ -123,6 +120,7 @@ export function loadSkeletonIntoWorkspace(
     highlightListeningSlot(workspace, listeningSlotId);
     refreshWorkspaceLayout(workspace);
     refreshWorkspaceConstraints(workspace);
+    separateContextMapFromProductTree(workspace);
   });
 }
 
@@ -279,6 +277,11 @@ export function applyModelExpressions(
         attachExpressionToElement(workspace, block, slot.expression, slot.returnType, slot.rmType);
       } else if (block.type === "party_identified" || block.type === "party_related") {
         attachExpressionToPartyName(workspace, block, slot.expression, slot.returnType);
+      } else if (block.type === "maps_get" && isPartyMapping(block, slot.expression)) {
+        // A party Default point replaced by a mapped map(name, id, …): put a
+        // party block in its place so the canvas keeps the mapping (F-M15).
+        const party = replaceLookupWithParty(workspace as WorkspaceSvg, block);
+        if (party) attachExpressionToPartyName(workspace, party, slot.expression, slot.returnType);
       } else if (isTermPickBlock(block) || isDataValueBlock(block)) {
         const shell = isTextRmType(slot.rmType) ? switchTextShellRmType(workspace, block, slot.rmType) : block;
         attachExpressionToTypedValue(workspace, shell, slot.expression, slot.returnType, slot.rmType);
@@ -287,6 +290,7 @@ export function applyModelExpressions(
       }
     }
     applyModelLoops(workspace, model);
+    applyModelIncludes(workspace, model);
     applyModelOptionalSchemaFields(workspace as WorkspaceSvg, model);
     applyModelOptionalRmInsertions(workspace as WorkspaceSvg, model);
     if (model.slots.some((s) => s.review)) applySlotReviews(slotExpressionBlocks(workspace), model.slots);
@@ -331,9 +335,10 @@ function wrapBlockWithForEachList(
   loop: MappingLoop,
 ): void {
   const parent = inner.getParent();
-  if (parent?.type === FOR_EACH_LIST_BLOCK) {
-    parent.setFieldValue(loop.varName, "VAR");
-    attachLoopCollection(workspace, parent, loop);
+  const existing = enclosingForEach(inner);
+  if (existing) {
+    existing.setFieldValue(loop.varName, "VAR");
+    attachLoopCollection(workspace, existing, loop);
     return;
   }
 
@@ -370,6 +375,54 @@ function wrapBlockWithForEachList(
   if (typeof document !== "undefined" && typeof svg.render === "function") {
     svg.render();
   }
+}
+
+/** The for-each around this block, looking through an include-when wrapper. */
+function enclosingForEach(block: Blockly.Block): Blockly.Block | null {
+  let parent = block.getParent();
+  if (parent?.type === INCLUDE_WHEN_BLOCK) parent = parent.getParent();
+  return parent?.type === FOR_EACH_LIST_BLOCK ? parent : null;
+}
+
+function applyModelIncludes(workspace: Blockly.Workspace, model: MappingModel): void {
+  for (const inc of model.includes ?? []) {
+    if (!inc.when?.trim()) continue;
+    const inner = findAttachBlock(workspace, inc.slotId);
+    if (!inner) continue;
+    const parent = inner.getParent();
+    if (parent?.type === INCLUDE_WHEN_BLOCK && parent.getInputTargetBlock("DO") === inner) {
+      setIncludeCondition(workspace, parent, inc.when);
+      continue;
+    }
+    const wrap = workspace.newBlock(INCLUDE_WHEN_BLOCK);
+    const svg = wrap as BlockSvg;
+    if (typeof document !== "undefined" && typeof svg.initSvg === "function") svg.initSvg();
+    setIncludeCondition(workspace, wrap, inc.when);
+    const prevTarget = inner.previousConnection?.targetConnection ?? null;
+    const nextBlock = inner.getNextBlock();
+    if (inner.previousConnection?.isConnected()) inner.previousConnection.disconnect();
+    if (inner.nextConnection?.isConnected()) inner.nextConnection.disconnect();
+    const doConn = wrap.getInput("DO")?.connection;
+    if (doConn && inner.previousConnection) doConn.connect(inner.previousConnection);
+    if (prevTarget && wrap.previousConnection) prevTarget.connect(wrap.previousConnection);
+    if (nextBlock?.previousConnection && wrap.nextConnection) {
+      wrap.nextConnection.connect(nextBlock.previousConnection);
+    }
+    if (typeof document !== "undefined" && typeof svg.render === "function") svg.render();
+  }
+}
+
+function setIncludeCondition(
+  workspace: Blockly.Workspace,
+  guard: Blockly.Block,
+  when: string,
+): void {
+  const existing = guard.getInputTargetBlock("WHEN");
+  if (existing && blockToExpression(existing) === when) return;
+  if (existing) existing.dispose(false);
+  const cond = expressionToBlock(workspace, when, "boolean");
+  const input = guard.getInput("WHEN")?.connection;
+  if (input && cond.outputConnection) input.connect(cond.outputConnection);
 }
 
 function attachLoopCollection(
@@ -869,7 +922,11 @@ function buildElementBlock(
   const mandatedSet = mandated
     ? termSetForMandatedCode(mandated.terminologyId, mandated.code)
     : undefined;
-  const allowedUnits = primary?.allowedUnits ?? node.allowedUnits ?? [];
+  const fixedUnits = Boolean(primary?.fixedFields?.units ?? node.fixedFields?.units);
+  // More than one code, ordinal, or string is a value-set hint: the slot stays empty.
+  const codedMulti = allowedValues.length > 1 && isCodedChoiceRmType(dvType);
+  const ordinalMulti = allowedOrdinals.length > 1 && isOrdinalChoiceRmType(dvType);
+  const stringMulti = allowedValues.length > 1 && !codedMulti && !ordinalMulti;
   if (
     mandatedSet &&
     mandated &&
@@ -883,16 +940,8 @@ function buildElementBlock(
     );
     connectBlockToInput(block.getInput("VALUE"), pick);
     finalizeBlock(pick);
-  } else if (allowedValues.length > 1 && isCodedChoiceRmType(dvType)) {
-    const selector = createCodedValueSetSelector(workspace, dvType, allowedValues);
-    connectBlockToInput(block.getInput("VALUE"), selector);
-  } else if (allowedOrdinals.length > 1 && isOrdinalChoiceRmType(dvType)) {
-    const selector = createOrdinalValueSetSelector(workspace, dvType, allowedOrdinals);
-    connectBlockToInput(block.getInput("VALUE"), selector);
-  } else if (
-    (valueMandatory || allowedValues.length > 1 || allowedOrdinals.length > 1 ||
-      allowedUnits.length > 1 ||
-      Boolean(primary?.fixedFields?.units ?? node.fixedFields?.units)) &&
+  } else if (!codedMulti && !ordinalMulti && !stringMulti &&
+    (valueMandatory || fixedUnits) &&
     primary &&
     isDataValueType(dvType)
   ) {
@@ -903,9 +952,6 @@ function buildElementBlock(
         shell,
         primary.fixedFields ?? node.fixedFields,
       );
-      attachValueSetSelector(workspace, shell, allowedValues);
-      attachOrdinalSelector(workspace, shell, allowedOrdinals);
-      attachUnitSelector(workspace, shell, allowedUnits);
     }
   }
 
@@ -930,32 +976,6 @@ function buildTypedValueBlock(
     return finalizeBlock(block);
   }
 
-  if (
-    node.allowedOrdinals &&
-    node.allowedOrdinals.length > 1 &&
-    isOrdinalChoiceRmType(node.rmType)
-  ) {
-    const selector = createOrdinalValueSetSelector(
-      workspace,
-      node.rmType,
-      node.allowedOrdinals,
-    );
-    setMandatoryFlag(selector, node.mandatory);
-    refreshBlockLayout(selector);
-    return selector;
-  }
-
-  if (
-    node.allowedValues &&
-    node.allowedValues.length > 1 &&
-    isCodedChoiceRmType(node.rmType)
-  ) {
-    const selector = createCodedValueSetSelector(workspace, node.rmType, node.allowedValues);
-    setMandatoryFlag(selector, node.mandatory);
-    refreshBlockLayout(selector);
-    return selector;
-  }
-
   const blockType = node.blockType && node.blockType !== "rm_structure" && node.blockType !== "element"
     ? node.blockType
     : blockTypeForRm(node.rmType);
@@ -967,56 +987,8 @@ function buildTypedValueBlock(
   setMandatoryFlag(block, node.mandatory);
   finalizeBlock(block);
   applyFixedFieldsToDataValueShell(workspace, block, node.fixedFields);
-  attachValueSetSelector(workspace, block, node.allowedValues);
-  attachOrdinalSelector(workspace, block, node.allowedOrdinals);
-  attachUnitSelector(workspace, block, node.allowedUnits);
   refreshBlockLayout(block);
   return block;
-}
-
-/**
- * Stock Blockly `lists_getIndex` wrapping `lists_create_with` of template
- * choices. Coded leaves use complete DV objects (rubric + defining_code);
- * string/unit lists stay as text items.
- *
- * @see openehr://spec/type/RM/DV_CODED_TEXT
- */
-function attachOrdinalSelector(
-  workspace: Blockly.Workspace,
-  shell: Blockly.Block,
-  values: AllowedOrdinal[] | undefined,
-): void {
-  if (!values || values.length < 2) return;
-  const rmType = (shell.getFieldValue("RM_TYPE") || "").toUpperCase();
-  if (!isOrdinalChoiceRmType(rmType)) return;
-  const selector = createOrdinalValueSetSelector(workspace, rmType, values);
-  connectExpressionToDataValueShell(shell, selector);
-}
-
-function attachValueSetSelector(
-  workspace: Blockly.Workspace,
-  shell: Blockly.Block,
-  values: AllowedValue[] | undefined,
-): void {
-  if (!values || values.length < 2) return;
-  const rmType = (shell.getFieldValue("RM_TYPE") || "").toUpperCase();
-  if (isCodedChoiceRmType(rmType)) return;
-  const selector = createStringListSelector(workspace, values.map((v) => v.label || v.code));
-  connectExpressionToDataValueShell(shell, selector);
-}
-
-function attachUnitSelector(
-  workspace: Blockly.Workspace,
-  shell: Blockly.Block,
-  units: string[] | undefined,
-): void {
-  if (!units || units.length < 2) return;
-  const input = shell.getInput(dvFieldInputName("units"));
-  if (!input?.connection) return;
-  const selector = createStringListSelector(workspace, units);
-  const existing = input.connection.targetBlock();
-  if (existing) existing.dispose(false);
-  connectBlockToInput(input, selector);
 }
 
 function isCodedChoiceRmType(rmType: string): boolean {
@@ -1027,144 +999,6 @@ function isOrdinalChoiceRmType(rmType: string): boolean {
   return rmType === "DV_ORDINAL" || rmType === "DV_SCALE";
 }
 
-type ListCreateBlock = BlockSvg & {
-  itemCount_: number;
-  updateShape_: () => void;
-};
-
-type ListGetIndexBlock = BlockSvg & {
-  updateAt_?: (hasAt: boolean) => void;
-};
-
-/** lists_getIndex dropdown labels come from Blockly.Msg; tests may not have set a locale. */
-function ensureStockListMessages(): void {
-  ensureStockBlocklyMessages();
-}
-
-function createCodedValueSetSelector(
-  workspace: Blockly.Workspace,
-  rmType: string,
-  values: AllowedValue[],
-): BlockSvg {
-  ensureStockListMessages();
-  const blockType = rmType === "CODE_PHRASE" ? "code_phrase" : blockTypeForRm(rmType);
-  ensureRmBlockType(blockType, rmType);
-  const list = workspace.newBlock("lists_create_with") as ListCreateBlock;
-  list.itemCount_ = values.length;
-  list.updateShape_();
-  for (let i = 0; i < values.length; i++) {
-    const choice = workspace.newBlock(blockType) as BlockSvg;
-    if (choice.getField("RM_TYPE")) choice.setFieldValue(rmType, "RM_TYPE");
-    applyFixedFieldsToDataValueShell(workspace, choice, fieldsForAllowedValue(values[i]!, rmType));
-    list.getInput(`ADD${i}`)?.connection?.connect(choice.outputConnection!);
-    finalizeBlock(choice);
-  }
-  finalizeBlock(list);
-  const assumedIdx = values.findIndex((value) => value.assumed);
-  return createListGetIndex(
-    workspace,
-    list,
-    assumedIdx >= 0 ? assumedIdx : 0,
-    blocklyCheckForDv(rmType),
-  );
-}
-
-function fieldsForAllowedValue(
-  value: AllowedValue,
-  rmType: string,
-): Record<string, string> {
-  const terminology = value.terminologyId ?? "local";
-  if (rmType === "CODE_PHRASE") {
-    return { terminology_id: terminology, code_string: value.code };
-  }
-  return {
-    value: value.label || value.code,
-    terminology_id: terminology,
-    defining_code: value.code,
-    code_string: value.code,
-  };
-}
-
-function fieldsForAllowedOrdinal(value: AllowedOrdinal): Record<string, string> {
-  return {
-    value: String(value.value),
-    symbol_value: value.label,
-    terminology_id: value.terminologyId ?? "local",
-    defining_code: value.code,
-    code_string: value.code,
-  };
-}
-
-function createOrdinalValueSetSelector(
-  workspace: Blockly.Workspace,
-  rmType: string,
-  values: AllowedOrdinal[],
-): BlockSvg {
-  ensureStockListMessages();
-  const blockType = blockTypeForRm(rmType);
-  ensureRmBlockType(blockType, rmType);
-  const list = workspace.newBlock("lists_create_with") as ListCreateBlock;
-  list.itemCount_ = values.length;
-  list.updateShape_();
-  for (let i = 0; i < values.length; i++) {
-    const choice = workspace.newBlock(blockType) as BlockSvg;
-    if (choice.getField("RM_TYPE")) choice.setFieldValue(rmType, "RM_TYPE");
-    applyOrdinalFieldsToDataValueShell(
-      workspace,
-      choice,
-      fieldsForAllowedOrdinal(values[i]!),
-    );
-    list.getInput(`ADD${i}`)?.connection?.connect(choice.outputConnection!);
-    finalizeBlock(choice);
-  }
-  finalizeBlock(list);
-  const assumedIdx = values.findIndex((value) => value.assumed);
-  return createListGetIndex(
-    workspace,
-    list,
-    assumedIdx >= 0 ? assumedIdx : 0,
-    blocklyCheckForDv(rmType),
-  );
-}
-
-function createStringListSelector(
-  workspace: Blockly.Workspace,
-  items: string[],
-): BlockSvg {
-  ensureStockListMessages();
-  const list = workspace.newBlock("lists_create_with") as ListCreateBlock;
-  list.itemCount_ = items.length;
-  list.updateShape_();
-  for (let i = 0; i < items.length; i++) {
-    const text = workspace.newBlock("text") as BlockSvg;
-    text.setFieldValue(items[i]!, "TEXT");
-    list.getInput(`ADD${i}`)?.connection?.connect(text.outputConnection!);
-    finalizeBlock(text);
-  }
-  finalizeBlock(list);
-  return createListGetIndex(workspace, list, 0, "String");
-}
-
-/** 0-based index; Blockly `FROM_START` AT is 1-based (`emitListsGetIndex` subtracts 1). */
-function createListGetIndex(
-  workspace: Blockly.Workspace,
-  list: BlockSvg,
-  indexFromStart: number,
-  outputCheck?: string | string[] | null,
-): BlockSvg {
-  ensureStockListMessages();
-  const get = workspace.newBlock("lists_getIndex") as ListGetIndexBlock;
-  get.setFieldValue("GET", "MODE");
-  get.setFieldValue("FROM_START", "WHERE");
-  get.updateAt_?.(true);
-  const num = workspace.newBlock("math_number") as BlockSvg;
-  num.setFieldValue(String(indexFromStart + 1), "NUM");
-  get.getInput("AT")?.connection?.connect(num.outputConnection!);
-  finalizeBlock(num);
-  get.getInput("VALUE")?.connection?.connect(list.outputConnection!);
-  if (outputCheck) get.setOutput(true, outputCheck);
-  return finalizeBlock(get);
-}
 
 function connectBlockToInput(
   input: Blockly.Input | null | undefined,
@@ -1287,6 +1121,27 @@ function showOptionalDvField(block: Blockly.Block, attr: string): void {
     block.extraDvFields_.push(attr);
     (block as Blockly.Block & { updateDvFields_?: () => void }).updateDvFields_?.();
   }
+}
+
+function isPartyMapping(lookup: Blockly.Block, expression: string): boolean {
+  const rmType = String(lookup.getFieldValue("RM_TYPE") ?? "");
+  return rmType.startsWith("PARTY_") && /^\s*map\(/.test(expression);
+}
+
+function replaceLookupWithParty(workspace: WorkspaceSvg, lookup: Blockly.Block): Blockly.Block | null {
+  const parent = lookup.outputConnection?.targetConnection;
+  if (!parent) return null;
+  const slotId = String(lookup.getFieldValue("SLOT_ID") ?? "");
+  const rmType = lookup.getFieldValue("RM_TYPE") === "PARTY_RELATED" ? "PARTY_RELATED" : "PARTY_IDENTIFIED";
+  const type = rmType === "PARTY_RELATED" ? "party_related" : "party_identified";
+  ensureRmBlockType(type, rmType);
+  const party = workspace.newBlock(type) as BlockSvg;
+  setFieldIfPresent(party, "RM_TYPE", rmType);
+  setFieldIfPresent(party, "SLOT_ID", slotId);
+  finalizeBlock(party);
+  lookup.dispose(false);
+  if (party.outputConnection) parent.connect(party.outputConnection);
+  return party;
 }
 
 function attachExpressionToPartyName(

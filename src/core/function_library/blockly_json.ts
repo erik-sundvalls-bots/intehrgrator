@@ -94,6 +94,7 @@ export function referencedGridNames(state: unknown): string[] {
   const names = new Set<string>();
   walkWorkspace(state, (block) => {
     if (!block.type || !GRID_NAME_TYPES.has(block.type)) return;
+    if (block.inputs?.SHEET?.block || block.inputs?.SHEET?.shadow) return;
     const name = block.fields?.NAME;
     if (typeof name === "string" && name.trim()) names.add(name.trim());
   });
@@ -143,6 +144,7 @@ export function renameGridInState(
 ): void {
   walkWorkspace(state, (block) => {
     if (!block.type || !GRID_NAME_TYPES.has(block.type)) return;
+    if (block.inputs?.SHEET?.block || block.inputs?.SHEET?.shadow) return;
     if (block.fields?.NAME === from) block.fields.NAME = to;
   });
 }
@@ -170,6 +172,9 @@ export function collectReferencedIds(state: unknown): Set<string> {
     if (block.id) ids.add(block.id);
     const varId = block.fields?.VAR;
     if (typeof varId === "string" && varId) ids.add(varId);
+    else if (varId && typeof varId === "object" && typeof (varId as { id?: unknown }).id === "string") {
+      ids.add((varId as { id: string }).id);
+    }
     const params = block.extraState?.params;
     if (Array.isArray(params)) {
       for (const param of params) {
@@ -193,8 +198,8 @@ export function usedVariables(
   );
 }
 
-export function remapWorkspaceIds(state: BlocklyWorkspaceJson): void {
-  const map = new Map<string, string>();
+export function remapWorkspaceIds(state: BlocklyWorkspaceJson, variableIds: Map<string, string> = new Map()): void {
+  const map = new Map(variableIds);
   const remap = (id: string | undefined): string | undefined => {
     if (!id) return id;
     let next = map.get(id);
@@ -211,6 +216,11 @@ export function remapWorkspaceIds(state: BlocklyWorkspaceJson): void {
     if (block.id) block.id = remap(block.id);
     if (typeof block.fields?.VAR === "string") {
       block.fields.VAR = remap(block.fields.VAR);
+    } else {
+      const ref = block.fields?.VAR;
+      if (ref && typeof ref === "object" && typeof (ref as { id?: unknown }).id === "string") {
+        (ref as { id: string }).id = remap((ref as { id: string }).id)!;
+      }
     }
     const params = block.extraState?.params;
     if (Array.isArray(params)) {

@@ -8,6 +8,7 @@ export function bundleRevision(bundle: ProjectBundle): string {
     blocklyState: mapping.blocklyState,
     handlebarsTemplate: mapping.handlebarsTemplate ?? "",
     sheets: mapping.sheets ?? [],
+    ...(bundle.settings?.dismissedHints?.length ? { dismissedHints: bundle.settings.dismissedHints } : {}),
   }, ignoreAuthorMarks);
   let hash = 2166136261;
   for (let i = 0; i < payload.length; i++) {

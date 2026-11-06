@@ -28,8 +28,9 @@ import { loadJsonSchema } from "../source/schema_loader.ts";
 import { isWebTemplateJson } from "ehrtslib/serialization/simplified/mod.ts";
 import { isTemplateJson } from "ehrtslib/parser/mod.ts";
 import { scaffoldClinicalModelFileset } from "../clinical_model/github_template.ts";
-import { isAutoFixedValueSlot } from "../rm_mandatory.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, isAutoFixedValueSlot, NON_LOCATABLE_RM_TYPES } from "../rm_mandatory.ts";
 import { assignSchemaBlockTypes } from "./schema_block_ids.ts";
+import { terminologyValuesForSlot } from "../ai/slot_tree.ts";
 
 export interface TargetDefinition {
   format: TargetFormatId;
@@ -57,6 +58,12 @@ export interface TargetLoadOptions {
 export interface TargetRenderRequest {
   definition: TargetDefinition;
   slotValues: Readonly<Record<string, unknown>>;
+  /**
+   * `include_when` results keyed by slot id. A boolean, or a boolean array
+   * aligned with that node's loop (nested like slot values). `false` omits
+   * the node. Missing means emit.
+   */
+  guards?: Readonly<Record<string, unknown>>;
 }
 
 export interface TargetFormatHandler {
@@ -169,6 +176,9 @@ registerTargetFormatHandler({
           filename,
           targetId: generated.templateId,
           content,
+          // The file is the Web Template. Simplified FLAT / STRUCTURED Test Run
+          // reads target.webTemplateJson, the same field an OPT load fills.
+          webTemplateJson: content,
           skeleton: generated.skeleton,
           language: generated.language,
           languages: generated.languages,
@@ -198,9 +208,9 @@ registerTargetFormatHandler({
       webTemplateJson: generated.webTemplateJson,
     };
   },
-  render({ definition, slotValues }) {
+  render({ definition, slotValues, guards }) {
     const roots = definition.skeleton
-      .map((node) => renderOpenEhrNode(node, slotValues))
+      .map((node) => renderOpenEhrNode(node, slotValues, undefined, guards))
       .filter((value) => value !== undefined);
     return roots.length === 1 ? roots[0] : roots;
   },
@@ -382,6 +392,7 @@ function renderOpenEhrNode(
   node: SkeletonNode,
   values: Readonly<Record<string, unknown>>,
   parentArchetypeRef?: string,
+  guards?: Readonly<Record<string, unknown>>,
 ): unknown {
   if (
     node.kind === "container" &&
@@ -393,17 +404,26 @@ function renderOpenEhrNode(
       const copies: unknown[] = [];
       for (let i = 0; i < count; i++) {
         const indexed = indexSlotValues(values, i, node);
+        const indexedGuards = indexGuards(guards, i, node);
+        if (indexedGuards?.[node.slotId] === false) continue;
         if (!subtreeHasClinicalValue(node, indexed, perItemSlots)) continue;
-        const one = renderOpenEhrNodeOnce(node, indexed, parentArchetypeRef);
+        const one = renderOpenEhrNodeOnce(node, indexed, parentArchetypeRef, indexedGuards);
         if (one !== undefined) copies.push(one);
       }
       return copies.length ? copies : undefined;
     }
+    // One loop item: unwrap the per-item arrays so a nested loop's arrays
+    // (one per outer item) reach the inner repeating container (#321).
+    if (count === 1) {
+      values = indexSlotValues(values, 0, node);
+      guards = indexGuards(guards, 0, node);
+    }
   }
+  if (guards?.[node.slotId] === false) return undefined;
   if (node.rmType !== "COMPOSITION" && !subtreeHasClinicalValue(node, values)) {
     return undefined;
   }
-  return renderOpenEhrNodeOnce(node, values, parentArchetypeRef);
+  return renderOpenEhrNodeOnce(node, values, parentArchetypeRef, guards);
 }
 
 /** Boilerplate (language, event time) is kept once its parent is already included. */
@@ -411,11 +431,13 @@ function renderOpenEhrChild(
   node: SkeletonNode,
   values: Readonly<Record<string, unknown>>,
   parentArchetypeRef?: string,
+  guards?: Readonly<Record<string, unknown>>,
 ): unknown {
+  if (guards?.[node.slotId] === false) return undefined;
   if (node.rmAttribute && isRmBoilerplateAttribute(node.rmAttribute)) {
-    return renderOpenEhrNodeOnce(node, values, parentArchetypeRef);
+    return renderOpenEhrNodeOnce(node, values, parentArchetypeRef, guards);
   }
-  return renderOpenEhrNode(node, values, parentArchetypeRef);
+  return renderOpenEhrNode(node, values, parentArchetypeRef, guards);
 }
 
 /**
@@ -490,6 +512,7 @@ function renderOpenEhrNodeOnce(
   node: SkeletonNode,
   values: Readonly<Record<string, unknown>>,
   parentArchetypeRef?: string,
+  guards?: Readonly<Record<string, unknown>>,
 ): unknown {
   if (node.kind === "value") {
     let value = Object.hasOwn(values, node.slotId) ? values[node.slotId] : fixedValue(node);
@@ -501,16 +524,22 @@ function renderOpenEhrNodeOnce(
     const output: Record<string, unknown> = { _type: node.rmType };
     assignDataValueFields(output, node.rmType, value);
     applyFixedDataValueFields(output, node.rmType, node.fixedFields);
+    if (node.rmType === "CODE_PHRASE") completeCodePhrase(output, node);
     fillCodedValueFromAllowed(output, node);
     return output;
   }
 
   const output: Record<string, unknown> = { _type: node.rmType };
-  const nodeId = rmArchetypeNodeId(node, parentArchetypeRef);
+  // archetype_node_id and name exist on LOCATABLE only (not EVENT_CONTEXT, ISM_TRANSITION, …).
+  const locatable = !NON_LOCATABLE_RM_TYPES.has(node.rmType);
+  const nodeId = locatable ? rmArchetypeNodeId(node, parentArchetypeRef) : undefined;
   if (nodeId) output.archetype_node_id = nodeId;
   const childArchetypeRef = node.archetypeRef ?? parentArchetypeRef;
   const locatableName = rmLocatableName(node);
-  if (locatableName && node.rmType !== "COMPOSITION" && !isPartyIdentityRmType(node.rmType)) {
+  if (
+    locatable && locatableName && node.rmType !== "COMPOSITION" &&
+    !isPartyIdentityRmType(node.rmType)
+  ) {
     output.name = { _type: "DV_TEXT", value: locatableName };
   }
   if (isPartyIdentityRmType(node.rmType) && Object.hasOwn(values, node.slotId)) {
@@ -523,7 +552,7 @@ function renderOpenEhrNodeOnce(
     if (isPartyIdentityRmType(node.rmType) && (child.rmAttribute === "name" || child.rmAttribute === "identifiers")) {
       continue;
     }
-    const value = renderOpenEhrChild(child, values, childArchetypeRef);
+    const value = renderOpenEhrChild(child, values, childArchetypeRef, guards);
     if (value === undefined) continue;
     const attribute = child.rmAttribute ?? child.label;
     const list = grouped.get(attribute) ?? [];
@@ -534,7 +563,10 @@ function renderOpenEhrNodeOnce(
     }
     grouped.set(attribute, list);
   }
-  if (grouped.size === 0 && node.rmType !== "COMPOSITION" && output.identifiers == null) {
+  if (
+    grouped.size === 0 && node.rmType !== "COMPOSITION" && output.identifiers == null &&
+    !(isPartyIdentityRmType(node.rmType) && output.name != null)
+  ) {
     return undefined;
   }
   for (const [attribute, valuesForAttribute] of grouped) {
@@ -542,7 +574,55 @@ function renderOpenEhrNodeOnce(
       ? valuesForAttribute
       : valuesForAttribute[0];
   }
+  // COMPOSITION.name is mandatory: a mapped name slot wins, else the template name (as TypeScript mode).
+  if (node.rmType === "COMPOSITION" && output.name == null && locatableName) {
+    output.name = { _type: "DV_TEXT", value: locatableName };
+  }
+  // ENTRY.subject is mandatory; unmapped it is the record's owner (#310).
+  if (ENTRY_RM_TYPES.has(node.rmType) && output.subject == null) {
+    output.subject = { _type: "PARTY_SELF" };
+  }
+  if (node.rmType === "ACTIVITY" && output.action_archetype_id == null) {
+    output.action_archetype_id = DEFAULT_ACTION_ARCHETYPE_ID;
+  }
+  if (output._type === "PARTY_PROXY") {
+    output._type = output.name != null || output.identifiers != null ? "PARTY_IDENTIFIED" : "PARTY_SELF";
+  }
   return output;
+}
+
+const ENTRY_RM_TYPES = new Set(["OBSERVATION", "EVALUATION", "INSTRUCTION", "ACTION", "ADMIN_ENTRY"]);
+
+
+/** Default terminology of a CODE_PHRASE RM attribute when the value is only a code. */
+const CODE_PHRASE_ATTR_TERMINOLOGY: Record<string, string> = {
+  language: "ISO_639-1",
+  territory: "ISO_3166-1",
+  encoding: "IANA_character-sets",
+};
+
+/**
+ * A scalar CODE_PHRASE value ("en" or "ISO_639-1::en") becomes canonical
+ * `terminology_id` + `code_string` rather than a stray `value` (#310).
+ */
+function completeCodePhrase(output: Record<string, unknown>, node: SkeletonNode): void {
+  if (output.value === undefined) return;
+  const raw = String(output.value ?? "").trim();
+  delete output.value;
+  if (output.code_string == null || String(output.code_string) === "") {
+    const sep = raw.lastIndexOf("::");
+    if (sep > 0) {
+      output.terminology_id ??= { _type: "TERMINOLOGY_ID", value: raw.slice(0, sep) };
+      output.code_string = raw.slice(sep + 2);
+    } else {
+      output.code_string = raw;
+    }
+  }
+  if (output.terminology_id == null) {
+    const attr = node.rmAttribute ?? node.label;
+    const term = CODE_PHRASE_ATTR_TERMINOLOGY[attr];
+    if (term) output.terminology_id = { _type: "TERMINOLOGY_ID", value: term };
+  }
 }
 
 function repeatingInstanceCount(
@@ -555,6 +635,21 @@ function repeatingInstanceCount(
     if (Array.isArray(value)) max = Math.max(max, value.length);
   }
   return max;
+}
+
+function indexGuards(
+  guards: Readonly<Record<string, unknown>> | undefined,
+  index: number,
+  subtree: SkeletonNode,
+): Readonly<Record<string, unknown>> | undefined {
+  if (!guards) return undefined;
+  const ids = new Set(collectAllSlotIds([subtree]));
+  const out: Record<string, unknown> = { ...guards };
+  for (const [key, value] of Object.entries(guards)) {
+    if (!ids.has(key) || !Array.isArray(value)) continue;
+    out[key] = value[index];
+  }
+  return out;
 }
 
 function indexSlotValues(
@@ -607,6 +702,10 @@ function assignDataValueFields(
   rmType: string,
   value: unknown,
 ): void {
+  const split = splitCanvasDvExtras(value);
+  const extra = split.extra;
+  value = split.core;
+  const finish = () => applyCanvasDvExtras(output, extra);
   const record = asStringKeyedRecord(value);
   if (rmType === "DV_QUANTITY") {
     if (record) {
@@ -615,14 +714,17 @@ function assignDataValueFields(
     } else {
       output.magnitude = value;
     }
+    finish();
     return;
   }
   if (rmType === "DV_BOOLEAN") {
-    output.value = record && "value" in record ? Boolean(record.value) : Boolean(value);
+    output.value = booleanValue(record && "value" in record ? record.value : value);
+    finish();
     return;
   }
   if (rmType === "DV_COUNT") {
     output.magnitude = record && "magnitude" in record ? Number(record.magnitude) : Number(value);
+    finish();
     return;
   }
   if (rmType === "DV_IDENTIFIER") {
@@ -634,16 +736,23 @@ function assignDataValueFields(
     } else {
       output.id = value;
     }
+    finish();
     return;
   }
   if (rmType === "DV_CODED_TEXT") {
     if (record) {
-      if (record.value !== undefined) output.value = record.value;
       const phrase = codedPhraseFromRecord(record);
+      if (record.value !== undefined && record.value !== null && String(record.value) !== "") {
+        output.value = record.value;
+      } else if (!phrase) {
+        output.value = "";
+      }
       if (phrase) output.defining_code = phrase;
+      if (Array.isArray(record.mappings)) output.mappings = record.mappings;
     } else {
       output.value = value;
     }
+    finish();
     return;
   }
   if (rmType === "CODE_PHRASE") {
@@ -651,17 +760,46 @@ function assignDataValueFields(
       const phrase = codedPhraseFromRecord(record);
       if (phrase) {
         Object.assign(output, phrase);
+        finish();
         return;
       }
     }
     output.value = value;
+    finish();
     return;
   }
   if (record && record.value !== undefined) {
     output.value = record.value;
+    finish();
     return;
   }
   output.value = value;
+  finish();
+}
+
+/** Shell mouths travel beside the primary value as `{ __dv, __extra }`. */
+function splitCanvasDvExtras(value: unknown): { core: unknown; extra: Record<string, unknown> } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { core: value, extra: {} };
+  }
+  const record = value as Record<string, unknown>;
+  const extra = record.__extra;
+  if (!Object.hasOwn(record, "__dv") || !extra || typeof extra !== "object" || Array.isArray(extra)) {
+    return { core: value, extra: {} };
+  }
+  return { core: record.__dv, extra: extra as Record<string, unknown> };
+}
+
+function applyCanvasDvExtras(
+  output: Record<string, unknown>,
+  extra: Record<string, unknown>,
+): void {
+  for (const [key, item] of Object.entries(extra)) {
+    if (key.startsWith("__")) continue;
+    if (output[key] !== undefined) continue;
+    if (item === undefined || item === null || item === "") continue;
+    output[key] = item;
+  }
 }
 
 /** A mapped rubric ("Sitting") fills the template code when exactly one choice matches. */
@@ -669,7 +807,11 @@ function fillCodedValueFromAllowed(
   output: Record<string, unknown>,
   node: SkeletonNode,
 ): void {
-  const choices = node.allowedValues;
+  // No template list: an openEHR RM terminology attribute (category, setting, ISM state).
+  const rm = node.allowedValues?.length || node.rmType !== "DV_CODED_TEXT" ? undefined : terminologyValuesForSlot(node.slotId);
+  const choices = node.allowedValues?.length
+    ? node.allowedValues
+    : rm?.values.map((row) => ({ code: row.code, label: row.text, terminologyId: rm.terminologyId }));
   if (!choices?.length) return;
   if (node.rmType !== "DV_CODED_TEXT" && node.rmType !== "CODE_PHRASE") return;
   const phrase = asStringKeyedRecord(output.defining_code);
@@ -700,7 +842,8 @@ function fillCodedValueFromAllowed(
     Object.assign(output, codePhrase);
     return;
   }
-  if (output.value == null || String(output.value).trim() === "") output.value = chosen.label;
+  // The template rubric, not the source spelling, once the code is known (#309).
+  output.value = chosen.label;
   output.defining_code = codePhrase;
 }
 
@@ -738,8 +881,13 @@ function asStringKeyedRecord(value: unknown): Record<string, unknown> | null {
 function assignPartyIdentityFields(output: Record<string, unknown>, value: unknown): void {
   const record = asStringKeyedRecord(value);
   if (!record) {
-    if (value != null && String(value) !== "") output.name = String(value);
+    // "PARTY_SELF" is the factory subject sentinel, not a name.
+    if (value === "PARTY_SELF") output._type = "PARTY_SELF";
+    else if (value != null && String(value) !== "") output.name = String(value);
     return;
+  }
+  if (typeof record._type === "string" && record._type.startsWith("PARTY_")) {
+    output._type = record._type;
   }
   const name = record.name ?? record.value;
   if (name != null && String(name) !== "") output.name = String(name);
@@ -781,9 +929,13 @@ function dvIdentifierFromParts(
 function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, unknown> | null {
   const nested = record.defining_code;
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const inner = nested as Record<string, unknown>;
+    const innerCode = inner.code_string ?? inner.code;
+    if (innerCode == null || String(innerCode).trim() === "") return null;
     const phrase: Record<string, unknown> = {
       _type: "CODE_PHRASE",
-      ...(nested as Record<string, unknown>),
+      ...inner,
+      code_string: String(innerCode).trim(),
     };
     const term = phrase.terminology_id;
     if (typeof term === "string" || typeof term === "number") {
@@ -794,15 +946,25 @@ function codedPhraseFromRecord(record: Record<string, unknown>): Record<string, 
   const code = record.code_string ?? record.code ??
     (typeof nested === "string" || typeof nested === "number" ? nested : undefined);
   const term = record.terminology_id ?? record.terminology;
-  if (code == null && term == null) return null;
-  const phrase: Record<string, unknown> = { _type: "CODE_PHRASE" };
+  // A terminology id with no code is not a CODE_PHRASE. TypeScript drops that
+  // shape (ehrtslib omits an empty code_string); preview must match (#320).
+  const codeText = code == null ? "" : String(code).trim();
+  if (!codeText) return null;
+  const phrase: Record<string, unknown> = { _type: "CODE_PHRASE", code_string: codeText };
   if (term != null) {
     phrase.terminology_id = typeof term === "object"
       ? term
       : { _type: "TERMINOLOGY_ID", value: String(term) };
   }
-  if (code != null) phrase.code_string = String(code);
   return phrase;
+}
+
+/** "false" is false, as in TypeScript mode (F-M11). */
+function booleanValue(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  const text = String(value ?? "").trim().toLowerCase();
+  if (text === "true" || text === "false") return text === "true";
+  return typeof value === "number" ? value !== 0 : Boolean(text);
 }
 
 function isAbsentValue(value: unknown): boolean {

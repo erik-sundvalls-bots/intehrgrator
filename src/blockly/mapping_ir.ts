@@ -1,3 +1,5 @@
+import { loopIsInsideProcedure } from "./loop_block.ts";
+import { functionStatements } from "./function_statements.ts";
 /**
  * Blockly workspace → Mapping Model extract (#37).
  * Public seam: `workspaceToModelJson` in `mod.ts`.
@@ -7,10 +9,12 @@ import type { Workspace } from "blockly/core";
 import type { Block } from "blockly/core";
 import type {
   MappingFunction,
+  MappingInclude,
   MappingLoop,
   MappingSlotHatch,
   MappingUnsupportedBlock,
   OptionalRmInsertion,
+  RmShellFragment,
   TargetSignatureNode,
 } from "../types/mod.ts";
 import { procedureParamNames } from "../core/function_library/blockly_json.ts";
@@ -37,8 +41,10 @@ import { walkProductStack } from "./instance_root.ts";
 import { INSTANCE_ENCODING_FIELD, parseInstanceEncoding } from "../core/output/instance_encoding.ts";
 import type { InstanceEncoding } from "../types/mod.ts";
 import { isLoopBlockType, sourcePathFromLoopList } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { readAiReview } from "./ai_review.ts";
 import type { MappingSlotReview } from "../types/mod.ts";
+import { shellFragmentsFromValueBlock } from "./shell_fragment.ts";
 
 export interface MappingModelExtract {
   slots: Array<{
@@ -46,9 +52,13 @@ export interface MappingModelExtract {
     rmType: string;
     expression: string;
     hatch?: MappingSlotHatch;
+    unitsExpression?: string;
+    fieldExpressions?: Record<string, string>;
+    shellFragments?: Record<string, RmShellFragment>;
     review?: MappingSlotReview;
   }>;
   loops: MappingLoop[];
+  includes: MappingInclude[];
   optionalRm: OptionalRmInsertion[];
   targetSignature: TargetSignatureNode[];
   unsupported: MappingUnsupportedBlock[];
@@ -121,6 +131,7 @@ export function extractMappingIr(workspace: Workspace): MappingModelExtract {
   return {
     slots,
     loops: loopsFromWorkspace(workspace),
+    includes: includesFromWorkspace(workspace),
     optionalRm: optionalRmFromWorkspace(workspace),
     targetSignature: targetSignatureFromWorkspace(workspace),
     unsupported: unsupportedFromWorkspace(workspace, slots),
@@ -235,10 +246,48 @@ function collectSlots(workspace: Workspace): {
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
-      record(hatch ? { slotId, rmType, expression, hatch } : { slotId, rmType, expression }, exprBlock);
+      const unitsExpression = shellRm === "DV_QUANTITY" ? quantityUnitsExpression(shell!) : "";
+      const fieldExpressions = shellRm === "DV_IDENTIFIER" ? identifierFieldExpressions(shell!) : undefined;
+      const shellFragments = shell ? shellFragmentsFromValueBlock(shell) : undefined;
+      record({
+        slotId,
+        rmType,
+        expression,
+        ...(hatch ? { hatch } : {}),
+        ...(unitsExpression ? { unitsExpression } : {}),
+        ...(fieldExpressions ? { fieldExpressions } : {}),
+        ...(shellFragments ? { shellFragments } : {}),
+      }, exprBlock);
     }
   }
   return { slots, blocks };
+}
+
+/**
+ * Units of a DV_QUANTITY shell, as TypeScript output writes them: a mapped
+ * `units` input, else the unit dropdown as a string literal. Scaffolded unit
+ * pickers (list blocks) are not mappings.
+ */
+function quantityUnitsExpression(shell: Block): string {
+  const target = shell.getInputTargetBlock(dvFieldInputName("units")) ?? shell.getInputTargetBlock("OPTFLD_units");
+  if (target && !target.isShadow() && target.type !== "lists_getIndex" && target.type !== "lists_create_with") {
+    const expression = blockToExpression(target);
+    if (expression) return expression;
+  }
+  const field = shell.getField("UNITS") ? String(shell.getFieldValue("UNITS") ?? "").trim() : "";
+  return field ? JSON.stringify(field) : "";
+}
+
+/** DV_IDENTIFIER type / issuer / assigner mapped on the shell (F-M12 note). */
+function identifierFieldExpressions(shell: Block): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  for (const attr of ["type", "issuer", "assigner"]) {
+    const target = shell.getInputTargetBlock(dvFieldInputName(attr)) ?? shell.getInputTargetBlock(`OPTFLD_${attr}`);
+    if (!target || target.isShadow()) continue;
+    const expression = blockToExpression(target);
+    if (expression) out[attr] = expression;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
@@ -317,7 +366,10 @@ function loopsFromWorkspace(workspace: Workspace): MappingLoop[] {
 function firstSlotIdInStack(block: Block | null): string | null {
   let current = block;
   while (current) {
-    if (!LOOP_TYPES.has(current.type)) {
+    if (current.type === INCLUDE_WHEN_BLOCK) {
+      const nested = firstSlotIdInStack(current.getInputTargetBlock("DO"));
+      if (nested) return nested;
+    } else if (!LOOP_TYPES.has(current.type)) {
       const slotId = current.getFieldValue("SLOT_ID");
       if (slotId) return slotId;
     }
@@ -328,6 +380,46 @@ function firstSlotIdInStack(block: Block | null): string | null {
     current = current.getNextBlock();
   }
   return null;
+}
+
+function stackSlotIds(block: Block | null, into: string[] = []): string[] {
+  let current = block;
+  while (current) {
+    const slotId = current.getFieldValue("SLOT_ID");
+    if (slotId) into.push(String(slotId));
+    if (current.type === INCLUDE_WHEN_BLOCK || isLoopBlockType(current.type)) {
+      stackSlotIds(current.getInputTargetBlock("DO"), into);
+    }
+    for (const input of current.inputList) {
+      if (input.name === "DO" || input.name === "ELSE" || input.name === "LIST" || input.name === "WHEN") {
+        continue;
+      }
+      const child = current.getInputTargetBlock(input.name);
+      if (child && (isLoopBlockType(child.type) || child.type === INCLUDE_WHEN_BLOCK)) {
+        stackSlotIds(child, into);
+      }
+    }
+    current = current.getNextBlock();
+  }
+  return into;
+}
+
+function includesFromWorkspace(workspace: Workspace): MappingInclude[] {
+  const includes: MappingInclude[] = [];
+  for (const block of workspace.getAllBlocks(false)) {
+    if (block.type !== INCLUDE_WHEN_BLOCK) continue;
+    const slotId = firstSlotIdInStack(block.getInputTargetBlock("DO"));
+    if (!slotId) continue;
+    const whenBlock = block.getInputTargetBlock("WHEN");
+    const when = whenBlock ? blockToExpression(whenBlock) ?? "" : "";
+    const elseIds = stackSlotIds(block.getInputTargetBlock("ELSE"));
+    includes.push({
+      slotId,
+      when,
+      ...(elseIds.includes(slotId) ? { elseEmits: true } : {}),
+    });
+  }
+  return includes;
 }
 
 function targetSignatureFromWorkspace(workspace: Workspace): TargetSignatureNode[] {
@@ -436,6 +528,8 @@ function unsupportedFromWorkspace(
 
   for (const block of workspace.getAllBlocks(false)) {
     if (block.isShadow?.()) continue;
+    // Function statements are validated by functionStatements, not the RM-product VMS.
+    if (loopIsInsideProcedure(block) && ["controls_forEach", "controls_if", "lists_setIndex"].includes(block.type)) continue;
     if (isVmsRemovedBlockType(block.type)) {
       record(block, "removed");
       continue;
@@ -488,14 +582,18 @@ function functionsFromWorkspace(workspace: Workspace): MappingFunction[] {
     const name = String(block.getFieldValue("NAME") || "").trim();
     if (!name) continue;
     const params = liveProcedureParams(block);
+    const stack = functionStatements(block.getInputTargetBlock("STACK"));
+    const statements = stack.length ? { stack } : {};
     if (block.type === "procedures_defnoreturn") {
-      out.push({ name, kind: "statement", params });
+      out.push({ name, kind: "statement", params, ...statements });
       continue;
     }
     const bodyBlock = block.getInputTargetBlock("RETURN") ??
       block.getInputTargetBlock("VALUE");
-    const body = blockToExpression(bodyBlock) ?? undefined;
-    out.push({ name, kind: "return", params, ...(body ? { body } : {}) });
+    const expression = blockToExpression(bodyBlock);
+    if (bodyBlock && expression === null) throw new Error(`Unsupported Function return expression: ${bodyBlock.type}`);
+    const body = expression ?? (stack.length ? "null" : undefined);
+    out.push({ name, kind: "return", params, ...statements, ...(body ? { body } : {}) });
   }
   return out;
 }

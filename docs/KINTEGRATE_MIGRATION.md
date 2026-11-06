@@ -38,7 +38,9 @@ directly.
 
 Implemented helpers (same set as Kintegrate Integration Builder):
 
-`eq`, `ne`, `lt`, `gt`, `lte`, `gte`, `and`, `or`, `toLowerCase`, `toUpperCase`
+`eq`, `ne`, `lt`, `gt`, `lte`, `gte`, `inc`, `dec`, `and`, `or`, `toLowerCase`, `toUpperCase`
+
+`inc` is `v + 1` and `dec` is `v - 1`. `{{inc @index}}` is a 1-based row number inside `#each`.
 
 intEHRgrator additions for Mapping Model interop:
 

@@ -1,6 +1,9 @@
 import * as Blockly from "blockly/core";
 import type { SchemaTreeNode } from "../src/types/mod.ts";
+import type { SchemalessExampleKind } from "../src/core/output/canvas_example_seed.ts";
 import { createHostAdapter } from "../src/host/create_host.ts";
+import { VsCodeWebviewHostAdapter } from "../src/host/vscode_webview_adapter.ts";
+import { connectFileProjectEditor } from "../src/workbench/file_project_editor.ts";
 import { WorkbenchController } from "../src/workbench/controller.ts";
 import { setIdLanguageChangeGuard, setIdLanguageChoices } from "../src/blockly/field_id_language.ts";
 import { ID_LANGUAGE_FIELD, PRIMARY_ID_LANGUAGE } from "../src/core/target/id_language.ts";
@@ -90,6 +93,7 @@ import {
   enforceConversionStartUniqueness,
   CONVERSION_START_TYPE,
   hydrateDefaultsMapArgument,
+  separateContextMapFromProductTree,
   serializeDefaultsMapArgument,
   applyDefaultContextMap,
   setDefaultsMapPickHandler,
@@ -112,6 +116,11 @@ import {
   installExtractToFunctionOnWorkspace,
   installFunctionLibraryMenus,
 } from "../src/blockly/mod.ts";
+import { renderHintBadges } from "../src/blockly/hint_badges.ts";
+import { applyValueSetHint, type ApplyValueSetHintRequest } from "../src/blockly/hint_actions.ts";
+import { setValueSetHintNoteSlots } from "../src/blockly/block_constraints.ts";
+import { collectValueSetHints, countActiveHints } from "../src/core/hints/value_set_hint.ts";
+import { mountHintsPanel } from "../src/ui/hints_panel.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
 import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
 import { installCodedTextMenu } from "../src/blockly/coded_text_menu.ts";
@@ -245,6 +254,7 @@ import {
 } from "../src/core/ai/credentials.ts";
 import { AI_PROVIDER_PRESETS, applyAiProviderPreset, findAiProviderPreset } from "../src/core/ai/providers.ts";
 import { fetchModelList, ModelListError, modelAfterProviderChange } from "../src/core/ai/models.ts";
+import { loadAiChatLimits, saveAiChatLimits } from "../src/core/ai/token_usage.ts";
 import {
   type AiProviderConfig,
   type AiProviderConfigs,
@@ -339,6 +349,8 @@ const instanceShapeSelect = document.getElementById("openehr-instance-shape") as
 const instanceShapeWrap = document.getElementById("openehr-instance-shape-wrap") as HTMLLabelElement;
 const mappingJsonTab = document.getElementById("tab-mapping-json") as HTMLButtonElement;
 const sheetsTab = document.getElementById("tab-sheets") as HTMLButtonElement;
+const hintsTab = document.getElementById("tab-hints") as HTMLButtonElement;
+const hintsHost = document.getElementById("hints-host")!;
 const uploadSpecBtn = document.getElementById("btn-upload-spec") as HTMLButtonElement;
 const mappingJsonHost = document.getElementById("spec-editor")!;
 const specEditorWrap = document.getElementById("spec-editor-wrap")!;
@@ -375,6 +387,7 @@ const specEditor = createMappingSpecEditor(mappingJsonHost, {
   copyAll: copyAllToClipboard,
 });
 let sheetsPanel: ReturnType<typeof mountSheetsPanel> | null = null;
+let hintsPanel: ReturnType<typeof mountHintsPanel> | null = null;
 let specChromeUi: ReturnType<typeof mountMappingSpecChrome> | null = null;
 let functionLibraryUi: ReturnType<typeof mountFunctionLibraryDialog> | null = null;
 let specCheckedBlockIds = new Set<string>();
@@ -814,36 +827,126 @@ function flashSheetsChrome(): void {
   globalThis.setTimeout(() => tab.classList.remove("sheets-flash"), 4000);
 }
 
-function showTextView(view: "mapping-json" | "sheets"): void {
+function showTextView(view: "mapping-json" | "sheets" | "hints"): void {
   const showSheets = view === "sheets";
-  mappingJsonHost.hidden = showSheets;
-  if (specEditorWrap) specEditorWrap.hidden = showSheets;
+  const showHints = view === "hints";
+  mappingJsonHost.hidden = showSheets || showHints;
+  if (specEditorWrap) specEditorWrap.hidden = showSheets || showHints;
   sheetsHost.hidden = !showSheets;
-  specBulkBar.hidden = showSheets;
+  if (hintsHost) hintsHost.hidden = !showHints;
+  specBulkBar.hidden = showSheets || showHints;
   if (sheetsActions) sheetsActions.hidden = !showSheets;
   mappingJsonTab.classList.toggle("active", view === "mapping-json");
   sheetsTab?.classList.toggle("active", showSheets);
-  if (uploadSpecBtn) uploadSpecBtn.hidden = showSheets;
+  hintsTab?.classList.toggle("active", showHints);
+  if (uploadSpecBtn) uploadSpecBtn.hidden = showSheets || showHints;
   if (showSheets) sheetsPanel?.refresh();
+  if (showHints) hintsPanel?.refresh();
 }
 
 mappingJsonTab.addEventListener("click", () => showTextView("mapping-json"));
 sheetsTab?.addEventListener("click", () => showTextView("sheets"));
+hintsTab?.addEventListener("click", () => showTextView("hints"));
+
+function blockForHintSlot(slotId: string): Blockly.Block | null {
+  const matches = workspace.getAllBlocks(false).filter((block) => {
+    try {
+      return String(block.getFieldValue("SLOT_ID") ?? "") === slotId;
+    } catch {
+      return false;
+    }
+  });
+  return matches.find((block) => block.type === "element") ?? matches[0] ?? null;
+}
+
+function focusHintSlot(slotId: string): void {
+  const block = blockForHintSlot(slotId);
+  if (!block) return;
+  applyBlockSelection(block.id, "spec");
+}
+
+function applyHintFromUi(request: ApplyValueSetHintRequest) {
+  const s = controller.getState();
+  const before = controller.exportDocumentSnapshot();
+  let result!: ReturnType<typeof applyValueSetHint>;
+  // This is one document edit (canvas + grid + hint settings). In particular,
+  // do not send half-built block events to the minimap while creating shells.
+  runWithoutBlocklyEvents(() => {
+    result = applyValueSetHint(workspace, s.skeleton, s.model, s.settings, s.sheets, request);
+    controller.replaceSheets(result.sheets, { silent: true });
+    controller.replaceSettings(result.settings);
+    persistBlocklyCanvas({ summary: result.summary });
+  });
+  fireDocumentSwap(workspace, before, controller.exportDocumentSnapshot(), restoreDocumentFromUndo);
+  refreshUndoButtons();
+  if (result.grid) {
+    const kind = result.grid.kind === "decision-table" ? "decision-table" : "sheet";
+    sheetsPanel?.showSheet(result.grid.name, kind);
+    showTextView("sheets");
+  }
+  return result;
+}
+
+let pendingHintPrompt: string | null = null;
+function offerHintPrompt(prompt: string): void {
+  pendingHintPrompt = prompt;
+  const dialog = document.getElementById("dialog-hint-ai");
+  if (dialog instanceof HTMLDialogElement) dialog.showModal();
+}
+
+document.getElementById("hint-ai-form")?.addEventListener("submit", (event) => {
+  const submitter = (event as SubmitEvent).submitter;
+  const choice = submitter instanceof HTMLButtonElement ? submitter.value : "decline";
+  const prompt = pendingHintPrompt;
+  pendingHintPrompt = null;
+  if (choice === "insert" && prompt) aiChat?.prefill(prompt);
+});
 specMarkWarnedBtn.addEventListener("click", () => markAllWarnedOptionalUnmapped());
 specDeleteMarkedBtn.addEventListener("click", () => deleteMarkedSpecBlocksFromCanvas());
 uploadSpecBtn?.addEventListener("click", () =>
   void withUndoableDocumentReplace(() => controller.importBlocklyDefinition())
 );
 exportTargetSelect.addEventListener("change", () => {
-  const target = exportTargetSelect.value as
-    | "preview"
-    | "typescript"
-    | "java"
-    | "handlebars"
-    | "xquery"
-    | "go-template";
-  controller.setExportTarget(target);
+  controller.setExportTarget(exportTargetSelect.value);
 });
+
+if (isDesktopEnvironment()) {
+  void loadDesktopLanguagePlugins();
+}
+
+async function loadDesktopLanguagePlugins(): Promise<void> {
+  const token = (globalThis as unknown as { __INTEHR_AGENT_TOKEN__?: string }).__INTEHR_AGENT_TOKEN__;
+  try {
+    const res = await fetch("/api/v1/language-plugins", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return;
+    const body = await res.json() as {
+      plugins?: Array<{ id: string; label: string; extension: string; mime: string; runnable: boolean }>;
+    };
+    const { registerDesktopPluginLanguage, setExternalLanguageGenerator } = await import(
+      "../src/core/codegen/language_plugin.ts"
+    );
+    for (const plugin of body.plugins ?? []) {
+      if (!plugin.id || plugin.id.startsWith("plugin-error-")) continue;
+      registerDesktopPluginLanguage(plugin);
+      if ([...exportTargetSelect.options].some((option) => option.value === plugin.id)) continue;
+      const opt = document.createElement("option");
+      opt.value = plugin.id;
+      opt.textContent = plugin.label;
+      exportTargetSelect.appendChild(opt);
+    }
+    if (host.generateConversionScript) {
+      const generate = host.generateConversionScript.bind(host);
+      setExternalLanguageGenerator(async (language, model, options) => {
+        const generated = await generate(language, { model, options });
+        return { ...generated, label: language };
+      });
+    }
+  } catch {
+    // Static GitHub Pages has no plugin endpoint.
+  }
+}
 instanceShapeSelect?.addEventListener("change", () => {
   controller.setOpenEhrInstanceShape(
     instanceShapeSelect.value as import("@intehrgrator/types/mod.ts").OpenEhrInstanceShape,
@@ -868,6 +971,11 @@ function setupUiLanguageMenu(locale: IntehrLocale): void {
     const bundle = controller.exportDocumentSnapshot();
     if (stashLocaleReloadProject(bundle)) {
       changeLocaleAndReload(next);
+      return;
+    }
+    if (controller.usesHostSaveState()) {
+      // VS Code file project: the document buffer already holds the edits; no workspaceState copy.
+      changeLocaleAndReload(next, Blockly.serialization.workspaces.save(workspace));
       return;
     }
     void host.saveAutosave(bundle).finally(() => {
@@ -1180,6 +1288,37 @@ async function bootBlockly(): Promise<void> {
     (sheets) => controller.replaceSheets(sheets),
   );
   if (sheetsTab) sheetsTab.textContent = sheetsChrome(blocklyLocale).tab;
+  hintsPanel = mountHintsPanel(
+    hintsHost,
+    () => collectValueSetHints(controller.getState().skeleton, controller.getState().model, controller.getState().settings),
+    {
+      apply: (request) => applyHintFromUi(request),
+      onGrid: (prompt) => offerHintPrompt(prompt),
+      onSelect: (slotId) => focusHintSlot(slotId),
+    },
+    () => {
+      const messages = uiChrome();
+      return {
+        filter: messages.hintsFilter,
+        filterAria: messages.hintsFilterAria,
+        kindAll: messages.hintsKindAll,
+        kindCoded: messages.hintsKindCoded,
+        kindOrdinal: messages.hintsKindOrdinal,
+        kindString: messages.hintsKindString,
+        kindUnits: messages.hintsKindUnits,
+        useConstant: messages.hintsUseConstant,
+        decisionTable: messages.hintsDecisionTable,
+        sheetLookup: messages.hintsSheetLookup,
+        dismiss: messages.hintsDismiss,
+        restore: messages.hintsRestore,
+        empty: messages.hintsEmpty,
+        dismissed: messages.hintsDismissed,
+        assumed: messages.hintsAssumed,
+        noAssumed: messages.hintsNoAssumed,
+        blankSource: messages.hintsBlankSource,
+      };
+    },
+  );
 
   attachWorkspaceMinimap(workspace, blocklyMount);
   installToolboxSearchInputFix(blocklyMount, () => workspace);
@@ -1316,6 +1455,7 @@ async function bootBlockly(): Promise<void> {
     if (event.type === Blockly.Events.FINISHED_LOADING || event.isUiEvent) return;
     if (suppressBlocklyModelSync || applyingDocumentUndo) return;
     if (!isSemanticBlocklyEvent(event)) return;
+    separateContextMapFromProductTree(workspace);
     lastSemanticEventSummary = summarizeBlocklyEvent(event);
     persistBlocklyCanvas({ summary: lastSemanticEventSummary });
   });
@@ -1429,6 +1569,7 @@ function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }):
       sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
     },
   );
   const s = controller.getState();
@@ -1453,6 +1594,7 @@ function documentCommitSignature(): string {
     s.model,
     s.sheets,
     s.handlebarsTemplate ?? "",
+    s.settings.dismissedHints ?? [],
   ]);
   let hash = 2166136261;
   for (let i = 0; i < payload.length; i++) {
@@ -1578,8 +1720,10 @@ function refreshUndoButtons(): void {
   const undoBtn = document.getElementById("btn-undo") as HTMLButtonElement | null;
   const redoBtn = document.getElementById("btn-redo") as HTMLButtonElement | null;
   if (!workspace || !undoBtn || !redoBtn) return;
-  undoBtn.disabled = !workspaceCanUndo(workspace);
-  redoBtn.disabled = !workspaceCanRedo(workspace);
+  // VS Code file projects: the buttons run VS Code's undo/redo, whose stack the webview cannot see.
+  const hostUndo = controller.usesHostSaveState();
+  undoBtn.disabled = !hostUndo && !workspaceCanUndo(workspace);
+  redoBtn.disabled = !hostUndo && !workspaceCanRedo(workspace);
   const messages = uiChrome();
   const hint = messages.undoHistoryHint;
   undoBtn.title = undoBtn.disabled ? hint : `${hint} ${messages.undoLastEdit}`;
@@ -2019,9 +2163,27 @@ function applyPendingDefaultsMap(): boolean {
   if (!pending) return false;
   runWithoutBlocklyEvents(() => {
     hydrateDefaultsMapArgument(workspace, pending, blocklyLocale, targetFormatOf(controller.getState()));
+    separateContextMapFromProductTree(workspace);
   });
   persistBlocklyCanvas();
   return true;
+}
+
+let contextMapClearFrame = 0;
+
+/** Re-measure after the browser has laid out the blocks. Headless workspaces report no size and stay put. */
+function scheduleContextMapClearance(): void {
+  if (typeof requestAnimationFrame !== "function") return;
+  if (contextMapClearFrame) cancelAnimationFrame(contextMapClearFrame);
+  contextMapClearFrame = requestAnimationFrame(() => {
+    contextMapClearFrame = requestAnimationFrame(() => {
+      contextMapClearFrame = 0;
+      if (!workspace) return;
+      if (separateContextMapFromProductTree(workspace)) {
+        persistBlocklyCanvas({ notify: false });
+      }
+    });
+  });
 }
 
 function applyDefaultContextMapFromCanvas(): void {
@@ -2139,6 +2301,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       });
       lockWorkspaceRootsExpanded(workspace);
       refreshAiReviewMarkers(workspace);
+      separateContextMapFromProductTree(workspace);
       blocklySkeletonKey = skeletonKey;
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
@@ -2155,10 +2318,12 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
           },
         );
       }
       applyPendingDefaultsMap();
+      scheduleContextMapClearance();
       return;
     } else {
       const hadPending = applyPendingDefaultsMap();
@@ -2184,6 +2349,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             sheetNames: derived.sheetNames,
       instanceEncodings: derived.instanceEncodings,
       functions: derived.functions,
+      includes: derived.includes,
           },
         );
       }
@@ -2192,6 +2358,8 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
     blocklyLabelLanguage = labelLanguage;
     blocklySlotSignature = slotSignature;
     applyPendingDefaultsMap();
+    separateContextMapFromProductTree(workspace);
+    scheduleContextMapClearance();
     return;
   }
 
@@ -3301,15 +3469,50 @@ function emptyContextMapJson(): Record<string, unknown> {
   return { type: "default_context_map", extraState: { itemCount: 0, targets: [] }, fields: {} };
 }
 
+function selectedJointTargetKind(): "schema" | SchemalessExampleKind {
+  const dialog = document.getElementById("dialog-joint-load");
+  const checked = dialog?.querySelector<HTMLInputElement>('input[name="joint-target-kind"]:checked');
+  const value = checked?.value;
+  if (value === "json" || value === "xml" || value === "text") return value;
+  return "schema";
+}
+
 function jointHasTarget(): boolean {
+  if (selectedJointTargetKind() !== "schema") return true;
   return Boolean(jointPendingTarget || controller.getState().templateId);
+}
+
+function refreshJointTargetSummary(): void {
+  const summary = document.getElementById("joint-target-summary");
+  if (!summary) return;
+  const kind = selectedJointTargetKind();
+  if (kind === "json") {
+    summary.textContent = uiChrome().schemalessJson;
+    return;
+  }
+  if (kind === "xml") {
+    summary.textContent = uiChrome().schemalessXml;
+    return;
+  }
+  if (kind === "text") {
+    summary.textContent = uiChrome().schemalessText;
+    return;
+  }
+  if (jointPendingTarget) {
+    summary.textContent = formatMessage(uiChrome().selectedFile, { name: jointPendingTarget.name });
+    return;
+  }
+  const state = controller.getState();
+  summary.textContent = state.templateId
+    ? formatMessage(uiChrome().loadedColon, { name: state.templateFilename || state.templateId })
+    : uiChrome().noTargetYet;
 }
 
 function syncJointConfirmButton(): void {
   const confirm = document.getElementById("joint-load-confirm") as HTMLButtonElement | null;
   if (!confirm) return;
   confirm.disabled = !jointHasTarget();
-  confirm.textContent = selectedJointMapChoice() === "new"
+  confirm.textContent = selectedJointTargetKind() === "schema" && selectedJointMapChoice() === "new"
     ? uiChrome().loadIntoSchema
     : uiChrome().loadAndScaffold;
 }
@@ -3327,9 +3530,11 @@ async function openJointLoadDialog(): Promise<void> {
   const fileOption = document.getElementById("joint-map-file-option");
   if (fileOption) fileOption.hidden = true;
   const state = controller.getState();
-  summary.textContent = state.templateId
-    ? formatMessage(uiChrome().loadedColon, { name: state.templateFilename || state.templateId })
-    : uiChrome().noTargetYet;
+  const schemaKind = dialog.querySelector<HTMLInputElement>(
+    'input[name="joint-target-kind"][value="schema"]',
+  );
+  if (schemaKind) schemaKind.checked = true;
+  refreshJointTargetSummary();
   if (useCurrent) useCurrent.hidden = !state.templateId;
   catalogEl.replaceChildren();
   try {
@@ -3363,7 +3568,8 @@ function selectedJointMapChoice(): string {
 
 async function confirmJointLoad(): Promise<void> {
   const dialog = document.getElementById("dialog-joint-load") as HTMLDialogElement | null;
-  if (!jointHasTarget()) {
+  const targetKind = selectedJointTargetKind();
+  if (targetKind === "schema" && !jointHasTarget()) {
     controller.setStatusMessage("Pick a target file or URL first.");
     return;
   }
@@ -3381,7 +3587,12 @@ async function confirmJointLoad(): Promise<void> {
   } else if (choice.startsWith("catalog:")) {
     mapBlock = await defaultsCatalog.load(choice.slice("catalog:".length));
   }
-  if (jointPendingTarget) {
+  if (targetKind !== "schema") {
+    controller.queuePendingDefaultsMap(mapBlock);
+    await withUndoableDocumentReplace(() => {
+      controller.startSchemalessTarget(targetKind);
+    });
+  } else if (jointPendingTarget) {
     controller.queuePendingDefaultsMap(mapBlock);
     if (isNew) {
       await withUndoableDocumentReplace(() => {
@@ -3428,18 +3639,22 @@ document.getElementById("joint-target-file")?.addEventListener("click", () => {
     );
     if (!file) return;
     jointPendingTarget = { name: file.name, text: file.text };
-    const summary = document.getElementById("joint-target-summary");
-    if (summary) summary.textContent = formatMessage(uiChrome().selectedFile, { name: file.name });
+    refreshJointTargetSummary();
     syncJointConfirmButton();
   })();
 });
 document.getElementById("joint-target-current")?.addEventListener("click", () => {
   jointPendingTarget = null;
-  const state = controller.getState();
+  const schemaKind = document.querySelector<HTMLInputElement>(
+    '#dialog-joint-load input[name="joint-target-kind"][value="schema"]',
+  );
+  if (schemaKind) schemaKind.checked = true;
+  refreshJointTargetSummary();
+  const loaded = controller.getState();
   const summary = document.getElementById("joint-target-summary");
-  if (summary) {
+  if (summary && loaded.templateId) {
     summary.textContent = formatMessage(uiChrome().usingLoaded, {
-      name: state.templateFilename || state.templateId,
+      name: loaded.templateFilename || loaded.templateId,
     });
   }
   syncJointConfirmButton();
@@ -3455,8 +3670,7 @@ document.getElementById("joint-target-url-load")?.addEventListener("click", () =
     try {
       const file = await host.fetchTextUrl(url);
       jointPendingTarget = { name: file.name, text: file.text };
-      const summary = document.getElementById("joint-target-summary");
-      if (summary) summary.textContent = formatMessage(uiChrome().fetchedFile, { name: file.name });
+      refreshJointTargetSummary();
       syncJointConfirmButton();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -3486,7 +3700,11 @@ document.getElementById("joint-load-cancel")?.addEventListener("click", () => {
 });
 document.getElementById("dialog-joint-load")?.addEventListener("change", (event) => {
   const target = event.target;
-  if (target instanceof HTMLInputElement && target.name === "joint-map") {
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.name === "joint-target-kind") {
+    refreshJointTargetSummary();
+    syncJointConfirmButton();
+  } else if (target.name === "joint-map") {
     syncJointConfirmButton();
   }
 });
@@ -3817,10 +4035,18 @@ async function fetchModelsForDialog(): Promise<void> {
   const proxyUrl = chatProxy?.replace(/ai-chat-completions$/, "ai-models");
   const testedAt = new Date().toISOString();
   try {
-    const models = await fetchModelList(endpoint?.value ?? "", apiKey?.value ?? "", {
+    const listed = await fetchModelList(endpoint?.value ?? "", apiKey?.value ?? "", {
       proxyUrl,
       signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(30_000) : undefined,
     });
+    const models = listed.ids;
+    if (Object.keys(listed.rates).length) {
+      const limits = loadAiChatLimits(localStorage);
+      saveAiChatLimits(localStorage, {
+        ...limits,
+        modelRates: { ...limits.modelRates, ...listed.rates },
+      });
+    }
     const text = messages.aiModelsFound.replace("{count}", String(models.length));
     aiCredDrafts[id] = { ...aiCredFormConfig(aiCredDrafts[id]), testOk: true, testedAt, testMessage: text, models };
     renderModelPicker(models);
@@ -4009,6 +4235,8 @@ async function runAiChatTurnInner(request: AiChatTurnRequest): Promise<AiChatTur
       signal: request.signal,
       onEvent: request.onEvent,
       tokenBudget: request.tokenBudget,
+      costBudget: request.costBudget,
+      modelRate: request.modelRate,
       onAfterMutation: () => {
         persistBlocklyCanvas({ summary: "AI chat" });
         render();
@@ -4335,6 +4563,9 @@ function render(): void {
       ? formatMessage(messages.statusExample, { name: s.activeExample.filename })
       : messages.statusNoExample,
     formatMessage(messages.statusUnmapped, { n: s.unmappedMandatory }),
+    formatMessage(messages.statusHints, {
+      n: countActiveHints(collectValueSetHints(s.skeleton, s.model, s.settings)),
+    }),
     localizeStatus(locale, s.statusMessage),
   ].join(" · ");
 
@@ -4419,7 +4650,21 @@ function render(): void {
   suppressBlocklyModelSync = true;
   try {
     syncBlocklyWorkspace(s);
+    const hints = collectValueSetHints(s.skeleton, s.model, s.settings);
+    setValueSetHintNoteSlots(
+      workspace,
+      hints.filter((hint) => !hint.dismissed && !hint.mandatory).map((hint) => hint.slotId),
+    );
     refreshWorkspaceConstraints(workspace);
+    renderHintBadges(
+      workspace,
+      hints.filter((hint) => !hint.dismissed).map((hint) => ({ slotId: hint.slotId, label: hint.label })),
+      (slotId) => {
+        hintsPanel?.select(slotId);
+        showTextView("hints");
+        focusHintSlot(slotId);
+      },
+    );
     highlightListeningSlot(workspace, controller.getState().listeningSlotId, controller.getState().listeningSourceBlockId);
   } finally {
     suppressBlocklyModelSync = false;
@@ -4431,6 +4676,7 @@ function render(): void {
 
   specChromeUi?.refresh();
   sheetsPanel?.refresh();
+  hintsPanel?.refresh();
   const generated = afterCanvas.generatedCode || "// Generated Export";
   setEditorDoc(exportEditor, generated, languageForExportTarget(s.settings.exportTarget, generated));
   const testOutput = afterCanvas.testResult?.output;
@@ -4913,14 +5159,15 @@ async function main(): Promise<void> {
     console.warn("Go template WASM not loaded:", err);
   });
   await bootBlockly();
+  if (host instanceof VsCodeWebviewHostAdapter) connectFileProjectEditor(controller, host);
   await wasmReady;
   render();
   startHistory();
   historyPanel = installHistoryPanel({
     panel: requireEl("history-panel"),
     load: loadHistoryRows,
-    undoTo: historyUndoTo,
-    revert: historyRevert,
+    // One undo history in VS Code file projects: VS Code's. Other hosts keep Undo to here / Revert.
+    ...(controller.usesHostSaveState() ? {} : { undoTo: historyUndoTo, revert: historyRevert }),
   });
   const historyButton = document.getElementById("btn-history");
   historyButton?.addEventListener("click", () => {

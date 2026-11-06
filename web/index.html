@@ -49,7 +49,7 @@
         </button>
         <label class="split-btn-menu-item split-btn-menu-item--icon split-btn-menu-check" data-i18n-title="menuAttachOriginalTargetTitle" title="Also send the raw target file (OPT / schema). Off: the compact slot tree only, much smaller.">
           <input id="menu-ai-attach-target" type="checkbox" />
-          <span data-i18n="menuAttachOriginalTarget">Attach original target</span>
+          <span data-i18n="menuAttachOriginalTarget">Attach original target format too</span>
         </label>
         <button id="menu-ai-languages" type="button" class="split-btn-menu-item split-btn-menu-item--icon" role="menuitem" data-ai-action="languages">
           <span class="split-btn-menu-icon" aria-hidden="true">💬</span>
@@ -288,6 +288,7 @@
                 </div>
               </div>
               <button id="tab-sheets" class="mapping-editor-tab" type="button">Tables & Sheets</button>
+              <button id="tab-hints" class="mapping-editor-tab" type="button" data-i18n="hints">Hints</button>
             </div>
             <button
               id="btn-upload-spec"
@@ -375,6 +376,7 @@
             <div id="spec-editor" class="editor-host"></div>
           </div>
           <div id="sheets-host" class="sheets-host" hidden></div>
+          <div id="hints-host" class="hints-host" hidden></div>
         </div>
       </div>
     </section>
@@ -421,8 +423,9 @@
               Conversion scripts (so far): TypeScript, Java, Handlebars, XQuery, and Go Template.
               TypeScript, Handlebars, Go Template, and XQuery also run in Conversion Test Run.
               Java generates an Archie class but does not execute in the web app.
+              The desktop app can add another language with --language-plugin.
               For openEHR targets, JSON vs XML instance chooses how XQuery serializes the composition.<br>
-              Download on the script editor saves the generated script. The overlay Download on Conversion Test Run saves that instance.
+              Download on the script editor saves the generated script. Imports in that script open the helper or library source. The overlay Download on Conversion Test Run saves that instance.
             </span>
           </span>
           <label class="pane-select-label" for="export-target">
@@ -645,6 +648,16 @@
       </div>
     </form>
   </dialog>
+  <dialog id="dialog-hint-ai" class="app-dialog">
+    <form method="dialog" class="dialog-form" id="hint-ai-form">
+      <h2 data-i18n="hintsAiTitle">Fill the source column</h2>
+      <p data-i18n="hintsAiOffer">The source column is blank. Insert a prompt that asks the AI to fill the source-to-code mapping from the loaded source?</p>
+      <div class="dialog-actions">
+        <button type="submit" value="decline" data-i18n="hintsAiDecline">Not now</button>
+        <button type="submit" value="insert" data-i18n="hintsAiInsert">Insert prompt</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="dialog-function-contribute" class="app-dialog app-dialog--wide">
     <form method="dialog" class="dialog-form" id="function-contribute-form">
       <h2 data-i18n="contributeTitle">Contribute Function</h2>
@@ -749,6 +762,22 @@
       </p>
       <fieldset class="joint-load-fieldset">
         <legend data-i18n="targetLegend">Target</legend>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="schema" checked />
+          <span data-i18n="schemalessSchema">Schema, template, or file</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="json" />
+          <span data-i18n="schemalessJson">Minimal JSON example</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="xml" />
+          <span data-i18n="schemalessXml">Minimal XML example</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-target-kind" value="text" />
+          <span data-i18n="schemalessText">Minimal text example</span>
+        </label>
         <p id="joint-target-summary" class="joint-load-summary" data-i18n="noTargetYet">No target selected yet.</p>
         <div class="dialog-actions">
           <button type="button" id="joint-target-file" data-i18n="fromFile">From file…</button>

@@ -125,6 +125,8 @@ function openEhrTypeToolboxContents(m: ReturnType<typeof msg>): Array<Record<str
     { kind: "label", text: m.CAT_OPENEHR_TERMS },
     { kind: "block", type: "term_pick", gap: 8 },
     { kind: "block", type: "code_phrase", gap: 8 },
+    { kind: "block", type: "term_mapping", gap: 8 },
+    { kind: "block", type: "reference_range", gap: 8 },
   ];
 }
 
@@ -268,6 +270,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
           { kind: "block", type: "logic_current_item" },
           { kind: "block", type: "logic_loop_index" },
           { kind: "block", type: "logic_loop_length" },
+          { kind: "block", type: "include_when" },
           { kind: "block", type: "logic_compare" },
           { kind: "block", type: "logic_operation" },
           { kind: "block", type: "logic_negate" },
@@ -475,6 +478,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
             },
           },
           { kind: "block", type: "maps_keys" },
+          { kind: "block", type: "maps_entries" },
           { kind: "block", type: "maps_length" },
           { kind: "block", type: "maps_isEmpty" },
         ],

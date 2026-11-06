@@ -103,10 +103,19 @@ export type MappingFunctionKind = "return" | "statement";
  * `call("name", …)` and codegen emits a reusable named function where the
  * Conversion script language allows it.
  */
+export type MappingStatement =
+  | { kind: "set"; name: string; value: string }
+  | { kind: "append"; name: string; value: string }
+  | { kind: "if"; condition: string; then: MappingStatement[]; else: MappingStatement[] }
+  | { kind: "forEach"; name: string; list: string; body: MappingStatement[] }
+  | { kind: "return"; condition: string; value: string };
+
 export interface MappingFunction {
   name: string;
   kind: MappingFunctionKind;
   params: string[];
+  /** Portable, ordered Blockly statement body. Function locals never leak into the caller. */
+  stack?: MappingStatement[];
   /** Mapping Expression body for value Functions. */
   body?: string;
 }
@@ -118,6 +127,16 @@ export interface MappingSlotHatch {
   lang?: string;
 }
 
+/**
+ * Nested RM on a DATA_VALUE shell (mappings, normal_range, hyperlink, …).
+ * Mapping preview evaluates this beside the slot's primary expression.
+ */
+export type RmShellFragment =
+  | { kind: "expr"; expression: string }
+  | { kind: "octets"; expression: string }
+  | { kind: "list"; items: RmShellFragment[] }
+  | { kind: "object"; rmType: string; fields: Record<string, RmShellFragment> };
+
 export interface MappingSlot {
   slotId: string;
   rmType: string;
@@ -126,6 +145,23 @@ export interface MappingSlot {
   label?: string;
   mandatory?: boolean;
   hatch?: MappingSlotHatch;
+  /**
+   * DV_QUANTITY units on the canvas, as an expression: a mapped `units` input or
+   * the block's unit dropdown as a string literal. Mapping preview adds them to
+   * the magnitude, as TypeScript output does.
+   */
+  unitsExpression?: string;
+  /**
+   * DV_IDENTIFIER type / issuer / assigner mapped on the canvas, as expressions.
+   * Mapping preview adds them to the id, as TypeScript output does.
+   */
+  fieldExpressions?: Record<string, string>;
+  /**
+   * Optional (and other non-primary) mouths on the DATA_VALUE shell. Mapping
+   * preview adds them to the value. The canvas TypeScript script reads the
+   * same mouths from the blocks.
+   */
+  shellFragments?: Record<string, RmShellFragment>;
   /** Unreviewed AI suggestion marker (note / confidence); cleared on edit or *Mark as reviewed*. */
   review?: MappingSlotReview;
 }
@@ -166,6 +202,17 @@ export interface MappingLoop {
   collection?: string;
 }
 
+/**
+ * Guarded emit of one target node (`include_when`). The condition is a pure
+ * boolean Mapping Expression. Absent `elseEmits`, a false condition omits the
+ * node. `elseEmits` means the else stack still emits this same node.
+ */
+export interface MappingInclude {
+  slotId: string;
+  when: string;
+  elseEmits?: boolean;
+}
+
 export type MappingUnsupportedReason = "escape" | "unsupported" | "removed";
 
 /** Block that is not first-class IR — recorded so exporters do not drop it silently. */
@@ -195,6 +242,8 @@ export interface MappingModel {
   optionalRm: OptionalRmInsertion[];
   /** Repeatable iteration (`for_each_list`; source-node grain when LIST is a source query). */
   loops?: MappingLoop[];
+  /** Conditional emit of a target node (`include_when`). */
+  includes?: MappingInclude[];
   /** Nested target structure (optional RM / schema extras marked `optional`). */
   targetSignature?: TargetSignatureNode[];
   /** Escape-hatch, leftover Remove-list, or unknown blocks. */
@@ -274,14 +323,13 @@ export interface SkeletonNode {
   fixedFields?: Record<string, string>;
   /**
    * Template-constrained value set (C_CODE_PHRASE `code_list`, C_STRING list, …)
-   * when more than one code/string is allowed. Scaffolded as a Blockly list of
-   * complete `DV_CODED_TEXT` / `CODE_PHRASE` objects wrapped in `lists_getIndex`.
+   * when more than one code/string is allowed. Shown as a value-set hint, not
+   * a mapping. A single allowed code stays a term pick or a fixed field.
    */
   allowedValues?: AllowedValue[];
   /**
    * Template-constrained ordinal/scale choices (`C_ORDINAL` / `C_DV_ORDINAL` list)
-   * when more than one value is allowed. Scaffolded as a Blockly list of complete
-   * `DV_ORDINAL` / `DV_SCALE` objects wrapped in `lists_getIndex`.
+   * when more than one value is allowed. Shown as a value-set hint, not a mapping.
    */
   allowedOrdinals?: AllowedOrdinal[];
   /**
@@ -387,6 +435,19 @@ export interface ProjectSettings {
   display?: { targetLabelLang?: string; sourceLabelLang?: string };
   /** Copy & paste AI prompt also attaches the raw target file (#277; off: slot tree only). */
   aiAttachOriginalTarget?: boolean;
+  /**
+   * Value-set hints the author dismissed. Each entry is kept only while the
+   * slot's allowed codes are still `codes` (sorted identities). A changed
+   * code list brings the hint back.
+   */
+  dismissedHints?: DismissedValueSetHint[];
+}
+
+/** One dismissed value-set hint, bound to the allowed codes at dismiss time. */
+export interface DismissedValueSetHint {
+  slotId: string;
+  /** Sorted code identities (at-code, ordinal code, string, or unit). */
+  codes: string[];
 }
 
 /**
@@ -502,6 +563,15 @@ export interface SuggestionEnvelope {
     block: SuggestionBlock;
     note?: string;
   }>;
+  /**
+   * Omit a target node unless `when` is true (`include_when`).
+   * The node must be optional in the template unless an else stack emits it.
+   */
+  includes?: Array<{
+    slotId: string;
+    when: SuggestionBlock;
+    note?: string;
+  }>;
   suggestions: Array<{
     slotId: string;
     block: SuggestionBlock;
@@ -531,6 +601,8 @@ export interface ImportSuggestionsReport {
   errors: string[];
   /** Validated `loops[]` entries; the canvas wraps `attachSlotId` with `for_each_list`. */
   loopsAccepted: number;
+  /** Validated `includes[]` entries; the canvas wraps `slotId` with `include_when`. */
+  includesAccepted?: number;
   /** JSON Schema issues against docs/AI_SUGGESTION_FORMAT.schema.json. */
   schemaIssues: SchemaIssue[];
 }

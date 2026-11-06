@@ -10,8 +10,8 @@ import type { Block, Workspace } from "blockly/core";
 import { Blockly } from "./blockly_core.ts";
 import { blockToExpression } from "./expression_serialize.ts";
 import {
-  isDataValueBlock,
   isRmContainerBlockType,
+  isRmValueObjectBlock,
   OPTIONAL_INPUT_PREFIX,
   RM_ATTR_INPUT_PREFIX,
   RM_SPECIALIZATION_INPUT,
@@ -26,7 +26,8 @@ import {
   findInstanceRootUnderStart,
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
-import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
+import { attributesFor } from "../core/rm_meta.ts";
+import { octetBytes } from "../core/rm_shell_fragment.ts";
 import type { MappingModel } from "../types/mod.ts";
 import {
   createGoEmitContext,
@@ -43,6 +44,9 @@ import { archetypeRootIdBySlot } from "../core/openehr/rm_archetype_node_id.ts";
 import { generateGoTemplate } from "../core/codegen/go_template.ts";
 import { runWithoutBlocklyEvents } from "./blockly_events.ts";
 import { sourcePathFromLoopList } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
+import { namedLoopBinding } from "../core/named_loop_path.ts";
+import { isRelativeAuthoringPath } from "../core/mapping_model/loops.ts";
 import { migrateForEachSourceState } from "./migrate_for_each_source.ts";
 import {
   injectXmlnsOnOpenTag,
@@ -175,6 +179,7 @@ function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
   }
 
   if (block.type === "for_each_list") return emitForEachList(block, ctx);
+  if (block.type === INCLUDE_WHEN_BLOCK) return emitIncludeWhen(block, ctx);
   if (block.type === "controls_if") return emitControlsIf(block, ctx);
   if (block.type === "variables_set") return [];
   if (
@@ -203,7 +208,7 @@ function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
   if (block.type === "element" || isRmContainerBlockType(block.type)) {
     return emitRmAsJson(block, ctx, indent);
   }
-  if (isDataValueBlock(block)) {
+  if (isRmValueObjectBlock(block)) {
     return emitDvAsJson(block, ctx, indent);
   }
   if (
@@ -243,28 +248,62 @@ function emitExpressionBlock(block: Block, ctx: GoEmitContext): string[] | null 
   return [emitGoExpressionTemplate(parseExpression(serialized), ctx)];
 }
 
+function goLoopIdent(name: string): string {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "item";
+}
+
 function emitForEachList(block: Block, ctx: GoEmitContext): string[] {
   const varName = String(block.getFieldValue("VAR") || "item");
+  const ident = goLoopIdent(varName);
   const sourcePath = sourcePathFromLoopList(block);
   const rangeExpr = sourcePath
-    ? loopRangeExpr(sourcePath)
+    ? loopRangeExpr(sourcePath, ctx)
     : (() => {
       const list = block.getInputTargetBlock("LIST");
       const listParts = list ? emitExpressionBlock(list, ctx) ?? emitBlock(list, ctx, 0) : ['""'];
       return listParts.join("").replace(/^\{\{\s*/, "").replace(/\s*\}\}$/, "") || `index .Data ""`;
     })();
   const body = block.getInputTargetBlock("DO");
-  const lines = [`{{- range ${rangeExpr} }}`];
-  const innerCtx: GoEmitContext = { ...ctx, loopVar: varName };
+  const lines = [`{{- range $${ident} := ${rangeExpr} }}`];
+  const innerCtx: GoEmitContext = {
+    ...ctx,
+    loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [varName]: `$${ident}` },
+  };
   if (body) lines.push(...emitStatementChain(body, innerCtx, 0));
   lines.push(`{{- end }}`);
   return lines;
 }
 
-function loopRangeExpr(path: string): string {
+function loopRangeExpr(path: string, ctx: GoEmitContext): string {
   const trimmed = path.trim();
+  const named = namedLoopBinding(trimmed, ctx.loopBindings);
+  if (named) {
+    if (named.rest === ".") return named.ident;
+    let expr = named.ident;
+    for (const seg of named.rest.split(".").filter(Boolean)) {
+      expr = `index ${expr} ${goQuote(seg)}`;
+    }
+    return expr;
+  }
   if (trimmed.startsWith("$.")) return jsonPathToGoIndex(trimmed);
+  if (ctx.loopVar && isRelativeAuthoringPath(trimmed)) return `index . ${goQuote(trimmed)}`;
   return `index .Data ${goQuote(trimmed)}`;
+}
+
+function emitIncludeWhen(block: Block, ctx: GoEmitContext): string[] {
+  const cond = block.getInputTargetBlock("WHEN");
+  const condStr = cond ? emitCondition(cond, ctx) : "false";
+  const lines = [`{{- if ${condStr} }}`];
+  const body = block.getInputTargetBlock("DO");
+  if (body) lines.push(...emitStatementChain(body, ctx, 0));
+  const elseBody = block.getInputTargetBlock("ELSE");
+  if (elseBody) {
+    lines.push(`{{- else }}`);
+    lines.push(...emitStatementChain(elseBody, ctx, 0));
+  }
+  lines.push(`{{- end }}`);
+  return lines;
 }
 
 function emitControlsIf(block: Block, ctx: GoEmitContext): string[] {
@@ -469,7 +508,6 @@ function emitDvAsJson(block: Block, ctx: GoEmitContext, indent: number): string[
   const rmType = String(block.getFieldValue("RM_TYPE") || block.type.replace(/-/g, "_")).toUpperCase();
   const props: string[] = [`"_type": ${goQuote(rmType)}`];
   for (const attr of attributesFor(rmType)) {
-    if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") continue;
     const inputName = block.getInput(`FLD_${attr.name}`)
       ? `FLD_${attr.name}`
       : block.getInput(`OPTFLD_${attr.name}`)
@@ -478,9 +516,32 @@ function emitDvAsJson(block: Block, ctx: GoEmitContext, indent: number): string[
     if (!inputName) continue;
     const child = block.getInputTargetBlock(inputName);
     if (!child || child.isShadow()) continue;
-    props.push(`"${attr.name}": ${emitBlock(child, ctx, indent + 1).join("")}`);
+    props.push(`"${attr.name}": ${emitDvChildJson(child, attr.typeName, ctx, indent)}`);
   }
   return [`{${props.join(", ")}}`];
+}
+
+function emitDvChildJson(
+  child: Block,
+  typeName: string,
+  ctx: GoEmitContext,
+  indent: number,
+): string {
+  const octets = typeName === "Array<Octet>" || typeName.startsWith("Array<Octet");
+  const list = typeName.startsWith("List<");
+  if (octets && (child.type === "text" || child.type === "text_code")) {
+    return JSON.stringify(octetBytes(String(child.getFieldValue("TEXT") ?? "")));
+  }
+  if (child.type === "text" || child.type === "text_code") {
+    return JSON.stringify(String(child.getFieldValue("TEXT") ?? ""));
+  }
+  if (child.type === "math_number") return String(child.getFieldValue("NUM") ?? "0");
+  if (child.type === "logic_boolean") {
+    return child.getFieldValue("BOOL") === "TRUE" ? "true" : "false";
+  }
+  const rendered = emitBlock(child, ctx, indent + 1).join("");
+  if (list && child.type !== "lists_create_with") return `[${rendered}]`;
+  return rendered;
 }
 
 function emitXmlTextishLive(block: Block, ctx: GoEmitContext, indent: number): string[] {
@@ -651,7 +712,7 @@ function emitXmlOrSchema(block: Block, ctx: GoEmitContext): string[] {
 
 function isStructureBlock(type: string): boolean {
   return type === XML_ELEMENT_TYPE || type.startsWith("schema_") || type === "controls_if" ||
-    type === "for_each_list";
+    type === "include_when" || type === "for_each_list";
 }
 
 function xmlTagName(block: Block): string {

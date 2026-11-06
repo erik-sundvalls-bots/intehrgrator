@@ -10,6 +10,7 @@
 import * as rm from "ehrtslib/openehr_rm.ts";
 import {
   evaluateXPathToBoolean,
+  evaluateXPathToFirstNode,
   evaluateXPathToNodes,
   evaluateXPathToNumber,
   evaluateXPathToString,
@@ -22,6 +23,7 @@ import {
   serializeToFlatJson,
   serializeToStructuredJson,
 } from "ehrtslib/serialization/simplified/mod.ts";
+import * as scriptHelpers from "./helpers/typescript.ts";
 
 export interface GeneratedScriptRuntime {
   [name: string]: unknown;
@@ -30,10 +32,12 @@ export interface GeneratedScriptRuntime {
 export function generatedScriptRuntime(): GeneratedScriptRuntime {
   return {
     ...(rm as unknown as GeneratedScriptRuntime),
+    ...scriptHelpers,
     evaluateXPathToString,
     evaluateXPathToNumber,
     evaluateXPathToBoolean,
     evaluateXPathToNodes,
+    evaluateXPathToFirstNode,
     JsonCanonicalSerializer,
     XmlSerializer,
     parseWebTemplate,

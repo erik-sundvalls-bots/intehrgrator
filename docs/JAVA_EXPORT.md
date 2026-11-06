@@ -14,7 +14,17 @@ server or CI JVM. Conversion Test Run for Java remains unimplemented
 
 ## What the class looks like
 
-Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`:
+Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`.
+
+Shared helpers live in `se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime`
+(`src/core/codegen/helpers/java/IntehrgratorRuntime.java`). Compile that file
+with the generated class. XPath uses Jackson, which Archie already brings in.
+When the script calls `handlebars`, also compile `HandlebarsSupport.java` and
+add Handlebars.java (below). When it calls `codedText`, also compile
+`CodedTextSupport.java` (Archie `DvCodedText`, same value-set lookup as
+TypeScript). The generated file imports only the static helpers it calls
+(`asString`, `rm`, …) and uses `ig.xpathString` / `ig.sheetLookup` for helpers
+that read the source or the sheet map.
 
 - `convert(Object source, Map<String, Object> defaults)` — JSON (`Map` /
   Jackson tree / JSON string) or XML (`org.w3c.dom.Node` / XML string).
@@ -23,7 +33,9 @@ Package `se.regionstockholm.intehrgrator.generated`, class `ConversionScript`:
   compact constructors for data values (`new DvQuantity(units, magnitude, null)`,
   `new DvText(…)`, `new CodePhrase("ISO_639-1::en")`).
 - `for_each_list` (source-node grain) → `xpathNodes(path).stream().map(var -> …).toList()` with
-  relative xpath against the loop node. **Loop index / Loop length** are not bound yet;
+  relative xpath against the loop node. A BMM `List<…>` attribute wraps that in
+  `new ArrayList<ElementType>(…)` and a stream type witness, so a `PointEvent`
+  can be passed to `setEvents(List<Event<…>>)`. **Loop index / Loop length** are not bound yet;
   see [loop-index-length-codegen-investigation.md](future/loop-index-length-codegen-investigation.md)
   (#137).
 - `maps_get("defaults", key)` → `defaults.get(key)`.
@@ -81,8 +93,10 @@ JVM compile against downloaded Archie jars runs in
 `test/java_archie_compile_test.ts` when `java`/`javac` are on `PATH`, `javac`
 supports `--release 21`, and Maven Central is reachable. It **skips** (does not
 fail) when the JDK is too old — GitHub Actions' default `javac` historically
-could not `--release 21`; CI now installs Temurin 21 so the compile actually
-runs there. Skip with `SKIP_ARCHIE_COMPILE=1`. This repo does not vendor
+could not `--release 21`. CI, release, and Pages install Temurin 21 so the
+compile actually runs there. The Handlebars `inc`/`dec` Java check in
+`test/handlebars_inc_dec_test.ts` uses the same skip. Skip with
+`SKIP_ARCHIE_COMPILE=1`. This repo does not vendor
 Archie JARs and does not require Maven/Gradle for the Deno test suite.
 
 ```bash

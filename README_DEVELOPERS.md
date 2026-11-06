@@ -14,6 +14,11 @@ The desktop app also saves data using IndexedDB, through its embedded browser en
 
 Saves are done as debounced **autosave** (~10 s after edits) plus named **Save as** snapshots. Details: [docs/PROJECT_PERSISTENCE.md](docs/PROJECT_PERSISTENCE.md) and [Autosave & Status Bar](docs/UI_ARCHITECTURE.md#autosave--status-bar) in `docs/UI_ARCHITECTURE.md`. Portable backup is the `.intehrgrator` export/import path.
 
+
+## VS Code file projects
+
+In addition to the web and desktop storage above, the VS Code extension works on file projects: a Git-backed project with separate source, mapping and output files. The same files can be checked headlessly with `deno task project:run`. See [VS Code file projects](docs/VS_CODE.md) for setup, reviewable results and the CI runner.
+
 ## Prerequisites
 
 - **[Deno](https://docs.deno.com/runtime/getting_started/installation/)** 2.9+ — the project runtime, task runner, test runner, and desktop packager. We use Deno instead of Node/npm for installs, linting, testing, and builds.
@@ -32,7 +37,7 @@ deno task build  # build web app into /dist
 deno task dev`  # start and serve on `http://localhost:5173`
 ```
 
-NOTE: ehrtslib is not cloned. `deno.json` imports it, unpatched, from the jsDelivr URL for release [v0.7](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.7). `deno task vendor` only clones the example archetypes.
+NOTE: ehrtslib is not cloned. `deno.json` (and `scripts/ehrtslib.compile.json`) import it, unpatched, from the jsDelivr URL for release [v0.12](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.12). `deno task vendor` only clones the example archetypes.
 
 ## Tests
 
@@ -60,7 +65,7 @@ The UI **green-path** (`test/ui/green_path_test.ts`) walks load → Click-to-Map
 | `deno task test:xquery-engine` | Optional BaseX golden (`test/xquery_engine_test.ts`) |
 | `deno task lint` | `deno lint` on `src`, `test`, `scripts` |
 | `deno task check` | Type-check TypeScript sources |
-| `deno task desktop` | Build + run native window (`deno desktop`) |
+| `deno task desktop` | Build + run native window. Flags after `--` are forwarded (`--headless`, `--load`, `--language-plugin`, …) |
 | `deno task compile:desktop` | Platform binaries → `dist/release/` |
 | `deno task mcp` | Stdio MCP server for IDE agents (proxies to `INTEHR_AGENT_URL` or embeds a headless `WorkbenchService`) |
 | `deno task release -- --version X.Y.Z` | Bump, tag, push; CI publishes desktop + pinned Pages |
@@ -69,7 +74,7 @@ The UI **green-path** (`test/ui/green_path_test.ts`) walks load → Click-to-Map
 
 ### GitHub Pages
 
-Every push to `main` deploys the bleeding-edge web app. `deno task release` also publishes an immutable copy under `/vX.Y/` and updates [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json).
+Every push to `main` deploys the bleeding-edge web app. A release also publishes an immutable copy under `/vX.Y/` and updates [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json).
 
 `versions.json` also carries a `recommended` field naming the tag (e.g. `"v0.7.5"`) the web app suggests end users stick to. It defaults to the newest published release tag on every deploy, but a still-published previous recommendation is preserved across deploys unless overridden. To pin an older release as recommended (e.g. while a new one is still shaking out), commit a `RECOMMENDED_VERSION` file at the repo root containing just the tag; `scripts/assemble-pages.ts` reads it (or the `RECOMMENDED_VERSION` env var) on the next Pages deploy. Visiting any non-recommended version of the deployed site (including the bleeding-edge root) shows a popup linking to the recommended version, the tutorial, and the README.
 
@@ -77,20 +82,50 @@ CI runs **`deno task vendor`** (example archetypes, plus the local TemplateValid
 
 ## Releases
 
-Maintainers cut releases with **`deno task release`** (not GitHub **Releases → Draft a new release** alone). The Deno script bumps version files, runs vendor/build/tests locally, commits if needed, creates an annotated tag, and pushes `HEAD` + the tag. **GitHub Actions** (`.github/workflows/release.yml`) runs on the tag: vendor → unit tests → build → UI tests → frozen GitHub Pages under `https://regionstockholm.github.io/intehrgrator/<tag>/` → desktop binaries → GitHub Release assets.
+Two entry points start a release. Each one prepares the version files, commits when they change, and pushes an annotated tag. **Publish is only** [`.github/workflows/release.yml`](.github/workflows/release.yml), which runs on that tag push: vendor → unit tests → build → UI tests → frozen GitHub Pages under `https://regionstockholm.github.io/intehrgrator/<tag>/` → desktop binaries → VS Code VSIX (`dist/release/intEHRgrator.vsix`) → GitHub Release assets.
 
-### Happy path (new version)
+The tag name comes from `releaseTagForVersion` in `scripts/release_version.ts`. Package version `0.8.8` → tag **`v0.8.8`**. Patch segment `0` drops: `0.8.0` → tag **`v0.8`**.
 
-1. Work from a clean `main` (or agreed release branch). Ensure `git` and `gh` auth work (`deno task release` checks `gh` unless `--dry-run`).
-2. Run `deno task release -- --version X.Y.Z` (or `--current` to tag the version already in `deno.json`). Prefer the `--` separator so Deno does not swallow script flags.
-3. Locally the script may bump `deno.json`, `package.json`, `scripts/desktop.compile.json`, and `APP_VERSION`; run `deno task vendor` (unless skipped), unit tests (unless `--no-test`), and `deno task build`; then commit, tag, and push.
-4. The tag push triggers `release.yml` (unit + UI must pass before publish).
+**Release notes** live in [`CHANGELOG.md`](CHANGELOG.md). Feature and fix PRs add a line under **Unreleased**. Both entry points move those notes under `## [X.Y.Z]` (the heading and date already there, or a new one), leave **Unreleased** empty, and point the compare link at the new tag. The GitHub Release description and the annotated tag message link to `CHANGELOG.md` at the tag. On Actions the changelog date is the UTC date of the run.
 
-**Release notes** live in [`CHANGELOG.md`](CHANGELOG.md). Feature and fix PRs add a line under **Unreleased**; the release PR (version bump) renames that section to the new version and date. The GitHub Release description and the annotated tag message link to `CHANGELOG.md` at the tag.
+### Actions: Release create (new version)
 
-Example: package version `0.8.8` → tag **`v0.8.8`**. Patch segment `0` is special: `0.8.0` → tag **`v0.8`** (see `releaseTagForVersion` in `scripts/release_version.ts`).
+**Actions → Release create → Run workflow** ([`.github/workflows/release-create.yml`](.github/workflows/release-create.yml)). The workflow calls `scripts/release_create.ts`, which uses the same bump, changelog, commit message, and tag helpers as the CLI. It does not run tests or upload assets.
 
-### Flags
+| Input | Default | Effect |
+|-------|---------|--------|
+| `version` | required | Semver written into `deno.json`, `package.json`, `scripts/desktop.compile.json`, and `APP_VERSION`. |
+| `ref` | `main` | Branch that receives the version-bump commit. A branch name, such as `main`. |
+| `update_recommended` | false | Also write repo-root [`RECOMMENDED_VERSION`](RECOMMENDED_VERSION) to the new tag. Leave this off unless this release should be the version the web app suggests. |
+| `dry_run` | false | Check the version, the tag, and Pages. No commit, tag, or push. |
+
+The run refuses when the derived tag already exists on `origin`, when Pages [`versions.json`](https://regionstockholm.github.io/intehrgrator/versions.json) already lists it, or when `/<tag>/index.html` is already published. If Pages cannot be read, or the index status is anything other than 200 or 404, the run stops and pushes nothing. The push is `git push --atomic` (no `--force`): the branch and the tag land together, and a branch that moved is rejected.
+
+All Release create runs share one concurrency group and do not cancel each other. `0.9` and `0.9.0` are different inputs and the same tag (`v0.9`), so a group keyed only by the typed version would let both pass the tag check. The waiting run then sees the tag and refuses.
+
+The commit message is `chore: release X.Y.Z`. [`pages.yml`](.github/workflows/pages.yml) skips those commits, so the tag workflow owns the Pages deploy. The annotated tag title is the default (`intEHRgrator desktop <version>` plus the changelog link). Use the CLI `--message` flag when the title should be different.
+
+**Who can run it.** The job uses the GitHub Environment `release`. Create that environment and add required reviewers before the first real dispatch (Settings → Environments). The workflow file cannot turn reviewers on. Until reviewers are required, anyone who can dispatch workflows can start a run once the environment exists.
+
+**Token.** Store a fine-grained personal access token or GitHub App installation token as the Actions secret `RELEASE_PAT` (an environment secret on `release` is the tighter place). It needs Contents read and write on this repository. The workflow's own `GITHUB_TOKEN` stays read-only. A push made with `GITHUB_TOKEN` does not start other workflows, so `release.yml` would not publish Pages, desktop binaries, or the GitHub Release. `dry_run` checks out with the read-only token and does not need `RELEASE_PAT`.
+
+The same checks can be dry-run locally. Without `--dry-run` the script refuses to commit or push; `deno task release` is the entry point on a maintainer machine.
+
+```bash
+deno run -A scripts/release_create.ts --version 0.8.9 --dry-run
+```
+
+### Command line
+
+`deno task release` is the other entry point. It needs `git` and a clean work tree. It does not need the GitHub CLI. Your git credentials push the tag, and that push starts `release.yml`.
+
+1. Clean `main`, or another branch you mean to release from.
+2. `deno task release -- --version X.Y.Z`, or `--current` to tag the version already in `deno.json`. Keep the `--` so Deno does not swallow the flags.
+3. The script bumps version files unless `--current`, moves CHANGELOG notes, runs `deno task vendor`, unit tests (unless `--no-test`), and `deno task build`, then commits if needed, tags, and pushes `HEAD` and the tag.
+
+The CLI does not change `RECOMMENDED_VERSION`. It also does not pre-check Pages; `release.yml` still refuses to assemble a tag that is already listed.
+
+### Flags (`deno task release`)
 
 | Flag | Effect |
 |------|--------|
@@ -98,27 +133,32 @@ Example: package version `0.8.8` → tag **`v0.8.8`**. Patch segment `0` is spec
 | `--no-test` / `deno task release:no-test` | Skips **local** unit tests only; CI still runs unit + UI on the tag. |
 | `--message` | Annotated tag title (default: `intEHRgrator desktop <version>`); a tag-pinned `CHANGELOG.md` link is always appended. |
 
-### Immutable published tags vs recovery
+### Immutable published tags, and recovery of an existing tag
 
 Frozen Pages builds for a tag are **immutable**: `assembleReleasePagesSite` errors if that tag is already listed in `versions.json`, and `release.yml` assembles Pages **before** desktop upload.
 
-- **Routine fix after a successful release:** ship a **new** version and tag (e.g. `0.8.9` / `v0.8.9`). Do not try to rebuild `v0.8.8` in place.
-- **`workflow_dispatch` → “Existing release tag”** on `release.yml` is for **recovery** when the first Actions run failed *before* that version was published to Pages — not for republishing. Re-dispatching a tag already on Pages typically fails at assemble and does not refresh what users already have.
+- **Routine fix after a successful release:** ship a **new** version with **Release create** or `deno task release` (for example `0.8.9` / `v0.8.9`). Rebuilding an existing `/v0.8.8/` in place is not available.
+- **Release create** is how you make a **new** tag from Actions.
+- **`release.yml` → Run workflow → “Existing release tag”** is recovery for a tag that **already exists on origin**, when the first publish stopped before that version reached Pages. The run stops unless `git ls-remote` finds that `v*` tag. It does not bump version files and it does not create a tag. Re-dispatching a tag already on Pages fails at assemble and leaves the frozen site as it is.
 
-### `deno task release` vs GitHub “Draft a new release”
+### Why GitHub “Draft a new release” is not this flow
 
-| | `deno task release` + tag → `release.yml` | GitHub **Draft a new release** UI |
+**Releases → Draft a new release** creates a GitHub Release and can create a tag. A new `v*` tag still starts `release.yml`, and that workflow uploads assets when the Release already exists. Draft a new release still leaves the version bump, the tag rules, and the Pages check to you:
+
+| | Release create, or `deno task release` | Draft a new release |
 |--|--|--|
-| Bumps version files | Yes (unless `--current`) | No |
-| Enforces `releaseTagForVersion` | Yes | Easy to pick a mismatched tag |
-| Tests, frozen `/v…/` Pages, desktop via CI | On tag push | Only if a new `v*` tag is created/pushed; no version bump |
-| Creates GitHub Release assets | Via Actions after tag | Yes (primary UI purpose) |
+| Bumps `deno.json`, `package.json`, `scripts/desktop.compile.json`, and `APP_VERSION` | Yes (CLI `--current` tags the version already in the files) | The tagged commit has to contain them already |
+| Tag follows `releaseTagForVersion` (`0.8.0` → `v0.8`) | Yes | Whatever tag you type |
+| Refuses a tag that already exists or is already on Pages | Release create refuses before the push; assemble also rejects a Pages path that is already published | Whatever tag you type, including one already published |
+| Moves CHANGELOG **Unreleased** into the version | Yes | The tagged commit has to contain the notes already |
+| `RECOMMENDED_VERSION` | Opt-in on Release create (default off). The CLI leaves the pin unchanged | Unchanged |
+| Tests, frozen `/<tag>/`, desktop, VSIX | `release.yml` after the tag push | Only when the new tag matches `v*` and the commit is already prepared |
 
-Release notes go in `CHANGELOG.md` (in the release PR), not in the GitHub Release UI; use that UI only for extra attachments, not as a substitute for the guided release path. A future Actions “make new release” UI is tracked in [#220](https://github.com/regionstockholm/intehrgrator/issues/220).
+Write release notes in `CHANGELOG.md`. Use the GitHub Release screen to attach extra files.
 
 ### Recommended end-user version
 
-`versions.json` field **`recommended`** drives the “not on recommended version” popup and the stable `/recommended/` alias (which redirects directly to the active recommended release). On assemble, precedence is: `RECOMMENDED_VERSION` env or repo-root [`RECOMMENDED_VERSION`](RECOMMENDED_VERSION) file → else keep the previous recommendation if still published → else newest tag. To promote a release (e.g. `v0.8.8`), commit `RECOMMENDED_VERSION` containing that tag and let the next Pages deploy (main and/or release assemble) run.
+`versions.json` field **`recommended`** drives the “not on recommended version” popup and the stable `/recommended/` alias (which redirects directly to the active recommended release). On assemble, precedence is: `RECOMMENDED_VERSION` env or repo-root [`RECOMMENDED_VERSION`](RECOMMENDED_VERSION) file → else keep the previous recommendation if still published → else newest tag. To promote a release (e.g. `v0.8.8`), commit `RECOMMENDED_VERSION` containing that tag and let the next Pages deploy (main and/or release assemble) run. Release create writes that file only when `update_recommended` is true; otherwise the pin stays as it is, including across the new release.
 
 Bleeding-edge site root (`main` Pages) is not the same as the recommended stable tag.
 

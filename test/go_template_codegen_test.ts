@@ -354,7 +354,7 @@ Deno.test("chemo symptoms Blockly loads on TakeCare schema blocks", () => {
     const types = new Set(ws.getAllBlocks(false).map((b) => b.type));
     assert(types.has("schema_ProfdocHISMessage"), "schema_ProfdocHISMessage");
     assert(types.has("schema_TextKeyWord"), "schema_TextKeyWord");
-    assert(types.has("controls_if"), "should contain conditional blocks");
+    assert(types.has("include_when"), "should contain include-when guards");
     assertEquals(types.has("xml_element"), false);
     assertEquals(types.has("go_xml_element"), false);
     assertEquals(types.has("go_xml_comment"), false);

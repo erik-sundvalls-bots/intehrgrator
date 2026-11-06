@@ -1,3 +1,4 @@
+import { emitXQueryStack } from "./function_statements.ts";
 /**
  * XQuery conversion script language — Mapping Model → self-contained `.xq`.
  *
@@ -30,15 +31,18 @@ import {
   rmLocatableName,
 } from "../openehr/rm_archetype_node_id.ts";
 import { isListAttribute } from "./typescript.ts";
-import { emitSheetHelpers } from "./xquery_sheets.ts";
+import { xqueryHelperImports } from "./xquery_modules.ts";
 import {
   instanceShapeForEncoding,
   preferredInstanceEncoding,
 } from "../output/instance_encoding.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
+import { octetBytes } from "../rm_shell_fragment.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
+import { namedLoopRead } from "../named_loop_path.ts";
 
 /** Host-bound VMS-Hbs render (`run_xquery.ts` / BaseX external). */
 export const INTEHRGRATOR_XQUERY_NS = "http://intehrgrator.local/xquery";
@@ -52,6 +56,7 @@ export interface XQueryEmitEnv {
   /** Context node for xpath* — defaults to `$source`; loop bodies use the loop var. */
   sourceVar?: string;
   fnIdents?: Map<string, string>;
+  functionState?: string;
 }
 
 function userFunctionXqEnv(model: MappingModel, base: XQueryEmitEnv = {}): XQueryEmitEnv {
@@ -71,7 +76,13 @@ function emitXQueryUserFunctions(model: MappingModel, env: XQueryEmitEnv): strin
     const params = fn.params.map((p) => `$${xqueryLocalName(p)} as item()*`).join(", ");
     const bind = Object.fromEntries(fn.params.map((p) => [p, xqueryLocalName(p)]));
     const inner: XQueryEmitEnv = { ...env, bind: { ...env.bind, ...bind }, fnIdents: idents };
-    const body = emitXQueryExpr(parseExpression(fn.body!), inner);
+    let body = emitXQueryExpr(parseExpression(fn.body!), inner);
+    if (fn.stack?.length) {
+      const vars = `map { ${fn.params.map(p => `${xqString(p)}: $${xqueryLocalName(p)}`).join(", ")} }`;
+      const stack = emitXQueryStack(fn.stack, "$initial", (source, state) => emitXQueryExpr(parseExpression(source), {...inner, functionState: state}));
+      const result = emitXQueryExpr(parseExpression(fn.body!), {...inner, functionState: "$finished"});
+      body = `(let $initial := map { 'vars': ${vars}, 'returned': false(), 'value': () } let $finished := ${stack} return if ($finished?returned) then $finished?value else ${result})`;
+    }
     lines.push(`declare function local:${ident}(${params}) as item()* {`);
     lines.push(`  ${body}`);
     lines.push("};");
@@ -200,6 +211,8 @@ function wrapXQueryModule(args: {
   body: string;
 }): string {
   const method = args.shape === "json" ? "json" : "xml";
+  const userFns = emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model));
+  const helperImports = xqueryHelperImports(`${userFns.join("\n")}\n${args.body}`);
   const lines: string[] = [
     'xquery version "3.1";',
     "",
@@ -209,6 +222,7 @@ function wrapXQueryModule(args: {
     "(: Runtime: Saxon / BaseX / eXist, or in-app Test Run via lazy-loaded fontoxpath :)",
     `(: ${xqComment(args.productComment)} :)`,
     "(: Bind $source (XML node or XPath 3.1 map), $defaults, and $sheets (see docs/agents/xquery-engine.md). :)",
+    ...(helperImports.length ? ["", ...helperImports] : []),
     "",
     'declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";',
     ...(args.needsRm
@@ -234,9 +248,7 @@ function wrapXQueryModule(args: {
     "declare variable $defaults as map(*) external := map {};",
     "declare variable $sheets as map(*) external := map {};",
     "",
-    ...emitHelpers(args.needsRm),
-    "",
-    ...emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model)),
+    ...userFns,
     `declare function local:convert($source as item()*) as ${args.convertType} {`,
     args.body,
     "};",
@@ -353,7 +365,7 @@ function emitLoop(
   baseEnv: XQueryEmitEnv = {},
 ): string[] {
   const ident = loopVarIdent(loop.varName);
-  const sequence = compileLoopSequence(loop);
+  const sequence = compileLoopSequence(loop, baseEnv.sourceVar);
   const env: XQueryEmitEnv = {
     ...baseEnv,
     sourceVar: `$${ident}`,
@@ -405,8 +417,12 @@ function loopVarIdent(varName: string): string {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(varName) ? varName : "item";
 }
 
-/** Compile a loop collection path to an XQuery sequence expression. */
-export function compileLoopSequence(loop: MappingLoop): string {
+/**
+ * Compile a loop collection path to an XQuery sequence expression. A relative
+ * path inside another loop (`Substanser` in the treatment-day loop) is read
+ * from the outer loop's item `scopeVar`, as preview and TypeScript do (F-M7).
+ */
+export function compileLoopSequence(loop: MappingLoop, scopeVar?: string): string {
   if (loop.kind === "list") {
     if (!loop.collection) {
       return "(: for_each_list without collection expression :) ()";
@@ -423,159 +439,21 @@ export function compileLoopSequence(loop: MappingLoop): string {
     const base = path.replace(/\[\*\]$/, "");
     const lookup = jsonDollarPathToLookup(base);
     if (lookup) {
-      return `local:iterable-sequence(${lookup})`;
+      return `ig:iterable-sequence(${lookup})`;
     }
-    return `local:lookup-sequence($source, ${xqString(path)})`;
+    return `ig:lookup-sequence($source, ${xqString(path)})`;
   }
 
   if (path.startsWith("/")) {
     return `$source${path}`;
   }
 
-  return `local:lookup-sequence($source, ${xqString(path)})`;
-}
+  if (scopeVar && scopeVar !== "$source") {
+    const lookup = jsonDollarPathToLookup(`$.${path.replace(/\[\*\]$/, "")}`, scopeVar);
+    if (lookup) return `ig:iterable-sequence(${lookup})`;
+  }
 
-function emitHelpers(needsRm: boolean): string[] {
-  return [
-    "(: --- Source access (fontoxpath-authored paths → XQuery 3.1) --- :)",
-    "",
-    "declare function local:iterable-sequence($nodes as item()*) as item()* {",
-    "  if ($nodes instance of array(*)) then $nodes?*",
-    "  else $nodes",
-    "};",
-    "",
-    "declare function local:lookup-sequence($ctx as item()*, $path as xs:string) as item()* {",
-    "  (: Dynamic or non-literal loop paths — prefer compile-time $. / / paths from export :) ",
-    "  if (starts-with($path, \"$\"))",
-    "  then let $nodes := local:json-lookup($ctx, $path)",
-    "       return if ($nodes instance of array(*)) then $nodes?* else $nodes",
-    "  else error(",
-    '    QName("http://intehrgrator.local/xquery", "DYNAMIC-LOOP-PATH"),',
-    '    "Prefer compile-time literal loop PATH from intEHRgrator export; got: " || $path',
-    "  )",
-    "};",
-    "",
-    "declare function local:string-at($ctx as item()*, $path as xs:string) as xs:string? {",
-    "  let $value := local:lookup($ctx, $path)",
-    "  return if (empty($value)) then () else xs:string($value)",
-    "};",
-    "",
-    "declare function local:number-at($ctx as item()*, $path as xs:string) as xs:decimal? {",
-    "  let $value := local:lookup($ctx, $path)",
-    "  return if (empty($value)) then () else xs:decimal($value)",
-    "};",
-    "",
-    "declare function local:boolean-at($ctx as item()*, $path as xs:string) as xs:boolean? {",
-    "  let $value := local:lookup($ctx, $path)",
-    "  return if (empty($value)) then () else xs:boolean($value)",
-    "};",
-    "",
-    "declare function local:lookup($ctx as item()*, $path as xs:string) as item()* {",
-    "  if (starts-with($path, \"$\"))",
-    "  then local:json-lookup($ctx, $path)",
-    "  else error(",
-    '    QName("http://intehrgrator.local/xquery", "DYNAMIC-XML-PATH"),',
-    '    "Prefer compile-time literal XML paths from intEHRgrator export; got: " || $path',
-    "  )",
-    "};",
-    "",
-    "declare function local:json-lookup($ctx as item()*, $path as xs:string) as item()* {",
-    "  let $body := replace(replace(replace($path, \"^\\\\$\\\\.?\", \"\"), \"\\\\[(\\\\d+)\\\\]\", \".$1\"), \"\\\\[\\\\*\\\\]\", \".*\")",
-    "  let $segments := tokenize($body, \"\\\\.\")[. ne \"\"]",
-    "  return fold-left(",
-    "    $segments,",
-    "    $ctx,",
-    "    function($acc as item()*, $seg as xs:string) as item()* {",
-    "      if (empty($acc)) then ()",
-    "      else if ($seg eq \"*\") then",
-    "        if ($acc instance of array(*)) then $acc?* else $acc",
-    "      else if ($seg castable as xs:integer) then",
-    "        if ($acc instance of array(*)) then $acc?(xs:integer($seg)) else ($acc)[xs:integer($seg)]",
-    "      else if ($acc instance of array(*)) then $acc?*?($seg)",
-    "      else $acc?($seg)",
-    "    }",
-    "  )",
-    "};",
-    "",
-    ...(needsRm ? emitDvHelpers() : []),
-    ...emitSheetHelpers(),
-  ];
-}
-
-function emitDvHelpers(): string[] {
-  return [
-    "(: --- DV_* constructors (RM XML) --- :)",
-    "",
-    "declare function local:dv-text($value as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_TEXT" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-coded-text($value as xs:string?, $code as xs:string?, $terminology as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_CODED_TEXT" },',
-    "    element rm:value { $value },",
-    "    element rm:defining_code {",
-    "      element rm:terminology_id { element rm:value { $terminology } },",
-    "      element rm:code_string { $code }",
-    "    }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-quantity($magnitude as xs:decimal?, $units as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_QUANTITY" },',
-    "    element rm:magnitude { $magnitude },",
-    "    element rm:units { $units }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-count($magnitude as xs:integer?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_COUNT" },',
-    "    element rm:magnitude { $magnitude }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-boolean($value as xs:boolean?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_BOOLEAN" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-date-time($value as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_DATE_TIME" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:dv-uri($value as xs:string?) as element(rm:value) {",
-    "  element rm:value {",
-    '    attribute xsi:type { "DV_URI" },',
-    "    element rm:value { $value }",
-    "  }",
-    "};",
-    "",
-    "declare function local:as-value($rm-type as xs:string, $value as item()*) as element()* {",
-    "  switch ($rm-type)",
-    '    case "DV_QUANTITY" return local:dv-quantity(($value)[1] ! xs:decimal(.), ())',
-    '    case "DV_COUNT" return local:dv-count(($value)[1] ! xs:integer(.))',
-    '    case "DV_INTEGER" return local:dv-count(($value)[1] ! xs:integer(.))',
-    '    case "DV_BOOLEAN" return local:dv-boolean(($value)[1] ! xs:boolean(.))',
-    '    case "DV_DATE_TIME" return local:dv-date-time(($value)[1] ! xs:string(.))',
-    '    case "DV_DATE" return local:dv-date-time(($value)[1] ! xs:string(.))',
-    '    case "DV_TIME" return local:dv-date-time(($value)[1] ! xs:string(.))',
-    '    case "DV_URI" return local:dv-uri(($value)[1] ! xs:string(.))',
-    '    case "DV_EHR_URI" return local:dv-uri(($value)[1] ! xs:string(.))',
-    '    case "DV_CODED_TEXT" return local:dv-coded-text(($value)[1] ! xs:string(.), (), ())',
-    "    default return local:dv-text(($value)[1] ! xs:string(.))",
-    "};",
-    "",
-  ];
+  return `ig:lookup-sequence($source, ${xqString(path)})`;
 }
 
 function emitSlot(slot: MappingSlot, env: XQueryEmitEnv = {}, needsRm = true): string[] {
@@ -588,7 +466,7 @@ function emitSlot(slot: MappingSlot, env: XQueryEmitEnv = {}, needsRm = true): s
   }
   const label = slot.label ?? slot.slotId;
   const valueLine = needsRm
-    ? `  local:as-value(${xqString(slot.rmType)}, ${exprXq})`
+    ? `  igrm:as-value(${xqString(slot.rmType)}, ${exprXq})`
     : `  ${exprXq}`;
   return [
     `(: ${xqComment(label)} — ${xqComment(slot.expression)} :)`,
@@ -610,6 +488,7 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
   const sourceVar = env.sourceVar ?? "$source";
   switch (ast.kind) {
     case "literal":
+      if (ast.value === null) return "()";
       if (typeof ast.value === "string") return xqString(ast.value);
       if (typeof ast.value === "boolean") return ast.value ? "true()" : "false()";
       return String(ast.value);
@@ -637,6 +516,7 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
           return emitSwitchXq(args);
         case "var": {
           const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (env.functionState) return `${env.functionState}?vars(${args[0]})`;
           if (name && env.bind?.[name]) return `$${env.bind[name]}`;
           return `$vars(${args[0]})`;
         }
@@ -659,35 +539,47 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
         case "not":
           return `not(${args[0]})`;
         case "list":
-          return `(${args.join(", ")})`;
+          return env.functionState ? `[ ${args.join(", ")} ]` : `(${args.join(", ")})`;
+        case "lists_getIndex": {
+          const where = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "FIRST";
+          const index = where === "LAST" ? "array:size($list)" : where === "FROM_END" ? `array:size($list) - (${args[2] ?? "1"}) + 1` : where === "FROM_START" ? (args[2] ?? "1") : "1";
+          return `(let $items := ${args[0]} let $list := if ($items instance of array(*)) then $items else array { $items } let $at := xs:integer(${index}) return if ($at ge 1 and $at le array:size($list)) then $list($at) else ())`;
+        }
         case "intersection":
           return `(${args[0]}[some $b in ${args[1]} satisfies deep-equal(., $b)])`;
         case "union":
           return `(${args[0]}, ${args[1]}[not(some $a in ${args[0]} satisfies deep-equal(., $a))])`;
         case "difference":
           return `(${args[0]}[not(some $b in ${args[1]} satisfies deep-equal(., $b))])`;
+        case "maps_entries":
+          return `(let $map := ${args[0]} return if ($map instance of map(*)) then array { for $key in map:keys($map) return [ $key, map:get($map, $key) ] } else [])`;
+        case "lists_length":
+          return `(let $items := ${args[0]} return if ($items instance of array(*)) then array:size($items) else count($items))`;
         case "maps_get":
-          return `(if (${args[0]} eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
+          if (ast.args[0]?.kind === "literal" && typeof ast.args[0].value === "string") {
+            return `(if (${args[0]} eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
+          }
+          return `(let $map := ${args[0]} return if ($map instance of map(*)) then map:get($map, string(${args[1]})) else if ($map eq "defaults") then map:get($defaults, ${args[1]}) else ())`;
         case "sheet_get_cell":
-          return `local:sheet-get-cell(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-cell($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_xy":
-          return `local:sheet-get-xy(${args[0]}, ${args[1]}, ${args[2]})`;
+          return `igsh:sheet-get-xy($sheets, ${args[0]}, ${args[1]}, ${args[2]})`;
         case "sheet_get_row":
-          return `local:sheet-get-row(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-row($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_column":
-          return `local:sheet-get-column(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-column($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_header":
-          return `local:sheet-get-header(${args[0]}, ${args[1]})`;
+          return `igsh:sheet-get-header($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_data":
-          return `local:sheet-get-data(${args[0]})`;
+          return `igsh:sheet-get-data($sheets, ${args[0]})`;
         case "sheet_lookup":
           return args.length >= 4
-            ? `local:sheet-lookup(${args[0]}, ${args[1]}, ${args[2]}, ${args[3]})`
-            : `local:sheet-lookup(${args[0]}, ${args[1]}, ${args[2]})`;
+            ? `igsh:sheet-lookup($sheets, ${args[0]}, ${args[1]}, ${args[2]}, ${args[3]})`
+            : `igsh:sheet-lookup($sheets, ${args[0]}, ${args[1]}, ${args[2]})`;
         case "decision_table":
           return args.length >= 3
-            ? `local:decision-table(${args[0]}, ${args[1] ?? "map {}"}, ${args[2]})`
-            : `local:decision-table(${args[0]}, ${args[1] ?? "map {}"})`;
+            ? `igsh:decision-table($sheets, ${args[0]}, ${args[1] ?? "map {}"}, ${args[2]})`
+            : `igsh:decision-table($sheets, ${args[0]}, ${args[1] ?? "map {}"})`;
         case "map":
           return emitMapLiteralXq(args);
         case "xpathString":
@@ -699,10 +591,15 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
           return emitXPathCall("boolean-at", ast.args[0], env);
         case "xpathNode":
           if (ast.args[0]?.kind === "literal" && typeof ast.args[0].value === "string") {
-            const path = ast.args[0].value.trim();
-            if (path.startsWith("/")) return `(${sourceVar}${path})[1]`;
-            const lookup = compileRelativeLookup(path, sourceVar);
+            const scoped = scopeNamedPath(ast.args[0].value.trim(), env);
+            if (scoped.path === "." || scoped.path === "") return `(${scoped.sourceVar})[1]`;
+            if (scoped.path.startsWith("/")) return `(${scoped.sourceVar}${scoped.path})[1]`;
+            const lookup = compileRelativeLookup(scoped.path, scoped.sourceVar);
             if (lookup) return `(${lookup})[1]`;
+            if (scoped.path.startsWith("$")) {
+              const abs = jsonDollarPathToLookup(scoped.path, scoped.sourceVar);
+              if (abs) return `(${abs})[1]`;
+            }
           }
           return sourceVar;
         case "handlebars":
@@ -759,23 +656,42 @@ function emitXPathCall(
   const sourceVar = env.sourceVar ?? "$source";
   if (!pathAst) return "()";
   if (pathAst.kind === "literal" && typeof pathAst.value === "string") {
-    const compiled = compileLiteralPath(pathAst.value, helper, sourceVar);
+    const compiled = compileLiteralPath(pathAst.value, helper, sourceVar, env.bind);
     if (compiled) return compiled;
   }
-  return `local:${helper}(${sourceVar}, ${emitXQueryExpr(pathAst, env)})`;
+  return `ig:${helper}(${sourceVar}, ${emitXQueryExpr(pathAst, env)})`;
 }
 
 /**
  * Compile a fontoxpath-authored literal path to inline XQuery when safe.
  * Falls back to local:*-at helpers for dynamic / complex paths.
  */
+function scopeNamedPath(
+  path: string,
+  env: XQueryEmitEnv,
+): { sourceVar: string; path: string } {
+  const sourceVar = env.sourceVar ?? "$source";
+  const named = namedLoopRead(path, Object.keys(env.bind ?? {}));
+  const ident = named ? env.bind?.[named.name] : undefined;
+  if (!named || !ident) return { sourceVar, path };
+  return { sourceVar: `$${ident}`, path: named.rest };
+}
+
 export function compileLiteralPath(
   path: string,
   helper: "string-at" | "number-at" | "boolean-at",
   sourceVar = "$source",
+  bind?: Record<string, string>,
 ): string | null {
   const trimmed = path.trim();
   if (!trimmed) return null;
+  if (bind) {
+    const named = namedLoopRead(trimmed, Object.keys(bind));
+    const ident = named ? bind[named.name] : undefined;
+    if (named && ident) {
+      return compileLiteralPath(named.rest, helper, `$${ident}`);
+    }
+  }
 
   const cast = helper === "number-at"
     ? "xs:decimal"
@@ -889,7 +805,7 @@ export function jsonDollarPathToLookup(path: string, root = "$source"): string |
   let expr = root;
   for (const seg of segments) {
     if (seg === "*") expr += "?*";
-    else if (/^\d+$/.test(seg)) expr += `?${seg}`;
+    else if (/^\d+$/.test(seg)) expr += `?${seg === "0" ? "1" : seg}`;
     else if (/^[\p{L}_][\p{L}\p{N}_]*$/u.test(seg)) expr += `?${seg}`;
     else expr += `?(${xqString(seg)})`;
   }
@@ -919,6 +835,7 @@ function emitMapLiteralXq(args: string[]): string {
 interface XqSkelCtx {
   slots: Map<string, MappingSlot>;
   loops: MappingLoop[];
+  includes: MappingModel["includes"];
   env: XQueryEmitEnv;
   shape: OpenEhrInstanceShape;
 }
@@ -932,6 +849,7 @@ function emitCompositionProduct(
   const ctx: XqSkelCtx = {
     slots: new Map(model.slots.map((slot) => [slot.slotId, slot])),
     loops: model.loops ?? [],
+    includes: model.includes,
     env,
     shape,
   };
@@ -963,7 +881,20 @@ function emitSkelNode(
 
   const props = skelProps(node, ctx, parentArchetypeRef);
   if (node.rmType !== "COMPOSITION" && propsLackClinicalContent(props)) return null;
-  return formatSkelConstruct(node, props, ctx, isRoot);
+  return guardSkelNode(node, formatSkelConstruct(node, props, ctx, isRoot), ctx);
+}
+
+/** `include_when` as XQuery `if (cond) then node else ()` (SMT `ite`). */
+function guardSkelNode(node: SkeletonNode, code: string, ctx: XqSkelCtx): string {
+  const inc = ctx.includes?.find((item) => item.slotId === node.slotId);
+  if (!inc?.when || inc.elseEmits) return code;
+  let cond = "false()";
+  try {
+    cond = emitXQueryExpr(parseExpression(inc.when), ctx.env);
+  } catch {
+    cond = "false()";
+  }
+  return `(if (${cond}) then ${code} else ())`;
 }
 
 function emitSkelLoop(
@@ -988,8 +919,8 @@ function emitSkelLoop(
     },
   };
   const props = skelProps(node, inner, parentArchetypeRef);
-  const constructed = formatSkelConstruct(node, props, inner, false);
-  const sequence = compileLoopSequence(loop);
+  const constructed = guardSkelNode(node, formatSkelConstruct(node, props, inner, false), inner);
+  const sequence = compileLoopSequence(loop, ctx.env.sourceVar);
   const flwor =
     `let $${ident}_col := ${sequence} ` +
     `for $${ident} at $${ident}_pos in $${ident}_col ` +
@@ -1095,6 +1026,87 @@ function xmlChild(key: string, value: string): string {
   return `element rm:${xmlLocalName(key)} { ${value} }`;
 }
 
+function xqShellGen(ctx: XqSkelCtx): ShellCodegen {
+  const json = ctx.shape === "json";
+  return {
+    expr: (expression) => {
+      try {
+        return emitXQueryExpr(parseExpression(expression), ctx.env);
+      } catch {
+        return "()";
+      }
+    },
+    object: (rmType, fields) => xqShellObject(rmType, fields, json),
+    list: (items, attribute) => json
+      ? `array { ${items.join(", ")} }`
+      : `(${items.map((item) => `element rm:${xmlLocalName(attribute)} { ${item} }`).join(", ")})`,
+    octets: (code) => xqOctets(code, json),
+  };
+}
+
+function xqShellObject(
+  rmType: string,
+  fields: Array<[string, string]>,
+  json: boolean,
+): string {
+  const normalized = rmType === "CODE_PHRASE"
+    ? fields.map(([key, value]) => {
+      if (key !== "terminology_id" || value.includes("_type") || value.includes("xsi:type")) {
+        return [key, value] as [string, string];
+      }
+      return json
+        ? [key, `map { "_type": "TERMINOLOGY_ID", "value": ${value} }`] as [string, string]
+        : [key, `element rm:value { ${value} }`] as [string, string];
+    })
+    : fields;
+  if (json) {
+    const body = [
+      `"_type": ${xqString(rmType)}`,
+      ...normalized.map(([key, value]) => `${xqString(key)}: ${value}`),
+    ];
+    return `map { ${body.join(", ")} }`;
+  }
+  const inner = [
+    `attribute xsi:type { ${xqString(rmType)} }`,
+    ...normalized.map(([key, value]) => `element rm:${xmlLocalName(key)} { ${value} }`),
+  ];
+  return inner.join(", ");
+}
+
+function xqOctets(code: string, json: boolean): string {
+  const literal = xqStringLiteral(code);
+  const bytes = literal != null ? octetBytes(literal) : null;
+  if (bytes) {
+    return json ? `array { ${bytes.join(", ")} }` : bytes.join(", ");
+  }
+  const call = `ig:octet-bytes(xs:string(${code}))`;
+  return json ? `array { ${call} }` : call;
+}
+
+function xqStringLiteral(code: string): string | null {
+  const trimmed = code.trim();
+  if (trimmed.length < 2 || !trimmed.startsWith('"')) return null;
+  try {
+    const value = JSON.parse(trimmed.replace(/""/g, '\\"'));
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function xqShellSuffix(slot: MappingSlot | undefined, ctx: XqSkelCtx): string {
+  const fields = emitShellFields(slot?.shellFragments, xqShellGen(ctx));
+  if (!fields.length) return "";
+  if (ctx.shape === "json") {
+    return ", " + fields.map(([key, value]) => `${xqString(key)}: ${value}`).join(", ");
+  }
+  return ", " + fields.map(([key, value]) => {
+    const trimmed = value.trimStart();
+    if (trimmed.startsWith("element ") || trimmed.startsWith("(")) return value;
+    return `element rm:${xmlLocalName(key)} { ${value} }`;
+  }).join(", ");
+}
+
 function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
   const slot = ctx.slots.get(node.slotId);
   let expr: string | null = null;
@@ -1127,25 +1139,36 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
   }
 
   if (rmType === "DV_QUANTITY") {
-    if (!expr && !fields.units) return null;
-    const mag = expr ?? "()";
-    const units = fields.units ? xqString(fields.units) : "()";
-    if (ctx.shape === "json") {
-      return `map { "_type": "DV_QUANTITY", "magnitude": ${mag}, "units": ${units} }`;
+    // No magnitude: omit a range-only quantity. A template-fixed unit with no
+    // mapped magnitude stays, as before, and does not carry shell mouths.
+    if (!expr) {
+      if (!fields.units) return null;
+      const units = xqString(fields.units);
+      if (ctx.shape === "json") {
+        return `map { "_type": "DV_QUANTITY", "magnitude": (), "units": ${units} }`;
+      }
+      return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { () }, element rm:units { ${units} }`;
     }
-    return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { ${mag} }, element rm:units { ${units} }`;
+    const units = fields.units ? xqString(fields.units) : "()";
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") {
+      return `map { "_type": "DV_QUANTITY", "magnitude": ${expr}, "units": ${units}${shell} }`;
+    }
+    return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { ${expr} }, element rm:units { ${units} }${shell}`;
   }
 
   if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "magnitude": ${expr} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:magnitude { ${expr} }`;
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "magnitude": ${expr}${shell} }`;
+    return `attribute xsi:type { ${xqString(rmType)} }, element rm:magnitude { ${expr} }${shell}`;
   }
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
-    if (ctx.shape === "json") return `map { "_type": "DV_BOOLEAN", "value": ${expr} }`;
-    return `attribute xsi:type { "DV_BOOLEAN" }, element rm:value { ${expr} }`;
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") return `map { "_type": "DV_BOOLEAN", "value": ${expr}${shell} }`;
+    return `attribute xsi:type { "DV_BOOLEAN" }, element rm:value { ${expr} }${shell}`;
   }
 
   if (
@@ -1160,18 +1183,28 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
       const term = part(coded?.terminology) ?? xqString(fields.terminology_id ?? "openehr");
       const code = part(coded?.code) ?? (fixedCode ? xqString(fixedCode) : null);
       if (!code && !value) return null;
+      const shell = xqShellSuffix(slot, ctx);
       if (ctx.shape === "json") {
-        return `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} } }`;
+        const fallback = `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} }${shell} }`;
+        return value && !coded ? `(let $__coded := ${value} return if ($__coded instance of map(*)) then $__coded else ${fallback})` : fallback;
+      }
+      if (value && !coded) {
+        return `(let $__coded := ${value} return if ($__coded instance of map(*)) then (
+          attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { $__coded?value },
+          element rm:defining_code { element rm:terminology_id { element rm:value { $__coded?defining_code?terminology_id?value } }, element rm:code_string { $__coded?defining_code?code_string } },
+          for $m in $__coded?mappings?* return element rm:mappings { element rm:match { $m?match }, element rm:target { element rm:terminology_id { element rm:value { $m?target?terminology_id?value } }, element rm:code_string { $m?target?code_string } } }
+        ) else (attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { $__coded }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${code ?? '\"\"'} } }))`;
       }
       return `attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { ${
         value ?? '""'
       } }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${
         code ?? '""'
-      } } }`;
+      } } }${shell}`;
     }
     if (!value) return null;
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "value": ${value} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:value { ${value} }`;
+    const shell = xqShellSuffix(slot, ctx);
+    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "value": ${value}${shell} }`;
+    return `attribute xsi:type { ${xqString(rmType)} }, element rm:value { ${value} }${shell}`;
   }
 
   if (rmType === "PARTY_SELF") {

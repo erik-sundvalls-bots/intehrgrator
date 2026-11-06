@@ -75,6 +75,7 @@ function focusSheetOnSelect(
   if (event?.type === "create" && !this.isInFlyout) preselectSoleGridName(this, "sheet");
   if (this.isInFlyout) return;
   if (event?.type !== "selected" || event.newElementId !== this.id) return;
+  if (this.getInputTargetBlock("SHEET")) return;
   const name = String(this.getFieldValue("NAME") || "").trim();
   if (!name) return;
   sheetFocusHandler?.(name, { highlight: true });
@@ -180,10 +181,10 @@ export function registerSheetBlocks(): void {
       appendInputTypeGlyph(matchVal, null);
       const returnCol = this.appendValueInput("RETURN_COL").setAlign(inputAlignRight()).setCheck(["String", "Number"]).appendField("return");
       appendInputTypeGlyph(returnCol, ["String", "Number"]);
-      this.setOutput(true, ["String", "Number", "Boolean"]);
+      this.setOutput(true, ["String", "Number", "Boolean", "Map", "Array"]);
       this.setColour(SHEET_COLOUR);
       this.setInputsInline(true);
-      this.setTooltip("First row where a header/column equals a value; return that row or a column.");
+      this.setTooltip("First row where a header/column equals a value; return that row or a column. A connected Sheet name overrides the picker.");
     },
   };
 
@@ -295,6 +296,16 @@ export function registerSheetBlocks(): void {
       this.setInputsInline(true);
     },
   };
+
+  // A connected name overrides the picker; the picker remains convenient for project grids.
+  for (const type of [...SHEET_ACCESSOR_TYPES, ...SHEET_MUTATOR_TYPES]) {
+    const definition = Blockly.Blocks[type];
+    const init = definition.init;
+    definition.init = function (this: import("blockly/core").Block) {
+      init.call(this);
+      this.appendValueInput("SHEET").setCheck("String").appendField("Sheet name (optional)");
+    };
+  }
 
   for (const type of SHEET_ACCESSOR_TYPES) {
     (Blockly.Blocks[type] as { onchange?: typeof focusSheetOnSelect }).onchange = focusSheetOnSelect;

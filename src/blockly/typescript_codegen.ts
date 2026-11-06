@@ -12,6 +12,7 @@ import { blockToExpression } from "./expression_serialize.ts";
 import {
   isDataValueBlock,
   isRmContainerBlockType,
+  isRmValueObjectBlock,
   rmAttributeInputName,
   OPTIONAL_INPUT_PREFIX,
   RM_ATTR_INPUT_PREFIX,
@@ -24,6 +25,7 @@ import { registerSchemaBlocksFromSkeleton } from "./schema_blocks.ts";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import { TERM_PICK_BLOCK_TYPE } from "./blocks/term_pick.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
+import { terminologyValuesForSlot } from "../core/ai/slot_tree.ts";
 import { DEFAULTS_BLOCK_TYPE } from "../core/defaults/extract.ts";
 import {
   CONVERSION_START_TYPE,
@@ -33,8 +35,9 @@ import {
   productStackBlocks,
   TEXT_DOCUMENT_BLOCK_TYPE,
 } from "./instance_root.ts";
-import { attributesFor, isPrimitiveRmType } from "../core/rm_meta.ts";
-import { LOCATABLE_TYPES } from "../core/rm_mandatory.ts";
+import { attributesFor, blocklyCheckForPrimitiveType, isPrimitiveRmType } from "../core/rm_meta.ts";
+import { octetBytesCall } from "../core/rm_shell_fragment.ts";
+import { DEFAULT_ACTION_ARCHETYPE_ID, LOCATABLE_TYPES, NON_LOCATABLE_RM_TYPES } from "../core/rm_mandatory.ts";
 import type { InstanceEncoding, MappingModel } from "../types/mod.ts";
 import {
   asStringExpr,
@@ -46,6 +49,11 @@ import {
   formatObjectLiteral,
   formatRmConstruct,
   generateTypeScriptFromSkeleton,
+  guardNumericConstruct,
+  wrapBooleanValue,
+  wrapPruneList,
+  wrapPruneNode,
+  wrapPruneValue,
   generateTypeScriptFromSlots,
   indentTsBlock,
   isBlankGeneratedExpr,
@@ -62,6 +70,7 @@ import {
 import { labelSlotId, walkSkeleton } from "./block_labels.ts";
 import { runWithoutBlocklyEvents } from "./blockly_events.ts";
 import { isLoopBlockType, loopIndexBinderName, loopLengthBinderName, sourcePathFromLoopList } from "./loop_block.ts";
+import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { migrateForEachSourceState } from "./migrate_for_each_source.ts";
 import {
   INSTANCE_ENCODING_FIELD,
@@ -237,7 +246,12 @@ function emitFragmentPush(
     ctx.helpers.add("logic");
     if (sourcePath) {
       ctx.helpers.add("nodes");
-      const innerCtx: TsEmitContext = { ...ctx, sourceVar: ident, loopVar: ident };
+      const innerCtx: TsEmitContext = {
+        ...ctx,
+        sourceVar: ident,
+        loopVar: ident,
+        loopBindings: { ...ctx.loopBindings, [name]: ident },
+      };
       let body = block.getInputTargetBlock("DO");
       while (body) {
         inner.push(emitFragmentPush(body, innerCtx, extraImports, webTemplateJson));
@@ -247,7 +261,11 @@ function emitFragmentPush(
     }
     const listBlock = block.getInputTargetBlock("LIST");
     const list = listBlock ? emitBlock(listBlock, ctx, 0) : "[]";
-    const innerCtx: TsEmitContext = { ...ctx, loopVar: ident };
+    const innerCtx: TsEmitContext = {
+      ...ctx,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [name]: ident },
+    };
     let body = block.getInputTargetBlock("DO");
     while (body) {
       inner.push(emitFragmentPush(body, innerCtx, extraImports, webTemplateJson));
@@ -315,10 +333,14 @@ export function emitBlockForVmsTest(
 
 function emitBlock(block: Block, ctx: TsEmitContext, indent: number): string {
   if (block.type === TERM_PICK_BLOCK_TYPE) return emitTermPick(block, ctx);
+  // A scaffolded value-set picker (first coded choice, e.g. Position = Standing)
+  // is not a mapping. Preview omits it; emitting it invents clinical data (#320).
+  if (isScaffoldedValueSetPicker(block)) return "";
   const fromExpr = emitExpressionBlock(block, ctx);
   if (fromExpr !== null) return wrapCodePhraseSlotEmit(block, fromExpr);
 
   if (block.type === "for_each_list") return emitForEachList(block, ctx, indent);
+  if (block.type === INCLUDE_WHEN_BLOCK) return emitIncludeWhen(block, ctx, indent);
   if (block.type === "code_phrase") return emitCodePhrase(block, ctx, indent);
   if (block.type === "party_ref") return emitPartyRef(block, ctx, indent);
   if (block.type === "party_identified" || block.type === "party_related") {
@@ -339,7 +361,7 @@ function emitBlock(block: Block, ctx: TsEmitContext, indent: number): string {
   if (block.type === "element" || isRmContainerBlockType(block.type)) {
     return emitRmContainer(block, ctx, indent);
   }
-  if (isDataValueBlock(block)) return emitDvShell(block, ctx, indent);
+  if (isRmValueObjectBlock(block)) return emitDvShell(block, ctx, indent);
   if (isGenericValueBlockType(block.type) || isSchemaStructureBlock(block)) {
     return emitGeneric(block, ctx, indent);
   }
@@ -362,7 +384,22 @@ function emitRmContainer(block: Block, ctx: TsEmitContext, indent: number): stri
     }
     return "";
   }
-  return formatRmConstruct(rmType, props, indent, ctx);
+  if (ENTRY_RM_TYPES.has(rmType)) ensureEntrySubject(props, ctx);
+  return wrapPruneNode(rmType, formatRmConstruct(rmType, props, indent, ctx), ctx);
+}
+
+/** RM ENTRY subtypes: `subject` is mandatory (RM 1.1 ENTRY). */
+const ENTRY_RM_TYPES = new Set(["OBSERVATION", "EVALUATION", "INSTRUCTION", "ACTION", "ADMIN_ENTRY"]);
+
+/**
+ * ENTRY.subject is mandatory. Without a mapping the subject is the record's
+ * owner (PARTY_SELF), as in the preview output; a Default point that may be
+ * missing at run time falls back to PARTY_SELF too (#310).
+ */
+function ensureEntrySubject(props: Array<[string, string]>, ctx: TsEmitContext): void {
+  if (props.some(([key]) => key === "subject")) return;
+  ctx.types.add("PARTY_SELF");
+  props.push(["subject", "new PARTY_SELF()"]);
 }
 
 function collectRmProps(
@@ -387,13 +424,15 @@ function collectRmProps(
         : (ctx.types.add("DV_TEXT"), `new DV_TEXT(${JSON.stringify(name)})`),
     ]);
   }
-  if (nodeId) props.push(["archetype_node_id", JSON.stringify(nodeId)]);
+  if (nodeId && !NON_LOCATABLE_RM_TYPES.has(rmType)) {
+    props.push(["archetype_node_id", JSON.stringify(nodeId)]);
+  }
 
   if (block.type === "element") {
     const value = block.getInputTargetBlock("VALUE");
     if (value && !value.isShadow()) {
       const code = emitBlock(value, ctx, indent + 1);
-      if (!isBlankGeneratedExpr(code)) props.push(["value", code]);
+      if (!isBlankGeneratedExpr(code)) props.push(["value", wrapPruneValue(code, ctx)]);
     }
   }
 
@@ -409,6 +448,9 @@ function collectRmProps(
     seen.add(attr);
     const code = emitAttribute(block, input.name, attr, rmType, ctx, indent);
     if (code && !isBlankGeneratedExpr(code)) props.push([attr, code]);
+  }
+  if (rmType === "ACTIVITY" && !props.some(([attr]) => attr === "action_archetype_id")) {
+    props.push(["action_archetype_id", JSON.stringify(DEFAULT_ACTION_ARCHETYPE_ID)]);
   }
   return props;
 }
@@ -439,13 +481,34 @@ function emitAttribute(
   if (isListAttribute(parentRmType, attr)) {
     const code = emitBlock(target, ctx, indent + 1);
     if (!code || isBlankGeneratedExpr(code)) return null;
-    return `[${code}]`;
+    return wrapPruneList(`[${code}]`, ctx);
   }
   const simplified = emitSimplifiedParty(attr, target, ctx, indent);
   if (simplified) return simplified;
   let code = emitBlock(target, ctx, indent + 1);
   code = wrapCodePhraseAttributeEmit(attr, parentRmType, target, code);
+  code = wrapPartyDefaultEmit(attr, parentRmType, code, ctx);
   return isBlankGeneratedExpr(code) ? null : code;
+}
+
+/**
+ * A party Default point (`defaults["composer"]`) may hold a name string, an
+ * old `{ rmType }` literal or a canonical `{ _type }` object: normalise it to
+ * canonical openEHR JSON at run time (#310).
+ */
+function wrapPartyDefaultEmit(
+  attr: string,
+  parentRmType: string,
+  code: string,
+  ctx: TsEmitContext,
+): string {
+  if (isBlankGeneratedExpr(code) || !/^defaults\[[^\]]+\]$/.test(code.trim())) return code;
+  const attrMeta = attributesFor(parentRmType).find((item) => item.name === attr);
+  const attrType = attrMeta?.typeName ? baseRmTypeName(attrMeta.typeName) : "";
+  if (!attrType.startsWith("PARTY_")) return code;
+  ctx.helpers.add("party");
+  const fallback = attr === "subject" ? "PARTY_SELF" : "PARTY_IDENTIFIED";
+  return `partyValue(${code}, ${JSON.stringify(fallback)})`;
 }
 
 function wrapCodePhraseSlotEmit(block: Block, code: string): string {
@@ -478,7 +541,7 @@ function wrapCodePhraseValue(code: string, slotId: string, attrName = ""): strin
 function codePhraseTerminology(slotId: string, attrName: string): string | null {
   if (slotId.includes("//language/") || attrName === "language") return "ISO_639-1";
   if (slotId.includes("//territory/") || attrName === "territory") return "ISO_3166-1";
-  if (slotId.includes("//encoding/") || attrName === "encoding") return "Unicode";
+  if (slotId.includes("//encoding/") || attrName === "encoding") return "IANA_character-sets";
   return null;
 }
 
@@ -512,7 +575,8 @@ function emitSimplifiedParty(
   const parts: string[] = [];
   if (name) parts.push(`name: ${asStringExpr(name)}`);
   if (identifiers) parts.push(`identifiers: ${identifiers}`);
-  return `{ ${parts.join(", ")} }`;
+  // Canonical `_type` so ehrtslib builds a PARTY_IDENTIFIED for the abstract PARTY_PROXY slot.
+  return `{ _type: "PARTY_IDENTIFIED", ${parts.join(", ")} }`;
 }
 
 function emitStatementList(
@@ -520,6 +584,7 @@ function emitStatementList(
   asList: boolean,
   ctx: TsEmitContext,
   indent: number,
+  prune = true,
 ): string | null {
   const blocks: Block[] = [];
   let current = first;
@@ -538,13 +603,16 @@ function emitStatementList(
   for (const block of blocks) {
     const code = block.type === "for_each_list"
       ? emitForEachList(block, ctx, 0)
+      : block.type === INCLUDE_WHEN_BLOCK
+      ? emitIncludeWhen(block, ctx, indent)
       : block.type === "variables_set"
       ? emitVariableSet(block, ctx, indent + 1)
       : emitBlock(block, ctx, 0);
     if (!isBlankGeneratedExpr(code)) parts.push(indentTsBlock(code, indent + 2));
   }
   if (!parts.length) return null;
-  return `[\n${parts.join(",\n")},\n${"  ".repeat(indent + 1)}]`;
+  const list = `[\n${parts.join(",\n")},\n${"  ".repeat(indent + 1)}]`;
+  return prune ? wrapPruneList(list, ctx) : list;
 }
 
 function emitTsLoopBind(name: string, ident: string): string {
@@ -576,18 +644,57 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   ctx.helpers.add("logic");
   const sourcePath = sourcePathFromLoopList(block);
   const innerCtx: TsEmitContext = sourcePath
-    ? { ...ctx, sourceVar: ident, loopVar: ident }
-    : { ...ctx, loopVar: ident };
+    ? {
+      ...ctx,
+      sourceVar: ident,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [name]: ident },
+    }
+    : {
+      ...ctx,
+      loopVar: ident,
+      loopBindings: { ...ctx.loopBindings, [name]: ident },
+    };
   const bodyBlock = block.getInputTargetBlock("DO");
   const body = bodyBlock ? emitBlock(bodyBlock, innerCtx, indent) : "null";
   const bound = `(${emitTsLoopBind(name, ident)} ${body})`;
   if (sourcePath) {
     ctx.helpers.add("nodes");
-    return `...xpathNodes(${JSON.stringify(sourcePath)}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+    // A relative LIST inside an outer loop walks from the outer item (F-M7).
+    const scope = ctx.loopVar && isRelativeSourcePath(sourcePath) ? `, ${ctx.loopVar}` : "";
+    return `...xpathNodes(${JSON.stringify(sourcePath)}${scope}).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
   }
   const listBlock = block.getInputTargetBlock("LIST");
   const list = listBlock ? emitBlock(listBlock, ctx, indent) : "[]";
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
+}
+
+function emitIncludeWhen(block: Block, ctx: TsEmitContext, indent: number): string {
+  const condBlock = block.getInputTargetBlock("WHEN");
+  const cond = condBlock ? emitBlock(condBlock, ctx, indent) : "false";
+  const thenCode = emitIncludeBranch(block.getInputTargetBlock("DO"), ctx, indent);
+  const elseCode = emitIncludeBranch(block.getInputTargetBlock("ELSE"), ctx, indent);
+  if (thenCode.trimStart().startsWith("...")) {
+    const thenInner = thenCode.trimStart().slice(3);
+    const elseInner = elseCode.trimStart().startsWith("...")
+      ? elseCode.trimStart().slice(3)
+      : "[]";
+    return `...((${cond}) ? (${thenInner}) : (${elseInner}))`;
+  }
+  return `((${cond}) ? (${thenCode}) : (${elseCode}))`;
+}
+
+function emitIncludeBranch(first: Block | null, ctx: TsEmitContext, indent: number): string {
+  if (!first) return "null";
+  if (first.getNextBlock()) {
+    return emitStatementList(first, true, ctx, indent) ?? "null";
+  }
+  return emitBlock(first, ctx, indent);
+}
+
+function isRelativeSourcePath(path: string): boolean {
+  const trimmed = path.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("$") && !trimmed.startsWith("/");
 }
 
 function emitVariableSet(block: Block, ctx: TsEmitContext, indent: number): string {
@@ -598,6 +705,46 @@ function emitVariableSet(block: Block, ctx: TsEmitContext, indent: number): stri
   return `(__vars[${JSON.stringify(name)}] = ${value}, null)`;
 }
 
+function emitDvAttributeCode(
+  child: Block,
+  typeName: string,
+  ctx: TsEmitContext,
+  indent: number,
+): string {
+  const list = typeName.startsWith("List<");
+  const octets = typeName === "Array<Octet>" || typeName.startsWith("Array<Octet");
+  if ((list || octets) && child.type === "lists_create_with") {
+    return emitListsCreate(child, ctx);
+  }
+  const code = emitBlock(child, ctx, indent + 1);
+  if (!code || isBlankGeneratedExpr(code)) return "";
+  if (octets) return octetBytesCall(code);
+  if (list) return `[${code}]`;
+  return code;
+}
+
+function wrapDvPrimitive(
+  rmType: string,
+  name: string,
+  typeName: string,
+  code: string,
+  ctx: TsEmitContext,
+): string {
+  if (name === "magnitude") return code;
+  if (rmType === "DV_BOOLEAN" && name === "value") return wrapBooleanValue(code, ctx);
+  if (
+    blocklyCheckForPrimitiveType(typeName) === "String" ||
+    typeName === "String" ||
+    name === "value" ||
+    name === "code_string" ||
+    name === "units" ||
+    name === "terminology_id"
+  ) {
+    return asStringExpr(code);
+  }
+  return code;
+}
+
 function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
   const rmType = String(block.getFieldValue("RM_TYPE") || block.type.replace(/-/g, "_"))
     .toUpperCase();
@@ -605,8 +752,8 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     return emitCodePhrase(block, ctx, indent);
   }
   const props: Array<[string, string]> = [];
+  let rawValue: string | undefined;
   for (const attr of attributesFor(rmType)) {
-    if (!isPrimitiveRmType(attr.typeName) && attr.typeName !== "CODE_PHRASE") continue;
     const inputName = block.getInput(`FLD_${attr.name}`)
       ? `FLD_${attr.name}`
       : block.getInput(`OPTFLD_${attr.name}`)
@@ -629,13 +776,11 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
       props.push([attr.name, shadow]);
       continue;
     }
-    const code = emitBlock(child, ctx, indent + 1);
-    if (isBlankGeneratedExpr(code)) continue;
-    const wrapped = attr.name === "magnitude"
-      ? code
-      : (attr.typeName === "String" || attr.name === "value" || attr.name === "code_string" ||
-          attr.name === "units" || attr.name === "terminology_id")
-      ? asStringExpr(code)
+    const code = emitDvAttributeCode(child, attr.typeName, ctx, indent);
+    if (!code || isBlankGeneratedExpr(code)) continue;
+    if (attr.name === "value") rawValue = code;
+    const wrapped = isPrimitiveRmType(attr.typeName) || attr.typeName === "CODE_PHRASE"
+      ? wrapDvPrimitive(rmType, attr.name, attr.typeName, code, ctx)
       : code;
     props.push([attr.name, wrapped]);
   }
@@ -649,11 +794,31 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
       props.push(["units", JSON.stringify(units)]);
     }
   }
+  // A quantity without a magnitude is only scaffolding (e.g. fixed units): prune it like the preview does.
+  if (rmType === "DV_QUANTITY" && !props.some((p) => p[0] === "magnitude")) return "";
+  if (
+    rmType === "DV_CODED_TEXT" && props.length === 1 && props[0]![0] === "value"
+  ) {
+    const choices = codedChoices(ctx, String(block.getFieldValue("SLOT_ID") ?? "").trim());
+    // Function calls may return a complete coded record at runtime. Do not
+    // stringify the input before codedText can read its code and mappings.
+    ctx.types.add("DV_CODED_TEXT");
+    ctx.helpers.add("coded");
+    return `codedText(${rawValue ?? props[0]![1]}, ${JSON.stringify(choices)})`;
+  }
   if (rmType === "DV_TEXT" && props.length === 1 && props[0]![0] === "value") {
     ctx.types.add("DV_TEXT");
     return `new DV_TEXT(${props[0]![1]})`;
   }
   if (!props.length) return "";
+  const magnitudeAt = props.findIndex(([key]) => key === "magnitude");
+  if (magnitudeAt >= 0) {
+    // A missing number leaves the value out instead of NaN (DV_COUNT throws on NaN).
+    return guardNumericConstruct(props[magnitudeAt]![1], (m) => {
+      const guarded = props.map(([key, value]): [string, string] => [key, key === "magnitude" ? m : value]);
+      return formatRmConstruct(rmType, guarded, indent, ctx);
+    }, ctx);
+  }
   return formatRmConstruct(rmType, props, indent, ctx);
 }
 
@@ -699,11 +864,22 @@ function emitTermPick(block: Block, ctx: TsEmitContext): string {
   return emitCodePhraseLiteral(terminology, code);
 }
 
-function shouldEmitLocatableName(rmType: string, name: string): boolean {
-  if (rmType === "COMPOSITION") return true;
-  if (!LOCATABLE_TYPES.has(rmType)) return false;
-  const generic = name.replace(/[_-]/g, " ").toUpperCase();
-  return generic !== rmType && generic.replace(/\s+/g, "_") !== rmType;
+/** LOCATABLE.name is mandatory, also when it repeats the RM type (e.g. HISTORY "history"). */
+function shouldEmitLocatableName(rmType: string, _name: string): boolean {
+  return rmType === "COMPOSITION" || LOCATABLE_TYPES.has(rmType);
+}
+
+/** `[code, rubric, terminology]` rows of a coded slot's template value set. */
+function codedChoices(ctx: TsEmitContext, slotId: string): Array<[string, string, string]> {
+  if (!slotId) return [];
+  const node = ctx.skeletonNodes?.get(slotId) ??
+    ctx.skeletonNodes?.get(slotId.replace(/\/value$/, "")) ??
+    ctx.skeletonNodes?.get(slotId.replace(/\/DV_CODED_TEXT\/value$/, ""));
+  const allowed = (node?.allowedValues ?? []).filter((row) => row.code);
+  if (allowed.length) return allowed.map((row) => [row.code, row.label || row.code, row.terminologyId || "local"]);
+  // No template list: an openEHR RM terminology attribute (category, setting, …).
+  const rm = terminologyValuesForSlot(slotId.endsWith("/value") ? slotId : `${slotId}/value`);
+  return rm ? rm.values.map((row) => [row.code, row.text || row.code, rm.terminologyId]) : [];
 }
 
 function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string {
@@ -727,6 +903,38 @@ function emitPartyRef(block: Block, ctx: TsEmitContext, indent: number): string 
   }
   if (!props.length) return "";
   return formatRmConstruct("PARTY_REF", props, indent, ctx);
+}
+
+/**
+ * `lists_getIndex` over a list of literal coded/text choices, indexed by a
+ * constant. The skeleton attaches this so the canvas shows the value set.
+ * A source-driven index is a real mapping and is kept.
+ */
+function isScaffoldedValueSetPicker(block: Block): boolean {
+  if (block.type !== "lists_getIndex") return false;
+  const at = block.getInputTargetBlock("AT");
+  if (at && at.type !== "math_number") return false;
+  const list = block.getInputTargetBlock("VALUE");
+  if (!list || list.type !== "lists_create_with") return false;
+  const count = Number((list as Block & { itemCount_?: number }).itemCount_ ?? 0);
+  if (count < 1) return false;
+  for (let i = 0; i < count; i++) {
+    const item = list.getInputTargetBlock(`ADD${i}`);
+    if (!item || !isLiteralRmChoice(item)) return false;
+  }
+  return true;
+}
+
+function isLiteralRmChoice(block: Block): boolean {
+  if (block.type === "text" || block.type === "math_number" || block.type === "logic_boolean") return true;
+  if (block.type === "code_phrase" || isDataValueBlock(block)) {
+    for (const input of block.inputList) {
+      const child = block.getInputTargetBlock(input.name);
+      if (child && !isLiteralRmChoice(child)) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 function emitListsGetIndex(block: Block, ctx: TsEmitContext): string {
@@ -765,7 +973,7 @@ function emitGeneric(block: Block, ctx: TsEmitContext, indent: number): string {
     if (!input.name.startsWith("TARGET_") && !input.name.startsWith("SCHEMA_OPT_")) continue;
     const attr = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
     if (input.type === STATEMENT_INPUT_TYPE) {
-      const code = emitStatementList(block.getInputTargetBlock(input.name), true, ctx, indent);
+      const code = emitStatementList(block.getInputTargetBlock(input.name), true, ctx, indent, false);
       if (code) props.push([attr, code]);
       continue;
     }

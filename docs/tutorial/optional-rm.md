@@ -6,7 +6,7 @@ Back to the [tutorial index](../TUTORIAL.md). Assumes a Template Skeleton from [
 
 ## Add a structure
 
-On a container block, open the cogwheel (or right-click and choose **Add RM structure…**). The picker lists only RM types that are valid at that point. Choosing one expands the parent block and inserts the child. Empty optional slots are not shown until you add them.
+On a container block, open the cogwheel ⚙ to the right of the block title. The picker lists only RM types that are valid at that point. Choosing one expands the parent block and inserts the child. Empty optional slots are not shown until you add them.
 
 Yellow constraint triangles still mark mandatory fields you have not mapped. Optional structure you added is yours to fill with click-to-map, a literal, or a [default context](default-context.md) lookup.
 

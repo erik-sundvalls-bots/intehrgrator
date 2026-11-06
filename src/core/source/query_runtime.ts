@@ -1,6 +1,9 @@
+import { mapEntries, mapValueGet } from "../map_values.ts";
 import fontoxpath from "fontoxpath";
 import { parseXmlDocument } from "../xml/xml_dom.ts";
 import type { SourceFormatId } from "../../types/mod.ts";
+import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
+import type { MappingStatement } from "../../types/mod.ts";
 import type { MappingFunction } from "../../types/mod.ts";
 import type { ExprAst } from "../expression/mod.ts";
 import {
@@ -17,6 +20,7 @@ import {
   unwrapExecuteEnvelope,
 } from "./json_document.ts";
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
+import { namedLoopRead } from "../named_loop_path.ts";
 
 export interface SourceContext {
   format: SourceFormatId;
@@ -27,6 +31,11 @@ export interface SourceContext {
   xmlDocument?: Document;
   /** Loop variables (`for_each_list` VAR → current source node or list item). */
   vars?: Record<string, unknown>;
+  /**
+   * Loop item names in lexical scope, outermost first. A path `dag.StartTid`
+   * reads from `vars.dag` when `dag` is listed here.
+   */
+  loopNames?: readonly string[];
   /**
    * When set, relative source paths walk this node instead of `json`.
    * Used while evaluating a DL restriction predicate against a list item.
@@ -104,6 +113,7 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
       if (ast.name === "not") {
         return !evalAst(ast.args[0]!, ctx);
       }
+      if (ast.name === "if") return evalAst(ast.args[0]!, ctx) ? evalAst(ast.args[1]!, ctx) : evalAst(ast.args[2]!, ctx);
       const args = ast.args.map((a) => evalAst(a, ctx));
       switch (ast.name) {
         case "trim":
@@ -111,7 +121,7 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
         case "change_case":
           return changeCase(args[0], String(args[1] ?? "LOWERCASE"));
         case "concat":
-          return args.map(String).join("");
+          return args.map((arg) => arg === null || arg === undefined ? "" : String(arg)).join("");
         case "round":
           return Math.round(Number(args[0] ?? 0));
         case "modulo": {
@@ -124,8 +134,6 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
           const high = Number(args[2] ?? 0);
           return Math.min(high, Math.max(low, value));
         }
-        case "if":
-          return args[0] ? args[1] : args[2];
         case "eq":
           return sameItem(args[0], args[1]);
         case "ne":
@@ -176,12 +184,13 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
         }
         case "var":
           return ctx.vars?.[String(args[0])] ?? null;
+        case "maps_entries":
+          return mapEntries(args[0]);
+        case "lists_length":
+          return asList(args[0]).length;
         case "maps_get": {
-          const mapName = String(args[0] ?? "defaults");
-          const key = String(args[1] ?? "");
-          const map = ctx.namedMaps?.[mapName];
-          if (!map || typeof map !== "object") return null;
-          return (map as Record<string, unknown>)[key] ?? null;
+          const map = typeof args[0] === "string" ? ctx.namedMaps?.[args[0]] : args[0];
+          return mapValueGet(map, args[1]);
         }
         case "call": {
           const name = String(args[0] ?? "");
@@ -189,15 +198,13 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
           if (!fn?.body) return null;
           const depth = (ctx.callDepth ?? 0) + 1;
           if (depth > 32) return null;
-          const paramVars: Record<string, unknown> = { ...(ctx.vars ?? {}) };
+          const paramVars: Record<string, unknown> = Object.create(null);
           for (let i = 0; i < fn.params.length; i++) {
             paramVars[fn.params[i]!] = args[i + 1];
           }
-          return evalAst(parseExpression(fn.body), {
-            ...ctx,
-            vars: paramVars,
-            callDepth: depth,
-          });
+          const inner = { ...ctx, vars: paramVars, callDepth: depth };
+          const returned = executeFunctionStatements(fn.stack ?? [], inner);
+          return returned ? returned.value : evalAst(parseExpression(fn.body), inner);
         }
       }
       if (isSheetAccessor(ast.name)) {
@@ -206,6 +213,35 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
     }
   }
   return null;
+}
+
+/** A wrapper distinguishes an early null return from no return. */
+function executeFunctionStatements(stack: MappingStatement[], ctx: SourceContext): {value: unknown} | undefined {
+  const vars = ctx.vars!;
+  const expr = (source: string) => evalAst(parseExpression(source), ctx);
+  for (const statement of stack) {
+    switch (statement.kind) {
+      case "set": vars[statement.name] = expr(statement.value); break;
+      case "append": vars[statement.name] = [...asList(vars[statement.name]), expr(statement.value)]; break;
+      case "return": if (expr(statement.condition)) return {value: expr(statement.value)}; break;
+      case "if": {
+        const returned = executeFunctionStatements(expr(statement.condition) ? statement.then : statement.else, ctx);
+        if (returned) return returned;
+        break;
+      }
+      case "forEach": {
+        const items = asList(expr(statement.list));
+        for (let index = 0; index < items.length; index++) {
+          vars[statement.name] = items[index];
+          vars[loopIndexBinderName(statement.name)] = index;
+          vars[loopLengthBinderName(statement.name)] = items.length;
+          const returned = executeFunctionStatements(statement.body, ctx);
+          if (returned) return returned;
+        }
+        break;
+      }
+    }
+  }
 }
 
 /** Resolve a JSON authoring path to an array of nodes (`$.measurements`). */
@@ -231,9 +267,55 @@ function isRelativeJsonPath(expr: string): boolean {
   return expr.length > 0 && !expr.startsWith("$") && !expr.startsWith("/");
 }
 
+function namedJsonRoot(
+  path: string,
+  ctx: SourceContext,
+): { rest: string; root: unknown } | null {
+  const named = namedLoopRead(path, ctx.loopNames ?? []);
+  if (!named) return null;
+  return { rest: named.rest, root: ctx.vars?.[named.name] };
+}
+
+function jsonAt(path: string, root: unknown): unknown {
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "." || trimmed === "$") return root;
+  if (looksLikeOpenEhrLocator(trimmed)) {
+    const query = compileAuthoringPath(trimmed, "json");
+    return fontoxpath.evaluateXPathToString(query, null, null, { source: root });
+  }
+  const asPath = trimmed.startsWith("$")
+    ? trimmed
+    : `$.${trimmed.replace(/^\./, "")}`;
+  if (/\[\*\]/.test(asPath)) return evalJsonWildcard(asPath, root);
+  return walkJsonSegments(root, parseJsonAuthoringPath(asPath));
+}
+
 function xpathEval(expr: string, ctx: SourceContext, type: string): unknown {
+  const value = xpathEvalRaw(expr, ctx, type);
+  if (type !== "boolean") return value;
+  if (Array.isArray(value)) return value.map((item) => booleanValue(item));
+  return booleanValue(value);
+}
+
+function xpathEvalRaw(expr: string, ctx: SourceContext, type: string): unknown {
   if (ctx.kind === "json") {
     const trimmed = expr.trim();
+    const named = namedJsonRoot(trimmed, ctx);
+    if (named) {
+      if (looksLikeOpenEhrLocator(named.rest) && named.rest !== ".") {
+        const query = compileAuthoringPath(named.rest, "json");
+        const variables = { source: named.root };
+        switch (type) {
+          case "number":
+            return fontoxpath.evaluateXPathToNumber(query, null, null, variables);
+          case "boolean":
+            return fontoxpath.evaluateXPathToBoolean(query, null, null, variables);
+          default:
+            return fontoxpath.evaluateXPathToString(query, null, null, variables);
+        }
+      }
+      return jsonAt(named.rest, named.root);
+    }
     const relative = isRelativeJsonPath(trimmed);
     if (looksLikeOpenEhrLocator(trimmed)) {
       const query = compileAuthoringPath(trimmed, "json");
@@ -364,23 +446,40 @@ function changeCase(value: unknown, mode: string): string {
 function coerceReturn(value: unknown, returnType: string): unknown {
   if (returnType === "node" || returnType === "source") return value;
   if (Array.isArray(value)) return value.map((item) => coerceReturn(item, returnType));
+  // A boolean source block is the cast. Absence is false, the same as XPath
+  // boolean() and Handlebars {{#if}}: a missing path, null, or "" is false;
+  // any other string (including the word "false") is true. Number 0 is false.
+  // Callers do not need a ternary that rewrites the boolean into true/false.
+  if (returnType === "boolean") return booleanValue(value);
   if (value === null || value === undefined) return value;
   // Keep `map(...)` records so DV_QUANTITY / DV_CODED_TEXT shells can unpack fields.
   if (typeof value === "object") return value;
   switch (returnType) {
     case "number":
       return Number(value);
-    case "boolean":
-      return Boolean(value);
     default:
       return String(value);
   }
+}
+
+function booleanValue(value: unknown): boolean {
+  if (value == null || value === "") return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0 && !Number.isNaN(value);
+  if (typeof value === "string") return true;
+  return true;
 }
 
 /** First node / subtree at a fontoxpath-authored path, as a Handlebars-friendly value. */
 export function evalSourceNode(expr: string, ctx: SourceContext): unknown {
   const trimmed = expr.trim();
   if (ctx.kind === "json") {
+    const named = namedJsonRoot(trimmed, ctx);
+    if (named) {
+      if (!named.rest || named.rest === ".") return named.root ?? null;
+      const nodes = collectJsonNodes(named.rest, named.root);
+      return nodes.length <= 1 ? (nodes[0] ?? null) : nodes;
+    }
     const relative = isRelativeJsonPath(trimmed);
     const root = relative ? (ctx.relativeRoot ?? ctx.json) : ctx.json;
     if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "/") {
@@ -451,6 +550,7 @@ function itemContext(ctx: SourceContext, name: string, item: unknown): SourceCon
   return {
     ...ctx,
     vars: { ...(ctx.vars ?? {}), [name]: item },
+    loopNames: [...(ctx.loopNames ?? []), name],
     relativeRoot: item,
     data: item,
   };

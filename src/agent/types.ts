@@ -6,7 +6,14 @@ export interface AgentSnapshot {
   revision: string;
   templateId: string;
   projectId: string;
+  /** Slots with an expression (source, constant or Default point). */
   appliedSlots: number;
+  /** appliedSlots minus defaultedSlots: mapped from the source or a constant. */
+  mappedSlots: number;
+  /** Scaffolded Default points and term_picks (`maps_get("defaults", …)`, a literal term_pick). Not a person or agent mapping. */
+  defaultedSlots: number;
+  /** Unmapped slots that still show a value-set hint. Not included in mappedSlots or defaultedSlots. */
+  hintSlots: number;
   loops: number;
   unmappedMandatory: number;
   statusMessage: string;

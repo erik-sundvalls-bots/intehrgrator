@@ -4,10 +4,19 @@
  * Install / skip: docs/JAVA_EXPORT.md — set SKIP_ARCHIE_COMPILE=1 to disable.
  */
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import { join } from "@std/path";
+import { dirname, join, normalize } from "@std/path";
+import * as enMsg from "blockly/msg/en";
+import { Blockly } from "@intehrgrator/blockly/blockly_core.ts";
+import { initBlocklyGenerators, workspaceToModelJson } from "@intehrgrator/blockly/mod.ts";
+import { ensureRmBlockType } from "@intehrgrator/blockly/blocks/rm_blocks.ts";
+import { registerSchemaBlocksFromSkeleton } from "@intehrgrator/blockly/schema_blocks.ts";
 import { createEmptyModel, applyExpressionEdit, upsertLoop } from "@intehrgrator/core/mapping_model/mod.ts";
+import { mergeFunctionBundle } from "@intehrgrator/blockly/function_bundle.ts";
+import { parseFunctionBundle } from "@intehrgrator/core/function_library/mod.ts";
 import { generate } from "@intehrgrator/core/codegen/mod.ts";
-import { generateSkeleton, collectValueSlots } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
+import { parseExampleSetCatalog } from "@intehrgrator/core/example_sets/mod.ts";
+import { applyOptionalRmToSkeleton, generateSkeleton, collectValueSlots } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
+import { detectTargetFormat, getTargetFormatHandler } from "@intehrgrator/core/target/mod.ts";
 
 const ARCHIE_VERSION = "3.20.0";
 const MAVEN = "https://repo1.maven.org/maven2";
@@ -145,31 +154,202 @@ Deno.test({
     if (!jars) return;
 
     const srcDir = join(dir, "src", "se", "regionstockholm", "intehrgrator", "generated");
+    const runtimeDir = join(dir, "src", "se", "regionstockholm", "intehrgrator", "runtime");
     await Deno.mkdir(srcDir, { recursive: true });
+    await Deno.mkdir(runtimeDir, { recursive: true });
     const srcPath = join(srcDir, "ConversionScript.java");
     await Deno.writeTextFile(srcPath, java);
+    const helperRoot = join(import.meta.dirname!, "..", "src", "core", "codegen", "helpers", "java");
+    await Deno.copyFile(
+      join(helperRoot, "IntehrgratorRuntime.java"),
+      join(runtimeDir, "IntehrgratorRuntime.java"),
+    );
     const classes = join(dir, "classes");
     await Deno.mkdir(classes, { recursive: true });
     const classpath = jars.join(":");
-    const result = await new Deno.Command("javac", {
-      args: [
-        "--release",
-        "21",
-        "-cp",
-        classpath,
-        "-d",
-        classes,
-        srcPath,
-      ],
-      stdout: "piped",
-      stderr: "piped",
-    }).output();
-    const stderr = new TextDecoder().decode(result.stderr);
-    const stdout = new TextDecoder().decode(result.stdout);
-    assertEquals(
-      result.success,
-      true,
-      `javac failed:\n${stderr}\n${stdout}`,
+    await Deno.copyFile(
+      join(helperRoot, "CodedTextSupport.java"),
+      join(runtimeDir, "CodedTextSupport.java"),
     );
+    await compileJavaFiles(classpath, classes, javaSources(java, srcPath, runtimeDir), "synthetic blood pressure");
+
+    await checkPortableFunctions(classpath, classes, srcDir, runtimeDir);
+
+    const repoRoot = join(import.meta.dirname!, "..");
+    const catalogPath = join(repoRoot, "examples", "example-sets.json");
+    const catalog = parseExampleSetCatalog(
+      await Deno.readTextFile(catalogPath),
+      "https://app.test/examples/example-sets.json",
+    );
+    const compiled: string[] = [];
+    for (const set of catalog.sets) {
+      if (!set.mapping || !set.target) continue;
+      const targetPath = catalogAssetPath(repoRoot, catalogPath, set.target);
+      const targetText = await Deno.readTextFile(targetPath);
+      const filename = targetPath.split("/").pop() ?? "target";
+      const format = detectTargetFormat(filename, targetText);
+      if (format !== "openehr-template") continue;
+      const target = getTargetFormatHandler(format).load(filename, targetText);
+      const mapping = JSON.parse(
+        await Deno.readTextFile(catalogAssetPath(repoRoot, catalogPath, set.mapping)),
+      );
+      ensureBlockly();
+      registerSkeletonBlocks(target.skeleton);
+      registerBlockTypesInState(mapping);
+      const workspace = new Blockly.Workspace();
+      try {
+        try {
+          Blockly.serialization.workspaces.load(mapping, workspace);
+        } catch (err) {
+          const detail = err instanceof Error ? err.message : String(err);
+          throw new Error(`${set.id}: ${detail}`);
+        }
+        const extract = workspaceToModelJson(workspace);
+        const model = {
+          ...createEmptyModel(target.templateId || set.id),
+          targetFormat: "openehr-template" as const,
+          slots: extract.slots,
+          loops: extract.loops,
+          optionalRm: extract.optionalRm,
+          functions: extract.functions,
+          includes: extract.includes,
+        };
+        const skeleton = applyOptionalRmToSkeleton(target.skeleton, extract.optionalRm);
+        const source = generate(model, "java", { skeleton, blocklyState: mapping });
+        assertStringIncludes(source, "public class ConversionScript");
+        await Deno.writeTextFile(srcPath, source);
+        await compileJavaFiles(
+          classpath,
+          classes,
+          javaSources(source, srcPath, runtimeDir),
+          set.id,
+        );
+        compiled.push(set.id);
+      } finally {
+        workspace.dispose();
+      }
+    }
+    assertEquals(compiled.includes("Simple-vitals"), true);
+    assertEquals(compiled.includes("Simple-vitals-series"), true);
+    assertEquals(compiled.includes("obx-mhv1-mapped-json-to-openehr"), true);
+    assertEquals(compiled.includes("karda-ordinationsdata-to-openehr-flat"), true);
   },
 });
+
+function registerSkeletonBlocks(skeleton: Parameters<typeof registerSchemaBlocksFromSkeleton>[0]): void {
+  registerSchemaBlocksFromSkeleton(skeleton);
+  const walk = (node: (typeof skeleton)[number]) => {
+    try {
+      ensureRmBlockType(node.blockType, node.rmType);
+    } catch {
+      // Expression and schema blocks are registered elsewhere.
+    }
+    for (const child of node.children) walk(child);
+  };
+  for (const root of skeleton) walk(root);
+}
+
+function registerBlockTypesInState(state: unknown): void {
+  const types = new Set<string>();
+  const walk = (value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item);
+      return;
+    }
+    const rec = value as Record<string, unknown>;
+    if (typeof rec.type === "string") types.add(rec.type);
+    for (const child of Object.values(rec)) walk(child);
+  };
+  walk(state);
+  for (const type of types) {
+    if (Blockly.Blocks[type]) continue;
+    try {
+      ensureRmBlockType(type, type.toUpperCase());
+    } catch {
+      // Leave unknown blocks to fail the load with the set id.
+    }
+  }
+}
+
+function catalogAssetPath(repoRoot: string, catalogPath: string, ref: string): string {
+  if (/^https?:/i.test(ref)) {
+    return join(repoRoot, new URL(ref).pathname.replace(/^\//, ""));
+  }
+  return normalize(join(dirname(catalogPath), ref));
+}
+
+let blocklyReady = false;
+function ensureBlockly(): void {
+  if (blocklyReady) return;
+  const anyMod = enMsg as { default?: Record<string, string> } & Record<string, string>;
+  const table = anyMod.default && typeof anyMod.default === "object" ? anyMod.default : anyMod;
+  Blockly.setLocale(table);
+  initBlocklyGenerators();
+  blocklyReady = true;
+}
+
+function javaSources(source: string, srcPath: string, runtimeDir: string): string[] {
+  const files = [srcPath, join(runtimeDir, "IntehrgratorRuntime.java")];
+  if (source.includes("CodedTextSupport")) files.push(join(runtimeDir, "CodedTextSupport.java"));
+  if (source.includes("HandlebarsSupport")) files.push(join(runtimeDir, "HandlebarsSupport.java"));
+  return files;
+}
+
+async function compileJavaFiles(
+  classpath: string,
+  classes: string,
+  files: string[],
+  label: string,
+): Promise<void> {
+  const result = await new Deno.Command("javac", {
+    args: ["--release", "21", "-cp", classpath, "-d", classes, ...files],
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  const stderr = new TextDecoder().decode(result.stderr);
+  const stdout = new TextDecoder().decode(result.stdout);
+  assertEquals(result.success, true, `javac failed for ${label}:\n${stderr}\n${stdout}`);
+}
+
+/** Real JVM execution catches Object-valued parameters, 1-based getters and accumulator types. */
+async function checkPortableFunctions(classpath: string, classes: string, srcDir: string, runtimeDir: string): Promise<void> {
+  ensureBlockly();
+  const workspace = new Blockly.Workspace();
+  try {
+    let sheets: import("@intehrgrator/core/sheets/types.ts").SheetDocument[] = [];
+    for (const name of ["coded_text_from_sheet", "join_swedish"]) {
+      const bundle = parseFunctionBundle(await Deno.readTextFile(new URL(`../function-library/${name}.intehr-function.json`, import.meta.url)));
+      sheets = mergeFunctionBundle(workspace, bundle, {clash: "rename", sheets}).sheets;
+    }
+    let model = createEmptyModel("portable-functions"); model.targetFormat = "json-schema";
+    model.functions = workspaceToModelJson(workspace).functions;
+    model = applyExpressionEdit(model, "coded", 'call("coded_text_from_sheet", "local", "id", "A", "label", "primary", "Local", map("Other", "other"))', {rmType: "string", returnType: "string"});
+    model = applyExpressionEdit(model, "joined", 'call("join_swedish_words", list("Ada", "Bo", "Cia"))', {rmType: "string", returnType: "string"});
+    model.functions!.push({name: "pick", kind: "return", params: ["record", "key"], body: 'maps_get(var("record"), var("key"))'});
+    model = applyExpressionEdit(model, "picked", 'call("pick", map("code", "003"), "code")', {rmType: "string", returnType: "string"});
+    const java = generate(model, "java");
+    const script = join(srcDir, "ConversionScript.java"); await Deno.writeTextFile(script, java);
+    const runner = join(srcDir, "FunctionRunner.java");
+    await Deno.writeTextFile(runner, `
+import java.util.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import se.regionstockholm.intehrgrator.generated.ConversionScript;
+import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;
+public class FunctionRunner {
+  public static void main(String[] args) throws Exception {
+    var local = new Sheet("local", List.of("id", "label", "primary", "other"), List.of(List.of("A", "Tablet", "003", "X7")));
+    var join = new Sheet("SweJoinWords", List.of("first", "last", "snippet"), List.of(List.of(true, "—", "{{word}}"), List.of(false, false, ", {{word}}"), List.of(false, true, " och {{word}}")), List.of(), "FIRST", "; ", List.of("snippet"));
+    System.out.print(new ObjectMapper().writeValueAsString(new ConversionScript().convert(Map.of(), Map.of(), Map.of("local", local, "SweJoinWords", join))));
+  }
+}`);
+    await compileJavaFiles(classpath, classes, [...javaSources(java, script, runtimeDir), runner], "ordinary Function bodies");
+    const run = await new Deno.Command("java", {args: ["-cp", `${classes}:${classpath}`, "FunctionRunner"], stdout: "piped", stderr: "piped"}).output();
+    assertEquals(run.success, true, new TextDecoder().decode(run.stderr));
+    const result = JSON.parse(new TextDecoder().decode(run.stdout));
+    assertEquals(result.joined, "Ada, Bo och Cia");
+    assertEquals(result.picked, "003");
+    assertEquals(result.coded.defining_code.code_string, "003");
+    assertEquals(result.coded.mappings[0].target.code_string, "X7");
+  } finally { workspace.dispose(); }
+}

@@ -7,8 +7,8 @@ Back to the [tutorial index](../TUTORIAL.md). Assumes an example tab and some ma
 ## Run a test
 
 1. Open at least one example tab.
-2. In **Target & Previews**, open **Conversion Test Run(s)** and leave **Output mode** on **Mapping preview**.
-3. Click **Run Test**, or turn on **Autoplay** so edits re-run the test after a short pause.
+2. In **Target & Previews**, open **Conversion Test Run(s)**. Leave the script dropdown in the pane header on **Mapping preview**.
+3. Click **Run Test**, or turn on **▶ Auto-run** so edits re-run the test after a short pause.
 
 **Conversion Test Run(s)** shows the produced instance. For openEHR targets, ✅ or ⚠ is template validation. A ⚠ on a named-invalid example (filename contains `invalid` or `broken`) is expected. A mapped Dummy vitals example should show the clinical magnitudes you mapped (`120`, `80`, `mm[Hg]` on `instance-1`).
 
@@ -16,7 +16,7 @@ Switching example tabs shows that tab’s last result. **Run Test** refreshes th
 
 ## Export a conversion script
 
-Change **Output mode** from Mapping preview to a conversion-script language:
+Change the script dropdown in the **Target & Previews** header from **Mapping preview** to a conversion-script language:
 
 - TypeScript (also executed by Test Run)
 - Java (generated; not executed in the app)

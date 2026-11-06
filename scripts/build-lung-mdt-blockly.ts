@@ -20,6 +20,12 @@ import {
 import { targetChildInputName } from "../src/blockly/blocks/target_blocks.ts";
 import { createMapsGetBlock } from "../src/blockly/blocks/map_blocks.ts";
 import { createSourceQueryBlock } from "../src/blockly/source_query.ts";
+import { toFontoxpathHint } from "../src/core/output/handlebars_to_blockly.ts";
+import {
+  parseHandlebarsCondition,
+  pathOnlyOr,
+  type HandlebarsCondition,
+} from "./handlebars_condition.ts";
 import { applySkeletonBlockLabels } from "../src/blockly/block_labels.ts";
 import { createEmptyModel } from "../src/core/mapping_model/mod.ts";
 import { getTargetFormatHandler } from "../src/core/target/mod.ts";
@@ -117,7 +123,12 @@ function mathNumber(workspace: Blockly.Workspace, value: string): Blockly.Block 
   return block;
 }
 
-function textCode(workspace: Blockly.Workspace, text: string): Blockly.Block {
+/** A Note that is only `{{path}}` is a source path. Nested {{#if}} stays Handlebars. */
+function noteValue(workspace: Blockly.Workspace, text: string): Blockly.Block {
+  const single = text.match(/^\{\{([^{}#/][^{}]*)\}\}$/);
+  if (single && !single[1]!.includes("(")) {
+    return createSourceQueryBlock(workspace, toFontoxpathHint(single[1]!.trim()), "string");
+  }
   const block = workspace.newBlock("text_code");
   if (block.getField("LANG")) block.setFieldValue("handlebars", "LANG");
   block.setFieldValue(text, "TEXT");
@@ -135,17 +146,112 @@ function structureFromNode(
   return block;
 }
 
+type ListCreate = Blockly.Block & { itemCount_: number; updateShape_: () => void };
+
+/** Any of these paths is filled. A long `(or path path …)` is this, not nested ors. */
+function anyFilled(workspace: Blockly.Workspace, paths: string[]): Blockly.Block {
+  const list = workspace.newBlock("lists_create_with") as ListCreate;
+  list.itemCount_ = Math.max(1, paths.length);
+  list.updateShape_();
+  for (const [i, path] of paths.entries()) {
+    list.getInput(`ADD${i}`)?.connection?.connect(
+      createSourceQueryBlock(workspace, path, "string").outputConnection!,
+    );
+  }
+  const restriction = workspace.newBlock("logic_list_restriction");
+  restriction.setFieldValue("ANY", "OP");
+  restriction.getInput("LIST")?.connection?.connect(list.outputConnection!);
+  const item = workspace.newBlock("logic_current_item");
+  restriction.getInput("PRED")?.connection?.connect(item.outputConnection!);
+  return restriction;
+}
+
+function textLiteral(workspace: Blockly.Workspace, value: string): Blockly.Block {
+  const block = workspace.newBlock("text");
+  block.setFieldValue(value, "TEXT");
+  return block;
+}
+
+function conditionValue(workspace: Blockly.Workspace, expr: HandlebarsCondition): Blockly.Block {
+  if (expr.kind === "path") {
+    return createSourceQueryBlock(workspace, toFontoxpathHint(expr.path), "string");
+  }
+  if (expr.kind === "string") return textLiteral(workspace, expr.value);
+  if (expr.kind === "number") return mathNumber(workspace, String(expr.value));
+  throw new Error(`Handlebars condition value is not a path or literal (${expr.kind})`);
+}
+
+function foldBoolean(
+  workspace: Blockly.Workspace,
+  op: "AND" | "OR",
+  args: HandlebarsCondition[],
+): Blockly.Block {
+  if (args.length === 0) {
+    const block = workspace.newBlock("logic_boolean");
+    block.setFieldValue(op === "AND" ? "TRUE" : "FALSE", "BOOL");
+    return block;
+  }
+  let acc = conditionBoolean(workspace, args[0]!);
+  for (const arg of args.slice(1)) {
+    const block = workspace.newBlock("logic_operation");
+    block.setFieldValue(op, "OP");
+    block.getInput("A")?.connection?.connect(acc.outputConnection!);
+    block.getInput("B")?.connection?.connect(conditionBoolean(workspace, arg).outputConnection!);
+    acc = block;
+  }
+  return acc;
+}
+
+/**
+ * A Handlebars `{{#if}}` guard as blocks. A path is a boolean source.
+ * `(eq)` / `(ne)` are compares. A path-only `(or)` is any-of. The raw
+ * `(and (eq …) (or …))` string is not a source path.
+ */
+function conditionBoolean(workspace: Blockly.Workspace, expr: HandlebarsCondition): Blockly.Block {
+  if (expr.kind === "path") {
+    return createSourceQueryBlock(workspace, toFontoxpathHint(expr.path), "boolean");
+  }
+  if (expr.kind !== "call") {
+    throw new Error(`Handlebars condition is not boolean (${expr.kind})`);
+  }
+  if (expr.name === "eq" || expr.name === "ne") {
+    const block = workspace.newBlock("logic_compare");
+    block.setFieldValue(expr.name === "ne" ? "NEQ" : "EQ", "OP");
+    if (expr.args[0]) {
+      block.getInput("A")?.connection?.connect(conditionValue(workspace, expr.args[0]).outputConnection!);
+    }
+    if (expr.args[1]) {
+      block.getInput("B")?.connection?.connect(conditionValue(workspace, expr.args[1]).outputConnection!);
+    }
+    return block;
+  }
+  if (expr.name === "not" && expr.args[0]) {
+    const block = workspace.newBlock("logic_negate");
+    block.getInput("BOOL")?.connection?.connect(
+      conditionBoolean(workspace, expr.args[0]).outputConnection!,
+    );
+    return block;
+  }
+  if (expr.name === "or") {
+    const paths = pathOnlyOr(expr);
+    if (paths) return anyFilled(workspace, paths.map((path) => toFontoxpathHint(path)));
+    return foldBoolean(workspace, "OR", expr.args);
+  }
+  if (expr.name === "and") return foldBoolean(workspace, "AND", expr.args);
+  throw new Error(`Unsupported Handlebars condition helper: ${expr.name}`);
+}
+
 function wrapIf(
   workspace: Blockly.Workspace,
   inner: Blockly.Block,
   condition: string | undefined,
 ): Blockly.Block {
   if (!condition) return inner;
-  const iff = workspace.newBlock("controls_if");
-  const cond = createSourceQueryBlock(workspace, condition, "boolean");
-  iff.getInput("IF0")?.connection?.connect(cond.outputConnection!);
-  iff.getInput("DO0")?.connection?.connect(inner.previousConnection!);
-  return iff;
+  const guard = workspace.newBlock("include_when");
+  const cond = conditionBoolean(workspace, parseHandlebarsCondition(condition));
+  guard.getInput("WHEN")?.connection?.connect(cond.outputConnection!);
+  guard.getInput("DO")?.connection?.connect(inner.previousConnection!);
+  return guard;
 }
 
 export function buildLungMdtWorkspace(
@@ -228,10 +334,10 @@ export function buildLungMdtWorkspace(
     const block = structureFromNode(workspace, node);
     fillValue(block, targetChildInputName("TermId"), mathNumber(workspace, item.termId));
     if (item.kind === "TextKeyWord") {
-      fillValue(block, targetChildInputName("Note"), textCode(workspace, item.note));
+      fillValue(block, targetChildInputName("Note"), noteValue(workspace, item.note));
     } else {
       composeSchemaOptionalFields(block, ["Note"]);
-      fillValue(block, schemaOptionalInputName("Note"), textCode(workspace, item.note));
+      fillValue(block, schemaOptionalInputName("Note"), noteValue(workspace, item.note));
     }
     appendStatement(parent, mouth, wrapIf(workspace, block, item.condition));
   }

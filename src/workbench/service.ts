@@ -37,7 +37,14 @@ import {
 import { leaseCovers, SlotLeaseRegistry, type SlotLease } from "../agent/leases.ts";
 import { filterSlotRows } from "../agent/inspect.ts";
 import { slotDetail } from "../agent/slot_detail.ts";
-import { buildSlotTree, resolveSlotPrefix, resolveSlotRef } from "../core/ai/slot_tree.ts";
+import { buildSlotTree, compactSlotId, resolveSlotPrefix, resolveSlotRef } from "../core/ai/slot_tree.ts";
+import {
+  collectValueSetHints,
+  countActiveHints,
+  hintPayload,
+  type ValueSetHintPayload,
+} from "../core/hints/value_set_hint.ts";
+import { applyValueSetHint, type ApplyValueSetHintRequest, type ApplyValueSetHintResult } from "../blockly/hint_actions.ts";
 import { importBundle, exportBundle as zipBundle, validateBundle } from "../core/persistence/mod.ts";
 import type { ExampleSet } from "../core/example_sets/mod.ts";
 import type {
@@ -174,11 +181,17 @@ export class WorkbenchService {
     const slots = listSlotsInspect(s.skeleton, s.model);
     const unmapped = slots.filter((row) => !row.mapped && row.mandatory).map((row) => row.slotId);
     const constraintWarnings = this.listConstraintWarnings();
+    const applied = slots.filter((row) => row.mapped);
+    // A Default point or a scaffolded term_pick is not a mapping yet (#312, #320).
+    const defaulted = applied.filter((row) => isScaffoldedSlotExpression(row.expression)).length;
     return {
       revision: this.revision,
       templateId: s.templateId,
       projectId: s.projectId,
-      appliedSlots: slots.filter((row) => row.mapped).length,
+      appliedSlots: applied.length,
+      mappedSlots: applied.length - defaulted,
+      defaultedSlots: defaulted,
+      hintSlots: countActiveHints(collectValueSetHints(s.skeleton, s.model, s.settings)),
       loops: s.model.loops?.length ?? 0,
       unmappedMandatory: s.unmappedMandatory,
       statusMessage: s.statusMessage,
@@ -348,7 +361,7 @@ export class WorkbenchService {
       this.syncBlocklyFromModel();
     }, {
       ...ctx,
-      kind: "import",
+      kind: ctx?.kind ?? "import",
       summary: ctx?.summary ?? "Import AI suggestions",
       affectedSlotIds: ctx?.affectedSlotIds,
     });
@@ -377,7 +390,7 @@ export class WorkbenchService {
     }, {
       ...ctx,
       kind: "map_slot",
-      summary: ctx?.summary ?? `Map ${path} → ${slotId}`,
+      summary: ctx?.summary ?? `Map ${path} → ${compactSlotId(slotId)}`,
       affectedSlotIds: [slotId],
     });
   }
@@ -549,6 +562,7 @@ export class WorkbenchService {
           sheetNames: extract.sheetNames,
           instanceEncodings: extract.instanceEncodings,
           functions: extract.functions,
+          includes: extract.includes,
         });
       }, {
         ...ctx,
@@ -590,7 +604,20 @@ export class WorkbenchService {
 
   listSlots() {
     const s = this.controller.getState();
-    return listSlotsInspect(s.skeleton, s.model);
+    const hints = this.activeHintPayloads();
+    return listSlotsInspect(s.skeleton, s.model).map((row) => {
+      const hint = hints.get(row.slotId);
+      return hint ? { ...row, hint } : row;
+    });
+  }
+
+  private activeHintPayloads(): Map<string, ValueSetHintPayload> {
+    const s = this.controller.getState();
+    const hints = new Map<string, ValueSetHintPayload>();
+    for (const hint of collectValueSetHints(s.skeleton, s.model, s.settings)) {
+      if (!hint.dismissed) hints.set(hint.slotId, hintPayload(hint));
+    }
+    return hints;
   }
 
   listRepeatable() {
@@ -626,6 +653,7 @@ export class WorkbenchService {
       model: s.model,
       info: this.controller.getSlotInfoIndex(),
       extraLabels: this.controller.getAiExtraLabels(),
+      hints: this.activeHintPayloads(),
     });
   }
 
@@ -650,7 +678,50 @@ export class WorkbenchService {
         : undefined,
     );
     if (!detail) throw new Error(`Unknown slotId: ${ref}`);
-    return detail;
+    const hint = this.activeHintPayloads().get(slotId);
+    return hint ? { ...detail, hint } : detail;
+  }
+
+  /**
+   * Same refactor as the Hints tab. `grid.prompt` is for the interactive UI
+   * only; MCP callers must not treat it as something to run.
+   */
+  applyHint(
+    request: ApplyValueSetHintRequest,
+    expectedRevision?: string,
+    ctx?: MutationContext,
+  ): ApplyValueSetHintResult {
+    this.assertRevision(expectedRevision);
+    let result!: ApplyValueSetHintResult;
+    const recorded: MutationContext = {
+      ...ctx,
+      kind: ctx?.kind ?? "expression",
+      summary: ctx?.summary ?? "Apply value-set hint",
+    };
+    this.mutate(() => {
+      const s = this.controller.getState();
+      initBlocklyGenerators();
+      const workspace = new Blockly.Workspace();
+      try {
+        if (s.blocklyState && typeof s.blocklyState === "object") {
+          Blockly.serialization.workspaces.load(
+            JSON.parse(JSON.stringify(s.blocklyState)) as Record<string, unknown>,
+            workspace,
+          );
+        }
+        result = applyValueSetHint(workspace, s.skeleton, s.model, s.settings, s.sheets, request);
+        this.controller.replaceSheets(result.sheets, { silent: true });
+        this.controller.replaceSettings(result.settings);
+        if (s.blocklyState || workspace.getAllBlocks(false).length) {
+          this.commitWorkspace(workspace);
+        }
+        if (!ctx?.summary) recorded.summary = result.summary;
+        recorded.affectedSlotIds = result.slotId ? [result.slotId] : [];
+      } finally {
+        workspace.dispose();
+      }
+    }, recorded);
+    return result;
   }
 
   /** Examples + Active Example tree for `list_examples` / `get_example` (shared with AI chat). */
@@ -717,42 +788,50 @@ export class WorkbenchService {
   }
 
   async loadExampleSet(set: ExampleSet, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.loadExampleSet(set);
     this.hydrateSkeletonCanvas();
     this.recordMutation(before, {
       ...ctx,
+      actor,
       kind: "load_bundle",
       summary: ctx?.summary ?? `Load example set ${set.id}`,
     });
   }
 
   async loadTargetFromUrl(url: string, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.openTemplateFromUrl(url);
     this.hydrateSkeletonCanvas();
     this.recordMutation(before, {
       ...ctx,
+      actor,
       kind: "load_bundle",
       summary: ctx?.summary ?? `Load target ${url}`,
     });
   }
 
   async loadSchemaFromUrl(url: string, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.loadSchemaFromUrl(url);
     this.recordMutation(before, {
       ...ctx,
+      actor,
       kind: "load_bundle",
       summary: ctx?.summary ?? `Load schema ${url}`,
     });
   }
 
   async addExampleFromUrl(url: string, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     const before = this.exportBundle();
     await this.controller.addExampleFromUrl(url);
     this.recordMutation(before, {
       ...ctx,
+      actor,
       summary: ctx?.summary ?? `Load example ${url}`,
     });
   }
@@ -770,20 +849,16 @@ export class WorkbenchService {
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? "Replace sheets" });
   }
 
-  generateScript(language: ConversionScriptLanguage): {
-    language: ConversionScriptLanguage;
+  async generateScript(language: string): Promise<{
+    language: string;
     extension: string;
     mime: string;
     code: string;
     revision: string;
-  } {
-    if (!isConversionScriptLanguage(language)) {
-      throw new Error(`Unsupported conversion script language: ${language}`);
-    }
+  }> {
     initBlocklyGenerators();
     const s = this.controller.getState();
-    const adapter = getExportTargetAdapter(language);
-    const code = generate(s.model, language, {
+    const scriptOptions = {
       handlebarsTemplate: s.handlebarsTemplate,
       blocklyState: s.blocklyState,
       skeleton: s.skeleton,
@@ -791,7 +866,22 @@ export class WorkbenchService {
         ? instanceShapeForEncoding(preferredInstanceEncoding(s.model))
         : s.settings.openEhrInstanceShape,
       webTemplateJson: s.target?.webTemplateJson,
-    });
+    };
+    if (!isConversionScriptLanguage(language)) {
+      const { externalLanguageGenerator } = await import("../core/codegen/language_plugin.ts");
+      const gen = externalLanguageGenerator();
+      if (!gen) throw new Error(`Unsupported conversion script language: ${language}`);
+      const generated = await gen(language, s.model, scriptOptions);
+      return {
+        language,
+        extension: generated.extension,
+        mime: generated.mime,
+        code: generated.code,
+        revision: this.revision,
+      };
+    }
+    const adapter = getExportTargetAdapter(language);
+    const code = generate(s.model, language, scriptOptions);
     return {
       language,
       extension: adapter.extension,
@@ -917,6 +1007,11 @@ export class WorkbenchService {
     return hit;
   }
 
+  /** Actor for this call, read before an await so a later request cannot replace it (#317). */
+  private actorNow(ctx?: MutationContext): HistoryActor {
+    return ctx?.actor ?? this.currentActor;
+  }
+
   private agentIdForLeases(): string | undefined {
     return this.currentActor.kind === "agent" ? this.currentActor.id : undefined;
   }
@@ -943,6 +1038,7 @@ export class WorkbenchService {
           sheetNames: extract.sheetNames,
           instanceEncodings: extract.instanceEncodings,
           functions: extract.functions,
+          includes: extract.includes,
         },
       );
       return;
@@ -970,6 +1066,7 @@ export class WorkbenchService {
         sheetNames: extract.sheetNames,
         instanceEncodings: extract.instanceEncodings,
         functions: extract.functions,
+        includes: extract.includes,
       },
     );
   }
@@ -988,6 +1085,7 @@ export class WorkbenchService {
         sheetNames: extract.sheetNames,
         instanceEncodings: extract.instanceEncodings,
         functions: extract.functions,
+        includes: extract.includes,
       },
     );
   }
@@ -1047,6 +1145,19 @@ export class WorkbenchService {
       throw new AgentRevisionConflictError(this.revision, expected);
     }
   }
+}
+
+/**
+ * A slot expression the skeleton placed, not a person or an agent (#312, #320).
+ * Default-context lookups, and a term_pick whose code and terminology are literals.
+ * A `map_slot` constant is a flat `map("value", …, "code_string", …)` and stays mapped.
+ */
+export function isScaffoldedSlotExpression(expression: string | undefined): boolean {
+  if (!expression) return false;
+  if (/^maps_get\(\s*"defaults"\s*,/.test(expression)) return true;
+  return /^map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)$/.test(expression) ||
+    /^map\("value",\s*"[^"]*",\s*"defining_code",\s*map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)\)$/
+      .test(expression);
 }
 
 function parseBundleBytes(bytes: Uint8Array): ProjectBundle {

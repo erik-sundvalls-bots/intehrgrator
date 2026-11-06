@@ -5,6 +5,7 @@ import {
   isProtectedSpecBlock,
   isUnmappedBlockTree,
   UNMAPPED_OPTIONAL_SCAFFOLD_WARNING,
+  VALUE_SET_HINT_NOTE,
 } from "../../blockly/block_constraints.ts";
 import { replaceCanvasUndoable } from "../../blockly/blockly_events.ts";
 import type { BlocklyJsonDocument, SpecLine } from "./project.ts";
@@ -32,7 +33,8 @@ export function isOptionalUnmappedScaffoldBlock(block: Block, warning: string): 
   if (isProtectedSpecBlock(block)) return false;
   if (!isInNonMandatoryField(block)) return false;
   if (!isUnmappedBlockTree(block)) return false;
-  return warning.includes(UNMAPPED_OPTIONAL_SCAFFOLD_WARNING);
+  return warning.includes(UNMAPPED_OPTIONAL_SCAFFOLD_WARNING) ||
+    warning.includes(VALUE_SET_HINT_NOTE);
 }
 
 function ancestorBlockIds(workspace: Workspace, blockId: string): Set<string> {

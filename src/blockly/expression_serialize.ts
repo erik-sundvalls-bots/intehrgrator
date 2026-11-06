@@ -142,10 +142,17 @@ export function blockToExpression(block: Block | null): string | null {
       const name = block.getField("VAR")?.getText() ?? "v";
       return `var(${JSON.stringify(name)})`;
     }
+    case "maps_entries":
+      return `maps_entries(${blockToExpression(block.getInputTargetBlock("MAP")) ?? "map()"})`;
+    case "lists_length":
+      return `lists_length(${blockToExpression(block.getInputTargetBlock("VALUE")) ?? "list()"})`;
+    case "logic_null":
+      return "null";
     case "maps_get": {
       const name = String(block.getFieldValue("NAME") || "defaults");
       const key = blockToExpression(block.getInputTargetBlock("KEY")) ?? '""';
-      return `maps_get(${JSON.stringify(name)}, ${key})`;
+      const map = blockToExpression(block.getInputTargetBlock("MAP")) ?? JSON.stringify(name);
+      return `maps_get(${map}, ${key})`;
     }
     case "term_pick": {
       const set = termSetById(block.getFieldValue("SET"));
@@ -164,43 +171,43 @@ export function blockToExpression(block: Block | null): string | null {
       })`;
     }
     case "sheet_get_cell": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
       const a1 = blockToExpression(block.getInputTargetBlock("A1")) ?? '"A1"';
-      return `sheet_get_cell(${JSON.stringify(name)}, ${a1})`;
+      return `sheet_get_cell(${name}, ${a1})`;
     }
     case "sheet_get_xy": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
       const x = blockToExpression(block.getInputTargetBlock("X")) ?? "0";
       const y = blockToExpression(block.getInputTargetBlock("Y")) ?? "0";
-      return `sheet_get_xy(${JSON.stringify(name)}, ${x}, ${y})`;
+      return `sheet_get_xy(${name}, ${x}, ${y})`;
     }
     case "sheet_get_row": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
       const y = blockToExpression(block.getInputTargetBlock("Y")) ?? "0";
-      return `sheet_get_row(${JSON.stringify(name)}, ${y})`;
+      return `sheet_get_row(${name}, ${y})`;
     }
     case "sheet_get_column": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
       const x = blockToExpression(block.getInputTargetBlock("X")) ?? "0";
-      return `sheet_get_column(${JSON.stringify(name)}, ${x})`;
+      return `sheet_get_column(${name}, ${x})`;
     }
     case "sheet_get_header": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
       const x = blockToExpression(block.getInputTargetBlock("X")) ?? "0";
-      return `sheet_get_header(${JSON.stringify(name)}, ${x})`;
+      return `sheet_get_header(${name}, ${x})`;
     }
     case "sheet_get_data": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
-      return `sheet_get_data(${JSON.stringify(name)})`;
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
+      return `sheet_get_data(${name})`;
     }
     case "sheet_lookup": {
-      const name = String(block.getFieldValue("NAME") || "Sheet1");
+      const name = blockToExpression(block.getInputTargetBlock("SHEET")) ?? JSON.stringify(block.getFieldValue("NAME") || "Sheet1");
       const col = blockToExpression(block.getInputTargetBlock("MATCH_COL")) ?? '""';
       const val = blockToExpression(block.getInputTargetBlock("MATCH_VAL")) ?? '""';
       const ret = blockToExpression(block.getInputTargetBlock("RETURN_COL"));
       return ret
-        ? `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val}, ${ret})`
-        : `sheet_lookup(${JSON.stringify(name)}, ${col}, ${val})`;
+        ? `sheet_lookup(${name}, ${col}, ${val}, ${ret})`
+        : `sheet_lookup(${name}, ${col}, ${val})`;
     }
     case "decision_table": {
       const name = String(block.getFieldValue("NAME") || "Decision1");
@@ -327,6 +334,7 @@ export function astToExpressionBlock(
   finalize: (block: BlockSvg) => BlockSvg,
 ): BlockSvg {
   if (ast.kind === "literal") {
+    if (ast.value === null) return finalize(workspace.newBlock("logic_null") as BlockSvg);
     if (typeof ast.value === "number") {
       const block = workspace.newBlock("math_number") as BlockSvg;
       block.setFieldValue(ast.value, "NUM");
@@ -423,6 +431,7 @@ export function astToExpressionBlock(
         const child = astToExpressionBlock(workspace, arg, "string", finalize);
         block.getInput(input)?.connection?.connect(child.outputConnection!);
       };
+      plug("SHEET", ast.args[0]);
       plug("MATCH_COL", ast.args[1]);
       plug("MATCH_VAL", ast.args[2]);
       plug("RETURN_COL", ast.args[3]);
@@ -449,9 +458,16 @@ export function astToExpressionBlock(
     }
     if (ast.name === "if" && ast.args.length >= 3) {
       const block = workspace.newBlock("logic_ternary") as BlockSvg;
-      block.getInput("IF")!.connection!.connect(
-        astToExpressionBlock(workspace, ast.args[0]!, "boolean", finalize).outputConnection!,
-      );
+      const ifInput = block.getInput("IF")!.connection!;
+      const cond = astToExpressionBlock(workspace, ast.args[0]!, "boolean", finalize);
+      ifInput.connect(cond.outputConnection!);
+      if (cond.getParent() !== block) {
+        // A text or number condition (a source value) does not fit the Boolean
+        // IF input: test it as "is not empty", as preview reads it (F-M9).
+        cond.dispose(false);
+        const notEmpty: ExprAst = { kind: "call", name: "ne", args: [ast.args[0]!, { kind: "literal", value: "" }] };
+        ifInput.connect(astToExpressionBlock(workspace, notEmpty, "boolean", finalize).outputConnection!);
+      }
       block.getInput("THEN")!.connection!.connect(
         astToExpressionBlock(workspace, ast.args[1]!, returnType, finalize).outputConnection!,
       );
@@ -460,11 +476,27 @@ export function astToExpressionBlock(
       );
       return finalize(block);
     }
+    if (ast.name === "maps_entries" && ast.args[0]) {
+      registerMapBlocks();
+      const block = workspace.newBlock("maps_entries") as BlockSvg;
+      const child = astToExpressionBlock(workspace, ast.args[0], returnType, finalize);
+      block.getInput("MAP")!.connection!.connect(child.outputConnection!);
+      return finalize(block);
+    }
     if (ast.name === "maps_get" && ast.args.length >= 2) {
       registerMapBlocks();
       const mapName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "defaults";
       const key = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "";
-      return finalize(createMapsGetBlock(workspace, mapName, key) as BlockSvg);
+      const block = createMapsGetBlock(workspace, mapName, key) as BlockSvg;
+      if (ast.args[0]?.kind !== "literal" && ast.args[0]) {
+        const map = astToExpressionBlock(workspace, ast.args[0], returnType, finalize);
+        block.getInput("MAP")!.connection!.connect(map.outputConnection!);
+      }
+      if (ast.args[1]) {
+        const keyBlock = astToExpressionBlock(workspace, ast.args[1], "string", finalize);
+        block.getInput("KEY")!.connection!.connect(keyBlock.outputConnection!);
+      }
+      return finalize(block);
     }
     if (ast.name === "var" && ast.args[0]?.kind === "literal") {
       const name = String(ast.args[0].value);

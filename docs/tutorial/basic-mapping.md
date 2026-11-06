@@ -8,8 +8,12 @@ Back to the [tutorial index](../TUTORIAL.md).
 
 - **Web (recommended):** [regionstockholm.github.io/intehrgrator/recommended/](https://regionstockholm.github.io/intehrgrator/recommended/)
 - **Web (latest / bleeding-edge):** [regionstockholm.github.io/intehrgrator/](https://regionstockholm.github.io/intehrgrator/)
-- **Desktop:** download a build from [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) and run the binary for your platform.
+- **Desktop:** download a build from [GitHub Releases](https://github.com/regionstockholm/intehrgrator/releases) and run the binary for your platform. The desktop app can also let an IDE agent work on the open canvas; see [Desktop and a local IDE](desktop-and-local-ai.md).
 - **Pinned web versions:** [versions.json](https://regionstockholm.github.io/intehrgrator/versions.json) lists pinned URLs (`/v0.7/`, and so on).
+- **VS Code extension:** the same workbench in a VS Code tab (command **intEHRgrator: Open Integration Workbench**). For now it is built from the source repository.
+- **Headless:** `intEHRgrator --headless` runs the workbench without a window, for IDE agents and automated runs.
+
+All of these are maintained and open the same projects. This page uses the web app; the steps are the same in the others.
 
 Three panes: **Source** (left, slide-away), **Mapping Editor** (centre), **Target & Previews** (right, tabbed and slide-away).
 
@@ -32,7 +36,7 @@ Click **+ Add Example** and pick one or more JSON or XML instance files (or a Gi
 
 ## Load a target
 
-In **Target & Previews**, click **Load target & default context map**. Pick a target (file, URL, or one already loaded). You can attach a **default context map** now, or skip that and read [Default context](default-context.md) later.
+In **Target & Previews**, click **Load target & default context map**. Pick a target (a schema or template file, a URL, one already loaded, or a minimal JSON, XML, or text example). You can attach a **default context map** now, or skip that and read [Default context](default-context.md) later.
 
 Confirm scaffolds the **Template Skeleton**. **New** loads the target into the **Target schema** tab only, so you can pull chips onto the canvas and then Apply.
 
@@ -42,6 +46,7 @@ Supported targets:
 - JSON Schema
 - XML Schema (XSD)
 - Free-form text (no schema; Handlebars, decision-table snippets, and other text blocks)
+- Minimal JSON, XML, or text example (no schema file; a conversion start sits above a small document)
 
 An openEHR template becomes a **Template Skeleton**: nested Blockly blocks for the clinical model, including silent-mandatory RM fields the template file does not mention.
 
@@ -49,16 +54,20 @@ An openEHR template becomes a **Template Skeleton**: nested Blockly blocks for t
 
 Use this when the source value and the target slot are both single values, not lists.
 
-1. Click a **value slot** on a Blockly block (or a row in the Mapping Specification tab).
+1. Click a **value slot** on a Blockly block (or a row in the **Mapping Spec** tab).
 2. The slot enters **listening mode** (highlighted).
 3. Click a node in the **schema tree** or the **active example tree**.
-4. A source-query block with an XPath expression is inserted.
+4. A source-query block with the source path is inserted (`$.systolic` for JSON, an XPath for XML).
 
 You can also drag a source node onto a slot. Yellow **constraint warning** triangles mark mandatory fields that are still empty.
 
 <img src="../assets/tutorial/click-to-map.png" alt="Blood pressure element with empty Systolic and Diastolic magnitude slots" />
 
 *Click a magnitude slot (Systolic), then a node in the source tree. The slot stays in listening mode until that click.*
+
+## When a slot has allowed values
+
+A 💡 badge marks a **value-set hint**: the template offers several codes, ordinals, text choices, or units. The slot stays empty until you map it. Click the badge or open **Hints** beside Mapping Spec and Tables & Sheets. Choose **Use as constant**, **Decision table: source → code**, or **Sheet lookup** to insert connected blocks; ★ marks an assumed value, not an applied default. Follow [Value-set hints](value-set-hints.md) for the steps.
 
 ## Try an Example Set
 
@@ -102,13 +111,13 @@ Titles put the family and route first and the mapping state last ([#166](https:/
 
 1. **Dummy vitals (JSON Schema → JSON Schema) — unmapped** — click-to-map systolic, diastolic, and unit. Run Test on Mapping preview or TypeScript.
 2. **Dummy vitals (JSON Schema → JSON Schema) — mapped** — three instances. Test Run should show `120` / `80` / `mm[Hg]` on `instance-1`.
-3. A clinical **mapped** set: Dummy vitals → openEHR, chemo with Output mode **Go Template**, or lung-MDT with **Mapping preview** or **Handlebars**.
+3. A clinical **mapped** set: Dummy vitals → openEHR, chemo with **Go Template**, or lung-MDT with **Mapping preview** or **Handlebars**. You pick these in the script dropdown in the **Target & Previews** header (it shows **Mapping preview** until you change it).
 
 Named-invalid vitals instances (the filename contains `invalid` or `broken`) are negative tests. They should not produce a fully valid template instance.
 
-Simple-vitals and series **valid** instances can still show ⚠ for remaining template messages (required attributes, unit list, CLUSTER vs ELEMENT, default-context `CODE_PHRASE`). The clinical magnitudes `120` / `80` / `72` (series `138`) are present.
+The valid Simple-vitals and series instances show ✅ in **Mapping preview** and **TypeScript**. The clinical magnitudes `120` / `80` / `72` (series `138`) are present.
 
-Lung-MDT **Mapping preview** and **Handlebars** agree on evaluated TermId and Note pairs. Karda mapped sets emit Simplified FLAT. Remaining Karda validation messages are recorded in [karda-admin-mapping-benchmark.md](../design/karda-admin-mapping-benchmark.md).
+Lung-MDT **Mapping preview** and **Handlebars** agree on evaluated TermId and Note pairs. Karda mapped sets emit Simplified FLAT; the medication treatment (administration) set shows ✅, and the open issues of each set are listed in [example-sets-audit.md](../agents/example-sets-audit.md). The OBX MHV1 mapped set maps only part of the source.
 
 Lung-MDT Handlebars `@first` / `@last` is still open ([#135](https://github.com/regionstockholm/intehrgrator/issues/135)).
 

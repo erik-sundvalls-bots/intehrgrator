@@ -88,7 +88,7 @@ Deno.test("copy & paste prompt attaches the raw target only when asked (#277 §6
   const s = await serviceWith(SDV);
   const inline = prompt(s, "inline");
   assertEquals(inline.includes("<template xmlns"), false);
-  assertStringIncludes(inline, "Attach original target");
+  assertStringIncludes(inline, "Attach original target format too");
   s["controller"].setAiAttachOriginalTarget(true);
   assertStringIncludes(prompt(s, "inline"), "<template xmlns");
 });

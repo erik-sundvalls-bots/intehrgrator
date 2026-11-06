@@ -1,3 +1,4 @@
+import { emitImperativeStack } from "./function_statements.ts";
 /**
  * Java conversion-script generation (Archie RM constructors).
  *
@@ -11,13 +12,15 @@
 import type { MappingFunction, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
 import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
 import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
+import { attributesFor, baseRmTypeName, isAbstractType, isSubtypeOf, resolveGenericSlotType } from "../rm_meta.ts";
 import {
   propsLackClinicalContent,
   rmArchetypeNodeId,
   rmLocatableName,
 } from "../openehr/rm_archetype_node_id.ts";
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
-import { isListAttribute } from "./typescript.ts";
+import { namedLoopBinding } from "../named_loop_path.ts";
+import { codedChoicesForNode, isListAttribute } from "./typescript.ts";
 import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
@@ -26,8 +29,20 @@ import {
   jsFunctionIdent,
   valueFunctions,
 } from "./user_functions.ts";
+import { JAVA_CODED_TEXT_BLOB, JAVA_HANDLEBARS_BLOB, JAVA_RUNTIME_BLOB } from "./helpers/locations.ts";
+import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 
 const GENERIC_RM = new Set(["HISTORY", "POINT_EVENT", "INTERVAL_EVENT", "EVENT"]);
+
+/**
+ * Archie classes that cannot be constructed. Archetypes often leave the slot
+ * at the abstract parent (`EVENT` = any event); the concrete sibling is what
+ * `new` can call.
+ */
+const CONCRETE_RM: Record<string, string> = {
+  EVENT: "POINT_EVENT",
+  ITEM_STRUCTURE: "ITEM_TREE",
+};
 
 /** Matches the desktop app identifier in deno.json (`se.regionstockholm.intehrgrator`). */
 const JAVA_GENERATED_PACKAGE = "se.regionstockholm.intehrgrator.generated";
@@ -50,6 +65,7 @@ const JAVA_PACKAGES: Record<string, string> = {
   Composition: "com.nedap.archie.rm.composition",
   EventContext: "com.nedap.archie.rm.composition",
   Section: "com.nedap.archie.rm.composition",
+  ContentItem: "com.nedap.archie.rm.composition",
   Observation: "com.nedap.archie.rm.composition",
   Evaluation: "com.nedap.archie.rm.composition",
   Instruction: "com.nedap.archie.rm.composition",
@@ -69,7 +85,9 @@ const JAVA_PACKAGES: Record<string, string> = {
   IntervalEvent: "com.nedap.archie.rm.datastructures",
   Event: "com.nedap.archie.rm.datastructures",
   Item: "com.nedap.archie.rm.datastructures",
+  ItemStructure: "com.nedap.archie.rm.datastructures",
   DvText: "com.nedap.archie.rm.datavalues",
+  TermMapping: "com.nedap.archie.rm.datavalues",
   DvCodedText: "com.nedap.archie.rm.datavalues",
   DvBoolean: "com.nedap.archie.rm.datavalues",
   DvIdentifier: "com.nedap.archie.rm.datavalues",
@@ -78,6 +96,8 @@ const JAVA_PACKAGES: Record<string, string> = {
   DvParagraph: "com.nedap.archie.rm.datavalues",
   DvState: "com.nedap.archie.rm.datavalues",
   DvQuantity: "com.nedap.archie.rm.datavalues.quantity",
+  DvInterval: "com.nedap.archie.rm.datavalues.quantity",
+  ReferenceRange: "com.nedap.archie.rm.datavalues.quantity",
   DvCount: "com.nedap.archie.rm.datavalues.quantity",
   DvOrdinal: "com.nedap.archie.rm.datavalues.quantity",
   DvProportion: "com.nedap.archie.rm.datavalues.quantity",
@@ -87,6 +107,9 @@ const JAVA_PACKAGES: Record<string, string> = {
   DvTime: "com.nedap.archie.rm.datavalues.quantity.datetime",
   DvDuration: "com.nedap.archie.rm.datavalues.quantity.datetime",
   CodePhrase: "com.nedap.archie.rm.datatypes",
+  TerminologyId: "com.nedap.archie.rm.support.identification",
+  DvMultimedia: "com.nedap.archie.rm.datavalues.encapsulated",
+  DvParsable: "com.nedap.archie.rm.datavalues.encapsulated",
   PartySelf: "com.nedap.archie.rm.generic",
   PartyIdentified: "com.nedap.archie.rm.generic",
   PartyRelated: "com.nedap.archie.rm.generic",
@@ -119,16 +142,20 @@ export type JavaHelper =
   | "logic"
   | "rm"
   | "flatten"
-  | "handlebars";
+  | "handlebars"
+  | "coded";
 
 export interface JavaEmitContext {
   sourceVar: string;
   loopVar?: string;
+  /** Loop item name → Java ident. Inner names shadow. */
+  loopBindings?: Readonly<Record<string, string>>;
   types: Set<string>;
   helpers: Set<JavaHelper>;
   idents: Map<string, number>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
+  fnLocals?: boolean;
   fnIdents?: Map<string, string>;
 }
 
@@ -149,6 +176,175 @@ export function javaClassName(rmType: string): string {
 export function javaSetterName(attr: string): string {
   const camel = attr.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
   return "set" + camel.charAt(0).toUpperCase() + camel.slice(1);
+}
+
+/** LOCATABLE (BMM ancestry). ISM_TRANSITION and EVENT_CONTEXT are not. */
+function emitsArchetypeNodeId(rmType: string): boolean {
+  try {
+    return rmType === "LOCATABLE" || isSubtypeOf(rmType, "LOCATABLE");
+  } catch {
+    return LOCATABLE_TYPES.has(rmType);
+  }
+}
+
+function splitTypeArgs(args: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < args.length; i++) {
+    const c = args[i];
+    if (c === "<") depth++;
+    else if (c === ">") depth--;
+    else if (c === "," && depth === 0) {
+      out.push(args.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  const last = args.slice(start).trim();
+  if (last) out.push(last);
+  return out;
+}
+
+/** Archie type name for a BMM type (`EVENT<T>` → `Event<ItemStructure>`). */
+function javaRmType(owner: string, typeName: string): string {
+  const trimmed = typeName.trim();
+  const genericAt = trimmed.indexOf("<");
+  if (genericAt > 0 && trimmed.endsWith(">")) {
+    const raw = trimmed.slice(0, genericAt);
+    const args = splitTypeArgs(trimmed.slice(genericAt + 1, -1));
+    return `${javaClassName(raw)}<${args.map((arg) => javaRmType(raw, arg)).join(", ")}>`;
+  }
+  if (trimmed === "T") return javaClassName(resolveGenericSlotType(owner, trimmed));
+  return javaClassName(trimmed);
+}
+
+/**
+ * Element type of a BMM `List<…>` attribute.
+ * Missing attributes (OBSERVATION.events is not on the class) stay unwrapped.
+ */
+function javaListElementType(parentRm: string, attr: string): string | null {
+  try {
+    const meta = attributesFor(parentRm).find((item) => item.name === attr);
+    if (!meta?.typeName.startsWith("List<") || !meta.typeName.endsWith(">")) return null;
+    return javaRmType(parentRm, meta.typeName.slice("List<".length, -1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Java lists are invariant. `List<PointEvent<ItemStructure>>` is not a
+ * `List<Event<ItemStructure>>`, and `new PointEvent<>()` does not infer its
+ * parameter unless the stream map has a type witness.
+ * Nested streams are already witnessed, so only this list's own depth changes.
+ */
+/** Import Archie classes named in a type witness (`Event<ItemStructure>`). */
+function concreteRmType(rmType: string): string {
+  const substitute = CONCRETE_RM[rmType];
+  if (!substitute) return rmType;
+  try {
+    return isAbstractType(rmType) ? substitute : rmType;
+  } catch {
+    return substitute;
+  }
+}
+
+/**
+ * A CLUSTER in an ITEM_STRUCTURE socket is the template shape for
+ * other_context and protocol. Archie types that attribute as ItemStructure,
+ * so the assignment goes through Object.
+ */
+function adaptAssignedValue(
+  parentRm: string,
+  attr: string,
+  childRm: string,
+  code: string,
+  ctx: JavaEmitContext,
+): string {
+  try {
+    const meta = attributesFor(parentRm).find((item) => item.name === attr);
+    if (!meta || meta.typeName.startsWith("List<")) return code;
+    const targetRm = resolveGenericSlotType(parentRm, baseRmTypeName(meta.typeName));
+    if (childRm === targetRm || isSubtypeOf(childRm, targetRm)) return code;
+    const javaType = javaRmType(parentRm, meta.typeName);
+    const raw = javaType.replace(/<.*/, "");
+    if (!JAVA_PACKAGES[raw]) return code;
+    noteImportedJavaType(ctx, javaType);
+    return `((${javaType}) (Object) (${code}))`;
+  } catch {
+    return code;
+  }
+}
+
+function noteImportedJavaType(ctx: JavaEmitContext, javaType: string): void {
+  for (const name of javaType.match(/[A-Z][A-Za-z0-9]*/g) ?? []) {
+    if (!JAVA_PACKAGES[name]) continue;
+    const overridden = Object.entries(JAVA_CLASS_OVERRIDES).find(([, cls]) => cls === name)?.[0];
+    const rm = overridden ?? name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toUpperCase();
+    ctx.types.add(rm);
+  }
+}
+
+function widenJavaList(code: string, element: string): string {
+  const trimmed = code.trimStart();
+  const depth = trimmed.startsWith("flatten(") ? 1 : 0;
+  return `new java.util.ArrayList<${element}>(${witnessListExpr(code, element, depth)})`;
+}
+
+function witnessListExpr(code: string, element: string, depth: number): string {
+  const stream = ".stream().map(";
+  const listOf = "java.util.List.of(";
+  let out = "";
+  let i = 0;
+  let d = 0;
+  let inString = false;
+  while (i < code.length) {
+    const c = code[i]!;
+    if (inString) {
+      out += c;
+      if (c === "\\") {
+        const next = code[i + 1];
+        if (next !== undefined) {
+          out += next;
+          i += 2;
+          continue;
+        }
+      }
+      if (c === '"') inString = false;
+      i++;
+      continue;
+    }
+    if (c === '"') {
+      inString = true;
+      out += c;
+      i++;
+      continue;
+    }
+    if (d === depth && code.startsWith(stream, i)) {
+      out += `.stream().<${element}>map(`;
+      i += stream.length;
+      d++;
+      continue;
+    }
+    if (d === depth && code.startsWith(listOf, i)) {
+      out += `java.util.List.<${element}>of(`;
+      i += listOf.length;
+      d++;
+      continue;
+    }
+    if (c === "(") d++;
+    else if (c === ")") d--;
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+function javaChoicesLiteral(choices: Array<[string, string, string]>): string {
+  const rows = choices.map(([code, rubric, term]) =>
+    `{${JSON.stringify(code)}, ${JSON.stringify(rubric)}, ${JSON.stringify(term)}}`
+  );
+  return `new String[][]{${rows.join(", ")}}`;
 }
 
 function javaIdent(raw: string, fallback = "item"): string {
@@ -211,6 +407,7 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
           return emitSwitchJava(args);
         case "var": {
           const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (ctx.fnLocals) return `__fnVars.get(${args[0]})`;
           if (name && ctx.fnParams?.has(name)) return jsFunctionIdent(name);
           ctx.helpers.add("logic");
           return `vars.get(${args[0]})`;
@@ -221,9 +418,9 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
           return `${ident}(${args.slice(1).join(", ")})`;
         }
         case "eq":
-          return `java.util.Objects.equals(${args[0]}, ${args[1]})`;
+          return `sameItem(${args[0]}, ${args[1]})`;
         case "ne":
-          return `(!java.util.Objects.equals(${args[0]}, ${args[1]}))`;
+          return `(!sameItem(${args[0]}, ${args[1]}))`;
         case "lt":
           return `(${asDoubleExpr(args[0] ?? "0")} < ${asDoubleExpr(args[1] ?? "0")})`;
         case "le":
@@ -242,7 +439,7 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
           return `java.util.List.of(${args.join(", ")})`;
         case "lists_getIndex":
           ctx.helpers.add("logic");
-          return `listGet(asList(${args[0]}), ${args[2] ?? args[1] ?? "0"})`;
+          return `listGetIndex(${args[0]}, asString(${args[1] ?? '"FIRST"'}), ${args[2] ?? "1"})`;
         case "intersection":
           ctx.helpers.add("logic");
           return `setIntersection(asList(${args[0]}), asList(${args[1]}))`;
@@ -252,6 +449,10 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
         case "difference":
           ctx.helpers.add("logic");
           return `setDifference(asList(${args[0]}), asList(${args[1]}))`;
+        case "maps_entries":
+          return `mapEntries(${args[0]})`;
+        case "lists_length":
+          return `asList(${args[0]}).size()`;
         case "maps_get":
           return emitMapsGet(ast, args);
         case "sheet_get_cell":
@@ -307,14 +508,20 @@ function emitJavaUserFunctions(ctx: JavaEmitContext): string {
   const lines: string[] = [];
   for (const fn of fns) {
     const ident = idents.get(fn.name) ?? `fn_${jsFunctionIdent(fn.name)}`;
-    const params = fn.params.map((p) => `Object ${jsFunctionIdent(p)}`).join(", ");
+    const params = fn.params.map((p, i) => `Object ${fn.stack?.length ? `arg${i}` : jsFunctionIdent(p)}`).join(", ");
     const inner: JavaEmitContext = {
       ...ctx,
       fnParams: new Set(fn.params),
+      fnLocals: Boolean(fn.stack?.length),
       fnIdents: idents,
     };
     const body = emitJavaExpressionSource(fn.body!, inner) ?? "null";
     lines.push(`  private Object ${ident}(${params}) {`);
+    if (fn.stack?.length) {
+      lines.push(`    java.util.Map<String, Object> __fnVars = new java.util.LinkedHashMap<>();`);
+      fn.params.forEach((p, i) => lines.push(`    __fnVars.put(${JSON.stringify(p)}, arg${i});`));
+      lines.push(emitImperativeStack(fn.stack, source => emitJavaExpressionSource(source, inner) ?? "null", true));
+    }
     lines.push(`    return ${body};`);
     lines.push("  }");
     lines.push("");
@@ -335,11 +542,13 @@ function emitMapsGet(ast: Extract<ExprAst, { kind: "call" }>, args: string[]): s
   if (mapArg?.kind === "literal" && mapArg.value === "defaults") {
     return `defaults.get(${key})`;
   }
+  if (mapArg?.kind !== "literal") return `mapValueGet(${args[0]}, ${key})`;
   return `(("defaults".equals(${args[0]}) ? defaults : java.util.Map.of()).get(${key}))`;
 }
 
 function emitSheetCall(name: string, args: string[]): string {
-  return `${javaMethodName(name)}(${args.join(", ")})`;
+  const sheet = args[0]?.startsWith('"') ? args[0] : `asString(${args[0]})`;
+  return `ig.${javaMethodName(name)}(${[sheet, ...args.slice(1)].join(", ")})`;
 }
 
 function javaMethodName(name: string): string {
@@ -353,13 +562,18 @@ function emitXpathCall(
   ctx: JavaEmitContext,
 ): string {
   const path = pathAst?.kind === "literal" ? String(pathAst.value).trim() : "";
+  const named = path ? namedLoopBinding(path, ctx.loopBindings) : null;
+  if (named) {
+    const restCode = JSON.stringify(named.rest === "." ? "." : named.rest);
+    return `ig.${fn}(${restCode}, ${named.ident})`;
+  }
   let code = pathCode;
   if (path && looksLikeOpenEhrLocator(path) && (path.startsWith("/") || path.startsWith("//"))) {
     code = JSON.stringify(compileAuthoringPath(path, "xml"));
   }
   const relative = Boolean(path) && !path.startsWith("$") && !path.startsWith("/");
-  if (relative && ctx.loopVar) return `${fn}(${code}, ${ctx.loopVar})`;
-  return `${fn}(${code})`;
+  if (relative && ctx.loopVar) return `ig.${fn}(${code}, ${ctx.loopVar})`;
+  return `ig.${fn}(${code})`;
 }
 
 function emitQuantifierJava(
@@ -374,7 +588,11 @@ function emitQuantifierJava(
   const predAst = card ? ast.args[3] : ast.args[2];
   const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
   const ident = javaIdent(varName, "_item");
-  const innerCtx: JavaEmitContext = { ...ctx, loopVar: ident };
+  const innerCtx: JavaEmitContext = {
+    ...ctx,
+    loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [varName]: ident },
+  };
   const predCode = predAst ? emitJavaExpression(predAst, innerCtx) : "true";
   const bind = `(vars.put(${JSON.stringify(varName)}, ${ident}), ${predCode})`;
   const arr = `asList(${listCode}).stream()`;
@@ -428,19 +646,19 @@ export function emitJavaExpressionSource(
 }
 
 function asDoubleExpr(expr: string): string {
-  if (/^(xpathNumber|toDouble|Math\.round)\(/.test(expr) || /^-?\d+(\.\d+)?$/.test(expr.trim())) {
+  if (/^(?:ig\.)?(xpathNumber|toDouble|Math\.round)\(/.test(expr) || /^-?\d+(\.\d+)?$/.test(expr.trim())) {
     return expr;
   }
   return `toDouble(${expr})`;
 }
 
 function asStringExpr(expr: string): string {
-  if (/^(xpathString|asString)\(/.test(expr) || /^"/.test(expr.trim())) return expr;
+  if (/^(?:ig\.)?(xpathString|asString)\(/.test(expr) || /^"/.test(expr.trim())) return expr;
   return `asString(${expr})`;
 }
 
 function asBooleanExpr(expr: string): string {
-  if (/^(xpathBoolean|asBoolean)\(/.test(expr) || /^(true|false)$/.test(expr.trim())) {
+  if (/^(?:ig\.)?(xpathBoolean|asBoolean)\(/.test(expr) || /^(true|false)$/.test(expr.trim())) {
     return expr;
   }
   return `asBoolean(${expr})`;
@@ -468,11 +686,12 @@ function formatRmConstruct(
     ctx.types.add("PARTY_SELF");
     return "new PartySelf()";
   }
-  ctx.types.add(rmType);
-  const compact = compactConstruct(rmType, props, ctx);
+  const constructType = concreteRmType(rmType);
+  ctx.types.add(constructType);
+  const compact = compactConstruct(constructType, props, ctx);
   if (compact) return compact;
-  const cls = javaClassName(rmType);
-  const diamond = GENERIC_RM.has(rmType) ? "<>" : "";
+  const cls = javaClassName(constructType);
+  const diamond = GENERIC_RM.has(constructType) || GENERIC_RM.has(rmType) ? "<>" : "";
   if (!props.length) return `new ${cls}${diamond}()`;
   const ident = freshIdent(ctx, rmType);
   const inner = indent + 1;
@@ -483,12 +702,131 @@ function formatRmConstruct(
   return `rm(new ${cls}${diamond}(), ${ident} -> {\n${setters.join("\n")}\n${close}})`;
 }
 
+function hasExtraConstructKeys(map: Map<string, string>, allowed: string[]): boolean {
+  for (const key of map.keys()) {
+    if (!allowed.includes(key)) return true;
+  }
+  return false;
+}
+
+/** Archie `TermMapping.setMatch` takes a char, not a String. */
+function javaCharExpr(code: string): string {
+  const trimmed = code.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const text = JSON.parse(trimmed) as string;
+      if (text.length === 1) {
+        const ch = text === "\\" ? "\\\\" : text === "'" ? "\\'" : text;
+        return `'${ch}'`;
+      }
+    } catch {
+      /* dynamic string */
+    }
+  }
+  return `${asStringExpr(code)}.charAt(0)`;
+}
+
+function javaApplyExtras(
+  base: string,
+  extras: Array<[string, string]>,
+  ctx: JavaEmitContext,
+  rmType: string,
+  indent: number,
+): string {
+  if (!extras.length) return base;
+  ctx.helpers.add("rm");
+  const ident = freshIdent(ctx, rmType);
+  const pad = "  ".repeat(indent + 1);
+  const close = "  ".repeat(indent);
+  const setters = extras.map(([attr, value]) => `${pad}${ident}.${javaSetterName(attr)}(${value});`);
+  return `rm(${base}, ${ident} -> {\n${setters.join("\n")}\n${close}})`;
+}
+
+function javaShellGen(ctx: JavaEmitContext, indent: number): ShellCodegen {
+  return {
+    expr: (expression) => emitJavaExpressionSource(expression, ctx) ?? "null",
+    object: (rmType, fields) => javaShellObject(rmType, fields, ctx, indent),
+    list: (items, attribute) => attribute === "data" || attribute === "integrity_check"
+      ? `new byte[] { ${items.join(", ")} }`
+      : `java.util.List.of(${items.join(", ")})`,
+    octets: (code) => `java.util.Base64.getDecoder().decode(${asStringExpr(code)})`,
+  };
+}
+
+function javaShellObject(
+  rmType: string,
+  fields: Array<[string, string]>,
+  ctx: JavaEmitContext,
+  indent: number,
+): string {
+  if (rmType === "TERM_MAPPING") {
+    const rewritten = fields.map(([key, value]) =>
+      key === "match" ? [key, javaCharExpr(value)] as [string, string] : [key, value]
+    );
+    return formatRmConstruct(rmType, rewritten, indent, ctx);
+  }
+  if (rmType === "CODE_PHRASE") {
+    ctx.types.add("CODE_PHRASE");
+    ctx.types.add("TERMINOLOGY_ID");
+    const term = fields.find(([key]) => key === "terminology_id")?.[1];
+    const code = fields.find(([key]) => key === "code_string")?.[1] ?? '""';
+    if (term) return `new CodePhrase(new TerminologyId(${asStringExpr(term)}), ${asStringExpr(code)})`;
+    return `new CodePhrase(${asStringExpr(code)})`;
+  }
+  const value = fields.find(([key]) => key === "value")?.[1];
+  const rest = fields.filter(([key]) => key !== "value");
+  if (
+    value &&
+    (rmType === "DV_TEXT" || rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
+      rmType === "DV_DATE" || rmType === "DV_DATE_TIME" || rmType === "DV_TIME" ||
+      rmType === "DV_DURATION" || rmType === "DV_PARSABLE")
+  ) {
+    ctx.types.add(rmType);
+    return javaApplyExtras(`new ${javaClassName(rmType)}(${asStringExpr(value)})`, rest, ctx, rmType, indent);
+  }
+  if (rmType === "DV_QUANTITY") {
+    const magnitude = fields.find(([key]) => key === "magnitude")?.[1];
+    const units = fields.find(([key]) => key === "units")?.[1] ?? "null";
+    const restQ = fields.filter(([key]) => key !== "magnitude" && key !== "units");
+    if (magnitude) {
+      ctx.types.add("DV_QUANTITY");
+      return javaApplyExtras(
+        `new DvQuantity(${units}, ${asDoubleExpr(magnitude)}, null)`,
+        restQ,
+        ctx,
+        rmType,
+        indent,
+      );
+    }
+  }
+  return formatRmConstruct(rmType, fields, indent, ctx);
+}
+
+function attachJavaShell(
+  base: string,
+  slot: MappingSlot | undefined,
+  ctx: JavaEmitContext,
+  rmType: string,
+  indent: number,
+): string {
+  return javaApplyExtras(
+    base,
+    emitShellFields(slot?.shellFragments, javaShellGen(ctx, indent)),
+    ctx,
+    rmType,
+    indent,
+  );
+}
+
 function compactConstruct(
   rmType: string,
   props: Array<[string, string]>,
   ctx: JavaEmitContext,
 ): string | null {
   const map = new Map(props);
+  if (hasExtraConstructKeys(map, ["value", "magnitude", "units", "precision", "code_string", "terminology_id", "defining_code"])) {
+    return null;
+  }
   if (rmType === "DV_TEXT" && map.size === 1 && map.has("value")) {
     ctx.types.add("DV_TEXT");
     return `new DvText(${map.get("value")})`;
@@ -708,6 +1046,7 @@ function emitSkeletonLoop(
     ...ctx,
     sourceVar: ident,
     loopVar: ident,
+    loopBindings: { ...ctx.loopBindings, [loop.varName]: ident },
     types: ctx.types,
     helpers: ctx.helpers,
     idents: ctx.idents,
@@ -728,7 +1067,7 @@ function emitSkeletonLoop(
     const coll = emitJavaExpressionSource(loop.collection, ctx) ?? "java.util.List.of()";
     return `asList(${coll}).stream().map(${mapped}).toList()`;
   }
-  return `xpathNodes(${JSON.stringify(loop.path)}).stream().map(${mapped}).toList()`;
+  return `ig.xpathNodes(${JSON.stringify(loop.path)}).stream().map(${mapped}).toList()`;
 }
 
 function skeletonContainerProps(
@@ -749,7 +1088,7 @@ function skeletonContainerProps(
     ]);
   }
   const nodeId = rmArchetypeNodeId(node, parentArchetypeRef);
-  if (nodeId) {
+  if (nodeId && emitsArchetypeNodeId(node.rmType)) {
     props.push(["archetype_node_id", JSON.stringify(nodeId)]);
   }
   const childArchetypeRef = node.archetypeRef ?? parentArchetypeRef;
@@ -765,41 +1104,46 @@ function skeletonContainerProps(
 
   for (const [attr, children] of grouped) {
     const listAttr = isListAttribute(node.rmType, attr);
-    const codes = children
-      .map((child) =>
-        emitSkeletonNode(
+    const emitted = children
+      .map((child) => ({
+        rmType: child.rmType,
+        code: emitSkeletonNode(
           child,
           slots,
           loops,
           ctx,
           listAttr ? indent + 2 : indent + 1,
           childArchetypeRef,
-        )
-      )
-      .filter((code): code is string => Boolean(code) && !isBlankGeneratedExpr(code));
-    if (!codes.length) continue;
+        ),
+      }))
+      .filter((item): item is { rmType: string; code: string } =>
+        Boolean(item.code) && !isBlankGeneratedExpr(item.code!)
+      );
+    if (!emitted.length) continue;
+    const codes = emitted.map((item) => item.code);
     const streamed = codes.some((c) => c.includes(".stream().map("));
     const asList = listAttr || streamed;
+    let value: string;
     if (asList) {
       if (codes.length === 1 && streamed) {
-        props.push([attr, codes[0]!]);
+        value = codes[0]!;
       } else if (streamed) {
         ctx.helpers.add("flatten");
         const inner = codes.map((c) => indentBlock(c, indent + 2)).join(",\n");
-        props.push([
-          attr,
-          `flatten(\n${inner}\n${"  ".repeat(indent + 1)})`,
-        ]);
+        value = `flatten(\n${inner}\n${"  ".repeat(indent + 1)})`;
       } else {
         const inner = codes.map((c) => indentBlock(c, indent + 2)).join(",\n");
-        props.push([
-          attr,
-          `java.util.List.of(\n${inner}\n${"  ".repeat(indent + 1)})`,
-        ]);
+        value = `java.util.List.of(\n${inner}\n${"  ".repeat(indent + 1)})`;
+      }
+      const element = javaListElementType(node.rmType, attr);
+      if (element) {
+        noteImportedJavaType(ctx, element);
+        value = widenJavaList(value, element);
       }
     } else {
-      props.push([attr, codes[0]!]);
+      value = adaptAssignedValue(node.rmType, attr, emitted[0]!.rmType, codes[0]!, ctx);
     }
+    props.push([attr, value]);
   }
   return props;
 }
@@ -842,38 +1186,82 @@ function emitSkeletonValue(
       const phrase = t.kind === "literal" && c.kind === "literal"
         ? JSON.stringify(`${t.value}::${c.value}`)
         : `${part(t, "")} + "::" + ${part(c, "")}`;
-      return `new DvCodedText(${part(coded.value, rubric)}, ${phrase})`;
+      return attachJavaShell(`new DvCodedText(${part(coded.value, rubric)}, ${phrase})`, slot, ctx, rmType, indent);
     }
     if (code) {
-      return `new DvCodedText(${JSON.stringify(rubric)}, ${
-        JSON.stringify(`${term}::${code}`)
-      })`;
+      return attachJavaShell(
+        `new DvCodedText(${JSON.stringify(rubric)}, ${JSON.stringify(`${term}::${code}`)})`,
+        slot,
+        ctx,
+        rmType,
+        indent,
+      );
     }
-    if (expr) return `new DvCodedText(${asStringExpr(expr)}, new CodePhrase())`;
+    if (expr) {
+      const choices = codedChoicesForNode(node);
+      ctx.helpers.add("coded");
+      return attachJavaShell(`codedText(${expr}, ${javaChoicesLiteral(choices)})`, slot, ctx, rmType, indent);
+    }
     return null;
   }
 
   if (rmType === "DV_QUANTITY") {
-    const props: Array<[string, string]> = [];
-    if (expr) props.push(["magnitude", asDoubleExpr(expr)]);
+    // No magnitude: omit, even when a reference range was added on the shell.
+    if (!expr) return null;
+    const props: Array<[string, string]> = [["magnitude", asDoubleExpr(expr)]];
     if (fields.units) props.push(["units", JSON.stringify(fields.units)]);
-    if (!props.length) return null;
-    return formatRmConstruct("DV_QUANTITY", props, indent, ctx);
+    return attachJavaShell(formatRmConstruct("DV_QUANTITY", props, indent, ctx), slot, ctx, rmType, indent);
   }
 
-  if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
+  if (rmType === "DV_COUNT") {
     if (!expr) return null;
-    return formatRmConstruct(rmType, [["magnitude", asDoubleExpr(expr)]], indent, ctx);
+    return attachJavaShell(
+      formatRmConstruct(rmType, [["magnitude", `(long) ${asDoubleExpr(expr)}`]], indent, ctx),
+      slot,
+      ctx,
+      rmType,
+      indent,
+    );
+  }
+
+  if (rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
+    if (!expr) return null;
+    return attachJavaShell(
+      formatRmConstruct(rmType, [["magnitude", asDoubleExpr(expr)]], indent, ctx),
+      slot,
+      ctx,
+      rmType,
+      indent,
+    );
   }
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
-    return formatRmConstruct("DV_BOOLEAN", [["value", asBooleanExpr(expr)]], indent, ctx);
+    return attachJavaShell(
+      formatRmConstruct("DV_BOOLEAN", [["value", asBooleanExpr(expr)]], indent, ctx),
+      slot,
+      ctx,
+      rmType,
+      indent,
+    );
   }
 
   if (
     rmType === "DV_DATE_TIME" || rmType === "DV_DATE" || rmType === "DV_TIME" ||
-    rmType === "DV_DURATION" || rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
+    rmType === "DV_DURATION"
+  ) {
+    const value = expr
+      ? asStringExpr(expr)
+      : fields.value
+      ? JSON.stringify(fields.value)
+      : null;
+    if (!value) return null;
+    ctx.types.add(rmType);
+    return attachJavaShell(`new ${javaClassName(rmType)}(${value})`, slot, ctx, rmType, indent);
+  }
+
+  if (
+    rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
     rmType === "DV_TEXT" || rmType === "DV_IDENTIFIER"
   ) {
     const value = expr
@@ -884,9 +1272,13 @@ function emitSkeletonValue(
     if (!value) return null;
     if (rmType === "DV_TEXT") {
       ctx.types.add("DV_TEXT");
-      return `new DvText(${value})`;
+      return attachJavaShell(`new DvText(${value})`, slot, ctx, rmType, indent);
     }
-    return formatRmConstruct(rmType, [["value", value]], indent, ctx);
+    if (rmType === "DV_IDENTIFIER") {
+      return attachJavaShell(formatRmConstruct(rmType, [["id", value]], indent, ctx), slot, ctx, rmType, indent);
+    }
+    ctx.types.add(rmType);
+    return attachJavaShell(`new ${javaClassName(rmType)}(${value})`, slot, ctx, rmType, indent);
   }
 
   if (rmType === "PARTY_IDENTIFIED") {
@@ -943,11 +1335,20 @@ function wrapJavaModule(parts: JavaModuleParts): string {
       })
       .filter((line): line is string => Boolean(line))
     : [];
-  const usesRm = parts.archie;
+  const scriptBody = `${parts.body}\n${parts.extraMethods ?? ""}`;
+  const staticNames = javaStaticHelperNames(scriptBody);
+  const instanceHelpers = usesXpath || parts.helpers.has("sheets");
   const dialect = parts.archie ? "Java / Archie" : "Java";
   const lines: string[] = [
     `// Generated by intEHRgrator — Conversion Script (${dialect})`,
     `// Template: ${parts.templateId || "(none)"}`,
+    `// Helpers: ${JAVA_RUNTIME_BLOB}`,
+    ...(parts.helpers.has("handlebars")
+      ? [`// VMS-Hbs render via com.github.jknack.handlebars: ${JAVA_HANDLEBARS_BLOB}`]
+      : []),
+    ...(parts.helpers.has("coded")
+      ? [`// Coded text value-set lookup (Archie): ${JAVA_CODED_TEXT_BLOB}`]
+      : []),
     parts.source === "skeleton"
       ? "// Source: Template Skeleton + Mapping Model expressions"
       : parts.source === "blockly"
@@ -985,10 +1386,24 @@ function wrapJavaModule(parts: JavaModuleParts): string {
     "import java.util.LinkedHashMap;",
     "import java.util.List;",
     "import java.util.Map;",
-    ...(usesRm ? ["import java.util.function.Consumer;"] : []),
+    "import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;",
+    ...(instanceHelpers
+      ? ["import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime;"]
+      : []),
+    ...staticNames.map((name) =>
+      `import static se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.${name};`
+    ),
+    ...(parts.helpers.has("handlebars")
+      ? ["import static se.regionstockholm.intehrgrator.runtime.HandlebarsSupport.handlebars;"]
+      : []),
+    ...(parts.helpers.has("coded")
+      ? ["import static se.regionstockholm.intehrgrator.runtime.CodedTextSupport.codedText;"]
+      : []),
     "",
     "public class ConversionScript {",
-    "  private Object sourceRoot;",
+    ...(instanceHelpers
+      ? ["  private final IntehrgratorRuntime ig = new IntehrgratorRuntime();"]
+      : []),
     "  private Map<String, Object> defaults = Map.of();",
     "  private Map<String, Sheet> sheets = Map.of();",
     ...(parts.archie
@@ -1032,9 +1447,9 @@ function wrapJavaModule(parts: JavaModuleParts): string {
         "",
         "  public Object convert(Object source, Map<String, Object> defaults, Map<String, Sheet> sheets) {",
       ]),
-    "    this.sourceRoot = source;",
     "    this.defaults = defaults != null ? defaults : new LinkedHashMap<>();",
     "    this.sheets = sheets != null ? sheets : new LinkedHashMap<>();",
+    ...(instanceHelpers ? ["    ig.bind(source, this.sheets);"] : []),
   ];
 
   for (const line of parts.body.split("\n")) {
@@ -1049,34 +1464,32 @@ function wrapJavaModule(parts: JavaModuleParts): string {
   if (parts.archie) {
     lines.push(...indentLines(validationHook(), 1));
     lines.push("");
-    lines.push(...indentLines(rmHelper(), 1));
-    lines.push("");
-  }
-  lines.push(...indentLines(coerceHelpers(), 1));
-
-  if (parts.helpers.has("handlebars")) {
-    lines.push("");
-    lines.push(...indentLines(handlebarsHelper(), 1));
-  }
-
-  if (usesXpath) {
-    lines.push("");
-    lines.push(...indentLines(xpathHelpers(), 1));
-  }
-  if (parts.helpers.has("logic") || parts.helpers.has("flatten")) {
-    lines.push("");
-    lines.push(...indentLines(logicHelpers(parts.helpers), 1));
-  }
-  if (parts.helpers.has("sheets")) {
-    lines.push("");
-    lines.push(...indentLines(sheetHelpers(), 1));
-  } else {
-    lines.push("");
-    lines.push(...indentLines(sheetTypeOnly(), 1));
   }
 
   lines.push("}", "");
   return lines.join("\n");
+}
+
+function javaStaticHelperNames(body: string): string[] {
+  const names = [
+    "asString",
+    "toDouble",
+    "asBoolean",
+    "asList",
+    "listGet",
+    "mapEntries",
+    "mapValueGet",
+    "appendList",
+    "listGetIndex",
+    "mapOf",
+    "sameItem",
+    "setIntersection",
+    "setUnion",
+    "setDifference",
+    "flatten",
+    "rm",
+  ];
+  return names.filter((name) => body.includes(`${name}(`));
 }
 
 function validationHook(): string[] {
@@ -1091,399 +1504,6 @@ function validationHook(): string[] {
     "  if (!messages.isEmpty()) {",
     "    throw new IllegalStateException(\"Archie OPT validation failed: \" + messages);",
     "  }",
-    "}",
-  ];
-}
-
-function rmHelper(): string[] {
-  return [
-    "private static <T> T rm(T object, Consumer<T> init) {",
-    "  init.accept(object);",
-    "  return object;",
-    "}",
-  ];
-}
-
-function coerceHelpers(): string[] {
-  return [
-    "private static String asString(Object value) { return value == null ? \"\" : String.valueOf(value); }",
-    "private static double toDouble(Object value) {",
-    "  if (value instanceof Number n) return n.doubleValue();",
-    "  if (value == null) return 0d;",
-    "  try { return Double.parseDouble(String.valueOf(value)); } catch (NumberFormatException e) { return 0d; }",
-    "}",
-    "private static boolean asBoolean(Object value) {",
-    "  if (value instanceof Boolean b) return b;",
-    "  if (value == null) return false;",
-    "  return Boolean.parseBoolean(String.valueOf(value));",
-    "}",
-  ];
-}
-
-function handlebarsHelper(): string[] {
-  return [
-    "/** VMS-Hbs render via com.github.jknack.handlebars (Handlebars.java). */",
-    "private String handlebars(String template, Object context) {",
-    "  try {",
-    "    com.github.jknack.handlebars.Handlebars engine = new com.github.jknack.handlebars.Handlebars();",
-    "    engine.registerHelper(\"eq\", (ctx, options) -> java.util.Objects.equals(ctx, options.param(0)));",
-    "    engine.registerHelper(\"ne\", (ctx, options) -> !java.util.Objects.equals(ctx, options.param(0)));",
-    "    engine.registerHelper(\"lt\", (ctx, options) -> compareNumbers(ctx, options.param(0)) < 0);",
-    "    engine.registerHelper(\"gt\", (ctx, options) -> compareNumbers(ctx, options.param(0)) > 0);",
-    "    engine.registerHelper(\"lte\", (ctx, options) -> compareNumbers(ctx, options.param(0)) <= 0);",
-    "    engine.registerHelper(\"gte\", (ctx, options) -> compareNumbers(ctx, options.param(0)) >= 0);",
-    "    engine.registerHelper(\"and\", (ctx, options) -> {",
-    "      if (!asBoolean(ctx)) return false;",
-    "      for (Object arg : options.params) if (!asBoolean(arg)) return false;",
-    "      return true;",
-    "    });",
-    "    engine.registerHelper(\"or\", (ctx, options) -> {",
-    "      if (asBoolean(ctx)) return true;",
-    "      for (Object arg : options.params) if (asBoolean(arg)) return true;",
-    "      return false;",
-    "    });",
-    "    engine.registerHelper(\"toLowerCase\", (ctx, options) -> ctx == null ? ctx : String.valueOf(ctx).toLowerCase());",
-    "    engine.registerHelper(\"toUpperCase\", (ctx, options) -> ctx == null ? ctx : String.valueOf(ctx).toUpperCase());",
-    "    engine.registerHelper(\"slot\", (ctx, options) -> \"\");",
-    "    engine.registerHelperMissing((ctx, options) -> {",
-    "      throw new IllegalStateException(\"VMS-Hbs forbids helper: \" + options.helperName);",
-    "    });",
-    "    return engine.compileInline(template).apply(context != null ? context : java.util.Map.of());",
-    "  } catch (Exception e) {",
-    "    throw new IllegalStateException(\"VMS-Hbs render failed: \" + e.getMessage(), e);",
-    "  }",
-    "}",
-    "private static int compareNumbers(Object left, Object right) {",
-    "  return Double.compare(toDouble(left), toDouble(right));",
-    "}",
-  ];
-}
-
-function xpathHelpers(): string[] {
-  const lines = [
-    "private static final com.fasterxml.jackson.databind.ObjectMapper JSON = new com.fasterxml.jackson.databind.ObjectMapper();",
-    "",
-    "private String xpathString(String path) { return xpathString(path, sourceRoot); }",
-    "private double xpathNumber(String path) { return xpathNumber(path, sourceRoot); }",
-    "private boolean xpathBoolean(String path) { return xpathBoolean(path, sourceRoot); }",
-    "private Object xpathNode(String path) { return xpathNode(path, sourceRoot); }",
-    "private List<Object> xpathNodes(String path) { return xpathNodes(path, sourceRoot); }",
-    "",
-    "private String xpathString(String path, Object node) {",
-    '  if (path.trim().startsWith("/")) return xmlString(path, node);',
-    "  com.fasterxml.jackson.databind.JsonNode found = jsonAt(path, node);",
-    '  return found == null || found.isNull() || found.isMissingNode() ? "" : found.asText();',
-    "}",
-    "",
-    "private double xpathNumber(String path, Object node) {",
-    '  if (path.trim().startsWith("/")) {',
-    "    try { return Double.parseDouble(xmlString(path, node)); } catch (NumberFormatException e) { return 0d; }",
-    "  }",
-    "  com.fasterxml.jackson.databind.JsonNode found = jsonAt(path, node);",
-    "  if (found == null || found.isNull() || found.isMissingNode()) return 0d;",
-    "  if (found.isNumber()) return found.asDouble();",
-    "  try { return Double.parseDouble(found.asText()); } catch (NumberFormatException e) { return 0d; }",
-    "}",
-    "",
-    "private boolean xpathBoolean(String path, Object node) {",
-    '  if (path.trim().startsWith("/")) return Boolean.parseBoolean(xmlString(path, node));',
-    "  com.fasterxml.jackson.databind.JsonNode found = jsonAt(path, node);",
-    "  return found != null && found.asBoolean(false);",
-    "}",
-    "",
-    "private Object xpathNode(String path, Object node) {",
-    '  String trimmed = path.trim();',
-    '  if (trimmed.startsWith("/")) return xmlNode(path, node);',
-    '  if (trimmed.isEmpty() || trimmed.equals("$") || trimmed.equals(".")) return node;',
-    "  return jsonAt(path, node);",
-    "}",
-    "",
-    "private List<Object> xpathNodes(String path, Object node) {",
-    "  Object found = xpathNode(path, node);",
-    "  if (found instanceof List<?> list) return new ArrayList<>(list);",
-    "  if (found instanceof com.fasterxml.jackson.databind.JsonNode jn && jn.isArray()) {",
-    "    List<Object> out = new ArrayList<>();",
-    "    jn.forEach(out::add);",
-    "    return out;",
-    "  }",
-    "  if (found == null) return List.of();",
-    "  return List.of(found);",
-    "}",
-    "",
-    "private com.fasterxml.jackson.databind.JsonNode jsonAt(String path, Object node) {",
-    "  com.fasterxml.jackson.databind.JsonNode tree = toJsonNode(node);",
-    "  String query = jsonQuery(path);",
-    '  if (query.equals("$") || query.equals("$source")) return tree;',
-    "  com.fasterxml.jackson.databind.JsonNode cur = tree;",
-    '  String body = query.startsWith("$") ? query.substring(1) : query;',
-    '  if (body.startsWith(".")) body = body.substring(1);',
-    "  for (String seg : body.split(\"\\\\.\")) {",
-    '    if (seg.isEmpty() || seg.equals("source")) continue;',
-    "    if (cur == null || cur.isMissingNode()) return cur;",
-    '    if (seg.chars().allMatch(Character::isDigit)) cur = cur.get(Integer.parseInt(seg));',
-    "    else cur = cur.get(seg);",
-    "  }",
-    "  return cur;",
-    "}",
-    "",
-    "private com.fasterxml.jackson.databind.JsonNode toJsonNode(Object node) {",
-    "  if (node instanceof com.fasterxml.jackson.databind.JsonNode j) return j;",
-    "  if (node == null) return JSON.nullNode();",
-    "  if (node instanceof String s) {",
-    "    String t = s.trim();",
-    '    if (t.startsWith("{") || t.startsWith("[")) {',
-    "      try { return JSON.readTree(t); } catch (Exception e) { return JSON.getNodeFactory().textNode(s); }",
-    "    }",
-    "    return JSON.getNodeFactory().textNode(s);",
-    "  }",
-    "  return JSON.valueToTree(node);",
-    "}",
-    "",
-    "private static String jsonQuery(String path) {",
-    "  String trimmed = path.trim();",
-    '  if (trimmed.isEmpty() || trimmed.startsWith("/")) return trimmed;',
-    '  String asJson = trimmed.startsWith("$") ? trimmed : "$." + trimmed.replaceFirst("^\\\\.", "");',
-    "  String body = asJson.substring(1);",
-    '  if (body.startsWith(".")) body = body.substring(1);',
-    '  if (body.isEmpty() || body.equals(".")) return "$";',
-    "  StringBuilder q = new StringBuilder();",
-    "  int i = 0;",
-    "  while (i < body.length()) {",
-    '    if (body.charAt(i) == \'.\') { i++; continue; }',
-    '    if (body.charAt(i) == \'[\') {',
-    '      int close = body.indexOf(\']\', i + 1);',
-    "      if (close < 0) break;",
-    "      if (q.length() > 0) q.append('.');",
-    "      q.append(body, i + 1, close);",
-    "      i = close + 1;",
-    "      continue;",
-    "    }",
-    "    int end = i;",
-    '    while (end < body.length() && body.charAt(end) != \'.\' && body.charAt(end) != \'[\') end++;',
-    "    if (q.length() > 0) q.append('.');",
-    "    q.append(body, i, end);",
-    "    i = end;",
-    "  }",
-    '  return q.length() == 0 ? "$" : q.toString();',
-    "}",
-    "",
-    "private String xmlString(String path, Object node) {",
-    "  org.w3c.dom.Node xml = xmlNode(path, node);",
-    '  return xml == null ? "" : xml.getTextContent() == null ? "" : xml.getTextContent();',
-    "}",
-    "",
-    "private org.w3c.dom.Node xmlNode(String path, Object node) {",
-    "  try {",
-    "    org.w3c.dom.Document doc;",
-    "    if (node instanceof org.w3c.dom.Document d) doc = d;",
-    "    else if (node instanceof org.w3c.dom.Node n) {",
-    "      javax.xml.xpath.XPath xp = javax.xml.xpath.XPathFactory.newInstance().newXPath();",
-    "      return (org.w3c.dom.Node) xp.evaluate(path, n, javax.xml.xpath.XPathConstants.NODE);",
-    "    } else {",
-    "      String xml = String.valueOf(node);",
-    "      javax.xml.parsers.DocumentBuilder b = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder();",
-    "      doc = b.parse(new org.xml.sax.InputSource(new java.io.StringReader(xml)));",
-    "    }",
-    "    javax.xml.xpath.XPath xp = javax.xml.xpath.XPathFactory.newInstance().newXPath();",
-    "    return (org.w3c.dom.Node) xp.evaluate(path, doc, javax.xml.xpath.XPathConstants.NODE);",
-    "  } catch (Exception e) {",
-    "    return null;",
-    "  }",
-    "}",
-  ];
-  return lines;
-}
-
-function logicHelpers(helpers: Set<JavaHelper>): string[] {
-  const lines: string[] = [
-    "private static List<Object> asList(Object value) {",
-    "  if (value instanceof List<?> list) return new ArrayList<>(list);",
-    "  if (value == null) return new ArrayList<>();",
-    "  return new ArrayList<>(List.of(value));",
-    "}",
-    "private static Object listGet(List<Object> list, Object index) {",
-    "  int i = (int) toDouble(index);",
-    "  if (i < 0 || i >= list.size()) return null;",
-    "  return list.get(i);",
-    "}",
-    "private static Map<String, Object> mapOf(Object... kv) {",
-    "  Map<String, Object> m = new LinkedHashMap<>();",
-    "  for (int i = 0; i + 1 < kv.length; i += 2) m.put(asString(kv[i]), kv[i + 1]);",
-    "  return m;",
-    "}",
-    "private static boolean sameItem(Object a, Object b) { return java.util.Objects.equals(a, b); }",
-    "private static List<Object> setIntersection(List<Object> a, List<Object> b) {",
-    "  List<Object> out = new ArrayList<>();",
-    "  for (Object item : a) if (b.stream().anyMatch(other -> sameItem(item, other))) out.add(item);",
-    "  return out;",
-    "}",
-    "private static List<Object> setUnion(List<Object> a, List<Object> b) {",
-    "  List<Object> out = new ArrayList<>(a);",
-    "  for (Object item : b) if (out.stream().noneMatch(other -> sameItem(item, other))) out.add(item);",
-    "  return out;",
-    "}",
-    "private static List<Object> setDifference(List<Object> universe, List<Object> excluded) {",
-    "  List<Object> out = new ArrayList<>();",
-    "  for (Object item : universe) if (excluded.stream().noneMatch(other -> sameItem(item, other))) out.add(item);",
-    "  return out;",
-    "}",
-  ];
-  if (helpers.has("flatten")) {
-    lines.push(
-      "@SafeVarargs",
-      "private static <T> List<T> flatten(Object... parts) {",
-      "  List<T> out = new ArrayList<>();",
-      "  for (Object part : parts) {",
-      "    if (part instanceof List<?> list) {",
-      "      for (Object item : list) if (item != null) out.add((T) item);",
-      "    } else if (part != null) {",
-      "      out.add((T) part);",
-      "    }",
-      "  }",
-      "  return out;",
-      "}",
-    );
-  }
-  return lines;
-}
-
-function sheetTypeOnly(): string[] {
-  return [
-    "public static final class Sheet {",
-    "  public final String name;",
-    "  public final List<String> headers;",
-    "  public final List<List<Object>> values;",
-    "  public final List<String> rowNames;",
-    "  public final String hitPolicy;",
-    "  public final String collectJoin;",
-    "  public Sheet(String name, List<String> headers, List<List<Object>> values) {",
-    "    this(name, headers, values, List.of(), \"FIRST\", \"; \");",
-    "  }",
-    "  public Sheet(String name, List<String> headers, List<List<Object>> values, List<String> rowNames, String hitPolicy, String collectJoin) {",
-    "    this.name = name;",
-    "    this.headers = headers != null ? headers : List.of();",
-    "    this.values = values != null ? values : List.of();",
-    "    this.rowNames = rowNames != null ? rowNames : List.of();",
-    "    this.hitPolicy = hitPolicy;",
-    "    this.collectJoin = collectJoin;",
-    "  }",
-    "}",
-  ];
-}
-
-function sheetHelpers(): string[] {
-  return [
-    ...sheetTypeOnly(),
-    "private Sheet sheetOf(String name) { return sheets.get(name); }",
-    "private Object sheetGetCell(String name, String a1) {",
-    "  Sheet s = sheetOf(name); if (s == null) return null;",
-    "  java.util.regex.Matcher m = java.util.regex.Pattern.compile(\"^([A-Za-z]+)(\\\\d+)$\").matcher(a1.trim());",
-    "  if (!m.matches()) return null;",
-    "  int x = 0; for (char ch : m.group(1).toUpperCase().toCharArray()) x = x * 26 + (ch - 64);",
-    "  int y = Integer.parseInt(m.group(2)) - 1;",
-    "  if (y < 0 || y >= s.values.size()) return null;",
-    "  List<Object> row = s.values.get(y);",
-    "  return row != null && x - 1 < row.size() ? row.get(x - 1) : null;",
-    "}",
-    "private Object sheetGetXy(String name, Object xObj, Object yObj) {",
-    "  Sheet s = sheetOf(name); if (s == null) return null;",
-    "  int x = (int) toDouble(xObj); int y = (int) toDouble(yObj);",
-    "  if (y < 0 || y >= s.values.size()) return null;",
-    "  List<Object> row = s.values.get(y);",
-    "  return row != null && x >= 0 && x < row.size() ? row.get(x) : null;",
-    "}",
-    "private List<Object> sheetGetRow(String name, Object yObj) {",
-    "  Sheet s = sheetOf(name); if (s == null) return List.of();",
-    "  int y = (int) toDouble(yObj);",
-    "  if (y < 0 || y >= s.values.size()) return List.of();",
-    "  return new ArrayList<>(s.values.get(y));",
-    "}",
-    "private List<Object> sheetGetColumn(String name, Object xObj) {",
-    "  Sheet s = sheetOf(name); if (s == null) return List.of();",
-    "  int x = (int) toDouble(xObj);",
-    "  List<Object> out = new ArrayList<>();",
-    "  for (List<Object> row : s.values) out.add(row != null && x >= 0 && x < row.size() ? row.get(x) : null);",
-    "  return out;",
-    "}",
-    "private String sheetGetHeader(String name, Object xObj) {",
-    "  Sheet s = sheetOf(name); if (s == null) return \"\";",
-    "  int x = (int) toDouble(xObj);",
-    "  return x >= 0 && x < s.headers.size() ? s.headers.get(x) : \"\";",
-    "}",
-    "private List<List<Object>> sheetGetData(String name) {",
-    "  Sheet s = sheetOf(name); if (s == null) return List.of();",
-    "  List<List<Object>> out = new ArrayList<>();",
-    "  for (List<Object> row : s.values) out.add(new ArrayList<>(row));",
-    "  return out;",
-    "}",
-    "private Object sheetLookup(String name, Object matchCol, Object matchValue, Object returnCol) {",
-    "  Sheet s = sheetOf(name); if (s == null) return null;",
-    "  int mi = columnIndex(s, matchCol);",
-    "  int y = -1;",
-    "  for (int i = 0; i < s.values.size(); i++) {",
-    "    List<Object> row = s.values.get(i);",
-    "    Object cell = row != null && mi >= 0 && mi < row.size() ? row.get(mi) : null;",
-    "    if (asString(cell).equals(asString(matchValue))) { y = i; break; }",
-    "  }",
-    "  if (y < 0) return null;",
-    "  if (returnCol == null || asString(returnCol).isEmpty()) {",
-    "    Map<String, Object> rec = new LinkedHashMap<>();",
-    "    List<Object> row = s.values.get(y);",
-    "    for (int x = 0; x < s.headers.size(); x++) rec.put(s.headers.get(x).isEmpty() ? String.valueOf(x) : s.headers.get(x), x < row.size() ? row.get(x) : null);",
-    "    return rec;",
-    "  }",
-    "  int ri = columnIndex(s, returnCol);",
-    "  List<Object> row = s.values.get(y);",
-    "  return ri >= 0 && ri < row.size() ? row.get(ri) : null;",
-    "}",
-    "private Object sheetLookup(String name, Object matchCol, Object matchValue) {",
-    "  return sheetLookup(name, matchCol, matchValue, null);",
-    "}",
-    "private Object decisionTable(String name, Map<String, Object> inputs, String outputCol) {",
-    "  Sheet s = sheetOf(name); if (s == null) return null;",
-    "  int width = s.headers.size();",
-    "  int oi = outputCol != null && !outputCol.equals(\"*\") ? s.headers.indexOf(outputCol) : width - 1;",
-    "  if (oi < 0) oi = Math.max(0, width - 1);",
-    "  List<Integer> matches = new ArrayList<>();",
-    "  for (int y = 0; y < s.values.size(); y++) {",
-    "    boolean ok = true;",
-    "    for (int x = 0; x < width - 1; x++) {",
-    "      Object cell = y < s.values.size() && x < s.values.get(y).size() ? s.values.get(y).get(x) : null;",
-    "      if (dontCare(cell)) continue;",
-    "      if (!asString(cell).equals(asString(inputs.get(s.headers.get(x))))) { ok = false; break; }",
-    "    }",
-    "    if (ok) matches.add(y);",
-    "  }",
-    "  if (matches.isEmpty()) return null;",
-    '  if ("COLLECT".equals(s.hitPolicy)) {',
-    "    String join = s.collectJoin != null ? s.collectJoin : \"; \";",
-    "    List<String> parts = new ArrayList<>();",
-    "    for (int y : matches) {",
-    "      Object cell = oi < s.values.get(y).size() ? s.values.get(y).get(oi) : null;",
-    "      parts.add(cell == null ? \"\" : String.valueOf(cell));",
-    "    }",
-    "    return String.join(join, parts);",
-    "  }",
-    "  int y = matches.get(0);",
-    "  return oi < s.values.get(y).size() ? s.values.get(y).get(oi) : null;",
-    "}",
-    "private Object decisionTable(String name, Map<String, Object> inputs) {",
-    "  return decisionTable(name, inputs, null);",
-    "}",
-    "private static boolean dontCare(Object cell) {",
-    "  if (cell == null) return true;",
-    "  String t = String.valueOf(cell).trim();",
-    '  return t.isEmpty() || t.equals("—") || t.equals("–") || t.equals("-") || t.equals("*");',
-    "}",
-    "private static int columnIndex(Sheet s, Object ref) {",
-    "  if (ref instanceof Number n) return n.intValue();",
-    "  String t = asString(ref);",
-    "  int hi = s.headers.indexOf(t); if (hi >= 0) return hi;",
-    "  if (t.chars().allMatch(Character::isLetter)) {",
-    "    int n = 0; for (char ch : t.toUpperCase().toCharArray()) n = n * 26 + (ch - 64);",
-    "    return n - 1;",
-    "  }",
-    "  try { return Integer.parseInt(t); } catch (NumberFormatException e) { return -1; }",
     "}",
   ];
 }

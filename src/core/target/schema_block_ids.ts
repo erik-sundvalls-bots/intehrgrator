@@ -64,7 +64,7 @@ export interface SchemaInputSpec {
   childBlockType?: string;
 }
 
-const STATEMENT_WRAPPERS = ["controls_if", "for_each_list"];
+const STATEMENT_WRAPPERS = ["controls_if", "for_each_list", "include_when"];
 
 export function specForChild(child: SkeletonNode): SchemaInputSpec {
   const name = schemaFieldName(child);

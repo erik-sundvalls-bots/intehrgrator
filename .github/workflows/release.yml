@@ -1,6 +1,8 @@
-# Publish desktop binaries and a frozen GitHub Pages subdirectory for each release tag.
-# Triggered by `deno task release` (push annotated tag) or manual tag push.
-# Maintainer flow, tag naming, recovery dispatch: README_DEVELOPERS.md § Releases.
+# Publish desktop binaries, the VS Code VSIX, and a frozen GitHub Pages subdirectory
+# for an existing release tag. The tag is pushed by `deno task release` or by
+# Release create (release-create.yml). workflow_dispatch re-runs publish for a
+# tag that already exists; it does not bump versions or create a tag.
+# Maintainer flow: README_DEVELOPERS.md § Releases.
 
 name: Release
 
@@ -11,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing release tag (e.g. v0.6)"
+        description: "Recovery only: existing tag whose Pages publish did not finish. Does not create a release."
         required: true
         type: string
 
@@ -38,6 +40,26 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Recovery dispatch requires an existing tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RECOVERY_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s\n' "$RECOVERY_TAG" | grep -Eq '^v[0-9]+(\.[0-9]+)*$'; then
+            echo "Recovery only re-runs publish for an existing v* tag. Release create makes a new release." >&2
+            exit 1
+          fi
+          if [ -z "$(git ls-remote --tags origin "refs/tags/${RECOVERY_TAG}")" ]; then
+            echo "Tag ${RECOVERY_TAG} does not exist. Recovery does not create a release." >&2
+            exit 1
+          fi
 
       - name: Resolve release tag
         id: rel
@@ -81,6 +103,10 @@ jobs:
       - name: Compile desktop binaries
         run: deno task compile:desktop
 
+      # Build already ran above; package the extension into dist/release/.
+      - name: Package VS Code extension
+        run: deno run -A scripts/package-extension.ts --no-build
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -88,14 +114,22 @@ jobs:
           TAG="${{ steps.rel.outputs.tag }}"
           PAGES_URL="https://regionstockholm.github.io/intehrgrator/${TAG}/"
           {
-            echo "## intEHRgrator desktop ${TAG#v}"
+            echo "## intEHRgrator ${TAG#v}"
             echo
-            echo "Local Integration Workbench as a Deno desktop app (OS webview). Same Mapping Editor as the [web app for this release](${PAGES_URL}), packaged for offline use on \`127.0.0.1\`."
+            echo "Same Mapping Editor as the [web app for this release](${PAGES_URL}), as a Deno desktop app (OS webview on \`127.0.0.1\`) and as a VS Code extension (file projects)."
             echo
             echo "### Web app (frozen for this release)"
             echo
             echo "- **This version:** [${PAGES_URL}](${PAGES_URL})"
-            echo "- **Bleeding edge (main) always aveilable at:** https://regionstockholm.github.io/intehrgrator/"
+            echo "- **Bleeding edge (main) always available at:** https://regionstockholm.github.io/intehrgrator/"
+            echo
+            echo "### Desktop"
+            echo
+            echo "Download the AppImage or zip for your OS. On Linux the AppImage uses the system WebKitGTK 4.1 (with libsoup 3), also with \`--headless\`. If it fails with \`libwebkit2gtk-4.1.so.0: cannot open shared object file\`, install it: \`sudo apt install libwebkit2gtk-4.1-0\` (Debian/Ubuntu) or \`sudo dnf install webkit2gtk4.1\` (Fedora)."
+            echo
+            echo "### VS Code"
+            echo
+            echo "Download \`intEHRgrator.vsix\`, then in VS Code run **Extensions: Install from VSIX…**. See [VS Code file projects](https://github.com/regionstockholm/intehrgrator/blob/${TAG}/docs/VS_CODE.md)."
             echo
             echo "### What's new"
             echo
@@ -105,10 +139,11 @@ jobs:
             echo "Release $TAG already exists — uploading assets only"
           else
             gh release create "$TAG" \
-              --title "intEHRgrator desktop ${TAG#v}" \
+              --title "intEHRgrator ${TAG#v}" \
               --notes-file /tmp/release-notes.md
           fi
           gh release upload "$TAG" dist/release/intEHRgrator-linux-x64.AppImage --clobber
           gh release upload "$TAG" dist/release/intEHRgrator-windows-x64.zip --clobber
           gh release upload "$TAG" dist/release/intEHRgrator-macos-x64.zip --clobber
           gh release upload "$TAG" dist/release/intEHRgrator-macos-arm64.zip --clobber
+          gh release upload "$TAG" dist/release/intEHRgrator.vsix --clobber

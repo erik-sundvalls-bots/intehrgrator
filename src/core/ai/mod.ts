@@ -20,6 +20,7 @@ import { validateExpressionSource } from "../expression/mod.ts";
 import { Validator, type Schema } from "@cfworker/json-schema";
 import { SUGGESTION_FORMAT_SCHEMA } from "./suggestion_schema.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
+import { isVmsEscapeBlockType, isVmsRemovedBlockType } from "../../blockly/vms.ts";
 import { jsonPointerToDotPath } from "./json_locate.ts";
 import {
   type AiQuestion,
@@ -320,8 +321,8 @@ export function stablePromptPrefix(mode: "api" | "copy", formatDocUrl: string): 
     'Loop fragment (merge into the envelope; ids from the slot tree): `{"loops":[{"attachSlotId":"<loop group>","block":{"type":"for_each_list","fields":{"VAR":"item"},"inputs":{"LIST":{"block":{"type":"source_query_node","fields":{"EXPRESSION":"$.Items"}}}}}}],"suggestions":[{"slotId":"<group><id of a slot in that group>","loopVar":"item","block":{"type":"source_query","fields":{"EXPRESSION":"Name"}}}]}`.',
     "",
     "## Rules",
-    "Build each `slotId` from the slot tree (`group` + `id`). Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping.",
-    "**Coded text on a DV_TEXT slot**: every `DV_TEXT` slot also accepts its subclass `DV_CODED_TEXT` (openEHR substitution; a template cannot forbid it). When the source has a code and its code system for that text (e.g. a diagnosis code + ICD-10), do not drop them: map the slot as `DV_CODED_TEXT` (recommended) with a `maps_create_with` block with keys `value`, `code_string`, `terminology_id` (the code system name, e.g. `ICD-10`, `SNOMED-CT`, `LOINC`); `rmType` is inferred. Alternatives to offer when asked: text only, or a TERM_MAPPING via `optional_rm_add`. A suggestion with `rmType` = `DV_TEXT` switches a coded slot back to text.",
+    "Build each `slotId` from the slot tree (`group` + `id`). Prefer `source_query*` blocks with fontoxpath in `EXPRESSION`. Use a **Decision table** (`decision_table` + `kind: \"decision-table\"` sheet) when several independent inputs, don't-care cells, or FIRST/UNIQUE/COLLECT hit policies make the mapping more readable to humans than nested `if`. Use `sheet_lookup` for 1-key terminology and code translation (named Sheet). Use `maps_get` for **default context map** **runtime keys** (not scaffold-target path strings). Scaffold often wires Default points — omit those only when the source has no value; when source data exists for time, healthcare facility, composer, or similar, map from source (source takes precedence over defaults). For repeating `multiplicity` (`0..*` / `1..*`), emit `loops` with `for_each_list` (`source_query_node` in LIST, or a list-valued collection) and child suggestions with matching `loopVar` + relative `EXPRESSION` (do not join onto PATH). Do not map source quantities onto ordinal/score fields unless the source is already that score. Leave unmatched slots out rather than inventing a mapping. A source path inside a loop may read an outer named item (`dag.StartTid`, no `$`). To omit an optional container, add top-level `includes[]` `{ slotId, when }` where `when` is a boolean value block (`source_query_boolean`, `logic_compare`, `logic_operation`). Do not use `controls_if`.",
+    "**Coded text on a DV_TEXT slot**: every `DV_TEXT` slot also accepts its subclass `DV_CODED_TEXT` (openEHR substitution; a template cannot forbid it). When the source has a code and its code system for that text (e.g. a diagnosis code + ICD-10), do not drop them: map the slot as `DV_CODED_TEXT` (recommended) with a `maps_create_with` block with keys `value`, `code_string`, `terminology_id` (the code system name, e.g. `ICD-10`, `SNOMED-CT`, `LOINC`); `rmType` is inferred. Alternatives to offer when asked: text only, or add `mappings` from the DV_TEXT / DV_CODED_TEXT cogwheel (a `term_mapping` block: mandatory `match` + `target`, optional `purpose`). A suggestion with `rmType` = `DV_TEXT` switches a coded slot back to text.",
     "",
   );
   return sections.filter((line, i, arr) => !(line === "" && arr[i - 1] === "")).join("\n");
@@ -354,7 +355,7 @@ export function buildPrompt(options: BuildPromptOptions): string {
     `- filename: \`${options.targetFilename || "(none)"}\``,
   );
   if (!api && !options.attachOriginalTarget) {
-    sections.push("- The original target file is not attached: the slot tree below has what mapping needs. (The user can turn on **Attach original target** in the AI menu.)");
+    sections.push("- The original target file is not attached: the slot tree below has what mapping needs. (The user can turn on **Attach original target format too** in the AI menu.)");
   }
   sections.push(
     "",
@@ -928,15 +929,42 @@ function normalizeSuggestionEnvelope(
   const { loops, suggestions } = flattenSuggestionGroups(raw);
   const notes = stringList(raw.notes);
   const questions = questionList(raw.questions);
+  const includes = includeList(raw.includes);
   return {
     format: "intehrgrator-suggestions",
     version: "2",
     target: { format: targetFormat, targetId },
     ...(loops.length ? { loops } : {}),
+    ...(includes.length ? { includes } : {}),
     suggestions,
     ...(notes.length ? { notes } : {}),
     ...(questions.length ? { questions } : {}),
   };
+}
+
+function blockTreeHasEscape(block: SuggestionBlock | undefined): boolean {
+  if (!block) return false;
+  if (isVmsEscapeBlockType(block.type) || isVmsRemovedBlockType(block.type)) return true;
+  for (const input of Object.values(block.inputs ?? {})) {
+    if (blockTreeHasEscape(input?.block) || blockTreeHasEscape(input?.shadow)) return true;
+  }
+  return false;
+}
+
+function includeList(raw: unknown): NonNullable<SuggestionEnvelope["includes"]> {
+  if (!Array.isArray(raw)) return [];
+  const out: NonNullable<SuggestionEnvelope["includes"]> = [];
+  for (const item of raw) {
+    if (!isRecord(item) || !isRecord(item.when)) continue;
+    const slotId = String(item.slotId ?? "");
+    if (!slotId) continue;
+    out.push({
+      slotId,
+      when: item.when as unknown as SuggestionBlock,
+      ...(typeof item.note === "string" ? { note: item.note } : {}),
+    });
+  }
+  return out;
 }
 
 type RawLoop = NonNullable<SuggestionEnvelope["loops"]>[number];
@@ -1144,6 +1172,7 @@ export function importSuggestions(
     skipped: 0,
     errors: [],
     loopsAccepted: 0,
+    includesAccepted: 0,
     schemaIssues: [],
   };
 
@@ -1211,6 +1240,38 @@ export function importSuggestions(
       (existing) => !acceptedLoops.some((loop) => loop.attachSlotId === existing.attachSlotId),
     );
     next = { ...next, loops: [...kept, ...acceptedLoops] };
+  }
+
+  const acceptedIncludes: MappingModel["includes"] = [];
+  for (const inc of payload.includes ?? []) {
+    const slotId = resolveKnownSlotId(inc.slotId, knownSlotIds);
+    if (!slotId) {
+      report.skipped++;
+      report.errors.push(`Unknown include slotId: ${inc.slotId}`);
+      continue;
+    }
+    try {
+      const whenBlock = sanitizeBlock(inc.when as unknown as Record<string, unknown>) as SuggestionBlock;
+      if (blockTreeHasEscape(whenBlock)) {
+        throw new Error("include when condition uses an escape block");
+      }
+      const when = suggestionBlockToExpression(whenBlock);
+      const err = validateExpressionSource(when);
+      if (err) throw new Error(err);
+      acceptedIncludes.push({ slotId, when });
+      report.includesAccepted = (report.includesAccepted ?? 0) + 1;
+    } catch (e) {
+      report.skipped++;
+      report.errors.push(
+        `include ${inc.slotId}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+  if (acceptedIncludes.length) {
+    const kept = (next.includes ?? []).filter(
+      (existing) => !acceptedIncludes.some((inc) => inc.slotId === existing.slotId),
+    );
+    next = { ...next, includes: [...kept, ...acceptedIncludes] };
   }
 
   for (const suggestion of payload.suggestions) {

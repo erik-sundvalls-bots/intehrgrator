@@ -1,9 +1,11 @@
 #!/usr/bin/env -S deno run -A
 /**
- * Cut a desktop + GitHub Pages release.
+ * Cut a desktop + GitHub Pages release from a maintainer machine.
  *
  * Bumps version files (unless --current), runs tests/build, commits, tags, and pushes.
- * GitHub Actions (release.yml) publishes desktop binaries and a frozen Pages subdirectory.
+ * Needs git and a clean tree. Does not need the GitHub CLI: publish runs in
+ * GitHub Actions (release.yml) when the tag is pushed. Actions → Release create
+ * (scripts/release_create.ts) is the other way to bump and tag.
  *
  * Usage:
  *   deno task release -- --version 0.6.0
@@ -14,10 +16,12 @@
  */
 import {
   assertCleanGitTree,
-  assertGhAuth,
   assertReleasePrerequisites,
   bumpVersionFiles,
+  promoteUnreleasedFile,
   readCurrentVersion,
+  releaseCommitFiles,
+  releaseCommitMessage,
   releaseTagMessage,
   releaseTagForVersion,
   run,
@@ -87,7 +91,6 @@ const args = parseArgs(Deno.args);
 
 await assertReleasePrerequisites();
 if (!args.dryRun) {
-  await assertGhAuth();
   await assertCleanGitTree();
 }
 
@@ -108,6 +111,11 @@ if (args.version) {
   releaseVersion = args.version;
 }
 
+const changelogChanged = await promoteUnreleasedFile(releaseVersion);
+if (changelogChanged) {
+  console.log(`Moved CHANGELOG Unreleased notes under ${releaseVersion}`);
+}
+
 await run("deno", ["task", "vendor"]);
 if (args.noTest) {
   console.log("Skipping local tests (--no-test); CI still runs unit + UI on the tag");
@@ -118,18 +126,19 @@ await run("deno", ["task", "build"]);
 
 if (args.dryRun) {
   console.log("Dry run complete — no commit, tag, or push performed.");
-  console.log(`Would tag ${releaseTag} and push to origin; Actions publishes desktop + Pages /${releaseTag}/`);
+  console.log(
+    `Would tag ${releaseTag} and push to origin; Actions publishes desktop + VS Code VSIX + Pages /${releaseTag}/`,
+  );
   Deno.exit(0);
 }
 
-if (args.version) {
-  await run("git", ["add", ...[
-    "deno.json",
-    "package.json",
-    "scripts/desktop.compile.json",
-    "src/core/persistence/mod.ts",
-  ]]);
-  await run("git", ["commit", "-m", `chore: release ${releaseVersion}`]);
+const commitFiles = releaseCommitFiles({
+  versionBump: Boolean(args.version),
+  changelogChanged,
+});
+if (commitFiles.length) {
+  await run("git", ["add", "--", ...commitFiles]);
+  await run("git", ["commit", "-m", releaseCommitMessage(releaseVersion)]);
 }
 
 await run("git", ["tag", "-a", releaseTag, "-m", tagMessage]);
@@ -137,4 +146,6 @@ await run("git", ["push", "origin", "HEAD"]);
 await run("git", ["push", "origin", releaseTag]);
 
 console.log(`Pushed ${releaseTag}.`);
-console.log(`GitHub Actions will publish desktop binaries and https://regionstockholm.github.io/intehrgrator/${releaseTag}/`);
+console.log(
+  `GitHub Actions will publish desktop binaries, intEHRgrator.vsix, and https://regionstockholm.github.io/intehrgrator/${releaseTag}/`,
+);

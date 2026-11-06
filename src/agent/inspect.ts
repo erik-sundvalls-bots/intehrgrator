@@ -38,6 +38,8 @@ export interface SlotInspectRow {
   terminologyFixed?: string;
   /** Template-constrained coded/string choices (ISM, setting, local at-codes). */
   allowedValues?: AllowedValue[];
+  /** Active value-set hint. Not a mapping. */
+  hint?: { kind: string; codes: Array<{ code: string; text?: string; assumed?: boolean; value?: number }>; assumed?: string };
 }
 
 export interface RepeatableInspectRow {

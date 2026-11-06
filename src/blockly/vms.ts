@@ -10,6 +10,7 @@ export const VMS_REMOVED_BLOCK_TYPES = [
   "controls_forEach",
   "controls_flow_statements",
   "controls_if",
+  // `include_when` is the VMS guarded emit. Do not put it here.
   "math_random_int",
   "math_random_float",
   "text_print",
@@ -71,6 +72,9 @@ export const VMS_EXPRESSION_BLOCK_TYPES = [
   "lists_set_operation",
   "variables_get",
   "maps_get",
+  "maps_entries",
+  "lists_length",
+  "logic_null",
   "maps_create_with",
   "maps_create_empty",
   "sheet_get_cell",
