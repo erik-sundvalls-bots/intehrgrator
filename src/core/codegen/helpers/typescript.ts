@@ -12,6 +12,8 @@
 
 import { registerKintegrateHandlebarsHelpers } from "./handlebars.ts";
 
+export { sheetCodedText as igSheetCodedText } from "../../sheets/coded_text.ts";
+
 export type XPathEval = (...args: any[]) => any;
 
 export interface HelperSheet {
@@ -481,6 +483,7 @@ export function igCodedText(
       return new DV_CODED_TEXT({
         value: String(r.value ?? code),
         defining_code: { terminology_id: termId || "local", code_string: code },
+        ...(Array.isArray(r.mappings) ? { mappings: r.mappings } : {}),
       });
     }
     text = r.value;

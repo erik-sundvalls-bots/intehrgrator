@@ -1310,107 +1310,87 @@
                                                                           "inputs": {
                                                                             "FLD_value": {
                                                                               "block": {
-                                                                                "type": "sheet_lookup",
-                                                                                "id": "J^z,GYVF6TyMS|Ef)KZM",
-                                                                                "data": "{\"aiReview\":{\"note\":\"Sheet beredningsform: Cytodos form code (2.0000) to the template code (2)\"}}",
-                                                                                "icons": {
-                                                                                  "comment": {
-                                                                                    "text": "AI suggestion — Sheet beredningsform: Cytodos form code (2.0000) to the template code (2)\nEdit the block or right-click → Mark as reviewed to clear.",
-                                                                                    "pinned": false,
-                                                                                    "height": 80,
-                                                                                    "width": 160
-                                                                                  }
-                                                                                },
-                                                                                "fields": {
-                                                                                  "NAME": "beredningsform"
+                                                                                "type": "procedures_callreturn",
+                                                                                "extraState": {
+                                                                                  "name": "coded_text_from_sheet",
+                                                                                  "params": [
+                                                                                    "sheet_name",
+                                                                                    "key_column",
+                                                                                    "key",
+                                                                                    "value_column",
+                                                                                    "code_column",
+                                                                                    "primary_terminology",
+                                                                                    "mapping_columns"
+                                                                                  ]
                                                                                 },
                                                                                 "inputs": {
-                                                                                  "MATCH_COL": {
+                                                                                  "ARG0": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "is*I:A)j@33gEp0qmBJ!",
+                                                                                      "fields": {
+                                                                                        "TEXT": "beredningsform"
+                                                                                      }
+                                                                                    }
+                                                                                  },
+                                                                                  "ARG1": {
+                                                                                    "block": {
+                                                                                      "type": "text",
                                                                                       "fields": {
                                                                                         "TEXT": "Form_CodeValue"
                                                                                       }
                                                                                     }
                                                                                   },
-                                                                                  "MATCH_VAL": {
+                                                                                  "ARG2": {
                                                                                     "block": {
                                                                                       "type": "source_query",
-                                                                                      "id": "V0Ctt[E*a.K.v|_sx2Kx",
                                                                                       "fields": {
                                                                                         "EXPRESSION": "Form_CodeValue",
                                                                                         "RETURN_TYPE": "string"
                                                                                       }
                                                                                     }
                                                                                   },
-                                                                                  "RETURN_COL": {
+                                                                                  "ARG3": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "DSk0EqeI6K!jhcQ*{0mN",
                                                                                       "fields": {
                                                                                         "TEXT": "text"
                                                                                       }
                                                                                     }
-                                                                                  }
-                                                                                }
-                                                                              }
-                                                                            },
-                                                                            "FLD_defining_code": {
-                                                                              "block": {
-                                                                                "type": "code_phrase",
-                                                                                "id": "3!SfM9`X4oLMPf$q=l~H",
-                                                                                "fields": {
-                                                                                  "NAME": "Code Phrase",
-                                                                                  "RM_TYPE": "CODE_PHRASE",
-                                                                                  "SLOT_ID": ""
-                                                                                },
-                                                                                "inputs": {
-                                                                                  "FLD_code_string": {
+                                                                                  },
+                                                                                  "ARG4": {
                                                                                     "block": {
-                                                                                      "type": "sheet_lookup",
-                                                                                      "id": "ih]7N-)9lDiKqABl6~$d",
+                                                                                      "type": "text",
                                                                                       "fields": {
-                                                                                        "NAME": "beredningsform"
-                                                                                      },
-                                                                                      "inputs": {
-                                                                                        "MATCH_COL": {
-                                                                                          "block": {
-                                                                                            "type": "text",
-                                                                                            "id": "m`5#JOW5S~9Cs0|8z*Va",
-                                                                                            "fields": {
-                                                                                              "TEXT": "Form_CodeValue"
-                                                                                            }
-                                                                                          }
-                                                                                        },
-                                                                                        "MATCH_VAL": {
-                                                                                          "block": {
-                                                                                            "type": "source_query",
-                                                                                            "id": "a@R+~!:eC$E*lv-M?OnL",
-                                                                                            "fields": {
-                                                                                              "EXPRESSION": "Form_CodeValue",
-                                                                                              "RETURN_TYPE": "string"
-                                                                                            }
-                                                                                          }
-                                                                                        },
-                                                                                        "RETURN_COL": {
-                                                                                          "block": {
-                                                                                            "type": "text",
-                                                                                            "id": "9c!3Bi{QF}yJn|]%~TS1",
-                                                                                            "fields": {
-                                                                                              "TEXT": "code"
-                                                                                            }
-                                                                                          }
-                                                                                        }
+                                                                                        "TEXT": "code"
                                                                                       }
                                                                                     }
                                                                                   },
-                                                                                  "FLD_terminology_id": {
+                                                                                  "ARG5": {
                                                                                     "block": {
                                                                                       "type": "text",
-                                                                                      "id": "rT!V=IGcqr1*N*6Cfa`Z",
                                                                                       "fields": {
                                                                                         "TEXT": "Cytodos value set"
+                                                                                      }
+                                                                                    }
+                                                                                  },
+                                                                                  "ARG6": {
+                                                                                    "block": {
+                                                                                      "type": "maps_create_with",
+                                                                                      "extraState": {
+                                                                                        "itemCount": 1
+                                                                                      },
+                                                                                      "fields": {
+                                                                                        "KEY0": "SNOMED-CT"
+                                                                                      },
+                                                                                      "inputs": {
+                                                                                        "VAL0": {
+                                                                                          "block": {
+                                                                                            "type": "text",
+                                                                                            "fields": {
+                                                                                              "TEXT": "snomed"
+                                                                                            }
+                                                                                          }
+                                                                                        }
                                                                                       }
                                                                                     }
                                                                                   }
@@ -1647,107 +1627,87 @@
                                                                     "inputs": {
                                                                       "FLD_value": {
                                                                         "block": {
-                                                                          "type": "sheet_lookup",
-                                                                          "id": "s@u4_449_zzZE~7c9EJr",
-                                                                          "data": "{\"aiReview\":{\"note\":\"Sheet administreringsvag: Cytodos route code (3.0000) to the template code (3)\"}}",
-                                                                          "icons": {
-                                                                            "comment": {
-                                                                              "text": "AI suggestion — Sheet administreringsvag: Cytodos route code (3.0000) to the template code (3)\nEdit the block or right-click → Mark as reviewed to clear.",
-                                                                              "pinned": false,
-                                                                              "height": 80,
-                                                                              "width": 160
-                                                                            }
-                                                                          },
-                                                                          "fields": {
-                                                                            "NAME": "administreringsvag"
+                                                                          "type": "procedures_callreturn",
+                                                                          "extraState": {
+                                                                            "name": "coded_text_from_sheet",
+                                                                            "params": [
+                                                                              "sheet_name",
+                                                                              "key_column",
+                                                                              "key",
+                                                                              "value_column",
+                                                                              "code_column",
+                                                                              "primary_terminology",
+                                                                              "mapping_columns"
+                                                                            ]
                                                                           },
                                                                           "inputs": {
-                                                                            "MATCH_COL": {
+                                                                            "ARG0": {
                                                                               "block": {
                                                                                 "type": "text",
-                                                                                "id": "yA5%H+D~8N*C*RpcOZIj",
+                                                                                "fields": {
+                                                                                  "TEXT": "administreringsvag"
+                                                                                }
+                                                                              }
+                                                                            },
+                                                                            "ARG1": {
+                                                                              "block": {
+                                                                                "type": "text",
                                                                                 "fields": {
                                                                                   "TEXT": "Route_CodeValue"
                                                                                 }
                                                                               }
                                                                             },
-                                                                            "MATCH_VAL": {
+                                                                            "ARG2": {
                                                                               "block": {
                                                                                 "type": "source_query",
-                                                                                "id": "T(VB`:mLHtWoN,xfFyah",
                                                                                 "fields": {
                                                                                   "EXPRESSION": "Route_CodeValue",
                                                                                   "RETURN_TYPE": "string"
                                                                                 }
                                                                               }
                                                                             },
-                                                                            "RETURN_COL": {
+                                                                            "ARG3": {
                                                                               "block": {
                                                                                 "type": "text",
-                                                                                "id": "7CluhH4vg%Gy-T9qy]aZ",
                                                                                 "fields": {
                                                                                   "TEXT": "text"
                                                                                 }
                                                                               }
-                                                                            }
-                                                                          }
-                                                                        }
-                                                                      },
-                                                                      "FLD_defining_code": {
-                                                                        "block": {
-                                                                          "type": "code_phrase",
-                                                                          "id": "K]BVLb{92!bFDrNJub-G",
-                                                                          "fields": {
-                                                                            "NAME": "Code Phrase",
-                                                                            "RM_TYPE": "CODE_PHRASE",
-                                                                            "SLOT_ID": ""
-                                                                          },
-                                                                          "inputs": {
-                                                                            "FLD_code_string": {
+                                                                            },
+                                                                            "ARG4": {
                                                                               "block": {
-                                                                                "type": "sheet_lookup",
-                                                                                "id": "5b%$jhtNAw`hn]L#F{Qf",
+                                                                                "type": "text",
                                                                                 "fields": {
-                                                                                  "NAME": "administreringsvag"
-                                                                                },
-                                                                                "inputs": {
-                                                                                  "MATCH_COL": {
-                                                                                    "block": {
-                                                                                      "type": "text",
-                                                                                      "id": "TQ?l9rE1eEEOWosN4+21",
-                                                                                      "fields": {
-                                                                                        "TEXT": "Route_CodeValue"
-                                                                                      }
-                                                                                    }
-                                                                                  },
-                                                                                  "MATCH_VAL": {
-                                                                                    "block": {
-                                                                                      "type": "source_query",
-                                                                                      "id": "ec21$M%R)IwchRScsc(#",
-                                                                                      "fields": {
-                                                                                        "EXPRESSION": "Route_CodeValue",
-                                                                                        "RETURN_TYPE": "string"
-                                                                                      }
-                                                                                    }
-                                                                                  },
-                                                                                  "RETURN_COL": {
-                                                                                    "block": {
-                                                                                      "type": "text",
-                                                                                      "id": "E{#sd1N(Il!F=YyJ~z0j",
-                                                                                      "fields": {
-                                                                                        "TEXT": "code"
-                                                                                      }
-                                                                                    }
-                                                                                  }
+                                                                                  "TEXT": "code"
                                                                                 }
                                                                               }
                                                                             },
-                                                                            "FLD_terminology_id": {
+                                                                            "ARG5": {
                                                                               "block": {
                                                                                 "type": "text",
-                                                                                "id": "JT^*Ai4xM,Pd78Jt4u%D",
                                                                                 "fields": {
                                                                                   "TEXT": "Cytodos value set"
+                                                                                }
+                                                                              }
+                                                                            },
+                                                                            "ARG6": {
+                                                                              "block": {
+                                                                                "type": "maps_create_with",
+                                                                                "extraState": {
+                                                                                  "itemCount": 1
+                                                                                },
+                                                                                "fields": {
+                                                                                  "KEY0": "SNOMED-CT"
+                                                                                },
+                                                                                "inputs": {
+                                                                                  "VAL0": {
+                                                                                    "block": {
+                                                                                      "type": "text",
+                                                                                      "fields": {
+                                                                                        "TEXT": "snomed"
+                                                                                      }
+                                                                                    }
+                                                                                  }
                                                                                 }
                                                                               }
                                                                             }
@@ -5422,7 +5382,165 @@
             }
           }
         }
+      },
+      {
+        "type": "procedures_defreturn",
+        "id": "coded_text_from_sheet_definition",
+        "x": 40,
+        "y": 40,
+        "fields": {
+          "NAME": "coded_text_from_sheet"
+        },
+        "extraState": {
+          "params": [
+            {
+              "name": "sheet_name",
+              "id": "coded_text_from_sheet_sheet_name"
+            },
+            {
+              "name": "key_column",
+              "id": "coded_text_from_sheet_key_column"
+            },
+            {
+              "name": "key",
+              "id": "coded_text_from_sheet_key"
+            },
+            {
+              "name": "value_column",
+              "id": "coded_text_from_sheet_value_column"
+            },
+            {
+              "name": "code_column",
+              "id": "coded_text_from_sheet_code_column"
+            },
+            {
+              "name": "primary_terminology",
+              "id": "coded_text_from_sheet_primary_terminology"
+            },
+            {
+              "name": "mapping_columns",
+              "id": "coded_text_from_sheet_mapping_columns"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Looks up the first exact key match in a project Sheet. Parameters: sheet_name, key_column, key, value_column, code_column, primary_terminology, mapping_columns. Column references are header names; mapping_columns is a map of terminology ID to code-column header (e.g. SNOMED-CT → snomed). Returns a complete DV_CODED_TEXT with the primary value/code/terminology and one equivalent TERM_MAPPING (match =) for each nonblank mapping cell. Missing key, text, code or primary terminology returns null; no codes are guessed. Keep codes as text to preserve leading zeroes/decimals. Sheets stay project data and are not bundled.",
+            "pinned": false,
+            "height": 100,
+            "width": 260
+          }
+        },
+        "inputs": {
+          "RETURN": {
+            "block": {
+              "type": "sheet_coded_text",
+              "inputs": {
+                "SHEET": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_sheet_name"
+                      }
+                    }
+                  }
+                },
+                "KEY_COLUMN": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_key_column"
+                      }
+                    }
+                  }
+                },
+                "KEY": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_key"
+                      }
+                    }
+                  }
+                },
+                "VALUE_COLUMN": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_value_column"
+                      }
+                    }
+                  }
+                },
+                "CODE_COLUMN": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_code_column"
+                      }
+                    }
+                  }
+                },
+                "TERMINOLOGY": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_primary_terminology"
+                      }
+                    }
+                  }
+                },
+                "MAPPING_COLUMNS": {
+                  "block": {
+                    "type": "variables_get",
+                    "fields": {
+                      "VAR": {
+                        "id": "coded_text_from_sheet_mapping_columns"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     ]
-  }
+  },
+  "variables": [
+    {
+      "name": "sheet_name",
+      "id": "coded_text_from_sheet_sheet_name"
+    },
+    {
+      "name": "key_column",
+      "id": "coded_text_from_sheet_key_column"
+    },
+    {
+      "name": "key",
+      "id": "coded_text_from_sheet_key"
+    },
+    {
+      "name": "value_column",
+      "id": "coded_text_from_sheet_value_column"
+    },
+    {
+      "name": "code_column",
+      "id": "coded_text_from_sheet_code_column"
+    },
+    {
+      "name": "primary_terminology",
+      "id": "coded_text_from_sheet_primary_terminology"
+    },
+    {
+      "name": "mapping_columns",
+      "id": "coded_text_from_sheet_mapping_columns"
+    }
+  ]
 }

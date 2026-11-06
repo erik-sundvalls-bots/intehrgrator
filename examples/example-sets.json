@@ -242,7 +242,7 @@
     {
       "id": "karda-ordinationsdata-to-openehr-flat",
       "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
-      "description": "OrdinationRCCV1 JSON Schema (aligned with Avro, including PDL vårdgivare name/HSAID) and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. Mapping uses two lookup Sheets (beredningsform, administreringsvag) to translate Cytodos form/route codes to the template codes; dose carries its unit from UnitCode. TypeScript Conversion Script Test Run is the check.",
+      "description": "OrdinationRCCV1 JSON Schema and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. The generic coded_text_from_sheet Function reads project Sheets beredningsform/administreringsvag, keeping primary Cytodos/template codes and adding equivalent SNOMED-CT TERM_MAPPINGs from snomed. Dose carries its UnitCode. Both Mapping preview and TypeScript Test Run include mappings.",
       "source": {
         "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
         "instances": [
@@ -278,7 +278,7 @@
     {
       "id": "karda-administreringsdata-to-openehr-flat",
       "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
-      "description": "AdministrationRCCV1 Avro source schema (aligned with JSON Schema, including PDL vårdgivare name/HSAID) and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Mapping is direct source paths and constants: the template only allows the completed / at0007 state, so no table is needed. TypeScript Conversion Script Test Run is the check.",
+      "description": "AdministrationRCCV1 Avro and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Uses the generic coded_text_from_sheet Function with the project organisation_roles Sheet for existing role codes. These fixtures and this OPT have no form/route slots or supplied cross-terminology equivalents, so no mappings are invented; SNOMED role codes remain primary. Completed / at0007 is fixed by the template.",
       "source": {
         "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
         "instances": [
@@ -290,7 +290,8 @@
         ]
       },
       "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
-      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json"
+      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
     },
     {
       "id": "mhv1-generic-entry-to-prenatal-visit-unmapped",

@@ -335,13 +335,14 @@ Deno.test("shipped Function library starters parse without join_list", async () 
   const catalogPath = join(import.meta.dirname!, "..", "function-library", "catalog.json");
   const catalogUrl = toFileUrl(catalogPath).href;
   const catalog = parseFunctionLibraryCatalog(await Deno.readTextFile(catalogPath), catalogUrl);
-  assertEquals(catalog.functions.map((row) => row.id).sort(), ["join_oxford", "join_swedish"]);
+  assertEquals(catalog.functions.map((row) => row.id).sort(), ["coded_text_from_sheet", "join_oxford", "join_swedish"]);
   for (const entry of catalog.functions) {
     const loaded = await loadFunctionLibraryEntry(catalog, entry.id);
     assertEquals(loaded.name, entry.name);
     assert(loaded.description.length > 20);
     assertEquals(hasBlockType(loaded.blocklyState, "join_list"), false);
-    assertEquals(loaded.sheets[0]?.kind, "decision-table");
+    if (entry.id !== "coded_text_from_sheet") assertEquals(loaded.sheets[0]?.kind, "decision-table");
+    else assertEquals(loaded.sheets, []);
     assertEquals(loaded.hasReturn, true);
   }
 });

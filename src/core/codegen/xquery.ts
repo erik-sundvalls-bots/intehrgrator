@@ -550,6 +550,8 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
           return `igsh:sheet-get-header($sheets, ${args[0]}, ${args[1]})`;
         case "sheet_get_data":
           return `igsh:sheet-get-data($sheets, ${args[0]})`;
+        case "sheet_coded_text":
+          return `igsh:sheet-coded-text($sheets, ${args.join(", ")})`;
         case "sheet_lookup":
           return args.length >= 4
             ? `igsh:sheet-lookup($sheets, ${args[0]}, ${args[1]}, ${args[2]}, ${args[3]})`
@@ -1163,7 +1165,15 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
       if (!code && !value) return null;
       const shell = xqShellSuffix(slot, ctx);
       if (ctx.shape === "json") {
-        return `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} }${shell} }`;
+        const fallback = `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} }${shell} }`;
+        return value && !coded ? `(let $__coded := ${value} return if ($__coded instance of map(*)) then $__coded else ${fallback})` : fallback;
+      }
+      if (value && !coded) {
+        return `(let $__coded := ${value} return if ($__coded instance of map(*)) then (
+          attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { $__coded?value },
+          element rm:defining_code { element rm:terminology_id { element rm:value { $__coded?defining_code?terminology_id?value } }, element rm:code_string { $__coded?defining_code?code_string } },
+          for $m in $__coded?mappings?* return element rm:mappings { element rm:match { $m?match }, element rm:target { element rm:terminology_id { element rm:value { $m?target?terminology_id?value } }, element rm:code_string { $m?target?code_string } } }
+        ) else (attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { $__coded }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${code ?? '\"\"'} } }))`;
       }
       return `attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { ${
         value ?? '""'

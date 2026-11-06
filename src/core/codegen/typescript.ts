@@ -177,6 +177,7 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
+        case "sheet_coded_text":
         case "sheet_lookup":
         case "decision_table":
           ctx.helpers.add("sheets");
@@ -489,6 +490,7 @@ function typescriptHelperImportNames(helpers: Set<string>, body: string): string
   if (uses("sheetGetRow(")) names.push("igSheetGetRow");
   if (uses("sheetGetXy(")) names.push("igSheetGetXy");
   if (uses("sheetLookup(")) names.push("igSheetLookup");
+  if (uses("sheetCodedText(")) names.push("igSheetCodedText");
   return [...new Set(names)].sort();
 }
 
@@ -570,6 +572,13 @@ function typescriptHelperWrappers(helpers: Set<string>, body: string): string[] 
     add(
       "function sheetLookup(name: string, matchCol: string | number, matchValue: unknown, returnCol?: string | number) {",
       "  return igSheetLookup(sheets, name, matchCol, matchValue, returnCol);",
+      "}",
+    );
+  }
+  if (uses("sheetCodedText(")) {
+    add(
+      "function sheetCodedText(name: string, keyColumn: string, key: unknown, valueColumn: string, codeColumn: string, terminology: string, mappingColumns: unknown) {",
+      "  return igSheetCodedText(sheets, name, keyColumn, key, valueColumn, codeColumn, terminology, mappingColumns);",
       "}",
     );
   }
@@ -992,13 +1001,8 @@ function emitSkeletonValue(
     if (expr) {
       ctx.types.add("DV_CODED_TEXT");
       const choices = codedChoicesForNode(node);
-      if (choices.length) {
-        // Text into a coded slot: look it up in the value set so the output has
-        // defining_code (FLAT output has no ctx/ fallback since ehrtslib v0.9).
-        ctx.helpers.add("coded");
-        return assignTsShell(`codedText(${expr}, ${JSON.stringify(choices)})`, slot, ctx, indent);
-      }
-      return assignTsShell(`new DV_CODED_TEXT({ value: String(${expr} ?? "") })`, slot, ctx, indent);
+      ctx.helpers.add("coded");
+      return assignTsShell(`codedText(${expr}, ${JSON.stringify(choices)})`, slot, ctx, indent);
     }
     return null;
   }

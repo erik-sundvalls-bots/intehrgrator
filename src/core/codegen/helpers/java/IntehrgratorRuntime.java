@@ -319,6 +319,41 @@ public class IntehrgratorRuntime {
     return out;
   }
 
+  /** Header-name lookup returning canonical coded text and equivalent mappings. */
+  public Object sheetCodedText(Object name, Object keyColumn, Object key, Object valueColumn,
+      Object codeColumn, Object terminology, Object mappingColumns) {
+    if (key == null || asString(key).isBlank() || asString(terminology).isBlank()) return null;
+    Object found = sheetLookup(asString(name), keyColumn, key);
+    if (!(found instanceof Map<?, ?> row)) return null;
+    String value = asString(row.get(asString(valueColumn))).trim();
+    String code = asString(row.get(asString(codeColumn))).trim();
+    if (value.isBlank() || code.isBlank()) return null;
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("_type", "DV_CODED_TEXT");
+    result.put("value", value);
+    result.put("defining_code", codedPhrase(asString(terminology), code));
+    List<Object> mappings = new ArrayList<>();
+    if (mappingColumns instanceof Map<?, ?> columns) {
+      for (Map.Entry<?, ?> entry : columns.entrySet()) {
+        String term = asString(entry.getKey());
+        String target = asString(row.get(asString(entry.getValue()))).trim();
+        if (term.isBlank() || target.isBlank()) continue;
+        Map<String, Object> mapping = new LinkedHashMap<>();
+        mapping.put("_type", "TERM_MAPPING");
+        mapping.put("match", "=");
+        mapping.put("target", codedPhrase(term, target));
+        mappings.add(mapping);
+      }
+    }
+    if (!mappings.isEmpty()) result.put("mappings", mappings);
+    return result;
+  }
+
+  private static Map<String, Object> codedPhrase(String terminology, String code) {
+    return Map.of("_type", "CODE_PHRASE", "code_string", code,
+        "terminology_id", Map.of("_type", "TERMINOLOGY_ID", "value", terminology));
+  }
+
   public Object sheetLookup(String name, Object matchCol, Object matchValue, Object returnCol) {
     Sheet s = sheetOf(name);
     if (s == null) return null;

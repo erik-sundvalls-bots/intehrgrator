@@ -2,6 +2,7 @@
  * Karda example sets: Mapping preview and the TypeScript Conversion Script
  * give the same FLAT repeats and coded values (#321, ehrtslib output flavour).
  */
+import { join } from "@std/path";
 import { assert, assertEquals } from "@std/assert";
 import { WorkbenchService } from "@intehrgrator/workbench/service.ts";
 import { callAgentTool } from "@intehrgrator/agent/tools.ts";
@@ -52,6 +53,21 @@ Deno.test("Karda order: preview emits every substance of a treatment day, as Typ
     // The substance itself, not an empty coded text.
     const substance = value(row.preview, "ordination_per_substans:0/detaljer_om_substans/substans|value");
     assert(typeof substance === "string" && substance.trim(), `${row.filename}: ${substance}`);
+    // The existing clinical goldens are the independent source of truth for
+    // every form/route TERM_MAPPING (their composition-root name is older).
+    const goldenName = row.filename.replace("_source_", "_target_").replace("-source-", "-target-");
+    const golden = JSON.parse(await Deno.readTextFile(join(import.meta.dirname!, "fixtures",
+      "ordinerad-medicinsk-onkologisk-behandling", "target-instance", goldenName))) as Flat;
+    for (const [key, expected] of Object.entries(golden)) {
+      if (!key.includes("/_mapping:")) continue;
+      const suffix = key.slice(key.indexOf("/"));
+      for (const flat of [row.preview, row.typescript]) assertEquals(value(flat, suffix), expected, `${row.filename}: ${suffix}`);
+    }
+    for (const flat of [row.preview, row.typescript]) {
+      assertEquals(value(flat, "ordination_per_substans:0/detaljer_om_substans/form|terminology"), "Cytodos value set");
+      const expectedCode = row.filename.includes("used_for_mapping") ? "1" : "2";
+      assertEquals(value(flat, "ordination_per_substans:0/detaljer_om_substans/form|code"), expectedCode);
+    }
   }
   // Four examples have two or three substances on one day.
   assertEquals(multi, 4);

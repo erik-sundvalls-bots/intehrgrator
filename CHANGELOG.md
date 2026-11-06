@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Sheet-driven term mappings** ([#358](https://github.com/regionstockholm/intehrgrator/pull/359)): generic `coded_text_from_sheet` library Function keeps the primary coding and adds equivalent terminology mappings from project Sheet columns. Cytodos order form/route now emit their SNOMED mappings; treatment reuses the Function for existing role codes without inventing unavailable form/route data.
+
 - **AI chat USD budget and dual counters** ([#354](https://github.com/regionstockholm/intehrgrator/issues/354)): the meter shows input vs output tokens, and input vs output USD when the model is priceable (plus cached input). The budget is USD when OpenRouter rates or a reported `usage.cost` are known; otherwise it stays a token budget for unpriced local models. **Connect & fetch models** refreshes OpenRouter `pricing.prompt` / `pricing.completion` into this browser. Warn at 80 %, pause at 100 %, same **Raise budget … and continue** shape as before. Pre-1.0: stored `budget` (tokens) migrates to `budgetTokens`; the legacy key is not written again.
 
 - **Hint actions on the canvas** ([#353](https://github.com/regionstockholm/intehrgrator/pull/353)): applying a constant (including units), decision table, or sheet lookup initializes and renders its connected Blockly blocks. Each action undoes and redoes the canvas, grid, and hint settings together. The tutorials show the Hints flow and connected grid scaffold.

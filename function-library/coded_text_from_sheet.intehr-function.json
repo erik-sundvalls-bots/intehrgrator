@@ -1,0 +1,184 @@
+{
+  "kind": "intehrgrator-function",
+  "version": 1,
+  "name": "coded_text_from_sheet",
+  "description": "Looks up the first exact key match in a project Sheet. Parameters: sheet_name, key_column, key, value_column, code_column, primary_terminology, mapping_columns. Column references are header names; mapping_columns is a map of terminology ID to code-column header (e.g. SNOMED-CT → snomed). Returns a complete DV_CODED_TEXT with the primary value/code/terminology and one equivalent TERM_MAPPING (match =) for each nonblank mapping cell. Missing key, text, code or primary terminology returns null; no codes are guessed. Keep codes as text to preserve leading zeroes/decimals. Sheets stay project data and are not bundled.",
+  "parameters": [
+    "sheet_name",
+    "key_column",
+    "key",
+    "value_column",
+    "code_column",
+    "primary_terminology",
+    "mapping_columns"
+  ],
+  "hasReturn": true,
+  "returns": "DV_CODED_TEXT",
+  "decisionTables": [],
+  "blocklyState": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "coded_text_from_sheet_definition",
+          "x": 40,
+          "y": 40,
+          "fields": {
+            "NAME": "coded_text_from_sheet"
+          },
+          "extraState": {
+            "params": [
+              {
+                "name": "sheet_name",
+                "id": "coded_text_from_sheet_sheet_name"
+              },
+              {
+                "name": "key_column",
+                "id": "coded_text_from_sheet_key_column"
+              },
+              {
+                "name": "key",
+                "id": "coded_text_from_sheet_key"
+              },
+              {
+                "name": "value_column",
+                "id": "coded_text_from_sheet_value_column"
+              },
+              {
+                "name": "code_column",
+                "id": "coded_text_from_sheet_code_column"
+              },
+              {
+                "name": "primary_terminology",
+                "id": "coded_text_from_sheet_primary_terminology"
+              },
+              {
+                "name": "mapping_columns",
+                "id": "coded_text_from_sheet_mapping_columns"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Looks up the first exact key match in a project Sheet. Parameters: sheet_name, key_column, key, value_column, code_column, primary_terminology, mapping_columns. Column references are header names; mapping_columns is a map of terminology ID to code-column header (e.g. SNOMED-CT → snomed). Returns a complete DV_CODED_TEXT with the primary value/code/terminology and one equivalent TERM_MAPPING (match =) for each nonblank mapping cell. Missing key, text, code or primary terminology returns null; no codes are guessed. Keep codes as text to preserve leading zeroes/decimals. Sheets stay project data and are not bundled.",
+              "pinned": false,
+              "height": 100,
+              "width": 260
+            }
+          },
+          "inputs": {
+            "RETURN": {
+              "block": {
+                "type": "sheet_coded_text",
+                "inputs": {
+                  "SHEET": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_sheet_name"
+                        }
+                      }
+                    }
+                  },
+                  "KEY_COLUMN": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_key_column"
+                        }
+                      }
+                    }
+                  },
+                  "KEY": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_key"
+                        }
+                      }
+                    }
+                  },
+                  "VALUE_COLUMN": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_value_column"
+                        }
+                      }
+                    }
+                  },
+                  "CODE_COLUMN": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_code_column"
+                        }
+                      }
+                    }
+                  },
+                  "TERMINOLOGY": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_primary_terminology"
+                        }
+                      }
+                    }
+                  },
+                  "MAPPING_COLUMNS": {
+                    "block": {
+                      "type": "variables_get",
+                      "fields": {
+                        "VAR": {
+                          "id": "coded_text_from_sheet_mapping_columns"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "sheet_name",
+        "id": "coded_text_from_sheet_sheet_name"
+      },
+      {
+        "name": "key_column",
+        "id": "coded_text_from_sheet_key_column"
+      },
+      {
+        "name": "key",
+        "id": "coded_text_from_sheet_key"
+      },
+      {
+        "name": "value_column",
+        "id": "coded_text_from_sheet_value_column"
+      },
+      {
+        "name": "code_column",
+        "id": "coded_text_from_sheet_code_column"
+      },
+      {
+        "name": "primary_terminology",
+        "id": "coded_text_from_sheet_primary_terminology"
+      },
+      {
+        "name": "mapping_columns",
+        "id": "coded_text_from_sheet_mapping_columns"
+      }
+    ]
+  },
+  "sheets": []
+}
