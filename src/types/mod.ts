@@ -406,6 +406,12 @@ export interface SchemaTreeNode {
    * (an unsuffixed value input covers the primary mapping attribute).
    */
   rmCoveredAttributes?: string[];
+  /**
+   * Value set from JSON Schema `enum` (+ `x-enumDescriptions` / i18n) or XSD
+   * `xs:enumeration`. Copied onto the Template Skeleton as `allowedValues` so
+   * value-set hints work for schema targets (#355).
+   */
+  allowedValues?: AllowedValue[];
   children: SchemaTreeNode[];
 }
 
