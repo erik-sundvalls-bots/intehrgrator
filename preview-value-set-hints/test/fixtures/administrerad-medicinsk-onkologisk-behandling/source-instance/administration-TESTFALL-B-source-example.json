@@ -1,0 +1,50 @@
+{
+  "CytodosAdministrationKey": 593,
+  "Personnummer": "NULL",
+  "RekvisisjonId": 314196635,
+  "ExternalEncounterId": 3395666,
+  "EncounterId": 1892893,
+  "EncounterDate": "2026-04-27T13:03:11",
+  "EncounterStatus": 3,
+  "EncounterStatus_LongDescription": "Stoppad",
+  "SignatureUser_FullName": "TakeCare_Test",
+  "SignatureUser_UserName": "A1D8",
+  "PDL_enhet_Namn": "OO Cancer TC",
+  "PDL_enhet_HSAID": "BW01",
+  "PDL_vardgivare_Namn": "PDL-vårdgivare SLL IdP TEST",
+  "PDL_vardgivare_HSAID": "SE2321000016-I1MN",
+  "Sparrgrupp": "K Cancer",
+  "Inskrivningstidpunkt": "2026-04-27T12:30:34",
+  "Utskrivningstidpunkt": "2026-04-27T12:30:34",
+  "Diagnoskod_ICD10": "C349C",
+  "Diagnosnamn_ICD10": "Lungcancer, adenocarcinom",
+  "Vardenhet_id": 4477,
+  "Vardenhet_namn": "S MBA G4",
+  "Vardenhet_HSAID": "C4DZ",
+  "SenastUppdaterad": 1775544370859,
+  "SenastUppdaterad_orig": "2026-04-07T08:46:10.8593307+02:00",
+  "Substanser": [
+    {
+      "ContentID": 1292559,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456456,
+      "Dose": 140.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "Pembrolizumab",
+      "Innholdstoff_ATC": "L01FF02"
+    },
+    {
+      "ContentID": 1292560,
+      "AdministrationStatus": 4,
+      "AdministrationStatus_LongDescription": "Stoppad",
+      "OrderLineId": 774456457,
+      "Dose": 500.0,
+      "UnitCode": "mg",
+      "SubstanceType": 2,
+      "Innholdstoff_Navn": "Atezolizumab sc",
+      "Innholdstoff_ATC": "L01FF05"
+    }
+  ]
+}

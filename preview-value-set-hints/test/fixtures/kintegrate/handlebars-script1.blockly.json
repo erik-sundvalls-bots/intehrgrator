@@ -1,0 +1,397 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "source_query",
+        "id": "hbs_path_0",
+        "x": 20,
+        "y": 20,
+        "fields": {
+          "EXPRESSION": "$.starter_tips",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_1",
+        "x": 20,
+        "y": 68,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_1_src",
+              "fields": {
+                "EXPRESSION": "$.tip_array"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_2",
+        "x": 20,
+        "y": 116,
+        "fields": {
+          "EXPRESSION": "$.granskning",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_3",
+        "x": 20,
+        "y": 164,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_3_src",
+              "fields": {
+                "EXPRESSION": "$.rubrik"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_4",
+        "x": 20,
+        "y": 212,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_4_src",
+              "fields": {
+                "EXPRESSION": "$.behållare"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_5",
+        "x": 20,
+        "y": 260,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_5_src",
+              "fields": {
+                "EXPRESSION": "$.deltagare"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_6",
+        "x": 20,
+        "y": 308,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_6_src",
+              "fields": {
+                "EXPRESSION": "$.bakgrund"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_7",
+        "x": 20,
+        "y": 356,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_7_src",
+              "fields": {
+                "EXPRESSION": "$.sjukdomshistoria"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_8",
+        "x": 20,
+        "y": 404,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_8_src",
+              "fields": {
+                "EXPRESSION": "$.ospecificerad_händelse"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_9",
+        "x": 20,
+        "y": 452,
+        "fields": {
+          "EXPRESSION": "$.granskning.utredning_undersökning[1].funktionsutredning[1].spirometriresultat[1].ospecificerad_händelse[1].kvot_fev1_fvc[1].resultat[1]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_10",
+        "x": 20,
+        "y": 500,
+        "fields": {
+          "EXPRESSION": "$.granskning.utredning_undersökning[1].funktionsutredning[1].spirometriresultat[1].ospecificerad_händelse[1].kvot_fev1_fvc[1].resultat[1][\"|numerator\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_11",
+        "x": 20,
+        "y": 548,
+        "fields": {
+          "EXPRESSION": "$.granskning.bedömning[1].behållare[1][\"klinisk_tnm-klassificering\"][1]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_12",
+        "x": 20,
+        "y": 596,
+        "fields": {
+          "EXPRESSION": "$.granskning.rubrik[1].behållare[1].deltagare[1]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_13",
+        "x": 20,
+        "y": 644,
+        "fields": {
+          "EXPRESSION": "$.starter_tips.tip_object.Right_click_explanations[\"⤡\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_14",
+        "x": 20,
+        "y": 692,
+        "fields": {
+          "EXPRESSION": "$.granskning.bakgrund[1].sjukdomshistoria[1].ospecificerad_händelse[1].anamnes[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_15",
+        "x": 20,
+        "y": 740,
+        "fields": {
+          "EXPRESSION": "$[\"! this is a list with potentially many rows\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_16",
+        "x": 20,
+        "y": 788,
+        "fields": {
+          "EXPRESSION": "$.namn[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_17",
+        "x": 20,
+        "y": 836,
+        "fields": {
+          "EXPRESSION": "$.vårdgivarroll[1].specialitet[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_18",
+        "x": 20,
+        "y": 884,
+        "fields": {
+          "EXPRESSION": "$.aktuellt[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_19",
+        "x": 20,
+        "y": 932,
+        "fields": {
+          "EXPRESSION": "$.anamnes[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_20",
+        "x": 20,
+        "y": 980,
+        "fields": {
+          "EXPRESSION": "$.komorbiditet[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_21",
+        "x": 20,
+        "y": 1028,
+        "fields": {
+          "EXPRESSION": "$[\"|numerator\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_22",
+        "x": 20,
+        "y": 1076,
+        "fields": {
+          "EXPRESSION": "$[\"~#if \"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_23",
+        "x": 20,
+        "y": 1124,
+        "fields": {
+          "EXPRESSION": "$[\"~#with granskning\"].bedömning[1].behållare[1][\"klinisk_tnm-klassificering\"][1]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_24",
+        "x": 20,
+        "y": 1172,
+        "fields": {
+          "EXPRESSION": "$[\"tnm-version\"][1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_25",
+        "x": 20,
+        "y": 1220,
+        "fields": {
+          "EXPRESSION": "$.primärtumör_t[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_26",
+        "x": 20,
+        "y": 1268,
+        "fields": {
+          "EXPRESSION": "$.regional_lymfkörtlar_n[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_27",
+        "x": 20,
+        "y": 1316,
+        "fields": {
+          "EXPRESSION": "$.fjärrmetastaser_m[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_28",
+        "x": 20,
+        "y": 1364,
+        "fields": {
+          "EXPRESSION": "$.stadieindelning[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_29",
+        "x": 20,
+        "y": 1412,
+        "fields": {
+          "EXPRESSION": "$[\"~#with granskning\"].rubrik[1].behållare[1].deltagare[1]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_30",
+        "x": 20,
+        "y": 1460,
+        "fields": {
+          "EXPRESSION": "$[\"~#if @first\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_31",
+        "x": 20,
+        "y": 1508,
+        "fields": {
+          "EXPRESSION": "$[\"~else if @last\"]",
+          "RETURN_TYPE": "string"
+        }
+      }
+    ]
+  }
+}

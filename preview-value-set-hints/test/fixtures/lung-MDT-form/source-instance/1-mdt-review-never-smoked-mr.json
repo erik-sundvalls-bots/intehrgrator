@@ -1,0 +1,134 @@
+{
+  "granskning": {
+    "deltagare": [
+      {
+        "behållare_för_demografiska_uppgifter": [
+          {
+            "tillfällig_deltaglista": [
+              {
+                "deltagare": [
+                  { "|value": "Anna Lungläkare, MDT-ordförande" }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "nuvarande_situation_och_bakgrund": [
+      {
+        "klinisk_synopsis": [
+          {
+            "aktuellt": [
+              { "|value": "Nyupptäckt lungförändring höger överlob." }
+            ]
+          }
+        ],
+        "sjukdomshistoria": [
+          {
+            "komorbiditet": [
+              { "|value": "Känd KOL, hypertoni." }
+            ]
+          }
+        ],
+        "sammanfattning_av_rökvanor_för_tobak": [
+          {
+            "övergripande_status": [
+              { "|value": "Har aldrig rökt" }
+            ],
+            "per_typ": []
+          }
+        ]
+      }
+    ],
+    "utredning_undersökning": [
+      {
+        "bilddiagnostik": [
+          {
+            "bilddiagnostiskt_resultat": [
+              {
+                "typ_av_undersökning": [
+                  { "|value": "MR" }
+                ],
+                "anatomisk_lokalisation_för_undersökning": [
+                  { "|value": "Thorax" }
+                ],
+                "datum": [
+                  { "|value": "2026-09-12" }
+                ],
+                "bilddiagnostisk_undersökning_av_misstänkt_primärtumör": [
+                  {
+                    "anatomisk_lokalisation_misstänkt_primärtumör": [
+                      {
+                        "namn_på_kroppsställe": [
+                          { "|value": "Höger överlob" }
+                        ]
+                      }
+                    ],
+                    "fysiska_dimensioner": [
+                      {
+                        "diameter_största_tumör": [
+                          { "|magnitude": 28, "|unit": "mm" }
+                        ]
+                      }
+                    ],
+                    "kommentar": [
+                      { "|value": "Välavgränsad lesion." }
+                    ]
+                  }
+                ],
+                "kommentar": [
+                  { "|value": "Inga säkra fjärrmetastaser." }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "gemensamt_beslut": [
+      {
+        "multidisciplinär_handläggning_vid_cancer": [
+          {
+            "patient_aktuell_för_studiescreening": [
+              { "|value": "Nej" }
+            ],
+            "rekommenderad_behandlingsstrategi": [
+              {
+                "intention": [
+                  { "|value": "Kurativ" }
+                ],
+                "huvudbehandling": [
+                  {
+                    "typ_av_behandling": [
+                      { "|value": "Kirurgi" }
+                    ]
+                  }
+                ],
+                "tilläggsbehandling": [
+                  {
+                    "relation_till_huvudbehandling": [
+                      { "|value": "Adjuvant" }
+                    ],
+                    "typ_av_behandling": [
+                      { "|value": "Cytostatika" }
+                    ],
+                    "regim": [
+                      { "|value": "Cisplatin-vinorelbin" }
+                    ],
+                    "antal_kurer": [
+                      { "|value": "4" }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "kommentar": [
+              { "|value": "Patienten informeras via mottagning." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

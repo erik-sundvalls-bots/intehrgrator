@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "functions": [
+    {
+      "id": "join_swedish",
+      "name": "join_swedish_words",
+      "title": "Swedish list join",
+      "description": "Joins a list of words to a comma separated text string in the way words are enumerated in Swedish with \"och\" (and) before last word. A decision table is used to select output pattern first → `{{word}}`, middle → `, {{word}}`, last → ` och {{word}}`. Parameter `list_of_words`. Returns `joined_words`.",
+      "file": "join_swedish.intehr-function.json",
+      "locale": "sv",
+      "parameters": [
+        "list_of_words"
+      ],
+      "hasReturn": true,
+      "returns": "String",
+      "decisionTables": [
+        "SweJoinWords"
+      ]
+    },
+    {
+      "id": "join_oxford",
+      "name": "join_oxford",
+      "title": "Oxford serial-comma join",
+      "description": "Joins a list of strings with an English Oxford / serial comma: A, B, and C. Parameter `names` (list). Returns a string. Decision table JoinOxford (FIRST): first → {{name}}, middle → `, {{name}}`, last → `, and {{name}}`. Not a join_list builtin.",
+      "file": "join_oxford.intehr-function.json",
+      "locale": "en",
+      "parameters": [
+        "names"
+      ],
+      "hasReturn": true,
+      "returns": "String",
+      "decisionTables": [
+        "JoinOxford"
+      ]
+    }
+  ]
+}

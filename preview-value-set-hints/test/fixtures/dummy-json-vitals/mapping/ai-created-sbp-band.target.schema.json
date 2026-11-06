@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dummy-json-vitals/ai-created-sbp-band.schema.json",
+  "title": "DummyVitalsWithBand",
+  "type": "object",
+  "properties": {
+    "systolic": { "type": "number" },
+    "diastolic": { "type": "number" },
+    "unit": { "type": "string" },
+    "band": { "type": "string", "description": "SBP band from Decision table sbp_band" }
+  },
+  "required": ["systolic", "diastolic", "band"]
+}
