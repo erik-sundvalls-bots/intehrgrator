@@ -218,7 +218,7 @@ registerTargetFormatHandler({
 
 registerTargetFormatHandler({
   id: "json-schema",
-  load(filename, content) {
+  load(filename, content, options) {
     content = stripBom(content);
     const document = JSON.parse(content) as Record<string, unknown>;
     const targetId = typeof document.$id === "string"
@@ -229,7 +229,7 @@ registerTargetFormatHandler({
     const displayName = typeof document.title === "string" && document.title.trim()
       ? document.title.trim()
       : stripExtension(filename);
-    const tree = loadJsonSchema(content, displayName);
+    const tree = loadJsonSchema(content, displayName, options?.language);
     const root = schemaTreeToSkeleton(tree, targetId, "json-schema", true);
     assignSchemaBlockTypes(root);
     return {
@@ -308,6 +308,7 @@ function schemaTreeToSkeleton(
     multiplicity: node.multiplicity,
     slotCardinality: node.multiplicity,
     ...(node.description ? { documentation: node.description } : {}),
+    ...(node.allowedValues?.length ? { allowedValues: node.allowedValues } : {}),
     children,
   };
 }
@@ -351,6 +352,12 @@ function xsdNodeToSkeleton(node: XsdNode, root: boolean, language?: string): Ske
   const children = [...kids.filter((k) => k.xmlKind === "attribute"), ...kids.filter((k) => k.xmlKind !== "attribute")];
   const kind = children.length || node.complex ? "container" : "value";
   const multiplicity = root ? "1" : node.multiplicity;
+  const allowedValues = node.facets?.enumeration?.length
+    ? node.facets.enumeration.map((entry) => {
+      const code = entry.value;
+      return { code, label: docText(entry.docs, language) ?? code };
+    })
+    : undefined;
   const out: SkeletonNode = {
     slotId: node.xmlKind === "element" && root ? `${node.name}:${node.path}` : `${node.path}:${node.path}`,
     targetPath: node.path,
@@ -364,6 +371,7 @@ function xsdNodeToSkeleton(node: XsdNode, root: boolean, language?: string): Ske
     slotCardinality: multiplicity,
     xmlKind: node.xmlKind,
     ...(documentation ? { documentation } : {}),
+    ...(allowedValues ? { allowedValues } : {}),
     children,
   };
   const fixed = node.fixed ?? node.default;

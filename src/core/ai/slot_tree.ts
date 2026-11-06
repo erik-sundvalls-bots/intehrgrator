@@ -276,7 +276,13 @@ function rowFor(
     if (fromRm?.values.length) rowValues = fromRm.values;
   }
   if (rowValues && Object.keys(vd).length) {
-    rowValues = rowValues.map((v) => vd[v.code] ? { ...v, description: shortText(vd[v.code], 100) } : v);
+    rowValues = rowValues.map((v) => {
+      const description = vd[v.code] ? shortText(vd[v.code], 100) : undefined;
+      // Schema enums put the same prose on allowedValues.label and valueDescriptions;
+      // keep `text` (openEHR shape) and skip a duplicate description (#355).
+      if (!description || description === v.text) return v;
+      return { ...v, description };
+    });
   }
   const ordinals = info?.ordinals ?? (node.allowedOrdinals?.length
     ? node.allowedOrdinals.map((o) => ({ value: o.value, code: o.code, text: o.label }))

@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Value-set hints for JSON Schema and XSD** ([#355](https://github.com/regionstockholm/intehrgrator/issues/355)): `enum` / `xs:enumeration` (with `x-enumDescriptions` or enumeration documentation) fill `allowedValues` on the Template Skeleton, so Hints shows string-list chips for schema targets the same way as for openEHR OPTs. A single allowed value still stays silent.
+
 - **Hint actions on the canvas** ([#353](https://github.com/regionstockholm/intehrgrator/pull/353)): applying a constant (including units), decision table, or sheet lookup initializes and renders its connected Blockly blocks. Each action undoes and redoes the canvas, grid, and hint settings together. The tutorials show the Hints flow and connected grid scaffold.
 
 - **Value-set hints** ([#353](https://github.com/regionstockholm/intehrgrator/pull/353), [#322](https://github.com/regionstockholm/intehrgrator/issues/322)): a coded, ordinal, string-list, or multi-unit slot stays empty. A 💡 badge and the Hints tab (next to Mapping Spec and Tables & Sheets) list the allowed values. `assumed_value` is only a star. Use as constant, a decision table, or a sheet lookup turns the hint into a mapping; the source column starts blank, and the interactive Contribution Builder can insert a prompt that asks the AI to fill it. Dismissed hints are remembered until the allowed codes change. Hints are not mapped and are not emitted, so an unmapped Position no longer becomes Standing. Headless and MCP use the same actions through `apply_hint` and `list_slots`.

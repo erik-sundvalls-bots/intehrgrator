@@ -56,7 +56,7 @@ Deno.test("XSD target: name as label, docs as description, facets and enumeratio
   assertEquals(pid.description, "Swedish personal identity number, 12 digits.");
   assertEquals(pid.pattern, "[0-9]{12}");
   const prio = by("/Priority");
-  assertEquals(prio.values, [{ code: "ROUTINE", description: "Within 90 days" }, { code: "URGENT", description: "Within 7 days" }]);
+  assertEquals(prio.values, [{ code: "ROUTINE", text: "Within 90 days" }, { code: "URGENT", text: "Within 7 days" }]);
   assertEquals(by("/Systolic").range, { min: 0, max: 400 });
   assertEquals(by("/@primary").description, "True for the main diagnosis.");
 });
@@ -66,7 +66,7 @@ Deno.test("JSON Schema target: title / description / enum + x-enumDescriptions /
   const by = (tail: string) => rows.find((r) => r.full.endsWith(tail))!;
   const prio = by("$.priority");
   assertEquals(prio.description, "How urgent the referral is.");
-  assertEquals(prio.values, [{ code: "ROUTINE", description: "Within 90 days" }, { code: "URGENT", description: "Within 7 days" }]);
+  assertEquals(prio.values, [{ code: "ROUTINE", text: "Within 90 days" }, { code: "URGENT", text: "Within 7 days" }]);
   assertEquals(prio.default, "ROUTINE");
   const sys = by("$.systolic");
   assertEquals(sys.description, "Latest systolic blood pressure in mmHg.");

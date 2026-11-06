@@ -1,18 +1,18 @@
-import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
+import type { AllowedValue, SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
 import { parseJsonDocument, unwrapExecuteEnvelope } from "./json_document.ts";
 import { resolveJsonPointer } from "./json_pointer.ts";
 import { childElements, isXmlSchemaRoot, parseXmlDocument } from "../xml/xml_dom.ts";
-import { docEntry, parseXsd, type XsdNode } from "../xsd/xsd_model.ts";
+import { docEntry, docText, parseXsd, type XsdNode } from "../xsd/xsd_model.ts";
 
 type JsonSchemaObject = Record<string, unknown>;
 
-export function loadJsonSchema(content: string, rootName = "root"): SchemaTreeNode {
+export function loadJsonSchema(content: string, rootName = "root", language?: string): SchemaTreeNode {
   const data = parseJsonDocument(content);
   if (isAvroSchemaDocument(data)) {
     return avroSchemaToTree(data, rootName, "$");
   }
   if (isJsonSchemaDocument(data)) {
-    return jsonSchemaToTree(data, rootName, "$");
+    return jsonSchemaToTree(data, rootName, "$", data, undefined, new Set(), language);
   }
   return inferSchemaTree(data, rootName, "$");
 }
@@ -46,6 +46,7 @@ export function loadXsdSchemaTree(content: string, lang?: string): SchemaTreeNod
 function xsdNodeToSchemaTree(node: XsdNode, lang?: string): SchemaTreeNode {
   const doc = docEntry(node.docs, lang);
   const description = doc?.text;
+  const allowedValues = xsdEnumerationAllowedValues(node, lang);
   return {
     path: node.path,
     name: node.xmlKind === "attribute" ? `@${node.name}` : node.name,
@@ -53,8 +54,19 @@ function xsdNodeToSchemaTree(node: XsdNode, lang?: string): SchemaTreeNode {
     multiplicity: node.multiplicity,
     ...(description ? { description } : {}),
     ...(description && doc?.lang ? { descriptionLang: doc.lang } : {}),
+    ...(allowedValues ? { allowedValues } : {}),
     children: node.children.map((child) => xsdNodeToSchemaTree(child, lang)),
   };
+}
+
+/** XSD `xs:enumeration` → `AllowedValue` (label from `xs:documentation` in `lang`). */
+function xsdEnumerationAllowedValues(node: XsdNode, lang?: string): AllowedValue[] | undefined {
+  const enums = node.facets?.enumeration;
+  if (!enums?.length) return undefined;
+  return enums.map((entry) => {
+    const code = entry.value;
+    return { code, label: docText(entry.docs, lang) ?? code };
+  });
 }
 
 /** Normalize tree paths so schema (`$.a.b`) and instance (`$.a.b` / `$[1]`) can be matched. */
@@ -186,10 +198,13 @@ function jsonSchemaToTree(
   root: JsonSchemaObject = schema,
   parentRequired?: Set<string>,
   resolvingRefs: ReadonlySet<string> = new Set(),
+  language?: string,
 ): SchemaTreeNode {
   const { schema: resolved, refs } = derefJsonSchema(schema, root, resolvingRefs);
   const type = schemaType(resolved);
   const multiplicity = schemaMultiplicity(resolved, name, parentRequired);
+  const allowedValues = jsonSchemaAllowedValues(resolved, language);
+  const description = schemaDescription(resolved);
 
   if (type === "array") {
     const items = resolved.items;
@@ -202,6 +217,7 @@ function jsonSchemaToTree(
         root,
         undefined,
         refs,
+        language,
       )]
       : [];
     return {
@@ -209,7 +225,8 @@ function jsonSchemaToTree(
       name,
       type: "array",
       multiplicity,
-      ...(schemaDescription(resolved) ? { description: schemaDescription(resolved) } : {}),
+      ...(description ? { description } : {}),
+      ...(allowedValues ? { allowedValues } : {}),
       children,
     };
   }
@@ -220,14 +237,15 @@ function jsonSchemaToTree(
       Array.isArray(resolved.required) ? resolved.required.map(String) : [],
     );
     const children = Object.entries(props).map(([key, prop]) =>
-      jsonSchemaToTree(prop, key, appendJsonPath(path, key), root, required, refs)
+      jsonSchemaToTree(prop, key, appendJsonPath(path, key), root, required, refs, language)
     );
     return {
       path,
       name,
       type: "object",
       multiplicity,
-      ...(schemaDescription(resolved) ? { description: schemaDescription(resolved) } : {}),
+      ...(description ? { description } : {}),
+      ...(allowedValues ? { allowedValues } : {}),
       children,
     };
   }
@@ -237,9 +255,35 @@ function jsonSchemaToTree(
     name,
     type,
     multiplicity,
-    ...(schemaDescription(resolved) ? { description: schemaDescription(resolved) } : {}),
+    ...(description ? { description } : {}),
+    ...(allowedValues ? { allowedValues } : {}),
     children: [],
   };
+}
+
+/**
+ * JSON Schema `enum` → `AllowedValue`. Labels prefer `x-i18n[lang].enumDescriptions`,
+ * then `x-enumDescriptions`, then the code itself (same as AI `slot_info`).
+ */
+function jsonSchemaAllowedValues(
+  schema: JsonSchemaObject,
+  language?: string,
+): AllowedValue[] | undefined {
+  if (!Array.isArray(schema.enum) || schema.enum.length === 0) return undefined;
+  const i18n = (schema["x-i18n"] ?? {}) as Record<string, JsonSchemaObject>;
+  const localized = language
+    ? i18n[language] ?? i18n[language.split("-")[0]!]
+    : undefined;
+  const descriptions: Record<string, string> = {
+    ...((schema["x-enumDescriptions"] as Record<string, string> | undefined) ?? {}),
+    ...((localized?.enumDescriptions as Record<string, string> | undefined) ?? {}),
+  };
+  return schema.enum
+    .filter((value) => value !== null && value !== undefined)
+    .map((value) => {
+      const code = String(value);
+      return { code, label: descriptions[code] ?? code };
+    });
 }
 
 function schemaDescription(schema: JsonSchemaObject): string | undefined {
@@ -468,17 +512,19 @@ export function localizeSourceTree(
   };
   const walk = (node: SchemaTreeNode, schema: JsonSchemaObject | undefined): SchemaTreeNode => {
     const { text: description, lang: descriptionLang } = describe(schema);
+    const allowedValues = schema ? jsonSchemaAllowedValues(schema, lang) : undefined;
     const children = node.children.map((child) => {
       const sub = node.type === "array"
         ? deref(Array.isArray(schema?.items) ? (schema?.items as unknown[])[0] : schema?.items)
         : deref((schema?.properties as JsonSchemaObject | undefined)?.[child.name]);
       return walk(child, sub);
     });
-    const { description: _old, descriptionLang: _oldLang, ...rest } = node;
+    const { description: _old, descriptionLang: _oldLang, allowedValues: _oldAllowed, ...rest } = node;
     return {
       ...rest,
       ...(description ? { description } : {}),
       ...(description && descriptionLang ? { descriptionLang } : {}),
+      ...(allowedValues ? { allowedValues } : {}),
       children,
     };
   };

@@ -374,6 +374,12 @@ export interface SchemaTreeNode {
   description?: string;
   /** Language of `description` when known (XSD `xml:lang`, JSON Schema `x-i18n` key / `x-lang`) (#277 §5). */
   descriptionLang?: string;
+  /**
+   * Value set from JSON Schema `enum` (+ `x-enumDescriptions` / i18n) or XSD
+   * `xs:enumeration`. Copied onto the Template Skeleton as `allowedValues` so
+   * value-set hints work for schema targets (#355).
+   */
+  allowedValues?: AllowedValue[];
   children: SchemaTreeNode[];
 }
 

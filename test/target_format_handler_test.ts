@@ -1,5 +1,6 @@
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
+import { collectValueSetHints } from "@intehrgrator/core/hints/value_set_hint.ts";
 import {
   detectTargetFormat,
   getTargetFormatHandler,
@@ -14,7 +15,7 @@ import {
   applyExpressionEdit,
   createEmptyModel,
 } from "@intehrgrator/core/mapping_model/mod.ts";
-import type { SkeletonNode } from "@intehrgrator/types/mod.ts";
+import { DEFAULT_SETTINGS, type SkeletonNode } from "@intehrgrator/types/mod.ts";
 import { applyOptionalRmToSkeleton } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
 import { runTest } from "@intehrgrator/core/test_runner/mod.ts";
 
@@ -517,4 +518,74 @@ Deno.test("openEHR preview uses the template name constraint and coded-text choi
   assertEquals(output.name?.value, "Vårdenhet");
   assertEquals(output.value?.value, "Sitting");
   assertEquals(output.value?.defining_code?.code_string, "at1001");
+});
+
+Deno.test("JSON Schema enum becomes string_list value-set hints (#355)", async () => {
+  const schema = await Deno.readTextFile(
+    join(import.meta.dirname!, "fixtures/multilingual-referral/referral.schema.json"),
+  );
+  const en = getTargetFormatHandler("json-schema").load("referral.schema.json", schema);
+  const priority = en.skeleton[0].children.find((node) => node.label === "priority")!;
+  assertEquals(priority.allowedValues, [
+    { code: "ROUTINE", label: "Within 90 days" },
+    { code: "URGENT", label: "Within 7 days" },
+  ]);
+  const model = createEmptyModel(en.targetId);
+  model.targetFormat = en.format;
+  const hints = collectValueSetHints(en.skeleton, model, { ...DEFAULT_SETTINGS });
+  assertEquals(hints.map((hint) => hint.slotId), [priority.slotId]);
+  assertEquals(hints[0]?.kind, "string_list");
+  assertEquals(hints[0]?.codes.map((code) => code.text), ["Within 90 days", "Within 7 days"]);
+
+  const sv = getTargetFormatHandler("json-schema").load("referral.schema.json", schema, {
+    language: "sv",
+  });
+  const svPriority = sv.skeleton[0].children.find((node) => node.label === "priority")!;
+  assertEquals(svPriority.allowedValues?.map((value) => value.label), [
+    "Inom 90 dagar",
+    "Inom 7 dagar",
+  ]);
+});
+
+Deno.test("JSON Schema single-value enum is not a hint (#355)", () => {
+  const schema = JSON.stringify({
+    $id: "fixed-status",
+    type: "object",
+    properties: {
+      status: { type: "string", enum: ["ACTIVE"] },
+    },
+  });
+  const target = getTargetFormatHandler("json-schema").load("status.json", schema);
+  const status = target.skeleton[0].children.find((node) => node.label === "status")!;
+  assertEquals(status.allowedValues, [{ code: "ACTIVE", label: "ACTIVE" }]);
+  const model = createEmptyModel(target.targetId);
+  assertEquals(collectValueSetHints(target.skeleton, model, { ...DEFAULT_SETTINGS }), []);
+});
+
+Deno.test("XSD enumeration becomes string_list value-set hints (#355)", async () => {
+  const xsd = await Deno.readTextFile(
+    join(import.meta.dirname!, "fixtures/multilingual-referral/referral.xsd"),
+  );
+  const en = getTargetFormatHandler("xml-schema").load("referral.xsd", xsd, { language: "en" });
+  const priority = en.skeleton[0].children.find((node) => node.rmAttribute === "Priority")!;
+  assertEquals(priority.allowedValues, [
+    { code: "ROUTINE", label: "Within 90 days" },
+    { code: "URGENT", label: "Within 7 days" },
+  ]);
+  const model = createEmptyModel(en.targetId);
+  model.targetFormat = en.format;
+  const hints = collectValueSetHints(en.skeleton, model, { ...DEFAULT_SETTINGS });
+  assertEquals(hints.map((hint) => hint.slotId), [priority.slotId]);
+  assertEquals(hints[0]?.kind, "string_list");
+  assertEquals(hints[0]?.codes.map((code) => ({ code: code.code, text: code.text })), [
+    { code: "ROUTINE", text: "Within 90 days" },
+    { code: "URGENT", text: "Within 7 days" },
+  ]);
+
+  const sv = getTargetFormatHandler("xml-schema").load("referral.xsd", xsd, { language: "sv" });
+  const svPriority = sv.skeleton[0].children.find((node) => node.rmAttribute === "Priority")!;
+  assertEquals(svPriority.allowedValues?.map((value) => value.label), [
+    "Inom 90 dagar",
+    "Inom 7 dagar",
+  ]);
 });
