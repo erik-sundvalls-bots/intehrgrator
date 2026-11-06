@@ -5,6 +5,7 @@
 import { findAiProviderPreset } from "./providers.ts";
 import { providerAuthHeaders } from "./credentials.ts";
 import { redactSecret } from "./redact.ts";
+import type { ModelRate } from "./token_usage.ts";
 
 export type ModelListErrorKind =
   | "endpoint"
@@ -64,24 +65,51 @@ export function modelsRequestHeaders(
   return headers;
 }
 
+/** Result of Connect & fetch models (#354): ids plus any listed USD-per-token rates. */
+export interface ModelListResult {
+  ids: string[];
+  /** OpenRouter-style rates when the list included `pricing.prompt` / `pricing.completion`. */
+  rates: Record<string, ModelRate>;
+}
+
+function modelRows(raw: unknown): unknown[] {
+  const rec = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(rec.data)) return rec.data;
+  if (Array.isArray(rec.models)) return rec.models;
+  return [];
+}
+
+function parseRateNumber(v: unknown): number | undefined {
+  if (typeof v === "number" && Number.isFinite(v) && v >= 0) return v;
+  if (typeof v === "string" && v.trim()) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return undefined;
+}
+
+/** Read OpenRouter `pricing` (USD per token) from one models-list row. */
+export function parseModelPricing(row: unknown): ModelRate | undefined {
+  if (!row || typeof row !== "object") return undefined;
+  const pricing = (row as Record<string, unknown>).pricing;
+  if (!pricing || typeof pricing !== "object") return undefined;
+  const p = pricing as Record<string, unknown>;
+  const prompt = parseRateNumber(p.prompt);
+  const completion = parseRateNumber(p.completion);
+  if (prompt === undefined || completion === undefined) return undefined;
+  return { prompt, completion };
+}
+
 /**
- * Model ids from a models-list response: OpenAI `{data:[{id}]}`, Ollama
- * `{models:[{name|model}]}`, or a bare array of ids/objects. Gemini's
- * `models/` prefix is dropped (chat completions takes the bare id).
+ * Model ids and rates from a models-list response: OpenAI `{data:[{id}]}`,
+ * Ollama `{models:[{name|model}]}`, OpenRouter rows with `pricing`, or a bare
+ * array of ids/objects. Gemini's `models/` prefix is dropped.
  */
-export function parseModelsResponse(raw: unknown): string[] {
-  const rec = raw && typeof raw === "object"
-    ? raw as Record<string, unknown>
-    : {};
-  const rows: unknown[] = Array.isArray(raw)
-    ? raw
-    : Array.isArray(rec.data)
-    ? rec.data
-    : Array.isArray(rec.models)
-    ? rec.models
-    : [];
+export function parseModelsDetailed(raw: unknown): ModelListResult {
   const ids = new Set<string>();
-  for (const row of rows) {
+  const rates: Record<string, ModelRate> = {};
+  for (const row of modelRows(raw)) {
     let id = "";
     if (typeof row === "string") id = row;
     else if (row && typeof row === "object") {
@@ -89,9 +117,17 @@ export function parseModelsResponse(raw: unknown): string[] {
       id = String(r.id ?? r.name ?? r.model ?? "");
     }
     id = id.trim().replace(/^models\//, "");
-    if (id) ids.add(id);
+    if (!id) continue;
+    ids.add(id);
+    const rate = parseModelPricing(row);
+    if (rate) rates[id] = rate;
   }
-  return [...ids].sort((a, b) => a.localeCompare(b));
+  return { ids: [...ids].sort((a, b) => a.localeCompare(b)), rates };
+}
+
+/** Model ids only (see {@link parseModelsDetailed}). */
+export function parseModelsResponse(raw: unknown): string[] {
+  return parseModelsDetailed(raw).ids;
 }
 
 export interface FetchModelListOptions {
@@ -108,7 +144,7 @@ export async function fetchModelList(
   endpoint: string,
   apiKey: string,
   options: FetchModelListOptions = {},
-): Promise<string[]> {
+): Promise<ModelListResult> {
   const modelsUrl = modelsUrlFromEndpoint(endpoint);
   const fetchImpl = options.fetch ?? globalThis.fetch;
   let response: Response;
@@ -161,11 +197,11 @@ export async function fetchModelList(
   } catch {
     throw new ModelListError("parse", `${modelsUrl} did not return JSON`);
   }
-  const ids = parseModelsResponse(body);
-  if (!ids.length) {
+  const detailed = parseModelsDetailed(body);
+  if (!detailed.ids.length) {
     throw new ModelListError("empty", `${modelsUrl} listed no models`);
   }
-  return ids;
+  return detailed;
 }
 
 /** Desktop forwarder for GET <base>/models (see `forwardChatCompletionsProxy`). */

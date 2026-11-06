@@ -14,7 +14,7 @@ import {
 } from "./credentials.ts";
 import { isCallAiToolName, isMutatingCallAiTool, mappingAgentOpenAiTools } from "./chat_tools.ts";
 import type { ImportSuggestionsReport } from "../../types/mod.ts";
-import { addUsage, emptyUsageTotals, estimateTokens, type TokenUsage, totalTokens, type UsageTotals } from "./token_usage.ts";
+import { addUsage, effectiveCost, emptyUsageTotals, estimateTokens, type ModelRate, type TokenUsage, totalTokens, type UsageTotals } from "./token_usage.ts";
 import type { AgentClient } from "../../agent/client.ts";
 
 export interface MappingAgentResult {
@@ -30,7 +30,7 @@ export interface MappingAgentResult {
   truncated?: boolean;
   /** The loop ran out of steps (runaway guard) while the model still wanted to call tools. */
   stepLimitReached?: boolean;
-  /** The turn used up `tokenBudget` while the model still wanted to call tools (#276). */
+  /** The turn used up `tokenBudget` / `costBudget` while the model still wanted to call tools (#276, #354). */
   budgetReached?: boolean;
   /** Token use of this turn's requests (#276). */
   usage: UsageTotals;
@@ -67,9 +67,17 @@ export interface RunMappingAgentOptions {
   /**
    * Tokens (input + output) this turn may use before it pauses (#276). Checked
    * before each request, so the request that crosses it still completes and
-   * its tool calls run. Undefined = no budget.
+   * its tool calls run. Undefined = no token budget.
    */
   tokenBudget?: number;
+  /**
+   * USD this turn may spend before it pauses (#354). Prefer reported
+   * `usage.cost`; else estimate from `modelRate`. Same check timing as
+   * `tokenBudget`.
+   */
+  costBudget?: number;
+  /** Prompt/completion USD-per-token rates for cost estimates when the provider omits `usage.cost`. */
+  modelRate?: ModelRate;
   onAfterMutation?: () => void;
   importText?: (text: string) => ImportSuggestionsReport | Promise<ImportSuggestionsReport>;
   /**
@@ -93,7 +101,7 @@ export const DEFAULT_STEP_TIMEOUT_MS = 180_000;
 /**
  * Only a guard against a model that loops forever (#276): ordinary mapping
  * work should never reach it. Cost is watched with the token meter and the
- * optional token budget instead.
+ * optional USD / token budget instead.
  */
 export const DEFAULT_MAX_STEPS = 100;
 
@@ -308,8 +316,16 @@ export async function runMappingAgent(options: RunMappingAgentOptions): Promise<
 
   for (let step = 1; step <= maxSteps; step++) {
     if (options.signal?.aborted) return stopped(step - 1);
-    if (options.tokenBudget !== undefined && step > 1 && totalTokens(usage) >= options.tokenBudget) {
-      return result(step - 1, { budgetReached: true });
+    if (step > 1) {
+      if (options.tokenBudget !== undefined && totalTokens(usage) >= options.tokenBudget) {
+        return result(step - 1, { budgetReached: true });
+      }
+      if (options.costBudget !== undefined) {
+        const spent = effectiveCost(usage, options.modelRate);
+        if (spent && spent.cost >= options.costBudget) {
+          return result(step - 1, { budgetReached: true });
+        }
+      }
     }
     emit?.({ type: "step", step });
     partial = "";

@@ -667,26 +667,31 @@ export const en = {
   aiChatStepLimit:
     "Stopped after {steps} tool steps (the guard against a model that loops); it was not finished. Send \"continue\" to let it go on.",
   aiChatBudgetReached:
-    "Paused: this chat used {used} of its {budget} token budget. Raise the budget to go on; the model continues where it stopped.",
+    "Paused: this chat used {used} of its {budget} budget. Raise the budget to go on; the model continues where it stopped.",
   aiChatBudgetRaise: "Raise budget to {budget} and continue",
-  aiChatBudgetWarn: "This chat has used {percent} % of its {budget} token budget ({used}).",
-  aiUsageTitle: "Token use (click for details, budget and context window)",
+  aiChatBudgetWarn: "This chat has used {percent} % of its {budget} budget ({used}).",
+  aiUsageTitle: "AI use (click for details, budget and context window)",
   aiUsageThisTurn: "This turn",
   aiUsageThisChat: "This chat",
   aiUsageLine: "{label}: {input} in{cached} · {output} out · {requests} request(s)",
   aiUsageLineNone: "{label}: no requests yet",
   aiUsageCached: " ({cached} cached)",
+  aiUsageCostSplit: "{input} in · {output} out",
   aiUsageEstimatedMark: "(estimate: the provider reported no usage)",
   aiUsageContext: "Context: {used} of {window} tokens ({percent} %)",
   aiUsageContextUnknown: "Context window unknown for this model: set it below to show the ring.",
   aiUsageBudgetLine: "Budget: {used} of {budget} ({percent} %)",
-  aiUsageBudgetLabel: "Token budget per chat",
-  aiUsageBudgetHint: "none, e.g. 2M",
+  aiUsageBudgetLabelUsd: "USD budget per chat",
+  aiUsageBudgetHintUsd: "none, e.g. 1.00",
+  aiUsageBudgetLabelTokens: "Token budget per chat",
+  aiUsageBudgetHintTokens: "none, e.g. 2M",
   aiUsageWindowLabel: "Context window of {model}",
   aiUsageWindowKnown: "{tokens} (known)",
   aiUsageWindowUnknownHint: "unknown, e.g. 128k",
-  aiUsageHelp:
-    "Every step sends the whole chat again (the API keeps no session), so input grows with the chat; providers with prompt caching bill the repeated part cheaper. The budget counts input + output tokens of this chat until Clear history: a warning at 80 %, a pause at 100 %.",
+  aiUsageHelpUsd:
+    "Every step sends the whole chat again (the API keeps no session), so input grows with the chat; providers with prompt caching bill the repeated part cheaper. The budget is USD for this chat until Clear history (reported cost when the provider gives one, otherwise ~ from OpenRouter rates × tokens): a warning at 80 %, a pause at 100 %.",
+  aiUsageHelpTokens:
+    "Every step sends the whole chat again (the API keeps no session), so input grows with the chat; providers with prompt caching bill the repeated part cheaper. No price is known for this model, so the budget counts input + output tokens of this chat until Clear history: a warning at 80 %, a pause at 100 %.",
   aiUsageSave: "Save",
   aiUsageClose: "Close",
   aiChatToolsFallback:
