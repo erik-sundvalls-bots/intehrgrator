@@ -23,6 +23,9 @@ Deno.test({
       await page.locator("#hints-host:not([hidden])").waitFor();
       const position = page.locator(".hints-row", { hasText: "Position" });
       await position.waitFor();
+      const count = Number(await page.locator("#hints-count").textContent());
+      assert(count > 0);
+      assertEquals(count, await page.locator(".hints-row:not(.hints-row--dismissed)").count());
       await position.click();
       await page.locator(".hints-chip", { hasText: "Standing" }).waitFor();
       await page.locator(".hints-chip", { hasText: "Sitting" }).waitFor();
@@ -31,6 +34,9 @@ Deno.test({
       await badge.waitFor();
       const slotId = await badge.getAttribute("data-slot-id");
       assert(slotId);
+      const outline = page.locator(`.hint-subtree-outline[data-slot-id="${slotId}"]`);
+      await outline.waitFor();
+      assertEquals(await outline.evaluate((el) => getComputedStyle(el).strokeDasharray === "none"), false);
 
       const valueBlock = await page.evaluate((id) => {
         const api = (globalThis as unknown as {
@@ -51,8 +57,12 @@ Deno.test({
 
       await page.getByRole("button", { name: "Dismiss", exact: true }).click();
       await page.locator(".hints-row--dismissed", { hasText: "Position" }).waitFor();
+      await outline.waitFor({ state: "detached" });
+      assertEquals(Number(await page.locator("#hints-count").textContent()), count - 1);
       await page.getByRole("button", { name: "Restore dismissed hints" }).click();
       await page.locator(".hints-row--dismissed", { hasText: "Position" }).waitFor({ state: "detached" });
+      await outline.waitFor();
+      assertEquals(Number(await page.locator("#hints-count").textContent()), count);
     } finally {
       await browser.close();
     }
@@ -108,6 +118,18 @@ for (const kind of ["coded", "units"] as const) {
             }, { schema, example, slotId });
           }
           await row.click();
+          if (kind === "units") {
+            const enclosed = await page.evaluate((id) => {
+              const api = (globalThis as unknown as { intehrgratorTestApi: IntehrgratorTestApi }).intehrgratorTestApi;
+              const child = api.getSnapshot().blocklyBlocks.find((block) => block.fields?.EXPRESSION === "$.systolic");
+              const rect = child ? api.getBlockClientRect(child.id) : null;
+              const outline = Array.from(document.querySelectorAll(".hint-subtree-outline"))
+                .find((el) => el.getAttribute("data-slot-id") === id)?.getBoundingClientRect();
+              return !!rect && !!outline && outline.left <= rect.x && outline.top <= rect.y &&
+                outline.right >= rect.x + rect.width && outline.bottom >= rect.y + rect.height;
+            }, slotId);
+            assert(enclosed, "the active outline must enclose nested source blocks, not only the ELEMENT header");
+          }
           if (kind === "units") await page.locator(".hints-chip", { hasText: "kPa" }).click();
           await page.waitForTimeout(100);
           errors.length = 0;

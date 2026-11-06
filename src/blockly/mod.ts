@@ -13,6 +13,7 @@ import { registerTargetBlocks } from "./blocks/target_blocks.ts";
 import { registerExpressionBlocks } from "./blocks/expression_blocks.ts";
 import { INCLUDE_WHEN_BLOCK, registerIncludeWhenBlock } from "./blocks/include_when.ts";
 import { registerMapBlocks } from "./blocks/map_blocks.ts";
+import { registerFunctionSlotFields } from "./blocks/function_blocks.ts";
 import { registerSheetBlocks } from "./blocks/sheet_blocks.ts";
 import {
   registerDecisionTableBlocks,
@@ -229,6 +230,7 @@ export function initBlocklyGenerators(): void {
     registerExpressionBlocks();
     registerIncludeWhenBlock();
     registerMapBlocks();
+    registerFunctionSlotFields();
     registerSheetBlocks();
     registerDecisionTableBlocks();
     registerTextBlocks();
