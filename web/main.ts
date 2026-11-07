@@ -4651,6 +4651,10 @@ function render(): void {
   try {
     syncBlocklyWorkspace(s);
     const hints = collectValueSetHints(s.skeleton, s.model, s.settings);
+    const hintCount = countActiveHints(hints);
+    const hintCountEl = document.getElementById("hints-count");
+    if (hintCountEl) hintCountEl.textContent = String(hintCount);
+    hintsTab.setAttribute("aria-label", `${uiChrome().hints}: ${formatMessage(uiChrome().statusHints, { n: hintCount })}`);
     setValueSetHintNoteSlots(
       workspace,
       hints.filter((hint) => !hint.dismissed && !hint.mandatory).map((hint) => hint.slotId),
