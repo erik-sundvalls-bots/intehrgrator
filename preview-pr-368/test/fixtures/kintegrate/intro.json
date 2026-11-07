@@ -1,0 +1,30 @@
+{ 
+  "message": "JSON pasted/loaded into the box get turned into a foldable tree-view (if valid).",
+  "starter_tips": {
+      "tip_array":[
+         "Click a checkbox in the tree to select a node (and all of its decendents).",
+         "Click an already selected checkbox to unselect it (and all of its decendents).",
+         "Right-click to pop up a menu that can be used to create paths/structures at the cursor/selection position in the conversion column ➠"
+        ],
+      "tip_object": 
+       {"Right_click_explanations" :
+         {
+          "⤡" : "Generate hierarchical nesting structure showing or iterating over this node",
+          "↔" : "Generate flat path to value of this node",
+          "√⬚" : "Frame this node as context root, meaning that descendant paths will be generated relative to this node if created"
+        },
+        "Not yet implemented" :
+         {
+          "↔🔑" : "Generate flat path to key of this node"
+         }
+       },
+      "Troublesome array filled with objects rather than literals/leafs": [
+         {"foo": "bar"},
+         {"foo2": "baz"},
+         {"no1": 1},
+         {"no2": 2},
+         {"array": [0,2,1,7,4,{"deep": "value"}]}
+        ] 
+
+    }
+}

@@ -1,0 +1,31 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "json-schema",
+    "targetId": "https://example.invalid/dummy-json-vitals/target.schema.json"
+  },
+  "suggestions": [
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/target.schema.json:$.systolic",
+      "block": {
+        "type": "source_query_number",
+        "fields": { "EXPRESSION": "$.systolic" }
+      }
+    },
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/target.schema.json:$.diastolic",
+      "block": {
+        "type": "source_query_number",
+        "fields": { "EXPRESSION": "$.diastolic" }
+      }
+    },
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/target.schema.json:$.unit",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$.unit" }
+      }
+    }
+  ]
+}

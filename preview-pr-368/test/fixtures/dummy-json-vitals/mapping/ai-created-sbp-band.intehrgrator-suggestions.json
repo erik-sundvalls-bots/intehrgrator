@@ -1,0 +1,71 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "json-schema",
+    "targetId": "https://example.invalid/dummy-json-vitals/ai-created-sbp-band.schema.json"
+  },
+  "suggestions": [
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/ai-created-sbp-band.schema.json:$.systolic",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.systolic"
+        }
+      }
+    },
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/ai-created-sbp-band.schema.json:$.diastolic",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.diastolic"
+        }
+      }
+    },
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/ai-created-sbp-band.schema.json:$.unit",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.unit"
+        }
+      }
+    },
+    {
+      "slotId": "https://example.invalid/dummy-json-vitals/ai-created-sbp-band.schema.json:$.band",
+      "block": {
+        "type": "decision_table",
+        "fields": {
+          "NAME": "sbp_band",
+          "OUTPUT": "band"
+        },
+        "inputs": {
+          "INPUTS": {
+            "block": {
+              "type": "maps_create_with",
+              "extraState": {
+                "itemCount": 1
+              },
+              "fields": {
+                "KEY0": "sbp"
+              },
+              "inputs": {
+                "VAL0": {
+                  "block": {
+                    "type": "source_query_number",
+                    "fields": {
+                      "EXPRESSION": "$.systolic"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note": "AI-created: Decision table is more readable than nested if for SBP bands"
+    }
+  ]
+}

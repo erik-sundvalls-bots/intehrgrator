@@ -1,0 +1,27 @@
+[
+  {
+    "name": "organisation_roles",
+    "headers": [
+      "key",
+      "text",
+      "code"
+    ],
+    "values": [
+      [
+        "care_unit",
+        "vårdenhet",
+        "43741000"
+      ],
+      [
+        "care_provider",
+        "vårdgivare",
+        "143591000052106"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text",
+      "text"
+    ]
+  }
+]

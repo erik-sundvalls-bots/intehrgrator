@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BloodPressureMeasurement",
+  "description": "A schema representing a single blood pressure reading.",
+  "type": "object",
+  "required": [
+    "patientId",
+    "timestamp",
+    "systolic",
+    "diastolic"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "patientId": {
+      "type": "string",
+      "description": "Unique identifier for the patient.",
+      "pattern": "^[a-zA-Z0-9-_]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time when the measurement was taken."
+    },
+    "systolic": {
+      "type": "integer",
+      "minimum": 50,
+      "maximum": 250,
+      "description": "Systolic blood pressure in mmHg (the top number)."
+    },
+    "diastolic": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 150,
+      "description": "Diastolic blood pressure in mmHg (the bottom number)."
+    },
+    "pulse": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 220,
+      "description": "Heart rate in beats per minute (optional)."
+    },
+    "bodyPosition": {
+      "type": "string",
+      "enum": [
+        "sitting",
+        "lying",
+        "standing"
+      ],
+      "description": "The position of the patient during measurement (optional)."
+    }
+  }
+}

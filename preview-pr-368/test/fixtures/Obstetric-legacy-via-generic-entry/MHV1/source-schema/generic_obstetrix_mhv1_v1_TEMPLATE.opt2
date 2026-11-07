@@ -1,0 +1,2030 @@
+operational_template (adl_version=2.4.0; rm_release=1.0.4)
+    generic-obstetrix-mhv1-v1
+
+language
+    original_language = <[ISO_639-1::sv]>
+
+definition
+    use_archetype COMPOSITION[at0000, openEHR-EHR-COMPOSITION.encounter.v1] occurrences matches {1..1} matches {
+        context existence matches {0..1} matches {
+            EVENT_CONTEXT occurrences matches {0..1} matches {
+                other_context existence matches {0..1} matches {
+                    ITEM_TREE[at0001] occurrences matches {0..1} matches {
+                        items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                            use_archetype CLUSTER[at0000, openEHR-EHR-CLUSTER.organisation.v1] occurrences matches {1..1} matches {
+                                items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                                    ELEMENT[at0001] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0003] occurrences matches {1..*} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_IDENTIFIER occurrences matches {0..1} matches {
+                                                type existence matches {1..1} matches {/urn:oid:1.2.752.29.4.19/}
+                                            }
+                                        }
+                                    }
+                                    ELEMENT[at0004] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_CODED_TEXT occurrences matches {0..1} matches {
+                                                defining_code existence matches {0..1} matches {
+                                                    [http://snomed.info/sct/900000000000207008::43741000]
+                                                }
+                                            }
+                                        }
+                                    }
+                                    use_archetype CLUSTER[at0000, openEHR-EHR-CLUSTER.organisation.v1] occurrences matches {1..1} matches {
+                                        items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                                            ELEMENT[at0001] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1}
+                                                }
+                                            }
+                                            ELEMENT[at0003] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_IDENTIFIER occurrences matches {0..1} matches {
+                                                        type existence matches {1..1} matches {/urn:oid:2.5.4.97/}
+                                                    }
+                                                }
+                                                name existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1} matches {
+                                                        value existence matches {1..1} matches {
+                                                            "Organisationsnummer"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            ELEMENT[at0003] occurrences matches {1..*} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_IDENTIFIER occurrences matches {0..1} matches {
+                                                        type existence matches {1..1} matches {/urn:oid:1.2.752.29.4.19/}
+                                                    }
+                                                }
+                                                name existence matches {0..1} matches {
+                                                    DV_TEXT occurrences matches {0..1} matches {
+                                                        value existence matches {1..1} matches {
+                                                            "Identifierare"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            ELEMENT[at0004] occurrences matches {0..1} matches {
+                                                value existence matches {0..1} matches {
+                                                    DV_CODED_TEXT occurrences matches {0..1} matches {
+                                                        defining_code existence matches {0..1} matches {
+                                                            [http://snomed.info/sct/45991000052106::143591000052106]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content existence matches {1..1} cardinality matches {0..*; unordered} matches {
+            use_archetype GENERIC_ENTRY[at0000, openEHR-EHR-GENERIC_ENTRY.Mhv1.v1] occurrences matches {1..1} matches {
+                data existence matches {1..1} matches {
+                    ITEM_TREE[at0002] occurrences matches {1..1} matches {
+                        items existence matches {1..1} cardinality matches {0..*; unordered} matches {
+                            ELEMENT[at0001] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0003] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0004] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0005] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0006] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0007] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0008] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0009] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0010] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0011] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0012] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0013] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0014] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0015] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0016] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0017] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0018] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0019] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0020] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0021] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0022] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0023] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0024] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0025] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0026] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0027] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0028] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0029] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0030] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0031] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0032] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0033] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0034] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0035] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0036] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0037] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0038] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0039] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0040] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0041] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0042] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0043] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0044] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0045] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0046] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0047] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0048] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0049] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0050] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0051] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0052] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0053] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0054] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0055] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0056] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0057] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0058] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0059] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0060] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0061] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0062] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0063] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0064] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0065] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0066] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0067] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0068] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0069] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0070] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0071] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0072] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0073] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0074] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0075] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0076] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0077] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0078] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0079] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0080] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0081] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0082] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0083] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0084] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0085] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0086] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0087] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_COUNT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0088] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_BOOLEAN occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0089] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0090] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_DATE_TIME occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0091] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0092] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0093] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0094] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0095] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0096] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0097] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0098] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0099] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0100] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0101] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0102] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0103] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0104] occurrences matches {1..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {1..1}
+                                }
+                            }
+                            ELEMENT[at0105] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0106] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0107] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0108] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0109] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            ELEMENT[at0110] occurrences matches {0..1} matches {
+                                value existence matches {0..1} matches {
+                                    DV_TEXT occurrences matches {0..1}
+                                }
+                            }
+                            CLUSTER[at0111] occurrences matches {0..*} matches {
+                                items cardinality matches {0..*} matches {
+                                    ELEMENT[at0112] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0113] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0114] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0115] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0116] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0117] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                }
+                            }
+                            CLUSTER[at0118] occurrences matches {0..*} matches {
+                                items cardinality matches {0..*} matches {
+                                    ELEMENT[at0119] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0120] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0121] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0122] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0123] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0124] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0125] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0126] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_BOOLEAN occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0127] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0128] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0129] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0130] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0131] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0132] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0133] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0134] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {1..1}
+                                        }
+                                    }
+                                }
+                            }
+                            CLUSTER[at0135] occurrences matches {0..*} matches {
+                                items cardinality matches {0..*} matches {
+                                    ELEMENT[at0136] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0137] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0138] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0139] occurrences matches {1..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {1..1}
+                                        }
+                                    }
+                                    ELEMENT[at0140] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0141] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0142] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_COUNT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0143] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                    ELEMENT[at0144] occurrences matches {0..1} matches {
+                                        value existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+            ["sv"] = <
+                ["at0000"] = <
+                    text = <"Mhv1GenericEntry">
+                >
+                ["at0001"] = <
+                    text = <"Mhv1_id">
+                    description = <"Mhv1_id">
+                >
+                ["at0003"] = <
+                    text = <"RegTid">
+                    description = <"RegTid">
+                >
+                ["http://snomed.info/sct/900000000000207008::43741000"] = <
+                    text = <"vårdenhet">
+                >
+                ["at0004"] = <
+                    text = <"InskrDatum">
+                    description = <"InskrDatum">
+                >
+                ["http://snomed.info/sct/45991000052106::143591000052106"] = <
+                    text = <"vårdgivare">
+                >
+                ["at0002"] = <
+                    text = <"Tree">
+                    description = <"@ internal @">
+                >
+                ["at0005"] = <
+                    text = <"NarmAnhYrke">
+                    description = <"NarmAnhYrke">
+                >
+                ["at0006"] = <
+                    text = <"NarmAnhArb">
+                    description = <"NarmAnhArb">
+                >
+                ["at0007"] = <
+                    text = <"Vma_id">
+                    description = <"Vma_id">
+                >
+                ["at0008"] = <
+                    text = <"Barnmorska">
+                    description = <"Barnmorska">
+                >
+                ["at0009"] = <
+                    text = <"Nationalitet">
+                    description = <"Nationalitet">
+                >
+                ["at0010"] = <
+                    text = <"NatMhv3Finns">
+                    description = <"NatMhv3Finns">
+                >
+                ["at0011"] = <
+                    text = <"NatMhv3Ant_id">
+                    description = <"NatMhv3Ant_id">
+                >
+                ["at0012"] = <
+                    text = <"SenastMens">
+                    description = <"SenastMens">
+                >
+                ["at0013"] = <
+                    text = <"RegelbMens">
+                    description = <"RegelbMens">
+                >
+                ["at0014"] = <
+                    text = <"GravPos">
+                    description = <"GravPos">
+                >
+                ["at0015"] = <
+                    text = <"Menstyp">
+                    description = <"Menstyp">
+                >
+                ["at0016"] = <
+                    text = <"Mensdagar">
+                    description = <"Mensdagar">
+                >
+                ["at0017"] = <
+                    text = <"PrevmedelUpp">
+                    description = <"PrevmedelUpp">
+                >
+                ["at0018"] = <
+                    text = <"SpiralUt">
+                    description = <"SpiralUt">
+                >
+                ["at0019"] = <
+                    text = <"SpiralKvar">
+                    description = <"SpiralKvar">
+                >
+                ["at0020"] = <
+                    text = <"BerakForSM">
+                    description = <"BerakForSM">
+                >
+                ["at0021"] = <
+                    text = <"BerakForUL">
+                    description = <"BerakForUL">
+                >
+                ["at0022"] = <
+                    text = <"ULDatumOverfort">
+                    description = <"ULDatumOverfort">
+                >
+                ["at0023"] = <
+                    text = <"LokReg">
+                    description = <"LokReg">
+                >
+                ["at0024"] = <
+                    text = <"Vikt">
+                    description = <"Vikt">
+                >
+                ["at0025"] = <
+                    text = <"Langd">
+                    description = <"Langd">
+                >
+                ["at0026"] = <
+                    text = <"TobakForegrav">
+                    description = <"TobakForegrav">
+                >
+                ["at0027"] = <
+                    text = <"SnusForeGrav">
+                    description = <"SnusForeGrav">
+                >
+                ["at0028"] = <
+                    text = <"TobakInskr">
+                    description = <"TobakInskr">
+                >
+                ["at0029"] = <
+                    text = <"SnusInskr">
+                    description = <"SnusInskr">
+                >
+                ["at0030"] = <
+                    text = <"AlkoholForeGrav">
+                    description = <"AlkoholForeGrav">
+                >
+                ["at0031"] = <
+                    text = <"AlkoholInskr">
+                    description = <"AlkoholInskr">
+                >
+                ["at0032"] = <
+                    text = <"FamSitSammanb">
+                    description = <"FamSitSammanb">
+                >
+                ["at0033"] = <
+                    text = <"FamSitEnsams">
+                    description = <"FamSitEnsams">
+                >
+                ["at0034"] = <
+                    text = <"FamiljSitAnnan">
+                    description = <"FamiljSitAnnan">
+                >
+                ["at0035"] = <
+                    text = <"FamSitMhv3Ant_id">
+                    description = <"FamSitMhv3Ant_id">
+                >
+                ["at0036"] = <
+                    text = <"ForvarvsArb">
+                    description = <"ForvarvsArb">
+                >
+                ["at0037"] = <
+                    text = <"Yrke">
+                    description = <"Yrke">
+                >
+                ["at0038"] = <
+                    text = <"ArbetsPlats">
+                    description = <"ArbetsPlats">
+                >
+                ["at0039"] = <
+                    text = <"BostadProb">
+                    description = <"BostadProb">
+                >
+                ["at0040"] = <
+                    text = <"BostProbMhv3Ant_id">
+                    description = <"BostProbMhv3Ant_id">
+                >
+                ["at0041"] = <
+                    text = <"OfrivBarnlosAr">
+                    description = <"OfrivBarnlosAr">
+                >
+                ["at0042"] = <
+                    text = <"OfrivBarnlosIngen">
+                    description = <"OfrivBarnlosIngen">
+                >
+                ["at0043"] = <
+                    text = <"OfrivBarnlosIVF">
+                    description = <"OfrivBarnlosIVF">
+                >
+                ["at0044"] = <
+                    text = <"OfrivBarnlosOvulStim">
+                    description = <"OfrivBarnlosOvulStim">
+                >
+                ["at0045"] = <
+                    text = <"OfrivBarnlosKirurgi">
+                    description = <"OfrivBarnlosKirurgi">
+                >
+                ["at0046"] = <
+                    text = <"OfrivBarnlosICSI">
+                    description = <"OfrivBarnlosICSI">
+                >
+                ["at0047"] = <
+                    text = <"OfrivBarnlosAnnat">
+                    description = <"OfrivBarnlosAnnat">
+                >
+                ["at0048"] = <
+                    text = <"OfrivBarnlosAtgard">
+                    description = <"OfrivBarnlosAtgard">
+                >
+                ["at0049"] = <
+                    text = <"Hereditet">
+                    description = <"Hereditet">
+                >
+                ["at0050"] = <
+                    text = <"Hjart">
+                    description = <"Hjart">
+                >
+                ["at0051"] = <
+                    text = <"Trombos">
+                    description = <"Trombos">
+                >
+                ["at0052"] = <
+                    text = <"Psyk">
+                    description = <"Psyk">
+                >
+                ["at0053"] = <
+                    text = <"Gulsot">
+                    description = <"Gulsot">
+                >
+                ["at0054"] = <
+                    text = <"Gynekolog">
+                    description = <"Gynekolog">
+                >
+                ["at0055"] = <
+                    text = <"Endokrina">
+                    description = <"Endokrina">
+                >
+                ["at0056"] = <
+                    text = <"Urinvagsinf">
+                    description = <"Urinvagsinf">
+                >
+                ["at0057"] = <
+                    text = <"Lung">
+                    description = <"Lung">
+                >
+                ["at0058"] = <
+                    text = <"Njur">
+                    description = <"Njur">
+                >
+                ["at0059"] = <
+                    text = <"UlcerosColit">
+                    description = <"UlcerosColit">
+                >
+                ["at0060"] = <
+                    text = <"Diabetes">
+                    description = <"Diabetes">
+                >
+                ["at0061"] = <
+                    text = <"SLE">
+                    description = <"SLE">
+                >
+                ["at0062"] = <
+                    text = <"Epilepsi">
+                    description = <"Epilepsi">
+                >
+                ["at0063"] = <
+                    text = <"Hypertoni">
+                    description = <"Hypertoni">
+                >
+                ["at0064"] = <
+                    text = <"SjukMhv3Ant_id">
+                    description = <"SjukMhv3Ant_id">
+                >
+                ["at0065"] = <
+                    text = <"SjukMhv3Finns">
+                    description = <"SjukMhv3Finns">
+                >
+                ["at0066"] = <
+                    text = <"IngenMedicinering">
+                    description = <"IngenMedicinering">
+                >
+                ["at0067"] = <
+                    text = <"Anteckning">
+                    description = <"Anteckning">
+                >
+                ["at0068"] = <
+                    text = <"TidBlodTrans">
+                    description = <"TidBlodTrans">
+                >
+                ["at0069"] = <
+                    text = <"TidBlodTransDatum">
+                    description = <"TidBlodTransDatum">
+                >
+                ["at0070"] = <
+                    text = <"Bedomning">
+                    description = <"Bedomning">
+                >
+                ["at0071"] = <
+                    text = <"BedomningSign">
+                    description = <"BedomningSign">
+                >
+                ["at0072"] = <
+                    text = <"Signering">
+                    description = <"Signering">
+                >
+                ["at0073"] = <
+                    text = <"SigneringTid">
+                    description = <"SigneringTid">
+                >
+                ["at0074"] = <
+                    text = <"BedomMhv3Ant_id">
+                    description = <"BedomMhv3Ant_id">
+                >
+                ["at0075"] = <
+                    text = <"FamSitAnnan">
+                    description = <"FamSitAnnan">
+                >
+                ["at0076"] = <
+                    text = <"Avd_id">
+                    description = <"Avd_id">
+                >
+                ["at0077"] = <
+                    text = <"BerakForET">
+                    description = <"BerakForET">
+                >
+                ["at0078"] = <
+                    text = <"DrogerForeGrav">
+                    description = <"DrogerForeGrav">
+                >
+                ["at0079"] = <
+                    text = <"DrogerInskr">
+                    description = <"DrogerInskr">
+                >
+                ["at0080"] = <
+                    text = <"HepatitTyp">
+                    description = <"HepatitTyp">
+                >
+                ["at0081"] = <
+                    text = <"SjukdomAnnatText">
+                    description = <"SjukdomAnnatText">
+                >
+                ["at0082"] = <
+                    text = <"SjukdomAnnat">
+                    description = <"SjukdomAnnat">
+                >
+                ["at0083"] = <
+                    text = <"AuditPoäng">
+                    description = <"AuditPoäng">
+                >
+                ["at0084"] = <
+                    text = <"Uppföljning">
+                    description = <"Uppföljning">
+                >
+                ["at0085"] = <
+                    text = <"RegisteredByProfessionalRoleId">
+                    description = <"RegisteredByProfessionalRoleId">
+                >
+                ["at0086"] = <
+                    text = <"RegisteredOnUnitId">
+                    description = <"RegisteredOnUnitId">
+                >
+                ["at0087"] = <
+                    text = <"VersionIdWhenFirstSaved">
+                    description = <"VersionIdWhenFirstSaved">
+                >
+                ["at0088"] = <
+                    text = <"FamSitPartner">
+                    description = <"FamSitPartner">
+                >
+                ["at0089"] = <
+                    text = <"MentalHealthDisorder">
+                    description = <"MentalHealthDisorder">
+                >
+                ["at0090"] = <
+                    text = <"Bp_comp">
+                    description = <"Bp_comp">
+                >
+                ["at0091"] = <
+                    text = <"RegelbMensText">
+                    description = <"RegelbMensText">
+                >
+                ["at0092"] = <
+                    text = <"SpiralKvarText">
+                    description = <"SpiralKvarText">
+                >
+                ["at0093"] = <
+                    text = <"TobakInskrText">
+                    description = <"TobakInskrText">
+                >
+                ["at0094"] = <
+                    text = <"TobakForegravText">
+                    description = <"TobakForegravText">
+                >
+                ["at0095"] = <
+                    text = <"SnusForeGravText">
+                    description = <"SnusForeGravText">
+                >
+                ["at0096"] = <
+                    text = <"SnusInskrText">
+                    description = <"SnusInskrText">
+                >
+                ["at0097"] = <
+                    text = <"AlkoholInskrText">
+                    description = <"AlkoholInskrText">
+                >
+                ["at0098"] = <
+                    text = <"AlkoholForeGravText">
+                    description = <"AlkoholForeGravText">
+                >
+                ["at0099"] = <
+                    text = <"DrogerInskrText">
+                    description = <"DrogerInskrText">
+                >
+                ["at0100"] = <
+                    text = <"DrogerForeGravText">
+                    description = <"DrogerForeGravText">
+                >
+                ["at0101"] = <
+                    text = <"ForvarvsArbText">
+                    description = <"ForvarvsArbText">
+                >
+                ["at0102"] = <
+                    text = <"BostadProbText">
+                    description = <"BostadProbText">
+                >
+                ["at0103"] = <
+                    text = <"TidBlodTransText">
+                    description = <"TidBlodTransText">
+                >
+                ["at0104"] = <
+                    text = <"BedomningText">
+                    description = <"BedomningText">
+                >
+                ["at0105"] = <
+                    text = <"Signering_HsaId">
+                    description = <"HsaId för användaren som signerat MHV1">
+                >
+                ["at0106"] = <
+                    text = <"Signering_Namn">
+                    description = <"Namn för användaren som signerat MHV1">
+                >
+                ["at0107"] = <
+                    text = <"Barnmorska_HsaId">
+                    description = <"HsaId för barnmorska">
+                >
+                ["at0108"] = <
+                    text = <"Barnmorska_Namn">
+                    description = <"Namn för barnmorska">
+                >
+                ["at0109"] = <
+                    text = <"BedomningSign_HsaId">
+                    description = <"HsaId för användare som signerat bedömning">
+                >
+                ["at0110"] = <
+                    text = <"BedomningSign_Namn">
+                    description = <"Namn för användare som signerat bedömning">
+                >
+                ["at0111"] = <
+                    text = <"M1Medicinering">
+                    description = <"MHV1 Medicineringar">
+                >
+                ["at0112"] = <
+                    text = <"Medicin_id">
+                    description = <"Medicin_id">
+                >
+                ["at0113"] = <
+                    text = <"MHV1_id">
+                    description = <"MHV1_id">
+                >
+                ["at0114"] = <
+                    text = <"Preperat">
+                    description = <"Preperat">
+                >
+                ["at0115"] = <
+                    text = <"Dos">
+                    description = <"Dos">
+                >
+                ["at0116"] = <
+                    text = <"FrGravVecka">
+                    description = <"FrGravVecka">
+                >
+                ["at0117"] = <
+                    text = <"TomGravVecka">
+                    description = <"TomGravVecka">
+                >
+                ["at0118"] = <
+                    text = <"M1TidigareGraviditeter">
+                    description = <"MHV1 Tidigare graviditeter">
+                >
+                ["at0119"] = <
+                    text = <"TidGrav_id">
+                    description = <"TidGrav_id">
+                >
+                ["at0120"] = <
+                    text = <"MHV1_id">
+                    description = <"MHV1_id">
+                >
+                ["at0121"] = <
+                    text = <"Ar">
+                    description = <"Ar">
+                >
+                ["at0122"] = <
+                    text = <"Man">
+                    description = <"Man">
+                >
+                ["at0123"] = <
+                    text = <"Typ">
+                    description = <"Typ">
+                >
+                ["at0124"] = <
+                    text = <"Sjukhus">
+                    description = <"Sjukhus">
+                >
+                ["at0125"] = <
+                    text = <"Forlopp">
+                    description = <"Forlopp">
+                >
+                ["at0126"] = <
+                    text = <"Sectio">
+                    description = <"Sectio">
+                >
+                ["at0127"] = <
+                    text = <"Kon">
+                    description = <"Kon">
+                >
+                ["at0128"] = <
+                    text = <"Vikt">
+                    description = <"Vikt">
+                >
+                ["at0129"] = <
+                    text = <"Gravveckor">
+                    description = <"Gravveckor">
+                >
+                ["at0130"] = <
+                    text = <"Tillstand">
+                    description = <"Tillstand">
+                >
+                ["at0131"] = <
+                    text = <"Mhv3Ant_id">
+                    description = <"Mhv3Ant_id">
+                >
+                ["at0132"] = <
+                    text = <"TypText">
+                    description = <"TypText">
+                >
+                ["at0133"] = <
+                    text = <"KonText">
+                    description = <"KonText">
+                >
+                ["at0134"] = <
+                    text = <"TillstandText">
+                    description = <"TillstandText">
+                >
+                ["at0135"] = <
+                    text = <"Audit">
+                    description = <"MHV1 - Audit enskilda svar">
+                >
+                ["at0136"] = <
+                    text = <"AuditId">
+                    description = <"AuditId">
+                >
+                ["at0137"] = <
+                    text = <"Mhv1_Id">
+                    description = <"Mhv1_Id">
+                >
+                ["at0138"] = <
+                    text = <"AuditQuestion_LTId">
+                    description = <"AuditQuestion_LTId">
+                >
+                ["at0139"] = <
+                    text = <"PointValue">
+                    description = <"PointValue">
+                >
+                ["at0140"] = <
+                    text = <"AuditAnswer_LT_Name">
+                    description = <"Namn på svaret i AUDIT">
+                >
+                ["at0141"] = <
+                    text = <"AuditAnswer_LT_Description">
+                    description = <"Beskrivning av svaret i AUDIT">
+                >
+                ["at0142"] = <
+                    text = <"AuditAnswer_LT_AuditQuestion_LTId">
+                    description = <"Id på svar i AUDIT">
+                >
+                ["at0143"] = <
+                    text = <"AuditQuestion_LT_Name">
+                    description = <"Namn för fråga i AUDIT">
+                >
+                ["at0144"] = <
+                    text = <"AuditQuestion_LT_Description">
+                    description = <"Beskrivning för fråga i AUDIT">
+                >
+            >
+        >
+component_terminologies
+<
+            ["openEHR-EHR-CLUSTER.organisation.v1"] = <
+                term_definitions = <
+                    ["sv"] = <
+                        ["at0000"] = <
+                            text = <"Vårdenhet">
+                            description = <"Vårdenhet">
+                        >
+                        ["at0001"] = <
+                            text = <"Namn">
+                            description = <"Vårdenhetens namn">
+                        >
+                        ["at0003"] = <
+                            text = <"Identifierare">
+                            description = <"Identifierare associerad med den identifierade organisationen (Vårdenhet)">
+                        >
+                        ["http://snomed.info/sct/900000000000207008::43741000"] = <
+                            text = <"vårdenhet">
+                        >
+                        ["at0004"] = <
+                            text = <"Roll">
+                            description = <"Organisationens relation till eller roll gentemot vårdtagaren.">
+                        >
+                    >
+                >
+            >
+            ["openEHR-EHR-COMPOSITION.encounter.v1"] = <
+                term_definitions = <
+                    ["sv"] = <
+                        ["at0000"] = <
+                            text = <"Mhv1">
+                        >
+                        ["at0001"] = <
+                            text = <"Tree">
+                            description = <"@ internal @">
+                        >
+                    >
+                >
+            >
+            ["openEHR-EHR-GENERIC_ENTRY.Mhv1.v1"] = <
+                term_definitions = <
+                    ["sv"] = <
+                        ["at0000"] = <
+                            text = <"Mhv1GenericEntry">
+                        >
+                        ["at0001"] = <
+                            text = <"Mhv1_id">
+                            description = <"Mhv1_id">
+                        >
+                        ["at0002"] = <
+                            text = <"Tree">
+                            description = <"@ internal @">
+                        >
+                        ["at0003"] = <
+                            text = <"RegTid">
+                            description = <"RegTid">
+                        >
+                        ["at0004"] = <
+                            text = <"InskrDatum">
+                            description = <"InskrDatum">
+                        >
+                        ["at0005"] = <
+                            text = <"NarmAnhYrke">
+                            description = <"NarmAnhYrke">
+                        >
+                        ["at0006"] = <
+                            text = <"NarmAnhArb">
+                            description = <"NarmAnhArb">
+                        >
+                        ["at0007"] = <
+                            text = <"Vma_id">
+                            description = <"Vma_id">
+                        >
+                        ["at0008"] = <
+                            text = <"Barnmorska">
+                            description = <"Barnmorska">
+                        >
+                        ["at0009"] = <
+                            text = <"Nationalitet">
+                            description = <"Nationalitet">
+                        >
+                        ["at0010"] = <
+                            text = <"NatMhv3Finns">
+                            description = <"NatMhv3Finns">
+                        >
+                        ["at0011"] = <
+                            text = <"NatMhv3Ant_id">
+                            description = <"NatMhv3Ant_id">
+                        >
+                        ["at0012"] = <
+                            text = <"SenastMens">
+                            description = <"SenastMens">
+                        >
+                        ["at0013"] = <
+                            text = <"RegelbMens">
+                            description = <"RegelbMens">
+                        >
+                        ["at0014"] = <
+                            text = <"GravPos">
+                            description = <"GravPos">
+                        >
+                        ["at0015"] = <
+                            text = <"Menstyp">
+                            description = <"Menstyp">
+                        >
+                        ["at0016"] = <
+                            text = <"Mensdagar">
+                            description = <"Mensdagar">
+                        >
+                        ["at0017"] = <
+                            text = <"PrevmedelUpp">
+                            description = <"PrevmedelUpp">
+                        >
+                        ["at0018"] = <
+                            text = <"SpiralUt">
+                            description = <"SpiralUt">
+                        >
+                        ["at0019"] = <
+                            text = <"SpiralKvar">
+                            description = <"SpiralKvar">
+                        >
+                        ["at0020"] = <
+                            text = <"BerakForSM">
+                            description = <"BerakForSM">
+                        >
+                        ["at0021"] = <
+                            text = <"BerakForUL">
+                            description = <"BerakForUL">
+                        >
+                        ["at0022"] = <
+                            text = <"ULDatumOverfort">
+                            description = <"ULDatumOverfort">
+                        >
+                        ["at0023"] = <
+                            text = <"LokReg">
+                            description = <"LokReg">
+                        >
+                        ["at0024"] = <
+                            text = <"Vikt">
+                            description = <"Vikt">
+                        >
+                        ["at0025"] = <
+                            text = <"Langd">
+                            description = <"Langd">
+                        >
+                        ["at0026"] = <
+                            text = <"TobakForegrav">
+                            description = <"TobakForegrav">
+                        >
+                        ["at0027"] = <
+                            text = <"SnusForeGrav">
+                            description = <"SnusForeGrav">
+                        >
+                        ["at0028"] = <
+                            text = <"TobakInskr">
+                            description = <"TobakInskr">
+                        >
+                        ["at0029"] = <
+                            text = <"SnusInskr">
+                            description = <"SnusInskr">
+                        >
+                        ["at0030"] = <
+                            text = <"AlkoholForeGrav">
+                            description = <"AlkoholForeGrav">
+                        >
+                        ["at0031"] = <
+                            text = <"AlkoholInskr">
+                            description = <"AlkoholInskr">
+                        >
+                        ["at0032"] = <
+                            text = <"FamSitSammanb">
+                            description = <"FamSitSammanb">
+                        >
+                        ["at0033"] = <
+                            text = <"FamSitEnsams">
+                            description = <"FamSitEnsams">
+                        >
+                        ["at0034"] = <
+                            text = <"FamiljSitAnnan">
+                            description = <"FamiljSitAnnan">
+                        >
+                        ["at0035"] = <
+                            text = <"FamSitMhv3Ant_id">
+                            description = <"FamSitMhv3Ant_id">
+                        >
+                        ["at0036"] = <
+                            text = <"ForvarvsArb">
+                            description = <"ForvarvsArb">
+                        >
+                        ["at0037"] = <
+                            text = <"Yrke">
+                            description = <"Yrke">
+                        >
+                        ["at0038"] = <
+                            text = <"ArbetsPlats">
+                            description = <"ArbetsPlats">
+                        >
+                        ["at0039"] = <
+                            text = <"BostadProb">
+                            description = <"BostadProb">
+                        >
+                        ["at0040"] = <
+                            text = <"BostProbMhv3Ant_id">
+                            description = <"BostProbMhv3Ant_id">
+                        >
+                        ["at0041"] = <
+                            text = <"OfrivBarnlosAr">
+                            description = <"OfrivBarnlosAr">
+                        >
+                        ["at0042"] = <
+                            text = <"OfrivBarnlosIngen">
+                            description = <"OfrivBarnlosIngen">
+                        >
+                        ["at0043"] = <
+                            text = <"OfrivBarnlosIVF">
+                            description = <"OfrivBarnlosIVF">
+                        >
+                        ["at0044"] = <
+                            text = <"OfrivBarnlosOvulStim">
+                            description = <"OfrivBarnlosOvulStim">
+                        >
+                        ["at0045"] = <
+                            text = <"OfrivBarnlosKirurgi">
+                            description = <"OfrivBarnlosKirurgi">
+                        >
+                        ["at0046"] = <
+                            text = <"OfrivBarnlosICSI">
+                            description = <"OfrivBarnlosICSI">
+                        >
+                        ["at0047"] = <
+                            text = <"OfrivBarnlosAnnat">
+                            description = <"OfrivBarnlosAnnat">
+                        >
+                        ["at0048"] = <
+                            text = <"OfrivBarnlosAtgard">
+                            description = <"OfrivBarnlosAtgard">
+                        >
+                        ["at0049"] = <
+                            text = <"Hereditet">
+                            description = <"Hereditet">
+                        >
+                        ["at0050"] = <
+                            text = <"Hjart">
+                            description = <"Hjart">
+                        >
+                        ["at0051"] = <
+                            text = <"Trombos">
+                            description = <"Trombos">
+                        >
+                        ["at0052"] = <
+                            text = <"Psyk">
+                            description = <"Psyk">
+                        >
+                        ["at0053"] = <
+                            text = <"Gulsot">
+                            description = <"Gulsot">
+                        >
+                        ["at0054"] = <
+                            text = <"Gynekolog">
+                            description = <"Gynekolog">
+                        >
+                        ["at0055"] = <
+                            text = <"Endokrina">
+                            description = <"Endokrina">
+                        >
+                        ["at0056"] = <
+                            text = <"Urinvagsinf">
+                            description = <"Urinvagsinf">
+                        >
+                        ["at0057"] = <
+                            text = <"Lung">
+                            description = <"Lung">
+                        >
+                        ["at0058"] = <
+                            text = <"Njur">
+                            description = <"Njur">
+                        >
+                        ["at0059"] = <
+                            text = <"UlcerosColit">
+                            description = <"UlcerosColit">
+                        >
+                        ["at0060"] = <
+                            text = <"Diabetes">
+                            description = <"Diabetes">
+                        >
+                        ["at0061"] = <
+                            text = <"SLE">
+                            description = <"SLE">
+                        >
+                        ["at0062"] = <
+                            text = <"Epilepsi">
+                            description = <"Epilepsi">
+                        >
+                        ["at0063"] = <
+                            text = <"Hypertoni">
+                            description = <"Hypertoni">
+                        >
+                        ["at0064"] = <
+                            text = <"SjukMhv3Ant_id">
+                            description = <"SjukMhv3Ant_id">
+                        >
+                        ["at0065"] = <
+                            text = <"SjukMhv3Finns">
+                            description = <"SjukMhv3Finns">
+                        >
+                        ["at0066"] = <
+                            text = <"IngenMedicinering">
+                            description = <"IngenMedicinering">
+                        >
+                        ["at0067"] = <
+                            text = <"Anteckning">
+                            description = <"Anteckning">
+                        >
+                        ["at0068"] = <
+                            text = <"TidBlodTrans">
+                            description = <"TidBlodTrans">
+                        >
+                        ["at0069"] = <
+                            text = <"TidBlodTransDatum">
+                            description = <"TidBlodTransDatum">
+                        >
+                        ["at0070"] = <
+                            text = <"Bedomning">
+                            description = <"Bedomning">
+                        >
+                        ["at0071"] = <
+                            text = <"BedomningSign">
+                            description = <"BedomningSign">
+                        >
+                        ["at0072"] = <
+                            text = <"Signering">
+                            description = <"Signering">
+                        >
+                        ["at0073"] = <
+                            text = <"SigneringTid">
+                            description = <"SigneringTid">
+                        >
+                        ["at0074"] = <
+                            text = <"BedomMhv3Ant_id">
+                            description = <"BedomMhv3Ant_id">
+                        >
+                        ["at0075"] = <
+                            text = <"FamSitAnnan">
+                            description = <"FamSitAnnan">
+                        >
+                        ["at0076"] = <
+                            text = <"Avd_id">
+                            description = <"Avd_id">
+                        >
+                        ["at0077"] = <
+                            text = <"BerakForET">
+                            description = <"BerakForET">
+                        >
+                        ["at0078"] = <
+                            text = <"DrogerForeGrav">
+                            description = <"DrogerForeGrav">
+                        >
+                        ["at0079"] = <
+                            text = <"DrogerInskr">
+                            description = <"DrogerInskr">
+                        >
+                        ["at0080"] = <
+                            text = <"HepatitTyp">
+                            description = <"HepatitTyp">
+                        >
+                        ["at0081"] = <
+                            text = <"SjukdomAnnatText">
+                            description = <"SjukdomAnnatText">
+                        >
+                        ["at0082"] = <
+                            text = <"SjukdomAnnat">
+                            description = <"SjukdomAnnat">
+                        >
+                        ["at0083"] = <
+                            text = <"AuditPoäng">
+                            description = <"AuditPoäng">
+                        >
+                        ["at0084"] = <
+                            text = <"Uppföljning">
+                            description = <"Uppföljning">
+                        >
+                        ["at0085"] = <
+                            text = <"RegisteredByProfessionalRoleId">
+                            description = <"RegisteredByProfessionalRoleId">
+                        >
+                        ["at0086"] = <
+                            text = <"RegisteredOnUnitId">
+                            description = <"RegisteredOnUnitId">
+                        >
+                        ["at0087"] = <
+                            text = <"VersionIdWhenFirstSaved">
+                            description = <"VersionIdWhenFirstSaved">
+                        >
+                        ["at0088"] = <
+                            text = <"FamSitPartner">
+                            description = <"FamSitPartner">
+                        >
+                        ["at0089"] = <
+                            text = <"MentalHealthDisorder">
+                            description = <"MentalHealthDisorder">
+                        >
+                        ["at0090"] = <
+                            text = <"Bp_comp">
+                            description = <"Bp_comp">
+                        >
+                        ["at0091"] = <
+                            text = <"RegelbMensText">
+                            description = <"RegelbMensText">
+                        >
+                        ["at0092"] = <
+                            text = <"SpiralKvarText">
+                            description = <"SpiralKvarText">
+                        >
+                        ["at0093"] = <
+                            text = <"TobakInskrText">
+                            description = <"TobakInskrText">
+                        >
+                        ["at0094"] = <
+                            text = <"TobakForegravText">
+                            description = <"TobakForegravText">
+                        >
+                        ["at0095"] = <
+                            text = <"SnusForeGravText">
+                            description = <"SnusForeGravText">
+                        >
+                        ["at0096"] = <
+                            text = <"SnusInskrText">
+                            description = <"SnusInskrText">
+                        >
+                        ["at0097"] = <
+                            text = <"AlkoholInskrText">
+                            description = <"AlkoholInskrText">
+                        >
+                        ["at0098"] = <
+                            text = <"AlkoholForeGravText">
+                            description = <"AlkoholForeGravText">
+                        >
+                        ["at0099"] = <
+                            text = <"DrogerInskrText">
+                            description = <"DrogerInskrText">
+                        >
+                        ["at0100"] = <
+                            text = <"DrogerForeGravText">
+                            description = <"DrogerForeGravText">
+                        >
+                        ["at0101"] = <
+                            text = <"ForvarvsArbText">
+                            description = <"ForvarvsArbText">
+                        >
+                        ["at0102"] = <
+                            text = <"BostadProbText">
+                            description = <"BostadProbText">
+                        >
+                        ["at0103"] = <
+                            text = <"TidBlodTransText">
+                            description = <"TidBlodTransText">
+                        >
+                        ["at0104"] = <
+                            text = <"BedomningText">
+                            description = <"BedomningText">
+                        >
+                        ["at0105"] = <
+                            text = <"Signering_HsaId">
+                            description = <"HsaId för användaren som signerat MHV1">
+                        >
+                        ["at0106"] = <
+                            text = <"Signering_Namn">
+                            description = <"Namn för användaren som signerat MHV1">
+                        >
+                        ["at0107"] = <
+                            text = <"Barnmorska_HsaId">
+                            description = <"HsaId för barnmorska">
+                        >
+                        ["at0108"] = <
+                            text = <"Barnmorska_Namn">
+                            description = <"Namn för barnmorska">
+                        >
+                        ["at0109"] = <
+                            text = <"BedomningSign_HsaId">
+                            description = <"HsaId för användare som signerat bedömning">
+                        >
+                        ["at0110"] = <
+                            text = <"BedomningSign_Namn">
+                            description = <"Namn för användare som signerat bedömning">
+                        >
+                        ["at0111"] = <
+                            text = <"M1Medicinering">
+                            description = <"MHV1 Medicineringar">
+                        >
+                        ["at0112"] = <
+                            text = <"Medicin_id">
+                            description = <"Medicin_id">
+                        >
+                        ["at0113"] = <
+                            text = <"MHV1_id">
+                            description = <"MHV1_id">
+                        >
+                        ["at0114"] = <
+                            text = <"Preperat">
+                            description = <"Preperat">
+                        >
+                        ["at0115"] = <
+                            text = <"Dos">
+                            description = <"Dos">
+                        >
+                        ["at0116"] = <
+                            text = <"FrGravVecka">
+                            description = <"FrGravVecka">
+                        >
+                        ["at0117"] = <
+                            text = <"TomGravVecka">
+                            description = <"TomGravVecka">
+                        >
+                        ["at0118"] = <
+                            text = <"M1TidigareGraviditeter">
+                            description = <"MHV1 Tidigare graviditeter">
+                        >
+                        ["at0119"] = <
+                            text = <"TidGrav_id">
+                            description = <"TidGrav_id">
+                        >
+                        ["at0120"] = <
+                            text = <"MHV1_id">
+                            description = <"MHV1_id">
+                        >
+                        ["at0121"] = <
+                            text = <"Ar">
+                            description = <"Ar">
+                        >
+                        ["at0122"] = <
+                            text = <"Man">
+                            description = <"Man">
+                        >
+                        ["at0123"] = <
+                            text = <"Typ">
+                            description = <"Typ">
+                        >
+                        ["at0124"] = <
+                            text = <"Sjukhus">
+                            description = <"Sjukhus">
+                        >
+                        ["at0125"] = <
+                            text = <"Forlopp">
+                            description = <"Forlopp">
+                        >
+                        ["at0126"] = <
+                            text = <"Sectio">
+                            description = <"Sectio">
+                        >
+                        ["at0127"] = <
+                            text = <"Kon">
+                            description = <"Kon">
+                        >
+                        ["at0128"] = <
+                            text = <"Vikt">
+                            description = <"Vikt">
+                        >
+                        ["at0129"] = <
+                            text = <"Gravveckor">
+                            description = <"Gravveckor">
+                        >
+                        ["at0130"] = <
+                            text = <"Tillstand">
+                            description = <"Tillstand">
+                        >
+                        ["at0131"] = <
+                            text = <"Mhv3Ant_id">
+                            description = <"Mhv3Ant_id">
+                        >
+                        ["at0132"] = <
+                            text = <"TypText">
+                            description = <"TypText">
+                        >
+                        ["at0133"] = <
+                            text = <"KonText">
+                            description = <"KonText">
+                        >
+                        ["at0134"] = <
+                            text = <"TillstandText">
+                            description = <"TillstandText">
+                        >
+                        ["at0135"] = <
+                            text = <"Audit">
+                            description = <"MHV1 - Audit enskilda svar">
+                        >
+                        ["at0136"] = <
+                            text = <"AuditId">
+                            description = <"AuditId">
+                        >
+                        ["at0137"] = <
+                            text = <"Mhv1_Id">
+                            description = <"Mhv1_Id">
+                        >
+                        ["at0138"] = <
+                            text = <"AuditQuestion_LTId">
+                            description = <"AuditQuestion_LTId">
+                        >
+                        ["at0139"] = <
+                            text = <"PointValue">
+                            description = <"PointValue">
+                        >
+                        ["at0140"] = <
+                            text = <"AuditAnswer_LT_Name">
+                            description = <"Namn på svaret i AUDIT">
+                        >
+                        ["at0141"] = <
+                            text = <"AuditAnswer_LT_Description">
+                            description = <"Beskrivning av svaret i AUDIT">
+                        >
+                        ["at0142"] = <
+                            text = <"AuditAnswer_LT_AuditQuestion_LTId">
+                            description = <"Id på svar i AUDIT">
+                        >
+                        ["at0143"] = <
+                            text = <"AuditQuestion_LT_Name">
+                            description = <"Namn för fråga i AUDIT">
+                        >
+                        ["at0144"] = <
+                            text = <"AuditQuestion_LT_Description">
+                            description = <"Beskrivning för fråga i AUDIT">
+                        >
+                    >
+                >
+            >
+        >
+

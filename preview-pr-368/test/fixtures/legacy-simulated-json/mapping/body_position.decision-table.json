@@ -1,0 +1,16 @@
+{
+  "name": "body_position",
+  "kind": "decision-table",
+  "headers": ["position", "label", "code"],
+  "values": [
+    ["sitting", "Sitting", "at0004"],
+    ["lying", "Lying", "at0005"],
+    ["standing", "Standing", "at0006"]
+  ],
+  "hitPolicy": "FIRST",
+  "decisionColumns": [
+    { "role": "condition" },
+    { "role": "output", "outputKind": "value", "valueType": "string" },
+    { "role": "output", "outputKind": "value", "valueType": "string" }
+  ]
+}

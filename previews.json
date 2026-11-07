@@ -191,6 +191,14 @@
     "sha": "cb2fce77fcaf3f0974a6233bdee332e7587dee2d",
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
+  "preview-pr-368": {
+    "built": "2026-11-07T20:48:53Z",
+    "dir": "preview-pr-368",
+    "mode": "branch",
+    "pr": "368\thttps://github.com/regionstockholm/intehrgrator/pull/368\tOPEN\tShow openEHR source RM attributes with compact variant A disclosure",
+    "sha": "ddff579bb574a66030c599e417e124a0251a0850",
+    "upstream": ""
+  },
   "preview-value-set-hints": {
     "built": "2026-11-06T14:42:26Z",
     "dir": "preview-value-set-hints",

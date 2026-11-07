@@ -1,0 +1,64 @@
+{{!-- Kintegrate startup example — openEHR STRUCTURED/FLAT-like composition (MDK_Rek_demo1.json) --}}
+Example with full flat path:
+  {{granskning.bakgrund.0.sjukdomshistoria.0.ospecificerad_händelse.0.anamnes.0.[|value]}}
+
+Example looping/traversing tree:
+  {{#with granskning}}
+    {{#each rubrik}}
+      {{#each behållare}}
+        {{#each deltagare}}
+Närvarande:
+          {{#each deltagare}}
+{{namn.0.[|value]}} (Specialitet: {{vårdgivarroll.0.specialitet.0.[|value]}})
+          {{/each}}
+        {{/each}}
+      {{/each}}
+    {{/each}}
+  {{/with}}
+
+Bakgrund:
+{{#with granskning}}
+  {{#each bakgrund}}
+    {{#each sjukdomshistoria}}
+      {{#each ospecificerad_händelse}}
+ Aktuellt: {{aktuellt.0.[|value]}}
+ Anamnes: {{anamnes.0.[|value]}}
+ Komorbiditet: {{komorbiditet.0.[|value]}}
+      {{/each}}
+    {{/each}}
+  {{/each}}
+{{/with}}
+
+{{#with granskning.utredning_undersökning.0.funktionsutredning.0.spirometriresultat.[0].ospecificerad_händelse.[0].kvot_fev1_fvc.[0].resultat.[0]}}
+  {{#if [|numerator]}}
+FEV1/FVC: {{[|numerator]}}
+    {{#if (gte [|numerator] 70)}}
+  FEV1/FVC kvot är över eller lika med 70%
+    {{else}}
+  FEV1/FVC kvot är under 70%
+    {{/if}}
+  {{else}}
+FEV1/FVC-resutat saknas!
+  {{/if}}
+{{/with}}
+
+TNM-Klassificering:
+{{~#with granskning.bedömning.0.behållare.0.klinisk_tnm-klassificering.[0]}}
+ (Version: {{tnm-version.0.[|value]}})
+{{#if (and primärtumör_t.0.[|value] regional_lymfkörtlar_n.0.[|value] fjärrmetastaser_m.0.[|value])}}
+T: {{primärtumör_t.0.[|value]}}
+N: {{regional_lymfkörtlar_n.0.[|value]}}
+M: {{fjärrmetastaser_m.0.[|value]}}
+Stadium: {{stadieindelning.0.[|value]}}
+{{/if}}
+{{/with}}
+
+Närvarande:
+{{~#with granskning.rubrik.[0].behållare.[0].deltagare.[0]}}
+  {{#each deltagare}}
+    {{~#if @first}} {{namn.0.[|value]}}
+    {{~else if @last}} och {{namn.0.[|value]}}.
+    {{else}} , {{namn.0.[|value]}}
+    {{/if}}
+  {{/each}}
+{{/with}}

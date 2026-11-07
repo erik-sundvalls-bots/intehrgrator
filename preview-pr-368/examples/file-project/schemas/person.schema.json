@@ -1,0 +1,8 @@
+{
+  "title": "Source person",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "displayName": { "type": "string" }
+  }
+}

@@ -1,0 +1,156 @@
+[
+  {
+    "name": "beredningsform",
+    "headers": [
+      "Form_CodeValue",
+      "code",
+      "text",
+      "snomed"
+    ],
+    "values": [
+      [
+        "1.0000",
+        "1",
+        "Inf. koncentrat",
+        "1237267003"
+      ],
+      [
+        "2.0000",
+        "2",
+        "Inf. substans",
+        "385223009"
+      ],
+      [
+        "3.0000",
+        "3",
+        "Tablett, kapsel mm.",
+        "421378002"
+      ],
+      [
+        "4.0000",
+        "4",
+        "Färdig lösning",
+        "385219001"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text",
+      "text",
+      "text"
+    ]
+  },
+  {
+    "name": "administreringsvag",
+    "headers": [
+      "Route_CodeValue",
+      "code",
+      "text",
+      "snomed"
+    ],
+    "values": [
+      [
+        "1.0000",
+        "1",
+        "Intramuskulärt",
+        "78421000"
+      ],
+      [
+        "2.0000",
+        "2",
+        "Peroralt",
+        "26643006"
+      ],
+      [
+        "3.0000",
+        "3",
+        "Intravenöst",
+        "47625008"
+      ],
+      [
+        "4.0000",
+        "4",
+        "Intrathecalt",
+        "72607000"
+      ],
+      [
+        "5.0000",
+        "5",
+        "Intraperitonealt",
+        "38239002"
+      ],
+      [
+        "6.0000",
+        "6",
+        "Intraarteriellt",
+        "58100008"
+      ],
+      [
+        "7.0000",
+        "7",
+        "Subcutant",
+        "34206005"
+      ],
+      [
+        "9.0000",
+        "9",
+        "Sublingualt",
+        "37839007"
+      ],
+      [
+        "11.0000",
+        "11",
+        "Intravesicalt",
+        "372471009"
+      ],
+      [
+        "12.0000",
+        "12",
+        "Intralesionalt",
+        "372466002"
+      ],
+      [
+        "14.0000",
+        "14",
+        "Intracutant",
+        "372464004"
+      ],
+      [
+        "15.0000",
+        "15",
+        "IV infusion",
+        "47625008"
+      ],
+      [
+        "16.0000",
+        "16",
+        "IV injektion",
+        "47625008"
+      ],
+      [
+        "17.0000",
+        "17",
+        "IV Infusor",
+        "47625008"
+      ],
+      [
+        "18.0000",
+        "18",
+        "Oralt (apotek)",
+        "26643006"
+      ],
+      [
+        "19.0000",
+        "19",
+        "IVINF",
+        "47625008"
+      ]
+    ],
+    "columnTypes": [
+      "text",
+      "text",
+      "text",
+      "text"
+    ]
+  }
+]
