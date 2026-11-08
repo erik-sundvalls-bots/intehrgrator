@@ -192,19 +192,19 @@
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "preview-integration": {
-    "built": "2026-11-08T16:43:17Z",
+    "built": "2026-11-08T19:06:51Z",
     "dir": "preview-integration",
     "mode": "branch",
     "pr": "368\thttps://github.com/regionstockholm/intehrgrator/pull/368\tOPEN\tIntegration preview: upstream main plus open PR 368",
-    "sha": "0980a366d41c9396986f1acee09e66e82bab90dc",
+    "sha": "7684a014b3d09733f53c3a3d3a326fb2937b6ab5",
     "upstream": "d64dc0965af86f8f0d9f7f7d556d18f479ae1052"
   },
   "preview-pr-368": {
-    "built": "2026-11-08T12:52:54Z",
+    "built": "2026-11-08T19:06:27Z",
     "dir": "preview-pr-368",
     "mode": "branch",
     "pr": "368\thttps://github.com/regionstockholm/intehrgrator/pull/368\tOPEN\tShow openEHR source RM attributes with compact variant A disclosure",
-    "sha": "1fb47229842baeb81ae9e973131090bee9091c46",
+    "sha": "f9a34934baa7b44f9a4a735c2c2459c74cdff476",
     "upstream": ""
   },
   "preview-value-set-hints": {

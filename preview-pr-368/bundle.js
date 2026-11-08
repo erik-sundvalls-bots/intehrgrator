@@ -209095,6 +209095,39 @@ var SVG_NS5 = "http://www.w3.org/2000/svg";
 var GLYPH_CLASS = "block-collapse-glyph";
 var PATCHED = "__intehrCollapseGlyph";
 var MENU_PATCHED3 = "__intehrCollapseGlyphMenu";
+var PAD_FIELD = "COLLAPSE_PAD";
+var COLLAPSE_BUTTON_PX = 14;
+function visibleBlockSize(block) {
+  const ownWidth = Number(block.width);
+  const ownHeight = Number(block.height);
+  if (ownWidth > 0 && ownHeight > 0) return { width: ownWidth, height: ownHeight };
+  const fallback2 = block.getHeightWidth?.();
+  return {
+    width: ownWidth > 0 ? ownWidth : Math.max(0, fallback2?.width ?? 40),
+    height: ownHeight > 0 ? ownHeight : Math.max(0, fallback2?.height ?? 24)
+  };
+}
+function collapseButtonBox(args) {
+  const size3 = COLLAPSE_BUTTON_PX;
+  const pad = 2;
+  const width = Math.max(size3 + pad * 2, args.blockWidth);
+  const height = Math.max(size3 + pad * 2, args.blockHeight);
+  const cog = args.cog;
+  const hasCog = Boolean(cog && cog.width > 0 && cog.height > 0);
+  let x6 = width - size3 - pad;
+  let y7 = pad;
+  if (cog && hasCog) {
+    x6 = cog.x - size3 - 3;
+    y7 = cog.y + (cog.height - size3) / 2;
+  }
+  x6 = clamp3(x6, pad, width - size3 - pad);
+  y7 = clamp3(y7, pad, height - size3 - pad);
+  return { x: x6, y: y7, size: size3 };
+}
+function clamp3(value, min2, max3) {
+  if (max3 < min2) return min2;
+  return Math.min(max3, Math.max(min2, value));
+}
 function collapseGlyph(collapsed) {
   return collapsed ? COLLAPSE_GLYPH_COLLAPSED : COLLAPSE_GLYPH_EXPANDED;
 }
@@ -209134,19 +209167,97 @@ function syncCollapseGlyph(block) {
   glyph.setAttribute("aria-expanded", collapsed ? "false" : "true");
   const title = glyph.querySelector("title");
   if (title) title.textContent = label;
-  const width = block.getHeightWidth?.().width ?? 40;
-  const cog = typeof block.getField === "function" && block.getField("MUTATOR_COG");
-  const inset = cog ? 32 : 14;
-  glyph.setAttribute("transform", `translate(${Math.max(4, width - inset)}, 12)`);
+  ensureCollapsePad(block);
+  const size3 = visibleBlockSize(block);
+  const box = collapseButtonBox({
+    blockWidth: size3.width,
+    blockHeight: size3.height,
+    cog: collapsed ? null : padAnchor(block) ?? rightHeaderIcon(block)
+  });
+  const plate = glyph.querySelector("rect");
+  plate?.setAttribute("width", String(box.size));
+  plate?.setAttribute("height", String(box.size));
+  if (mark) {
+    mark.setAttribute("x", String(box.size / 2));
+    mark.setAttribute("y", String(box.size - 3));
+  }
+  glyph.setAttribute("transform", `translate(${box.x}, ${box.y})`);
+}
+function ensureCollapsePad(block) {
+  try {
+    if (typeof block.getField !== "function" || block.getField(PAD_FIELD)) return;
+    if (typeof block.getInput !== "function") return;
+    const host2 = chromeHostInput(block);
+    if (!host2 || typeof host2.appendField !== "function") return;
+    host2.appendField(new FieldCollapsePad(), PAD_FIELD);
+    orderHeaderTrailingChrome(block);
+  } catch {
+  }
+}
+var FieldCollapsePad = class extends Blockly2.Field {
+  constructor() {
+    super("");
+    this.SERIALIZABLE = false;
+    this.EDITABLE = false;
+    if (this.size_) {
+      this.size_.width = COLLAPSE_BUTTON_PX + 4;
+      this.size_.height = COLLAPSE_BUTTON_PX;
+    }
+  }
+  getText() {
+    return "";
+  }
+};
+function padAnchor(block) {
+  const pad = typeof block.getField === "function" ? block.getField(PAD_FIELD) : null;
+  return iconBox(block, pad?.getSvgRoot?.() ?? null);
+}
+function rightHeaderIcon(block) {
+  const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
+  if (!blockSvg) return null;
+  let best = null;
+  for (const image of blockSvg.querySelectorAll("image")) {
+    if (image.closest(".block-collapse-glyph")) continue;
+    if (image.closest("foreignObject")) continue;
+    if (image.closest("g.blocklyDraggable") !== blockSvg) continue;
+    const box = iconBox(block, image);
+    if (!box || box.y > 32) continue;
+    if (!best || box.x > best.x) best = box;
+  }
+  return best;
+}
+function iconBox(block, node) {
+  const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
+  if (!node || !blockSvg || typeof node.getBoundingClientRect !== "function") return null;
+  const path = blockSvg.querySelector(":scope > path.blocklyPath") ?? blockSvg;
+  if (typeof path.getBoundingClientRect !== "function") return null;
+  const origin = path.getBoundingClientRect();
+  const box = node.getBoundingClientRect();
+  if (origin.width <= 0 || box.width < 4 || box.height < 4) return null;
+  const scale = Number(block.workspace?.scale ?? 1) || 1;
+  return {
+    x: (box.left - origin.left) / scale,
+    y: (box.top - origin.top) / scale,
+    width: box.width / scale,
+    height: box.height / scale
+  };
 }
 function createGlyph(block) {
   const glyph = document.createElementNS(SVG_NS5, "g");
   glyph.setAttribute("class", GLYPH_CLASS);
   glyph.setAttribute("role", "button");
   glyph.setAttribute("tabindex", "0");
+  const plate = document.createElementNS(SVG_NS5, "rect");
+  plate.setAttribute("class", "block-collapse-glyph-plate");
+  plate.setAttribute("rx", "3");
+  plate.setAttribute("ry", "3");
+  plate.setAttribute("width", String(COLLAPSE_BUTTON_PX));
+  plate.setAttribute("height", String(COLLAPSE_BUTTON_PX));
+  glyph.appendChild(plate);
   const mark = document.createElementNS(SVG_NS5, "text");
   mark.setAttribute("class", "block-collapse-glyph-mark");
   mark.setAttribute("aria-hidden", "true");
+  mark.setAttribute("text-anchor", "middle");
   glyph.appendChild(mark);
   const title = document.createElementNS(SVG_NS5, "title");
   glyph.appendChild(title);
@@ -211752,8 +211863,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "1fb4722" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-08T12:52:54.825Z" : "not built";
+var BUILD_ID = true ? "f9a3493" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-08T19:06:27.397Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;

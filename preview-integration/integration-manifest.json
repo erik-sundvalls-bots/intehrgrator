@@ -21,9 +21,9 @@
       "url": "https://github.com/regionstockholm/intehrgrator/pull/368",
       "forkUrl": "https://github.com/erik-sundvalls-bots/intehrgrator/pull/3",
       "state": "open",
-      "headSha": "1fb47229842baeb81ae9e973131090bee9091c46",
+      "headSha": "f9a34934baa7b44f9a4a735c2c2459c74cdff476",
       "headRef": "cursor/openehr-source-rm-disclosure-283c",
-      "note": "Merged with a normal merge commit. The #368 branch itself was not changed."
+      "note": "Review branch cursor/openehr-source-rm-disclosure-283c. Collapse button now sits beside the cogwheel. Merged here with a normal merge; the review branch was not rewritten."
     }
   ],
   "includedBecauseAlreadyOnUpstreamMain": [
@@ -937,7 +937,7 @@
     ],
     "note": "Those two are the same #368 head. No other open pull request existed."
   },
+  "collapseButton": "Header button uses the block outline, not getHeightWidth(), and a light rounded square.",
   "branch": "cursor/integration-preview-283c",
-  "branchTip": "0980a366d41c9396986f1acee09e66e82bab90dc",
-  "note": "Served build id is branchTip. Product tree of the merge matches PR #368 head 1fb4722 plus this banner and manifest."
+  "branchTip": "7684a014b3d09733f53c3a3d3a326fb2937b6ab5"
 }
