@@ -70,7 +70,6 @@
     "check": "deno check src/**/*.ts web/main.ts web/better_form_viewer.ts scripts/*.ts",
     "build": "deno run -A scripts/build.ts && deno run -A scripts/stage-desktop-www.ts",
     "dev": "deno run -A scripts/dev-server.ts",
-    "prototype:source-rm-tree": "deno run -A scripts/serve-file.ts web/prototype-openehr-source-rm-tree.html",
     "desktop": "deno run -A scripts/desktop-dev.ts",
     "compile:desktop": "deno run -A scripts/compile-desktop.ts",
     "compile:ehrtslib": "deno run -A scripts/compile-ehrtslib.ts",

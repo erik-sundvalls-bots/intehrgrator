@@ -295,6 +295,10 @@ export function localizeStatus(locale: string, message: string): string {
       render: (m) => formatMessage(t.taskLoadExampleN, { n: m[1] }),
     },
     {
+      re: /^Reading labels · (.+)$/,
+      render: (m) => formatMessage(t.taskReadingLabels, { lang: m[1] }),
+    },
+    {
       re: /^Hardcoded “(.+)” into (\d+) lookups?$/,
       render: (m) => formatMessage(t.hardcodedLookups, {
         key: m[1],
@@ -329,6 +333,7 @@ export function localizeTaskProgress(locale: string, progress: TaskProgress): Ta
     steps: progress.steps.map((step) => ({
       ...step,
       label: localizeStatus(locale, step.label),
+      detail: step.detail ? localizeStatus(locale, step.detail) : undefined,
     })),
   };
 }

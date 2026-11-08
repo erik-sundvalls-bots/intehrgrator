@@ -166,7 +166,7 @@ function collectSlots(workspace: Workspace): {
     slots.push(slot);
   };
   for (const block of workspace.getAllBlocks(false)) {
-    if (isTermPickBlock(block)) {
+    if (isTermPickBlock(block) || block.type === "procedures_callreturn") {
       const slotId = block.getFieldValue("SLOT_ID");
       const expression = blockToExpression(block);
       const rmType = block.getFieldValue("RM_TYPE") || "DV_CODED_TEXT";

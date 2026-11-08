@@ -2,24 +2,39 @@
  * Apply a value-set hint action on a Blockly workspace.
  * The Hints tab and MCP `apply_hint` both call this.
  */
+import { Blockly } from "./blockly_core.ts";
 import type { Block, Workspace } from "blockly/core";
 import { initBlocklyGenerators } from "./mod.ts";
 import {
-  applyOrdinalFieldsToDataValueShell,
   connectExpressionToDataValueShell,
   dvFieldInputName,
   ensureDvFieldVisible,
   ensureElementDataValueShell,
-  ensureRmBlockType,
   isDataValueBlock,
 } from "./blocks/rm_blocks.ts";
 import { createTermPickBlock } from "./blocks/term_pick.ts";
-import { DECISION_TABLE_BLOCK, registerDecisionTableBlocks } from "./blocks/decision_table_blocks.ts";
+import {
+  applyDecisionTableOutputType,
+  DECISION_TABLE_BLOCK,
+  registerDecisionTableBlocks,
+  runDecisionTableSchemaSync,
+} from "./blocks/decision_table_blocks.ts";
 import { registerSheetBlocks, SHEET_LOOKUP } from "./blocks/sheet_blocks.ts";
 import { registerMapBlocks } from "./blocks/map_blocks.ts";
-import { blockTypeForRm } from "../core/rm_meta.ts";
+import rowFunctionJson from "../../function-library/coded_value_from_row.intehr-function.json" with {
+  type: "json",
+};
+import { functionBundleFromUnknown } from "../core/function_library/bundle.ts";
+import { blockToExpression } from "./expression_serialize.ts";
+import { functionStatements } from "./function_statements.ts";
+import { mergeFunctionBundle } from "./function_bundle.ts";
+import { DECISION_ALL_OUTPUTS } from "../core/sheets/decision_table.ts";
 import { termSetForMandatedCode } from "../core/openehr_term_catalog.ts";
-import type { MappingModel, ProjectSettings, SkeletonNode } from "../types/mod.ts";
+import type {
+  MappingModel,
+  ProjectSettings,
+  SkeletonNode,
+} from "../types/mod.ts";
 import type { SheetDocument } from "../core/sheets/types.ts";
 import {
   clearHintMemory,
@@ -85,7 +100,12 @@ function connectOutput(parent: Block, inputName: string, child: Block): void {
   }
 }
 
-function connectRealText(workspace: Workspace, parent: Block, inputName: string, value: string): void {
+function connectRealText(
+  workspace: Workspace,
+  parent: Block,
+  inputName: string,
+  value: string,
+): void {
   const text = workspace.newBlock("text");
   text.setFieldValue(value, "TEXT");
   connectOutput(parent, inputName, finalizeBlock(text));
@@ -113,8 +133,14 @@ function findHost(workspace: Workspace, slotId: string): Block | null {
     null;
 }
 
-function shellFor(workspace: Workspace, host: Block, rmType: string): Block | null {
-  if (host.type === "element") return ensureElementDataValueShell(workspace, host, rmType);
+function shellFor(
+  workspace: Workspace,
+  host: Block,
+  rmType: string,
+): Block | null {
+  if (host.type === "element") {
+    return ensureElementDataValueShell(workspace, host, rmType);
+  }
   if (isDataValueBlock(host)) return host;
   return ensureElementDataValueShell(workspace, host, rmType);
 }
@@ -124,7 +150,12 @@ function showField(shell: Block, name: string): void {
   (shell as Block & { updateDvFields_?: () => void }).updateDvFields_?.();
 }
 
-function placeOnPrimary(workspace: Workspace, host: Block, rmType: string, expr: Block): void {
+function placeOnPrimary(
+  workspace: Workspace,
+  host: Block,
+  rmType: string,
+  expr: Block,
+): void {
   const shell = shellFor(workspace, host, rmType);
   if (!shell) return;
   connectExpressionToDataValueShell(shell, expr);
@@ -137,13 +168,22 @@ function placeOnUnits(workspace: Workspace, host: Block, expr: Block): void {
   connectOutput(shell, dvFieldInputName("units"), expr);
 }
 
-function placeTermPick(_workspace: Workspace, host: Block, pick: Block): void {
+function placeCompleteValue(
+  _workspace: Workspace,
+  host: Block,
+  pick: Block,
+): void {
   if (host.type === "element" || host.getInput("VALUE")) {
     connectOutput(host, "VALUE", pick);
     return;
   }
   const parent = host.outputConnection?.targetConnection ?? null;
   if (!parent || !pick.outputConnection) return;
+  const slotId = String(host.getFieldValue("SLOT_ID") ?? "");
+  if (slotId && pick.getField("SLOT_ID")) {
+    pick.setFieldValue(slotId, "SLOT_ID");
+    pick.setFieldValue(String(host.getFieldValue("RM_TYPE") ?? ""), "RM_TYPE");
+  }
   host.dispose(false);
   try {
     parent.connect(pick.outputConnection);
@@ -152,38 +192,14 @@ function placeTermPick(_workspace: Workspace, host: Block, pick: Block): void {
   }
 }
 
-function fillCodedShell(
-  workspace: Workspace,
-  shell: Block,
-  item: ValueSetHintCode,
-): void {
-  const rm = String(shell.getFieldValue("RM_TYPE") || "");
-  if (rm === "CODE_PHRASE" || shell.type === "code_phrase") {
-    showField(shell, "terminology_id");
-    showField(shell, "code_string");
-    if (item.terminologyId) connectRealText(workspace, shell, dvFieldInputName("terminology_id"), item.terminologyId);
-    connectRealText(workspace, shell, dvFieldInputName("code_string"), item.code);
-    return;
-  }
-  showField(shell, "value");
-  connectRealText(workspace, shell, dvFieldInputName("value"), item.text || item.code);
-  showField(shell, "defining_code");
-  ensureRmBlockType("code_phrase", "CODE_PHRASE");
-  const phrase = workspace.newBlock("code_phrase");
-  if (phrase.getField("RM_TYPE")) phrase.setFieldValue("CODE_PHRASE", "RM_TYPE");
-  connectOutput(shell, dvFieldInputName("defining_code"), finalizeBlock(phrase));
-  if (item.terminologyId) {
-    showField(phrase, "terminology_id");
-    connectRealText(workspace, phrase, dvFieldInputName("terminology_id"), item.terminologyId);
-  }
-  showField(phrase, "code_string");
-  connectRealText(workspace, phrase, dvFieldInputName("code_string"), item.code);
-}
-
-function chosenCode(hint: ValueSetHint, codes: string[] | undefined): ValueSetHintCode {
-  const wanted = codes?.find((code) => hint.codes.some((item) => item.code === code)) ??
-    hint.assumed ??
-    hint.codes[0]?.code;
+function chosenCode(
+  hint: ValueSetHint,
+  codes: string[] | undefined,
+): ValueSetHintCode {
+  const wanted =
+    codes?.find((code) => hint.codes.some((item) => item.code === code)) ??
+      hint.assumed ??
+      hint.codes[0]?.code;
   const item = hint.codes.find((row) => row.code === wanted) ?? hint.codes[0];
   if (!item) throw new Error(`Value-set hint ${hint.slotId} has no codes`);
   return item;
@@ -204,11 +220,17 @@ function sourceMap(workspace: Workspace, sourceColumn: string): Block {
   return finalizeBlock(map);
 }
 
-function decisionBlock(workspace: Workspace, name: string, output: string, sourceColumn: string): Block {
+function decisionBlock(
+  workspace: Workspace,
+  name: string,
+  output: string,
+  sourceColumn: string,
+): Block {
   registerDecisionTableBlocks();
   const block = workspace.newBlock(DECISION_TABLE_BLOCK);
   block.setFieldValue(name, "NAME");
-  block.setFieldValue(output, "OUTPUT");
+  runDecisionTableSchemaSync(() => block.setFieldValue(output, "OUTPUT"));
+  applyDecisionTableOutputType(block);
   finalizeBlock(block);
   const map = sourceMap(workspace, sourceColumn);
   connectOutput(block, "INPUTS", map);
@@ -232,11 +254,89 @@ function lookupBlock(
   return block;
 }
 
-function requireHint(hints: ValueSetHint[], slotId: string | undefined): ValueSetHint {
+function requireHint(
+  hints: ValueSetHint[],
+  slotId: string | undefined,
+): ValueSetHint {
   if (!slotId) throw new Error("apply_hint requires slotId");
   const hint = hints.find((row) => row.slotId === slotId);
   if (!hint) throw new Error(`No value-set hint for ${slotId}`);
   return hint;
+}
+
+function codedConstant(
+  workspace: Workspace,
+  hint: ValueSetHint,
+  item: ValueSetHintCode,
+): Block {
+  const entries: Array<[string, Block]> = [
+    ["code", textBlock(workspace, item.code)],
+    ["rubric", textBlock(workspace, item.text || item.code)],
+    ["terminology", textBlock(workspace, item.terminologyId ?? "local")],
+  ];
+  if (hint.kind === "ordinal") {
+    const number = workspace.newBlock("math_number");
+    number.setFieldValue(item.value ?? 0, "NUM");
+    entries.push(["value", finalizeBlock(number)]);
+  }
+  const row = workspace.newBlock("maps_create_with") as MapCreateBlock;
+  row.itemCount_ = entries.length;
+  row.updateShape_();
+  entries.forEach(([key, value], i) => {
+    row.setFieldValue(key, `KEY${i}`);
+    connectOutput(row, `VAL${i}`, value);
+  });
+  return completeCodedValue(workspace, finalizeBlock(row), hint.rmType);
+}
+
+/** One row expression, one ordinary Function call: no duplicated lookup/Map. */
+function completeCodedValue(
+  workspace: Workspace,
+  row: Block,
+  rmType: string,
+): Block {
+  const bundle = functionBundleFromUnknown(rowFunctionJson);
+  // Never replace or silently reuse an unrelated end-user Function with this name.
+  // Reuse an unmodified import; a customized definition gets a renamed import.
+  const signature = (block: Block): string => {
+    const params =
+      (block as Block & { getProcedureDef: () => [string, string[], boolean] })
+        .getProcedureDef()[1];
+    return "hint-coded-value:" + JSON.stringify([
+      params,
+      blockToExpression(block.getInputTargetBlock("RETURN")),
+      functionStatements(block.getInputTargetBlock("STACK")),
+    ]);
+  };
+  const existing = workspace.getTopBlocks(false).find((block) => {
+    if (
+      block.type !== "procedures_defreturn" ||
+      !block.data?.startsWith("hint-coded-value:")
+    ) return false;
+    try {
+      return block.data === signature(block);
+    } catch {
+      return false;
+    }
+  });
+  let name = existing ? String(existing.getFieldValue("NAME")) : bundle.name;
+  if (!existing) {
+    name =
+      mergeFunctionBundle(workspace, bundle, { clash: "rename", sheets: [] })
+        .name;
+    const definition = workspace.getTopBlocks(false).find((block) =>
+      block.type === "procedures_defreturn" &&
+      String(block.getFieldValue("NAME")) === name
+    );
+    if (definition) definition.data = signature(definition);
+  }
+  const call = Blockly.serialization.blocks.append({
+    type: "procedures_callreturn",
+    extraState: { name, params: bundle.parameters },
+  }, workspace) as Block;
+  connectOutput(call, "ARG0", row);
+  connectOutput(call, "ARG1", textBlock(workspace, rmType));
+  return finalizeBlock(call);
 }
 
 function placeGrid(
@@ -246,7 +346,13 @@ function placeGrid(
 ): void {
   const host = findHost(workspace, hint.slotId);
   if (!host) throw new Error(`No canvas block for ${hint.slotId}`);
-  if (hint.kind === "units") placeOnUnits(workspace, host, expr);
+  if (hint.kind === "coded" || hint.kind === "ordinal") {
+    placeCompleteValue(
+      workspace,
+      host,
+      completeCodedValue(workspace, expr, hint.rmType),
+    );
+  } else if (hint.kind === "units") placeOnUnits(workspace, host, expr);
   else placeOnPrimary(workspace, host, hint.rmType, expr);
 }
 
@@ -267,8 +373,15 @@ export function applyValueSetHint(
   const action = request.action;
   if (action === "restore") {
     const next = restoreHints(settings, request.slotId);
-    const summary = request.slotId ? `Restore value-set hint ${request.slotId}` : "Restore dismissed value-set hints";
-    return { settings: next, sheets, summary, ...(request.slotId ? { slotId: request.slotId } : {}) };
+    const summary = request.slotId
+      ? `Restore value-set hint ${request.slotId}`
+      : "Restore dismissed value-set hints";
+    return {
+      settings: next,
+      sheets,
+      summary,
+      ...(request.slotId ? { slotId: request.slotId } : {}),
+    };
   }
   const hint = requireHint(hints, request.slotId);
   if (action === "dismiss") {
@@ -286,34 +399,31 @@ export function applyValueSetHint(
     if (hint.kind === "coded") {
       const set = termSetForMandatedCode(item.terminologyId, item.code);
       if (set) {
-        const pick = finalizeBlock(createTermPickBlock(workspace, set, item.code, hint.slotId));
-        placeTermPick(workspace, host, pick);
+        const pick = finalizeBlock(
+          createTermPickBlock(workspace, set, item.code, hint.slotId),
+        );
+        placeCompleteValue(workspace, host, pick);
       } else {
-        const rm = hint.rmType === "CODE_PHRASE" ? "CODE_PHRASE" : "DV_CODED_TEXT";
-        const shell = shellFor(workspace, host, rm);
-        if (!shell) throw new Error(`No value shell for ${hint.slotId}`);
-        if (shell.getField("RM_TYPE")) shell.setFieldValue(rm, "RM_TYPE");
-        const blockType = rm === "CODE_PHRASE" ? "code_phrase" : blockTypeForRm(rm);
-        ensureRmBlockType(blockType, rm);
-        fillCodedShell(workspace, shell, item);
+        placeCompleteValue(
+          workspace,
+          host,
+          codedConstant(workspace, hint, item),
+        );
       }
     } else if (hint.kind === "ordinal") {
-      const shell = shellFor(workspace, host, hint.rmType);
-      if (!shell) throw new Error(`No value shell for ${hint.slotId}`);
-      applyOrdinalFieldsToDataValueShell(workspace, shell, {
-        value: String(item.value ?? ""),
-        symbol_value: item.text,
-        terminology_id: item.terminologyId ?? "local",
-        defining_code: item.code,
-        code_string: item.code,
-      });
+      placeCompleteValue(workspace, host, codedConstant(workspace, hint, item));
     } else if (hint.kind === "units") {
       placeOnUnits(workspace, host, textBlock(workspace, item.code));
     } else {
       const shell = shellFor(workspace, host, hint.rmType || "DV_TEXT");
       if (!shell) throw new Error(`No value shell for ${hint.slotId}`);
       showField(shell, "value");
-      connectRealText(workspace, shell, dvFieldInputName("value"), item.text || item.code);
+      connectRealText(
+        workspace,
+        shell,
+        dvFieldInputName("value"),
+        item.text || item.code,
+      );
     }
     return {
       settings: clearHintMemory(settings, hint.slotId),
@@ -325,9 +435,20 @@ export function applyValueSetHint(
   if (action === "decision_table" || action === "sheet_lookup") {
     const gridKind = action === "decision_table" ? "decision-table" : "sheet";
     const plan = planHintGrid(hint, sheets, gridKind);
+    const coded = hint.kind === "coded" || hint.kind === "ordinal";
     const expr = action === "decision_table"
-      ? decisionBlock(workspace, plan.name, plan.outputColumn, plan.sourceColumn)
-      : lookupBlock(workspace, plan.name, plan.sourceColumn, plan.outputColumn);
+      ? decisionBlock(
+        workspace,
+        plan.name,
+        coded ? DECISION_ALL_OUTPUTS : plan.outputColumn,
+        plan.sourceColumn,
+      )
+      : lookupBlock(
+        workspace,
+        plan.name,
+        plan.sourceColumn,
+        coded ? "" : plan.outputColumn,
+      );
     placeGrid(workspace, hint, expr);
     return {
       settings: clearHintMemory(settings, hint.slotId),
@@ -336,7 +457,11 @@ export function applyValueSetHint(
         ? `Decision table ${plan.name} for ${hint.label}`
         : `Sheet lookup ${plan.name} for ${hint.label}`,
       slotId: hint.slotId,
-      grid: { name: plan.name, kind: plan.kind, prompt: hintFillPrompt(hint, plan) },
+      grid: {
+        name: plan.name,
+        kind: plan.kind,
+        prompt: hintFillPrompt(hint, plan),
+      },
     };
   }
   throw new Error(`Unknown hint action: ${action}`);

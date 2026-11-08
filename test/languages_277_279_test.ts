@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import {
   aiContextLanguages,
   codesetLanguageName,
@@ -9,6 +10,8 @@ import {
   orderTargetLanguages,
   parseLanguageList,
   sameLanguage,
+  targetOriginalLanguage,
+  webTemplateDefaultLanguage,
 } from "@intehrgrator/core/languages.ts";
 
 Deno.test("codes: normalise, validate against ISO_639-1, region subtags, names", () => {
@@ -51,6 +54,24 @@ Deno.test("target.lang.N ordering: the #277 examples table", () => {
 
 Deno.test("UI language alone does not change the order when a source language matches", () => {
   assertEquals(orderTargetLanguages(["en", "sv"], "en", ["en"], "sv"), orderTargetLanguages(["en", "sv"], "en", ["en"], "en"));
+});
+
+Deno.test("Web Template original language is read from the head, not a full parse", () => {
+  const head = `{"templateId":"big","defaultLanguage":"sv","languages":["sv","en"],"tree":{`;
+  const padding = " ".repeat(2_000_000);
+  const text = head + padding + `"id":"x"}}`;
+  assertEquals(webTemplateDefaultLanguage(text), "sv");
+  const target = {
+    format: "openehr-template",
+    content: text,
+    webTemplateJson: text,
+    languages: ["sv", "en"],
+    language: "sv",
+  };
+  const t0 = performance.now();
+  for (let i = 0; i < 30; i++) assertEquals(targetOriginalLanguage(target), "sv");
+  const ms = performance.now() - t0;
+  assert(ms < 50, `30 original-language reads took ${ms.toFixed(0)}ms`);
 });
 
 Deno.test("display language: saved choice when available, else lang.1", () => {

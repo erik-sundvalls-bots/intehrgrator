@@ -318,11 +318,12 @@ function gridColumns(
         { header: "value", role: "output", valueType: "number" },
         { header: "code", role: "output" },
         { header: "rubric", role: "output" },
+        { header: "terminology", role: "output" },
       ],
       output: "value",
       rows: hint.codes.map((
         item,
-      ) => ["", item.value ?? "", item.code, item.text]),
+      ) => ["", item.value ?? "", item.code, item.text, item.terminologyId ?? "local"]),
     };
   }
   if (hint.kind === "units") {
@@ -344,9 +345,10 @@ function gridColumns(
       source,
       { header: "code", role: "output" },
       { header: "rubric", role: "output" },
+      { header: "terminology", role: "output" },
     ],
     output: "code",
-    rows: hint.codes.map((item) => ["", item.code, item.text]),
+    rows: hint.codes.map((item) => ["", item.code, item.text, item.terminologyId ?? "local"]),
   };
 }
 
@@ -412,7 +414,7 @@ export function hintFillPrompt(hint: ValueSetHint, plan: HintGridPlan): string {
     "Allowed targets (do not invent, rename, or drop these):",
     ...lines,
     "",
-    "Use the loaded Source Schema and the Active Example. Put each distinct source value that should map to a target in that row's source cell. Leave a source cell blank only when nothing in the source maps to that target. Do not change the code, rubric, value, or unit cells. Do not match codes by guessing similar words. Apply the edit with replace_sheets, keeping every other sheet, and leave the block that reads this grid on the slot.",
+    "Use the loaded Source Schema and the Active Example. Put each distinct source value that should map to a target in that row's source cell. Leave a source cell blank only when nothing in the source maps to that target. Do not change the code, rubric, terminology, value, or unit cells. Do not match codes by guessing similar words. Apply the edit with replace_sheets, keeping every other sheet, and leave the block that reads this grid on the slot.",
   ].join("\n");
 }
 
