@@ -4684,6 +4684,10 @@ function render(): void {
     s.skeleton.length ? targetSchemaTreeFromSkeleton(s.skeleton, targetAltLabels(s)) : [],
     undefined,
     uiChrome().loadTargetEmpty,
+    {
+      discloseOptionalRm: (s.target?.format ?? s.model.targetFormat) === "openehr-template",
+      rmOptionalToggleLabel: treeHighlightOptions().rmOptionalToggleLabel,
+    },
   );
 
   renderExampleTabs(s);

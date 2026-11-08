@@ -108,6 +108,11 @@ export function renderSchemaTree(
   container.appendChild(buildSchemaNode(node, onSelect, options, 0, format, expanded, rerender, ""));
 }
 
+/** Expansion set for one tree container. A different container does not share it. */
+export function rmExpansionPaths(container: HTMLElement, key: string): Set<string> {
+  return expandedPaths(container, key);
+}
+
 function expandedPaths(container: HTMLElement, key: string): Set<string> {
   const current = rmExpandedByContainer.get(container);
   if (current && current.key === key) return current.paths;
@@ -196,6 +201,16 @@ export function markDeprecatedTreeName(
   nameEl.classList.add(DEPRECATED_ATTR_CLASS);
   nameEl.title = "Deprecated";
   nameEl.setAttribute("aria-label", `${nameEl.textContent ?? attribute}, deprecated`);
+}
+
+/** Encircled plus/minus used by the source tree and the openEHR target tree. */
+export function createOptionalRmToggle(
+  node: SchemaTreeNode,
+  expanded: Set<string>,
+  options: SchemaTreeRenderOptions,
+  rerender: () => void,
+): HTMLButtonElement {
+  return optionalRmToggle(node, expanded, options, rerender);
 }
 
 function optionalRmToggle(
