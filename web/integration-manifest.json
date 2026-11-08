@@ -21,9 +21,9 @@
       "url": "https://github.com/regionstockholm/intehrgrator/pull/368",
       "forkUrl": "https://github.com/erik-sundvalls-bots/intehrgrator/pull/3",
       "state": "open",
-      "headSha": "f9a34934baa7b44f9a4a735c2c2459c74cdff476",
+      "headSha": "2761f6285647d81882bd6f189a85b614c9178b41",
       "headRef": "cursor/openehr-source-rm-disclosure-283c",
-      "note": "Review branch cursor/openehr-source-rm-disclosure-283c. Collapse button now sits beside the cogwheel. Merged here with a normal merge; the review branch was not rewritten."
+      "note": "Review branch includes the collapse button that stays off neighbouring header icons."
     }
   ],
   "includedBecauseAlreadyOnUpstreamMain": [
@@ -937,5 +937,5 @@
     ],
     "note": "Those two are the same #368 head. No other open pull request existed."
   },
-  "collapseButton": "Header button uses the block outline, not getHeightWidth(), and a light rounded square."
+  "collapseButton": "Rounded button uses the block outline and steps clear of every header icon. A follow-up render runs after the header gap is inserted."
 }
