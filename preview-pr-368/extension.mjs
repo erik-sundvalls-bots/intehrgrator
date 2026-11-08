@@ -79330,8 +79330,8 @@ var require_mutation_observers = __commonJS({
       const interestedObservers = /* @__PURE__ */ new Map();
       const nodes = domSymbolTree.ancestorsToArray(target);
       for (const node of nodes) {
-        for (const registered5 of node._registeredObserverList) {
-          const { options, observer: mo2 } = registered5;
+        for (const registered6 of node._registeredObserverList) {
+          const { options, observer: mo2 } = registered6;
           if (!(node !== target && options.subtree === false) && !(type === MUTATION_TYPE.ATTRIBUTES && options.attributes !== true) && !(type === MUTATION_TYPE.ATTRIBUTES && options.attributeFilter && !options.attributeFilter.some((value) => value === name2 || value === namespace)) && !(type === MUTATION_TYPE.CHARACTER_DATA && options.characterData !== true) && !(type === MUTATION_TYPE.CHILD_LIST && options.childList === false)) {
             if (!interestedObservers.has(mo2)) {
               interestedObservers.set(mo2, null);
@@ -202722,8 +202722,8 @@ function ensureModelTypes() {
 }
 function ctorFor(typeName2) {
   ensureModelTypes();
-  const registered5 = TypeRegistry.getConstructor(typeName2);
-  if (registered5) return registered5;
+  const registered6 = TypeRegistry.getConstructor(typeName2);
+  if (registered6) return registered6;
   if (!exportCtors || exportCtorModules !== rmInitLate.ctorModules.length) {
     exportCtors = /* @__PURE__ */ new Map();
     exportCtorModules = rmInitLate.ctorModules.length;
@@ -241080,10 +241080,16 @@ function applyRmConstrainedFields(node, parentRmType) {
 }
 function applyWebTemplateInputConstraints(tree, roots) {
   const nodes = flattenSkeletonNodes(roots);
+  const byType = /* @__PURE__ */ new Map();
+  for (const node of nodes) {
+    const list = byType.get(node.rmType);
+    if (list) list.push(node);
+    else byType.set(node.rmType, [node]);
+  }
   const walk3 = (node) => {
     if (!node || typeof node !== "object") return;
     const rec = node;
-    const matches = skeletonNodesForWebTemplateNode(nodes, rec);
+    const matches = skeletonNodesForWebTemplateNode(nodes, byType, rec);
     for (const input of rec.inputs ?? []) {
       const suffix = (input.suffix ?? "").toLowerCase();
       const items = (input.list ?? []).filter(
@@ -241114,22 +241120,23 @@ var NON_CODE_INPUT_SUFFIXES = /* @__PURE__ */ new Set([
   "ordinal",
   "normal_status"
 ]);
-function skeletonNodesForWebTemplateNode(nodes, rec) {
+function skeletonNodesForWebTemplateNode(nodes, byType, rec) {
   const nodeId = rec.nodeId;
   const rmType = rec.rmType;
   const attr = (rec.aqlPath ?? rec.id ?? "").split("/").filter(Boolean).pop();
+  const typed = rmType ? byType.get(rmType) ?? [] : nodes;
   if (nodeId) {
-    const byId = nodes.filter((sk) => {
+    const byId = typed.filter((sk) => {
       if (rmType && sk.rmType !== rmType) return false;
       return sk.archetypeNodeId === nodeId || sk.slotId.includes(`/${nodeId}/`) || sk.slotId.includes(`[${nodeId}]`) || sk.slotId.includes(`[${nodeId},`) || sk.slotId.endsWith(`/${nodeId}`) || sk.slotId.endsWith(`/${nodeId}/value`);
     });
     if (byId.length) return byId;
   }
   if (rmType && attr) {
-    const byType = nodes.filter(
-      (sk) => sk.rmType === rmType && (sk.rmAttribute === attr || sk.slotId.endsWith(`/${attr}`) || sk.slotId.endsWith(`/${attr}/value`))
+    const byTypeAttr = typed.filter(
+      (sk) => sk.rmAttribute === attr || sk.slotId.endsWith(`/${attr}`) || sk.slotId.endsWith(`/${attr}/value`)
     );
-    if (byType.length) return byType;
+    if (byTypeAttr.length) return byTypeAttr;
   }
   if (!attr) return [];
   return nodes.filter(
@@ -244395,8 +244402,8 @@ function resolveOnNonRmValue(mode) {
 function isKnownRmInstance(value) {
   const ctor = value.constructor;
   if (!ctor || ctor === Object || ctor === Array) return false;
-  const registered5 = TypeRegistry.getTypeName(ctor);
-  if (registered5) return isRmObjectType(registered5);
+  const registered6 = TypeRegistry.getTypeName(ctor);
+  if (registered6) return isRmObjectType(registered6);
   const name2 = ctor.name;
   if (!name2 || PRIMITIVE_LIKE2.has(name2)) return false;
   return isRmObjectType(name2);
@@ -253756,6 +253763,16 @@ function assignDataValueFields(output, rmType, value) {
       if (Array.isArray(record.mappings)) output.mappings = record.mappings;
     } else {
       output.value = value;
+    }
+    finish();
+    return;
+  }
+  if (rmType === "DV_ORDINAL" || rmType === "DV_SCALE") {
+    output.value = record && "value" in record ? record.value : value;
+    if (record?.symbol != null) {
+      const symbol = { _type: "DV_CODED_TEXT" };
+      assignDataValueFields(symbol, "DV_CODED_TEXT", record.symbol);
+      output.symbol = symbol;
     }
     finish();
     return;
@@ -266137,6 +266154,9 @@ var en2 = {
   taskLoadExampleSet: "Load example set",
   taskLoadTarget: "Load target",
   taskLoadSchema: "Load source schema",
+  taskReadingTemplate: "Reading the template",
+  taskPlacingTemplate: "Placing the template on the canvas",
+  taskReadingLabels: "Reading labels \xB7 {lang}",
   taskLoadMapping: "Load mapping",
   taskLoadSheets: "Load sheets",
   taskLoadDefaults: "Load defaults map",
@@ -268325,6 +268345,9 @@ var sv = {
   ...en2,
   sourceRmShowOptional: "Visa valfria referensmodellattribut f\xF6r {name}",
   sourceRmHideOptional: "D\xF6lj valfria referensmodellattribut f\xF6r {name}",
+  taskReadingTemplate: "L\xE4ser mallen",
+  taskPlacingTemplate: "Placerar mallen p\xE5 arbetsytan",
+  taskReadingLabels: "L\xE4ser etiketter \xB7 {lang}",
   menuAttachOriginalTarget: "Bifoga ursprungligt m\xE5lformat ocks\xE5",
   menuAttachOriginalTargetTitle: "Skicka \xE4ven den r\xE5a m\xE5lfilen (OPT / schema). Av: bara det kompakta slot-tr\xE4det, mycket mindre.",
   menuAiLanguages: "Spr\xE5k\u2026",
@@ -269249,6 +269272,7 @@ function optionalSchemaChildren(slotId, blockType) {
 }
 
 // src/core/rm_deprecation.ts
+var DEPRECATED_ATTR_CLASS = "blockly-slot-attr-name--deprecated";
 var DV_TEXT_HYPERLINK_DEPRECATION_HREF = "https://specifications.openehr.org/releases/RM/development/data_types.html#_formatting_and_hyperlinking";
 function isDeprecatedFieldDocumentation(documentation2) {
   return /^DEPRECATED\s*:/i.test(documentation2.trim());
@@ -270551,6 +270575,28 @@ function refreshMutatorFlyout(icon, contentsFor) {
   if (typeof gapHost.GAP_Y === "number") gapHost.GAP_Y = 6;
   if (typeof gapHost.gap_ === "number") gapHost.gap_ = 6;
   flyout.show(contents);
+  markDeprecatedMutatorLabels(flyoutWorkspace(flyout), rmClassOfBlock(block));
+}
+function flyoutWorkspace(flyout) {
+  const ws = flyout.workspace_;
+  if (!ws || typeof ws.getAllBlocks !== "function") return null;
+  return ws;
+}
+function rmClassOfBlock(block) {
+  if (!block) return "";
+  if (block.type === "element") return "ELEMENT";
+  return String(block.getFieldValue("RM_TYPE") || block.type || "").toUpperCase();
+}
+function markDeprecatedMutatorLabels(workspace3, parentRmType) {
+  if (!workspace3 || !parentRmType) return;
+  for (const block of workspace3.getAllBlocks(false)) {
+    const attr = String(block.getFieldValue("ATTR") || "");
+    if (!attr || !deprecatedRmField(parentRmType, attr)) continue;
+    const field = block.getField("LABEL");
+    const text = field?.getTextElement?.() ?? field?.textElement_ ?? null;
+    text?.classList.add(DEPRECATED_ATTR_CLASS);
+    field?.setTooltip?.("Deprecated");
+  }
 }
 function autoSizeMutatorBubble(bubble, sourceBlock) {
   const mini = bubble.getWorkspace?.() ?? bubble.miniWorkspace;
@@ -270616,6 +270662,8 @@ function autoSizeMutatorBubble(bubble, sourceBlock) {
   if (typeof bubble.setBubbleSize === "function") {
     bubble.setBubbleSize(targetWidth, targetHeight);
   }
+  markDeprecatedMutatorLabels(mini, rmClassOfBlock(sourceBlock));
+  if (flyout) markDeprecatedMutatorLabels(flyoutWorkspace(flyout), rmClassOfBlock(sourceBlock));
 }
 var DynamicFlyoutMutatorIcon = class extends MutatorIcon {
   constructor(sourceBlock, contentsFor, stackFallback) {
@@ -271166,8 +271214,17 @@ function displayLanguage(choice, order) {
   }
   return order[0];
 }
+var originalLanguageCache = /* @__PURE__ */ new WeakMap();
 function targetOriginalLanguage(target) {
   if (!target) return void 0;
+  const signature = `${target.format}\0${target.content.length}\0${target.webTemplateJson?.length ?? ""}\0${target.content.slice(0, 64)}`;
+  const cached2 = originalLanguageCache.get(target);
+  if (cached2 && cached2.signature === signature) return cached2.lang;
+  const lang = readTargetOriginalLanguage(target);
+  originalLanguageCache.set(target, { signature, lang });
+  return lang;
+}
+function readTargetOriginalLanguage(target) {
   const text = target.content.trimStart();
   if (target.format === "openehr-template") {
     if (text.startsWith("<")) {
@@ -271175,22 +271232,21 @@ function targetOriginalLanguage(target) {
       if (m4) return normalizeLangCode(m4[1]);
     }
     const wt2 = target.webTemplateJson ?? (text.startsWith("{") ? text : "");
-    if (wt2) {
-      try {
-        const lang = JSON.parse(wt2).defaultLanguage;
-        if (typeof lang === "string") return normalizeLangCode(lang);
-      } catch {
-      }
-    }
+    const fromHead = webTemplateDefaultLanguage(wt2);
+    if (fromHead) return fromHead;
   }
   if (target.format === "json-schema" && text.startsWith("{")) {
-    try {
-      const lang = JSON.parse(text)["x-lang"];
-      if (typeof lang === "string") return normalizeLangCode(lang);
-    } catch {
-    }
+    const head = text.slice(0, 8192);
+    const marked = head.match(/"x-lang"\s*:\s*"([^"]+)"/);
+    if (marked) return normalizeLangCode(marked[1]);
   }
   return target.languages?.[0] ?? target.language;
+}
+function webTemplateDefaultLanguage(json2) {
+  if (!json2) return void 0;
+  const head = json2.slice(0, 65536);
+  const marked = head.match(/"defaultLanguage"\s*:\s*"([^"]+)"/);
+  return marked ? normalizeLangCode(marked[1]) : void 0;
 }
 function targetLanguagesOf(target) {
   if (!target) return [];
@@ -276987,9 +277043,12 @@ function validateAgainstJsonSchemaDocument(content2, format4, schemaDocument) {
 function collectInstanceValidationIssues(instance, schema) {
   const issues = [];
   const instanceNodes = collectNodes(instance);
+  const schemaByPath = indexBySyncPath(schema);
+  const instancePaths = /* @__PURE__ */ new Set();
+  for (const node of instanceNodes) instancePaths.add(canonicalSyncPath(node.path));
   for (const node of instanceNodes) {
     if (node.path === instance.path) continue;
-    const schemaNode = findNodeBySyncPath(schema, canonicalSyncPath(node.path));
+    const schemaNode = schemaByPath.get(canonicalSyncPath(node.path));
     if (!schemaNode) {
       issues.push({
         path: node.path,
@@ -277004,9 +277063,9 @@ function collectInstanceValidationIssues(instance, schema) {
       });
     }
   }
-  for (const schemaNode of collectNodes(schema)) {
+  for (const schemaNode of schemaByPath.values()) {
     if (!isRequired(schemaNode.multiplicity)) continue;
-    if (!hasMatchingInstancePath(instance, schemaNode.path)) {
+    if (!instancePaths.has(canonicalSyncPath(schemaNode.path))) {
       issues.push({
         path: schemaNode.path,
         message: `Required field missing: ${schemaNode.name}`
@@ -277015,16 +277074,22 @@ function collectInstanceValidationIssues(instance, schema) {
   }
   return dedupeIssues2(issues);
 }
+function indexBySyncPath(root) {
+  const out = /* @__PURE__ */ new Map();
+  const walk3 = (node) => {
+    const key = canonicalSyncPath(node.path);
+    if (!out.has(key)) out.set(key, node);
+    for (const child of node.children) walk3(child);
+  };
+  walk3(root);
+  return out;
+}
 function collectNodes(root) {
   const nodes = [root];
   for (const child of root.children) {
     nodes.push(...collectNodes(child));
   }
   return nodes;
-}
-function hasMatchingInstancePath(instance, schemaPath) {
-  const target = canonicalSyncPath(schemaPath);
-  return collectNodes(instance).some((node) => canonicalSyncPath(node.path) === target);
 }
 function isRequired(multiplicity2) {
   if (!multiplicity2) return false;
@@ -281586,6 +281651,9 @@ function createMapsGetBlock(workspace3, mapName, key, meta3) {
     }
   }
   initAndRender(block);
+  if (mapName === DEFAULTS_MAP_NAME && typeof block.setCollapsed === "function") {
+    block.setCollapsed(true);
+  }
   return block;
 }
 function initAndRender(block) {
@@ -281915,7 +281983,7 @@ function fieldClickAnchor2(field) {
   return field.getClickTarget_?.() ?? field.getSvgRoot?.() ?? field.fieldGroup_ ?? null;
 }
 function confirmTypeSwitch() {
-  if (schemaSyncing) return true;
+  if (schemaSyncing || !Blockly.Events.isEnabled() || !Blockly.Events.getRecordUndo()) return true;
   if (typeof globalThis.confirm !== "function") return true;
   return globalThis.confirm(DECISION_TYPE_SWITCH_MESSAGE);
 }
@@ -283964,7 +284032,7 @@ function collectSlots(workspace3) {
     slots.push(slot);
   };
   for (const block of workspace3.getAllBlocks(false)) {
-    if (isTermPickBlock(block)) {
+    if (isTermPickBlock(block) || block.type === "procedures_callreturn") {
       const slotId2 = block.getFieldValue("SLOT_ID");
       const expression2 = blockToExpression(block);
       const rmType2 = block.getFieldValue("RM_TYPE") || "DV_CODED_TEXT";
@@ -284445,6 +284513,20 @@ function defineSourceQueryBlock(returnType, label, tooltip) {
       this.setInputsInline(true);
     }
   };
+}
+
+// src/blockly/blocks/function_blocks.ts
+var registered3 = false;
+function registerFunctionSlotFields() {
+  if (registered3) return;
+  const definition = Blockly.Blocks["procedures_callreturn"];
+  const init = definition.init;
+  definition.init = function() {
+    init.call(this);
+    appendHiddenSerializable(this, "SLOT_ID", "");
+    appendHiddenSerializable(this, "RM_TYPE", "");
+  };
+  registered3 = true;
 }
 
 // node_modules/.deno/@marijn+find-cluster-break@1.0.3/node_modules/@marijn/find-cluster-break/src/index.js
@@ -311476,10 +311558,10 @@ function normalizeLanguage(value) {
       return "handlebars";
   }
 }
-var registered3 = false;
+var registered4 = false;
 function registerFieldCodeMirror() {
-  if (registered3) return;
-  registered3 = true;
+  if (registered4) return;
+  registered4 = true;
   try {
     Blockly.fieldRegistry?.register(FIELD_CODEMIRROR_TYPE, FieldCodeMirror);
   } catch {
@@ -313543,6 +313625,7 @@ function loadSkeletonIntoWorkspace(workspace3, skeleton, model, listeningSlotId 
       collapseEntryBoilerplateChildren(block);
       enforceMouthCaptionLayout(block);
     }
+    collapseScaffoldedDefaultsLookups(workspace3);
     highlightListeningSlot(workspace3, listeningSlotId);
     refreshWorkspaceLayout(workspace3);
     refreshWorkspaceConstraints(workspace3);
@@ -313550,6 +313633,15 @@ function loadSkeletonIntoWorkspace(workspace3, skeleton, model, listeningSlotId 
   });
 }
 var lockedRoots = /* @__PURE__ */ new WeakSet();
+function collapseScaffoldedDefaultsLookups(workspace3) {
+  for (const block of workspace3.getAllBlocks(false)) {
+    if (!isScaffoldedDefaultsLookup(block)) continue;
+    if (typeof block.setCollapsed === "function") block.setCollapsed(true);
+  }
+}
+function isScaffoldedDefaultsLookup(block) {
+  return block.type === "maps_get" && String(block.getFieldValue("NAME") || "") === "defaults";
+}
 function setAllBlocksCollapsed(workspace3, collapsed) {
   const roots = new Set(workspace3.getTopBlocks(false));
   const instanceRoot = findInstanceRootUnderStart(workspace3);
@@ -313871,6 +313963,7 @@ function lockRootExpanded(block) {
   if (mutable.isCollapsed?.()) mutable.setCollapsed(false);
   if (lockedRoots.has(block)) return;
   lockedRoots.add(block);
+  block.collapseLocked = true;
   const original = mutable.setCollapsed.bind(block);
   mutable.setCollapsed = (_collapsed) => {
     original(false);
@@ -314978,10 +315071,10 @@ function installCollapsedPreview() {
     refreshParentSlotCaptions(this);
   };
 }
-var registered4 = false;
+var registered5 = false;
 function registerFieldCollapsedPreview() {
-  if (registered4) return;
-  registered4 = true;
+  if (registered5) return;
+  registered5 = true;
   try {
     Blockly.fieldRegistry?.register(FIELD_COLLAPSED_PREVIEW_TYPE, FieldCollapsedPreview);
   } catch {
@@ -314998,6 +315091,7 @@ function initBlocklyGenerators() {
     registerExpressionBlocks();
     registerIncludeWhenBlock();
     registerMapBlocks();
+    registerFunctionSlotFields();
     registerSheetBlocks();
     registerDecisionTableBlocks();
     registerTextBlocks();
@@ -315965,7 +316059,17 @@ var WorkbenchController = class {
         } else {
           await this.runTaskStep("load", async () => {
             const file = await this.host.fetchTextUrl(url);
-            this.loadTargetContent(file.name, file.text);
+            this.setRunningTaskDetail("Reading the template");
+            this.notifyChange();
+            await this.yieldUi();
+            const painted = this.beginCanvasSettle();
+            try {
+              this.loadTargetContent(file.name, file.text);
+            } catch (err2) {
+              this.settleCanvas();
+              throw err2;
+            }
+            await painted;
           });
         }
         this.targetOriginUrl = url;
@@ -316742,6 +316846,46 @@ var WorkbenchController = class {
   }
   async yieldUi() {
     await new Promise((resolve4) => setTimeout(resolve4, 0));
+  }
+  /**
+   * Detail on the step that is already running. Does not notify: the view
+   * paints the overlay, then yields, so the text is on screen before the
+   * next blocking stretch.
+   */
+  setRunningTaskDetail(detail) {
+    this.noteTaskDetail(detail);
+  }
+  getTaskProgress() {
+    return this.taskProgress;
+  }
+  canvasSettle = null;
+  canvasHeld = false;
+  /**
+   * Resolves on the next microtask unless the view calls `holdCanvasSettle`
+   * synchronously from the notify that follows (it will `settleCanvas` after
+   * the canvas paint). Headless callers have no view, so they do not hold.
+   */
+  beginCanvasSettle() {
+    this.canvasHeld = false;
+    return new Promise((resolve4) => {
+      const finish = () => {
+        if (this.canvasSettle !== finish) return;
+        this.canvasSettle = null;
+        this.canvasHeld = false;
+        resolve4();
+      };
+      this.canvasSettle = finish;
+      queueMicrotask(() => {
+        if (!this.canvasHeld) finish();
+      });
+    });
+  }
+  /** The view owns the settle promise and will resolve it after painting. */
+  holdCanvasSettle() {
+    if (this.canvasSettle) this.canvasHeld = true;
+  }
+  settleCanvas() {
+    this.canvasSettle?.();
   }
   async withTask(title, steps, run) {
     const nested = this.taskDepth > 0;

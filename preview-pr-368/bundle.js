@@ -85655,8 +85655,8 @@ function ensureModelTypes() {
 }
 function ctorFor(typeName2) {
   ensureModelTypes();
-  const registered5 = TypeRegistry.getConstructor(typeName2);
-  if (registered5) return registered5;
+  const registered6 = TypeRegistry.getConstructor(typeName2);
+  if (registered6) return registered6;
   if (!exportCtors || exportCtorModules !== rmInitLate.ctorModules.length) {
     exportCtors = /* @__PURE__ */ new Map();
     exportCtorModules = rmInitLate.ctorModules.length;
@@ -124023,10 +124023,16 @@ function applyRmConstrainedFields(node, parentRmType) {
 }
 function applyWebTemplateInputConstraints(tree, roots) {
   const nodes = flattenSkeletonNodes(roots);
+  const byType = /* @__PURE__ */ new Map();
+  for (const node of nodes) {
+    const list = byType.get(node.rmType);
+    if (list) list.push(node);
+    else byType.set(node.rmType, [node]);
+  }
   const walk4 = (node) => {
     if (!node || typeof node !== "object") return;
     const rec = node;
-    const matches = skeletonNodesForWebTemplateNode(nodes, rec);
+    const matches = skeletonNodesForWebTemplateNode(nodes, byType, rec);
     for (const input of rec.inputs ?? []) {
       const suffix = (input.suffix ?? "").toLowerCase();
       const items = (input.list ?? []).filter(
@@ -124057,22 +124063,23 @@ var NON_CODE_INPUT_SUFFIXES = /* @__PURE__ */ new Set([
   "ordinal",
   "normal_status"
 ]);
-function skeletonNodesForWebTemplateNode(nodes, rec) {
+function skeletonNodesForWebTemplateNode(nodes, byType, rec) {
   const nodeId = rec.nodeId;
   const rmType = rec.rmType;
   const attr = (rec.aqlPath ?? rec.id ?? "").split("/").filter(Boolean).pop();
+  const typed = rmType ? byType.get(rmType) ?? [] : nodes;
   if (nodeId) {
-    const byId = nodes.filter((sk) => {
+    const byId = typed.filter((sk) => {
       if (rmType && sk.rmType !== rmType) return false;
       return sk.archetypeNodeId === nodeId || sk.slotId.includes(`/${nodeId}/`) || sk.slotId.includes(`[${nodeId}]`) || sk.slotId.includes(`[${nodeId},`) || sk.slotId.endsWith(`/${nodeId}`) || sk.slotId.endsWith(`/${nodeId}/value`);
     });
     if (byId.length) return byId;
   }
   if (rmType && attr) {
-    const byType = nodes.filter(
-      (sk) => sk.rmType === rmType && (sk.rmAttribute === attr || sk.slotId.endsWith(`/${attr}`) || sk.slotId.endsWith(`/${attr}/value`))
+    const byTypeAttr = typed.filter(
+      (sk) => sk.rmAttribute === attr || sk.slotId.endsWith(`/${attr}`) || sk.slotId.endsWith(`/${attr}/value`)
     );
-    if (byType.length) return byType;
+    if (byTypeAttr.length) return byTypeAttr;
   }
   if (!attr) return [];
   return nodes.filter(
@@ -127349,8 +127356,8 @@ function resolveOnNonRmValue(mode) {
 function isKnownRmInstance(value) {
   const ctor = value.constructor;
   if (!ctor || ctor === Object || ctor === Array) return false;
-  const registered5 = TypeRegistry.getTypeName(ctor);
-  if (registered5) return isRmObjectType(registered5);
+  const registered6 = TypeRegistry.getTypeName(ctor);
+  if (registered6) return isRmObjectType(registered6);
   const name2 = ctor.name;
   if (!name2 || PRIMITIVE_LIKE2.has(name2)) return false;
   return isRmObjectType(name2);
@@ -136726,6 +136733,16 @@ function assignDataValueFields(output, rmType, value) {
       if (Array.isArray(record.mappings)) output.mappings = record.mappings;
     } else {
       output.value = value;
+    }
+    finish();
+    return;
+  }
+  if (rmType === "DV_ORDINAL" || rmType === "DV_SCALE") {
+    output.value = record && "value" in record ? record.value : value;
+    if (record?.symbol != null) {
+      const symbol = { _type: "DV_CODED_TEXT" };
+      assignDataValueFields(symbol, "DV_CODED_TEXT", record.symbol);
+      output.symbol = symbol;
     }
     finish();
     return;
@@ -149250,6 +149267,9 @@ var en3 = {
   taskLoadExampleSet: "Load example set",
   taskLoadTarget: "Load target",
   taskLoadSchema: "Load source schema",
+  taskReadingTemplate: "Reading the template",
+  taskPlacingTemplate: "Placing the template on the canvas",
+  taskReadingLabels: "Reading labels \xB7 {lang}",
   taskLoadMapping: "Load mapping",
   taskLoadSheets: "Load sheets",
   taskLoadDefaults: "Load defaults map",
@@ -151438,6 +151458,9 @@ var sv2 = {
   ...en3,
   sourceRmShowOptional: "Visa valfria referensmodellattribut f\xF6r {name}",
   sourceRmHideOptional: "D\xF6lj valfria referensmodellattribut f\xF6r {name}",
+  taskReadingTemplate: "L\xE4ser mallen",
+  taskPlacingTemplate: "Placerar mallen p\xE5 arbetsytan",
+  taskReadingLabels: "L\xE4ser etiketter \xB7 {lang}",
   menuAttachOriginalTarget: "Bifoga ursprungligt m\xE5lformat ocks\xE5",
   menuAttachOriginalTargetTitle: "Skicka \xE4ven den r\xE5a m\xE5lfilen (OPT / schema). Av: bara det kompakta slot-tr\xE4det, mycket mindre.",
   menuAiLanguages: "Spr\xE5k\u2026",
@@ -152245,6 +152268,10 @@ ${m5[5]}`;
       render: (m5) => formatMessage(t12.taskLoadExampleN, { n: m5[1] })
     },
     {
+      re: /^Reading labels · (.+)$/,
+      render: (m5) => formatMessage(t12.taskReadingLabels, { lang: m5[1] })
+    },
+    {
       re: /^Hardcoded “(.+)” into (\d+) lookups?$/,
       render: (m5) => formatMessage(t12.hardcodedLookups, {
         key: m5[1],
@@ -152272,7 +152299,8 @@ function localizeTaskProgress(locale, progress) {
     title: localizeStatus(locale, progress.title),
     steps: progress.steps.map((step) => ({
       ...step,
-      label: localizeStatus(locale, step.label)
+      label: localizeStatus(locale, step.label),
+      detail: step.detail ? localizeStatus(locale, step.detail) : void 0
     }))
   };
 }
@@ -152691,6 +152719,7 @@ function skeletonToolboxSignature(skeleton) {
 }
 
 // src/core/rm_deprecation.ts
+var DEPRECATED_ATTR_CLASS = "blockly-slot-attr-name--deprecated";
 var DV_TEXT_HYPERLINK_DEPRECATION_HREF = "https://specifications.openehr.org/releases/RM/development/data_types.html#_formatting_and_hyperlinking";
 function isDeprecatedFieldDocumentation(documentation2) {
   return /^DEPRECATED\s*:/i.test(documentation2.trim());
@@ -153993,6 +154022,28 @@ function refreshMutatorFlyout(icon, contentsFor) {
   if (typeof gapHost.GAP_Y === "number") gapHost.GAP_Y = 6;
   if (typeof gapHost.gap_ === "number") gapHost.gap_ = 6;
   flyout.show(contents);
+  markDeprecatedMutatorLabels(flyoutWorkspace(flyout), rmClassOfBlock(block));
+}
+function flyoutWorkspace(flyout) {
+  const ws = flyout.workspace_;
+  if (!ws || typeof ws.getAllBlocks !== "function") return null;
+  return ws;
+}
+function rmClassOfBlock(block) {
+  if (!block) return "";
+  if (block.type === "element") return "ELEMENT";
+  return String(block.getFieldValue("RM_TYPE") || block.type || "").toUpperCase();
+}
+function markDeprecatedMutatorLabels(workspace2, parentRmType) {
+  if (!workspace2 || !parentRmType) return;
+  for (const block of workspace2.getAllBlocks(false)) {
+    const attr = String(block.getFieldValue("ATTR") || "");
+    if (!attr || !deprecatedRmField(parentRmType, attr)) continue;
+    const field = block.getField("LABEL");
+    const text = field?.getTextElement?.() ?? field?.textElement_ ?? null;
+    text?.classList.add(DEPRECATED_ATTR_CLASS);
+    field?.setTooltip?.("Deprecated");
+  }
 }
 function autoSizeMutatorBubble(bubble, sourceBlock) {
   const mini = bubble.getWorkspace?.() ?? bubble.miniWorkspace;
@@ -154058,6 +154109,8 @@ function autoSizeMutatorBubble(bubble, sourceBlock) {
   if (typeof bubble.setBubbleSize === "function") {
     bubble.setBubbleSize(targetWidth, targetHeight);
   }
+  markDeprecatedMutatorLabels(mini, rmClassOfBlock(sourceBlock));
+  if (flyout) markDeprecatedMutatorLabels(flyoutWorkspace(flyout), rmClassOfBlock(sourceBlock));
 }
 var DynamicFlyoutMutatorIcon = class extends MutatorIcon {
   constructor(sourceBlock, contentsFor, stackFallback) {
@@ -154747,8 +154800,17 @@ function displayLanguage(choice, order) {
   }
   return order[0];
 }
+var originalLanguageCache = /* @__PURE__ */ new WeakMap();
 function targetOriginalLanguage(target) {
   if (!target) return void 0;
+  const signature = `${target.format}\0${target.content.length}\0${target.webTemplateJson?.length ?? ""}\0${target.content.slice(0, 64)}`;
+  const cached3 = originalLanguageCache.get(target);
+  if (cached3 && cached3.signature === signature) return cached3.lang;
+  const lang = readTargetOriginalLanguage(target);
+  originalLanguageCache.set(target, { signature, lang });
+  return lang;
+}
+function readTargetOriginalLanguage(target) {
   const text = target.content.trimStart();
   if (target.format === "openehr-template") {
     if (text.startsWith("<")) {
@@ -154756,22 +154818,21 @@ function targetOriginalLanguage(target) {
       if (m5) return normalizeLangCode(m5[1]);
     }
     const wt2 = target.webTemplateJson ?? (text.startsWith("{") ? text : "");
-    if (wt2) {
-      try {
-        const lang = JSON.parse(wt2).defaultLanguage;
-        if (typeof lang === "string") return normalizeLangCode(lang);
-      } catch {
-      }
-    }
+    const fromHead = webTemplateDefaultLanguage(wt2);
+    if (fromHead) return fromHead;
   }
   if (target.format === "json-schema" && text.startsWith("{")) {
-    try {
-      const lang = JSON.parse(text)["x-lang"];
-      if (typeof lang === "string") return normalizeLangCode(lang);
-    } catch {
-    }
+    const head = text.slice(0, 8192);
+    const marked = head.match(/"x-lang"\s*:\s*"([^"]+)"/);
+    if (marked) return normalizeLangCode(marked[1]);
   }
   return target.languages?.[0] ?? target.language;
+}
+function webTemplateDefaultLanguage(json2) {
+  if (!json2) return void 0;
+  const head = json2.slice(0, 65536);
+  const marked = head.match(/"defaultLanguage"\s*:\s*"([^"]+)"/);
+  return marked ? normalizeLangCode(marked[1]) : void 0;
 }
 function targetLanguagesOf(target) {
   if (!target) return [];
@@ -160845,9 +160906,12 @@ function validateAgainstJsonSchemaDocument(content2, format4, schemaDocument) {
 function collectInstanceValidationIssues(instance, schema) {
   const issues = [];
   const instanceNodes = collectNodes(instance);
+  const schemaByPath = indexBySyncPath(schema);
+  const instancePaths = /* @__PURE__ */ new Set();
+  for (const node of instanceNodes) instancePaths.add(canonicalSyncPath(node.path));
   for (const node of instanceNodes) {
     if (node.path === instance.path) continue;
-    const schemaNode = findNodeBySyncPath(schema, canonicalSyncPath(node.path));
+    const schemaNode = schemaByPath.get(canonicalSyncPath(node.path));
     if (!schemaNode) {
       issues.push({
         path: node.path,
@@ -160862,9 +160926,9 @@ function collectInstanceValidationIssues(instance, schema) {
       });
     }
   }
-  for (const schemaNode of collectNodes(schema)) {
+  for (const schemaNode of schemaByPath.values()) {
     if (!isRequired(schemaNode.multiplicity)) continue;
-    if (!hasMatchingInstancePath(instance, schemaNode.path)) {
+    if (!instancePaths.has(canonicalSyncPath(schemaNode.path))) {
       issues.push({
         path: schemaNode.path,
         message: `Required field missing: ${schemaNode.name}`
@@ -160873,16 +160937,22 @@ function collectInstanceValidationIssues(instance, schema) {
   }
   return dedupeIssues2(issues);
 }
+function indexBySyncPath(root) {
+  const out = /* @__PURE__ */ new Map();
+  const walk4 = (node) => {
+    const key = canonicalSyncPath(node.path);
+    if (!out.has(key)) out.set(key, node);
+    for (const child of node.children) walk4(child);
+  };
+  walk4(root);
+  return out;
+}
 function collectNodes(root) {
   const nodes = [root];
   for (const child of root.children) {
     nodes.push(...collectNodes(child));
   }
   return nodes;
-}
-function hasMatchingInstancePath(instance, schemaPath) {
-  const target = canonicalSyncPath(schemaPath);
-  return collectNodes(instance).some((node) => canonicalSyncPath(node.path) === target);
 }
 function isRequired(multiplicity2) {
   if (!multiplicity2) return false;
@@ -161171,10 +161241,11 @@ function gridColumns(hint) {
         source,
         { header: "value", role: "output", valueType: "number" },
         { header: "code", role: "output" },
-        { header: "rubric", role: "output" }
+        { header: "rubric", role: "output" },
+        { header: "terminology", role: "output" }
       ],
       output: "value",
-      rows: hint.codes.map((item) => ["", item.value ?? "", item.code, item.text])
+      rows: hint.codes.map((item) => ["", item.value ?? "", item.code, item.text, item.terminologyId ?? "local"])
     };
   }
   if (hint.kind === "units") {
@@ -161195,10 +161266,11 @@ function gridColumns(hint) {
     columns: [
       source,
       { header: "code", role: "output" },
-      { header: "rubric", role: "output" }
+      { header: "rubric", role: "output" },
+      { header: "terminology", role: "output" }
     ],
     output: "code",
-    rows: hint.codes.map((item) => ["", item.code, item.text])
+    rows: hint.codes.map((item) => ["", item.code, item.text, item.terminologyId ?? "local"])
   };
 }
 function planHintGrid(hint, sheets, kind) {
@@ -161248,7 +161320,7 @@ function hintFillPrompt(hint, plan) {
     "Allowed targets (do not invent, rename, or drop these):",
     ...lines,
     "",
-    "Use the loaded Source Schema and the Active Example. Put each distinct source value that should map to a target in that row's source cell. Leave a source cell blank only when nothing in the source maps to that target. Do not change the code, rubric, value, or unit cells. Do not match codes by guessing similar words. Apply the edit with replace_sheets, keeping every other sheet, and leave the block that reads this grid on the slot."
+    "Use the loaded Source Schema and the Active Example. Put each distinct source value that should map to a target in that row's source cell. Leave a source cell blank only when nothing in the source maps to that target. Do not change the code, rubric, terminology, value, or unit cells. Do not match codes by guessing similar words. Apply the edit with replace_sheets, keeping every other sheet, and leave the block that reads this grid on the slot."
   ].join("\n");
 }
 function countActiveHints(hints) {
@@ -165283,6 +165355,9 @@ function createMapsGetBlock(workspace2, mapName, key, meta4) {
     }
   }
   initAndRender(block);
+  if (mapName === DEFAULTS_MAP_NAME && typeof block.setCollapsed === "function") {
+    block.setCollapsed(true);
+  }
   return block;
 }
 function initAndRender(block) {
@@ -165737,7 +165812,7 @@ function fieldClickAnchor2(field) {
   return field.getClickTarget_?.() ?? field.getSvgRoot?.() ?? field.fieldGroup_ ?? null;
 }
 function confirmTypeSwitch() {
-  if (schemaSyncing) return true;
+  if (schemaSyncing || !Blockly2.Events.isEnabled() || !Blockly2.Events.getRecordUndo()) return true;
   if (typeof globalThis.confirm !== "function") return true;
   return globalThis.confirm(DECISION_TYPE_SWITCH_MESSAGE);
 }
@@ -167917,7 +167992,7 @@ function collectSlots(workspace2) {
     slots.push(slot);
   };
   for (const block of workspace2.getAllBlocks(false)) {
-    if (isTermPickBlock(block)) {
+    if (isTermPickBlock(block) || block.type === "procedures_callreturn") {
       const slotId2 = block.getFieldValue("SLOT_ID");
       const expression3 = blockToExpression(block);
       const rmType2 = block.getFieldValue("RM_TYPE") || "DV_CODED_TEXT";
@@ -168398,6 +168473,20 @@ function defineSourceQueryBlock(returnType, label, tooltip) {
       this.setInputsInline(true);
     }
   };
+}
+
+// src/blockly/blocks/function_blocks.ts
+var registered3 = false;
+function registerFunctionSlotFields() {
+  if (registered3) return;
+  const definition = Blockly2.Blocks["procedures_callreturn"];
+  const init = definition.init;
+  definition.init = function() {
+    init.call(this);
+    appendHiddenSerializable(this, "SLOT_ID", "");
+    appendHiddenSerializable(this, "RM_TYPE", "");
+  };
+  registered3 = true;
 }
 
 // node_modules/.deno/@marijn+find-cluster-break@1.0.3/node_modules/@marijn/find-cluster-break/src/index.js
@@ -195537,10 +195626,10 @@ function normalizeLanguage(value) {
       return "handlebars";
   }
 }
-var registered3 = false;
+var registered4 = false;
 function registerFieldCodeMirror() {
-  if (registered3) return;
-  registered3 = true;
+  if (registered4) return;
+  registered4 = true;
   try {
     Blockly2.fieldRegistry?.register(FIELD_CODEMIRROR_TYPE, FieldCodeMirror);
   } catch {
@@ -197803,6 +197892,7 @@ function loadSkeletonIntoWorkspace(workspace2, skeleton, model, listeningSlotId 
       collapseEntryBoilerplateChildren(block);
       enforceMouthCaptionLayout(block);
     }
+    collapseScaffoldedDefaultsLookups(workspace2);
     highlightListeningSlot(workspace2, listeningSlotId);
     refreshWorkspaceLayout(workspace2);
     refreshWorkspaceConstraints(workspace2);
@@ -197837,6 +197927,7 @@ function placeSkeletonSubtreeOnWorkspace(workspace2, node, options = {}) {
       collapseEntryBoilerplateChildren(child);
       enforceMouthCaptionLayout(child);
     }
+    collapseScaffoldedDefaultsLookups(workspace2);
     refreshWorkspaceLayout(workspace2);
     refreshWorkspaceConstraints(workspace2);
     return block;
@@ -197863,6 +197954,15 @@ function lockWorkspaceRootsExpanded(workspace2) {
   }
   const instanceRoot = findInstanceRootUnderStart(workspace2);
   if (instanceRoot) lockRootExpanded(instanceRoot);
+}
+function collapseScaffoldedDefaultsLookups(workspace2) {
+  for (const block of workspace2.getAllBlocks(false)) {
+    if (!isScaffoldedDefaultsLookup(block)) continue;
+    if (typeof block.setCollapsed === "function") block.setCollapsed(true);
+  }
+}
+function isScaffoldedDefaultsLookup(block) {
+  return block.type === "maps_get" && String(block.getFieldValue("NAME") || "") === "defaults";
 }
 function setChildBlocksCollapsed(root, collapsed) {
   const grouped = typeof Blockly2.Events.setGroup === "function";
@@ -198204,6 +198304,7 @@ function lockRootExpanded(block) {
   if (mutable.isCollapsed?.()) mutable.setCollapsed(false);
   if (lockedRoots.has(block)) return;
   lockedRoots.add(block);
+  block.collapseLocked = true;
   const original = mutable.setCollapsed.bind(block);
   mutable.setCollapsed = (_collapsed) => {
     original(false);
@@ -200826,10 +200927,10 @@ function installCollapsedPreview() {
     refreshParentSlotCaptions(this);
   };
 }
-var registered4 = false;
+var registered5 = false;
 function registerFieldCollapsedPreview() {
-  if (registered4) return;
-  registered4 = true;
+  if (registered5) return;
+  registered5 = true;
   try {
     Blockly2.fieldRegistry?.register(FIELD_COLLAPSED_PREVIEW_TYPE, FieldCollapsedPreview);
   } catch {
@@ -200846,6 +200947,7 @@ function initBlocklyGenerators() {
     registerExpressionBlocks();
     registerIncludeWhenBlock();
     registerMapBlocks();
+    registerFunctionSlotFields();
     registerSheetBlocks();
     registerDecisionTableBlocks();
     registerTextBlocks();
@@ -201816,7 +201918,17 @@ var WorkbenchController = class {
         } else {
           await this.runTaskStep("load", async () => {
             const file = await this.host.fetchTextUrl(url);
-            this.loadTargetContent(file.name, file.text);
+            this.setRunningTaskDetail("Reading the template");
+            this.notifyChange();
+            await this.yieldUi();
+            const painted = this.beginCanvasSettle();
+            try {
+              this.loadTargetContent(file.name, file.text);
+            } catch (err2) {
+              this.settleCanvas();
+              throw err2;
+            }
+            await painted;
           });
         }
         this.targetOriginUrl = url;
@@ -202593,6 +202705,46 @@ var WorkbenchController = class {
   }
   async yieldUi() {
     await new Promise((resolve4) => setTimeout(resolve4, 0));
+  }
+  /**
+   * Detail on the step that is already running. Does not notify: the view
+   * paints the overlay, then yields, so the text is on screen before the
+   * next blocking stretch.
+   */
+  setRunningTaskDetail(detail) {
+    this.noteTaskDetail(detail);
+  }
+  getTaskProgress() {
+    return this.taskProgress;
+  }
+  canvasSettle = null;
+  canvasHeld = false;
+  /**
+   * Resolves on the next microtask unless the view calls `holdCanvasSettle`
+   * synchronously from the notify that follows (it will `settleCanvas` after
+   * the canvas paint). Headless callers have no view, so they do not hold.
+   */
+  beginCanvasSettle() {
+    this.canvasHeld = false;
+    return new Promise((resolve4) => {
+      const finish = () => {
+        if (this.canvasSettle !== finish) return;
+        this.canvasSettle = null;
+        this.canvasHeld = false;
+        resolve4();
+      };
+      this.canvasSettle = finish;
+      queueMicrotask(() => {
+        if (!this.canvasHeld) finish();
+      });
+    });
+  }
+  /** The view owns the settle promise and will resolve it after painting. */
+  holdCanvasSettle() {
+    if (this.canvasSettle) this.canvasHeld = true;
+  }
+  settleCanvas() {
+    this.canvasSettle?.();
   }
   async withTask(title, steps, run) {
     const nested = this.taskDepth > 0;
@@ -204368,7 +204520,10 @@ function renderSchemaTree(container, node, onSelect, options = {}, format4 = "js
   const expanded = expandedPaths(container, `${format4}\0${node.path}\0${node.name}\0${node.type}`);
   const rerender = () => renderSchemaTree(container, node, onSelect, options, format4);
   container.innerHTML = "";
-  container.appendChild(buildSchemaNode(node, onSelect, options, 0, format4, expanded, rerender));
+  container.appendChild(buildSchemaNode(node, onSelect, options, 0, format4, expanded, rerender, ""));
+}
+function rmExpansionPaths(container, key) {
+  return expandedPaths(container, key);
 }
 function expandedPaths(container, key) {
   const current = rmExpandedByContainer.get(container);
@@ -204383,7 +204538,7 @@ function renderInstanceTree(container, node, onSelect, options = {}, format4 = "
   container.innerHTML = "";
   container.appendChild(buildInstanceNode(node, onSelect, options, 0, format4));
 }
-function buildSchemaNode(node, onSelect, options, depth, format4, expanded, rerender) {
+function buildSchemaNode(node, onSelect, options, depth, format4, expanded, rerender, parentRmType) {
   const syncPath = canonicalSyncPath(node.path);
   const row = createTreeRow(node.path, syncPath, depth);
   if (node.rmOrigin === "rm-mandatory") row.classList.add("tree-row-rm-mandatory");
@@ -204393,24 +204548,47 @@ function buildSchemaNode(node, onSelect, options, depth, format4, expanded, rere
   const meta4 = document.createElement("span");
   meta4.className = "tree-meta";
   meta4.textContent = formatSchemaMeta(node);
-  label.append(document.createTextNode(node.name), meta4);
+  const nameEl = document.createElement("span");
+  nameEl.className = "tree-name";
+  nameEl.textContent = node.name;
+  markDeprecatedTreeName(nameEl, parentRmType, node.rmAttribute);
+  label.append(nameEl, meta4);
   attachTreeInteractions(label, node, syncPath, "schema", format4, onSelect, options);
   row.appendChild(label);
   const optionalGaps = optionalSourceRmGaps(node);
   if (optionalGaps.length > 0) {
     row.appendChild(optionalRmToggle(node, expanded, options, rerender));
   }
+  const childRm = rmClassOf(node.type);
   const wrap = document.createElement("div");
   wrap.appendChild(row);
   for (const child of node.children) {
-    wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format4, expanded, rerender));
+    wrap.appendChild(
+      buildSchemaNode(child, onSelect, options, depth + 1, format4, expanded, rerender, childRm)
+    );
   }
   if (expanded.has(node.path)) {
     for (const child of optionalGaps) {
-      wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format4, expanded, rerender));
+      wrap.appendChild(
+        buildSchemaNode(child, onSelect, options, depth + 1, format4, expanded, rerender, childRm)
+      );
     }
   }
   return wrap;
+}
+function rmClassOf(type) {
+  const base2 = baseRmTypeName(type);
+  return hasRmType(base2) ? base2 : "";
+}
+function markDeprecatedTreeName(nameEl, parentRmType, attribute) {
+  if (!attribute || !parentRmType) return;
+  if (!deprecatedRmField(parentRmType, attribute)) return;
+  nameEl.classList.add(DEPRECATED_ATTR_CLASS);
+  nameEl.title = "Deprecated";
+  nameEl.setAttribute("aria-label", `${nameEl.textContent ?? attribute}, deprecated`);
+}
+function createOptionalRmToggle(node, expanded, options, rerender) {
+  return optionalRmToggle(node, expanded, options, rerender);
 }
 function optionalRmToggle(node, expanded, options, rerender) {
   const open = expanded.has(node.path);
@@ -204557,6 +204735,7 @@ function targetSchemaTreeFromSkeleton(nodes, altLabels) {
       type: node.rmType || node.blockType,
       multiplicity: node.multiplicity ?? node.effectiveCardinality,
       description: node.documentation,
+      ...node.rmAttribute ? { rmAttribute: node.rmAttribute } : {},
       ...alt ? { altLabels: alt } : {},
       children: node.children.map(toTree)
     };
@@ -204564,23 +204743,29 @@ function targetSchemaTreeFromSkeleton(nodes, altLabels) {
   return nodes.map(toTree);
 }
 function renderTargetSchemaTree(container, nodes, onSelect = () => {
-}, emptyLabel = "Load a target schema or template.") {
+}, emptyLabel = "Load a target schema or template.", options = {}) {
   container.classList.add("target-schema-tree");
+  const disclose = options.discloseOptionalRm === true;
+  const expanded = disclose ? rmExpansionPaths(container, `target\0${nodes[0]?.path ?? ""}\0${nodes.length}`) : /* @__PURE__ */ new Set();
+  const rerender = () => renderTargetSchemaTree(container, nodes, onSelect, emptyLabel, options);
   container.innerHTML = "";
   if (!nodes.length) {
     container.textContent = emptyLabel;
     return;
   }
   for (const node of nodes) {
-    container.appendChild(buildTargetNode(node, onSelect, 0));
+    container.appendChild(buildTargetNode(node, onSelect, 0, disclose, expanded, options, rerender, ""));
   }
 }
-function buildTargetNode(node, onSelect, depth) {
+function buildTargetNode(node, onSelect, depth, disclose, expanded, options, rerender, parentRmType) {
+  const synthetic = node.rmOrigin === "rm-optional" || node.rmOrigin === "rm-mandatory";
   const row = document.createElement("div");
   row.className = "tree-row";
+  if (node.rmOrigin === "rm-mandatory") row.classList.add("tree-row-rm-mandatory");
+  if (node.rmOrigin === "rm-optional") row.classList.add("tree-row-rm-optional");
   row.style.paddingLeft = `${depth * 12}px`;
   row.dataset.path = node.path;
-  row.dataset.slotId = node.path;
+  if (!synthetic) row.dataset.slotId = node.path;
   const label = document.createElement("span");
   label.className = "tree-label tree-label-schema";
   const meta4 = document.createElement("span");
@@ -204588,28 +204773,49 @@ function buildTargetNode(node, onSelect, depth) {
   const metaParts = [node.type];
   if (node.multiplicity) metaParts.push(`[${node.multiplicity}]`);
   meta4.textContent = `  ${metaParts.join(" ")}`;
-  label.append(document.createTextNode(node.name), meta4);
-  label.draggable = true;
-  label.title = [node.description ?? node.path, node.altLabels].filter(Boolean).join("\n");
-  label.addEventListener("click", (event) => onSelect(node.path, event));
-  label.addEventListener("dragstart", (e12) => {
-    const payload = { slotId: node.path };
-    activeTargetDrag = payload;
-    const json2 = JSON.stringify(payload);
-    e12.dataTransfer?.setData(TARGET_DRAG_MIME, json2);
-    e12.dataTransfer?.setData("text/plain", json2);
-    if (e12.dataTransfer) e12.dataTransfer.effectAllowed = "copy";
-  });
-  label.addEventListener("dragend", () => {
-    queueMicrotask(() => {
-      activeTargetDrag = null;
+  const nameEl = document.createElement("span");
+  nameEl.className = "tree-name";
+  nameEl.textContent = node.name;
+  markDeprecatedTreeName(nameEl, parentRmType, node.rmAttribute);
+  label.append(nameEl, meta4);
+  const alt = "altLabels" in node ? node.altLabels : void 0;
+  if (!synthetic) {
+    label.draggable = true;
+    label.title = [node.description ?? node.path, alt].filter(Boolean).join("\n");
+    label.addEventListener("click", (event) => onSelect(node.path, event));
+    label.addEventListener("dragstart", (e12) => {
+      const payload = { slotId: node.path };
+      activeTargetDrag = payload;
+      const json2 = JSON.stringify(payload);
+      e12.dataTransfer?.setData(TARGET_DRAG_MIME, json2);
+      e12.dataTransfer?.setData("text/plain", json2);
+      if (e12.dataTransfer) e12.dataTransfer.effectAllowed = "copy";
     });
-  });
+    label.addEventListener("dragend", () => {
+      queueMicrotask(() => {
+        activeTargetDrag = null;
+      });
+    });
+  }
   row.appendChild(label);
+  const gaps = disclose ? optionalSourceRmGaps(node) : [];
+  if (gaps.length > 0) {
+    row.appendChild(createOptionalRmToggle(node, expanded, options, rerender));
+  }
+  const childRm = node.type;
   const wrap = document.createElement("div");
   wrap.appendChild(row);
   for (const child of node.children) {
-    wrap.appendChild(buildTargetNode(child, onSelect, depth + 1));
+    wrap.appendChild(
+      buildTargetNode(child, onSelect, depth + 1, disclose, expanded, options, rerender, childRm)
+    );
+  }
+  if (disclose && expanded.has(node.path)) {
+    for (const child of gaps) {
+      wrap.appendChild(
+        buildTargetNode(child, onSelect, depth + 1, disclose, expanded, options, rerender, childRm)
+      );
+    }
   }
   return wrap;
 }
@@ -207180,7 +207386,9 @@ function mappingSpecDocumentText(view) {
 var LAYER_CLASS = "hint-badges-layer";
 var NS = "http://www.w3.org/2000/svg";
 function clearHintBadges(workspace2) {
-  workspace2.getCanvas()?.querySelector(`.${LAYER_CLASS}`)?.remove();
+  workspace2.getCanvas()?.querySelectorAll(`.${LAYER_CLASS}`).forEach(
+    (layer) => layer.remove()
+  );
 }
 function slotIdOf(block) {
   try {
@@ -207193,22 +207401,60 @@ function badgeBlock(blocks2, slotId) {
   const matches = blocks2.filter((block) => slotIdOf(block) === slotId);
   return matches.find((block) => block.type === "element") ?? matches[0];
 }
+function subtreeBounds(root) {
+  let left2 = Infinity, top2 = Infinity, right2 = -Infinity, bottom = -Infinity;
+  const visit2 = (block, includeNext) => {
+    if (block.getSvgRoot()?.style.display === "none") return;
+    const { x: x6, y: y7 } = block.getRelativeToSurfaceXY();
+    const box = block.pathObject.svgPath.getBBox();
+    left2 = Math.min(left2, x6 + box.x);
+    top2 = Math.min(top2, y7 + box.y);
+    right2 = Math.max(right2, x6 + box.x + box.width);
+    bottom = Math.max(bottom, y7 + box.y + box.height);
+    if (!block.isCollapsed()) {
+      for (const input of block.inputList) {
+        const child = input.connection?.targetBlock();
+        if (child) visit2(child, true);
+      }
+    }
+    const next = includeNext ? block.getNextBlock() : null;
+    if (next) visit2(next, true);
+  };
+  visit2(root, false);
+  return { left: left2, top: top2, right: right2, bottom };
+}
 function renderHintBadges(workspace2, hints, onClick) {
   clearHintBadges(workspace2);
   const active = hints.filter((hint) => hint.slotId);
   if (!active.length) return;
   const blocks2 = workspace2.getAllBlocks(false);
-  const layer = document.createElementNS(NS, "g");
-  layer.setAttribute("class", LAYER_CLASS);
   for (const hint of active) {
     const block = badgeBlock(blocks2, hint.slotId);
     if (!block?.getSvgRoot?.()) continue;
-    const { x: x6, y: y7 } = block.getRelativeToSurfaceXY();
-    const width = block.width || 0;
+    const bounds = subtreeBounds(block);
+    if (!Object.values(bounds).every(Number.isFinite)) continue;
+    const origin = block.getRelativeToSurfaceXY();
+    const layer = document.createElementNS(NS, "g");
+    layer.setAttribute("class", LAYER_CLASS);
+    layer.setAttribute("transform", `translate(${-origin.x},${-origin.y})`);
+    layer.setAttribute("pointer-events", "none");
+    const outline = document.createElementNS(NS, "rect");
+    outline.setAttribute("class", "hint-subtree-outline");
+    outline.setAttribute("data-slot-id", hint.slotId);
+    outline.setAttribute("x", String(bounds.left - 5));
+    outline.setAttribute("y", String(bounds.top - 5));
+    outline.setAttribute("width", String(bounds.right - bounds.left + 10));
+    outline.setAttribute("height", String(bounds.bottom - bounds.top + 10));
+    outline.setAttribute("rx", "6");
+    layer.append(outline);
     const g5 = document.createElementNS(NS, "g");
     g5.setAttribute("class", "hint-badge");
+    g5.setAttribute("pointer-events", "all");
     g5.setAttribute("data-slot-id", hint.slotId);
-    g5.setAttribute("transform", `translate(${x6 + Math.max(width - 4, 12)},${y7 + 4})`);
+    g5.setAttribute(
+      "transform",
+      `translate(${bounds.right - 12},${bounds.top + 12})`
+    );
     const disc = document.createElementNS(NS, "circle");
     disc.setAttribute("r", "9");
     disc.setAttribute("cx", "0");
@@ -207227,11 +207473,1002 @@ function renderHintBadges(workspace2, hints, onClick) {
       onClick(hint.slotId);
     });
     layer.append(g5);
+    block.getSvgRoot().append(layer);
   }
-  workspace2.getCanvas().append(layer);
 }
 
+// function-library/coded_value_from_row.intehr-function.json
+var coded_value_from_row_intehr_function_default = {
+  kind: "intehrgrator-function",
+  version: 1,
+  name: "coded_value_from_row",
+  description: "Builds a complete DV_CODED_TEXT, CODE_PHRASE or DV_ORDINAL (or DV_SCALE) from one row Map. Columns: code, rubric, terminology; ordinals also need numeric value. Missing code/terminology returns null; rubric is required except for CODE_PHRASE, and ordinals also require value. Hints feed one Decision table all-outputs Map or Sheet lookup row into this ordinary, editable Blockly Function; no generator primitive or duplicated source wiring.",
+  parameters: [
+    "row",
+    "rm_type"
+  ],
+  hasReturn: true,
+  returns: "DATA_VALUE",
+  decisionTables: [],
+  sheets: [],
+  blocklyState: {
+    blocks: {
+      languageVersion: 0,
+      blocks: [
+        {
+          type: "procedures_defreturn",
+          fields: {
+            NAME: "coded_value_from_row"
+          },
+          inputs: {
+            STACK: {
+              block: {
+                type: "procedures_ifreturn",
+                inputs: {
+                  CONDITION: {
+                    block: {
+                      type: "logic_operation",
+                      fields: {
+                        OP: "OR"
+                      },
+                      inputs: {
+                        A: {
+                          block: {
+                            type: "logic_operation",
+                            fields: {
+                              OP: "OR"
+                            },
+                            inputs: {
+                              A: {
+                                block: {
+                                  type: "logic_operation",
+                                  fields: {
+                                    OP: "OR"
+                                  },
+                                  inputs: {
+                                    A: {
+                                      block: {
+                                        type: "logic_compare",
+                                        fields: {
+                                          OP: "EQ"
+                                        },
+                                        inputs: {
+                                          A: {
+                                            block: {
+                                              type: "text_trim",
+                                              fields: {
+                                                MODE: "BOTH"
+                                              },
+                                              inputs: {
+                                                TEXT: {
+                                                  block: {
+                                                    type: "maps_get",
+                                                    inputs: {
+                                                      MAP: {
+                                                        block: {
+                                                          type: "variables_get",
+                                                          fields: {
+                                                            VAR: {
+                                                              id: "coded_value_from_row_row",
+                                                              name: "row"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      KEY: {
+                                                        block: {
+                                                          type: "text",
+                                                          fields: {
+                                                            TEXT: "code"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          B: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: ""
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    B: {
+                                      block: {
+                                        type: "logic_compare",
+                                        fields: {
+                                          OP: "EQ"
+                                        },
+                                        inputs: {
+                                          A: {
+                                            block: {
+                                              type: "text_trim",
+                                              fields: {
+                                                MODE: "BOTH"
+                                              },
+                                              inputs: {
+                                                TEXT: {
+                                                  block: {
+                                                    type: "maps_get",
+                                                    inputs: {
+                                                      MAP: {
+                                                        block: {
+                                                          type: "variables_get",
+                                                          fields: {
+                                                            VAR: {
+                                                              id: "coded_value_from_row_row",
+                                                              name: "row"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      KEY: {
+                                                        block: {
+                                                          type: "text",
+                                                          fields: {
+                                                            TEXT: "terminology"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          B: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: ""
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              B: {
+                                block: {
+                                  type: "logic_operation",
+                                  fields: {
+                                    OP: "AND"
+                                  },
+                                  inputs: {
+                                    A: {
+                                      block: {
+                                        type: "logic_negate",
+                                        inputs: {
+                                          BOOL: {
+                                            block: {
+                                              type: "logic_compare",
+                                              fields: {
+                                                OP: "EQ"
+                                              },
+                                              inputs: {
+                                                A: {
+                                                  block: {
+                                                    type: "variables_get",
+                                                    fields: {
+                                                      VAR: {
+                                                        id: "coded_value_from_row_rm_type",
+                                                        name: "rm_type"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                B: {
+                                                  block: {
+                                                    type: "text",
+                                                    fields: {
+                                                      TEXT: "CODE_PHRASE"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    B: {
+                                      block: {
+                                        type: "logic_compare",
+                                        fields: {
+                                          OP: "EQ"
+                                        },
+                                        inputs: {
+                                          A: {
+                                            block: {
+                                              type: "text_trim",
+                                              fields: {
+                                                MODE: "BOTH"
+                                              },
+                                              inputs: {
+                                                TEXT: {
+                                                  block: {
+                                                    type: "maps_get",
+                                                    inputs: {
+                                                      MAP: {
+                                                        block: {
+                                                          type: "variables_get",
+                                                          fields: {
+                                                            VAR: {
+                                                              id: "coded_value_from_row_row",
+                                                              name: "row"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      KEY: {
+                                                        block: {
+                                                          type: "text",
+                                                          fields: {
+                                                            TEXT: "rubric"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          B: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: ""
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        B: {
+                          block: {
+                            type: "logic_operation",
+                            fields: {
+                              OP: "AND"
+                            },
+                            inputs: {
+                              A: {
+                                block: {
+                                  type: "logic_operation",
+                                  fields: {
+                                    OP: "OR"
+                                  },
+                                  inputs: {
+                                    A: {
+                                      block: {
+                                        type: "logic_compare",
+                                        fields: {
+                                          OP: "EQ"
+                                        },
+                                        inputs: {
+                                          A: {
+                                            block: {
+                                              type: "variables_get",
+                                              fields: {
+                                                VAR: {
+                                                  id: "coded_value_from_row_rm_type",
+                                                  name: "rm_type"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          B: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: "DV_ORDINAL"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    B: {
+                                      block: {
+                                        type: "logic_compare",
+                                        fields: {
+                                          OP: "EQ"
+                                        },
+                                        inputs: {
+                                          A: {
+                                            block: {
+                                              type: "variables_get",
+                                              fields: {
+                                                VAR: {
+                                                  id: "coded_value_from_row_rm_type",
+                                                  name: "rm_type"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          B: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: "DV_SCALE"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              B: {
+                                block: {
+                                  type: "logic_compare",
+                                  fields: {
+                                    OP: "EQ"
+                                  },
+                                  inputs: {
+                                    A: {
+                                      block: {
+                                        type: "text_trim",
+                                        fields: {
+                                          MODE: "BOTH"
+                                        },
+                                        inputs: {
+                                          TEXT: {
+                                            block: {
+                                              type: "maps_get",
+                                              inputs: {
+                                                MAP: {
+                                                  block: {
+                                                    type: "variables_get",
+                                                    fields: {
+                                                      VAR: {
+                                                        id: "coded_value_from_row_row",
+                                                        name: "row"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                KEY: {
+                                                  block: {
+                                                    type: "text",
+                                                    fields: {
+                                                      TEXT: "value"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    B: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: ""
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  VALUE: {
+                    block: {
+                      type: "logic_null"
+                    }
+                  }
+                }
+              }
+            },
+            RETURN: {
+              block: {
+                type: "logic_ternary",
+                inputs: {
+                  IF: {
+                    block: {
+                      type: "logic_compare",
+                      fields: {
+                        OP: "EQ"
+                      },
+                      inputs: {
+                        A: {
+                          block: {
+                            type: "variables_get",
+                            fields: {
+                              VAR: {
+                                id: "coded_value_from_row_rm_type",
+                                name: "rm_type"
+                              }
+                            }
+                          }
+                        },
+                        B: {
+                          block: {
+                            type: "text",
+                            fields: {
+                              TEXT: "CODE_PHRASE"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  THEN: {
+                    block: {
+                      type: "maps_create_with",
+                      fields: {
+                        KEY0: "_type",
+                        KEY1: "code_string",
+                        KEY2: "terminology_id"
+                      },
+                      inputs: {
+                        VAL0: {
+                          block: {
+                            type: "text",
+                            fields: {
+                              TEXT: "CODE_PHRASE"
+                            }
+                          }
+                        },
+                        VAL1: {
+                          block: {
+                            type: "maps_get",
+                            inputs: {
+                              MAP: {
+                                block: {
+                                  type: "variables_get",
+                                  fields: {
+                                    VAR: {
+                                      id: "coded_value_from_row_row",
+                                      name: "row"
+                                    }
+                                  }
+                                }
+                              },
+                              KEY: {
+                                block: {
+                                  type: "text",
+                                  fields: {
+                                    TEXT: "code"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        VAL2: {
+                          block: {
+                            type: "maps_create_with",
+                            fields: {
+                              KEY0: "_type",
+                              KEY1: "value"
+                            },
+                            inputs: {
+                              VAL0: {
+                                block: {
+                                  type: "text",
+                                  fields: {
+                                    TEXT: "TERMINOLOGY_ID"
+                                  }
+                                }
+                              },
+                              VAL1: {
+                                block: {
+                                  type: "maps_get",
+                                  inputs: {
+                                    MAP: {
+                                      block: {
+                                        type: "variables_get",
+                                        fields: {
+                                          VAR: {
+                                            id: "coded_value_from_row_row",
+                                            name: "row"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    KEY: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "terminology"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            extraState: {
+                              itemCount: 2
+                            }
+                          }
+                        }
+                      },
+                      extraState: {
+                        itemCount: 3
+                      }
+                    }
+                  },
+                  ELSE: {
+                    block: {
+                      type: "logic_ternary",
+                      inputs: {
+                        IF: {
+                          block: {
+                            type: "logic_operation",
+                            fields: {
+                              OP: "OR"
+                            },
+                            inputs: {
+                              A: {
+                                block: {
+                                  type: "logic_compare",
+                                  fields: {
+                                    OP: "EQ"
+                                  },
+                                  inputs: {
+                                    A: {
+                                      block: {
+                                        type: "variables_get",
+                                        fields: {
+                                          VAR: {
+                                            id: "coded_value_from_row_rm_type",
+                                            name: "rm_type"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    B: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "DV_ORDINAL"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              B: {
+                                block: {
+                                  type: "logic_compare",
+                                  fields: {
+                                    OP: "EQ"
+                                  },
+                                  inputs: {
+                                    A: {
+                                      block: {
+                                        type: "variables_get",
+                                        fields: {
+                                          VAR: {
+                                            id: "coded_value_from_row_rm_type",
+                                            name: "rm_type"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    B: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "DV_SCALE"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        THEN: {
+                          block: {
+                            type: "maps_create_with",
+                            fields: {
+                              KEY0: "_type",
+                              KEY1: "value",
+                              KEY2: "symbol"
+                            },
+                            inputs: {
+                              VAL0: {
+                                block: {
+                                  type: "variables_get",
+                                  fields: {
+                                    VAR: {
+                                      id: "coded_value_from_row_rm_type",
+                                      name: "rm_type"
+                                    }
+                                  }
+                                }
+                              },
+                              VAL1: {
+                                block: {
+                                  type: "maps_get",
+                                  inputs: {
+                                    MAP: {
+                                      block: {
+                                        type: "variables_get",
+                                        fields: {
+                                          VAR: {
+                                            id: "coded_value_from_row_row",
+                                            name: "row"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    KEY: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "value"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              VAL2: {
+                                block: {
+                                  type: "maps_create_with",
+                                  fields: {
+                                    KEY0: "_type",
+                                    KEY1: "value",
+                                    KEY2: "defining_code"
+                                  },
+                                  inputs: {
+                                    VAL0: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "DV_CODED_TEXT"
+                                        }
+                                      }
+                                    },
+                                    VAL1: {
+                                      block: {
+                                        type: "maps_get",
+                                        inputs: {
+                                          MAP: {
+                                            block: {
+                                              type: "variables_get",
+                                              fields: {
+                                                VAR: {
+                                                  id: "coded_value_from_row_row",
+                                                  name: "row"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          KEY: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: "rubric"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    VAL2: {
+                                      block: {
+                                        type: "maps_create_with",
+                                        fields: {
+                                          KEY0: "_type",
+                                          KEY1: "code_string",
+                                          KEY2: "terminology_id"
+                                        },
+                                        inputs: {
+                                          VAL0: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: "CODE_PHRASE"
+                                              }
+                                            }
+                                          },
+                                          VAL1: {
+                                            block: {
+                                              type: "maps_get",
+                                              inputs: {
+                                                MAP: {
+                                                  block: {
+                                                    type: "variables_get",
+                                                    fields: {
+                                                      VAR: {
+                                                        id: "coded_value_from_row_row",
+                                                        name: "row"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                KEY: {
+                                                  block: {
+                                                    type: "text",
+                                                    fields: {
+                                                      TEXT: "code"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          VAL2: {
+                                            block: {
+                                              type: "maps_create_with",
+                                              fields: {
+                                                KEY0: "_type",
+                                                KEY1: "value"
+                                              },
+                                              inputs: {
+                                                VAL0: {
+                                                  block: {
+                                                    type: "text",
+                                                    fields: {
+                                                      TEXT: "TERMINOLOGY_ID"
+                                                    }
+                                                  }
+                                                },
+                                                VAL1: {
+                                                  block: {
+                                                    type: "maps_get",
+                                                    inputs: {
+                                                      MAP: {
+                                                        block: {
+                                                          type: "variables_get",
+                                                          fields: {
+                                                            VAR: {
+                                                              id: "coded_value_from_row_row",
+                                                              name: "row"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      KEY: {
+                                                        block: {
+                                                          type: "text",
+                                                          fields: {
+                                                            TEXT: "terminology"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              extraState: {
+                                                itemCount: 2
+                                              }
+                                            }
+                                          }
+                                        },
+                                        extraState: {
+                                          itemCount: 3
+                                        }
+                                      }
+                                    }
+                                  },
+                                  extraState: {
+                                    itemCount: 3
+                                  }
+                                }
+                              }
+                            },
+                            extraState: {
+                              itemCount: 3
+                            }
+                          }
+                        },
+                        ELSE: {
+                          block: {
+                            type: "maps_create_with",
+                            fields: {
+                              KEY0: "_type",
+                              KEY1: "value",
+                              KEY2: "defining_code"
+                            },
+                            inputs: {
+                              VAL0: {
+                                block: {
+                                  type: "text",
+                                  fields: {
+                                    TEXT: "DV_CODED_TEXT"
+                                  }
+                                }
+                              },
+                              VAL1: {
+                                block: {
+                                  type: "maps_get",
+                                  inputs: {
+                                    MAP: {
+                                      block: {
+                                        type: "variables_get",
+                                        fields: {
+                                          VAR: {
+                                            id: "coded_value_from_row_row",
+                                            name: "row"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    KEY: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "rubric"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              VAL2: {
+                                block: {
+                                  type: "maps_create_with",
+                                  fields: {
+                                    KEY0: "_type",
+                                    KEY1: "code_string",
+                                    KEY2: "terminology_id"
+                                  },
+                                  inputs: {
+                                    VAL0: {
+                                      block: {
+                                        type: "text",
+                                        fields: {
+                                          TEXT: "CODE_PHRASE"
+                                        }
+                                      }
+                                    },
+                                    VAL1: {
+                                      block: {
+                                        type: "maps_get",
+                                        inputs: {
+                                          MAP: {
+                                            block: {
+                                              type: "variables_get",
+                                              fields: {
+                                                VAR: {
+                                                  id: "coded_value_from_row_row",
+                                                  name: "row"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          KEY: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: "code"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    VAL2: {
+                                      block: {
+                                        type: "maps_create_with",
+                                        fields: {
+                                          KEY0: "_type",
+                                          KEY1: "value"
+                                        },
+                                        inputs: {
+                                          VAL0: {
+                                            block: {
+                                              type: "text",
+                                              fields: {
+                                                TEXT: "TERMINOLOGY_ID"
+                                              }
+                                            }
+                                          },
+                                          VAL1: {
+                                            block: {
+                                              type: "maps_get",
+                                              inputs: {
+                                                MAP: {
+                                                  block: {
+                                                    type: "variables_get",
+                                                    fields: {
+                                                      VAR: {
+                                                        id: "coded_value_from_row_row",
+                                                        name: "row"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                KEY: {
+                                                  block: {
+                                                    type: "text",
+                                                    fields: {
+                                                      TEXT: "terminology"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        extraState: {
+                                          itemCount: 2
+                                        }
+                                      }
+                                    }
+                                  },
+                                  extraState: {
+                                    itemCount: 3
+                                  }
+                                }
+                              }
+                            },
+                            extraState: {
+                              itemCount: 3
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          extraState: {
+            params: [
+              {
+                name: "row",
+                id: "coded_value_from_row_row"
+              },
+              {
+                name: "rm_type",
+                id: "coded_value_from_row_rm_type"
+              }
+            ],
+            hasStatements: true
+          },
+          x: 24,
+          y: 24
+        }
+      ]
+    },
+    variables: [
+      {
+        name: "row",
+        id: "coded_value_from_row_row"
+      },
+      {
+        name: "rm_type",
+        id: "coded_value_from_row_rm_type"
+      }
+    ]
+  }
+};
+
 // src/blockly/hint_actions.ts
+init_decision_table();
 function finalizeBlock3(block) {
   const svg2 = block;
   svg2.initSvg?.();
@@ -207285,7 +208522,9 @@ function findHost(workspace2, slotId) {
   return matches.find((block) => block.type === "element") ?? matches.find((block) => isDataValueBlock(block)) ?? matches[0] ?? null;
 }
 function shellFor(workspace2, host2, rmType) {
-  if (host2.type === "element") return ensureElementDataValueShell(workspace2, host2, rmType);
+  if (host2.type === "element") {
+    return ensureElementDataValueShell(workspace2, host2, rmType);
+  }
   if (isDataValueBlock(host2)) return host2;
   return ensureElementDataValueShell(workspace2, host2, rmType);
 }
@@ -207304,41 +208543,23 @@ function placeOnUnits(workspace2, host2, expr) {
   showField(shell, "units");
   connectOutput(shell, dvFieldInputName("units"), expr);
 }
-function placeTermPick(_workspace, host2, pick2) {
+function placeCompleteValue(_workspace, host2, pick2) {
   if (host2.type === "element" || host2.getInput("VALUE")) {
     connectOutput(host2, "VALUE", pick2);
     return;
   }
   const parent = host2.outputConnection?.targetConnection ?? null;
   if (!parent || !pick2.outputConnection) return;
+  const slotId = String(host2.getFieldValue("SLOT_ID") ?? "");
+  if (slotId && pick2.getField("SLOT_ID")) {
+    pick2.setFieldValue(slotId, "SLOT_ID");
+    pick2.setFieldValue(String(host2.getFieldValue("RM_TYPE") ?? ""), "RM_TYPE");
+  }
   host2.dispose(false);
   try {
     parent.connect(pick2.outputConnection);
   } catch {
   }
-}
-function fillCodedShell(workspace2, shell, item) {
-  const rm3 = String(shell.getFieldValue("RM_TYPE") || "");
-  if (rm3 === "CODE_PHRASE" || shell.type === "code_phrase") {
-    showField(shell, "terminology_id");
-    showField(shell, "code_string");
-    if (item.terminologyId) connectRealText(workspace2, shell, dvFieldInputName("terminology_id"), item.terminologyId);
-    connectRealText(workspace2, shell, dvFieldInputName("code_string"), item.code);
-    return;
-  }
-  showField(shell, "value");
-  connectRealText(workspace2, shell, dvFieldInputName("value"), item.text || item.code);
-  showField(shell, "defining_code");
-  ensureRmBlockType("code_phrase", "CODE_PHRASE");
-  const phrase2 = workspace2.newBlock("code_phrase");
-  if (phrase2.getField("RM_TYPE")) phrase2.setFieldValue("CODE_PHRASE", "RM_TYPE");
-  connectOutput(shell, dvFieldInputName("defining_code"), finalizeBlock3(phrase2));
-  if (item.terminologyId) {
-    showField(phrase2, "terminology_id");
-    connectRealText(workspace2, phrase2, dvFieldInputName("terminology_id"), item.terminologyId);
-  }
-  showField(phrase2, "code_string");
-  connectRealText(workspace2, phrase2, dvFieldInputName("code_string"), item.code);
 }
 function chosenCode(hint, codes) {
   const wanted = codes?.find((code) => hint.codes.some((item2) => item2.code === code)) ?? hint.assumed ?? hint.codes[0]?.code;
@@ -207363,7 +208584,8 @@ function decisionBlock(workspace2, name2, output, sourceColumn) {
   registerDecisionTableBlocks();
   const block = workspace2.newBlock(DECISION_TABLE_BLOCK);
   block.setFieldValue(name2, "NAME");
-  block.setFieldValue(output, "OUTPUT");
+  runDecisionTableSchemaSync(() => block.setFieldValue(output, "OUTPUT"));
+  applyDecisionTableOutputType(block);
   finalizeBlock3(block);
   const map = sourceMap(workspace2, sourceColumn);
   connectOutput(block, "INPUTS", map);
@@ -207385,10 +208607,70 @@ function requireHint(hints, slotId) {
   if (!hint) throw new Error(`No value-set hint for ${slotId}`);
   return hint;
 }
+function codedConstant(workspace2, hint, item) {
+  const entries = [
+    ["code", textBlock2(workspace2, item.code)],
+    ["rubric", textBlock2(workspace2, item.text || item.code)],
+    ["terminology", textBlock2(workspace2, item.terminologyId ?? "local")]
+  ];
+  if (hint.kind === "ordinal") {
+    const number2 = workspace2.newBlock("math_number");
+    number2.setFieldValue(item.value ?? 0, "NUM");
+    entries.push(["value", finalizeBlock3(number2)]);
+  }
+  const row = workspace2.newBlock("maps_create_with");
+  row.itemCount_ = entries.length;
+  row.updateShape_();
+  entries.forEach(([key, value], i12) => {
+    row.setFieldValue(key, `KEY${i12}`);
+    connectOutput(row, `VAL${i12}`, value);
+  });
+  return completeCodedValue(workspace2, finalizeBlock3(row), hint.rmType);
+}
+function completeCodedValue(workspace2, row, rmType) {
+  const bundle = functionBundleFromUnknown(coded_value_from_row_intehr_function_default);
+  const signature = (block) => {
+    const params = block.getProcedureDef()[1];
+    return "hint-coded-value:" + JSON.stringify([
+      params,
+      blockToExpression(block.getInputTargetBlock("RETURN")),
+      functionStatements(block.getInputTargetBlock("STACK"))
+    ]);
+  };
+  const existing = workspace2.getTopBlocks(false).find((block) => {
+    if (block.type !== "procedures_defreturn" || !block.data?.startsWith("hint-coded-value:")) return false;
+    try {
+      return block.data === signature(block);
+    } catch {
+      return false;
+    }
+  });
+  let name2 = existing ? String(existing.getFieldValue("NAME")) : bundle.name;
+  if (!existing) {
+    name2 = mergeFunctionBundle(workspace2, bundle, { clash: "rename", sheets: [] }).name;
+    const definition = workspace2.getTopBlocks(false).find(
+      (block) => block.type === "procedures_defreturn" && String(block.getFieldValue("NAME")) === name2
+    );
+    if (definition) definition.data = signature(definition);
+  }
+  const call = Blockly2.serialization.blocks.append({
+    type: "procedures_callreturn",
+    extraState: { name: name2, params: bundle.parameters }
+  }, workspace2);
+  connectOutput(call, "ARG0", row);
+  connectOutput(call, "ARG1", textBlock2(workspace2, rmType));
+  return finalizeBlock3(call);
+}
 function placeGrid(workspace2, hint, expr) {
   const host2 = findHost(workspace2, hint.slotId);
   if (!host2) throw new Error(`No canvas block for ${hint.slotId}`);
-  if (hint.kind === "units") placeOnUnits(workspace2, host2, expr);
+  if (hint.kind === "coded" || hint.kind === "ordinal") {
+    placeCompleteValue(
+      workspace2,
+      host2,
+      completeCodedValue(workspace2, expr, hint.rmType)
+    );
+  } else if (hint.kind === "units") placeOnUnits(workspace2, host2, expr);
   else placeOnPrimary(workspace2, host2, hint.rmType, expr);
 }
 function applyValueSetHint(workspace2, skeleton, model, settings, sheets, request) {
@@ -207398,7 +208680,12 @@ function applyValueSetHint(workspace2, skeleton, model, settings, sheets, reques
   if (action === "restore") {
     const next = restoreHints(settings, request.slotId);
     const summary = request.slotId ? `Restore value-set hint ${request.slotId}` : "Restore dismissed value-set hints";
-    return { settings: next, sheets, summary, ...request.slotId ? { slotId: request.slotId } : {} };
+    return {
+      settings: next,
+      sheets,
+      summary,
+      ...request.slotId ? { slotId: request.slotId } : {}
+    };
   }
   const hint = requireHint(hints, request.slotId);
   if (action === "dismiss") {
@@ -207416,34 +208703,31 @@ function applyValueSetHint(workspace2, skeleton, model, settings, sheets, reques
     if (hint.kind === "coded") {
       const set = termSetForMandatedCode(item.terminologyId, item.code);
       if (set) {
-        const pick2 = finalizeBlock3(createTermPickBlock(workspace2, set, item.code, hint.slotId));
-        placeTermPick(workspace2, host2, pick2);
+        const pick2 = finalizeBlock3(
+          createTermPickBlock(workspace2, set, item.code, hint.slotId)
+        );
+        placeCompleteValue(workspace2, host2, pick2);
       } else {
-        const rm3 = hint.rmType === "CODE_PHRASE" ? "CODE_PHRASE" : "DV_CODED_TEXT";
-        const shell = shellFor(workspace2, host2, rm3);
-        if (!shell) throw new Error(`No value shell for ${hint.slotId}`);
-        if (shell.getField("RM_TYPE")) shell.setFieldValue(rm3, "RM_TYPE");
-        const blockType = rm3 === "CODE_PHRASE" ? "code_phrase" : blockTypeForRm(rm3);
-        ensureRmBlockType(blockType, rm3);
-        fillCodedShell(workspace2, shell, item);
+        placeCompleteValue(
+          workspace2,
+          host2,
+          codedConstant(workspace2, hint, item)
+        );
       }
     } else if (hint.kind === "ordinal") {
-      const shell = shellFor(workspace2, host2, hint.rmType);
-      if (!shell) throw new Error(`No value shell for ${hint.slotId}`);
-      applyOrdinalFieldsToDataValueShell(workspace2, shell, {
-        value: String(item.value ?? ""),
-        symbol_value: item.text,
-        terminology_id: item.terminologyId ?? "local",
-        defining_code: item.code,
-        code_string: item.code
-      });
+      placeCompleteValue(workspace2, host2, codedConstant(workspace2, hint, item));
     } else if (hint.kind === "units") {
       placeOnUnits(workspace2, host2, textBlock2(workspace2, item.code));
     } else {
       const shell = shellFor(workspace2, host2, hint.rmType || "DV_TEXT");
       if (!shell) throw new Error(`No value shell for ${hint.slotId}`);
       showField(shell, "value");
-      connectRealText(workspace2, shell, dvFieldInputName("value"), item.text || item.code);
+      connectRealText(
+        workspace2,
+        shell,
+        dvFieldInputName("value"),
+        item.text || item.code
+      );
     }
     return {
       settings: clearHintMemory(settings, hint.slotId),
@@ -207455,14 +208739,29 @@ function applyValueSetHint(workspace2, skeleton, model, settings, sheets, reques
   if (action === "decision_table" || action === "sheet_lookup") {
     const gridKind = action === "decision_table" ? "decision-table" : "sheet";
     const plan = planHintGrid(hint, sheets, gridKind);
-    const expr = action === "decision_table" ? decisionBlock(workspace2, plan.name, plan.outputColumn, plan.sourceColumn) : lookupBlock(workspace2, plan.name, plan.sourceColumn, plan.outputColumn);
+    const coded = hint.kind === "coded" || hint.kind === "ordinal";
+    const expr = action === "decision_table" ? decisionBlock(
+      workspace2,
+      plan.name,
+      coded ? DECISION_ALL_OUTPUTS : plan.outputColumn,
+      plan.sourceColumn
+    ) : lookupBlock(
+      workspace2,
+      plan.name,
+      plan.sourceColumn,
+      coded ? "" : plan.outputColumn
+    );
     placeGrid(workspace2, hint, expr);
     return {
       settings: clearHintMemory(settings, hint.slotId),
       sheets: [...sheets, plan.sheet],
       summary: action === "decision_table" ? `Decision table ${plan.name} for ${hint.label}` : `Sheet lookup ${plan.name} for ${hint.label}`,
       slotId: hint.slotId,
-      grid: { name: plan.name, kind: plan.kind, prompt: hintFillPrompt(hint, plan) }
+      grid: {
+        name: plan.name,
+        kind: plan.kind,
+        prompt: hintFillPrompt(hint, plan)
+      }
     };
   }
   throw new Error(`Unknown hint action: ${action}`);
@@ -207787,6 +209086,131 @@ function installLongPressContextMenu(workspace2) {
   });
   canvas.addEventListener("pointerup", clear);
   canvas.addEventListener("pointercancel", clear);
+}
+
+// src/blockly/collapse_glyph.ts
+var COLLAPSE_GLYPH_EXPANDED = "\u25BE";
+var COLLAPSE_GLYPH_COLLAPSED = "\u25B8";
+var SVG_NS5 = "http://www.w3.org/2000/svg";
+var GLYPH_CLASS = "block-collapse-glyph";
+var PATCHED = "__intehrCollapseGlyph";
+var MENU_PATCHED3 = "__intehrCollapseGlyphMenu";
+function collapseGlyph(collapsed) {
+  return collapsed ? COLLAPSE_GLYPH_COLLAPSED : COLLAPSE_GLYPH_EXPANDED;
+}
+function collapseMenuText(collapsed, label) {
+  const glyph = collapseGlyph(collapsed);
+  const text = label.trim();
+  if (text.startsWith(`${glyph} `)) return text;
+  return `${glyph} ${text}`;
+}
+function blockOffersCollapse(block) {
+  if (!block || block.isInFlyout || block.collapseLocked) return false;
+  if (!block.workspace?.options?.collapse) return false;
+  if (typeof block.isMovable === "function" && !block.isMovable()) return false;
+  if (typeof block.isInsertionMarker === "function" && block.isInsertionMarker()) return false;
+  return true;
+}
+function actionLabel(collapsed) {
+  const msg2 = Blockly2.Msg ?? {};
+  if (collapsed) return msg2.EXPAND_BLOCK || "Expand Block";
+  return msg2.COLLAPSE_BLOCK || "Collapse Block";
+}
+function syncCollapseGlyph(block) {
+  const root = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
+  if (!root) return;
+  const existing = root.querySelector(`:scope > .${GLYPH_CLASS}`);
+  if (!blockOffersCollapse(block)) {
+    existing?.remove();
+    return;
+  }
+  const glyph = existing ?? createGlyph(block);
+  if (!existing) root.appendChild(glyph);
+  const collapsed = Boolean(block.isCollapsed?.());
+  const mark = glyph.querySelector("text");
+  if (mark) mark.textContent = collapseGlyph(collapsed);
+  const label = actionLabel(collapsed);
+  glyph.setAttribute("aria-label", label);
+  glyph.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  const title = glyph.querySelector("title");
+  if (title) title.textContent = label;
+  const width = block.getHeightWidth?.().width ?? 40;
+  const cog = typeof block.getField === "function" && block.getField("MUTATOR_COG");
+  const inset = cog ? 32 : 14;
+  glyph.setAttribute("transform", `translate(${Math.max(4, width - inset)}, 12)`);
+}
+function createGlyph(block) {
+  const glyph = document.createElementNS(SVG_NS5, "g");
+  glyph.setAttribute("class", GLYPH_CLASS);
+  glyph.setAttribute("role", "button");
+  glyph.setAttribute("tabindex", "0");
+  const mark = document.createElementNS(SVG_NS5, "text");
+  mark.setAttribute("class", "block-collapse-glyph-mark");
+  mark.setAttribute("aria-hidden", "true");
+  glyph.appendChild(mark);
+  const title = document.createElementNS(SVG_NS5, "title");
+  glyph.appendChild(title);
+  const stop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const toggle = (event) => {
+    stop(event);
+    if (typeof block.setCollapsed !== "function" || typeof block.isCollapsed !== "function") return;
+    block.setCollapsed(!block.isCollapsed());
+  };
+  glyph.addEventListener("pointerdown", stop);
+  glyph.addEventListener("mousedown", stop);
+  glyph.addEventListener("click", toggle);
+  glyph.addEventListener("keydown", (event) => {
+    const key = event.key;
+    if (key !== "Enter" && key !== " ") return;
+    toggle(event);
+  });
+  return glyph;
+}
+function installCollapseGlyph(workspace2) {
+  patchCollapseMenu();
+  patchBlockRender(workspace2);
+  refreshCollapseGlyphs(workspace2);
+  if (typeof workspace2.addChangeListener === "function") {
+    workspace2.addChangeListener(() => refreshCollapseGlyphs(workspace2));
+  }
+}
+function refreshCollapseGlyphs(workspace2) {
+  const blocks2 = typeof workspace2.getAllBlocks === "function" ? workspace2.getAllBlocks(false) : [];
+  for (const block of blocks2) syncCollapseGlyph(block);
+}
+function patchCollapseMenu() {
+  const registry4 = Blockly2.ContextMenuRegistry?.registry;
+  const item = registry4?.getItem?.("blockCollapseExpand");
+  if (!item || item[MENU_PATCHED3] || typeof item.displayText !== "function") return;
+  const original = item.displayText;
+  item.displayText = (scope) => {
+    const text = original(scope);
+    return collapseMenuText(Boolean(scope.block?.isCollapsed?.()), text);
+  };
+  item[MENU_PATCHED3] = true;
+}
+function patchBlockRender(workspace2) {
+  const disabled = typeof Blockly2.Events.disable === "function";
+  if (disabled) Blockly2.Events.disable();
+  try {
+    const probe = workspace2.newBlock("text");
+    const proto = Object.getPrototypeOf(probe);
+    if (proto && typeof proto.render === "function" && !proto[PATCHED]) {
+      const original = proto.render;
+      proto.render = function(...args) {
+        const rendered = original.apply(this, args);
+        syncCollapseGlyph(this);
+        return rendered;
+      };
+      proto[PATCHED] = true;
+    }
+    probe.dispose(false);
+  } finally {
+    if (disabled) Blockly2.Events.enable();
+  }
 }
 
 // src/blockly/coded_text_menu.ts
@@ -210195,7 +211619,7 @@ function installTreePaneFind(tree, id4, titleKey, locale) {
 }
 
 // src/blockly/canvas_find.ts
-var SVG_NS5 = "http://www.w3.org/2000/svg";
+var SVG_NS6 = "http://www.w3.org/2000/svg";
 var HIT_CLASS = "pane-find-svg-hit";
 var CURRENT_CLASS = "pane-find-svg-hit--current";
 var TEXT_CLASS = "pane-find-text-hit";
@@ -210266,7 +211690,7 @@ function canvasFindAdapter(options) {
         const el4 = m5.unit.textEl;
         const box = charBox(el4, m5.from, m5.to);
         if (!box || !el4.parentNode) return;
-        const rect = document.createElementNS(SVG_NS5, "rect");
+        const rect = document.createElementNS(SVG_NS6, "rect");
         rect.setAttribute("class", i12 === current ? `${HIT_CLASS} ${CURRENT_CLASS}` : HIT_CLASS);
         rect.setAttribute("x", String(box.x - 1));
         rect.setAttribute("y", String(box.y));
@@ -210328,8 +211752,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "ddff579" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-07T20:48:53.230Z" : "not built";
+var BUILD_ID = true ? "1fb4722" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-08T12:52:54.825Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
@@ -217017,7 +218441,7 @@ var AGENT_TOOLS = [
   },
   {
     name: "apply_hint",
-    description: "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise the shell that slot needs; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank \u2014 they do not read the source schema or an example. Selected codes limit which rows those grids get. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
+    description: "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise an ordinary library Function returning the complete coded value; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank \u2014 they do not read the source schema or an example. Selected codes limit which rows those grids get. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
     inputSchema: {
       type: "object",
       required: ["action"],
@@ -221005,15 +222429,66 @@ var targetHoverCache = null;
 function targetAltLabels(s8) {
   if (s8.modelLanguages.length < 2) return void 0;
   const key = `${s8.templateId}|${s8.modelLanguage}|${s8.targetLanguages.join(",")}`;
-  if (targetHoverCache?.key !== key) {
-    const others = s8.targetLanguages.filter((l9) => l9 !== s8.modelLanguage);
-    targetHoverCache = { key, byLang: others.map((l9) => [l9, controller.getTargetLabels(l9)]) };
-  }
+  if (targetHoverCache?.key !== key) return void 0;
   const byLang = targetHoverCache.byLang;
+  if (!byLang.length) return void 0;
   return (slotId) => {
     const parts = byLang.map(([l9, m5]) => m5.get(slotId) ? `${l9}: ${m5.get(slotId)}` : "").filter(Boolean);
     return parts.length ? parts.join("\n") : void 0;
   };
+}
+function scheduleTargetAltLabels(s8) {
+  if (s8.modelLanguages.length < 2) return;
+  const key = `${s8.templateId}|${s8.modelLanguage}|${s8.targetLanguages.join(",")}`;
+  if (targetHoverCache?.key === key) return;
+  const others = s8.targetLanguages.filter((l9) => l9 !== s8.modelLanguage);
+  targetHoverCache = { key, byLang: [] };
+  void fillTargetAltLabels(key, others);
+}
+var altLabelFill = Promise.resolve();
+function fillTargetAltLabels(key, langs) {
+  const run = async () => {
+    const byLang = [];
+    for (const lang of langs) {
+      if (targetHoverCache?.key !== key) return;
+      controller.setRunningTaskDetail(`Reading labels \xB7 ${lang}`);
+      paintTaskOverlay();
+      await paintFrame();
+      if (targetHoverCache?.key !== key) return;
+      byLang.push([lang, controller.getTargetLabels(lang)]);
+      targetHoverCache = { key, byLang: [...byLang] };
+      applyTargetAltTitles(byLang);
+      await new Promise((resolve4) => setTimeout(resolve4, 0));
+    }
+  };
+  altLabelFill = altLabelFill.then(run, run);
+  return altLabelFill;
+}
+function applyTargetAltTitles(byLang) {
+  const labels2 = targetSchemaTreeEl.querySelectorAll(".tree-label");
+  for (const label of labels2) {
+    const slotId = label.parentElement?.dataset.slotId;
+    if (!slotId) continue;
+    if (!label.dataset.baseTitle) label.dataset.baseTitle = label.title;
+    const parts = byLang.map(([l9, labelsBySlot]) => {
+      const text = labelsBySlot.get(slotId);
+      return text ? `${l9}: ${text}` : "";
+    }).filter(Boolean);
+    label.title = [label.dataset.baseTitle, parts.join("\n")].filter(Boolean).join("\n");
+  }
+}
+function paintTaskOverlay() {
+  const progress = controller.getTaskProgress();
+  if (!progress) return;
+  taskProgressOverlay.innerHTML = taskProgressInnerHtml(
+    localizeTaskProgress(detectLocale(), progress)
+  );
+  taskProgressOverlay.hidden = false;
+}
+function paintFrame() {
+  return new Promise((resolve4) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve4()));
+  });
 }
 function openAiLanguagesDialog() {
   const dialog2 = document.getElementById("dialog-ai-languages");
@@ -221107,6 +222582,7 @@ async function bootBlockly() {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren
   });
+  installCollapseGlyph(workspace);
   installAiReviewMarkers(workspace, {
     labels: {
       markReviewed: () => uiChrome().aiMarkReviewed,
@@ -224110,7 +225586,11 @@ function render() {
     targetSchemaTreeEl,
     s8.skeleton.length ? targetSchemaTreeFromSkeleton(s8.skeleton, targetAltLabels(s8)) : [],
     void 0,
-    uiChrome().loadTargetEmpty
+    uiChrome().loadTargetEmpty,
+    {
+      discloseOptionalRm: (s8.target?.format ?? s8.model.targetFormat) === "openehr-template",
+      rmOptionalToggleLabel: treeHighlightOptions().rmOptionalToggleLabel
+    }
   );
   renderExampleTabs(s8);
   renderTestOutputTabs(s8);
@@ -224137,10 +225617,42 @@ function render() {
   } else {
     exampleTreeEl.textContent = s8.examples.length ? uiChrome().selectExampleTab : uiChrome().addExamplesEmpty;
   }
+  if (deferFreshSkeleton(s8)) return;
+  finishCanvas(s8);
+}
+var renderingCanvas = false;
+var scaffoldScheduledFor = -1;
+function deferFreshSkeleton(s8) {
+  if (renderingCanvas) return false;
+  if (!s8.templateId || !s8.skeleton.length) return false;
+  if (s8.blocklyState && typeof s8.blocklyState === "object") return false;
+  const skeletonKey = `${s8.projectId}|${s8.templateId}|${s8.skeleton.length}|${s8.blocklyReloadToken}`;
+  if (skeletonKey === blocklySkeletonKey) return false;
+  if (scaffoldScheduledFor === s8.blocklyReloadToken) return true;
+  scaffoldScheduledFor = s8.blocklyReloadToken;
+  controller.holdCanvasSettle();
+  controller.setRunningTaskDetail(uiChrome().taskPlacingTemplate);
+  paintTaskOverlay();
+  const token = s8.blocklyReloadToken;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    scaffoldScheduledFor = -1;
+    const now = controller.getState();
+    if (now.blocklyReloadToken === token && now.skeleton.length) finishCanvas(now);
+    else controller.settleCanvas();
+  }));
+  return true;
+}
+function finishCanvas(s8) {
+  if (renderingCanvas) return;
+  renderingCanvas = true;
   suppressBlocklyModelSync = true;
   try {
     syncBlocklyWorkspace(s8);
     const hints = collectValueSetHints(s8.skeleton, s8.model, s8.settings);
+    const hintCount = countActiveHints(hints);
+    const hintCountEl = document.getElementById("hints-count");
+    if (hintCountEl) hintCountEl.textContent = String(hintCount);
+    hintsTab.setAttribute("aria-label", `${uiChrome().hints}: ${formatMessage(uiChrome().statusHints, { n: hintCount })}`);
     setValueSetHintNoteSlots(
       workspace,
       hints.filter((hint) => !hint.dismissed && !hint.mandatory).map((hint) => hint.slotId)
@@ -224158,6 +225670,8 @@ function render() {
     highlightListeningSlot(workspace, controller.getState().listeningSlotId, controller.getState().listeningSourceBlockId);
   } finally {
     suppressBlocklyModelSync = false;
+    renderingCanvas = false;
+    controller.settleCanvas();
   }
   void commitPendingUiChange();
   if (historyReady && !applyingAgentBundle) applyAiAuthorMarks();
@@ -224189,6 +225703,7 @@ function render() {
   autoplayBtn.title = s8.settings.autoplay ? uiChrome().pauseAutoRunTitle : uiChrome().resumeAutoRunTitle;
   autoplayBtn.setAttribute("aria-pressed", s8.settings.autoplay ? "false" : "true");
   refreshUndoButtons();
+  scheduleTargetAltLabels(s8);
 }
 function formatTestOutput(output) {
   return typeof output === "string" ? output : JSON.stringify(output, null, 2);
