@@ -209109,20 +209109,35 @@ function visibleBlockSize(block) {
 }
 function collapseButtonBox(args) {
   const size3 = COLLAPSE_BUTTON_PX;
+  const gap = 2;
   const pad = 2;
   const width = Math.max(size3 + pad * 2, args.blockWidth);
   const height = Math.max(size3 + pad * 2, args.blockHeight);
+  const icons3 = args.icons ?? [];
   const cog = args.cog;
-  const hasCog = Boolean(cog && cog.width > 0 && cog.height > 0);
+  const slot = args.slot;
   let x6 = width - size3 - pad;
   let y7 = pad;
-  if (cog && hasCog) {
-    x6 = cog.x - size3 - 3;
+  if (slot && slot.width >= size3 && slot.height > 0) {
+    x6 = slot.x + (slot.width - size3) / 2;
+    y7 = slot.y + (slot.height - size3) / 2;
+  } else if (cog && cog.width > 0 && cog.height > 0) {
+    x6 = cog.x - size3 - gap;
     y7 = cog.y + (cog.height - size3) / 2;
+  }
+  for (let step = 0; step <= icons3.length; step++) {
+    const trial = { x: x6, y: y7, size: size3 };
+    const hit = icons3.find((icon) => glyphOverlapsCog(trial, icon));
+    if (!hit) break;
+    x6 = hit.x - size3 - gap;
+    y7 = hit.y + (hit.height - size3) / 2;
   }
   x6 = clamp3(x6, pad, width - size3 - pad);
   y7 = clamp3(y7, pad, height - size3 - pad);
   return { x: x6, y: y7, size: size3 };
+}
+function glyphOverlapsCog(glyph, cog) {
+  return glyph.x < cog.x + cog.width && glyph.x + glyph.size > cog.x && glyph.y < cog.y + cog.height && glyph.y + glyph.size > cog.y;
 }
 function clamp3(value, min2, max3) {
   if (max3 < min2) return min2;
@@ -209167,12 +209182,19 @@ function syncCollapseGlyph(block) {
   glyph.setAttribute("aria-expanded", collapsed ? "false" : "true");
   const title = glyph.querySelector("title");
   if (title) title.textContent = label;
-  ensureCollapsePad(block);
+  if (ensureCollapsePad(block)) {
+    const again = block;
+    queueMicrotask(() => withoutUndo(() => again.render?.()));
+    return;
+  }
   const size3 = visibleBlockSize(block);
+  const icons3 = collapsed ? [] : headerIcons(block);
   const box = collapseButtonBox({
     blockWidth: size3.width,
     blockHeight: size3.height,
-    cog: collapsed ? null : padAnchor(block) ?? rightHeaderIcon(block)
+    slot: collapsed ? null : padAnchor(block),
+    cog: collapsed ? null : rightmostIcon(icons3),
+    icons: icons3
   });
   const plate = glyph.querySelector("rect");
   plate?.setAttribute("width", String(box.size));
@@ -209183,48 +209205,87 @@ function syncCollapseGlyph(block) {
   }
   glyph.setAttribute("transform", `translate(${box.x}, ${box.y})`);
 }
-function ensureCollapsePad(block) {
+function withoutUndo(fn2) {
+  const disable = typeof Blockly2.Events.disable === "function";
+  if (disable) Blockly2.Events.disable();
   try {
-    if (typeof block.getField !== "function" || block.getField(PAD_FIELD)) return;
-    if (typeof block.getInput !== "function") return;
-    const host2 = chromeHostInput(block);
-    if (!host2 || typeof host2.appendField !== "function") return;
-    host2.appendField(new FieldCollapsePad(), PAD_FIELD);
-    orderHeaderTrailingChrome(block);
-  } catch {
+    fn2();
+  } finally {
+    if (disable) Blockly2.Events.enable();
   }
 }
-var FieldCollapsePad = class extends Blockly2.Field {
+function ensureCollapsePad(block) {
+  try {
+    if (typeof block.getField !== "function" || block.getField(PAD_FIELD)) return false;
+    if (typeof block.getInput !== "function") return false;
+    const host2 = chromeHostInput(block);
+    if (!host2 || typeof host2.appendField !== "function") return false;
+    withoutUndo(() => {
+      host2.appendField(new FieldCollapsePad(), PAD_FIELD);
+      orderHeaderTrailingChrome(block);
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+var FieldBase4 = Blockly2.Field;
+var FieldCollapsePad = class extends FieldBase4 {
   constructor() {
     super("");
     this.SERIALIZABLE = false;
     this.EDITABLE = false;
     if (this.size_) {
-      this.size_.width = COLLAPSE_BUTTON_PX + 4;
+      this.size_.width = COLLAPSE_BUTTON_PX + 6;
       this.size_.height = COLLAPSE_BUTTON_PX;
     }
   }
   getText() {
     return "";
   }
+  initView() {
+    const group = this.fieldGroup_;
+    if (!group || typeof document === "undefined") return;
+    const rect = document.createElementNS(SVG_NS5, "rect");
+    rect.setAttribute("class", "block-collapse-pad");
+    rect.setAttribute("width", String(COLLAPSE_BUTTON_PX + 6));
+    rect.setAttribute("height", String(COLLAPSE_BUTTON_PX));
+    rect.setAttribute("fill", "transparent");
+    group.appendChild(rect);
+  }
+  updateSize_() {
+    if (!this.size_) return false;
+    const width = COLLAPSE_BUTTON_PX + 6;
+    const height = COLLAPSE_BUTTON_PX;
+    const changed = this.size_.width !== width || this.size_.height !== height;
+    this.size_.width = width;
+    this.size_.height = height;
+    return changed;
+  }
 };
-function padAnchor(block) {
-  const pad = typeof block.getField === "function" ? block.getField(PAD_FIELD) : null;
-  return iconBox(block, pad?.getSvgRoot?.() ?? null);
+function rightmostIcon(icons3) {
+  return icons3.reduce(
+    (best, icon) => !best || icon.x > best.x ? icon : best,
+    null
+  );
 }
-function rightHeaderIcon(block) {
+function headerIcons(block) {
   const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
-  if (!blockSvg) return null;
-  let best = null;
+  if (!blockSvg) return [];
+  const found = [];
   for (const image of blockSvg.querySelectorAll("image")) {
     if (image.closest(".block-collapse-glyph")) continue;
     if (image.closest("foreignObject")) continue;
     if (image.closest("g.blocklyDraggable") !== blockSvg) continue;
     const box = iconBox(block, image);
     if (!box || box.y > 32) continue;
-    if (!best || box.x > best.x) best = box;
+    found.push(box);
   }
-  return best;
+  return found;
+}
+function padAnchor(block) {
+  const pad = typeof block.getField === "function" ? block.getField(PAD_FIELD) : null;
+  return iconBox(block, pad?.getSvgRoot?.() ?? null);
 }
 function iconBox(block, node) {
   const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
@@ -211863,8 +211924,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "7684a01" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-08T19:06:51.919Z" : "not built";
+var BUILD_ID = true ? "d49287e" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-08T19:18:27.538Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
