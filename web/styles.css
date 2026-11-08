@@ -1336,7 +1336,9 @@ body.sheets-fullscreen::before {
   fill: #E2E8F0;
   text-decoration: line-through;
 }
-.blockly-mount .blocklyText .blockly-slot-attr-name--deprecated {
+.blockly-mount .blocklyText .blockly-slot-attr-name--deprecated,
+.blockly-mount .blocklyText.blockly-slot-attr-name--deprecated,
+.tree-name.blockly-slot-attr-name--deprecated {
   text-decoration: line-through;
 }
 .blockly-mount .blockly-slot-deprecated-link {

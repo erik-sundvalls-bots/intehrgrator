@@ -1,4 +1,6 @@
 ﻿import type { SchemaTreeNode, SourceFormatId } from "../types/mod.ts";
+import { DEPRECATED_ATTR_CLASS, deprecatedRmField } from "../core/rm_deprecation.ts";
+import { baseRmTypeName, hasRmType } from "../core/rm_meta.ts";
 import { canonicalSyncPath, isSourceFormatId } from "../core/source/mod.ts";
 import { optionalSourceRmGaps } from "../core/source/rm_tree_disclosure.ts";
 
@@ -103,7 +105,7 @@ export function renderSchemaTree(
   const expanded = expandedPaths(container, `${format}\0${node.path}\0${node.name}\0${node.type}`);
   const rerender = () => renderSchemaTree(container, node, onSelect, options, format);
   container.innerHTML = "";
-  container.appendChild(buildSchemaNode(node, onSelect, options, 0, format, expanded, rerender));
+  container.appendChild(buildSchemaNode(node, onSelect, options, 0, format, expanded, rerender, ""));
 }
 
 function expandedPaths(container: HTMLElement, key: string): Set<string> {
@@ -135,6 +137,7 @@ function buildSchemaNode(
   format: SourceFormatId,
   expanded: Set<string>,
   rerender: () => void,
+  parentRmType: string,
 ): HTMLElement {
   const syncPath = canonicalSyncPath(node.path);
   const row = createTreeRow(node.path, syncPath, depth);
@@ -146,7 +149,11 @@ function buildSchemaNode(
   const meta = document.createElement("span");
   meta.className = "tree-meta";
   meta.textContent = formatSchemaMeta(node);
-  label.append(document.createTextNode(node.name), meta);
+  const nameEl = document.createElement("span");
+  nameEl.className = "tree-name";
+  nameEl.textContent = node.name;
+  markDeprecatedTreeName(nameEl, parentRmType, node.rmAttribute);
+  label.append(nameEl, meta);
   attachTreeInteractions(label, node, syncPath, "schema", format, onSelect, options);
   row.appendChild(label);
 
@@ -155,17 +162,40 @@ function buildSchemaNode(
     row.appendChild(optionalRmToggle(node, expanded, options, rerender));
   }
 
+  const childRm = rmClassOf(node.type);
   const wrap = document.createElement("div");
   wrap.appendChild(row);
   for (const child of node.children) {
-    wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format, expanded, rerender));
+    wrap.appendChild(
+      buildSchemaNode(child, onSelect, options, depth + 1, format, expanded, rerender, childRm),
+    );
   }
   if (expanded.has(node.path)) {
     for (const child of optionalGaps) {
-      wrap.appendChild(buildSchemaNode(child, onSelect, options, depth + 1, format, expanded, rerender));
+      wrap.appendChild(
+        buildSchemaNode(child, onSelect, options, depth + 1, format, expanded, rerender, childRm),
+      );
     }
   }
   return wrap;
+}
+
+function rmClassOf(type: string): string {
+  const base = baseRmTypeName(type);
+  return hasRmType(base) ? base : "";
+}
+
+/** Strike a tree name when this RM attribute's own spec marks it deprecated. */
+export function markDeprecatedTreeName(
+  nameEl: HTMLElement,
+  parentRmType: string,
+  attribute: string | undefined,
+): void {
+  if (!attribute || !parentRmType) return;
+  if (!deprecatedRmField(parentRmType, attribute)) return;
+  nameEl.classList.add(DEPRECATED_ATTR_CLASS);
+  nameEl.title = "Deprecated";
+  nameEl.setAttribute("aria-label", `${nameEl.textContent ?? attribute}, deprecated`);
 }
 
 function optionalRmToggle(

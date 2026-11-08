@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Deprecated RM attributes stay struck through** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): a reference-model attribute whose own specification marks it deprecated (such as `hyperlink` on `DV_TEXT` and `DV_CODED_TEXT`) is struck through in the source tree and in the block cogwheel list, using the same detection and strike styling as the canvas mouth. The row stays usable and still says it is deprecated.
+
 - **Example set load stays understandable on large templates** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): loading MHV1 no longer rebuilds the prenatal-visit skeleton once per language before the canvas appears. Other-language hover labels are read one language at a time, and the progress overlay paints “Reading the template”, “Placing the template on the canvas”, and “Reading labels · …” across real frames. Web Template input constraints are matched within each RM type, and example-vs-schema checks walk each tree once.
 
 - **openEHR source-tree RM** ([#86](https://github.com/regionstockholm/intehrgrator/issues/86)): a Web Template or operational template in Source Schema shows silent-mandatory RM attributes the template omitted, in muted italic. Optional RM stays behind a small encircled plus (no label) on that row; opening it reveals those paths for click-to-map.

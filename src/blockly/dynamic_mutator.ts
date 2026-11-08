@@ -3,6 +3,7 @@
  * header cogwheel field to the right of the skeleton title.
  */
 import type { Block, BlockSvg, Input } from "blockly/core";
+import { DEPRECATED_ATTR_CLASS, deprecatedRmField } from "../core/rm_deprecation.ts";
 import { Blockly } from "./blockly_core.ts";
 import { detectLocale, msg } from "./i18n/locale.ts";
 import {
@@ -233,6 +234,41 @@ function refreshMutatorFlyout(
   if (typeof gapHost.GAP_Y === "number") gapHost.GAP_Y = 6;
   if (typeof gapHost.gap_ === "number") gapHost.gap_ = 6;
   flyout.show(contents);
+  markDeprecatedMutatorLabels(flyoutWorkspace(flyout), rmClassOfBlock(block));
+}
+
+function flyoutWorkspace(
+  flyout: { workspace_?: { getAllBlocks?: (ordered: boolean) => Block[] } },
+): { getAllBlocks: (ordered: boolean) => Block[] } | null {
+  const ws = flyout.workspace_;
+  if (!ws || typeof ws.getAllBlocks !== "function") return null;
+  return ws as { getAllBlocks: (ordered: boolean) => Block[] };
+}
+
+function rmClassOfBlock(block: Block | undefined): string {
+  if (!block) return "";
+  if (block.type === "element") return "ELEMENT";
+  return String(block.getFieldValue("RM_TYPE") || block.type || "").toUpperCase();
+}
+
+/** Strike deprecated attribute names in the cogwheel bubble (flyout and stack). */
+export function markDeprecatedMutatorLabels(
+  workspace: { getAllBlocks: (ordered: boolean) => Block[] } | null | undefined,
+  parentRmType: string,
+): void {
+  if (!workspace || !parentRmType) return;
+  for (const block of workspace.getAllBlocks(false)) {
+    const attr = String(block.getFieldValue("ATTR") || "");
+    if (!attr || !deprecatedRmField(parentRmType, attr)) continue;
+    const field = block.getField("LABEL") as (Blockly.Field & {
+      getTextElement?: () => Element | null;
+      textElement_?: Element | null;
+      setTooltip?: (tip: string) => void;
+    }) | null;
+    const text = field?.getTextElement?.() ?? field?.textElement_ ?? null;
+    text?.classList.add(DEPRECATED_ATTR_CLASS);
+    field?.setTooltip?.("Deprecated");
+  }
 }
 
 export function autoSizeMutatorBubble(
@@ -311,6 +347,8 @@ export function autoSizeMutatorBubble(
   if (typeof bubble.setBubbleSize === "function") {
     bubble.setBubbleSize(targetWidth, targetHeight);
   }
+  markDeprecatedMutatorLabels(mini, rmClassOfBlock(sourceBlock));
+  if (flyout) markDeprecatedMutatorLabels(flyoutWorkspace(flyout), rmClassOfBlock(sourceBlock));
 }
 
 export class DynamicFlyoutMutatorIcon extends MutatorIcon {
