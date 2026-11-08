@@ -16,6 +16,7 @@ import {
   COLLAPSE_BUTTON_PX,
   COLLAPSE_GLYPH_COLLAPSED,
   COLLAPSE_GLYPH_EXPANDED,
+  glyphOverlapsAny,
   glyphOverlapsCog,
   syncCollapseGlyph,
   visibleBlockSize,
@@ -122,6 +123,32 @@ Deno.test("collapse button stays inside the block outline and clear of the cogwh
 
   const collapsed = collapseButtonBox({ blockWidth: 36, blockHeight: 20, cog: null });
   assert(collapsed.x + collapsed.size <= 36 && collapsed.y + collapsed.size <= 20);
+
+  // Packed header from the blood-pressure scaffold: a 16px icon ends where
+  // the cogwheel begins. Sitting in that crack covers the icon.
+  const neighbor = { x: 125, y: 10, width: 16, height: 16 };
+  const packedCog = { x: 150, y: 10, width: 16, height: 16 };
+  const packed = collapseButtonBox({
+    blockWidth: 180,
+    blockHeight: 40,
+    cog: packedCog,
+    icons: [neighbor, packedCog],
+  });
+  assertEquals(glyphOverlapsAny(packed, [neighbor, packedCog]), false);
+  assert(packed.x + packed.size <= neighbor.x, "clear of the icon beside the cogwheel");
+  assert(packed.x >= 0 && packed.y >= 0 && packed.x + packed.size <= 180 && packed.y + packed.size <= 40);
+
+  const beforeSlot = { x: 109, y: 8, width: 16, height: 16 };
+  const slot = { x: 127, y: 8, width: 20, height: 14 };
+  const afterSlot = { x: 149, y: 8, width: 16, height: 16 };
+  const inSlot = collapseButtonBox({
+    blockWidth: 180,
+    blockHeight: 40,
+    slot,
+    icons: [beforeSlot, afterSlot],
+  });
+  assert(inSlot.x >= slot.x - 0.01 && inSlot.x + inSlot.size <= slot.x + slot.width + 0.01);
+  assertEquals(glyphOverlapsAny(inSlot, [beforeSlot, afterSlot]), false);
 });
 
 Deno.test("the corner glyph toggles with click and keyboard and changes with state", async () => {
