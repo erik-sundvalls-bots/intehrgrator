@@ -10,11 +10,15 @@ import { registerRmBlocks } from "@intehrgrator/blockly/blocks/rm_blocks.ts";
 import { createMapsGetBlock } from "@intehrgrator/blockly/blocks/map_blocks.ts";
 import {
   blockOffersCollapse,
+  collapseButtonBox,
   collapseGlyph,
   collapseMenuText,
+  COLLAPSE_BUTTON_PX,
   COLLAPSE_GLYPH_COLLAPSED,
   COLLAPSE_GLYPH_EXPANDED,
+  glyphOverlapsCog,
   syncCollapseGlyph,
+  visibleBlockSize,
 } from "@intehrgrator/blockly/collapse_glyph.ts";
 import { loadSkeletonIntoWorkspace } from "@intehrgrator/blockly/skeleton_loader.ts";
 import { generateSkeleton } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
@@ -95,6 +99,31 @@ Deno.test("collapse menu text uses the same glyph as the block corner", () => {
   }));
 });
 
+Deno.test("collapse button stays inside the block outline and clear of the cogwheel", () => {
+  const subtree = visibleBlockSize({
+    width: 72,
+    height: 28,
+    getHeightWidth: () => ({ width: 480, height: 900 }),
+  });
+  assertEquals(subtree, { width: 72, height: 28 });
+
+  const cog = { x: 54, y: 4, width: 16, height: 16 };
+  const beside = collapseButtonBox({ blockWidth: subtree.width, blockHeight: subtree.height, cog });
+  assert(beside.x >= 0 && beside.y >= 0, "inside the top-left of the outline");
+  assert(beside.x + beside.size <= subtree.width, "not past the block's own width");
+  assert(beside.y + beside.size <= subtree.height, "not past the block's own height");
+  assert(beside.x + beside.size <= cog.x, "sits to the left of the cogwheel");
+  assertEquals(glyphOverlapsCog(beside, cog), false);
+  assertEquals(beside.size, COLLAPSE_BUTTON_PX);
+
+  const header = collapseButtonBox({ blockWidth: 50, blockHeight: 22, cog: null });
+  assert(header.x + header.size <= 50 && header.y + header.size <= 22);
+  assert(header.x >= 50 - COLLAPSE_BUTTON_PX - 4, "header-right when there is no cogwheel");
+
+  const collapsed = collapseButtonBox({ blockWidth: 36, blockHeight: 20, cog: null });
+  assert(collapsed.x + collapsed.size <= 36 && collapsed.y + collapsed.size <= 20);
+});
+
 Deno.test("the corner glyph toggles with click and keyboard and changes with state", async () => {
   const { JSDOM } = await import("npm:jsdom@25");
   const dom = new JSDOM("<!doctype html><body></body>");
@@ -111,14 +140,23 @@ Deno.test("the corner glyph toggles with click and keyboard and changes with sta
         collapsed = next;
         syncCollapseGlyph(block as unknown as Parameters<typeof syncCollapseGlyph>[0]);
       },
-      workspace: { options: { collapse: true } },
+      workspace: { options: { collapse: true }, scale: 1 },
+      width: 48,
+      height: 24,
       getSvgRoot: () => root,
-      getHeightWidth: () => ({ width: 80, height: 24 }),
+      getHeightWidth: () => ({ width: 400, height: 24 }),
       getField: () => null,
     };
     syncCollapseGlyph(block as unknown as Parameters<typeof syncCollapseGlyph>[0]);
     const glyph = root.querySelector(".block-collapse-glyph");
     assert(glyph, "collapsible block should grow a corner glyph");
+    const plate = glyph.querySelector("rect");
+    assertEquals(plate?.getAttribute("rx"), "3");
+    const moved = /translate\(([-\d.]+),\s*([-\d.]+)\)/.exec(glyph.getAttribute("transform") ?? "");
+    assert(moved, glyph.getAttribute("transform") ?? "");
+    const gx = Number(moved?.[1]);
+    const gy = Number(moved?.[2]);
+    assert(gx >= 0 && gy >= 0 && gx + COLLAPSE_BUTTON_PX <= 48 && gy + COLLAPSE_BUTTON_PX <= 24, glyph.getAttribute("transform") ?? "");
     assertEquals(glyph.getAttribute("aria-label"), "Collapse Block");
     assertEquals(glyph.getAttribute("tabindex"), "0");
     assertEquals(glyph.querySelector("text")?.textContent, COLLAPSE_GLYPH_EXPANDED);
