@@ -21,9 +21,9 @@
       "url": "https://github.com/regionstockholm/intehrgrator/pull/368",
       "forkUrl": "https://github.com/erik-sundvalls-bots/intehrgrator/pull/3",
       "state": "open",
-      "headSha": "c0767d14f8d21cb5d3cb9ae1b95a04e129d001d9",
+      "headSha": "5e2445abda27d60981d17aba348417848d64fdc9",
       "headRef": "cursor/openehr-source-rm-disclosure-283c",
-      "note": "Collapse button stays inside the block outline and clear of neighbouring header icons."
+      "note": "Review branch includes the narrow-screen stacked panes and the collapse button clearance."
     }
   ],
   "includedBecauseAlreadyOnUpstreamMain": [
