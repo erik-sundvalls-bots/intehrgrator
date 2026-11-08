@@ -178,7 +178,7 @@ export function syncCollapseGlyph(block: CollapseBlock): void {
   if (ensureCollapsePad(block)) {
     // The new gap is not laid out yet. One follow-up render measures final icons.
     const again = block as CollapseBlock & { render?: () => void };
-    queueMicrotask(() => again.render?.());
+    queueMicrotask(() => withoutUndo(() => again.render?.()));
     return;
   }
   const size = visibleBlockSize(block);
@@ -201,14 +201,26 @@ export function syncCollapseGlyph(block: CollapseBlock): void {
 }
 
 /** Invisible header slot immediately left of the cogwheel, so the button has room. */
+function withoutUndo(fn: () => void): void {
+  const disable = typeof Blockly.Events.disable === "function";
+  if (disable) Blockly.Events.disable();
+  try {
+    fn();
+  } finally {
+    if (disable) Blockly.Events.enable();
+  }
+}
+
 function ensureCollapsePad(block: CollapseBlock): boolean {
   try {
     if (typeof block.getField !== "function" || block.getField(PAD_FIELD)) return false;
     if (typeof block.getInput !== "function") return false;
     const host = chromeHostInput(block);
     if (!host || typeof host.appendField !== "function") return false;
-    host.appendField(new FieldCollapsePad(), PAD_FIELD);
-    orderHeaderTrailingChrome(block);
+    withoutUndo(() => {
+      host.appendField(new FieldCollapsePad(), PAD_FIELD);
+      orderHeaderTrailingChrome(block);
+    });
     return true;
   } catch {
     // A render that cannot grow the header keeps the outline fallback.
