@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Narrow screens keep every pane reachable** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): below 1100px the Source, Mapping Editors, and Target panes stack and the page scrolls. Each pane has a fixed height so the schema, example, canvas, and target trees stay usable and scroll inside the pane. Sliding a pane away still collapses it to a rail, and a wide window stays the side-by-side split.
+
 - **Optional RM on the target schema** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): when the target is openEHR, the Target schema tab uses the same encircled plus as the source tree for optional reference-model attributes. Other target formats are unchanged, and opening one tree does not open the other.
 
 - **Get-defaults lookups start collapsed** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): every scaffolded `get defaults` block starts collapsed. A collapsible block has a small light rounded button, with a dark expand/collapse glyph, in a gap immediately left of the cogwheel so it does not cover the neighbouring header icon (or at the header's top-right when there is no cogwheel). The block's context menu uses that same glyph beside Collapse/Expand. Undo, redo, and saved mappings are unchanged.
