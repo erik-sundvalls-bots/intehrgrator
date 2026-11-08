@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Example set load stays understandable on large templates** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): loading MHV1 no longer rebuilds the prenatal-visit skeleton once per language before the canvas appears. Other-language hover labels are read one language at a time, and the progress overlay paints “Reading the template”, “Placing the template on the canvas”, and “Reading labels · …” across real frames. Web Template input constraints are matched within each RM type, and example-vs-schema checks walk each tree once.
+
 - **openEHR source-tree RM** ([#86](https://github.com/regionstockholm/intehrgrator/issues/86)): a Web Template or operational template in Source Schema shows silent-mandatory RM attributes the template omitted, in muted italic. Optional RM stays behind a small encircled plus (no label) on that row; opening it reveals those paths for click-to-map.
 
 - **Ordinary Function parity** ([#365](https://github.com/regionstockholm/intehrgrator/pull/365)): Map-value getters/entries, parameterised Sheet names, and portable Function statements/accumulators work in preview and TypeScript/Java/XQuery. XML/schema Notes execute ordinary Function calls and loop reporters in Mapping preview and Handlebars Output mode. The join starters retain their loops; `coded_text_from_sheet` is now ordinary Blockly composition, with no privileged Sheet-coded-text block or generator helper. Cytodos call sites and term mappings are preserved. Go export rejects unsupported statement-bodied Functions instead of silently dropping their statements.

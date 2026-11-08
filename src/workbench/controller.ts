@@ -428,7 +428,17 @@ export class WorkbenchController {
         } else {
           await this.runTaskStep("load", async () => {
             const file = await this.host.fetchTextUrl(url);
-            this.loadTargetContent(file.name, file.text);
+            this.setRunningTaskDetail("Reading the template");
+            this.notifyChange();
+            await this.yieldUi();
+            const painted = this.beginCanvasSettle();
+            try {
+              this.loadTargetContent(file.name, file.text);
+            } catch (err) {
+              this.settleCanvas();
+              throw err;
+            }
+            await painted;
           });
         }
         this.targetOriginUrl = url;
@@ -1316,6 +1326,52 @@ export class WorkbenchController {
 
   private async yieldUi(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+
+  /**
+   * Detail on the step that is already running. Does not notify: the view
+   * paints the overlay, then yields, so the text is on screen before the
+   * next blocking stretch.
+   */
+  setRunningTaskDetail(detail: string): void {
+    this.noteTaskDetail(detail);
+  }
+
+  getTaskProgress(): TaskProgress | null {
+    return this.taskProgress;
+  }
+
+  private canvasSettle: (() => void) | null = null;
+  private canvasHeld = false;
+
+  /**
+   * Resolves on the next microtask unless the view calls `holdCanvasSettle`
+   * synchronously from the notify that follows (it will `settleCanvas` after
+   * the canvas paint). Headless callers have no view, so they do not hold.
+   */
+  beginCanvasSettle(): Promise<void> {
+    this.canvasHeld = false;
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (this.canvasSettle !== finish) return;
+        this.canvasSettle = null;
+        this.canvasHeld = false;
+        resolve();
+      };
+      this.canvasSettle = finish;
+      queueMicrotask(() => {
+        if (!this.canvasHeld) finish();
+      });
+    });
+  }
+
+  /** The view owns the settle promise and will resolve it after painting. */
+  holdCanvasSettle(): void {
+    if (this.canvasSettle) this.canvasHeld = true;
+  }
+
+  settleCanvas(): void {
+    this.canvasSettle?.();
   }
 
   private async withTask<T>(
