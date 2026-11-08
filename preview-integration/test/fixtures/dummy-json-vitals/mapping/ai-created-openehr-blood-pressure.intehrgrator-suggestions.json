@@ -1,0 +1,29 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "ehrbase_blood_pressure_simple.de.v0"
+  },
+  "suggestions": [
+    {
+      "slotId": "ehrbase_blood_pressure_simple.de.v0//content/at0000/data/at0001/events/at0002/data/at0003/items/at0004/value/value/value",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.systolic"
+        }
+      },
+      "note": "AI-created: OPT magnitude from dummy JSON vitals"
+    },
+    {
+      "slotId": "ehrbase_blood_pressure_simple.de.v0//content/at0000/data/at0001/events/at0002/data/at0003/items/at0005/value/value/value",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.diastolic"
+        }
+      }
+    }
+  ]
+}

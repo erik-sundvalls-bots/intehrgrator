@@ -191,6 +191,14 @@
     "sha": "cb2fce77fcaf3f0974a6233bdee332e7587dee2d",
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
+  "preview-integration": {
+    "built": "2026-11-08T16:43:17Z",
+    "dir": "preview-integration",
+    "mode": "branch",
+    "pr": "368\thttps://github.com/regionstockholm/intehrgrator/pull/368\tOPEN\tIntegration preview: upstream main plus open PR 368",
+    "sha": "0980a366d41c9396986f1acee09e66e82bab90dc",
+    "upstream": "d64dc0965af86f8f0d9f7f7d556d18f479ae1052"
+  },
   "preview-pr-368": {
     "built": "2026-11-08T12:52:54Z",
     "dir": "preview-pr-368",

@@ -1,0 +1,6 @@
+{
+  "patientId": "demo-002",
+  "systolic": 135,
+  "diastolic": 88,
+  "unit": "mm[Hg]"
+}

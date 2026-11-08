@@ -1,0 +1,37 @@
+{
+  "@type": "TEMPLATE",
+  "templateId": "FileProjectDetails",
+  "archetypeId": {
+    "@type": "ARCHETYPE_HRID",
+    "value": "openEHR-EHR-CLUSTER.file_project_details.v1"
+  },
+  "definition": {
+    "@type": "C_COMPLEX_OBJECT",
+    "rmTypeName": "CLUSTER",
+    "nodeId": "at0000.1",
+    "attributes": [
+      {
+        "@type": "C_ATTRIBUTE",
+        "rmAttributeName": "items",
+        "children": [{
+          "@type": "C_COMPLEX_OBJECT",
+          "rmTypeName": "ELEMENT",
+          "nodeId": "at0002"
+        }]
+      }
+    ]
+  },
+  "terminology": {
+    "@type": "ARCHETYPE_TERMINOLOGY",
+    "termDefinitions": {
+      "en": {
+        "at0000.1": { "text": "Details", "code": "at0000.1" },
+        "at0002": { "text": "Known question", "code": "at0002" }
+      },
+      "sv": {
+        "at0000.1": { "text": "Detaljer", "code": "at0000.1" },
+        "at0002": { "text": "Känd fråga", "code": "at0002" }
+      }
+    }
+  }
+}

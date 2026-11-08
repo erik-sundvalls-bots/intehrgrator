@@ -1,0 +1,231 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "simple-diagnose-and-vitals"
+  },
+  "loops": [
+    {
+      "attachSlotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "measurement"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "$.measurements"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "attachSlotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "measurement"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "$.measurements"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "includes": [
+    {
+      "slotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
+      "when": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "pulse"
+        }
+      },
+      "note": "Omit the pulse EVENT when this measurement has no pulse, so a time-only event is not kept."
+    }
+  ],
+  "suggestions": [
+    {
+      "slotId": "/context/EVENT_CONTEXT/start_time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.measurements[1].timestamp"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "other care"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "238"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "openehr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/name/DV_TEXT/value",
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "Vital signs"
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/origin/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.measurements[1].timestamp"
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/time/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "timestamp"
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003/items/at0004/value/value/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "systolic"
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003/items/at0005/value/value/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "diastolic"
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/state/at0007/items/at0008/value/DV_CODED_TEXT/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "bodyPosition"
+        }
+      },
+      "note": "Source wording equals the template value-set text (sitting/standing/lying vs Sitting/Standing/Lying); the coded slot writes the at-code. Other wording would need a Decision table."
+    },
+    {
+      "slotId": "/content[openEHR-EHR-EVALUATION.problem_diagnosis.v1]/data/at0001/items/at0002/value/DV_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.diagnosis.display"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.diagnosis.code"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "ICD10"
+              }
+            }
+          }
+        }
+      },
+      "note": "Coded as DV_CODED_TEXT; terminology_id ICD10 (openEHR external terminology id) instead of the source label 'ICD-10'."
+    },
+    {
+      "slotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "pulse"
+        }
+      }
+    },
+    {
+      "slotId": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/time/value",
+      "loopVar": "measurement",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "timestamp"
+        }
+      }
+    }
+  ]
+}

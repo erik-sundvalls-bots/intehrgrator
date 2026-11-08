@@ -1,0 +1,260 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans"
+  },
+  "loops": [
+    {
+      "attachSlotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]",
+      "block": {
+        "type": "for_each_source",
+        "fields": { "VAR": "substans", "PATH": "$.Substanser" }
+      },
+      "note": "Repeating ACTION. Slot id uses the archetype path (unique vs EVALUATION reason_for_encounter). Child EXPRESSION is relative."
+    }
+  ],
+  "suggestions": [
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//category/DV_CODED_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "event" } },
+      "note": "codeFixed 433 / openehr."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//composer",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "name", "KEY1": "id", "KEY2": "type" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.SignatureUser_FullName" } } },
+          "VAL1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.SignatureUser_UserName" } } },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "urn:oid:1.2.752.29.4.19" } } }
+        }
+      },
+      "note": "Source over defaults. Composer HSA is the username, not SE2321000016-prefixed."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/health_care_facility",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "name", "KEY1": "id", "KEY2": "type" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Vardenhet_namn" } } },
+          "VAL1": {
+            "block": {
+              "type": "text_join",
+              "extraState": { "itemCount": 2 },
+              "inputs": {
+                "ADD0": { "block": { "type": "text", "fields": { "TEXT": "SE2321000016-" } } },
+                "ADD1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Vardenhet_HSAID" } } }
+              }
+            }
+          },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "urn:oid:1.2.752.29.4.19" } } }
+        }
+      },
+      "note": "Requires optional_rm_add EVENT_CONTEXT.health_care_facility. Vardenhet_* not PDL_enhet_*."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0001/value/DV_TEXT/value",
+      "block": { "type": "source_query", "fields": { "EXPRESSION": "$.PDL_enhet_Namn" } },
+      "note": "Outer CLUSTER is vårdenhet (role 43741000). pathLabel may say Vårdgivare because at0000 collides."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0003/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 2 },
+        "fields": { "KEY0": "id", "KEY1": "type" },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text_join",
+              "extraState": { "itemCount": 2 },
+              "inputs": {
+                "ADD0": { "block": { "type": "text", "fields": { "TEXT": "SE2321000016-" } } },
+                "ADD1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.PDL_enhet_HSAID" } } }
+              }
+            }
+          },
+          "VAL1": { "block": { "type": "text", "fields": { "TEXT": "urn:oid:1.2.752.29.4.19" } } }
+        }
+      }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "vårdenhet" } },
+      "note": "codeFixed 43741000."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0001/value/DV_TEXT/value",
+      "block": { "type": "source_query", "fields": { "EXPRESSION": "$.PDL_vardgivare_Namn" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 2 },
+        "fields": { "KEY0": "id", "KEY1": "type" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.PDL_vardgivare_HSAID" } } },
+          "VAL1": { "block": { "type": "text", "fields": { "TEXT": "urn:oid:1.2.752.29.4.19" } } }
+        }
+      },
+      "note": "Source already includes SE2321000016- prefix. Duplicate at0003 (HSA vs organisationsnummer) still shares one slotId (path segment is CLUSTER.organisation.v1 when those siblings collide) — org-number 2321000016 cannot be bound separately."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "vårdgivare" } },
+      "note": "codeFixed 143591000052106."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/start_time/value",
+      "block": { "type": "source_query", "fields": { "EXPRESSION": "$.EncounterDate" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "value", "KEY1": "code_string", "KEY2": "terminology_id" },
+        "inputs": {
+          "VAL0": { "block": { "type": "text", "fields": { "TEXT": "other care" } } },
+          "VAL1": { "block": { "type": "text", "fields": { "TEXT": "238" } } },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "openehr" } } }
+        }
+      },
+      "note": "Golden/tmpl convention; not in source. Pass 1 used 232 secondary medical care."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/data/at0001/items/at0004/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "value", "KEY1": "code_string", "KEY2": "terminology_id" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Diagnosnamn_ICD10" } } },
+          "VAL1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.Diagnoskod_ICD10" } } },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "1.2.752.116.1.1.1" } } }
+        }
+      },
+      "note": "ICD-10. Tmpl omits the ELEMENT when either code or name is empty."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0007/current_state/DV_CODED_TEXT/value",
+      "loopVar": "substans",
+      "block": {
+        "type": "decision_table",
+        "fields": { "NAME": "admin_ism", "OUTPUT": "current_state" },
+        "inputs": {
+          "INPUTS": {
+            "block": {
+              "type": "maps_create_with",
+              "extraState": { "itemCount": 1 },
+              "fields": { "KEY0": "status_desc" },
+              "inputs": {
+                "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "AdministrationStatus_LongDescription" } } }
+              }
+            }
+          }
+        }
+      },
+      "note": "OPT C_CODE_PHRASE allows only 532 completed. Table documents Stoppad → completed."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0007/careflow_step/DV_CODED_TEXT/value",
+      "loopVar": "substans",
+      "block": {
+        "type": "decision_table",
+        "fields": { "NAME": "admin_ism", "OUTPUT": "careflow_step" },
+        "inputs": {
+          "INPUTS": {
+            "block": {
+              "type": "maps_create_with",
+              "extraState": { "itemCount": 1 },
+              "fields": { "KEY0": "status_desc" },
+              "inputs": {
+                "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "AdministrationStatus_LongDescription" } } }
+              }
+            }
+          }
+        }
+      },
+      "note": "codeFixed at0007. Rubric matches golden Swedish Fullföljd läkemedelsbehandling."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
+      "loopVar": "substans",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "value", "KEY1": "code_string", "KEY2": "terminology_id" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "Innholdstoff_Navn" } } },
+          "VAL1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "Innholdstoff_ATC" } } },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "2.16.840.1.113883.6.73" } } }
+        }
+      }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0139/value/value/value",
+      "loopVar": "substans",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 2 },
+        "fields": { "KEY0": "magnitude", "KEY1": "units" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "Dose" } } },
+          "VAL1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "UnitCode" } } }
+        }
+      }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 1 },
+        "fields": { "KEY0": "id" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$.RekvisisjonId" } } }
+        }
+      },
+      "note": "Golden/tmpl uses RekvisisjonId (composition-level), not OrderLineId."
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/time/value",
+      "block": { "type": "source_query", "fields": { "EXPRESSION": "$.EncounterDate" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Vårdenhet" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Vårdgivare" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Detaljer per substans" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Administrerad läkemedelsbehandling" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Substans" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0139/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Administrerad dos" } }
+    },
+    {
+      "slotId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans//content[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/name/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Beställnings-ID" } }
+    }
+  ]
+}

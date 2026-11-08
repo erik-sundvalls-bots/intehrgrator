@@ -1,0 +1,30 @@
+{
+  "patientId": "p-98745",
+  "diagnosis": {
+    "code": "S06.0",
+    "codeSystem": "ICD-10",
+    "display": "Concussion"
+  },
+  "measurements": [
+    {
+      "timestamp": "2026-07-02T08:30:00Z",
+      "systolic": 120,
+      "diastolic": 80,
+      "pulse": 72,
+      "bodyPosition": "sitting"
+    },
+    {
+      "timestamp": "2026-07-02T14:15:00Z",
+      "systolic": 128,
+      "diastolic": 84,
+      "pulse": 76,
+      "bodyPosition": "sitting"
+    },
+    {
+      "timestamp": "2026-07-03T07:45:00Z",
+      "systolic": 118,
+      "diastolic": 78,
+      "bodyPosition": "lying"
+    }
+  ]
+}
