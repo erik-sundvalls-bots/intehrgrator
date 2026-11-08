@@ -755,6 +755,16 @@ function assignDataValueFields(
     finish();
     return;
   }
+  if (rmType === "DV_ORDINAL" || rmType === "DV_SCALE") {
+    output.value = record && "value" in record ? record.value : value;
+    if (record?.symbol != null) {
+      const symbol: Record<string, unknown> = { _type: "DV_CODED_TEXT" };
+      assignDataValueFields(symbol, "DV_CODED_TEXT", record.symbol);
+      output.symbol = symbol;
+    }
+    finish();
+    return;
+  }
   if (rmType === "CODE_PHRASE") {
     if (record) {
       const phrase = codedPhraseFromRecord(record);

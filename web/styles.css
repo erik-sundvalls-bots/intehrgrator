@@ -696,6 +696,8 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 .hints-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .hints-note, .hints-empty, .hints-assumed { margin: 0; color: var(--sl-color-neutral-700, #374151); }
 .hints-restore { align-self: flex-start; }
+.hints-count-chip { display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border-radius: 10px; background: #fff3c4; color: #765800; font-variant-numeric: tabular-nums; }
+.hint-subtree-outline { fill: none; stroke: #c9a83e; stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; pointer-events: none; }
 .hint-badge { cursor: pointer; }
 .hint-badge circle { fill: #fff8e1; stroke: #b58105; }
 .hint-badge text { font-size: 12px; }
