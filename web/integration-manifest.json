@@ -1,0 +1,941 @@
+{
+  "name": "Fork integration preview",
+  "purpose": "Latest upstream main plus the only open implemented pull request. Older preview directories are left in place.",
+  "base": {
+    "repo": "https://github.com/regionstockholm/intehrgrator",
+    "ref": "main",
+    "sha": "d64dc0965af86f8f0d9f7f7d556d18f479ae1052",
+    "subject": "Merge pull request #367 from erik-sundvalls-bots/fix/hints-coded-text-364"
+  },
+  "integrationMerge": {
+    "sha": "156b4afc276faf7e75b4355f6d6bc72efecf44b8",
+    "parents": [
+      "d64dc0965af86f8f0d9f7f7d556d18f479ae1052",
+      "1fb47229842baeb81ae9e973131090bee9091c46"
+    ]
+  },
+  "includedOpenPullRequests": [
+    {
+      "number": 368,
+      "title": "Show openEHR source RM attributes with compact variant A disclosure",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/368",
+      "forkUrl": "https://github.com/erik-sundvalls-bots/intehrgrator/pull/3",
+      "state": "open",
+      "headSha": "5e2445abda27d60981d17aba348417848d64fdc9",
+      "headRef": "cursor/openehr-source-rm-disclosure-283c",
+      "note": "Review branch includes the narrow-screen stacked panes and the collapse button clearance."
+    }
+  ],
+  "includedBecauseAlreadyOnUpstreamMain": [
+    {
+      "number": 367,
+      "title": "Hints: complete coded values and anchor active-hint feedback",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/367",
+      "state": "merged",
+      "mergeCommit": "d64dc0965af86f8f0d9f7f7d556d18f479ae1052",
+      "headSha": "5d78d678f8a47462576a76f5e69e7327c5747c1b",
+      "headRef": "fix/hints-coded-text-364",
+      "mergedAt": "2026-11-07T16:42:43Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 365,
+      "title": "Ordinary Function parity: Maps, Sheet parameters and portable STACKs",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/365",
+      "state": "merged",
+      "mergeCommit": "7535214ca7bdf63cb9e02c731bf65102972a75b1",
+      "headSha": "dae8d971d5ce5a44f5c74282686d398cd58cad61",
+      "headRef": "feat/ordinary-function-parity-362",
+      "mergedAt": "2026-11-06T16:31:44Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 359,
+      "title": "feat: generic Sheet-coded text with equivalent term mappings (#358)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/359",
+      "state": "merged",
+      "mergeCommit": "97884f20b3c26d7469a86b933ace36bb245eca24",
+      "headSha": "46f756124698c0a174d57b8664892b937b8c2c1a",
+      "headRef": "feat/sheet-term-mapping-fn-358",
+      "mergedAt": "2026-11-06T15:46:13Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 356,
+      "title": "feat(ai): USD budget, dual in/out counters, OpenRouter rates (#354)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/356",
+      "state": "merged",
+      "mergeCommit": "3c4c9ed8dcbd9b15376da9fb1a6b59ff0069c7a6",
+      "headSha": "b38d8eef2f0ccacd5a756d74871461a6601c3221",
+      "headRef": "feat/ai-usd-budget-354",
+      "mergedAt": "2026-11-06T15:19:32Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 353,
+      "title": "Value-set hints in the Contribution Builder",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/353",
+      "state": "merged",
+      "mergeCommit": "f00c3863470ecfbf91efc57614a7270e6a6917b1",
+      "headSha": "fe7c758ff48fe477c471764b16fc47c5ce741354",
+      "headRef": "cursor/value-set-hints-c1ca",
+      "mergedAt": "2026-11-06T15:17:00Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 352,
+      "title": "Strike through deprecated hyperlink mouths in Contribution Builder",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/352",
+      "state": "merged",
+      "mergeCommit": "a9d25f3d53b8837396a88ca67050608c0427d0e0",
+      "headSha": "5ae34bdd5b5078ccf1935f162ae0d0bfdea08c1d",
+      "headRef": "cursor/deprecated-rm-field-labels-334b",
+      "mergedAt": "2026-11-06T12:52:45Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 351,
+      "title": "Show missing optional DATA_VALUE fields on the Blockly cogwheel",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/351",
+      "state": "merged",
+      "mergeCommit": "f54c4f619acf30b226aaaccf932c02ded5a2f9e3",
+      "headSha": "c3a2f4dd0aff6ef35d0475d066cd3ee5fa6b2da5",
+      "headRef": "cursor/dv-optional-rm-fields-e606",
+      "mergedAt": "2026-11-06T07:20:01Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 349,
+      "title": "Bump ehrtslib to v0.12",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/349",
+      "state": "merged",
+      "mergeCommit": "e49f9d4f9410402ba764f32230b270a8fee33ef0",
+      "headSha": "03c13068b110fbeb01f93622a829f0a46ec4888a",
+      "headRef": "chore/ehrtslib-0.12",
+      "mergedAt": "2026-11-05T20:47:19Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 348,
+      "title": "Add an Actions workflow to create a release tag",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/348",
+      "state": "merged",
+      "mergeCommit": "2481581231fa560aea04d8c72c11d9e3cc8abaf1",
+      "headSha": "2eb8f07c987963d5a262d73e7aeb05bb919ce9af",
+      "headRef": "cursor/actions-release-create-1a51",
+      "mergedAt": "2026-11-05T18:34:57Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 347,
+      "title": "Pin recommended version to v0.14",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/347",
+      "state": "merged",
+      "mergeCommit": "e24d3f98ac21eac5538037bd2b8c5f04baf75b68",
+      "headSha": "d2e1f3d9fea974e634e4132061fca0828c98ca03",
+      "headRef": "chore/recommended-v0.14",
+      "mergedAt": "2026-11-05T18:12:33Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 305,
+      "title": "VS Code file projects with Git-reviewable artifacts and CI checks",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/305",
+      "state": "merged",
+      "mergeCommit": "75d9c134c194cbe9dd6dfcae7f67817d2f962aea",
+      "headSha": "253af6fb828053b6827c0055c3fbc918970c6be9",
+      "headRef": "codex/301-vscode-file-projects",
+      "mergedAt": "2026-11-04T10:01:18Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 346,
+      "title": "Sync #305 with main and publish VS Code VSIX on release",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/346",
+      "state": "merged",
+      "mergeCommit": "4c672069da973d982cd1e1afa4fe7e902cbf41bf",
+      "headSha": "e817449c05bed230f8ef0f4e2724d563fefee01b",
+      "headRef": "cursor/sync-305-main-ccae",
+      "mergedAt": "2026-11-04T05:48:08Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 345,
+      "title": "Ready-for-agent: release notes, desktop flags, Java scripts, schema-less targets",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/345",
+      "state": "merged",
+      "mergeCommit": "dc329e09b7dbd757395881fec2013aeae46f2280",
+      "headSha": "4965723da9b5ea1e4bc851bf074e8f1de61a9969",
+      "headRef": "cursor/ready-for-agent-fixes-f385",
+      "mergedAt": "2026-11-03T20:13:22Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 344,
+      "title": "UI adjustments for the AI label, sheet width, and context map (#290)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/344",
+      "state": "merged",
+      "mergeCommit": "1280a8365651786d76a85c38979fd7514c9dd2bd",
+      "headSha": "f6da8f7e25704515459cd8c06be3a5c8285353e9",
+      "headRef": "cursor/ui-adjustments-290-c5dd",
+      "mergedAt": "2026-11-03T18:41:50Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 343,
+      "title": "Add OPT2 and canonical JSON variants for obstetric templates",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/343",
+      "state": "merged",
+      "mergeCommit": "b4c908861ea6ce95861275565ea4dedddefacfbf",
+      "headSha": "01d3844868fcdf0dbca8aff7ee3bfd9288c0bc55",
+      "headRef": "cursor/obstetric-opt2-canonical-sets-49b9",
+      "mergedAt": "2026-11-03T18:17:41Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 342,
+      "title": "Add Handlebars helpers inc and dec",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/342",
+      "state": "merged",
+      "mergeCommit": "ba49b01d345d1a1bf06518709810893082ba6cba",
+      "headSha": "a205ecd341dcf733a87c047d3e7c17805a57c205",
+      "headRef": "cursor/handlebars-inc-dec-d31f",
+      "mergedAt": "2026-11-03T18:10:22Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 341,
+      "title": "fix(web): skip language-plugin fetch on static Pages",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/341",
+      "state": "merged",
+      "mergeCommit": "2d4c4f3a1d0abf616177c7e1a2647e18f0bd5345",
+      "headSha": "1f24a3db22034dabbfd8200d45dbb2696c91fcee",
+      "headRef": "fix/pages-plugin-fetch-and-partogram-examples",
+      "mergedAt": "2026-11-03T16:24:04Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 331,
+      "title": "Prototype: openEHR Source Schema RM progressive disclosure (#86)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/331",
+      "state": "merged",
+      "mergeCommit": "e668f8d0f096357b7ad38faf0e07e1d8a246461f",
+      "headSha": "355e1144f20462eeebdb68cc4da047f92343c471",
+      "headRef": "cursor/openehr-source-rm-tree-prototype-1920",
+      "mergedAt": "2026-11-03T07:55:49Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 340,
+      "title": "Merge main into #331 to resolve the deno.json conflict",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/340",
+      "state": "merged",
+      "mergeCommit": "355e1144f20462eeebdb68cc4da047f92343c471",
+      "headSha": "a6a1f0048cce79b0e0424e17482c72084fd3d41e",
+      "headRef": "fix/331-merge-main",
+      "mergedAt": "2026-11-03T07:43:54Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 337,
+      "title": "docs: architecture review of plugin and host seams (#336)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/337",
+      "state": "merged",
+      "mergeCommit": "99045c2f4bc8c6e5aea3955a9bcb9192d63585ce",
+      "headSha": "e61abe9e22541677876a107174d30b29d0fa727a",
+      "headRef": "docs/plugin-host-seams-review",
+      "mergedAt": "2026-11-03T07:33:45Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 332,
+      "title": "Import shared conversion-script helpers and add desktop language plugins",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/332",
+      "state": "merged",
+      "mergeCommit": "93ce533e5640e0bb426178daf64978c10581cfe6",
+      "headSha": "365720eb1a312630770fbc313d5054d13592059a",
+      "headRef": "cursor/conversion-script-helpers-8ce2",
+      "mergedAt": "2026-11-03T07:28:24Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 338,
+      "title": "Merge main into #332 (shared helpers keep #330's JSON path walking)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/338",
+      "state": "merged",
+      "mergeCommit": "365720eb1a312630770fbc313d5054d13592059a",
+      "headSha": "720acdecdd45a1f149b83ac6a37b7ef39bdeb290",
+      "headRef": "fix/332-merge-main",
+      "mergedAt": "2026-11-03T05:59:21Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 335,
+      "title": "Desktop language plugins: bundle the worker, accept paths, read INTEHR_LANGUAGE_PLUGINS",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/335",
+      "state": "merged",
+      "mergeCommit": "5df6c19c7ad525826ee3d1dfbe8b987377ed2df9",
+      "headSha": "99413a4ac97f7c612455c560e65f2bceacfc5057",
+      "headRef": "fix/332-language-plugin-path-env",
+      "mergedAt": "2026-11-03T05:08:20Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 330,
+      "title": "Smarter lung, chemo, and obstetric example mappings",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/330",
+      "state": "merged",
+      "mergeCommit": "f420a70576807aedcf4831f16cfa66608123ce74",
+      "headSha": "b545b98bdba1841490dff5038edb35183a034a7d",
+      "headRef": "cursor/smarter-example-mappings-a554",
+      "mergedAt": "2026-11-02T19:12:47Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 329,
+      "title": "Add Obstetric legacy generic-entry test fixtures",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/329",
+      "state": "merged",
+      "mergeCommit": "400de24cc2e2beee71d4c4f81b3fd0bbadf5861f",
+      "headSha": "8599dceede1b28473a6df827449d95013726de1a",
+      "headRef": "feat/obstetric-legacy-via-generic-entry-fixtures",
+      "mergedAt": "2026-11-02T15:54:15Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 328,
+      "title": "Read named loop items, and include target structure when a condition holds",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/328",
+      "state": "merged",
+      "mergeCommit": "c4efc5948ff363fd8a92d008a1cf51ec67709f4e",
+      "headSha": "4cfc460ba1231242f92106f3312eca96b9559756",
+      "headRef": "cursor/named-loops-include-when-1bf4",
+      "mergedAt": "2026-11-02T14:37:46Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 325,
+      "title": "fix: load example sets from the repo catalog",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/325",
+      "state": "merged",
+      "mergeCommit": "bc0c79be39fa47c24b550145a3d0a47128fea489",
+      "headSha": "e65de73db9d2e894afa15e41b8e66f0ea454eee4",
+      "headRef": "fix/example-set-catalog-from-repo",
+      "mergedAt": "2026-11-02T10:36:25Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 324,
+      "title": "docs(changelog): 0.12.0",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/324",
+      "state": "merged",
+      "mergeCommit": "9b390528111a77c8534f6f559496b0d13d026fd3",
+      "headSha": "9351e8d06a29251c3e791192a48cf01e12ed1f16",
+      "headRef": "chore/changelog-0.12.0",
+      "mergedAt": "2026-11-02T08:40:55Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 323,
+      "title": "ehrtslib v0.11, preview/TypeScript parity, and MCP retest fixes (#316\u2013#321)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/323",
+      "state": "merged",
+      "mergeCommit": "3a1948da0f132290174fa34c18021da91bc4f5c0",
+      "headSha": "ada5d1fac1c5df8ccb46487957a62f7371e016e3",
+      "headRef": "fix/ehrtslib-0.9-316-321",
+      "mergedAt": "2026-11-02T08:32:30Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 315,
+      "title": "Fix desktop MCP test findings: canonical output in both modes, MCP tools, Linux docs (#309\u2013#314)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/315",
+      "state": "merged",
+      "mergeCommit": "9880e1466b3f876f280e9ccd55fd1883efefefa1",
+      "headSha": "4657a9e7be0a1aa3f874c90187e3a2dd9cc32145",
+      "headRef": "fix/mcp-desktop-findings-309-314",
+      "mergedAt": "2026-10-30T22:27:38Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 308,
+      "title": "Review fixes for #305 and merge of main: release-format wording, source languages, one undo history, no autosave, contained writes",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/308",
+      "state": "merged",
+      "mergeCommit": "4e10f330cb077cbbe03853f0510ce7f157eba53e",
+      "headSha": "0155b821a969efe054620727c91e54bfd055ff7d",
+      "headRef": "review-305-fixes",
+      "mergedAt": "2026-10-29T18:33:39Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 307,
+      "title": "Fix XML source fixture paths on Windows",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/307",
+      "state": "merged",
+      "mergeCommit": "b7af43ede2c824216cbeca3c61f05ea585d2af46",
+      "headSha": "4657e3fa62205aa7151e5ab895ea3127b74dcccc",
+      "headRef": "fix/xml-source-windows-paths",
+      "mergedAt": "2026-10-29T14:22:44Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 306,
+      "title": "chore: release 0.11.0",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/306",
+      "state": "merged",
+      "mergeCommit": "73369f114c3cce147d456f51bec2e95170052618",
+      "headSha": "6ec02aafe10c758b54acacb015bf0456b4ad1700",
+      "headRef": "cursor/release-0.11.0-e6c2",
+      "mergedAt": "2026-10-29T13:55:19Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 304,
+      "title": "docs(#41): interactive Verify mapping wording + live Test & Validation design suggestions",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/304",
+      "state": "merged",
+      "mergeCommit": "2387410eff280eedd9d252c1813c7da56f88e259",
+      "headSha": "bfc8032c60109d1f70d5511a15b68493ac9c8e21",
+      "headRef": "docs/interactive-validation-suggestions",
+      "mergedAt": "2026-10-29T12:43:02Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 300,
+      "title": "docs(formal-verification): Z3 WASM spike on real fixtures + critical read of the Gemini input (#41)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/300",
+      "state": "merged",
+      "mergeCommit": "f873cb57fd0534fa7e985a6d79f8f14b8960fa50",
+      "headSha": "acff4cd1a6f6d01a207a0ac3755fedc0e58d38dc",
+      "headRef": "fv-gemini-z3-spike",
+      "mergedAt": "2026-10-29T10:44:14Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 302,
+      "title": "Security: bump handlebars to 4.7.10 and fast-xml-parser to 5.11.2",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/302",
+      "state": "merged",
+      "mergeCommit": "e450de0b0b4ff9f7e62c08ed0e43212f34e408a6",
+      "headSha": "c00e137c77c9d86dd19225ca53f6a9f9c1afc4f3",
+      "headRef": "sec/handlebars-fxp",
+      "mergedAt": "2026-10-29T08:01:36Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 299,
+      "title": "Bump ehrtslib to v0.7: drop the validator patch, turn UCUM unit checks back on",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/299",
+      "state": "merged",
+      "mergeCommit": "89e810d7e4d6a9bccb4c37cd9ad6409e2ea59df6",
+      "headSha": "b00a6aa47a325ab64770ce9cbe0adae501237d16",
+      "headRef": "ehrtslib-v0.7",
+      "mergedAt": "2026-10-27T21:18:32Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 298,
+      "title": "Id language per target file on the COMPOSITION root; per-file language settings (#289)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/298",
+      "state": "merged",
+      "mergeCommit": "ca9ac31aacdf24675d632cae9d321fa93364de55",
+      "headSha": "68b4aae60b4703236af276f44913bb7b52db0c5f",
+      "headRef": "issue-289-id-language",
+      "mergedAt": "2026-10-27T21:16:42Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 297,
+      "title": "Output names from the name constraint or the primary language, not the UI language (Karda regression)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/297",
+      "state": "merged",
+      "mergeCommit": "ec0ec2522a5f397931ed5602d9d0760053e145a7",
+      "headSha": "3310717e77dedffbaec28b44c7b9ffd4d2b2e35c",
+      "headRef": "karda-primary-names",
+      "mergedAt": "2026-10-27T21:15:25Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 296,
+      "title": "AI: offer DV_CODED_TEXT on DV_TEXT slots (#274, 3/3)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/296",
+      "state": "merged",
+      "mergeCommit": "c2eef8bf15bfd398f9c1c4c8bdecc20579811961",
+      "headSha": "5f8982bedaaa4c54751b5e814206b956b606727d",
+      "headRef": "issue-274-ai",
+      "mergedAt": "2026-10-27T21:15:00Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 295,
+      "title": "Canvas menu: DV_TEXT \u2194 DV_CODED_TEXT (#274, 2/3)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/295",
+      "state": "merged",
+      "mergeCommit": "f7811ec58ed0ec60adf046f617aaf75cbe8f9695",
+      "headSha": "4151759f607389622f8e0fd4ceb3e8c06ee9e7fe",
+      "headRef": "issue-274-ui",
+      "mergedAt": "2026-10-27T20:40:47Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 294,
+      "title": "DV_CODED_TEXT on DV_TEXT slots: core and codegen (#274, 1/3)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/294",
+      "state": "merged",
+      "mergeCommit": "e127b8f1bfeac5fc1898b0ff10989df58b285892",
+      "headSha": "5aecb734c78ffc73d959057a002bece0d82855a1",
+      "headRef": "issue-274-coded",
+      "mergedAt": "2026-10-27T20:39:37Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 293,
+      "title": "AI chat: stop and ask instead of dropping mapping context (#292)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/293",
+      "state": "merged",
+      "mergeCommit": "d95fa6db3ef2682db742b6eaa251f7d7e3bead64",
+      "headSha": "92a5b45d8f16f796497a4846489e60ef29e5bb0a",
+      "headRef": "issue-292-context",
+      "mergedAt": "2026-10-27T20:37:24Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 291,
+      "title": "Bump ehrtslib to v0.6 and drop the workarounds it makes unnecessary",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/291",
+      "state": "merged",
+      "mergeCommit": "7f53eac03c8898fd8d2af45de30b0cc4e73c798e",
+      "headSha": "c632b0f2198588c68beca7b1c4f78e6d595350b3",
+      "headRef": "ehrtslib-v0.6",
+      "mergedAt": "2026-10-27T16:25:10Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 288,
+      "title": "AI chat: prompt caching for Claude via OpenRouter (#277 \u00a76, on #281)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/288",
+      "state": "merged",
+      "mergeCommit": "1f43eb2718c7963ab5c754764f441748ad57790b",
+      "headSha": "2119b44293de4e68e56ec53ce50514e43fc6a2d0",
+      "headRef": "issue-277-prompt-cache",
+      "mergedAt": "2026-10-27T12:08:37Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 287,
+      "title": "Source tree: description language per node, get_source_tree {language} (#277 part 6, \u00a75)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/287",
+      "state": "merged",
+      "mergeCommit": "61d1fc38c136dcf44be1b1a50b012517b7b33ea9",
+      "headSha": "eeb496351a73c1340af9e9aa89f444dff65e05ad",
+      "headRef": "issue-277-source-tree",
+      "mergedAt": "2026-10-27T10:51:49Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 286,
+      "title": "Multilingual OPT XML targets: \ud83d\udcac, target.lang.N and AI labels from OPT translations (#279, #277 part 5)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/286",
+      "state": "merged",
+      "mergeCommit": "4a096ed76f9f8a535bd1edce2647468e42ce4b37",
+      "headSha": "f0faf5860d2e53efa8ba221917cf5ba7f5c6f5bd",
+      "headRef": "issue-279-opt-languages",
+      "mergedAt": "2026-10-27T04:09:56Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 285,
+      "title": "Languages: target.lang.1 labels for the AI, \ud83d\udcac widgets for target and source, Languages\u2026 dialog (#279, #277 part 4)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/285",
+      "state": "merged",
+      "mergeCommit": "5552588f246b3b720c08cadc6de19d15a02bc61f",
+      "headSha": "d4bacf99ae8d81541436e6ce6d4023eae14df726",
+      "headRef": "issue-279-label-languages",
+      "mergedAt": "2026-10-27T03:28:42Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 284,
+      "title": "AI slot tree: meaning, ranges and value docs from OPT / JSON Schema / XSD; XSD targets via the shared reader (#277, part 3)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/284",
+      "state": "merged",
+      "mergeCommit": "c61fd1e5a3bb8fae1a2b4d83dbdabf4f8a2cc5be",
+      "headSha": "29934ef68094fa53b959dbf47cf2a44d75f442c5",
+      "headRef": "issue-277-enrichment",
+      "mergedAt": "2026-10-26T15:10:51Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 283,
+      "title": "AI prompt: stable prefix, Models block, raw target on request, MCP instructions (#277, part 2)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/283",
+      "state": "merged",
+      "mergeCommit": "707d34a04281f59611afde240da4f01cb46590fb",
+      "headSha": "e2d4f3f380265c7014ede6e90a8589a78d11a92f",
+      "headRef": "issue-277-models-prefix",
+      "mergedAt": "2026-10-26T15:08:35Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 282,
+      "title": "AI: compact slot tree, get_slot and short slot ids (#277, part 1)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/282",
+      "state": "merged",
+      "mergeCommit": "517e398027a15a85315978097273ef08d915a2dc",
+      "headSha": "80d4b7afa868aa6ac63626e39b7a33ce557a3438",
+      "headRef": "issue-277-compact-slots",
+      "mergedAt": "2026-10-26T13:59:28Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 281,
+      "title": "AI chat: live token use, context ring and an optional token budget (#276)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/281",
+      "state": "merged",
+      "mergeCommit": "af5d377ebf0ac7a5a86b93d1cb316e0be74b5523",
+      "headSha": "5e68493d3049928248354fb734104dd1c42b863a",
+      "headRef": "issue-276-token-budget",
+      "mergedAt": "2026-10-26T13:51:11Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 280,
+      "title": "XSD as Source Schema; XML sources load in the headless service (#278)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/280",
+      "state": "merged",
+      "mergeCommit": "e1fa1d0ea3bc260e55fa9d36522662b259947373",
+      "headSha": "63c4cbbe2761dae8ed6b64bd22137110485cf62e",
+      "headRef": "issue-278-xml-xsd-source",
+      "mergedAt": "2026-10-26T13:45:47Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 275,
+      "title": "Warn before you edit inside an agent's lease (countdown, Edit anyway / Cancel, you win)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/275",
+      "state": "merged",
+      "mergeCommit": "6099a2842a297a01f2ace752e99ac8d70bdd26fd",
+      "headSha": "55c8846cc47074dbd658305ccaa4215cec0f491a",
+      "headRef": "issue-lease-human-warning",
+      "mergedAt": "2026-10-23T10:02:20Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 273,
+      "title": "Tutorial: parallel IDE agents with leases",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/273",
+      "state": "merged",
+      "mergeCommit": "7dbcdd2b5155f348b8767f6d466c088d6746ab95",
+      "headSha": "cb2fce77fcaf3f0974a6233bdee332e7587dee2d",
+      "headRef": "issue-parallel-agents-tutorial",
+      "mergedAt": "2026-10-23T09:59:59Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 272,
+      "title": "Show who leases what on the canvas",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/272",
+      "state": "merged",
+      "mergeCommit": "6414bea73a5ba0074ce7fe808c6d7eefa3e126e4",
+      "headSha": "a09e106dbfb46b19356b66540da21fa555220871",
+      "headRef": "issue-lease-canvas",
+      "mergedAt": "2026-10-23T09:52:18Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 271,
+      "title": "Leases for parallel MCP agents: subtrees, every write checked, separate agents per IDE chat",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/271",
+      "state": "merged",
+      "mergeCommit": "4159e8decd805cbc3c4643c4cbcc24318d78c054",
+      "headSha": "27c969ca601c3368d87875cdde69651c907a9abf",
+      "headRef": "issue-lease-subtree",
+      "mergedAt": "2026-10-23T09:46:08Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 270,
+      "title": "Fix: IDE MCP clients can connect to the stdio server; --mcp opens no window",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/270",
+      "state": "merged",
+      "mergeCommit": "fe69d68864f476b36c4ed6d46ab8ddc13ad59b18",
+      "headSha": "85b91fdf75cc67f9f0db1c2a487ca03bb52ab8e7",
+      "headRef": "issue-mcp-stdio-framing",
+      "mergedAt": "2026-10-23T09:27:10Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 269,
+      "title": "Desktop: fix crash at start (deno.json missing from the compiled binary)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/269",
+      "state": "merged",
+      "mergeCommit": "805e6f35bf4f4abc6ff9b7185eac3024143ad686",
+      "headSha": "df8074976cb005572fe7e4454087a55744aa70ee",
+      "headRef": "issue-desktop-start",
+      "mergedAt": "2026-10-23T06:59:55Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 268,
+      "title": "chore: release 0.10.0",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/268",
+      "state": "merged",
+      "mergeCommit": "805e6f35bf4f4abc6ff9b7185eac3024143ad686",
+      "headSha": "6a2de964a037172c296c136b93c98aa81b9a3454",
+      "headRef": "release-0.10.0",
+      "mergedAt": "2026-10-23T06:59:53Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 267,
+      "title": "Rebuild only changed slots when syncing the model onto Blockly; keep the category code (#266)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/267",
+      "state": "merged",
+      "mergeCommit": "0ce0fc823defb96c11096a35fdf1f2cba5703754",
+      "headSha": "4945b91f7c43336bed27a2d2546e6da8b83da394",
+      "headRef": "issue-266-category-ai",
+      "mergedAt": "2026-10-22T17:49:04Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 265,
+      "title": "History panel with author badges, Undo to here and Revert; AI author marker (ADR 0014, B)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/265",
+      "state": "merged",
+      "mergeCommit": "386fdaaa02acb07832cb0052d9371d22e0b82e4f",
+      "headSha": "92f715cfb1a2e2a504e10740ef3b396525669f40",
+      "headRef": "issue-252-b-history-panel",
+      "mergedAt": "2026-10-22T10:37:21Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 264,
+      "title": "Undo names the author, Revert takes back one change; append-only history (ADR 0014, A3)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/264",
+      "state": "merged",
+      "mergeCommit": "b32151e788f87e55c676d3272715ced0c612f3de",
+      "headSha": "ce981e13ea276e5f8e286fd559016f0f8375f188",
+      "headRef": "issue-252-a3-revert",
+      "mergedAt": "2026-10-22T10:34:48Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 263,
+      "title": "AI chat runs the MCP tools through AgentClient; remove controller_tools.ts (ADR 0014, A2)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/263",
+      "state": "merged",
+      "mergeCommit": "190d092b3bd93f77a82727658f27fdd2f9901fb4",
+      "headSha": "7a1d2aaa4f253f8394f946335f4e291a84b92c6e",
+      "headRef": "issue-252-a2-chat-via-service",
+      "mergedAt": "2026-10-22T10:21:02Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 262,
+      "title": "Desktop: commit UI changes before MCP syncs, origin on history entries (ADR 0014, A1)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/262",
+      "state": "merged",
+      "mergeCommit": "ffcf9d4d796bba79967eef9ebef657f2faf30b67",
+      "headSha": "47b123228a23bf858a8123ec21ecdf963043bf1c",
+      "headRef": "issue-252-a1-desktop-sync",
+      "mergedAt": "2026-10-22T07:16:12Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 261,
+      "title": "Tutorial: AI in the web app matches the streaming AI chat (#260)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/261",
+      "state": "merged",
+      "mergeCommit": "430b9f554e5a7e8d548400c7da9f509ec7a2af73",
+      "headSha": "c8b6a8c6a3c64cc6e3498e7547c6afd129467e6a",
+      "headRef": "issue-252-ai-tutorial",
+      "mergedAt": "2026-10-22T07:13:32Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 260,
+      "title": "AI chat: streaming tool loop with Stop, compact API context (#252, part of #251)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/260",
+      "state": "merged",
+      "mergeCommit": "c5af42ca53ad619621883e035abff258330d67c1",
+      "headSha": "8375d5613cb13b65ad8141122a090d65581627be",
+      "headRef": "issue-252-ai-tokens-streaming",
+      "mergedAt": "2026-10-22T05:01:30Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 258,
+      "title": "Update release notes in workflow file",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/258",
+      "state": "merged",
+      "mergeCommit": "a5760adedccd91ec0f77df418d94ab462d6eee62",
+      "headSha": "3542b5acdc07e890ffb7f8070484973212001f63",
+      "headRef": "ErikSundvall-patch-release-workflow-2",
+      "mergedAt": "2026-10-20T20:35:00Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 257,
+      "title": "docs: CHANGELOG.md (backfilled), changelog link in release tag, validation preset doc fix",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/257",
+      "state": "merged",
+      "mergeCommit": "ebd18661bf22f399f8d81ef7dcd376b93ae67481",
+      "headSha": "c05a50c8c7f3bf69b50211a30b3a4d77fdcbb028",
+      "headRef": "changelog",
+      "mergedAt": "2026-10-20T16:41:36Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 256,
+      "title": "Default Conversion Test Run validation to canonical-strict (ehrtslib #132)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/256",
+      "state": "merged",
+      "mergeCommit": "4b195aa565bd51f64532699e7759dd9526cca297",
+      "headSha": "d5e68cbfb9ebbe8bb2871e713ed5bb184ae83f78",
+      "headRef": "cursor/canonical-strict-default-2e3f",
+      "mergedAt": "2026-10-20T05:14:33Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 255,
+      "title": "Find in pane: Source Schema, Example Instances, Target Schema and Mapping canvas (#218)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/255",
+      "state": "merged",
+      "mergeCommit": "6d75417a88e4419eb960725b076c2d87b9f24ca7",
+      "headSha": "5ec2b9ffbcbedfcb7980acc4d05f8cdf832d52c6",
+      "headRef": "issue-218-pane-search",
+      "mergedAt": "2026-10-19T21:16:30Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 253,
+      "title": "chore: release 0.9.2",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/253",
+      "state": "merged",
+      "mergeCommit": "66a27fa0051fe7718f4e1ac06b196d7ff4c59444",
+      "headSha": "d729bed78df127569f87dfd8e3be7809cae898c2",
+      "headRef": "release-0.9.2",
+      "mergedAt": "2026-10-19T21:09:22Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 254,
+      "title": "UI fixes: validation default, Spec ELEMENT rows/selection/tabs, test-file tabs, auto-run, editor overlays (#246)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/254",
+      "state": "merged",
+      "mergeCommit": "974fe038843236209e683b30202bfa5270f39a11",
+      "headSha": "d900761b0191a7994fd1993a6dbe270e96c54ec0",
+      "headRef": "issue-246-ui-fixes",
+      "mergedAt": "2026-10-19T21:09:18Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 250,
+      "title": "AI chat polish: dismissible notice, resizable entry, copy/paste menu, divider, drop Refresh merge (#249)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/250",
+      "state": "merged",
+      "mergeCommit": "2caa391267818a029ca88a48a5a0533d3d96ce9f",
+      "headSha": "0cef5a162d4c87084b0b12ba2042afa10143bb09",
+      "headRef": "issue-249-ai-chat-polish",
+      "mergedAt": "2026-10-19T18:35:00Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 248,
+      "title": "AI chat replaces Call AI: chat panel, context chips, stored prompts (#234)",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/248",
+      "state": "merged",
+      "mergeCommit": "c86e168b923b09a7c729cb6e4dc9910eb40a9f19",
+      "headSha": "e27bfaf002335a880e928976fc7c9c602aeb734b",
+      "headRef": "issue-234-ai-chat",
+      "mergedAt": "2026-10-16T13:20:06Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 247,
+      "title": "Cursor/optional rm scaffold 8b05",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/247",
+      "state": "merged",
+      "mergeCommit": "5658ea9c8c59a5cca7cc35f2adb560352c6de888",
+      "headSha": "5733788406bc77a20990874550df243f332a7bc0",
+      "headRef": "cursor/optional-rm-scaffold-8b05",
+      "mergedAt": "2026-10-16T11:42:27Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 244,
+      "title": "Cursor/workbench console startup 4284",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/244",
+      "state": "merged",
+      "mergeCommit": "1e2b3817ed2d82b054dc44bb91cea0cf4e4d0ad8",
+      "headSha": "c92e93364447b607c26471eec23d042b91197f38",
+      "headRef": "cursor/workbench-console-startup-4284",
+      "mergedAt": "2026-10-16T06:41:40Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 243,
+      "title": "chore: release 0.9.1",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/243",
+      "state": "merged",
+      "mergeCommit": "bebd593f76997f881db82e186572a7678922196a",
+      "headSha": "aaf8025cad5ea9889e99c86fa3dc84bad2a32380",
+      "headRef": "cursor/release-0.9.1-3d49",
+      "mergedAt": "2026-10-16T06:27:30Z",
+      "via": "upstream main"
+    },
+    {
+      "number": 241,
+      "title": "Improving Decision table and sheet UIs",
+      "url": "https://github.com/regionstockholm/intehrgrator/pull/241",
+      "state": "merged",
+      "mergeCommit": "0e58b03dbab1bdbee64b7e20781528fd9e8610e3",
+      "headSha": "02e29ad4ebf6a4f737f7d547ae0e3f28e13d72e2",
+      "headRef": "cursor/drop-grid-canvas-chips-d8f1",
+      "mergedAt": "2026-10-15T13:37:25Z",
+      "via": "upstream main"
+    }
+  ],
+  "excluded": [
+    {
+      "ref": "origin/preview/value-set-hints",
+      "sha": "beac54b",
+      "reason": "Older divergent hints history. Its tree is behind upstream main (it drops #365 and #367). #353 is already on main. Merging this head would undo current hint and function work."
+    },
+    {
+      "ref": "origin/fix/pr353-hint-canvas-additive",
+      "sha": "cd908cb",
+      "reason": "Snapshot still published as preview-value-set-hints. The commit is already contained in upstream main via the merged #353 history, and the branch tip is behind main."
+    },
+    {
+      "ref": "origin/fix/hints-schema-enums-355",
+      "sha": "144393d",
+      "reason": "#357 already merged this work onto main by a different commit. The leftover branch is behind main."
+    },
+    {
+      "ref": "origin/main",
+      "sha": "df529fd343d0399f045c8b7eafd5da995af07d5b",
+      "reason": "Fork main is only empty merge commits and does not contain #367. Upstream main is the newer base."
+    },
+    {
+      "ref": "origin/docs/prototype-86-screenshots",
+      "sha": "a980e0d",
+      "reason": "Docs-only screenshots for the removed #86 prototype. Not product code."
+    },
+    {
+      "ref": "older cursor/* and issue-* branches",
+      "reason": "No other open pull request. Stale branches from September and October are not current implemented PR heads and were not merged in."
+    }
+  ],
+  "openPullRequestsInspected": {
+    "regionstockholm/intehrgrator": [
+      368
+    ],
+    "erik-sundvalls-bots/intehrgrator": [
+      3
+    ],
+    "note": "Those two are the same #368 head. No other open pull request existed."
+  },
+  "collapseButton": "Rounded button uses the block outline and steps clear of every header icon. A follow-up render runs after the header gap is inserted."
+}

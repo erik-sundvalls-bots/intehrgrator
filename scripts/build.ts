@@ -135,12 +135,10 @@ exports.deactivate = async () => extension ? (await extension).deactivate() : un
 );
 
 await copy(join(root, "web", "index.html"), join(outDir, "index.html"), { overwrite: true });
+await copy(join(root, "web", "integration-manifest.json"), join(outDir, "integration-manifest.json"), {
+  overwrite: true,
+});
 await copy(join(root, "web", "styles.css"), join(outDir, "styles.css"), { overwrite: true });
-await copy(
-  join(root, "web", "prototype-openehr-source-rm-tree.html"),
-  join(outDir, "prototype-openehr-source-rm-tree.html"),
-  { overwrite: true },
-);
 const shoelaceThemeDir = join(outDir, "vendor", "shoelace", "themes");
 await ensureDir(shoelaceThemeDir);
 await copy(

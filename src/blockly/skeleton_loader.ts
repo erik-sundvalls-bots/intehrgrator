@@ -117,6 +117,7 @@ export function loadSkeletonIntoWorkspace(
       collapseEntryBoilerplateChildren(block);
       enforceMouthCaptionLayout(block);
     }
+    collapseScaffoldedDefaultsLookups(workspace);
     highlightListeningSlot(workspace, listeningSlotId);
     refreshWorkspaceLayout(workspace);
     refreshWorkspaceConstraints(workspace);
@@ -165,6 +166,7 @@ export function placeSkeletonSubtreeOnWorkspace(
       collapseEntryBoilerplateChildren(child);
       enforceMouthCaptionLayout(child);
     }
+    collapseScaffoldedDefaultsLookups(workspace);
     refreshWorkspaceLayout(workspace);
     refreshWorkspaceConstraints(workspace);
     return block;
@@ -207,6 +209,18 @@ export function lockWorkspaceRootsExpanded(workspace: Blockly.Workspace): void {
  * Collapse or expand blocks nested under `root` (not `root` itself).
  * Used by the block context menu (#194).
  */
+/** Scaffolded `get defaults` lookups start collapsed. Other maps stay as they are. */
+export function collapseScaffoldedDefaultsLookups(workspace: Blockly.Workspace): void {
+  for (const block of workspace.getAllBlocks(false)) {
+    if (!isScaffoldedDefaultsLookup(block)) continue;
+    if (typeof block.setCollapsed === "function") block.setCollapsed(true);
+  }
+}
+
+export function isScaffoldedDefaultsLookup(block: Blockly.Block): boolean {
+  return block.type === "maps_get" && String(block.getFieldValue("NAME") || "") === "defaults";
+}
+
 export function setChildBlocksCollapsed(root: Blockly.Block, collapsed: boolean): void {
   const grouped = typeof Blockly.Events.setGroup === "function";
   if (grouped) Blockly.Events.setGroup(true);
@@ -660,6 +674,7 @@ function lockRootExpanded(block: Blockly.Block): void {
   if (mutable.isCollapsed?.()) mutable.setCollapsed(false);
   if (lockedRoots.has(block)) return;
   lockedRoots.add(block);
+  (block as Blockly.Block & { collapseLocked?: boolean }).collapseLocked = true;
   const original = mutable.setCollapsed.bind(block);
   mutable.setCollapsed = (_collapsed: boolean) => {
     original(false);

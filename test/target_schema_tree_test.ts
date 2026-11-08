@@ -21,9 +21,11 @@ import type { SkeletonNode } from "@intehrgrator/types/mod.ts";
 import {
   findSkeletonNodeIn,
   parseTargetDragPayload,
+  renderTargetSchemaTree,
   TARGET_DRAG_MIME,
   targetSchemaTreeFromSkeleton,
 } from "@intehrgrator/workbench/target_schema_tree.ts";
+import { renderSchemaTree } from "@intehrgrator/workbench/tree_views.ts";
 import "blockly/blocks";
 
 const opt = await Deno.readTextFile(
@@ -214,5 +216,56 @@ Deno.test("pulling a JSON Schema leaf yields a schema/target Blockly block", () 
     );
   } finally {
     workspace.dispose();
+  }
+});
+
+Deno.test("openEHR target tree discloses optional RM independently of the source tree", async () => {
+  const { JSDOM } = await import("npm:jsdom@25");
+  const dom = new JSDOM("<!doctype html><body></body>");
+  const previous = globalThis.document;
+  globalThis.document = dom.window.document;
+  try {
+    const skeleton = loadBpSkeleton();
+    const tree = targetSchemaTreeFromSkeleton(skeleton);
+    const target = document.createElement("div");
+    const source = document.createElement("div");
+    renderTargetSchemaTree(target, tree, () => {}, "empty", { discloseOptionalRm: true });
+    renderSchemaTree(source, {
+      path: "$",
+      name: "text",
+      type: "DV_TEXT",
+      children: [],
+    }, () => {});
+    const targetPlus = target.querySelector<HTMLButtonElement>(".tree-rm-toggle");
+    const sourcePlus = source.querySelector<HTMLButtonElement>(".tree-rm-toggle");
+    assert(targetPlus, "openEHR target root should offer optional RM");
+    assert(sourcePlus, "source DV_TEXT should offer optional RM");
+    assertEquals(targetPlus.textContent, "+");
+    assert(targetPlus.getAttribute("aria-label")?.includes(tree[0]?.name ?? ""));
+    assertEquals(targetPlus.querySelector("span")?.getAttribute("aria-hidden"), "true");
+    targetPlus.click();
+    assert(target.querySelector(".tree-row-rm-optional"), "opening the plus reveals optional attributes");
+    assertEquals(target.querySelector(".tree-rm-toggle")?.textContent, "\u2212");
+    assertEquals(source.querySelectorAll(".tree-row-rm-optional").length, 0);
+    const optional = target.querySelector<HTMLElement>(".tree-row-rm-optional");
+    assert(optional && !optional.dataset.slotId, "optional RM rows are not canvas slots");
+    assert(target.querySelector<HTMLElement>(".tree-row")?.dataset.slotId, "template rows stay draggable slots");
+    target.querySelector<HTMLButtonElement>(".tree-rm-toggle")?.click();
+    assertEquals(target.querySelectorAll(".tree-row-rm-optional").length, 0);
+
+    const plain = document.createElement("div");
+    renderTargetSchemaTree(plain, tree);
+    assertEquals(plain.querySelectorAll(".tree-rm-toggle").length, 0);
+    const json = document.createElement("div");
+    renderTargetSchemaTree(json, [{
+      path: "#/systolic",
+      name: "systolic",
+      type: "number",
+      children: [],
+    }], () => {}, "empty", { discloseOptionalRm: true });
+    assertEquals(json.querySelectorAll(".tree-rm-toggle").length, 0);
+  } finally {
+    if (previous) globalThis.document = previous;
+    else delete (globalThis as { document?: Document }).document;
   }
 });

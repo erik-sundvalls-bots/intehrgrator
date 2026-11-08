@@ -696,6 +696,8 @@ body { display: flex; flex-direction: column; min-height: 100%; }
 .hints-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .hints-note, .hints-empty, .hints-assumed { margin: 0; color: var(--sl-color-neutral-700, #374151); }
 .hints-restore { align-self: flex-start; }
+.hints-count-chip { display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border-radius: 10px; background: #fff3c4; color: #765800; font-variant-numeric: tabular-nums; }
+.hint-subtree-outline { fill: none; stroke: #c9a83e; stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; pointer-events: none; }
 .hint-badge { cursor: pointer; }
 .hint-badge circle { fill: #fff8e1; stroke: #b58105; }
 .hint-badge text { font-size: 12px; }
@@ -1334,8 +1336,27 @@ body.sheets-fullscreen::before {
   fill: #E2E8F0;
   text-decoration: line-through;
 }
-.blockly-mount .blocklyText .blockly-slot-attr-name--deprecated {
+.blockly-mount .blocklyText .blockly-slot-attr-name--deprecated,
+.blockly-mount .blocklyText.blockly-slot-attr-name--deprecated,
+.tree-name.blockly-slot-attr-name--deprecated {
   text-decoration: line-through;
+}
+.blockly-mount .block-collapse-glyph {
+  cursor: pointer;
+}
+.blockly-mount .block-collapse-glyph-plate {
+  fill: #f7f4ee;
+  stroke: #d5d0c6;
+  stroke-width: 1;
+}
+.blockly-mount .block-collapse-glyph-mark {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #1c2830;
+  font-family: sans-serif;
+}
+.blockly-mount .block-collapse-glyph:focus .block-collapse-glyph-plate {
+  stroke: #1c2830;
 }
 .blockly-mount .blockly-slot-deprecated-link {
   cursor: pointer;
@@ -1481,6 +1502,47 @@ body.sheets-fullscreen::before {
 
 .tree-row { padding: 2px 0; }
 .tree-label { cursor: pointer; }
+/* RM rows the template did not name (#86). Italic, one line, no extra padding. */
+.tree-row.tree-row-rm-mandatory > .tree-label,
+.tree-row.tree-row-rm-optional > .tree-label {
+  font-style: italic;
+  font-weight: 400;
+}
+.tree-row.tree-row-rm-mandatory:not(.highlighted):not(.synced) > .tree-label {
+  color: #6b7c8a;
+}
+.tree-row.tree-row-rm-optional:not(.highlighted):not(.synced) > .tree-label {
+  color: #b35c00;
+}
+.tree-row.tree-row-rm-mandatory > .tree-label .tree-meta,
+.tree-row.tree-row-rm-optional > .tree-label .tree-meta {
+  font-style: italic;
+}
+/* Encircled plus/minus. No label text — the control recurs on most RM rows. */
+.tree-rm-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin: 0 0 0 4px;
+  padding: 0;
+  border: 1px solid #c5c5c5;
+  border-radius: 50%;
+  background: transparent;
+  color: #8a8a8a;
+  font: 11px/1 system-ui, sans-serif;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.tree-rm-toggle:hover {
+  border-color: #9a9a9a;
+  color: #666666;
+}
+.tree-rm-toggle[aria-expanded="true"] {
+  border-color: #d7c4b0;
+  color: #a56b3c;
+}
 .tree-label:hover { color: var(--primary); }
 .tree-label-schema .tree-meta {
   color: var(--text-secondary);
@@ -1906,30 +1968,60 @@ body.sheets-fullscreen::before {
 }
 
 @media (max-width: 1100px) {
+  /* One viewport cannot hold Source, the canvas, and Target. The old rule
+     locked .panes to the screen and gave Mapping 50vh, so the side panes
+     stopped at 140px and their trees had no room. Stack them and scroll. */
+  html, body {
+    height: auto;
+    min-height: 100%;
+  }
+  body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .panes {
-    height: calc(100vh - 88px);
+    flex: 0 0 auto;
+    height: auto;
     min-height: 0;
+    overflow: visible;
     flex-direction: column !important;
   }
   .panes > .split-handle { display: none; }
   .panes > .source-pane,
+  .panes > .output-pane,
+  .panes > .mapping-pane {
+    flex: 0 0 auto !important;
+    width: 100%;
+    max-width: none;
+  }
+  /* A definite height, not a min-height: percentage splits and height:100%
+     tabs only fill a specified height. 340px was empty space above 19px trees. */
+  .panes > .source-pane,
   .panes > .output-pane {
-    flex: 0.7 1 18% !important;
-    min-height: 140px !important;
+    height: 460px !important;
+    min-height: 0 !important;
+    max-height: 460px !important;
+  }
+  .panes > .mapping-pane {
+    height: 520px !important;
+    min-height: 0 !important;
+    max-height: 520px !important;
   }
   .panes > .source-pane.pane--slid-away,
   .panes > .output-pane.pane--slid-away {
     flex: 0 0 36px !important;
+    height: 36px !important;
     min-height: 36px !important;
+    max-height: 36px !important;
     max-width: none !important;
     min-width: 0 !important;
   }
-  .panes > .mapping-pane {
-    flex: 2.6 1 50% !important;
-    min-height: 50vh !important;
-  }
   .mapping-pane .blockly-mount {
-    min-height: 220px;
+    min-height: 180px;
+  }
+  .tree-pane,
+  .editor-host {
+    -webkit-overflow-scrolling: touch;
   }
 }
 
