@@ -122,6 +122,7 @@ import { setValueSetHintNoteSlots } from "../src/blockly/block_constraints.ts";
 import { collectValueSetHints, countActiveHints } from "../src/core/hints/value_set_hint.ts";
 import { mountHintsPanel } from "../src/ui/hints_panel.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
+import { installCollapseGlyph } from "../src/blockly/collapse_glyph.ts";
 import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
 import { installCodedTextMenu } from "../src/blockly/coded_text_menu.ts";
 import { allowsCodedText } from "../src/core/openehr/coded_text.ts";
@@ -1251,6 +1252,7 @@ async function bootBlockly(): Promise<void> {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren,
   });
+  installCollapseGlyph(workspace);
   installAiReviewMarkers(workspace, {
     labels: {
       markReviewed: () => uiChrome().aiMarkReviewed,

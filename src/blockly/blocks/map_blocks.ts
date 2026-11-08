@@ -338,6 +338,9 @@ export function createMapsGetBlock(
     }
   }
   initAndRender(block);
+  if (mapName === DEFAULTS_MAP_NAME && typeof block.setCollapsed === "function") {
+    block.setCollapsed(true);
+  }
   return block;
 }
 
