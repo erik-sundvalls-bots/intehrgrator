@@ -21,9 +21,9 @@
       "url": "https://github.com/regionstockholm/intehrgrator/pull/368",
       "forkUrl": "https://github.com/erik-sundvalls-bots/intehrgrator/pull/3",
       "state": "open",
-      "headSha": "2761f6285647d81882bd6f189a85b614c9178b41",
+      "headSha": "c0767d14f8d21cb5d3cb9ae1b95a04e129d001d9",
       "headRef": "cursor/openehr-source-rm-disclosure-283c",
-      "note": "Review branch includes the collapse button that stays off neighbouring header icons."
+      "note": "Collapse button stays inside the block outline and clear of neighbouring header icons."
     }
   ],
   "includedBecauseAlreadyOnUpstreamMain": [
