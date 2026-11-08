@@ -12,6 +12,9 @@ export type DeprecatedRmField = {
   href: string;
 };
 
+/** Class the slot caption, source tree, and cogwheel flyout share for a strike. */
+export const DEPRECATED_ATTR_CLASS = "blockly-slot-attr-name--deprecated";
+
 /**
  * RM Data Types §5.1.7 Formatting and Hyperlinking:
  * "Deprecated: Starting at RM Release 1.0.4, the use of the hyperlink field

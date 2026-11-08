@@ -162,11 +162,28 @@ export function displayLanguage(choice: string | undefined, order: readonly stri
 /**
  * The language a target was authored in: OPT `<language>`, Web Template
  * `defaultLanguage`, JSON Schema `x-lang`, else its first listed language.
+ *
+ * A Web Template's `defaultLanguage` is read from the head of the JSON. Parsing
+ * the whole document here used to repeat for every language on each render
+ * (MHV1's prenatal-visit template is several megabytes).
  */
+const originalLanguageCache = new WeakMap<object, { signature: string; lang: string | undefined }>();
+
 export function targetOriginalLanguage(
   target: { format: string; content: string; webTemplateJson?: string; languages?: string[]; language?: string } | null,
 ): string | undefined {
   if (!target) return undefined;
+  const signature = `${target.format}\0${target.content.length}\0${target.webTemplateJson?.length ?? ""}\0${target.content.slice(0, 64)}`;
+  const cached = originalLanguageCache.get(target);
+  if (cached && cached.signature === signature) return cached.lang;
+  const lang = readTargetOriginalLanguage(target);
+  originalLanguageCache.set(target, { signature, lang });
+  return lang;
+}
+
+function readTargetOriginalLanguage(
+  target: { format: string; content: string; webTemplateJson?: string; languages?: string[]; language?: string },
+): string | undefined {
   const text = target.content.trimStart();
   if (target.format === "openehr-template") {
     if (text.startsWith("<")) {
@@ -174,24 +191,23 @@ export function targetOriginalLanguage(
       if (m) return normalizeLangCode(m[1]!);
     }
     const wt = target.webTemplateJson ?? (text.startsWith("{") ? text : "");
-    if (wt) {
-      try {
-        const lang = (JSON.parse(wt) as { defaultLanguage?: unknown }).defaultLanguage;
-        if (typeof lang === "string") return normalizeLangCode(lang);
-      } catch {
-        // Not a Web Template.
-      }
-    }
+    const fromHead = webTemplateDefaultLanguage(wt);
+    if (fromHead) return fromHead;
   }
   if (target.format === "json-schema" && text.startsWith("{")) {
-    try {
-      const lang = (JSON.parse(text) as Record<string, unknown>)["x-lang"];
-      if (typeof lang === "string") return normalizeLangCode(lang);
-    } catch {
-      // Malformed JSON: no language.
-    }
+    const head = text.slice(0, 8192);
+    const marked = head.match(/"x-lang"\s*:\s*"([^"]+)"/);
+    if (marked) return normalizeLangCode(marked[1]!);
   }
   return target.languages?.[0] ?? target.language;
+}
+
+/** `defaultLanguage` sits next to `templateId` at the start of a Web Template. */
+export function webTemplateDefaultLanguage(json: string): string | undefined {
+  if (!json) return undefined;
+  const head = json.slice(0, 65536);
+  const marked = head.match(/"defaultLanguage"\s*:\s*"([^"]+)"/);
+  return marked ? normalizeLangCode(marked[1]!) : undefined;
 }
 
 /** Languages a target offers: its listed languages, else JSON Schema `x-lang` / `x-i18n` keys. */

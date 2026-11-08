@@ -383,6 +383,22 @@ export interface SchemaTreeNode {
   description?: string;
   /** Language of `description` when known (XSD `xml:lang`, JSON Schema `x-i18n` key / `x-lang`) (#277 §5). */
   descriptionLang?: string;
+  /**
+   * RM attribute of the parent this node occupies (`content`, `data`, `start_time`).
+   * Web Template children often use a node id as `name` while the AQL segment is
+   * the attribute (`vårdenhet` under `other_context`).
+   */
+  rmAttribute?: string;
+  /**
+   * Set when this node was added from RM metadata rather than the template.
+   * `rm-mandatory` is always shown. `rm-optional` is a row the source-tree plus revealed.
+   */
+  rmOrigin?: "rm-mandatory" | "rm-optional";
+  /**
+   * RM attributes already represented by Web Template `inputs` on this node
+   * (an unsuffixed value input covers the primary mapping attribute).
+   */
+  rmCoveredAttributes?: string[];
   children: SchemaTreeNode[];
 }
 
