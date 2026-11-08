@@ -11,6 +11,7 @@
  */
 import type { BlockSvg, WorkspaceSvg } from "blockly/core";
 import { Blockly } from "./blockly_core.ts";
+import { chromeHostInput, orderHeaderTrailingChrome } from "./mouth_layout.ts";
 
 /** Shown while the block is expanded; activating it collapses. */
 export const COLLAPSE_GLYPH_EXPANDED = "\u25BE";
@@ -21,6 +22,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const GLYPH_CLASS = "block-collapse-glyph";
 const PATCHED = "__intehrCollapseGlyph";
 const MENU_PATCHED = "__intehrCollapseGlyphMenu";
+const PAD_FIELD = "COLLAPSE_PAD";
 /** Compact button, small enough to sit beside a 16px cogwheel. */
 export const COLLAPSE_BUTTON_PX = 14;
 
@@ -75,7 +77,7 @@ export function collapseButtonBox(args: {
   let x = width - size - pad;
   let y = pad;
   if (cog && hasCog) {
-    x = cog.x - size - 1;
+    x = cog.x - size - 3;
     y = cog.y + (cog.height - size) / 2;
   }
   x = clamp(x, pad, width - size - pad);
@@ -151,11 +153,12 @@ export function syncCollapseGlyph(block: CollapseBlock): void {
   glyph.setAttribute("aria-expanded", collapsed ? "false" : "true");
   const title = glyph.querySelector("title");
   if (title) title.textContent = label;
+  ensureCollapsePad(block);
   const size = visibleBlockSize(block);
   const box = collapseButtonBox({
     blockWidth: size.width,
     blockHeight: size.height,
-    cog: cogAnchor(block),
+    cog: collapsed ? null : (padAnchor(block) ?? rightHeaderIcon(block)),
   });
   const plate = glyph.querySelector("rect");
   plate?.setAttribute("width", String(box.size));
@@ -167,26 +170,71 @@ export function syncCollapseGlyph(block: CollapseBlock): void {
   glyph.setAttribute("transform", `translate(${box.x}, ${box.y})`);
 }
 
-/** Cogwheel box in the block SVG's own coordinates, or null when it is not drawn. */
-function cogAnchor(block: CollapseBlock): CogAnchor | null {
-  const cog = typeof block.getField === "function" ? block.getField("MUTATOR_COG") : null;
-  const fieldSvg = cog?.getSvgRoot?.();
-  const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
-  if (!fieldSvg || !blockSvg) return null;
-  if (typeof fieldSvg.getBoundingClientRect !== "function" ||
-    typeof blockSvg.getBoundingClientRect !== "function"
-  ) {
-    return null;
+/** Invisible header slot immediately left of the cogwheel, so the button has room. */
+function ensureCollapsePad(block: CollapseBlock): void {
+  try {
+    if (typeof block.getField !== "function" || block.getField(PAD_FIELD)) return;
+    if (typeof block.getInput !== "function") return;
+    const host = chromeHostInput(block);
+    if (!host || typeof host.appendField !== "function") return;
+    host.appendField(new FieldCollapsePad(), PAD_FIELD);
+    orderHeaderTrailingChrome(block);
+  } catch {
+    // A render that cannot grow the header keeps the outline fallback.
   }
-  const fieldBox = fieldSvg.getBoundingClientRect();
-  const blockBox = blockSvg.getBoundingClientRect();
-  if (fieldBox.width <= 0 || fieldBox.height <= 0 || blockBox.width <= 0) return null;
+}
+
+class FieldCollapsePad extends Blockly.Field {
+  constructor() {
+    super("");
+    this.SERIALIZABLE = false;
+    this.EDITABLE = false;
+    if (this.size_) {
+      this.size_.width = COLLAPSE_BUTTON_PX + 4;
+      this.size_.height = COLLAPSE_BUTTON_PX;
+    }
+  }
+
+  override getText(): string {
+    return "";
+  }
+}
+
+function padAnchor(block: CollapseBlock): CogAnchor | null {
+  const pad = typeof block.getField === "function" ? block.getField(PAD_FIELD) : null;
+  return iconBox(block, pad?.getSvgRoot?.() ?? null);
+}
+
+/** Rightmost header image on this block (the cogwheel, when it has one). */
+function rightHeaderIcon(block: CollapseBlock): CogAnchor | null {
+  const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
+  if (!blockSvg) return null;
+  let best: CogAnchor | null = null;
+  for (const image of blockSvg.querySelectorAll("image")) {
+    if (image.closest(".block-collapse-glyph")) continue;
+    if (image.closest("foreignObject")) continue;
+    if (image.closest("g.blocklyDraggable") !== blockSvg) continue;
+    const box = iconBox(block, image);
+    if (!box || box.y > 32) continue;
+    if (!best || box.x > best.x) best = box;
+  }
+  return best;
+}
+
+function iconBox(block: CollapseBlock, node: Element | null): CogAnchor | null {
+  const blockSvg = typeof block.getSvgRoot === "function" ? block.getSvgRoot() : null;
+  if (!node || !blockSvg || typeof node.getBoundingClientRect !== "function") return null;
+  const path = blockSvg.querySelector(":scope > path.blocklyPath") ?? blockSvg;
+  if (typeof path.getBoundingClientRect !== "function") return null;
+  const origin = path.getBoundingClientRect();
+  const box = node.getBoundingClientRect();
+  if (origin.width <= 0 || box.width < 4 || box.height < 4) return null;
   const scale = Number((block.workspace as { scale?: number } | undefined)?.scale ?? 1) || 1;
   return {
-    x: (fieldBox.left - blockBox.left) / scale,
-    y: (fieldBox.top - blockBox.top) / scale,
-    width: fieldBox.width / scale,
-    height: fieldBox.height / scale,
+    x: (box.left - origin.left) / scale,
+    y: (box.top - origin.top) / scale,
+    width: box.width / scale,
+    height: box.height / scale,
   };
 }
 
