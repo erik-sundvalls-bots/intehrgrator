@@ -46,7 +46,12 @@ import {
 } from "@intehrgrator/blockly/rm_type_emoji.ts";
 import { isSlotLabelField } from "@intehrgrator/blockly/slot_label.ts";
 import { isSkeletonTitleField, humanizeRmType } from "@intehrgrator/blockly/field_skeleton_title.ts";
-import { loadSkeletonIntoWorkspace, setAllBlocksCollapsed, attachOptionalRmChild } from "@intehrgrator/blockly/skeleton_loader.ts";
+import {
+  attachOptionalRmChild,
+  isScaffoldedDefaultsLookup,
+  loadSkeletonIntoWorkspace,
+  setAllBlocksCollapsed,
+} from "@intehrgrator/blockly/skeleton_loader.ts";
 import {
   ABSTRACT_EVENT_WARNING,
   ABSTRACT_ITEM_STRUCTURE_WARNING,
@@ -442,6 +447,10 @@ Deno.test("imported skeleton starts expanded; collapse-all skips the root", () =
       continue;
     }
     if (isBoilerplateDescendant(block, boilerplate)) continue;
+    if (isScaffoldedDefaultsLookup(block)) {
+      assertEquals(block.isCollapsed(), true, "scaffolded get-defaults lookup starts collapsed");
+      continue;
+    }
     assertEquals(
       block.isCollapsed(),
       false,
