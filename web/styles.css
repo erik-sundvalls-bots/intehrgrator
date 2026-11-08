@@ -1344,13 +1344,19 @@ body.sheets-fullscreen::before {
 .blockly-mount .block-collapse-glyph {
   cursor: pointer;
 }
+.blockly-mount .block-collapse-glyph-plate {
+  fill: #f7f4ee;
+  stroke: #d5d0c6;
+  stroke-width: 1;
+}
 .blockly-mount .block-collapse-glyph-mark {
-  font-size: 12px;
-  fill: #6b7c8a;
+  font-size: 11px;
+  font-weight: 700;
+  fill: #1c2830;
   font-family: sans-serif;
 }
-.blockly-mount .block-collapse-glyph:focus .block-collapse-glyph-mark {
-  fill: #1a1a1a;
+.blockly-mount .block-collapse-glyph:focus .block-collapse-glyph-plate {
+  stroke: #1c2830;
 }
 .blockly-mount .blockly-slot-deprecated-link {
   cursor: pointer;
