@@ -6,6 +6,13 @@
  */
 
 import type { SchemaTreeNode, SkeletonNode } from "../types/mod.ts";
+import { optionalSourceRmGaps } from "../core/source/rm_tree_disclosure.ts";
+import {
+  createOptionalRmToggle,
+  markDeprecatedTreeName,
+  rmExpansionPaths,
+  type SchemaTreeRenderOptions,
+} from "./tree_views.ts";
 
 /** Custom MIME for Target schema → Blockly canvas drag. */
 export const TARGET_DRAG_MIME = "application/x-intehrgrator-target";
@@ -90,6 +97,7 @@ export function targetSchemaTreeFromSkeleton(
       type: node.rmType || node.blockType,
       multiplicity: node.multiplicity ?? node.effectiveCardinality,
       description: node.documentation,
+      ...(node.rmAttribute ? { rmAttribute: node.rmAttribute } : {}),
       ...(alt ? { altLabels: alt } : {}),
       children: node.children.map(toTree),
     };
@@ -99,33 +107,53 @@ export function targetSchemaTreeFromSkeleton(
 
 export type TargetTreeSelectHandler = (slotId: string, event?: MouseEvent) => void;
 
+export interface TargetSchemaTreeOptions {
+  /** openEHR targets only. Other formats keep the tree they had before. */
+  discloseOptionalRm?: boolean;
+  rmOptionalToggleLabel?: SchemaTreeRenderOptions["rmOptionalToggleLabel"];
+}
+
 export function renderTargetSchemaTree(
   container: HTMLElement,
   nodes: TargetTreeNode[],
   onSelect: TargetTreeSelectHandler = () => {},
   emptyLabel = "Load a target schema or template.",
+  options: TargetSchemaTreeOptions = {},
 ): void {
   container.classList.add("target-schema-tree");
+  const disclose = options.discloseOptionalRm === true;
+  const expanded = disclose
+    ? rmExpansionPaths(container, `target\0${nodes[0]?.path ?? ""}\0${nodes.length}`)
+    : new Set<string>();
+  const rerender = () => renderTargetSchemaTree(container, nodes, onSelect, emptyLabel, options);
   container.innerHTML = "";
   if (!nodes.length) {
     container.textContent = emptyLabel;
     return;
   }
   for (const node of nodes) {
-    container.appendChild(buildTargetNode(node, onSelect, 0));
+    container.appendChild(buildTargetNode(node, onSelect, 0, disclose, expanded, options, rerender, ""));
   }
 }
 
 function buildTargetNode(
-  node: TargetTreeNode,
+  node: TargetTreeNode | SchemaTreeNode,
   onSelect: TargetTreeSelectHandler,
   depth: number,
+  disclose: boolean,
+  expanded: Set<string>,
+  options: TargetSchemaTreeOptions,
+  rerender: () => void,
+  parentRmType: string,
 ): HTMLElement {
+  const synthetic = node.rmOrigin === "rm-optional" || node.rmOrigin === "rm-mandatory";
   const row = document.createElement("div");
   row.className = "tree-row";
+  if (node.rmOrigin === "rm-mandatory") row.classList.add("tree-row-rm-mandatory");
+  if (node.rmOrigin === "rm-optional") row.classList.add("tree-row-rm-optional");
   row.style.paddingLeft = `${depth * 12}px`;
   row.dataset.path = node.path;
-  row.dataset.slotId = node.path;
+  if (!synthetic) row.dataset.slotId = node.path;
 
   const label = document.createElement("span");
   label.className = "tree-label tree-label-schema";
@@ -134,29 +162,51 @@ function buildTargetNode(
   const metaParts = [node.type];
   if (node.multiplicity) metaParts.push(`[${node.multiplicity}]`);
   meta.textContent = `  ${metaParts.join(" ")}`;
-  label.append(document.createTextNode(node.name), meta);
-  label.draggable = true;
-  label.title = [node.description ?? node.path, node.altLabels].filter(Boolean).join("\n");
-  label.addEventListener("click", (event) => onSelect(node.path, event));
-  label.addEventListener("dragstart", (e) => {
-    const payload: TargetDragPayload = { slotId: node.path };
-    activeTargetDrag = payload;
-    const json = JSON.stringify(payload);
-    e.dataTransfer?.setData(TARGET_DRAG_MIME, json);
-    e.dataTransfer?.setData("text/plain", json);
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
-  });
-  label.addEventListener("dragend", () => {
-    queueMicrotask(() => {
-      activeTargetDrag = null;
+  const nameEl = document.createElement("span");
+  nameEl.className = "tree-name";
+  nameEl.textContent = node.name;
+  markDeprecatedTreeName(nameEl, parentRmType, node.rmAttribute);
+  label.append(nameEl, meta);
+  const alt = "altLabels" in node ? node.altLabels : undefined;
+  if (!synthetic) {
+    label.draggable = true;
+    label.title = [node.description ?? node.path, alt].filter(Boolean).join("\n");
+    label.addEventListener("click", (event) => onSelect(node.path, event));
+    label.addEventListener("dragstart", (e) => {
+      const payload: TargetDragPayload = { slotId: node.path };
+      activeTargetDrag = payload;
+      const json = JSON.stringify(payload);
+      e.dataTransfer?.setData(TARGET_DRAG_MIME, json);
+      e.dataTransfer?.setData("text/plain", json);
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
     });
-  });
+    label.addEventListener("dragend", () => {
+      queueMicrotask(() => {
+        activeTargetDrag = null;
+      });
+    });
+  }
   row.appendChild(label);
 
+  const gaps = disclose ? optionalSourceRmGaps(node) : [];
+  if (gaps.length > 0) {
+    row.appendChild(createOptionalRmToggle(node, expanded, options, rerender));
+  }
+
+  const childRm = node.type;
   const wrap = document.createElement("div");
   wrap.appendChild(row);
   for (const child of node.children) {
-    wrap.appendChild(buildTargetNode(child, onSelect, depth + 1));
+    wrap.appendChild(
+      buildTargetNode(child, onSelect, depth + 1, disclose, expanded, options, rerender, childRm),
+    );
+  }
+  if (disclose && expanded.has(node.path)) {
+    for (const child of gaps) {
+      wrap.appendChild(
+        buildTargetNode(child, onSelect, depth + 1, disclose, expanded, options, rerender, childRm),
+      );
+    }
   }
   return wrap;
 }

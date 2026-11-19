@@ -10,7 +10,7 @@ Deno.test("list_function_library reads the bundled catalog", async () => {
   const listed = await callAgentTool(service, "list_function_library", { catalogPath }) as {
     functions: Array<{ id: string; name: string }>;
   };
-  assertEquals(listed.functions.map((row) => row.id).sort(), ["coded_text_from_sheet", "join_oxford", "join_swedish"]);
+  assertEquals(listed.functions.map((row) => row.id).sort(), ["coded_text_from_sheet", "coded_value_from_row", "join_oxford", "join_swedish"]);
 });
 
 Deno.test("load_function merges join_swedish without replacing unrelated Blockly", async () => {

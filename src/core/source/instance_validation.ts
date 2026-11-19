@@ -1,7 +1,6 @@
 import type { SchemaTreeNode, SourceFormatId } from "../../types/mod.ts";
 import {
   canonicalSyncPath,
-  findNodeBySyncPath,
   isJsonSchemaDocument,
 } from "./schema_loader.ts";
 import { getSourceFormatHandler } from "./format_handler.ts";
@@ -30,7 +29,20 @@ export function validateInstanceAgainstSchema(
       message: err instanceof Error ? err.message : String(err),
     }];
   }
-  return collectInstanceValidationIssues(instanceTree, schema);
+  return collectInstanceValidationIssues(instanceTree, schemaWithoutRmDisclosure(schema));
+}
+
+/** RM disclosure nodes are not template fields. They must not become mismatches. */
+function schemaWithoutRmDisclosure(node: SchemaTreeNode): SchemaTreeNode {
+  if (!treeHasRmOrigin(node)) return node;
+  return {
+    ...node,
+    children: node.children.filter((child) => !child.rmOrigin).map(schemaWithoutRmDisclosure),
+  };
+}
+
+function treeHasRmOrigin(node: SchemaTreeNode): boolean {
+  return node.children.some((child) => Boolean(child.rmOrigin) || treeHasRmOrigin(child));
 }
 
 function validateAgainstJsonSchemaDocument(
@@ -64,10 +76,13 @@ function collectInstanceValidationIssues(
 ): InstanceValidationIssue[] {
   const issues: InstanceValidationIssue[] = [];
   const instanceNodes = collectNodes(instance);
+  const schemaByPath = indexBySyncPath(schema);
+  const instancePaths = new Set<string>();
+  for (const node of instanceNodes) instancePaths.add(canonicalSyncPath(node.path));
 
   for (const node of instanceNodes) {
     if (node.path === instance.path) continue;
-    const schemaNode = findNodeBySyncPath(schema, canonicalSyncPath(node.path));
+    const schemaNode = schemaByPath.get(canonicalSyncPath(node.path));
     if (!schemaNode) {
       issues.push({
         path: node.path,
@@ -83,9 +98,9 @@ function collectInstanceValidationIssues(
     }
   }
 
-  for (const schemaNode of collectNodes(schema)) {
+  for (const schemaNode of schemaByPath.values()) {
     if (!isRequired(schemaNode.multiplicity)) continue;
-    if (!hasMatchingInstancePath(instance, schemaNode.path)) {
+    if (!instancePaths.has(canonicalSyncPath(schemaNode.path))) {
       issues.push({
         path: schemaNode.path,
         message: `Required field missing: ${schemaNode.name}`,
@@ -96,17 +111,23 @@ function collectInstanceValidationIssues(
   return dedupeIssues(issues);
 }
 
+function indexBySyncPath(root: SchemaTreeNode): Map<string, SchemaTreeNode> {
+  const out = new Map<string, SchemaTreeNode>();
+  const walk = (node: SchemaTreeNode) => {
+    const key = canonicalSyncPath(node.path);
+    if (!out.has(key)) out.set(key, node);
+    for (const child of node.children) walk(child);
+  };
+  walk(root);
+  return out;
+}
+
 function collectNodes(root: SchemaTreeNode): SchemaTreeNode[] {
   const nodes: SchemaTreeNode[] = [root];
   for (const child of root.children) {
     nodes.push(...collectNodes(child));
   }
   return nodes;
-}
-
-function hasMatchingInstancePath(instance: SchemaTreeNode, schemaPath: string): boolean {
-  const target = canonicalSyncPath(schemaPath);
-  return collectNodes(instance).some((node) => canonicalSyncPath(node.path) === target);
 }
 
 function isRequired(multiplicity?: string): boolean {

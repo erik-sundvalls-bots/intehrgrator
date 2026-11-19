@@ -12,7 +12,10 @@ import {
   optionalDvFieldInputName,
 } from "@intehrgrator/blockly/blocks/rm_blocks.ts";
 import { isSlotLabelField } from "@intehrgrator/blockly/slot_label.ts";
-import { deprecatedRmField } from "@intehrgrator/core/rm_deprecation.ts";
+import { DEPRECATED_ATTR_CLASS, deprecatedRmField } from "@intehrgrator/core/rm_deprecation.ts";
+import { markDeprecatedMutatorLabels } from "@intehrgrator/blockly/dynamic_mutator.ts";
+import { renderSchemaTree } from "@intehrgrator/workbench/tree_views.ts";
+import type { SchemaTreeNode } from "@intehrgrator/types/mod.ts";
 import { dataValueLeafTypes, mandatoryAttributes } from "@intehrgrator/core/rm_meta.ts";
 
 const HYPERLINK_SPEC =
@@ -71,4 +74,73 @@ Deno.test("text and coded text hyperlink mouths carry the spec link", () => {
   }
   assertEquals(slotHref(paragraph, dvFieldInputName("items")), null);
   workspace.dispose();
+});
+
+Deno.test("source tree strikes every deprecated RM attribute, not only hyperlink by name", async () => {
+  const { JSDOM } = await import("npm:jsdom@25");
+  const dom = new JSDOM("<!doctype html><body></body>");
+  const previous = globalThis.document;
+  globalThis.document = dom.window.document;
+  try {
+  const host = document.createElement("div");
+  const node: SchemaTreeNode = {
+    path: "$",
+    name: "text",
+    type: "DV_TEXT",
+    children: [
+      { path: "$.value", name: "value", type: "STRING", rmAttribute: "value", children: [] },
+    ],
+  };
+  renderSchemaTree(host, node, () => {});
+  const toggle = host.querySelector<HTMLButtonElement>(".tree-rm-toggle");
+  assert(toggle, "DV_TEXT should offer optional RM");
+  toggle.click();
+  const named = (name: string) =>
+    [...host.querySelectorAll<HTMLElement>(".tree-name")].find((el) => el.textContent === name);
+  const hyperlink = named("hyperlink");
+  const formatting = named("formatting");
+  const value = named("value");
+  assert(hyperlink, "hyperlink is an optional DV_TEXT attribute");
+  assert(hyperlink.classList.contains(DEPRECATED_ATTR_CLASS));
+  assertEquals(hyperlink.getAttribute("aria-label"), "hyperlink, deprecated");
+  assertEquals(hyperlink.title, "Deprecated");
+  assert(formatting && !formatting.classList.contains(DEPRECATED_ATTR_CLASS));
+  assert(value && !value.classList.contains(DEPRECATED_ATTR_CLASS));
+  } finally {
+    if (previous) globalThis.document = previous;
+    else delete (globalThis as { document?: Document }).document;
+  }
+});
+
+Deno.test("cogwheel option labels reuse the deprecated attribute strike", () => {
+  const classes = new Set<string>();
+  const struck = { classList: { add: (name: string) => classes.add(name) } };
+  let tip = "";
+  markDeprecatedMutatorLabels({
+    getAllBlocks: () => [
+      {
+        getFieldValue: (name: string) => name === "ATTR" ? "hyperlink" : "",
+        getField: () => ({
+          getTextElement: () => struck,
+          setTooltip: (next: string) => {
+            tip = next;
+          },
+        }),
+      } as unknown as Blockly.Block,
+    ],
+  }, "DV_CODED_TEXT");
+  assert(classes.has(DEPRECATED_ATTR_CLASS));
+  assertEquals(tip, "Deprecated");
+
+  const plainClasses = new Set<string>();
+  const plain = { classList: { add: (name: string) => plainClasses.add(name) } };
+  markDeprecatedMutatorLabels({
+    getAllBlocks: () => [
+      {
+        getFieldValue: () => "formatting",
+        getField: () => ({ getTextElement: () => plain, setTooltip: () => {} }),
+      } as unknown as Blockly.Block,
+    ],
+  }, "DV_TEXT");
+  assertEquals(plainClasses.has(DEPRECATED_ATTR_CLASS), false);
 });

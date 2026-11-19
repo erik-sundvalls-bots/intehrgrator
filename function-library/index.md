@@ -14,7 +14,7 @@ Load with MCP / Agent API `list_function_library` then `load_function` (`clash`:
 |----|------|--------|--------|---------|-----------------|------|
 | `join_swedish` | `join_swedish_words` | sv | `list_of_words` | String (`joined_words`) | SweJoinWords | `A, B och C` (FIRST snippets `{{word}}`; not `join_list`) |
 | `join_oxford` | `join_oxford` | en | `names` | String | JoinOxford | `A, B, and C` Oxford comma (FIRST snippets; not `join_list`) |
-
 | `coded_text_from_sheet` | `coded_text_from_sheet` | — | `sheet_name`, `key_column`, `key`, `value_column`, `code_column`, `primary_terminology`, `mapping_columns` | DV_CODED_TEXT | none (project Sheet) | Ordinary-block composition: primary coding plus equivalent TERM_MAPPINGs from the same row; see the [column contract](../docs/tutorial/functions.md#coded-text-and-term-mappings-from-a-sheet) |
+| `coded_value_from_row` | `coded_value_from_row` | — | `row`, `rm_type` | complete coded value | — | Builds DV_CODED_TEXT, CODE_PHRASE, or DV_ORDINAL / DV_SCALE from one row Map (`code`, `rubric`, `terminology`, ordinal `value`); ordinary editable blocks. |
 
 Catalog: `function-library/catalog.json`. Files: `*.intehr-function.json` (`hasReturn` true for value Functions). When a contribution issue is accepted, follow [`AGENTS.md`](AGENTS.md).

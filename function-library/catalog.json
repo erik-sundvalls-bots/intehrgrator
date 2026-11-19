@@ -51,6 +51,20 @@
       "hasReturn": true,
       "returns": "DV_CODED_TEXT",
       "decisionTables": []
+    },
+    {
+      "id": "coded_value_from_row",
+      "name": "coded_value_from_row",
+      "title": "Complete coded value from one row Map",
+      "description": "Builds a complete DV_CODED_TEXT, CODE_PHRASE or DV_ORDINAL (or DV_SCALE) from one row Map. Columns: code, rubric, terminology; ordinals also need numeric value. Missing code/terminology returns null; rubric is required except for CODE_PHRASE, and ordinals also require value. Hints feed one Decision table all-outputs Map or Sheet lookup row into this ordinary, editable Blockly Function; no generator primitive or duplicated source wiring.",
+      "file": "coded_value_from_row.intehr-function.json",
+      "parameters": [
+        "row",
+        "rm_type"
+      ],
+      "hasReturn": true,
+      "returns": "DATA_VALUE",
+      "decisionTables": []
     }
   ]
 }

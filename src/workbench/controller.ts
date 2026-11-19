@@ -428,7 +428,17 @@ export class WorkbenchController {
         } else {
           await this.runTaskStep("load", async () => {
             const file = await this.host.fetchTextUrl(url);
-            this.loadTargetContent(file.name, file.text);
+            this.setRunningTaskDetail("Reading the template");
+            this.notifyChange();
+            await this.yieldUi();
+            const painted = this.beginCanvasSettle();
+            try {
+              this.loadTargetContent(file.name, file.text);
+            } catch (err) {
+              this.settleCanvas();
+              throw err;
+            }
+            await painted;
           });
         }
         this.targetOriginUrl = url;
@@ -1318,6 +1328,52 @@ export class WorkbenchController {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
 
+  /**
+   * Detail on the step that is already running. Does not notify: the view
+   * paints the overlay, then yields, so the text is on screen before the
+   * next blocking stretch.
+   */
+  setRunningTaskDetail(detail: string): void {
+    this.noteTaskDetail(detail);
+  }
+
+  getTaskProgress(): TaskProgress | null {
+    return this.taskProgress;
+  }
+
+  private canvasSettle: (() => void) | null = null;
+  private canvasHeld = false;
+
+  /**
+   * Resolves on the next microtask unless the view calls `holdCanvasSettle`
+   * synchronously from the notify that follows (it will `settleCanvas` after
+   * the canvas paint). Headless callers have no view, so they do not hold.
+   */
+  beginCanvasSettle(): Promise<void> {
+    this.canvasHeld = false;
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (this.canvasSettle !== finish) return;
+        this.canvasSettle = null;
+        this.canvasHeld = false;
+        resolve();
+      };
+      this.canvasSettle = finish;
+      queueMicrotask(() => {
+        if (!this.canvasHeld) finish();
+      });
+    });
+  }
+
+  /** The view owns the settle promise and will resolve it after painting. */
+  holdCanvasSettle(): void {
+    if (this.canvasSettle) this.canvasHeld = true;
+  }
+
+  settleCanvas(): void {
+    this.canvasSettle?.();
+  }
+
   private async withTask<T>(
     title: string,
     steps: Array<{ id: string; label: string }>,
@@ -2174,6 +2230,30 @@ export class WorkbenchController {
     return { dirty: false, label: "" };
   }
 
+  /**
+   * Web Template / OPT source trees are rebuilt from the stored document so
+   * RM disclosure (#86) follows the template, including bundles saved before it.
+   */
+  private sourceTreeFromBundle(bundle: ProjectBundle): SchemaTreeNode | null {
+    const stored = bundle.sourceSchema;
+    if (!stored?.tree?.[0]) return null;
+    const format = stored.format ?? detectSourceFormat(stored.filename, stored.content);
+    if (
+      stored.content &&
+      (format === "openehr-web-template" || format === "openehr-operational-template")
+    ) {
+      try {
+        return getSourceFormatHandler(format).loadSchema(
+          stored.content,
+          stored.filename.replace(/\.[^.]+$/, "") || "root",
+        );
+      } catch {
+        return stored.tree[0];
+      }
+    }
+    return stored.tree[0];
+  }
+
   private buildExampleTree(): SchemaTreeNode | null {
     const active = this.examples.getActive();
     if (!active) return null;
@@ -2672,11 +2752,11 @@ export class WorkbenchController {
       this.model.targetFormat = storedTarget.format;
     }
     if (bundle.sourceSchema?.tree?.[0]) {
-      this.schemaTree = bundle.sourceSchema.tree[0];
       this.schemaFilename = bundle.sourceSchema.filename;
       this.schemaContent = bundle.sourceSchema.content;
       this.schemaFormat = bundle.sourceSchema.format ??
         detectSourceFormat(bundle.sourceSchema.filename, bundle.sourceSchema.content);
+      this.schemaTree = this.sourceTreeFromBundle(bundle) ?? bundle.sourceSchema.tree[0];
     }
     for (const ex of bundle.examples) this.examples.addExample(ex);
     this.restoreFileLanguageSettings(bundle);

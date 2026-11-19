@@ -332,7 +332,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "apply_hint",
     description:
-      "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise the shell that slot needs; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank — they do not read the source schema or an example. Selected codes limit which rows those grids get. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
+      "Turn a value-set hint (list_slots hint) into a mapping, or change the hint. action constant writes a term pick when the code is a built-in terminology code (the same block as a single-code scaffold), otherwise an ordinary library Function returning the complete coded value; assumed_value is preselected when codes is omitted. decision_table and sheet_lookup prefill the allowed codes and rubrics and leave the source column blank — they do not read the source schema or an example. Selected codes limit which rows those grids get. dismiss hides it until the allowed codes change or restore. restore clears dismissed hints (one slotId, or all when slotId is omitted). A hint is never mapped and never emitted. This tool does not insert or run an AI prompt.",
     inputSchema: {
       type: "object",
       required: ["action"],

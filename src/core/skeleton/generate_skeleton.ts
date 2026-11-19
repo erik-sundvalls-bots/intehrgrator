@@ -1093,6 +1093,12 @@ function applyWebTemplateInputConstraints(
   roots: SkeletonNode[],
 ): void {
   const nodes = flattenSkeletonNodes(roots);
+  const byType = new Map<string, SkeletonNode[]>();
+  for (const node of nodes) {
+    const list = byType.get(node.rmType);
+    if (list) list.push(node);
+    else byType.set(node.rmType, [node]);
+  }
   const walk = (node: unknown): void => {
     if (!node || typeof node !== "object") return;
     const rec = node as {
@@ -1103,7 +1109,7 @@ function applyWebTemplateInputConstraints(
       inputs?: WebTemplateInput[];
       children?: unknown[];
     };
-    const matches = skeletonNodesForWebTemplateNode(nodes, rec);
+    const matches = skeletonNodesForWebTemplateNode(nodes, byType, rec);
     for (const input of rec.inputs ?? []) {
       const suffix = (input.suffix ?? "").toLowerCase();
       const items = (input.list ?? []).filter((item): item is WebTemplateInputListItem & { value: string } =>
@@ -1138,14 +1144,17 @@ const NON_CODE_INPUT_SUFFIXES = new Set([
 
 function skeletonNodesForWebTemplateNode(
   nodes: SkeletonNode[],
+  byType: ReadonlyMap<string, SkeletonNode[]>,
   rec: { aqlPath?: string; id?: string; nodeId?: string; rmType?: string },
 ): SkeletonNode[] {
   const nodeId = rec.nodeId;
   const rmType = rec.rmType;
   const attr = (rec.aqlPath ?? rec.id ?? "").split("/").filter(Boolean).pop();
+  // Same matches as a full scan: a node id is only compared within its RM type.
+  const typed = rmType ? byType.get(rmType) ?? [] : nodes;
 
   if (nodeId) {
-    const byId = nodes.filter((sk) => {
+    const byId = typed.filter((sk) => {
       if (rmType && sk.rmType !== rmType) return false;
       return sk.archetypeNodeId === nodeId ||
         sk.slotId.includes(`/${nodeId}/`) ||
@@ -1158,14 +1167,12 @@ function skeletonNodesForWebTemplateNode(
   }
 
   if (rmType && attr) {
-    const byType = nodes.filter((sk) =>
-      sk.rmType === rmType && (
-        sk.rmAttribute === attr ||
-        sk.slotId.endsWith(`/${attr}`) ||
-        sk.slotId.endsWith(`/${attr}/value`)
-      )
+    const byTypeAttr = typed.filter((sk) =>
+      sk.rmAttribute === attr ||
+      sk.slotId.endsWith(`/${attr}`) ||
+      sk.slotId.endsWith(`/${attr}/value`)
     );
-    if (byType.length) return byType;
+    if (byTypeAttr.length) return byTypeAttr;
   }
 
   if (!attr) return [];

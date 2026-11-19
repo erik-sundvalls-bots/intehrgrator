@@ -69,7 +69,9 @@ function fieldClickAnchor(field: ClickableField): Element | null {
 }
 
 function confirmTypeSwitch(): boolean {
-  if (schemaSyncing) return true;
+  // Restoring a saved all-outputs reader (including Undo/Redo) is not a user
+  // type switch. A dialog here can silently reset its output to "out".
+  if (schemaSyncing || !Blockly.Events.isEnabled() || !Blockly.Events.getRecordUndo()) return true;
   if (typeof globalThis.confirm !== "function") return true;
   return globalThis.confirm(DECISION_TYPE_SWITCH_MESSAGE);
 }

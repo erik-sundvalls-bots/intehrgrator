@@ -122,6 +122,7 @@ import { setValueSetHintNoteSlots } from "../src/blockly/block_constraints.ts";
 import { collectValueSetHints, countActiveHints } from "../src/core/hints/value_set_hint.ts";
 import { mountHintsPanel } from "../src/ui/hints_panel.ts";
 import { installCollapseChildrenMenu } from "../src/blockly/collapse_children_menu.ts";
+import { installCollapseGlyph } from "../src/blockly/collapse_glyph.ts";
 import { installAiReviewMarkers, refreshAiReviewMarkers } from "../src/blockly/ai_review.ts";
 import { installCodedTextMenu } from "../src/blockly/coded_text_menu.ts";
 import { allowsCodedText } from "../src/core/openehr/coded_text.ts";
@@ -1074,15 +1075,76 @@ let targetHoverCache: { key: string; byLang: Array<[string, Map<string, string>]
 function targetAltLabels(s: ReturnType<WorkbenchController["getState"]>): ((slotId: string) => string | undefined) | undefined {
   if (s.modelLanguages.length < 2) return undefined;
   const key = `${s.templateId}|${s.modelLanguage}|${s.targetLanguages.join(",")}`;
-  if (targetHoverCache?.key !== key) {
-    const others = s.targetLanguages.filter((l) => l !== s.modelLanguage);
-    targetHoverCache = { key, byLang: others.map((l) => [l, controller.getTargetLabels(l)]) };
-  }
+  if (targetHoverCache?.key !== key) return undefined;
   const byLang = targetHoverCache.byLang;
+  if (!byLang.length) return undefined;
   return (slotId) => {
     const parts = byLang.map(([l, m]) => (m.get(slotId) ? `${l}: ${m.get(slotId)}` : "")).filter(Boolean);
     return parts.length ? parts.join("\n") : undefined;
   };
+}
+
+function scheduleTargetAltLabels(s: ReturnType<WorkbenchController["getState"]>): void {
+  if (s.modelLanguages.length < 2) return;
+  const key = `${s.templateId}|${s.modelLanguage}|${s.targetLanguages.join(",")}`;
+  if (targetHoverCache?.key === key) return;
+  const others = s.targetLanguages.filter((l) => l !== s.modelLanguage);
+  targetHoverCache = { key, byLang: [] };
+  // One full skeleton per language. Doing them all inside the load render
+  // blocked MHV1 for ~10s (25 languages) before the canvas was placed.
+  void fillTargetAltLabels(key, others);
+}
+
+let altLabelFill: Promise<void> = Promise.resolve();
+
+/** Read other-language labels one at a time, painting the task detail between them. */
+function fillTargetAltLabels(key: string, langs: string[]): Promise<void> {
+  const run = async () => {
+    const byLang: Array<[string, Map<string, string>]> = [];
+    for (const lang of langs) {
+      if (targetHoverCache?.key !== key) return;
+      controller.setRunningTaskDetail(`Reading labels · ${lang}`);
+      paintTaskOverlay();
+      await paintFrame();
+      if (targetHoverCache?.key !== key) return;
+      byLang.push([lang, controller.getTargetLabels(lang)]);
+      targetHoverCache = { key, byLang: [...byLang] };
+      applyTargetAltTitles(byLang);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+  };
+  altLabelFill = altLabelFill.then(run, run);
+  return altLabelFill;
+}
+
+function applyTargetAltTitles(byLang: Array<[string, Map<string, string>]>): void {
+  const labels = targetSchemaTreeEl.querySelectorAll<HTMLElement>(".tree-label");
+  for (const label of labels) {
+    const slotId = label.parentElement?.dataset.slotId;
+    if (!slotId) continue;
+    if (!label.dataset.baseTitle) label.dataset.baseTitle = label.title;
+    const parts = byLang.map(([l, labelsBySlot]) => {
+      const text = labelsBySlot.get(slotId);
+      return text ? `${l}: ${text}` : "";
+    }).filter(Boolean);
+    label.title = [label.dataset.baseTitle, parts.join("\n")].filter(Boolean).join("\n");
+  }
+}
+
+function paintTaskOverlay(): void {
+  const progress = controller.getTaskProgress();
+  if (!progress) return;
+  taskProgressOverlay.innerHTML = taskProgressInnerHtml(
+    localizeTaskProgress(detectLocale(), progress),
+  );
+  taskProgressOverlay.hidden = false;
+}
+
+/** Two frames so a detail written just above is actually on screen. */
+function paintFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
 }
 
 /** AI menu → Languages…: `source.lang.N` and which target labels go to the AI (#279). */
@@ -1190,6 +1252,7 @@ async function bootBlockly(): Promise<void> {
     expandChildren: () => uiChrome().expandChildren,
     collapseChildren: () => uiChrome().collapseChildren,
   });
+  installCollapseGlyph(workspace);
   installAiReviewMarkers(workspace, {
     labels: {
       markReviewed: () => uiChrome().aiMarkReviewed,
@@ -1517,10 +1580,16 @@ function handleTreeHighlight(
 }
 
 function treeHighlightOptions() {
+  const messages = uiChrome();
   return {
     onHighlight: (syncPath: string | null, origin: "schema" | "instance") => {
       handleTreeHighlight(syncPath, origin, false);
     },
+    rmOptionalToggleLabel: (action: "show" | "hide", name: string) =>
+      formatMessage(
+        action === "show" ? messages.sourceRmShowOptional : messages.sourceRmHideOptional,
+        { name },
+      ),
   };
 }
 
@@ -4615,6 +4684,10 @@ function render(): void {
     s.skeleton.length ? targetSchemaTreeFromSkeleton(s.skeleton, targetAltLabels(s)) : [],
     undefined,
     uiChrome().loadTargetEmpty,
+    {
+      discloseOptionalRm: (s.target?.format ?? s.model.targetFormat) === "openehr-template",
+      rmOptionalToggleLabel: treeHighlightOptions().rmOptionalToggleLabel,
+    },
   );
 
   renderExampleTabs(s);
@@ -4645,12 +4718,49 @@ function render(): void {
       ? uiChrome().selectExampleTab
       : uiChrome().addExamplesEmpty;
   }
+  if (deferFreshSkeleton(s)) return;
+
   // Constraint warning-text events must not persist/re-render during this
   // pass — that used to stack a second canvas-swap on Click-to-Map.
+  finishCanvas(s);
+}
+
+let renderingCanvas = false;
+let scaffoldScheduledFor = -1;
+
+/** A new template with no saved canvas is about to be built block by block. */
+function deferFreshSkeleton(s: ReturnType<WorkbenchController["getState"]>): boolean {
+  if (renderingCanvas) return false;
+  if (!s.templateId || !s.skeleton.length) return false;
+  if (s.blocklyState && typeof s.blocklyState === "object") return false;
+  const skeletonKey = `${s.projectId}|${s.templateId}|${s.skeleton.length}|${s.blocklyReloadToken}`;
+  if (skeletonKey === blocklySkeletonKey) return false;
+  if (scaffoldScheduledFor === s.blocklyReloadToken) return true;
+  scaffoldScheduledFor = s.blocklyReloadToken;
+  controller.holdCanvasSettle();
+  controller.setRunningTaskDetail(uiChrome().taskPlacingTemplate);
+  paintTaskOverlay();
+  const token = s.blocklyReloadToken;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    scaffoldScheduledFor = -1;
+    const now = controller.getState();
+    if (now.blocklyReloadToken === token && now.skeleton.length) finishCanvas(now);
+    else controller.settleCanvas();
+  }));
+  return true;
+}
+
+function finishCanvas(s: ReturnType<WorkbenchController["getState"]>): void {
+  if (renderingCanvas) return;
+  renderingCanvas = true;
   suppressBlocklyModelSync = true;
   try {
     syncBlocklyWorkspace(s);
     const hints = collectValueSetHints(s.skeleton, s.model, s.settings);
+    const hintCount = countActiveHints(hints);
+    const hintCountEl = document.getElementById("hints-count");
+    if (hintCountEl) hintCountEl.textContent = String(hintCount);
+    hintsTab.setAttribute("aria-label", `${uiChrome().hints}: ${formatMessage(uiChrome().statusHints, { n: hintCount })}`);
     setValueSetHintNoteSlots(
       workspace,
       hints.filter((hint) => !hint.dismissed && !hint.mandatory).map((hint) => hint.slotId),
@@ -4668,6 +4778,8 @@ function render(): void {
     highlightListeningSlot(workspace, controller.getState().listeningSlotId, controller.getState().listeningSourceBlockId);
   } finally {
     suppressBlocklyModelSync = false;
+    renderingCanvas = false;
+    controller.settleCanvas();
   }
   void commitPendingUiChange();
   if (historyReady && !applyingAgentBundle) applyAiAuthorMarks();
@@ -4705,6 +4817,7 @@ function render(): void {
   autoplayBtn.title = s.settings.autoplay ? uiChrome().pauseAutoRunTitle : uiChrome().resumeAutoRunTitle;
   autoplayBtn.setAttribute("aria-pressed", s.settings.autoplay ? "false" : "true");
   refreshUndoButtons();
+  scheduleTargetAltLabels(s);
 }
 
 function formatTestOutput(output: unknown): string {

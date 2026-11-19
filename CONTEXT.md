@@ -9,7 +9,7 @@ The left pane with two sections: **Source Schema** (upper, structural tree for m
 _Avoid_: Left panel, input pane
 
 **Source Schema**:
-Upper section of the Source Pane — schema file (JSON Schema, XML/XSD sample, openEHR Web Template, or other structural definition) or inferred structure (field names, types, cardinality). Used for authoring mappings without requiring an example file. Empty state prompt: *Load a schema file.*
+Upper section of the Source Pane — schema file (JSON Schema, XML/XSD sample, openEHR Web Template, or other structural definition) or inferred structure (field names, types, cardinality). Used for authoring mappings without requiring an example file. Empty state prompt: *Load a schema file.* An openEHR Web Template (and an operational template read as one) also shows silent-mandatory RM attributes the template omitted, in muted italic, and keeps optional RM behind a small encircled plus on that row. Revealed rows are source paths.
 _Avoid_: Schema tree, structure view
 
 **Example Instance**:
