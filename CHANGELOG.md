@@ -6,6 +6,10 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **ehrtslib 0.13.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.13)). `serializeToFlat` roots keys at the Web Template `tree.id` and can omit a renamed LOCATABLE name (`locatableName: "omit"`; the default still writes `/_name`). A one-argument `RMSpecificationValidator.validate(instance)` now validates the whole instance, and `TERM_MAPPING.match` rejects `~`.
+
+- **Obstetric MHV1 example sets match their source schema.** Simplified FLAT examples are checked as FLAT keys against the Web Template (including one built from an OPT or OPT2), not as a JSON object whose property names are the whole key. Canonical compositions are checked by `template_id` instead of comparing RM fields such as `_type` and `code_string` to Web Template node ids. The generic-entry OPT2 names the nested care-provider cluster `Vårdgivare`, which is the id the FLAT keys and the Web Template use.
+
 - **Narrow screens keep every pane reachable** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): below 1100px the Source, Mapping Editors, and Target panes stack and the page scrolls. Each pane has a fixed height so the schema, example, canvas, and target trees stay usable and scroll inside the pane. Sliding a pane away still collapses it to a rail, and a wide window stays the side-by-side split.
 
 - **Optional RM on the target schema** ([#368](https://github.com/regionstockholm/intehrgrator/pull/368)): when the target is openEHR, the Target schema tab uses the same encircled plus as the source tree for optional reference-model attributes. Other target formats are unchanged, and opening one tree does not open the other.

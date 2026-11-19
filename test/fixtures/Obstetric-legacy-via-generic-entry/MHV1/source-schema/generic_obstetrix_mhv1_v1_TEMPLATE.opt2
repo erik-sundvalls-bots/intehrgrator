@@ -35,6 +35,13 @@ definition
                                         }
                                     }
                                     use_archetype CLUSTER[at0000, openEHR-EHR-CLUSTER.organisation.v1] occurrences matches {1..1} matches {
+                                        name existence matches {0..1} matches {
+                                            DV_TEXT occurrences matches {0..1} matches {
+                                                value existence matches {1..1} matches {
+                                                    "Vårdgivare"
+                                                }
+                                            }
+                                        }
                                         items existence matches {1..1} cardinality matches {0..*; unordered} matches {
                                             ELEMENT[at0001] occurrences matches {0..1} matches {
                                                 value existence matches {0..1} matches {
