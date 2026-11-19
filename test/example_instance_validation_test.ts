@@ -37,8 +37,8 @@ Deno.test("catalog Example Instances validate against their Source Schema (excep
       schemaFormat === "openehr-operational-template" ||
       schemaFormat === "openehr-web-template"
     ) {
-      // These are openEHR templates, not JSON Schema. FLAT keys do not line up
-      // with the Web Template tree, so the JSON Schema walker does not apply.
+      // These are openEHR templates, not JSON Schema. FLAT keys and canonical
+      // RM trees are checked in validateInstanceAgainstSchema (MHV1: test/mhv1_source_schema_test.ts).
       try {
         getSourceFormatHandler(schemaFormat).loadSchema(schemaText);
       } catch (err) {

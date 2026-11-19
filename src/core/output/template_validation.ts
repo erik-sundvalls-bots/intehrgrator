@@ -2,6 +2,7 @@
  * Conversion Test Run Output validation against an openEHR operational template.
  */
 
+import type { OPERATIONAL_TEMPLATE } from "ehrtslib/am/openehr_am.ts";
 import { parseTemplateInput } from "ehrtslib/parser/mod.ts";
 import {
   CodedTextMismatchError,
@@ -126,7 +127,7 @@ export function validateConvertedOutput(
     }
     const flat = rmFromFlatDocument(output, target);
     const rmInstance = flat?.composition ?? asRmInstance(output, jsonText, deserializeMode);
-    const result = validator.validate(rmInstance, opt);
+    const result = validator.validate(rmInstance, opt as OPERATIONAL_TEMPLATE);
     const flatMessages = flat?.messages ?? [];
     const messages = [
       ...flatMessages,
@@ -256,13 +257,13 @@ function structuredCompositionJson(output: unknown): string | null {
   return JSON.stringify(record);
 }
 
-function operationalTemplateFromTarget(target: TargetDefinition): unknown {
+function operationalTemplateFromTarget(target: TargetDefinition): OPERATIONAL_TEMPLATE | null {
   const content = target.content?.trim() ?? "";
   if (!content) return null;
   if (content.startsWith("{")) {
     return webTemplateToOpt(parseWebTemplate(content));
   }
-  return parseTemplateInput(content).operationalTemplate ?? null;
+  return (parseTemplateInput(content).operationalTemplate ?? null) as OPERATIONAL_TEMPLATE | null;
 }
 
 function asRmInstance(
