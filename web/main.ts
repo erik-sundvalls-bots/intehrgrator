@@ -37,8 +37,10 @@ import {
   createReadonlyEditor,
   detectEditorLanguage,
   languageForExportTarget,
+  scrollEditorToLine,
   setEditorDoc,
 } from "../src/workbench/codemirror_setup.ts";
+import { formatOutputValidationMessage } from "../src/core/output/template_validation.ts";
 import {
   createMappingSpecEditor,
   mappingSpecDocumentText,
@@ -4898,17 +4900,8 @@ function renderTestOutputTabs(s: ReturnType<WorkbenchController["getState"]>): v
   }
 }
 
-function formatValidationListItem(
-  path: string,
-  message: string,
-  line?: number,
-): string {
-  const where = line ? `line ${line}: ${path}` : path;
-  return `${where}: ${message}`;
-}
-
 function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"]>): void {
-  const items: string[] = [];
+  const entries: Array<{ text: string; line?: number }> = [];
   const result = s.testResult;
   const validation = s.activeExample
     ? s.outputValidations[s.activeExample.id]
@@ -4916,14 +4909,22 @@ function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"
 
   if (validation?.applicable && !validation.valid) {
     for (const msg of validation.messages) {
-      items.push(formatValidationListItem(msg.path, msg.message, msg.line));
+      entries.push({ text: formatOutputValidationMessage(msg), line: msg.line });
     }
   } else if (result?.error) {
     const line = validation?.messages[0]?.line;
-    items.push(formatValidationListItem("/", result.error, line));
+    entries.push({
+      text: formatOutputValidationMessage({
+        path: "/",
+        message: result.error,
+        severity: "error",
+        line,
+      }),
+      line,
+    });
   }
-  for (const warning of result?.warnings ?? []) items.push(warning);
-  if (!items.length) {
+  for (const warning of result?.warnings ?? []) entries.push({ text: warning });
+  if (!entries.length) {
     testOutputValidationEl.hidden = true;
     testOutputValidationEl.replaceChildren();
     return;
@@ -4933,9 +4934,14 @@ function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"
   const title = document.createElement("strong");
   title.textContent = result?.error ? uiChrome().conversionFailed : uiChrome().templateValidation;
   const list = document.createElement("ul");
-  for (const text of items) {
+  for (const entry of entries) {
     const item = document.createElement("li");
-    item.textContent = text;
+    item.textContent = entry.text;
+    if (entry.line) {
+      item.classList.add("example-validation-item--clickable");
+      item.dataset.line = String(entry.line);
+      item.addEventListener("click", () => scrollEditorToLine(testOutputEditor, entry.line!));
+    }
     list.appendChild(item);
   }
   testOutputValidationEl.append(title, list);
@@ -4955,7 +4961,13 @@ function renderExampleValidation(s: ReturnType<WorkbenchController["getState"]>)
   const list = document.createElement("ul");
   for (const issue of issues) {
     const item = document.createElement("li");
-    item.textContent = `${issue.path}: ${issue.message}`;
+    const linePrefix = issue.line
+      ? issue.sourceIsAncestor ? `near line ${issue.line}: ` : `line ${issue.line}: `
+      : "";
+    const hint = issue.expectedExample
+      ? ` — e.g. ${issue.expectedExample.replace(/\s*\n\s*/g, " ")}`
+      : "";
+    item.textContent = `${linePrefix}${issue.path}: ${issue.message}${hint}`;
     list.appendChild(item);
   }
   exampleValidationEl.append(title, list);

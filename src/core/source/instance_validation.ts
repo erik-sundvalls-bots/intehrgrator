@@ -19,6 +19,12 @@ import { validateJsonAgainstJsonSchema } from "./json_schema_validate.ts";
 export interface InstanceValidationIssue {
   path: string;
   message: string;
+  /** 1-based line number in the example source text when available. */
+  line?: number;
+  /** True when `line` points to the nearest existing ancestor container. */
+  sourceIsAncestor?: boolean;
+  /** Concise example snippet showing approximately what missing content should look like. */
+  expectedExample?: string;
 }
 
 export function validateInstanceAgainstSchema(
@@ -111,9 +117,11 @@ function validateFlatExample(
   content: string,
   webTemplate: WebTemplate,
 ): InstanceValidationIssue[] {
+  let parsed: unknown;
   let payload: unknown;
   try {
-    payload = unwrapExecuteEnvelope(parseJsonDocument(content));
+    parsed = parseJsonDocument(content);
+    payload = unwrapExecuteEnvelope(parsed);
   } catch (err) {
     return [{
       path: "$",
@@ -123,11 +131,19 @@ function validateFlatExample(
   if (!isRecord(payload)) {
     return [{ path: "$", message: "FLAT example must be a JSON object of template paths" }];
   }
-  return validateFlatPayload(payload as FlatPayload, webTemplate).errors.map((error) => ({
+  const jsonSource = payload === parsed && content.trim().startsWith("{")
+    ? content
+    : JSON.stringify(payload, null, 2);
+  return validateFlatPayload(payload as FlatPayload, webTemplate, {
+    jsonSource,
+  }).errors.map((error) => ({
     path: appendJsonPath("$", error.path),
     message: error.message.startsWith("Unknown flat key")
       ? `Not in schema: ${error.path}`
       : error.message,
+    ...(error.sourceLine !== undefined ? { line: error.sourceLine } : {}),
+    ...(error.sourceIsAncestor ? { sourceIsAncestor: true } : {}),
+    ...(error.expectedExample ? { expectedExample: error.expectedExample } : {}),
   }));
 }
 
