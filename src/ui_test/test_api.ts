@@ -147,6 +147,14 @@ export interface IntehrgratorTestApi {
   undoCount(): number;
   redoCount(): number;
   undoEventTypes(): string[];
+  /** Current mapping editor mode ('full-blockly' | 'treemap' | 'scoped-blockly'). */
+  getEditorMode(): "full-blockly" | "treemap" | "scoped-blockly";
+  /** Number of blocks currently mounted in Blockly WorkspaceSvg. */
+  getMountedBlockCount(): number;
+  /** Number of blocks in the full canonical Blockly JSON document. */
+  getCanonicalBlockCount(): number;
+  /** Load canonical Blockly JSON directly (for large-template / MHV1 tests). */
+  loadBlocklyState(state: unknown): void;
 }
 
 declare global {
