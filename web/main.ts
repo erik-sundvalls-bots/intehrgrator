@@ -296,10 +296,18 @@ import {
 } from "../src/core/slice_engine.ts";
 import {
   buildBreadcrumbTrail,
+  createTreemapInlinePopover,
   createTreemapRenderer,
+  type InlinePopoverController,
+  type SourceFieldOption,
   type TreemapRenderer,
   type TreemapStatusFilter,
 } from "../src/treemap/mod.ts";
+import {
+  acceptAiSuggestion,
+  rejectAiSuggestion,
+  setFieldInBlocklyJson,
+} from "../src/core/json_patch_helpers.ts";
 import {
   extractModelFromBlocklyJson,
   scaffoldBlocklyFromSkeleton,
@@ -1662,10 +1670,32 @@ let canonicalBlocklyState: BlocklyWorkspaceJson | null = null;
 let canonicalDocIndex: DocumentIndex | null = null;
 let activeSliceHandle: SliceHandle | null = null;
 let treemapRenderer: TreemapRenderer | null = null;
+let treemapPopover: InlinePopoverController | null = null;
 let treemapZoomRootId: string | null = null;
 let treemapQuery = "";
 let treemapStatusFilter: TreemapStatusFilter = "all";
 let treemapSelectedBlockId: string | null = null;
+
+function collectSourceFieldOptions(): SourceFieldOption[] {
+  const s = controller.getState();
+  const out: SourceFieldOption[] = [];
+  const seen = new Set<string>();
+  const walk = (node: { path?: string; name?: string; type?: string; children?: unknown[] } | null | undefined) => {
+    if (!node) return;
+    if (node.path && !seen.has(node.path)) {
+      seen.add(node.path);
+      out.push({ path: node.path, label: node.name || node.path, type: node.type });
+    }
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        walk(child as { path?: string; name?: string; type?: string; children?: unknown[] });
+      }
+    }
+  };
+  walk(s.schemaTree as unknown as { path?: string; name?: string; type?: string; children?: unknown[] });
+  walk(s.exampleTree as unknown as { path?: string; name?: string; type?: string; children?: unknown[] });
+  return out;
+}
 
 function getCanonicalBlocklyState(): Record<string, unknown> {
   if (editorMode === "scoped-blockly" && canonicalBlocklyState && activeSliceHandle && workspace) {
@@ -1716,35 +1746,11 @@ function updateCanonicalStateAndSync(
 
 function applyCanonicalFieldEdit(blockId: string, field: string, value: string): void {
   if (!canonicalBlocklyState) return;
-  const cloned = structuredClone(canonicalBlocklyState);
-  let found = false;
-  const visit = (b: Record<string, unknown> | undefined) => {
-    if (!b || found) return;
-    if (b.id === blockId) {
-      const fields = (b.fields && typeof b.fields === "object" ? b.fields : {}) as Record<string, unknown>;
-      fields[field] = value;
-      b.fields = fields;
-      found = true;
-      return;
-    }
-    const inputs = b.inputs as Record<string, { block?: Record<string, unknown>; shadow?: Record<string, unknown> }> | undefined;
-    if (inputs) {
-      for (const inp of Object.values(inputs)) {
-        visit(inp.block);
-        visit(inp.shadow);
-      }
-    }
-    const next = b.next as { block?: Record<string, unknown>; shadow?: Record<string, unknown> } | undefined;
-    if (next) {
-      visit(next.block);
-      visit(next.shadow);
-    }
-  };
-  for (const top of (cloned.blocks?.blocks ?? []) as Record<string, unknown>[]) {
-    visit(top);
-  }
-  if (found) {
-    updateCanonicalStateAndSync(cloned, { summary: "Edit mapping spec field" });
+  try {
+    const next = setFieldInBlocklyJson(canonicalBlocklyState, blockId, field, value);
+    updateCanonicalStateAndSync(next, { summary: "Edit mapping spec field" });
+  } catch {
+    // Block id not present in canonical state.
   }
 }
 
@@ -1827,6 +1833,7 @@ function renderTreemapAndModeBar(): void {
       statusFilter: treemapStatusFilter,
       selectedBlockId: treemapSelectedBlockId,
       sparseFullSkeleton: s.scaffoldMode === "sparse" ? s.skeleton : null,
+      showAiBulkActions: true,
     });
   }
 }
@@ -1835,6 +1842,7 @@ function enterTreemapMode(
   docJson: BlocklyWorkspaceJson,
   options?: { keepZoom?: boolean },
 ): void {
+  treemapPopover?.close();
   canonicalBlocklyState = structuredClone(docJson);
   canonicalDocIndex = indexDocument(canonicalBlocklyState);
   activeSliceHandle = null;
@@ -1847,6 +1855,7 @@ function enterTreemapMode(
 }
 
 function openNodeInScopedBlockly(nodeId: string): void {
+  treemapPopover?.close();
   const currentCanonical = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
   canonicalBlocklyState = structuredClone(currentCanonical);
   canonicalDocIndex = indexDocument(canonicalBlocklyState);
@@ -1883,6 +1892,7 @@ function openNodeInScopedBlockly(nodeId: string): void {
 }
 
 function switchToFullBlocklyCanvas(): void {
+  treemapPopover?.close();
   const fullState = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
   canonicalBlocklyState = structuredClone(fullState);
   canonicalDocIndex = indexDocument(canonicalBlocklyState);
@@ -1912,21 +1922,43 @@ function initTreemapUi(): void {
   if (!hostEl) return;
   treemapRenderer = createTreemapRenderer(hostEl, {
     onZoomChange: (zoomRootId) => {
+      treemapPopover?.close();
       treemapZoomRootId = zoomRootId;
       renderTreemapAndModeBar();
     },
     onOpenInBlockly: (nodeId) => {
       openNodeInScopedBlockly(nodeId);
     },
-    onLeafClick: (datum) => {
+    onLeafClick: (datum, anchorEl) => {
       treemapSelectedBlockId = datum.id;
       renderTreemapAndModeBar();
       scrollMappingSpecToBlock(specEditor, datum.id);
+      treemapPopover?.open(datum, anchorEl);
     },
     onGhostClick: (datum) => {
       controller.setStatusMessage(
         `"${datum.label}" is not scaffolded (Sparse mode) — pull it from the Target schema tab to add it.`,
       );
+    },
+    onAiTriage: (nodeId, action, bulk) => {
+      if (!canonicalBlocklyState) return;
+      const next = action === "accept"
+        ? acceptAiSuggestion(canonicalBlocklyState, nodeId, { recursive: bulk })
+        : rejectAiSuggestion(canonicalBlocklyState, nodeId, { recursive: bulk });
+      updateCanonicalStateAndSync(next, {
+        summary: action === "accept" ? "Accept AI suggestions" : "Reject AI suggestions",
+      });
+    },
+  });
+
+  treemapPopover = createTreemapInlinePopover(hostEl, {
+    getCanonicalState: () => getCanonicalBlocklyState() as BlocklyWorkspaceJson,
+    getSourceFields: collectSourceFieldOptions,
+    onApplyPatch: (nextDoc, summary) => {
+      updateCanonicalStateAndSync(nextDoc, { summary });
+    },
+    onEscalateToBlockly: (nodeId) => {
+      openNodeInScopedBlockly(nodeId);
     },
   });
 
