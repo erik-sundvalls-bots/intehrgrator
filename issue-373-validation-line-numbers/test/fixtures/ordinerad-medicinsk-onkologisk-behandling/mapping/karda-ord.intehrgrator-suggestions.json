@@ -1,0 +1,883 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "OrdineradMedicinskOnkologiskBehandling_MedKurdag"
+  },
+  "loops": [
+    {
+      "attachSlotId": "/content/at0000",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "dag"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "$.KurDagar"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "attachSlotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "substans"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "Substanser"
+              }
+            }
+          }
+        }
+      },
+      "note": "Substances of the current treatment day"
+    },
+    {
+      "attachSlotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "substans"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "Substanser"
+              }
+            }
+          }
+        }
+      },
+      "note": "Substances of the current treatment day"
+    }
+  ],
+  "suggestions": [
+    {
+      "slotId": "/context/EVENT_CONTEXT/start_time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.SignatureDate"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "other care"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "238"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "openehr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/health_care_facility",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.PDL_enhet_Namn"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text_join",
+              "extraState": {
+                "itemCount": 2
+              },
+              "inputs": {
+                "ADD0": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "SE2321000016-"
+                    }
+                  }
+                },
+                "ADD1": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "$.PDL_enhet_HSAID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      },
+      "note": "PDL unit; the Vardenhet_* fields are empty in all examples"
+    },
+    {
+      "slotId": "/composer",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.SignatureUser_Fullname"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.SignatureUser_UserName"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0001/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.PDL_enhet_Namn"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0003/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text_join",
+              "extraState": {
+                "itemCount": 2
+              },
+              "inputs": {
+                "ADD0": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "SE2321000016-"
+                    }
+                  }
+                },
+                "ADD1": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "$.PDL_enhet_HSAID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0004/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "vårdenhet"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "43741000"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "http://snomed.info/sct/900000000000207008"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0001/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.PDL_vardgivare_Namn"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.PDL_vardgivare_HSAID"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "2321000016"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:2.5.4.97"
+              }
+            }
+          }
+        }
+      },
+      "note": "Region Stockholm organisation number (constant)"
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.organisation.v1]/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "vårdgivare"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "143591000052106"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "http://snomed.info/sct/45991000052106"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0001/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.KurdefinisjonNavn"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_regimen.v0]/items/at0027/value/DV_COUNT/value",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.PasientKurnummer"
+        }
+      },
+      "note": "Left out when the course number is missing"
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0005/value/DV_BOOLEAN/value",
+      "block": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "$.PasientenDeltarIStudie"
+        }
+      },
+      "note": "PasientenDeltarIStudie 1 = yes, 0 = no"
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items[openEHR-EHR-CLUSTER.medication_trial_details.v0]/items/at0034/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.StudieId"
+        }
+      },
+      "note": "Left out when there is no trial id"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0004/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.RekvisisjonId"
+        }
+      },
+      "loopVar": "dag"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/protocol/at0005/items/at0000/items/at0030/value/DV_COUNT/value",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "Dognnummer"
+        }
+      },
+      "loopVar": "dag"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/narrative/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.KurdefinisjonNavn"
+        }
+      },
+      "loopVar": "dag"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0070/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "Innholdstoff_Navn"
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "Innholdstoff_Navn"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "Innholdstoff_ATC"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "2.16.840.1.113883.6.73"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans",
+      "note": "ATC (OID 2.16.840.1.113883.6.73)"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0071/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "sheet_lookup",
+              "fields": {
+                "NAME": "beredningsform"
+              },
+              "inputs": {
+                "MATCH_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Form_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Form_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "text"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "sheet_lookup",
+              "fields": {
+                "NAME": "beredningsform"
+              },
+              "inputs": {
+                "MATCH_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Form_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Form_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "code"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "Cytodos value set"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans",
+      "note": "Sheet beredningsform: Cytodos form code (2.0000) to the template code (2)"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0000/items/at0139/value/value/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "magnitude",
+          "KEY1": "units"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query_number",
+              "fields": {
+                "EXPRESSION": "Doseberegnet"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "UnitCode"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0091/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "sheet_lookup",
+              "fields": {
+                "NAME": "administreringsvag"
+              },
+              "inputs": {
+                "MATCH_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Route_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Route_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "text"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "sheet_lookup",
+              "fields": {
+                "NAME": "administreringsvag"
+              },
+              "inputs": {
+                "MATCH_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Route_CodeValue"
+                    }
+                  }
+                },
+                "MATCH_VAL": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "Route_CodeValue"
+                    }
+                  }
+                },
+                "RETURN_COL": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "code"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "Cytodos value set"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans",
+      "note": "Sheet administreringsvag: Cytodos route code (3.0000) to the template code (3)"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-INSTRUCTION.medication_order.v3]/activities/at0001/description/at0002/items/at0113/items/at0012/value/DV_DATE_TIME/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "dag.StartTid"
+        }
+      },
+      "loopVar": "dag",
+      "note": "Start time of the treatment day, read from the day loop item (dag.StartTid), including from inside the substance loop."
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0016/careflow_step/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "Läkemedlets startdatum eller startvillkor inställt"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "at0016"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "local"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "Innholdstoff_Navn"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "Innholdstoff_ATC"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "2.16.840.1.113883.6.73"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.RekvisisjonId"
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content/at0000/items[openEHR-EHR-ACTION.medication.v1]/time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.SignatureDate"
+        }
+      },
+      "loopVar": "substans"
+    }
+  ]
+}

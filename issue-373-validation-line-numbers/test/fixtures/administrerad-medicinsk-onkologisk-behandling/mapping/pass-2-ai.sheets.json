@@ -1,0 +1,26 @@
+{
+  "sheets": [
+    {
+      "name": "admin_ism",
+      "kind": "decision-table",
+      "hitPolicy": "FIRST",
+      "headers": [
+        "status_desc",
+        "current_state",
+        "careflow_step"
+      ],
+      "decisionColumns": [
+        { "role": "condition" },
+        { "role": "output", "outputKind": "value", "valueType": "string" },
+        { "role": "output", "outputKind": "value", "valueType": "string" }
+      ],
+      "values": [
+        ["Stoppad", "completed", "Fullföljd läkemedelsbehandling"],
+        ["Administrerad", "completed", "Fullföljd läkemedelsbehandling"],
+        ["Given", "completed", "Fullföljd läkemedelsbehandling"],
+        ["—", "completed", "Fullföljd läkemedelsbehandling"]
+      ],
+      "rowCatchAll": [false, false, false, true]
+    }
+  ]
+}

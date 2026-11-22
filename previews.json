@@ -151,6 +151,14 @@
     "sha": "0b4bdbe65553b2bf14a9ade0ada6cb30185e1357",
     "upstream": "6099a2842a297a01f2ace752e99ac8d70bdd26fd"
   },
+  "issue-373-validation-line-numbers": {
+    "built": "2026-11-22T05:40:24Z",
+    "dir": "issue-373-validation-line-numbers",
+    "mode": "merged",
+    "pr": "5\thttps://github.com/erik-sundvalls-bots/intehrgrator/pull/5\tMERGED\tfeat(validation): upgrade ehrtslib to v0.15 for format-aware line numbers and missing-content guidance (#373)",
+    "sha": "72653a096ab8264c45b990f5c43560a09e8b260a",
+    "upstream": "080fa8be8eb43e8fd5875f7889613a618f54db54"
+  },
   "issue-lease-canvas": {
     "built": "2026-10-23T07:09:55Z",
     "dir": "issue-lease-canvas",
@@ -192,12 +200,12 @@
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "preview-integration": {
-    "built": "2026-11-08T20:09:52Z",
+    "built": "2026-11-22T05:40:24Z",
     "dir": "preview-integration",
-    "mode": "branch",
-    "pr": "368\thttps://github.com/regionstockholm/intehrgrator/pull/368\tOPEN\tIntegration preview: upstream main plus open PR 368",
-    "sha": "b9fb643e6457bf83fe4568a0653db8044e83ec30",
-    "upstream": "d64dc0965af86f8f0d9f7f7d556d18f479ae1052"
+    "mode": "merged",
+    "pr": "5\thttps://github.com/erik-sundvalls-bots/intehrgrator/pull/5\tMERGED\tUpstream main + PR #5 (ehrtslib v0.15 validation line numbers #373)",
+    "sha": "72653a096ab8264c45b990f5c43560a09e8b260a",
+    "upstream": "080fa8be8eb43e8fd5875f7889613a618f54db54"
   },
   "preview-pr-368": {
     "built": "2026-11-08T20:09:50Z",

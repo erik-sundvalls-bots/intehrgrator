@@ -1,0 +1,65 @@
+{
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/category|code": "433",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/category|value": "event",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/category|terminology": "openehr",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/composer|name": "{{ .SignatureUser_FullName }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/composer/_identifier:0|type": "urn:oid:1.2.752.29.4.19",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/composer/_identifier:0|id": "{{ .SignatureUser_UserName }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/setting|code": "238",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/setting|value": "other care",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/setting|terminology": "openehr",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/language|code": "sv",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/language|terminology": "ISO_639-1",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/territory|code": "SE",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/territory|terminology": "ISO_3166-1",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/namn": "{{ .PDL_enhet_Namn }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/identifierare:0": "SE2321000016-{{ .PDL_enhet_HSAID }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/identifierare:0|type": "urn:oid:1.2.752.29.4.19",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/roll:0|code": "43741000",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/roll:0|value": "vårdenhet",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/roll:0|terminology": "http://snomed.info/sct/900000000000207008",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/namn": "{{ .PDL_vardgivare_Namn }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/identifierare:0": "{{ .PDL_vardgivare_HSAID }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/identifierare:0|type": "urn:oid:1.2.752.29.4.19",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/organisationsnummer:0": "2321000016",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/organisationsnummer:0|type": "urn:oid:2.5.4.97",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/roll:0|code": "143591000052106",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/roll:0|value": "vårdgivare",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/vårdenhet/vårdgivare/roll:0|terminology": "http://snomed.info/sct/45991000052106",
+
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/_health_care_facility|name": "{{ .Vardenhet_namn }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/_health_care_facility/_identifier:0|type": "urn:oid:1.2.752.29.4.19",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/_health_care_facility/_identifier:0|id": "SE2321000016-{{ .Vardenhet_HSAID }}",
+
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/context/start_time": "{{ toLocalDateTime .EncounterDate }}",
+
+{{- /* Set diagnosis only if both the code and name exist */}}
+{{- if and .Diagnoskod_ICD10 .Diagnosnamn_ICD10 }}
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/besöksorsak/diagnos_vårdkontakt:0|code": "{{ .Diagnoskod_ICD10 }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/besöksorsak/diagnos_vårdkontakt:0|value": "{{ .Diagnosnamn_ICD10 }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/besöksorsak/diagnos_vårdkontakt:0|terminology": "1.2.752.116.1.1.1",
+{{- end }}
+
+{{ range $i, $row := .Substanser -}}
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/ism_transition/careflow_step|value": "Fullföljd läkemedelsbehandling",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/ism_transition/careflow_step|code": "at0007",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/ism_transition/careflow_step|terminology": "local",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/ism_transition/current_state|code": "532",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/ism_transition/current_state|terminology": "openehr",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/ism_transition/current_state|value": "completed",
+
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/detaljer_per_substans/substans|code": "{{ .Innholdstoff_ATC }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/detaljer_per_substans/substans|value": "{{ .Innholdstoff_Navn }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/detaljer_per_substans/substans|terminology": "2.16.840.1.113883.6.73",
+  {{- /* Administered dose is required in the template; if it is null then this composition will fail validation and not be created */}}
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/detaljer_per_substans/administrerad_dos|magnitude": {{ eq .Dose nil | ternary "null" (printf "%f" .Dose) }},
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/detaljer_per_substans/administrerad_dos|unit": "{{ .UnitCode }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/beställnings-id|id": "{{ printf "%.0f" $.RekvisisjonId }}",
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/administrerad_läkemedelsbehandling:{{ $i }}/time": "{{ toLocalDateTime $.EncounterDate }}",
+{{ end }}
+
+{{/* Set the composition's UID to $selfComposition also so it can be later set by our Writer component */}}
+  "administrerad_medicinsk_onkologisk_behandling_per_substans/_uid": "$selfComposition"
+
+{{- /* Note it is important that the very last line does not have a comma, otherwise the result will not be valid JSON */}}
+}

@@ -1,0 +1,17 @@
+Syresättning {{akutmall_undervisningsexempel_2a.abcde.[0].pulsoximetri.[0].ospecificerad_händelse.[0].spo.[0].[|numerator]}}
+
+{{#with akutmall_undervisningsexempel_2a}}
+  {{#each abcde}}
+    {{#each andning}}
+      {{#each ospecificerad_händelse}}
+{{förekomst.[0].[|value]}}
+Andningsfrekvens: {{frekvens.[0].[|magnitude]}} {{frekvens.[0].[|unit]}}
+        {{#if inandad_syrgas.[0].på_luft.[0].[|value]}}
+På luft (ingen extra syrgas)
+        {{else}}
+Tillförd syrgas: {{inandad_syrgas.[0].syrgasflöde.[0].[|magnitude]}} {{inandad_syrgas.[0].syrgasflöde.[0].[|unit]}}
+        {{/if}}
+      {{/each}}
+    {{/each}}
+  {{/each}}
+{{/with}}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dummy-json-vitals/source.schema.json",
+  "title": "DummyVitalsSource",
+  "type": "object",
+  "properties": {
+    "patientId": { "type": "string" },
+    "systolic": { "type": "number" },
+    "diastolic": { "type": "number" },
+    "unit": { "type": "string" }
+  },
+  "required": ["patientId", "systolic", "diastolic"]
+}

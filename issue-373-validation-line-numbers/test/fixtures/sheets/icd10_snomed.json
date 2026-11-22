@@ -1,0 +1,9 @@
+{
+  "name": "icd10_snomed",
+  "headers": ["code", "snomed", "rubric"],
+  "values": [
+    ["I10", "38341003", "Hypertensive disorder"],
+    ["E11", "44054006", "Type 2 diabetes mellitus"]
+  ],
+  "columnTypes": ["text", "text", "text"]
+}

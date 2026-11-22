@@ -1,0 +1,65 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "json-schema",
+    "targetId": "BloodPressureMeasurement"
+  },
+  "suggestions": [
+    {
+      "slotId": "BloodPressureMeasurement:$.patientId",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.patientId"
+        }
+      }
+    },
+    {
+      "slotId": "BloodPressureMeasurement:$.timestamp",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.timestamp"
+        }
+      }
+    },
+    {
+      "slotId": "BloodPressureMeasurement:$.systolic",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.systolic"
+        }
+      },
+      "note": "AI-created identity map from legacy-simulated-json"
+    },
+    {
+      "slotId": "BloodPressureMeasurement:$.diastolic",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.diastolic"
+        }
+      }
+    },
+    {
+      "slotId": "BloodPressureMeasurement:$.pulse",
+      "block": {
+        "type": "source_query_number",
+        "fields": {
+          "EXPRESSION": "$.pulse"
+        }
+      }
+    },
+    {
+      "slotId": "BloodPressureMeasurement:$.bodyPosition",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.bodyPosition"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,524 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Obstetrix MHV1 (initial maternity-care registration)",
+  "description": "One JSON document is an array of MHV1 rows (Cerner Obstetrix export). Calendar dates are YYYY-MM-DD; empty string means not filled. Integer codes are paired with *_Text display strings. AUDIT (Del 4) is not in this export.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "properties": {
+      "Mhv1_id": {
+        "type": "integer"
+      },
+      "Vma_id": {
+        "type": "integer"
+      },
+      "Vma_typ": {
+        "type": "integer"
+      },
+      "Vma_typ_Namn": {
+        "type": "string"
+      },
+      "Pat_id": {
+        "type": "integer"
+      },
+      "Personnummer": {
+        "type": "string",
+        "description": "Swedish personal identity number (personnummer). Not a clock time — generated schemas sometimes mis-tag this as format time.",
+        "pattern": "^[0-9]{6,8}-?[0-9]{4}$"
+      },
+      "Vardgivare": {
+        "type": "string"
+      },
+      "Klinik": {
+        "type": "string"
+      },
+      "Avd_id": {
+        "type": "integer"
+      },
+      "Avdelning": {
+        "type": "string"
+      },
+      "RegTid": {
+        "type": "string",
+        "description": "Registration timestamp as stored by Obstetrix (often local date-time without timezone offset)."
+      },
+      "InskrDatum": {
+        "type": "string",
+        "description": "Enrolment / inskrivningsdatum.",
+        "format": "date"
+      },
+      "Barnmorska": {
+        "type": "integer"
+      },
+      "NatMhv3Finns": {
+        "type": "boolean"
+      },
+      "SenastMens": {
+        "type": "string",
+        "description": "Last menstrual period (LMP).",
+        "format": "date"
+      },
+      "RegelbMens": {
+        "type": "integer"
+      },
+      "RegelbMens_Text": {
+        "type": "string"
+      },
+      "SpiralKvar": {
+        "type": "integer"
+      },
+      "SpiralKvar_Text": {
+        "type": "string"
+      },
+      "BerakForSM": {
+        "type": "string",
+        "description": "Estimated date of delivery according to LMP (SM).",
+        "format": "date"
+      },
+      "ULDatumOverfort": {
+        "type": "integer"
+      },
+      "Vikt": {
+        "type": "integer",
+        "description": "Weight at enrolment in whole kg.",
+        "minimum": 0
+      },
+      "Langd": {
+        "type": "integer",
+        "description": "Height in whole cm.",
+        "minimum": 0
+      },
+      "TobakForegrav": {
+        "type": "integer"
+      },
+      "SnusForeGrav": {
+        "type": "integer"
+      },
+      "TobakInskr": {
+        "type": "integer"
+      },
+      "SnusInskr": {
+        "type": "integer"
+      },
+      "AlkoholForeGrav": {
+        "type": "integer"
+      },
+      "AlkoholInskr": {
+        "type": "integer"
+      },
+      "Tobak_vid_inskr": {
+        "type": "string"
+      },
+      "Tobak_3_man_fore_grav": {
+        "type": "string"
+      },
+      "Alkohol_vid_inskr": {
+        "type": "string"
+      },
+      "Alkohol_3_man_fore_grav": {
+        "type": "string"
+      },
+      "Droger_vid_inskr": {
+        "type": "string"
+      },
+      "Droger_3_man_fore_grav": {
+        "type": "string"
+      },
+      "FamSitSammanb": {
+        "type": "boolean"
+      },
+      "Sammanb_med_barnafadern": {
+        "type": "string"
+      },
+      "FamSitEnsams": {
+        "type": "boolean"
+      },
+      "ForvarvsArb": {
+        "type": "integer"
+      },
+      "Forv_Arb_vid_inskr": {
+        "type": "string"
+      },
+      "BostadProb": {
+        "type": "integer"
+      },
+      "Bost_eller_arb_Miljoproblem": {
+        "type": "string"
+      },
+      "OfrivBarnlosAr": {
+        "type": "string",
+        "description": "Years of involuntary infertility; empty string if none / not stated."
+      },
+      "OfrivBarnlosIngen": {
+        "type": "integer"
+      },
+      "OfrivBarnlosIVF": {
+        "type": "integer"
+      },
+      "OfrivBarnlosOvulStim": {
+        "type": "integer"
+      },
+      "OfrivBarnlosKirurgi": {
+        "type": "integer"
+      },
+      "OfrivBarnlosICSI": {
+        "type": "integer"
+      },
+      "OfrivBarnlosAnnat": {
+        "type": "integer"
+      },
+      "Hereditet": {
+        "type": "string"
+      },
+      "Hjart": {
+        "type": "string"
+      },
+      "Trombos": {
+        "type": "string"
+      },
+      "Psyk": {
+        "type": "string"
+      },
+      "Gulsot": {
+        "type": "string"
+      },
+      "Gynekolog": {
+        "type": "string"
+      },
+      "Endokrina": {
+        "type": "string"
+      },
+      "Urinvagsinf": {
+        "type": "string"
+      },
+      "Lung": {
+        "type": "string"
+      },
+      "Njur": {
+        "type": "string"
+      },
+      "UlcerosColit": {
+        "type": "string"
+      },
+      "Diabetes": {
+        "type": "string"
+      },
+      "SLE": {
+        "type": "string"
+      },
+      "Epilepsi": {
+        "type": "string"
+      },
+      "Hypertoni": {
+        "type": "string"
+      },
+      "SjukMhv3Finns": {
+        "type": "boolean"
+      },
+      "IngenMedicinering": {
+        "type": "boolean"
+      },
+      "TidBlodTrans": {
+        "type": "integer"
+      },
+      "Tidigare_blodtransfusion": {
+        "type": "string"
+      },
+      "Bedomning": {
+        "type": "integer"
+      },
+      "Bedomning_Test": {
+        "type": "string"
+      },
+      "Signering": {
+        "type": "integer"
+      },
+      "FamSitAnnan": {
+        "type": "boolean"
+      },
+      "RegisteredByProfessionalRoleId": {
+        "type": "integer"
+      },
+      "FamSitPartner": {
+        "type": "boolean"
+      },
+      "Bp_comp": {
+        "type": "string",
+        "description": "Blood pressure at enrolment as systolic/diastolic, e.g. 118/72."
+      },
+      "Anteckning": {
+        "type": "string"
+      },
+      "GravPos": {
+        "type": "string",
+        "description": "Date the pregnancy test was positive (YYYY-MM-DD), or empty if not filled.",
+        "anyOf": [
+          { "format": "date" },
+          { "const": "" }
+        ]
+      },
+      "LokReg": {
+        "type": "string"
+      },
+      "BedomningSign": {
+        "type": "integer"
+      },
+      "M1TidigareGraviditeter": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Tabell": {
+              "type": "string"
+            },
+            "TidGrav_id": {
+              "type": "integer"
+            },
+            "MHV1_id": {
+              "type": "integer"
+            },
+            "Ar": {
+              "type": "string",
+              "description": "Year of the previous pregnancy/birth (YYYY). Not a clock time.",
+              "pattern": "^[0-9]{4}$"
+            },
+            "Man": {
+              "type": "string",
+              "description": "Month of the previous pregnancy/birth (01–12).",
+              "pattern": "^(0[1-9]|1[0-2])$"
+            },
+            "Typ": {
+              "type": "integer"
+            },
+            "Typ_Text": {
+              "type": "string"
+            },
+            "Sjukhus": {
+              "type": "string"
+            },
+            "Forlopp": {
+              "type": "string"
+            },
+            "Sectio": {
+              "type": "boolean"
+            },
+            "Kon": {
+              "type": "integer"
+            },
+            "Kon_barnet_text": {
+              "type": "string"
+            },
+            "Vikt": {
+              "type": "integer",
+              "description": "Birth weight in grams; 0 when not applicable (e.g. miscarriage).",
+              "minimum": 0
+            },
+            "Gravveckor": {
+              "type": "integer",
+              "description": "Gestational week at outcome.",
+              "minimum": 0
+            },
+            "Tillstand": {
+              "type": "integer"
+            },
+            "Tillstand_barnets_text": {
+              "type": "string"
+            },
+            "Mhv3Ant_id": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Tabell",
+            "TidGrav_id",
+            "MHV1_id",
+            "Ar",
+            "Man",
+            "Typ",
+            "Typ_Text",
+            "Sjukhus",
+            "Forlopp",
+            "Sectio",
+            "Kon",
+            "Kon_barnet_text",
+            "Vikt",
+            "Gravveckor",
+            "Tillstand",
+            "Tillstand_barnets_text",
+            "Mhv3Ant_id"
+          ]
+        }
+      },
+      "M1Korr": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Tabell": {
+              "type": "string"
+            },
+            "Korr_id": {
+              "type": "integer"
+            },
+            "Mhv1_id": {
+              "type": "integer"
+            },
+            "User_id": {
+              "type": "integer"
+            },
+            "CollectionMember": {
+              "type": "integer"
+            },
+            "Term": {
+              "type": "integer"
+            },
+            "AndringsDatum": {
+              "type": "string",
+              "description": "Correction timestamp as stored by Obstetrix (often local date-time without timezone offset)."
+            }
+          },
+          "required": [
+            "Tabell",
+            "Korr_id",
+            "Mhv1_id",
+            "User_id",
+            "CollectionMember",
+            "Term",
+            "AndringsDatum"
+          ]
+        }
+      },
+      "M1Medicinering": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Tabell": {
+              "type": "string"
+            },
+            "Medicin_id": {
+              "type": "integer"
+            },
+            "MHV1_id": {
+              "type": "integer"
+            },
+            "Preperat": {
+              "type": "string",
+              "description": "Drug name (Obstetrix spelling Preperat = Preparat)."
+            },
+            "Dos": {
+              "type": "string"
+            },
+            "FrGravVecka": {
+              "type": "integer"
+            },
+            "TomGravVecka": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Tabell",
+            "Medicin_id",
+            "MHV1_id",
+            "Preperat",
+            "Dos",
+            "FrGravVecka",
+            "TomGravVecka"
+          ]
+        }
+      },
+      "BerakForUL": {
+        "type": "string",
+        "description": "Estimated date of delivery according to ultrasound (YYYY-MM-DD), or empty if not transferred.",
+        "anyOf": [
+          { "format": "date" },
+          { "const": "" }
+        ]
+      },
+      "Menstyp": {
+        "type": "string"
+      },
+      "Mensdagar": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "Mhv1_id",
+      "Vma_id",
+      "Vma_typ",
+      "Vma_typ_Namn",
+      "Pat_id",
+      "Personnummer",
+      "Vardgivare",
+      "Klinik",
+      "Avd_id",
+      "Avdelning",
+      "RegTid",
+      "InskrDatum",
+      "Barnmorska",
+      "NatMhv3Finns",
+      "SenastMens",
+      "RegelbMens",
+      "RegelbMens_Text",
+      "SpiralKvar",
+      "SpiralKvar_Text",
+      "BerakForSM",
+      "ULDatumOverfort",
+      "Vikt",
+      "Langd",
+      "TobakForegrav",
+      "SnusForeGrav",
+      "TobakInskr",
+      "SnusInskr",
+      "AlkoholForeGrav",
+      "AlkoholInskr",
+      "Tobak_vid_inskr",
+      "Tobak_3_man_fore_grav",
+      "Alkohol_vid_inskr",
+      "Alkohol_3_man_fore_grav",
+      "Droger_vid_inskr",
+      "Droger_3_man_fore_grav",
+      "FamSitSammanb",
+      "Sammanb_med_barnafadern",
+      "FamSitEnsams",
+      "ForvarvsArb",
+      "Forv_Arb_vid_inskr",
+      "BostadProb",
+      "Bost_eller_arb_Miljoproblem",
+      "OfrivBarnlosAr",
+      "OfrivBarnlosIngen",
+      "OfrivBarnlosIVF",
+      "OfrivBarnlosOvulStim",
+      "OfrivBarnlosKirurgi",
+      "OfrivBarnlosICSI",
+      "OfrivBarnlosAnnat",
+      "Hereditet",
+      "Hjart",
+      "Trombos",
+      "Psyk",
+      "Gulsot",
+      "Gynekolog",
+      "Endokrina",
+      "Urinvagsinf",
+      "Lung",
+      "Njur",
+      "UlcerosColit",
+      "Diabetes",
+      "SLE",
+      "Epilepsi",
+      "Hypertoni",
+      "SjukMhv3Finns",
+      "IngenMedicinering",
+      "TidBlodTrans",
+      "Tidigare_blodtransfusion",
+      "Bedomning",
+      "Bedomning_Test",
+      "Signering",
+      "FamSitAnnan",
+      "RegisteredByProfessionalRoleId",
+      "FamSitPartner",
+      "Bp_comp"
+    ]
+  }
+}

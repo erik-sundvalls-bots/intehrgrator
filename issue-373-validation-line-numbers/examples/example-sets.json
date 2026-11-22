@@ -1,0 +1,479 @@
+{
+  "$comment": "intEHRgrator example-set catalog. All assets use relative URIs under ../test/fixtures/ (resolved against this file's URL; build copies fixtures into dist/). Canonical long-term home may move to ehrtslib. Each source schema has an unmapped set and a mapped set; #70 sibling decision-table sets sit beside lung-MDT and chemo gold (do not rewrite those directories).",
+  "version": 1,
+  "sets": [
+    {
+      "id": "dummy-json-vitals",
+      "title": "Dummy vitals (JSON Schema → JSON Schema) — unmapped",
+      "description": "Minimal JSON Schema source, three valid instances, and a JSON Schema target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/dummy-json-vitals/source.schema.json",
+        "instances": [
+          "../test/fixtures/dummy-json-vitals/instance-1.json",
+          "../test/fixtures/dummy-json-vitals/instance-2.json",
+          "../test/fixtures/dummy-json-vitals/instance-3.json"
+        ]
+      },
+      "target": "../test/fixtures/dummy-json-vitals/target.schema.json"
+    },
+    {
+      "id": "dummy-json-vitals-mapped",
+      "title": "Dummy vitals (JSON Schema → JSON Schema) — mapped",
+      "description": "Same dummy files plus a Blockly mapping (source paths into the JSON Schema target, including unit) and a default context map.",
+      "source": {
+        "schema": "../test/fixtures/dummy-json-vitals/source.schema.json",
+        "instances": [
+          "../test/fixtures/dummy-json-vitals/instance-1.json",
+          "../test/fixtures/dummy-json-vitals/instance-2.json",
+          "../test/fixtures/dummy-json-vitals/instance-3.json"
+        ]
+      },
+      "target": "../test/fixtures/dummy-json-vitals/target.schema.json",
+      "mapping": "../test/fixtures/dummy-json-vitals/mapping.blockly.json",
+      "defaults": "../test/fixtures/dummy-json-vitals/defaults.map.json"
+    },
+    {
+      "id": "Simple-vitals-unmapped",
+      "title": "Dummy vitals (JSON Schema → openEHR Template) — unmapped",
+      "description": "Minimal JSON Schema source and blood-pressure instances targeting simple-diagnose-and-vitals.opt. No mapping — use Click-to-Map or Agent API map_slot.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt"
+    },
+    {
+      "id": "Simple-vitals",
+      "title": "Dummy vitals (JSON Schema → openEHR Template) — mapped",
+      "description": "Minimal JSON Schema source, valid instances plus one named-invalid instance, mapped to the simple-diagnose-and-vitals OPT. Blood pressure, pulse and their times come straight from the source. Position is mapped directly: the source words (sitting, standing, lying) match the template's value-set texts, so the at-code is filled in and an unknown word (the invalid instance's flying) fails validation. Uses the operational template (.opt), which is self-contained; the sibling .t.json is a differential Archetype Designer file that needs overlay parent ADLs to flatten.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances/bp-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/simple-vitals.blockly.json"
+    },
+    {
+      "id": "Simple-vitals-series-unmapped",
+      "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — unmapped",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt"
+    },
+    {
+      "id": "Simple-vitals-series",
+      "title": "Dummy vitals series (JSON Schema with repeating measurements → openEHR) — mapped",
+      "description": "Blood-pressure series schema with a coded ICD-10 diagnosis and repeating measurements. Valid instances plus one named-invalid instance (diastolic/bodyPosition). One for_each_list over measurements fills the blood-pressure events; another fills pulse events and includes the event only when a pulse exists. The diagnosis is DV_CODED_TEXT (ICD10 code + display).",
+      "source": {
+        "schema": "../test/fixtures/legacy-simulated-json/bp-series-schema.json",
+        "instances": [
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-2.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-4.json",
+          "../test/fixtures/legacy-simulated-json/instances-series/bp-series-inst-3-invalid.json"
+        ]
+      },
+      "target": "../test/fixtures/simple-diagnose-and-vitals.opt",
+      "mapping": "../test/fixtures/legacy-simulated-json/mapping/bp-series.blockly.json"
+    },
+    {
+      "id": "obx-mhv1-unmapped-json-to-openehr",
+      "title": "OBX MHV1 (JSON → openEHR) — unmapped",
+      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetrix-MHV1/source-schema/obx-mhv1.review-1.schema.json",
+        "instances": [
+          "../test/fixtures/Obstetrix-MHV1/source-instance/1-primigravida-basprogram.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/2-ivf-multipara.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/3-komplex-mhv3.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/4-nightly-primigravida.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt"
+    },
+    {
+      "id": "obx-mhv1-mapped-json-to-openehr",
+      "title": "OBX MHV1 (JSON → openEHR) — mapped",
+      "description": "Obstetrix MHV1 JSON Schema and maternity-care registration instances, targeting the MHV1 Prenatal visit openEHR template. Partial mapping: only part of the source is mapped, and the bundled OPT has no term definitions, so slots show at-codes. Preview and TypeScript Test Runs are valid.",
+      "source": {
+        "schema": "../test/fixtures/Obstetrix-MHV1/source-schema/obx-mhv1.review-1.schema.json",
+        "instances": [
+          "../test/fixtures/Obstetrix-MHV1/source-instance/1-primigravida-basprogram.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/2-ivf-multipara.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/3-komplex-mhv3.json",
+          "../test/fixtures/Obstetrix-MHV1/source-instance/4-nightly-primigravida.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt",
+      "mapping": "../test/fixtures/Obstetrix-MHV1/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/Obstetrix-MHV1/mapping/mapping.sheets.json"
+    },
+    {
+      "id": "chemo-symptoms-flat-to-tc-xml-unmapped",
+      "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — unmapped",
+      "description": "openEHR FLAT compositions from a patient symptom questionnaire targeting TakeCare ProfdocHISMessage XML. No mapping.",
+      "source": {
+        "instances": [
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/2-ex-composition-empty.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/3-ex-composition-full.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/4-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/5-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/6-ex-composition-nightly.txt"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd"
+    },
+    {
+      "id": "chemo-symptoms-flat-to-tc-xml",
+      "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — mapped",
+      "description": "openEHR FLAT composition from a patient symptom questionnaire, mapped to TakeCare ProfdocHISMessage XML using schema-generated Target schema blocks (TakeCare-CasenoteWrite-edit01.xsd). Rebuilds mappningsscript-1-9-1-prod: all TextKeyWord/NumericKeyword TermIds, the no-symptom 16183 branch, free-text helper, and Defaults Map header parameters. Select Go Template output mode to see generated Go text/template code.",
+      "source": {
+        "instances": [
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/2-ex-composition-empty.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/3-ex-composition-full.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/4-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/5-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/6-ex-composition-nightly.txt"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/patient-reported-chemotherapy-symptoms/mapping/mapping.blockly.json",
+      "defaults": "../test/fixtures/patient-reported-chemotherapy-symptoms/defaults.map.json"
+    },
+    {
+      "id": "chemo-symptoms-flat-to-tc-xml-decision-tables",
+      "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — mapped, decision tables",
+      "description": "#70 sibling of chemo-symptoms-flat-to-tc-xml. Same XSD, Defaults Map, FLAT instances, and PROD Go script as gold. Inner Note {{if eq}} branches become FIRST Decision tables with VMS-Mustache snippets. cleanAndQuoteFreeTextInput stays one Go define. Do not rewrite the original chemo Blockly gold.",
+      "source": {
+        "instances": [
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/2-ex-composition-empty.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/3-ex-composition-full.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/4-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/5-ex-composition.txt",
+          "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/6-ex-composition-nightly.txt"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/patient-reported-chemotherapy-symptoms-decision-tables/mapping/mapping.sheets.json",
+      "defaults": "../test/fixtures/patient-reported-chemotherapy-symptoms/defaults.map.json"
+    },
+    {
+      "id": "lung-mdt-form-to-tc-xml-unmapped",
+      "title": "Lung MDT form (→ TakeCare XML) — unmapped",
+      "description": "Lung multidisciplinary-team openEHR form instances targeting TakeCare ProfdocHISMessage XML. No mapping.",
+      "source": {
+        "instances": [
+          "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
+          "../test/fixtures/lung-MDT-form/source-instance/2-mdt-review-smoker-ultrasound.json"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "defaults": "../test/fixtures/lung-MDT-form/defaults.map.json"
+    },
+    {
+      "id": "lung-mdt-form-to-tc-xml",
+      "title": "Lung MDT form (→ TakeCare XML) — mapped",
+      "description": "Rebuilds the production lung-MDT Handlebars mapping as Blockly using schema-generated TakeCare ProfdocHISMessage blocks (TakeCare-CasenoteWrite-edit01.xsd), not generic XML blocks. Header fields come from the default context map. A Note that is only a path is a source path; branching Notes stay Handlebars. Include when omits an empty keyword. Path guards are boolean sources; `(eq)` / `(and)` / path-only `(or)` are compare, and, and any-of blocks. Mapping preview and Handlebars Output mode both evaluate nested Code text LANG=handlebars on this XML Schema canvas, so TermId and Note pairs agree. Set TemplateId/TemplateType to the casenote used in the target environment.",
+      "source": {
+        "instances": [
+          "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
+          "../test/fixtures/lung-MDT-form/source-instance/2-mdt-review-smoker-ultrasound.json"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/lung-MDT-form/mapping/mapping.blockly.json",
+      "defaults": "../test/fixtures/lung-MDT-form/defaults.map.json"
+    },
+    {
+      "id": "lung-mdt-form-to-tc-xml-decision-tables",
+      "title": "Lung MDT form (→ TakeCare XML) — mapped, decision tables",
+      "description": "#70 sibling of lung-mdt-form-to-tc-xml. Same TakeCare XSD, Defaults Map, and PROD Handlebars script. Imaging TermId, smoking Note, and treatment connector/regimen/dose phrases are Decision tables with VMS-Mustache snippets. Presence columns are boolean source paths. Include when omits an empty keyword. The production script file in test/fixtures/lung-MDT-form/mapping/ stays the output reference.",
+      "source": {
+        "instances": [
+          "../test/fixtures/lung-MDT-form/source-instance/1-mdt-review-never-smoked-mr.json",
+          "../test/fixtures/lung-MDT-form/source-instance/2-mdt-review-smoker-ultrasound.json"
+        ]
+      },
+      "target": "../test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd",
+      "mapping": "../test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/lung-MDT-form-decision-tables/mapping/mapping.sheets.json",
+      "defaults": "../test/fixtures/lung-MDT-form/defaults.map.json"
+    },
+    {
+      "id": "karda-ordinationsdata-to-openehr-flat-unmapped",
+      "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — unmapped",
+      "description": "OrdinationRCCV1 JSON Schema and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
+        "instances": [
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-example_source_used_for_mapping.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-A-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-B-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-C-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-D-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-E-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/target-schema/OrdineradMedicinskOnkologiskBehandling_MedKurdag.1.0.0-alpha.27.sv.en.opt"
+    },
+    {
+      "id": "karda-ordinationsdata-to-openehr-flat",
+      "title": "Medication order data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
+      "description": "OrdinationRCCV1 JSON Schema and Kafka-shaped order instances targeting the MedKurdag openEHR OPT. The generic coded_text_from_sheet Function reads project Sheets beredningsform/administreringsvag, keeping primary Cytodos/template codes and adding equivalent SNOMED-CT TERM_MAPPINGs from snomed. Dose carries its UnitCode. Both Mapping preview and TypeScript Test Run include mappings.",
+      "source": {
+        "schema": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-schema/OrdinationRCCV1_source_schema.json",
+        "instances": [
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-example_source_used_for_mapping.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-A-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-B-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-C-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-D-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-E-source-example.json",
+          "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/source-instance/ordination-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/target-schema/OrdineradMedicinskOnkologiskBehandling_MedKurdag.1.0.0-alpha.27.sv.en.opt",
+      "mapping": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/ordinerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
+    },
+    {
+      "id": "karda-administreringsdata-to-openehr-flat-unmapped",
+      "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — unmapped",
+      "description": "AdministrationRCCV1 Avro source schema and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
+        "instances": [
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-example_source_used_for_mapping.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-A-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-B-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-C-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt"
+    },
+    {
+      "id": "karda-administreringsdata-to-openehr-flat",
+      "title": "Medication treatment data from Cytodos and TC via Karda (JSON → openEHR FLAT) — mapped",
+      "description": "AdministrationRCCV1 Avro and Kafka-shaped administration instances targeting the PerSubstans openEHR OPT. Uses the generic coded_text_from_sheet Function with the project organisation_roles Sheet for existing role codes. These fixtures and this OPT have no form/route slots or supplied cross-terminology equivalents, so no mappings are invented; SNOMED role codes remain primary. Completed / at0007 is fixed by the template.",
+      "source": {
+        "schema": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-schema/AdministrationRCCV1_source_schema.avsc",
+        "instances": [
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-example_source_used_for_mapping.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-A-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-B-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-C-source-example.json",
+          "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/source-instance/administration-TESTFALL-PRÖV-läkemedel-source-example.json"
+        ]
+      },
+      "target": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/target-schema/AdministreradMedicinskOnkologiskBehandlingPerSubstans.1.0.0-alpha.5.sv.en.opt",
+      "mapping": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.blockly.json",
+      "sheets": "../test/fixtures/administrerad-medicinsk-onkologisk-behandling/mapping/mapping.sheets.json"
+    },
+    {
+      "id": "mhv1-generic-entry-to-prenatal-visit-unmapped",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, operational template → Web Template) — unmapped",
+      "description": "Integration archetype generic-obstetrix-mhv1-v1 as OPT XML, four Simplified FLAT compositions, prenatal-visit Web Template. No mapping. Canonical JSON of the same stories is a separate example set.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
+    },
+    {
+      "id": "mhv1-generic-entry-to-prenatal-visit",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, operational template → Web Template) — mapped",
+      "description": "Partial mapping from the generic-entry operational template onto MHV1- Prenatal visit.encounter.v1. Examples are Simplified FLAT. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. Saved as Simplified FLAT. Canvas path labels on this Web Template are not the clinical names.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+      "mapping": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/mapping/mapping.blockly.json"
+    },
+    {
+      "id": "mhv1-generic-entry-flat-wt-unmapped",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, Web Template) — unmapped",
+      "description": "The same four Simplified FLAT compositions, with the generic-entry Web Template as the source schema and the prenatal-visit Web Template as the target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
+    },
+    {
+      "id": "mhv1-generic-entry-flat-wt",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, Web Template) — mapped",
+      "description": "Same Simplified FLAT mapping as the operational-template set. Source schema and target are both Web Templates.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+      "mapping": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/mapping/mapping.blockly.json"
+    },
+    {
+      "id": "mhv1-generic-entry-flat-opt2-unmapped",
+      "title": "Obstetric MHV1 generic entry (Simplified FLAT, OPT2) — unmapped",
+      "description": "OPT2 of generic-obstetrix-mhv1-v1, the four Simplified FLAT compositions, and OPT2 of MHV1- Prenatal visit.encounter.v1. Unmapped. A few value-leaf slot ids differ from the prenatal-visit Web Template.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2"
+    },
+    {
+      "id": "mhv1-generic-entry-canonical-wt-unmapped",
+      "title": "Obstetric MHV1 generic entry (Canonical JSON, Web Template) — unmapped",
+      "description": "The same four clinical stories as Canonical JSON compositions. Source schema and target are Web Templates. The saved mapping reads Simplified FLAT keys, so this set is unmapped.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json"
+    },
+    {
+      "id": "mhv1-generic-entry-canonical-opt2-unmapped",
+      "title": "Obstetric MHV1 generic entry (Canonical JSON, OPT2) — unmapped",
+      "description": "Canonical JSON compositions of generic-obstetrix-mhv1-v1, with OPT2 as both the source schema and the prenatal-visit target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/1-primigravida-basprogram.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/2-ivf-multipara.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/3-komplex-mhv3.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-instance/4-nightly-primigravida.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2"
+    },
+    {
+      "id": "partogram-generic-entry-to-partogram-unmapped",
+      "title": "Obstetric partogram generic entry (Simplified FLAT, operational template → Web Template) — unmapped",
+      "description": "Integration archetype generic-obstetrix-partogram-v1 as OPT XML, four Simplified FLAT partographs, Partogram.v1 Web Template. No mapping. The curves follow a published alert line (about 1 cm/hour from 4 cm) and an action line four hours to the right: a primip who stays left of the alert line, a fast multip, a primip who crosses the alert line and is augmented, and a multip with thick meconium and a low scalp pH. Integer codes with no template value set are fixture labels, listed in the instance README.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
+    },
+    {
+      "id": "partogram-generic-entry-flat-wt-unmapped",
+      "title": "Obstetric partogram generic entry (Simplified FLAT, Web Template) — unmapped",
+      "description": "The same four Simplified FLAT partographs, with the generic-entry Web Template as the source schema and the Partogram.v1 Web Template as the target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
+    },
+    {
+      "id": "partogram-generic-entry-flat-opt2-unmapped",
+      "title": "Obstetric partogram generic entry (Simplified FLAT, OPT2) — unmapped",
+      "description": "OPT2 of generic-obstetrix-partogram-v1, the four Simplified FLAT partographs, and OPT2 of Partogram.v1. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.flat.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.flat.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2"
+    },
+    {
+      "id": "partogram-generic-entry-canonical-wt-unmapped",
+      "title": "Obstetric partogram generic entry (Canonical JSON, Web Template) — unmapped",
+      "description": "The same four partographs as Canonical JSON compositions. Source schema and target are Web Templates. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.wt.json",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.wt.json"
+    },
+    {
+      "id": "partogram-generic-entry-canonical-opt2-unmapped",
+      "title": "Obstetric partogram generic entry (Canonical JSON, OPT2) — unmapped",
+      "description": "Canonical JSON partographs of generic-obstetrix-partogram-v1, with OPT2 as both the source schema and the Partogram.v1 target. No mapping.",
+      "source": {
+        "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-schema/generic_obstetrix_partogram_v1_TEMPLATE.opt2",
+        "instances": [
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/1-primip-left-of-alert.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/2-multip-fast-labour.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/3-primip-crosses-alert-oxytocin.canonical.json",
+          "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/source-instance/4-multip-thick-meconium-low-ph.canonical.json"
+        ]
+      },
+      "target": "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2"
+    }
+  ]
+}

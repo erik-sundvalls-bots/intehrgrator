@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "CytodosOrdinationKey",
+    "RekvisisjonId",
+    "PasientenDeltarIStudie",
+    "PDL_enhet_Namn",
+    "PDL_enhet_HSAID"
+  ],
+  "properties": {
+    "CytodosOrdinationKey": { "type": "integer" },
+    "Personnummer": { "type": ["string", "null"] },
+    "RekvisisjonId": { "type": "integer" },
+    "PasientenDeltarIStudie": { "type": "integer" },
+    "StudieId": { "type": ["string", "null"] },
+    "KurdefinisjonNavn": { "type": ["string", "null"] },
+    "KurStartDato": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "PasientKurnummer": { "type": ["integer", "null"] },
+    "SignatureUser_UserName": { "type": ["string", "null"] },
+    "SignatureUser_Fullname": { "type": ["string", "null"] },
+    "SignatureDate": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "RekvisisjonVersjon": { "type": ["integer", "null"] },
+    "RekvisisjonStatus": { "type": ["string", "null"] },
+    "PDL_enhet_Namn": { "type": "string" },
+    "PDL_enhet_HSAID": { "type": "string" },
+    "PDL_vardgivare_Namn": { "type": ["string", "null"] },
+    "PDL_vardgivare_HSAID": { "type": ["string", "null"] },
+    "Vardenhet_id": { "type": ["integer", "null"] },
+    "Vardenhet_namn": { "type": ["string", "null"] },
+    "Vardenhet_HSAID": { "type": ["string", "null"] },
+    "SenastUppdaterad": {
+      "type": ["integer", "null"],
+      "description": "Unix epoch milliseconds (Avro logicalType timestamp-millis)"
+    },
+    "SenastUppdaterad_orig": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 datetime string (from SQL CONVERT style 126)"
+    },
+    "KurDagar": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/KurDag" }
+    }
+  },
+  "$defs": {
+    "KurDag": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "KurdagLopenummer": { "type": ["integer", "null"] },
+        "Dognnummer": { "type": ["integer", "null"] },
+        "StartTid": { "type": ["string", "null"] },
+        "SenastUppdaterad": { "type": ["string", "null"] },
+        "Substanser": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/$defs/Substans" }
+        }
+      }
+    },
+    "Substans": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Lopenummer": { "type": ["integer", "null"] },
+        "Doseberegnet": { "type": ["number", "null"] },
+        "UnitCode": { "type": ["string", "null"] },
+        "Innholdstoff_Navn": { "type": ["string", "null"] },
+        "Innholdstoff_ATC": { "type": ["string", "null"] },
+        "Form": { "type": ["string", "null"] },
+        "Form_CodeValue": { "type": ["string", "null"] },
+        "Route_LongDescription": { "type": ["string", "null"] },
+        "Route_CodeValue": { "type": ["string", "null"] },
+        "SenastUppdaterad": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BloodPressureSeries",
+  "description": "A patient record with a single coded injury diagnosis and a repeatable blood pressure measurement subtree. Use this fixture to exercise iteration over repeated source nodes (for_each_source / array paths) while mapping a non-repeated coded element at the root.",
+  "type": "object",
+  "required": [
+    "patientId",
+    "diagnosis",
+    "measurements"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "patientId": {
+      "type": "string",
+      "description": "Unique identifier for the patient.",
+      "pattern": "^[a-zA-Z0-9-_]+$"
+    },
+    "diagnosis": {
+      "type": "object",
+      "description": "Encounter diagnosis as a WHO ICD-10 coded injury (Chapter XIX, S00–T98). One diagnosis per record; not repeated on each measurement.",
+      "required": [
+        "code",
+        "codeSystem",
+        "display"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "WHO ICD-10 four-character category from a small simulated injury subset."
+        },
+        "codeSystem": {
+          "type": "string",
+          "const": "ICD-10",
+          "description": "WHO International Statistical Classification of Diseases and Related Health Problems, 10th Revision."
+        },
+        "display": {
+          "type": "string",
+          "description": "ICD-10 category title matching the selected code."
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "code": { "const": "S06.0" },
+            "display": { "const": "Concussion" }
+          }
+        },
+        {
+          "properties": {
+            "code": { "const": "S42.0" },
+            "display": { "const": "Fracture of clavicle" }
+          }
+        },
+        {
+          "properties": {
+            "code": { "const": "S52.5" },
+            "display": { "const": "Fracture of lower end of radius" }
+          }
+        },
+        {
+          "properties": {
+            "code": { "const": "S72.0" },
+            "display": { "const": "Fracture of neck of femur" }
+          }
+        }
+      ]
+    },
+    "measurements": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Repeated blood pressure readings. Each item is a complete measurement with its own timestamp.",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "systolic",
+          "diastolic"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time when this measurement was taken."
+          },
+          "systolic": {
+            "type": "integer",
+            "minimum": 50,
+            "maximum": 250,
+            "description": "Systolic blood pressure in mmHg (the top number)."
+          },
+          "diastolic": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 150,
+            "description": "Diastolic blood pressure in mmHg (the bottom number)."
+          },
+          "pulse": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 220,
+            "description": "Heart rate in beats per minute (optional)."
+          },
+          "bodyPosition": {
+            "type": "string",
+            "enum": [
+              "sitting",
+              "lying",
+              "standing"
+            ],
+            "description": "The position of the patient during this measurement (optional)."
+          }
+        }
+      }
+    }
+  }
+}

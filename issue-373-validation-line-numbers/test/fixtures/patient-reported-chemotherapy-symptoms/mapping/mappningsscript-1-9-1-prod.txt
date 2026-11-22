@@ -1,0 +1,313 @@
+{{- /*
+cleanAndQuoteFreeTextInput sanitizes user input for safe use in XML/HTML contexts.
+
+This function performs the following steps:
+1. Converts whitespace characters (\n, \r, \t) to spaces
+2. Escapes XML/HTML special characters (&, <, >, ", ') and converts µ to &#181;
+3. Removes all characters except allowed ones (see character set below)
+4. Collapses multiple consecutive spaces into a single space
+5. Trims leading and trailing whitespace
+
+Allowed characters:
+- Space and all printable ASCII: ! " # $ % & ' ( ) * + , - . / 0-9 : ; < = > ? @
+- A-Z, a-z, [ \ ] ^ _ ` { | } ~
+- Extended Latin characters: € ¡ ¢ £ ¤ ¥ § ¨ ¯ ´ ¶ · ¿
+- À-Ý, ß, à-ý, þ (Western European accented characters)
+
+This is based on the investigation what TC can handle. For more info, see:
+https://karolinska.atlassian.net/browse/KIP-57?focusedCommentId=47245
+
+Usage:
+  {{ template "cleanAndQuoteFreeTextInput" (index .Data "mykey") }}
+  {{ include "cleanAndQuoteFreeTextInput" .someField | quote }}
+*/ -}}
+{{- define "cleanAndQuoteFreeTextInput" -}}
+  {{- $input := . -}}
+
+  {{- /* Step 1: Replace newlines, carriage returns, and tabs with spaces */ -}}
+  {{- $step1 := $input | replace "\n" " " | replace "\r" " " | replace "\t" " " -}}
+
+  {{- /* Step 2: Escape XML/HTML special characters, then convert µ to numeric entity */ -}}
+  {{- /* Note: µ must be replaced AFTER & to avoid double-escaping (&#181; not &amp;#181;) */ -}}
+  {{- $step2 := $step1 | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\"" "&quot;" | replace "'" "&apos;" | replace "µ" "&#181;" -}}
+
+  {{- /* Step 3: Remove all characters not in the allowed character set */ -}}
+  {{- /* The pattern [^ -~...] means: remove anything NOT in this set */ -}}
+  {{- /* " -~" represents ASCII printable characters (space=0x20 through tilde=0x7E) */ -}}
+  {{- $step3 := regexReplaceAll "[^ -~€¡¢£¤¥§¨¯´¶·¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþ]" $step2 "" -}}
+
+  {{- /* Step 4: Collapse multiple consecutive spaces into a single space */ -}}
+  {{- $step4 := regexReplaceAll " +" $step3 " " -}}
+
+  {{- /* Step 5: Trim leading and trailing whitespace and quote everything */ -}}
+  {{- $step4 | trim | quote -}}
+{{- end -}}
+
+<ProfdocHISMessage MsgType="Request" Time="{{ .Parameters.Time }}" InvokingSystem="{{ .Parameters.InvokingSystem }}">
+	  <PatId>{{ .Parameters.PatientId }}</PatId>
+    <UserId>{{ .Parameters.UserId }}</UserId>
+    <EventTime>{{ .Parameters.Time }}</EventTime>
+    <Signer>{{ .Parameters.Signer }}</Signer>
+    <Signed>0</Signed>
+    <TemplateId>{{ .Parameters.TemplateId }}</TemplateId>
+    <TemplateType>1</TemplateType>
+    <UUID>{{ .Parameters.UUID }}</UUID>
+    <Keywords>
+        <TextKeywords>
+
+{{- /* Om patienten svarat "Nej" på alla frågor angående symptom */ -}}
+            {{if and (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/trötthet/upplever_du_trötthet_fatigue_som_påverkar_ditt_dagliga_liv|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/andning/upplever_du_svårigheter_med_din_andning|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/besvär_kring_hjärttrakten/upplever_du_någon_typ_av_besvär_kring_hjärttrakten_hjärtklappning_hård_puls_tryck_över_bröstet_eller_liknande|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/svullnad/har_du_ökad_svullnad_i_kroppen|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/feber/har_du_haft_en_kroppstemperatur_över_38_grader_senaste_dygnet|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/utslag_eller_hudrodnad/har_du_utslag_eller_hudrodnad|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/klåda/har_du_klåda|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/har_du_förändringar_av_naglarna|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/mun_svalg/har_du_förändringar_i_mun_svalg|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/aptit/upplever_du_förändrad_aptit|code") "3")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/matintag/hur_har_ditt_matintag_förändrats|code") "3")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/vikt/har_din_vikt_förändrats_de_senaste_veckorna|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/upplever_du_besvär_av_illamående|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/har_du_problem_med_diarréer|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/förstoppning/har_du_förstoppning|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/smärta/upplever_du_värk_i_muskler_och_eller_leder|value") "Nej")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/upplever_du_stickningar_eller_pirrningar_domningar|value") "Nej")}}
+            <TextKeyWord>
+<!-- Patientrapporterade utfallsmått (PROM) -->
+                <TermId>16183</TermId>
+                 <Note>Patienten rapporterar inga symptom.
+                 </Note>
+            </TextKeyWord>{{else}}
+
+{{- /* Kod för att svar kring resp. symptom ska hamna under resp. sökord i TC.
+Samtliga frågor inleds med en if-sats som tar bort <TextKeyWord></TextKeyWord> om patienten anget att den inte har det specifika symptomet.
+Detta då TC inte tar emot TextKeyWord utan en note.  */ -}}
+
+            {{if ne (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/trötthet/upplever_du_trötthet_fatigue_som_påverkar_ditt_dagliga_liv|value") "Nej"}}<TextKeyWord>
+<!-- Fatigue -->
+                <TermId>2811</TermId>
+                <Note>{{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/trötthet/upplever_du_trötthet_fatigue_som_påverkar_ditt_dagliga_liv|value") "Ja" -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/trötthet/följdfråga/hur_påverkar_tröttheten_ditt_dagliga_liv|value" }}. {{- end}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/andning/upplever_du_svårigheter_med_din_andning|value") "Ja" }}<TextKeyWord>
+<!-- Andning -->
+                <TermId>1830</TermId>
+                <Note>{{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/andning/följdfråga/vilka_svårigheter_upplever_du_med_din_andning|value" }}.
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/besvär_kring_hjärttrakten/upplever_du_någon_typ_av_besvär_kring_hjärttrakten_hjärtklappning_hård_puls_tryck_över_bröstet_eller_liknande|value") "Ja"}}<TextKeyWord>
+<!-- Hjärta-kärl -->
+                <TermId>6298</TermId>
+                <Note>Patientens kommentar angående besvär från hjärttrakten: {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/besvär_kring_hjärttrakten/följdfråga/beskriv_de_besvär_du_upplever_kring_hjärttrakten") }}.
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/svullnad/har_du_ökad_svullnad_i_kroppen|value") "Ja"}}<TextKeyWord>
+<!-- Svullnad -->
+                <TermId>7643</TermId>
+                <Note>{{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/svullnad/följdfråga/hur_upplever_du_dina_besvär_med_svullnad_i_kroppen|code") "at0.3"}}
+                      {{- "" -}} Svåra besvär, svårt att röra sig. {{- "" -}}
+                      {{- else -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/svullnad/följdfråga/hur_upplever_du_dina_besvär_med_svullnad_i_kroppen|value"}}.{{end}}
+                      {{- " " -}} Patientens kommentar angående lokalisation: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/svullnad/följdfråga_2/var_på_kroppen_är_du_svullen") }}.
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/utslag_eller_hudrodnad/har_du_utslag_eller_hudrodnad|value") "Ja"}}<TextKeyWord>
+<!-- Hud -->
+                <TermId>207</TermId>
+                <Note>{{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/utslag_eller_hudrodnad/följdfråga/hur_upplever_du_dina_besvär_med_utslag_eller_hudrodnad|value"}}.
+                      {{- " " -}} Patientens kommentar angående lokalisation: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/utslag_eller_hudrodnad/följdfråga/följdfråga/var_på_kroppen_har_du_utslag_eller_rodnad") }}.
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/har_du_förändringar_av_naglarna|value") "Ja"}}<TextKeyWord>
+<!-- Nagelfunktioner -->
+                <TermId>7570</TermId>
+                <Note>{{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|code") "at0.1"}}
+                      {{- index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|value" | substr 0 6}}
+                      {{- " " -}} nagelbesvär {{- "" -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|value" | substr 6 100}}.
+                      {{- else if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|code") "at0.2"}}
+                      {{- index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|value" | substr 0 9}}
+                      {{- " " -}} nagelbesvär {{- "" -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|value" | substr 9 100}}.
+                      {{- else if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|code") "at0.3"}}
+                      {{- index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|value" | substr 0 6}}
+                      {{- " " -}} nagelbesvär {{- "" -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/naglar/följdfråga/hur_bedömer_du_förändringarna_av_naglarna|value" | substr 6 52}}.
+                      {{- end}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/klåda/har_du_klåda|value") "Ja"}}<TextKeyWord>
+<!-- Klåda -->
+                <TermId>1921</TermId>
+                <Note>{{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/klåda/följdfråga/hur_upplever_du_dina_besvär_med_klåda|value"}}. {{- "" -}}
+                      {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/klåda/följdfråga_2/har_du_behandlat_din_klåda_på_något_sätt|value") "Ja"}}
+                      {{- " " -}} Patientens kommentar angående egen behandling: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/klåda/följdfråga_2/följdfråga/hur_har_du_behandlat_din_klåda_och_vad_har_det_haft_för_effekt") }}.{{end}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if eq (index .Data  "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/mun_svalg/har_du_förändringar_i_mun_svalg|value") "Ja"}}<TextKeyWord>
+<!-- Munhåla och svalg -->
+                <TermId>2018</TermId>
+                <Note>{{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/mun_svalg/följdfråga/hur_upplever_du_dina_besvär_i_mun_svalg|value"}}.
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{if and (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/aptit/upplever_du_förändrad_aptit|code") "3")
+                     (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/matintag/hur_har_ditt_matintag_förändrats|code") "3")}}{{else}}<TextKeyWord>
+<!-- Aptitförändring -->
+                <TermId>5464</TermId>
+                <Note>{{ if ne (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/aptit/upplever_du_förändrad_aptit|code") "3" }} {{- "" -}}
+                      {{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/aptit/upplever_du_förändrad_aptit|value"}}. {{- " " -}} {{- end -}}
+                      {{ if ne (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/matintag/hur_har_ditt_matintag_förändrats|code") "3" }} {{- "" -}}
+                      {{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/matintag/hur_har_ditt_matintag_förändrats|value" }}.{{end}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/upplever_du_besvär_av_illamående|value") "Ja"}}<TextKeyWord>
+<!-- Illamående/kräkning -->
+                <TermId>1908</TermId>
+                <Note>{{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/följdfråga1/hur_upplever_du_dina_besvär_av_illamående|value"}} besvär av illamående. {{- "" -}}
+                      {{ if ne (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/kräkning/kräks_du|value") "Nej"}}
+                      {{- " " -}}
+                      {{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/kräkning/kräks_du|value" }}. {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/följdfråga2/har_du_behandlat_ditt_illamående_på_något_sätt|value") "Ja" }}
+                      {{- " " -}} Patientens kommentar angående egen behandling: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/illamående/följdfråga2/följdfråga3/hur_har_du_behandlat_ditt_illamående_och_vad_har_det_haft_för_effekt:0") }}.{{end}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+             {{if and (eq (index .Data  "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/har_du_problem_med_diarréer|value") "Nej")
+                      (eq (index .Data  "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/förstoppning/har_du_förstoppning|value") "Nej")}}{{else}}<TextKeyWord>
+<!-- Elimination -->
+                <TermId>1875</TermId>
+                <Note>{{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/har_du_problem_med_diarréer|value") "Ja" -}}
+                      {{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/följdfråga/hur_ofta_har_du_diarré|value"}}. {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/följdfråga_2/upplever_du_smärta_i_samband_med_diaréer|value") "Ja" }}
+                      {{- " " -}} Upplever smärta i samband med diarréer. {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/följdfråga_3/har_du_behandlat_dina_diarréer_på_något_sätt|value") "Ja" }}
+                      {{- " " -}} Patientens kommentar angående egen behandling: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/diarréer/följdfråga_3/följdfråga/hur_har_du_behandlat_dina_diarréer_och_vad_har_det_haft_för_effekt") }}. {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/förstoppning/har_du_förstoppning|value") "Ja" }}
+                      {{- " " -}} Upplever besvär med förstoppning. {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/förstoppning/följdfråga/har_du_behandlat_din_förstoppning_på_något_sätt|value") "Ja" }}
+                      {{- " " -}} Patientens kommentar angående egen behandling: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/förstoppning/följdfråga/följdfråga/hur_har_du_behandlat_din_förstoppning_och_vad_har_det_haft_för_effekt") }}.{{end}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/smärta/upplever_du_värk_i_muskler_och_eller_leder|value") "Ja"}}<TextKeyWord>
+<!-- Smärta -->
+                <TermId>2008</TermId>
+                <Note>Upplever värk i muskler och/eller leder.{{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/smärta/följdfråga/har_du_behandlat_din_värk_på_något_sätt|value") "Ja" }}
+                      {{- " " -}} Patientens kommentar angående egen behandling: {{- " " -}}
+                      {{- template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/smärta/följdfråga/följdfråga/hur_har_du_behandlat_din_värk_och_vad_har_det_haft_för_effekt") }}.{{end -}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+            {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/upplever_du_stickningar_eller_pirrningar_domningar|value") "Ja" }}<TextKeyWord>
+<!-- Sinnesintryck -->
+                <TermId>2310</TermId>
+                <Note>{{ if eq (index .Data  "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/varaktighet/är_stickningarna_pirrningarna_domningarna_ihållande_mest_hela_tiden|value") "Ja" -}}
+                      Ihållande, {{- " " -}}
+                      {{- index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/hur_upplever_du_dina_besvär_av_pirrningar_domningar|value" | lower}}.
+                      {{- else -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/hur_upplever_du_dina_besvär_av_pirrningar_domningar|value"}}.
+                      {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/uppstod_i_samband_med_kyla/uppstod_symptomen_i_samband_med_kyla|value") "Ja" -}}
+                      {{- " " -}} Symptomen uppstod i samband med kyla. {{- "" -}}
+                      {{- else -}}{{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/anatomisk_lokalisation/var_upplever_du_dessa_symptom|code") "4" }}
+                      {{- " " -}} Patientens kommentar angående lokalisation: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/anatomisk_lokalisation/specificera_kroppsdel/om_annan_kroppsdel_specificera_var:0") }}.
+                      {{- else -}}
+                      {{- " " -}} Lokalisation: {{- " " -}}
+                      {{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/anatomisk_lokalisation/var_upplever_du_dessa_symptom|value"}}.
+                      {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/upplever_du_stickningar_eller_pirrningar_domningar|value") "Ja"}}
+                      {{- " " -}} Antal dagar med symptom: {{- " " -}}
+                      {{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/antal_dagar/hur_många_dagar_har_du_haft_dessa_symptom"}}.
+                      {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/konsekvenser_händer/upplever_du_att_du_är_fumlig_t.ex._har_lätt_för_att_tappa_saker_svårt_att_greppa_saker|value") "Ja" }}
+                      {{- " " -}} Upplever sig fumlig.
+                      {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/konsekvenser_händer/kan_du_knäppa_knappar|value") "Nej" }}
+                      {{- " " -}}Kan ej knäppa knappar.
+                      {{- end -}}
+                      {{if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/konsekvenser_händer/kan_du_skriva_ditt_namn|value") "Nej" }}
+                      {{- " " -}} Kan ej skriva sitt namn.
+                      {{- end -}}
+                      {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/stickningar_pirrningar_domningar/följdfråga/konsekvenser_fötter/har_du_svårt_att_gå_och_hålla_balans.|value") "Ja" }}
+                      {{- " " -}} Svårigheter att gå och hålla balansen.
+                      {{- end -}}
+                </Note>
+            </TextKeyWord>{{- end -}}
+
+{{- /* Avslutar kod för om patienten svarat "Nej" på alla frågor angående symptom */ -}}
+{{- end -}}
+
+            {{if and (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/har_något_eller_några_av_de_symptom_du_skattat_förvärrats_sedan_föregående_behandling|value") "Nej") (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/har_du_ytterligare_biverkningar_som_du_vill_förmedla_eller_förtydliga_för_oss|value") "Nej") (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/har_du_någon_fråga_inför_kommande_behandling|value") "Nej")}}{{else}}<TextKeyWord>
+<!-- Patientens kommentar -->
+                <TermId>14768</TermId>
+                <Note>{{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/har_något_eller_några_av_de_symptom_du_skattat_förvärrats_sedan_föregående_behandling|value") "Ja" -}}
+                      Förvärrade symptom: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/vilka_symptom_har_förvärrats")  }}.
+                      {{- " " -}}{{- end}}
+                      {{- if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/har_du_ytterligare_biverkningar_som_du_vill_förmedla_eller_förtydliga_för_oss|value") "Ja" }}
+                      {{- "" -}} Ytterligare biverkningar: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/beskriv_vilka_ytterligare_biverkningar") }}.
+                      {{- " " -}}{{- end -}}
+                      {{ if eq (index .Data  "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/har_du_någon_fråga_inför_kommande_behandling|value") "Ja" }}
+                      {{- "" -}} Frågor angående behandlingen: {{- " " -}}
+                      {{ template "cleanAndQuoteFreeTextInput" (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/generella_behandlingsrelaterade_frågor/beskriv_din_fråga") }}.
+                      {{- end -}}
+                </Note>
+            </TextKeyWord>{{end}}
+
+            <TextKeyWord>
+<!-- DokumentID från extern system-->
+                <TermId>13700</TermId>
+                <Note>{{index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/_uid"}}</Note>
+            </TextKeyWord>
+        </TextKeywords>
+          {{- if and (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/feber/har_du_haft_en_kroppstemperatur_över_38_grader_senaste_dygnet|value") "Nej") (eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/vikt/har_din_vikt_förändrats_de_senaste_veckorna|value") "Nej" )}}
+          {{else}}
+            <NumericKeywords>
+            {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/feber/har_du_haft_en_kroppstemperatur_över_38_grader_senaste_dygnet|value") "Ja" }}<NumericKeyword>
+<!-- Kroppstemperatur -->
+                <TermId>2025</TermId>
+                <Note>Har haft en kroppstemperatur över 38 C senaste dygnet.
+                      {{- if ge (index "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/kroppstemperatur/ospecificerad_händelse:0/temperatur|magnitude" | int) 0 }}
+                      {{- " " -}} Uppmätt kroppstemperatur senaste dygnet: {{- " " -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/kroppstemperatur/ospecificerad_händelse:0/ange_kroppstemperatur|magnitude" }}
+                      {{- " " -}} C
+                      {{- end -}}
+                </Note>
+            <Value></Value>
+            </NumericKeyword>{{end}}
+            {{ if eq (index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/vikt/har_din_vikt_förändrats_de_senaste_veckorna|value") "Ja" }}<NumericKeyword>
+<!-- Viktförändring -->
+                <TermId>3484</TermId>
+                <Note>Patienten anger att kroppsvikten har {{- " " -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/frågeformulär_för_symptom_och_andra_tecken/ospecificerad_händelse:0/vikt/följdfråga/hur_har_den_förändrats|value" | lower}}.
+                      {{- if index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/kroppsvikt/ospecificerad_händelse:0/ange_kroppsvikt|magnitude"}}
+                      {{- " " -}} Rapporterad kroppsvikt: {{- " " -}}
+                      {{ index .Data "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/kroppsvikt/ospecificerad_händelse:0/ange_kroppsvikt|magnitude" -}}
+                      {{ index .Data  "patientrapporterade_symptom_inför_medicinsk_onkologisk_behandling/kroppsvikt/ospecificerad_händelse:0/ange_kroppsvikt|unit"}}
+                      {{- end -}}
+                </Note>
+            <Value></Value>
+            </NumericKeyword>{{end}}
+        </NumericKeywords>{{end}}
+    </Keywords>
+</ProfdocHISMessage>

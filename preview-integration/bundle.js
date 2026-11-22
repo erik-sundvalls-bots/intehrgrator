@@ -76328,7 +76328,7 @@ var XQUERY_RM_BLOB = `${BLOB}/src/core/codegen/helpers/xquery/rm.xqm`;
 var XQUERY_SHEETS_BLOB = `${BLOB}/src/core/codegen/helpers/xquery/sheets.xqm`;
 var HANDLEBARS_HELPERS_BLOB = `${BLOB}/src/core/codegen/helpers/handlebars.ts`;
 var GO_TEMPLATE_HELPERS_BLOB = `${BLOB}/go/texttemplate/main.go`;
-var EHRTSLIB_BLOB_PREFIX = "https://github.com/ErikSundvall/ehrtslib/blob/v0.11/";
+var EHRTSLIB_BLOB_PREFIX = "https://github.com/ErikSundvall/ehrtslib/blob/v0.15/";
 
 // src/core/output/canvas_handlebars.ts
 function inputChild(input) {
@@ -76865,7 +76865,7 @@ function functionIdentMap(functions, identOf) {
   return map;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/meta/rm_attribute_meta.generated.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/meta/rm_attribute_meta.generated.ts
 var RM_CLASSES = {
   "Any": {
     "isAbstract": true,
@@ -81695,7 +81695,7 @@ var RM_OWN_ATTRIBUTES = {
   ]
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/meta/rm_attributes.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/meta/rm_attributes.ts
 function toMeta(row, declaredIn) {
   const meta4 = {
     name: row.name,
@@ -82384,7 +82384,7 @@ function cloneStep(step) {
   };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/term_binding.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/term_binding.ts
 function parseTermBinding(terminologyKey, raw) {
   let t12 = raw.trim();
   if (t12.startsWith("<") && t12.endsWith(">")) t12 = t12.slice(1, -1).trim();
@@ -82419,7 +82419,7 @@ function parseTermBinding(terminologyKey, raw) {
   return { warning: `unrecognized target '${raw.trim()}'` };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/id_to_at_code.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/id_to_at_code.ts
 var ID_OR_AC = /^(id|ac|at)(\d+)((?:\.\d+)*)$/i;
 function idToAtCode(code) {
   if (!code) return code ?? "";
@@ -82570,7 +82570,7 @@ function buildAdl14CodeMap(codes, options = {}) {
   return map;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/normalize.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/normalize.ts
 function normalizeWebTemplateId(text) {
   let id4 = text.trim().replace(/[^\p{L}\p{N}_.\-]+/gu, "_").replace(/_+/g, "_").toLowerCase().replace(/^_+|_+$/g, "");
   if (!id4) id4 = "id";
@@ -82579,6 +82579,22 @@ function normalizeWebTemplateId(text) {
 }
 function templateRootId(templateId) {
   return normalizeWebTemplateId(templateId);
+}
+function archetypeConceptFromHrid(archetypeId) {
+  const trimmed = archetypeId.trim();
+  if (!trimmed) return void 0;
+  const parts = trimmed.split(".");
+  if (parts.length < 2) return void 0;
+  return parts[parts.length - 2];
+}
+function flatRootId(webTemplate) {
+  const id4 = webTemplate.tree?.id?.trim();
+  if (id4) return id4;
+  return templateRootId(webTemplate.templateId ?? "");
+}
+function acceptedFlatRoots(webTemplate) {
+  const root = flatRootId(webTemplate);
+  return root ? /* @__PURE__ */ new Set([root]) : /* @__PURE__ */ new Set();
 }
 function joinAqlPath(base2, segment) {
   const seg = segment.startsWith("/") ? segment.slice(1) : segment;
@@ -82627,7 +82643,7 @@ function aqlPathSegments(path) {
   return out;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/term_codes.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/term_codes.ts
 function termCodeCandidates(nodeId) {
   const out = /* @__PURE__ */ new Set();
   out.add(nodeId);
@@ -82726,7 +82742,7 @@ function availableTemplateLanguages(template) {
   return ordered;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/mod.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/mod.ts
 var mod_exports = {};
 __export(mod_exports, {
   ACCESS_GROUP_REF: () => ACCESS_GROUP_REF,
@@ -82807,7 +82823,7 @@ __export(mod_exports, {
   registerType: () => registerType
 });
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/_shared.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/_shared.ts
 var TYPE_REGISTRY = /* @__PURE__ */ new Map();
 function registerType(name2, constructor) {
   TYPE_REGISTRY.set(name2.toUpperCase(), constructor);
@@ -82819,10 +82835,10 @@ function getRegisteredTypes() {
   return [...TYPE_REGISTRY.keys()];
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/rm_init_late.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/rm_init_late.ts
 var rmInitLate = { ctorModules: [] };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/foundation_types.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/foundation_types.ts
 var Any = class {
   /**
    * Optional init is applied only when an argument is passed.
@@ -82886,7 +82902,7 @@ var Any = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/structure.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/structure.ts
 var Container = class extends Any {
 };
 var Hash = class _Hash extends Container {
@@ -83462,7 +83478,7 @@ var Array2 = class _Array extends Container {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/primitive_types.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/primitive_types.ts
 var Ordered = class extends Any {
   /**
    * True if current object less than or equal to \`_other_\`.
@@ -84357,7 +84373,7 @@ var Integer64 = class _Integer64 extends Ordered_Numeric {
 var Comparable = class {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/functional.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/functional.ts
 var TUPLE = class {
 };
 var ROUTINE = class {
@@ -84374,7 +84390,7 @@ var TUPLE2 = class extends TUPLE {
 var PROCEDURE = class extends ROUTINE {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/interval.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/interval.ts
 var Interval = class _Interval extends Any {
   /**
    * Lower bound.
@@ -84913,557 +84929,7 @@ var Point_interval = class _Point_interval extends Interval {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/base_types/identification.ts
-var OBJECT_ID = class {
-  /**
-   * Internal storage for value
-   * @protected
-   */
-  _value;
-  /**
-   * The value of the id in the form defined below.
-   */
-  get value() {
-    return this._value?.value;
-  }
-  /**
-   * Gets the String wrapper object for value.
-   * Use this to access String methods.
-   */
-  get $value() {
-    return this._value;
-  }
-  /**
-   * Sets value from either a primitive value or String wrapper.
-   */
-  set value(val) {
-    if (val === void 0 || val === null) {
-      this._value = void 0;
-    } else if (typeof val === "string") {
-      this._value = String2.from(val);
-    } else {
-      this._value = val;
-    }
-  }
-};
-var ARCHETYPE_ID2 = class extends OBJECT_ID {
-  /**
-   * Globally qualified reference model entity, e.g.  \`"openehr-EHR-OBSERVATION"\`.
-   * @returns Result value
-   */
-  qualified_rm_entity() {
-    const val = this.value || "";
-    const dotIndex = val.indexOf(".");
-    if (dotIndex === -1) {
-      throw new Error("Invalid ARCHETYPE_ID format: no '.' found");
-    }
-    return String2.from(val.substring(0, dotIndex));
-  }
-  /**
-   * Name of the concept represented by this archetype, including specialisation, e.g. \`"Biochemistry_result-cholesterol"\`.
-   * @returns Result value
-   */
-  domain_concept() {
-    const val = this.value || "";
-    const dotIndex = val.indexOf(".");
-    const vIndex = val.lastIndexOf(".v");
-    if (dotIndex === -1 || vIndex === -1 || vIndex <= dotIndex) {
-      throw new Error("Invalid ARCHETYPE_ID format");
-    }
-    return String2.from(val.substring(dotIndex + 1, vIndex));
-  }
-  /**
-   * Organisation originating the reference model on which this archetype is based, e.g. \`"openEHR"\`, \`"CEN"\`, \`"HL7"\`.
-   * @returns Result value
-   */
-  rm_originator() {
-    const qualified = this.qualified_rm_entity().value || "";
-    const parts = qualified.split("-");
-    if (parts.length < 3) {
-      throw new Error("Invalid qualified_rm_entity format");
-    }
-    return String2.from(parts[0]);
-  }
-  /**
-   * Name of the reference model, e.g. \`"RIM"\`,  \`"EHR"\`,  \`"EN13606"\`.
-   * @returns Result value
-   */
-  rm_name() {
-    const qualified = this.qualified_rm_entity().value || "";
-    const parts = qualified.split("-");
-    if (parts.length < 3) {
-      throw new Error("Invalid qualified_rm_entity format");
-    }
-    return String2.from(parts[1]);
-  }
-  /**
-   * Name of the ontological level within the reference model to which this archetype is targeted, e.g. for openEHR:  \`"FOLDER"\`, \`"COMPOSITION"\`, \`"SECTION"\`, \`"OBSERVATION"\`.
-   * @returns Result value
-   */
-  rm_entity() {
-    const qualified = this.qualified_rm_entity().value || "";
-    const parts = qualified.split("-");
-    if (parts.length < 3) {
-      throw new Error("Invalid qualified_rm_entity format");
-    }
-    return String2.from(parts[2]);
-  }
-  /**
-   * Name of specialisation of concept, if this archetype is a specialisation of another archetype, e.g. \`"cholesterol"\`.
-   * @returns Result value
-   */
-  specialisation() {
-    const concept = this.domain_concept().value || "";
-    const hyphenIndex = concept.indexOf("-");
-    if (hyphenIndex === -1) {
-      return String2.from("");
-    }
-    return String2.from(concept.substring(hyphenIndex + 1));
-  }
-  /**
-   * Version of this archetype.
-   *
-   * @returns Result value
-   */
-  version_id() {
-    const val = this.value || "";
-    const vIndex = val.lastIndexOf(".v");
-    if (vIndex === -1) {
-      throw new Error("Invalid ARCHETYPE_ID format: no '.v' found");
-    }
-    return String2.from(val.substring(vIndex + 2));
-  }
-};
-var GENERIC_ID = class extends OBJECT_ID {
-  /**
-   * Internal storage for scheme
-   * @protected
-   */
-  _scheme;
-  /**
-   * Name of the scheme to which this identifier conforms. Ideally this name will be recognisable globally but realistically it may be a local ad hoc scheme whose name is not controlled or standardised in any way.
-   */
-  get scheme() {
-    return this._scheme?.value;
-  }
-  /**
-   * Gets the String wrapper object for scheme.
-   * Use this to access String methods.
-   */
-  get $scheme() {
-    return this._scheme;
-  }
-  /**
-   * Sets scheme from either a primitive value or String wrapper.
-   */
-  set scheme(val) {
-    if (val === void 0 || val === null) {
-      this._scheme = void 0;
-    } else if (typeof val === "string") {
-      this._scheme = String2.from(val);
-    } else {
-      this._scheme = val;
-    }
-  }
-};
-var UID_BASED_ID = class extends OBJECT_ID {
-  /**
-   * The identifier of the conceptual namespace in which the object exists, within the identification scheme. Returns the part to the left of the first '::' separator, if any, or else the whole string.
-   * @returns Result value
-   */
-  root() {
-    const val = this.value || "";
-    const separatorIndex = val.indexOf("::");
-    const rootValue = separatorIndex === -1 ? val : val.substring(0, separatorIndex);
-    if (rootValue.includes("-")) {
-      const uuid = new UUID();
-      uuid.value = rootValue;
-      return uuid;
-    } else if (rootValue.match(/^\d+(\.\d+)*$/)) {
-      const oid = new ISO_OID();
-      oid.value = rootValue;
-      return oid;
-    } else {
-      const internetId = new INTERNET_ID();
-      internetId.value = rootValue;
-      return internetId;
-    }
-  }
-  /**
-   * Optional local identifier of the object within the context of the root identifier. Returns the part to the right of the first '::' separator if any, or else any empty String.
-   * @returns Result value
-   */
-  extension() {
-    const val = this.value || "";
-    const separatorIndex = val.indexOf("::");
-    if (separatorIndex === -1) {
-      return String2.from("");
-    }
-    return String2.from(val.substring(separatorIndex + 2));
-  }
-  /**
-   * True if not \`_extension_.is_empty()\`.
-   * @returns Result value
-   */
-  has_extension() {
-    return new Boolean2(!this.extension().is_empty().value);
-  }
-};
-var HIER_OBJECT_ID = class extends UID_BASED_ID {
-};
-var OBJECT_REF = class _OBJECT_REF {
-  /**
-   * Internal storage for namespace
-   * @protected
-   */
-  _namespace;
-  /**
-   * Namespace to which this identifier belongs in the local system context (and possibly in any other openEHR compliant environment) e.g.  terminology ,  demographic . These names are not yet standardised. Legal values for \`_namespace_\` are:
-   *
-   * * \`"local"\`
-   * * \`"unknown"\`
-   * * a string matching the standard regex \`[a-zA-Z][a-zA-Z0-9_.:\/&?=+-]*\`.
-   *
-   * Note that the first two are just special values of the regex, and will be matched by it.
-   */
-  get namespace() {
-    return this._namespace?.value;
-  }
-  /**
-   * Gets the String wrapper object for namespace.
-   * Use this to access String methods.
-   */
-  get $namespace() {
-    return this._namespace;
-  }
-  /**
-   * Sets namespace from either a primitive value or String wrapper.
-   */
-  set namespace(val) {
-    if (val === void 0 || val === null) {
-      this._namespace = void 0;
-    } else if (typeof val === "string") {
-      this._namespace = String2.from(val);
-    } else {
-      this._namespace = val;
-    }
-  }
-  /**
-   * Internal storage for type
-   * @protected
-   */
-  _type;
-  /**
-   * Name of the  class (concrete or abstract) of object to which this identifier type refers, e.g. \`PARTY\`, \`PERSON\`,  \`GUIDELINE\`  etc. These class names are from the relevant reference model. The type name \`ANY\` can be used to indicate that any type is accepted (e.g. if the type is unknown).
-   */
-  get type() {
-    return this._type?.value;
-  }
-  /**
-   * Gets the String wrapper object for type.
-   * Use this to access String methods.
-   */
-  get $type() {
-    return this._type;
-  }
-  /**
-   * Sets type from either a primitive value or String wrapper.
-   */
-  set type(val) {
-    if (val === void 0 || val === null) {
-      this._type = void 0;
-    } else if (typeof val === "string") {
-      this._type = String2.from(val);
-    } else {
-      this._type = val;
-    }
-  }
-  /**
-   * Globally unique id of an object, regardless of where it is stored.
-   */
-  id;
-  /**
-   * Compare two OBJECT_REF instances for equality.
-   * @param other - The other OBJECT_REF to compare with
-   * @returns Boolean indicating if they are equal
-   */
-  is_equal(other) {
-    if (!(other instanceof _OBJECT_REF)) {
-      return new Boolean2(false);
-    }
-    if (this.namespace !== other.namespace) {
-      return new Boolean2(false);
-    }
-    if (this.type !== other.type) {
-      return new Boolean2(false);
-    }
-    if (this.id && other.id) {
-      if (this.id instanceof Any && other.id instanceof Any) {
-        return this.id.is_equal(other.id);
-      }
-    } else if (!this.id && !other.id) {
-      return new Boolean2(true);
-    } else {
-      return new Boolean2(false);
-    }
-    return new Boolean2(true);
-  }
-};
-var LOCATABLE_REF = class extends OBJECT_REF {
-  /**
-   * Internal storage for path
-   * @protected
-   */
-  _path;
-  /**
-   * The path to an instance, as an absolute path with respect to the object found at \`VERSION._data_\`. An empty path means that the object referred to by \`_id_\` is being specified.
-   */
-  get path() {
-    return this._path?.value;
-  }
-  /**
-   * Gets the String wrapper object for path.
-   * Use this to access String methods.
-   */
-  get $path() {
-    return this._path;
-  }
-  /**
-   * Sets path from either a primitive value or String wrapper.
-   */
-  set path(val) {
-    if (val === void 0 || val === null) {
-      this._path = void 0;
-    } else if (typeof val === "string") {
-      this._path = String2.from(val);
-    } else {
-      this._path = val;
-    }
-  }
-  /**
-   * Globally unique id of an object, regardless of where it is stored.
-   */
-  id = void 0;
-  /**
-   * A URI form of the reference, created by concatenating the following:
-   *
-   * * scheme, e.g. \`ehr:\`, derived from \`_namespace_\`
-   * * \`_id.value_\`
-   * * \`/\` + \`_path_\`, where \`_path_\` is non-empty
-   *
-   * @returns Result value
-   */
-  as_uri() {
-    const namespace = this.namespace || "";
-    const idValue = this.id?.value || "";
-    const path = this.path || "";
-    let uri2 = `${namespace}:${idValue}`;
-    if (path && path.length > 0) {
-      uri2 += `/${path}`;
-    }
-    return String2.from(uri2);
-  }
-};
-var OBJECT_VERSION_ID = class extends UID_BASED_ID {
-  /**
-   * Unique identifier for logical object of which this identifier identifies one version; normally the \`_object_id_\` will be the unique identifier of the version container containing the version referred to by this \`OBJECT_VERSION_ID\` instance.
-   * @returns Result value
-   */
-  object_id() {
-    const val = this.value || "";
-    const parts = val.split("::");
-    if (parts.length !== 3) {
-      throw new Error("OBJECT_VERSION_ID must have 3 parts separated by '::'");
-    }
-    const uid = new UUID();
-    uid.value = parts[0];
-    return uid;
-  }
-  /**
-   * Identifier of the system that created the Version corresponding to this Object version id.
-   * @returns Result value
-   */
-  creating_system_id() {
-    const val = this.value || "";
-    const parts = val.split("::");
-    if (parts.length !== 3) {
-      throw new Error("OBJECT_VERSION_ID must have 3 parts separated by '::'");
-    }
-    const uid = new INTERNET_ID();
-    uid.value = parts[1];
-    return uid;
-  }
-  /**
-   * Tree identifier of this version with respect to other versions in the same version tree, as either 1 or 3 part dot-separated numbers, e.g.  1 ,  2.1.4 .
-   * @returns Result value
-   */
-  version_tree_id() {
-    const val = this.value || "";
-    const parts = val.split("::");
-    if (parts.length !== 3) {
-      throw new Error("OBJECT_VERSION_ID must have 3 parts separated by '::'");
-    }
-    const versionTreeId = new VERSION_TREE_ID();
-    versionTreeId.value = parts[2];
-    return versionTreeId;
-  }
-  /**
-   * True if this version identifier represents a branch.
-   * @returns Result value
-   */
-  is_branch() {
-    return this.version_tree_id().is_branch();
-  }
-};
-var PARTY_REF = class extends OBJECT_REF {
-};
-var TERMINOLOGY_ID = class extends OBJECT_ID {
-  /**
-   * Return the terminology id (which includes the  version  in some cases). Distinct names correspond to distinct (i.e. non-compatible) terminologies. Thus the names  \`"ICD10AM"\` and \`"ICD10"\` refer to distinct terminologies.
-   * @returns Result value
-   */
-  name() {
-    const val = this.value || "";
-    const parenIndex = val.indexOf("(");
-    if (parenIndex > 0) {
-      return String2.from(val.substring(0, parenIndex));
-    }
-    return String2.from(val);
-  }
-  /**
-   * Version of this terminology, if versioning supported, else the empty string.
-   * @returns Result value
-   */
-  version_id() {
-    const val = this.value || "";
-    const parenIndex = val.indexOf("(");
-    if (parenIndex > 0) {
-      const closeParenIndex = val.indexOf(")");
-      if (closeParenIndex > parenIndex) {
-        return String2.from(val.substring(parenIndex + 1, closeParenIndex));
-      }
-    }
-    return String2.from("");
-  }
-};
-var VERSION_TREE_ID = class {
-  /**
-   * Internal storage for value
-   * @protected
-   */
-  _value;
-  /**
-   * String form of this identifier.
-   */
-  get value() {
-    return this._value?.value;
-  }
-  /**
-   * Gets the String wrapper object for value.
-   * Use this to access String methods.
-   */
-  get $value() {
-    return this._value;
-  }
-  /**
-   * Sets value from either a primitive value or String wrapper.
-   */
-  set value(val) {
-    if (val === void 0 || val === null) {
-      this._value = void 0;
-    } else if (typeof val === "string") {
-      this._value = String2.from(val);
-    } else {
-      this._value = val;
-    }
-  }
-  /**
-   * Trunk version number; numbering starts at 1.
-   * @returns Result value
-   */
-  trunk_version() {
-    const val = this.value || "";
-    const parts = val.split(".");
-    return String2.from(parts[0]);
-  }
-  /**
-   * True if this version identifier represents a branch, i.e. has \`_branch_number()_\` and \`_branch_version()_\` parts.
-   * @returns Result value
-   */
-  is_branch() {
-    const val = this.value || "";
-    const parts = val.split(".");
-    return new Boolean2(parts.length === 3);
-  }
-  /**
-   * Number of branch from the trunk point; numbering starts at 1.
-   * @returns Result value
-   */
-  branch_number() {
-    const val = this.value || "";
-    const parts = val.split(".");
-    if (parts.length === 3) {
-      return String2.from(parts[1]);
-    }
-    throw new Error("Not a branch version");
-  }
-  /**
-   * Version of the branch; numbering starts at 1.
-   * @returns Result value
-   */
-  branch_version() {
-    const val = this.value || "";
-    const parts = val.split(".");
-    if (parts.length === 3) {
-      return String2.from(parts[2]);
-    }
-    throw new Error("Not a branch version");
-  }
-};
-var UID = class {
-  /**
-   * Internal storage for value
-   * @protected
-   */
-  _value;
-  /**
-   * The value of the id.
-   */
-  get value() {
-    return this._value?.value;
-  }
-  /**
-   * Gets the String wrapper object for value.
-   * Use this to access String methods.
-   */
-  get $value() {
-    return this._value;
-  }
-  /**
-   * Sets value from either a primitive value or String wrapper.
-   */
-  set value(val) {
-    if (val === void 0 || val === null) {
-      this._value = void 0;
-    } else if (typeof val === "string") {
-      this._value = String2.from(val);
-    } else {
-      this._value = val;
-    }
-  }
-};
-var UUID = class extends UID {
-};
-var INTERNET_ID = class extends UID {
-};
-var ISO_OID = class extends UID {
-};
-var TEMPLATE_ID = class extends OBJECT_ID {
-};
-var ACCESS_GROUP_REF = class extends OBJECT_REF {
-};
-
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/type_registry.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/type_registry.ts
 var TypeRegistry = class {
   static typeNameToConstructor = /* @__PURE__ */ new Map();
   static constructorToTypeName = /* @__PURE__ */ new Map();
@@ -85581,7 +85047,7 @@ var TypeRegistry = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/terse_strings.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/terse_strings.ts
 var CODE_PHRASE_RE = /^([^:]+)::([^|]+)$/;
 var DV_CODED_TEXT_RE = /^([^:]+)::([^|]+)\|([^|]*)\|$/;
 function isTerseCodePhraseString(str3) {
@@ -85609,7 +85075,7 @@ function matchTerseDvCodedText(terse) {
   };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/apply_rm_init.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/apply_rm_init.ts
 var PRIMITIVE_TYPES = /* @__PURE__ */ new Set([
   "String",
   "Integer",
@@ -85957,7 +85423,585 @@ function applyRmInit(instance, init) {
 }
 rmInitLate.applyRmInit = applyRmInit;
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/terminology.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/base_types/identification.ts
+function applyObjectIdInit(instance, init) {
+  if (init === void 0) return;
+  if (typeof init === "string") {
+    instance.value = init;
+    return;
+  }
+  applyRmInit(instance, init);
+}
+var OBJECT_ID = class {
+  /**
+   * Internal storage for value
+   * @protected
+   */
+  _value;
+  /**
+   * The value of the id in the form defined below.
+   */
+  get value() {
+    return this._value?.value;
+  }
+  /**
+   * Gets the String wrapper object for value.
+   * Use this to access String methods.
+   */
+  get $value() {
+    return this._value;
+  }
+  /**
+   * Sets value from either a primitive value or String wrapper.
+   */
+  set value(val) {
+    if (val === void 0 || val === null) {
+      this._value = void 0;
+    } else if (typeof val === "string") {
+      this._value = String2.from(val);
+    } else {
+      this._value = val;
+    }
+  }
+};
+var ARCHETYPE_ID2 = class extends OBJECT_ID {
+  constructor(init) {
+    super();
+    applyObjectIdInit(this, init);
+  }
+  /**
+   * Globally qualified reference model entity, e.g.  \`"openehr-EHR-OBSERVATION"\`.
+   * @returns Result value
+   */
+  qualified_rm_entity() {
+    const val = this.value || "";
+    const dotIndex = val.indexOf(".");
+    if (dotIndex === -1) {
+      throw new Error("Invalid ARCHETYPE_ID format: no '.' found");
+    }
+    return String2.from(val.substring(0, dotIndex));
+  }
+  /**
+   * Name of the concept represented by this archetype, including specialisation, e.g. \`"Biochemistry_result-cholesterol"\`.
+   * @returns Result value
+   */
+  domain_concept() {
+    const val = this.value || "";
+    const dotIndex = val.indexOf(".");
+    const vIndex = val.lastIndexOf(".v");
+    if (dotIndex === -1 || vIndex === -1 || vIndex <= dotIndex) {
+      throw new Error("Invalid ARCHETYPE_ID format");
+    }
+    return String2.from(val.substring(dotIndex + 1, vIndex));
+  }
+  /**
+   * Organisation originating the reference model on which this archetype is based, e.g. \`"openEHR"\`, \`"CEN"\`, \`"HL7"\`.
+   * @returns Result value
+   */
+  rm_originator() {
+    const qualified = this.qualified_rm_entity().value || "";
+    const parts = qualified.split("-");
+    if (parts.length < 3) {
+      throw new Error("Invalid qualified_rm_entity format");
+    }
+    return String2.from(parts[0]);
+  }
+  /**
+   * Name of the reference model, e.g. \`"RIM"\`,  \`"EHR"\`,  \`"EN13606"\`.
+   * @returns Result value
+   */
+  rm_name() {
+    const qualified = this.qualified_rm_entity().value || "";
+    const parts = qualified.split("-");
+    if (parts.length < 3) {
+      throw new Error("Invalid qualified_rm_entity format");
+    }
+    return String2.from(parts[1]);
+  }
+  /**
+   * Name of the ontological level within the reference model to which this archetype is targeted, e.g. for openEHR:  \`"FOLDER"\`, \`"COMPOSITION"\`, \`"SECTION"\`, \`"OBSERVATION"\`.
+   * @returns Result value
+   */
+  rm_entity() {
+    const qualified = this.qualified_rm_entity().value || "";
+    const parts = qualified.split("-");
+    if (parts.length < 3) {
+      throw new Error("Invalid qualified_rm_entity format");
+    }
+    return String2.from(parts[2]);
+  }
+  /**
+   * Name of specialisation of concept, if this archetype is a specialisation of another archetype, e.g. \`"cholesterol"\`.
+   * @returns Result value
+   */
+  specialisation() {
+    const concept = this.domain_concept().value || "";
+    const hyphenIndex = concept.indexOf("-");
+    if (hyphenIndex === -1) {
+      return String2.from("");
+    }
+    return String2.from(concept.substring(hyphenIndex + 1));
+  }
+  /**
+   * Version of this archetype.
+   *
+   * @returns Result value
+   */
+  version_id() {
+    const val = this.value || "";
+    const vIndex = val.lastIndexOf(".v");
+    if (vIndex === -1) {
+      throw new Error("Invalid ARCHETYPE_ID format: no '.v' found");
+    }
+    return String2.from(val.substring(vIndex + 2));
+  }
+};
+var GENERIC_ID = class extends OBJECT_ID {
+  constructor(init) {
+    super();
+    applyObjectIdInit(this, init);
+  }
+  /**
+   * Internal storage for scheme
+   * @protected
+   */
+  _scheme;
+  /**
+   * Name of the scheme to which this identifier conforms. Ideally this name will be recognisable globally but realistically it may be a local ad hoc scheme whose name is not controlled or standardised in any way.
+   */
+  get scheme() {
+    return this._scheme?.value;
+  }
+  /**
+   * Gets the String wrapper object for scheme.
+   * Use this to access String methods.
+   */
+  get $scheme() {
+    return this._scheme;
+  }
+  /**
+   * Sets scheme from either a primitive value or String wrapper.
+   */
+  set scheme(val) {
+    if (val === void 0 || val === null) {
+      this._scheme = void 0;
+    } else if (typeof val === "string") {
+      this._scheme = String2.from(val);
+    } else {
+      this._scheme = val;
+    }
+  }
+};
+var UID_BASED_ID = class extends OBJECT_ID {
+  constructor(init) {
+    super();
+    applyObjectIdInit(this, init);
+  }
+  /**
+   * The identifier of the conceptual namespace in which the object exists, within the identification scheme. Returns the part to the left of the first '::' separator, if any, or else the whole string.
+   * @returns Result value
+   */
+  root() {
+    const val = this.value || "";
+    const separatorIndex = val.indexOf("::");
+    const rootValue = separatorIndex === -1 ? val : val.substring(0, separatorIndex);
+    if (rootValue.includes("-")) {
+      const uuid = new UUID();
+      uuid.value = rootValue;
+      return uuid;
+    } else if (rootValue.match(/^\d+(\.\d+)*$/)) {
+      const oid = new ISO_OID();
+      oid.value = rootValue;
+      return oid;
+    } else {
+      const internetId = new INTERNET_ID();
+      internetId.value = rootValue;
+      return internetId;
+    }
+  }
+  /**
+   * Optional local identifier of the object within the context of the root identifier. Returns the part to the right of the first '::' separator if any, or else any empty String.
+   * @returns Result value
+   */
+  extension() {
+    const val = this.value || "";
+    const separatorIndex = val.indexOf("::");
+    if (separatorIndex === -1) {
+      return String2.from("");
+    }
+    return String2.from(val.substring(separatorIndex + 2));
+  }
+  /**
+   * True if not \`_extension_.is_empty()\`.
+   * @returns Result value
+   */
+  has_extension() {
+    return new Boolean2(!this.extension().is_empty().value);
+  }
+};
+var HIER_OBJECT_ID = class extends UID_BASED_ID {
+};
+var OBJECT_REF = class _OBJECT_REF {
+  /**
+   * Internal storage for namespace
+   * @protected
+   */
+  _namespace;
+  /**
+   * Namespace to which this identifier belongs in the local system context (and possibly in any other openEHR compliant environment) e.g.  terminology ,  demographic . These names are not yet standardised. Legal values for \`_namespace_\` are:
+   *
+   * * \`"local"\`
+   * * \`"unknown"\`
+   * * a string matching the standard regex \`[a-zA-Z][a-zA-Z0-9_.:\/&?=+-]*\`.
+   *
+   * Note that the first two are just special values of the regex, and will be matched by it.
+   */
+  get namespace() {
+    return this._namespace?.value;
+  }
+  /**
+   * Gets the String wrapper object for namespace.
+   * Use this to access String methods.
+   */
+  get $namespace() {
+    return this._namespace;
+  }
+  /**
+   * Sets namespace from either a primitive value or String wrapper.
+   */
+  set namespace(val) {
+    if (val === void 0 || val === null) {
+      this._namespace = void 0;
+    } else if (typeof val === "string") {
+      this._namespace = String2.from(val);
+    } else {
+      this._namespace = val;
+    }
+  }
+  /**
+   * Internal storage for type
+   * @protected
+   */
+  _type;
+  /**
+   * Name of the  class (concrete or abstract) of object to which this identifier type refers, e.g. \`PARTY\`, \`PERSON\`,  \`GUIDELINE\`  etc. These class names are from the relevant reference model. The type name \`ANY\` can be used to indicate that any type is accepted (e.g. if the type is unknown).
+   */
+  get type() {
+    return this._type?.value;
+  }
+  /**
+   * Gets the String wrapper object for type.
+   * Use this to access String methods.
+   */
+  get $type() {
+    return this._type;
+  }
+  /**
+   * Sets type from either a primitive value or String wrapper.
+   */
+  set type(val) {
+    if (val === void 0 || val === null) {
+      this._type = void 0;
+    } else if (typeof val === "string") {
+      this._type = String2.from(val);
+    } else {
+      this._type = val;
+    }
+  }
+  /**
+   * Globally unique id of an object, regardless of where it is stored.
+   */
+  id;
+  /**
+   * Compare two OBJECT_REF instances for equality.
+   * @param other - The other OBJECT_REF to compare with
+   * @returns Boolean indicating if they are equal
+   */
+  is_equal(other) {
+    if (!(other instanceof _OBJECT_REF)) {
+      return new Boolean2(false);
+    }
+    if (this.namespace !== other.namespace) {
+      return new Boolean2(false);
+    }
+    if (this.type !== other.type) {
+      return new Boolean2(false);
+    }
+    if (this.id && other.id) {
+      if (this.id instanceof Any && other.id instanceof Any) {
+        return this.id.is_equal(other.id);
+      }
+    } else if (!this.id && !other.id) {
+      return new Boolean2(true);
+    } else {
+      return new Boolean2(false);
+    }
+    return new Boolean2(true);
+  }
+};
+var LOCATABLE_REF = class extends OBJECT_REF {
+  /**
+   * Internal storage for path
+   * @protected
+   */
+  _path;
+  /**
+   * The path to an instance, as an absolute path with respect to the object found at \`VERSION._data_\`. An empty path means that the object referred to by \`_id_\` is being specified.
+   */
+  get path() {
+    return this._path?.value;
+  }
+  /**
+   * Gets the String wrapper object for path.
+   * Use this to access String methods.
+   */
+  get $path() {
+    return this._path;
+  }
+  /**
+   * Sets path from either a primitive value or String wrapper.
+   */
+  set path(val) {
+    if (val === void 0 || val === null) {
+      this._path = void 0;
+    } else if (typeof val === "string") {
+      this._path = String2.from(val);
+    } else {
+      this._path = val;
+    }
+  }
+  /**
+   * Globally unique id of an object, regardless of where it is stored.
+   */
+  id = void 0;
+  /**
+   * A URI form of the reference, created by concatenating the following:
+   *
+   * * scheme, e.g. \`ehr:\`, derived from \`_namespace_\`
+   * * \`_id.value_\`
+   * * \`/\` + \`_path_\`, where \`_path_\` is non-empty
+   *
+   * @returns Result value
+   */
+  as_uri() {
+    const namespace = this.namespace || "";
+    const idValue = this.id?.value || "";
+    const path = this.path || "";
+    let uri2 = `${namespace}:${idValue}`;
+    if (path && path.length > 0) {
+      uri2 += `/${path}`;
+    }
+    return String2.from(uri2);
+  }
+};
+var OBJECT_VERSION_ID = class extends UID_BASED_ID {
+  /**
+   * Unique identifier for logical object of which this identifier identifies one version; normally the \`_object_id_\` will be the unique identifier of the version container containing the version referred to by this \`OBJECT_VERSION_ID\` instance.
+   * @returns Result value
+   */
+  object_id() {
+    const val = this.value || "";
+    const parts = val.split("::");
+    if (parts.length !== 3) {
+      throw new Error("OBJECT_VERSION_ID must have 3 parts separated by '::'");
+    }
+    const uid = new UUID();
+    uid.value = parts[0];
+    return uid;
+  }
+  /**
+   * Identifier of the system that created the Version corresponding to this Object version id.
+   * @returns Result value
+   */
+  creating_system_id() {
+    const val = this.value || "";
+    const parts = val.split("::");
+    if (parts.length !== 3) {
+      throw new Error("OBJECT_VERSION_ID must have 3 parts separated by '::'");
+    }
+    const uid = new INTERNET_ID();
+    uid.value = parts[1];
+    return uid;
+  }
+  /**
+   * Tree identifier of this version with respect to other versions in the same version tree, as either 1 or 3 part dot-separated numbers, e.g.  1 ,  2.1.4 .
+   * @returns Result value
+   */
+  version_tree_id() {
+    const val = this.value || "";
+    const parts = val.split("::");
+    if (parts.length !== 3) {
+      throw new Error("OBJECT_VERSION_ID must have 3 parts separated by '::'");
+    }
+    const versionTreeId = new VERSION_TREE_ID();
+    versionTreeId.value = parts[2];
+    return versionTreeId;
+  }
+  /**
+   * True if this version identifier represents a branch.
+   * @returns Result value
+   */
+  is_branch() {
+    return this.version_tree_id().is_branch();
+  }
+};
+var PARTY_REF = class extends OBJECT_REF {
+};
+var TERMINOLOGY_ID = class extends OBJECT_ID {
+  constructor(init) {
+    super();
+    applyObjectIdInit(this, init);
+  }
+  /**
+   * Return the terminology id (which includes the  version  in some cases). Distinct names correspond to distinct (i.e. non-compatible) terminologies. Thus the names  \`"ICD10AM"\` and \`"ICD10"\` refer to distinct terminologies.
+   * @returns Result value
+   */
+  name() {
+    const val = this.value || "";
+    const parenIndex = val.indexOf("(");
+    if (parenIndex > 0) {
+      return String2.from(val.substring(0, parenIndex));
+    }
+    return String2.from(val);
+  }
+  /**
+   * Version of this terminology, if versioning supported, else the empty string.
+   * @returns Result value
+   */
+  version_id() {
+    const val = this.value || "";
+    const parenIndex = val.indexOf("(");
+    if (parenIndex > 0) {
+      const closeParenIndex = val.indexOf(")");
+      if (closeParenIndex > parenIndex) {
+        return String2.from(val.substring(parenIndex + 1, closeParenIndex));
+      }
+    }
+    return String2.from("");
+  }
+};
+var VERSION_TREE_ID = class {
+  /**
+   * Internal storage for value
+   * @protected
+   */
+  _value;
+  /**
+   * String form of this identifier.
+   */
+  get value() {
+    return this._value?.value;
+  }
+  /**
+   * Gets the String wrapper object for value.
+   * Use this to access String methods.
+   */
+  get $value() {
+    return this._value;
+  }
+  /**
+   * Sets value from either a primitive value or String wrapper.
+   */
+  set value(val) {
+    if (val === void 0 || val === null) {
+      this._value = void 0;
+    } else if (typeof val === "string") {
+      this._value = String2.from(val);
+    } else {
+      this._value = val;
+    }
+  }
+  /**
+   * Trunk version number; numbering starts at 1.
+   * @returns Result value
+   */
+  trunk_version() {
+    const val = this.value || "";
+    const parts = val.split(".");
+    return String2.from(parts[0]);
+  }
+  /**
+   * True if this version identifier represents a branch, i.e. has \`_branch_number()_\` and \`_branch_version()_\` parts.
+   * @returns Result value
+   */
+  is_branch() {
+    const val = this.value || "";
+    const parts = val.split(".");
+    return new Boolean2(parts.length === 3);
+  }
+  /**
+   * Number of branch from the trunk point; numbering starts at 1.
+   * @returns Result value
+   */
+  branch_number() {
+    const val = this.value || "";
+    const parts = val.split(".");
+    if (parts.length === 3) {
+      return String2.from(parts[1]);
+    }
+    throw new Error("Not a branch version");
+  }
+  /**
+   * Version of the branch; numbering starts at 1.
+   * @returns Result value
+   */
+  branch_version() {
+    const val = this.value || "";
+    const parts = val.split(".");
+    if (parts.length === 3) {
+      return String2.from(parts[2]);
+    }
+    throw new Error("Not a branch version");
+  }
+};
+var UID = class {
+  /**
+   * Internal storage for value
+   * @protected
+   */
+  _value;
+  /**
+   * The value of the id.
+   */
+  get value() {
+    return this._value?.value;
+  }
+  /**
+   * Gets the String wrapper object for value.
+   * Use this to access String methods.
+   */
+  get $value() {
+    return this._value;
+  }
+  /**
+   * Sets value from either a primitive value or String wrapper.
+   */
+  set value(val) {
+    if (val === void 0 || val === null) {
+      this._value = void 0;
+    } else if (typeof val === "string") {
+      this._value = String2.from(val);
+    } else {
+      this._value = val;
+    }
+  }
+};
+var UUID = class extends UID {
+};
+var INTERNET_ID = class extends UID {
+};
+var ISO_OID = class extends UID {
+};
+var TEMPLATE_ID = class extends OBJECT_ID {
+  constructor(init) {
+    super();
+    applyObjectIdInit(this, init);
+  }
+};
+var ACCESS_GROUP_REF = class extends OBJECT_REF {
+};
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/terminology.ts
 var Terminology_code = class _Terminology_code extends Any {
   static {
     TYPE_REGISTRY.set("TERMINOLOGY_CODE", _Terminology_code);
@@ -86246,12 +86290,12 @@ Expected terse format like "terminology::code"`
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/temporal_api.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/temporal_api.ts
 function builtinTemporal() {
   return globalThis.Temporal;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/foundation_types/time.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/foundation_types/time.ts
 var TemporalAPI = builtinTemporal();
 var Temporal = class extends Ordered {
 };
@@ -87823,7 +87867,7 @@ var Iso8601_timezone = class _Iso8601_timezone extends Iso8601_type {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/base_types/definitions.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/base_types/definitions.ts
 var BASIC_DEFINITIONS = class {
   constructor(init) {
     applyRmInit(this, init);
@@ -87836,7 +87880,7 @@ var VALIDITY_KIND = class extends String2 {
 var VERSION_STATUS = class extends String2 {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/base_types/builtins.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/base_types/builtins.ts
 var GMath = globalThis.Math;
 function numericValue(v5) {
   if (typeof v5 === "number") return v5;
@@ -87962,7 +88006,7 @@ var Quantity_converter = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/resource/resource.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/resource/resource.ts
 var AUTHORED_RESOURCE = class {
   /**
    * Unique identifier of the family of archetypes having the same interface identifier (same major version).
@@ -88518,7 +88562,7 @@ var RESOURCE_ANNOTATIONS = class {
   documentation;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/_unassigned.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/_unassigned.ts
 var Byte = class _Byte extends Ordered {
   static {
     TYPE_REGISTRY.set("BYTE", _Byte);
@@ -88576,7 +88620,7 @@ var Byte = class _Byte extends Ordered {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/aom2/constraint_model.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/aom2/constraint_model.ts
 var ARCHETYPE_CONSTRAINT = class {
   /**
    * True if constraints represented by this node, ignoring any sub-parts, are narrower or the same as other.
@@ -88956,7 +89000,7 @@ var ARCHETYPE_ID_CONSTRAINT = class {
   constraint;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/aom2/archetype.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/aom2/archetype.ts
 var ARCHETYPE = class extends AUTHORED_RESOURCE {
   /**
    * Root node of the definition of this archetype.
@@ -89250,7 +89294,7 @@ var OPERATIONAL_TEMPLATE = class extends AUTHORED_ARCHETYPE {
 var TEMPLATE_OVERLAY = class extends ARCHETYPE {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/aom2/rm_overlay.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/aom2/rm_overlay.ts
 var RM_OVERLAY = class {
   /**
    * Optional structure in which visibility and aliasing of reference model elements can be specified. Key is path to an RM attribute, which is typically formed from a path to an archetyped node concatenated with a further pure RM attribute path; may also refer to a non-archetyped attribute.
@@ -89258,7 +89302,7 @@ var RM_OVERLAY = class {
   rm_visibility;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/lang/beom/core.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/lang/beom/core.ts
 var EXPR_VALUE = class {
   /**
    * The computed value of this node as a result of the nodes below it, for operator nodes, or else statically set or otherwise derived values.
@@ -89286,7 +89330,7 @@ var EXPR_LEAF = class extends EXPRESSION {
 var EXPR_VALUE_REF = class extends EXPR_LEAF {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/aom2/rules.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/aom2/rules.ts
 var EXPR_ARCHETYPE_REF = class extends EXPR_VALUE_REF {
   /**
    * Internal storage for path
@@ -89320,7 +89364,7 @@ var EXPR_ARCHETYPE_REF = class extends EXPR_VALUE_REF {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/_unassigned.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/_unassigned.ts
 var C_PRIMITIVE = class {
   /**
    * Value to be assumed if none sent in data.
@@ -90000,7 +90044,7 @@ var ARCHETYPE_ONTOLOGY = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/aom2/constraint_model/primitive.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/aom2/constraint_model/primitive.ts
 var C_BOOLEAN = class extends C_PRIMITIVE {
   /**
    * Internal storage for true_valid
@@ -90641,7 +90685,7 @@ var C_DURATION = class extends C_PRIMITIVE {
   assumed_value = void 0;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/term_scope.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/term_scope.ts
 var TERM_ARCHETYPE_SCOPE_KEY = "term_archetype_scope";
 var TERM_NAME_FALLBACK_NODE_ID_KEY = "term_name_fallback_node_id";
 var COMPONENT_TERM_DEFINITIONS_KEY = "opt_component_term_definitions";
@@ -96203,7 +96247,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.11.2/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/agent/repos/intehrgrator/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/home/antigravity/erik-sundvalls-bots/intehrgrator/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -97333,7 +97377,7 @@ function str(obj2, key) {
   return typeof value === "string" ? value : "";
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/adl2_tokenizer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/adl2_tokenizer.ts
 var TokenType = /* @__PURE__ */ ((TokenType2) => {
   TokenType2["ARCHETYPE"] = "ARCHETYPE";
   TokenType2["TEMPLATE"] = "TEMPLATE";
@@ -97938,7 +97982,7 @@ var ADL2Tokenizer = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/odin_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/odin_parser.ts
 var OdinParser = class {
   tokens;
   position = 0;
@@ -98244,7 +98288,7 @@ var OdinParser = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/odin_aom_mapper.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/odin_aom_mapper.ts
 function odinString(value) {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") {
@@ -98342,7 +98386,24 @@ function applyTerminologyOdin(archetype, terminologyData) {
   return terminology;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/temporal_pattern.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/adl_primitive_literals.ts
+var DURATION_ATOM = /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/i;
+function isDurationAtom(text) {
+  if (!DURATION_ATOM.test(text) || !/\d/.test(text)) return false;
+  if (/T/i.test(text) && !/T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?\d/i.test(text)) {
+    return false;
+  }
+  return true;
+}
+function isDurationConstraint(expr) {
+  const compact = expr.replace(/\s+/g, "");
+  if (!compact) return false;
+  const parts = compact.split("..");
+  if (parts.length > 2) return false;
+  return parts.every((part) => isDurationAtom(part.replace(/^(>=|<=|>|<)/, "")));
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/temporal_pattern.ts
 function matchesAdlTemporalPattern(value, pattern) {
   const trimmed = value.trim();
   if (!trimmed) return false;
@@ -98364,11 +98425,27 @@ function matchesDurationPattern(value, pattern) {
   }
   return true;
 }
+function durationSeconds(value) {
+  const match = /^(-)?P(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)W)?(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i.exec(value.trim());
+  if (!match || !/\d/.test(value)) return void 0;
+  if (/T/i.test(value) && match[6] === void 0 && match[7] === void 0 && match[8] === void 0) {
+    return void 0;
+  }
+  const num2 = (index) => match[index] ? Number(match[index]) : 0;
+  const days = (num2(2) * 12 + num2(3)) * (365.2425 / 12) + num2(4) * 7 + num2(5);
+  const seconds = (days * 24 + num2(6)) * 3600 + num2(7) * 60 + num2(8);
+  return (match[1] ? -1 : 1) * seconds;
+}
 function compareOrderedIso(a8, b9) {
   if (a8 === void 0 || a8 === null || b9 === void 0 || b9 === null) {
     return void 0;
   }
   if (typeof a8 === "number" && typeof b9 === "number") return a8 - b9;
+  if (typeof a8 === "string" && typeof b9 === "string") {
+    const da = durationSeconds(a8);
+    const db = durationSeconds(b9);
+    if (da !== void 0 && db !== void 0) return da - db;
+  }
   const sa = String(a8);
   const sb = String(b9);
   if (sa === sb) return 0;
@@ -98458,7 +98535,7 @@ function inOrderedRange(value, range) {
   return true;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/attribute_tuple_support.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/attribute_tuple_support.ts
 var QUANTITY_COLUMNS = /* @__PURE__ */ new Set(["units", "magnitude", "precision"]);
 function isQuantityTupleColumns(columns) {
   return columns.length > 0 && columns.every((c9) => QUANTITY_COLUMNS.has(c9));
@@ -98485,14 +98562,14 @@ function quantityItemFromPrimitiveTuple(row, columns) {
     if (!cell) continue;
     if (col === "units") {
       const u9 = unitsFromConstraint(cell);
-      if (u9) item.units = u9;
+      if (u9 !== void 0) item.units = u9;
     } else if (col === "magnitude") {
       item.magnitude = intervalFromConstraint(cell);
     } else if (col === "precision") {
       item.precision = intervalFromConstraint(cell);
     }
   }
-  return item.units || item.magnitude || item.precision ? item : void 0;
+  return item.units !== void 0 || item.magnitude || item.precision ? item : void 0;
 }
 function scaleListFromTuple(tuple) {
   const columns = tupleColumnNames(tuple);
@@ -98581,7 +98658,7 @@ function unitsFromConstraint(cell) {
   const body = cell.item;
   if (body instanceof C_STRING) {
     const list = body.list;
-    if (list?.[0]) return list[0];
+    if (list && list.length > 0 && list[0] !== void 0) return list[0];
     return body.pattern && body.pattern !== "*" ? body.pattern : void 0;
   }
   return void 0;
@@ -98679,21 +98756,25 @@ function terminologyFromConstraint(cell) {
 }
 function parseIntervalPattern(expr) {
   const t12 = expr.trim();
-  if (!t12) return void 0;
+  if (!t12 || t12 === "*") return void 0;
   const interval = {};
-  const range = /^(.+)\.\.(<)?(.+)$/.exec(t12);
+  const range = /^(.*?)\.\.(<)?(.*)$/.exec(t12);
   if (range) {
-    const lowerPart = range[1];
+    const lowerPart = range[1].trim();
     const exclusiveUpper = range[2] === "<";
-    const upperPart = range[3];
-    if (lowerPart.startsWith(">")) {
+    const upperPart = range[3].trim();
+    if (!lowerPart || lowerPart === "*") {
+      interval.lower_unbounded = true;
+    } else if (lowerPart.startsWith(">")) {
       interval.lower_included = false;
       interval.lower = parseFloat(lowerPart.slice(1));
     } else {
       interval.lower_included = true;
       interval.lower = parseFloat(lowerPart);
     }
-    if (exclusiveUpper || upperPart.startsWith("<")) {
+    if (!upperPart || upperPart === "*") {
+      interval.upper_unbounded = true;
+    } else if (exclusiveUpper || upperPart.startsWith("<")) {
       interval.upper_included = false;
       interval.upper = parseFloat(
         exclusiveUpper ? upperPart : upperPart.slice(1)
@@ -98702,6 +98783,34 @@ function parseIntervalPattern(expr) {
       interval.upper_included = true;
       interval.upper = parseFloat(upperPart);
     }
+    return interval;
+  }
+  const ge2 = /^>=(.+)$/.exec(t12);
+  if (ge2) {
+    interval.lower = parseFloat(ge2[1]);
+    interval.lower_included = true;
+    interval.upper_unbounded = true;
+    return interval;
+  }
+  const gt2 = /^>(.+)$/.exec(t12);
+  if (gt2) {
+    interval.lower = parseFloat(gt2[1]);
+    interval.lower_included = false;
+    interval.upper_unbounded = true;
+    return interval;
+  }
+  const le2 = /^<=(.+)$/.exec(t12);
+  if (le2) {
+    interval.upper = parseFloat(le2[1]);
+    interval.upper_included = true;
+    interval.lower_unbounded = true;
+    return interval;
+  }
+  const lt3 = /^<(.+)$/.exec(t12);
+  if (lt3) {
+    interval.upper = parseFloat(lt3[1]);
+    interval.upper_included = false;
+    interval.lower_unbounded = true;
     return interval;
   }
   const exact = /^-?\d+(?:\.\d+)?$/.exec(t12);
@@ -98809,7 +98918,7 @@ function terminologyConstraintObject(code) {
   return term;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/cadl_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/cadl_parser.ts
 var CadlParser = class {
   tokens;
   position = 0;
@@ -99210,6 +99319,12 @@ var CadlParser = class {
           this.maybeApplyAssumedValueSuffix(intervalChild);
           continue;
         }
+        const boolChild = this.tryParseBooleanConstraint();
+        if (boolChild) {
+          this.pushAttributeChild(attribute, boolChild);
+          this.maybeApplyAssumedValueSuffix(boolChild);
+          continue;
+        }
         const literalChild = this.tryParseLiteralPrimitiveConstraint();
         if (literalChild) {
           this.pushAttributeChild(attribute, literalChild);
@@ -99259,7 +99374,7 @@ var CadlParser = class {
       return null;
     }
     const next = this.peekAhead(1);
-    if (next && next.type !== "COMMA" /* COMMA */ && next.type !== "RBRACE" /* RBRACE */) {
+    if (next && next.type !== "COMMA" /* COMMA */ && next.type !== "RBRACE" /* RBRACE */ && next.type !== "SEMICOLON" /* SEMICOLON */) {
       return null;
     }
     const prim = new C_PRIMITIVE_OBJECT();
@@ -99390,7 +99505,7 @@ var CadlParser = class {
     }
     if (this.check("PIPE" /* PIPE */)) this.advance();
     const prim = new C_PRIMITIVE_OBJECT();
-    prim.rm_type_name = /\./.test(expr) ? "Real" : "Integer";
+    prim.rm_type_name = isDurationConstraint(expr) ? "Duration" : /\./.test(expr) ? "Real" : "Integer";
     const str3 = new C_STRING();
     str3.pattern = expr;
     prim.item = str3;
@@ -99460,9 +99575,38 @@ var CadlParser = class {
       }
       if (!this.check("DOUBLE_COLON" /* DOUBLE_COLON */)) return null;
       this.advance();
-      let code = "";
+      const codes = [];
+      let current = "";
+      let assumedCode;
+      let readingAssumed = false;
       while (!this.check("RBRACKET" /* RBRACKET */) && !this.check("PIPE" /* PIPE */) && !this.isAtEnd()) {
-        code += this.advance().value;
+        if (this.check("COMMENT" /* COMMENT */)) {
+          this.advance();
+          continue;
+        }
+        if (this.check("COMMA" /* COMMA */)) {
+          this.advance();
+          if (current) {
+            if (readingAssumed) assumedCode = current;
+            else codes.push(current);
+            current = "";
+          }
+          continue;
+        }
+        if (this.check("SEMICOLON" /* SEMICOLON */)) {
+          this.advance();
+          if (current) {
+            codes.push(current);
+            current = "";
+          }
+          readingAssumed = true;
+          continue;
+        }
+        current += this.advance().value;
+      }
+      if (current) {
+        if (readingAssumed) assumedCode = current;
+        else codes.push(current);
       }
       if (this.check("PIPE" /* PIPE */)) {
         this.advance();
@@ -99473,7 +99617,14 @@ var CadlParser = class {
       const term = new C_TERMINOLOGY_CODE();
       term.rm_type_name = "CODE_PHRASE";
       term.terminology_id = terminologyId;
-      term.constraint = code;
+      if (codes.length > 1) {
+        term.code_list = codes;
+      } else if (codes.length === 1) {
+        term.constraint = codes[0];
+      }
+      if (assumedCode) {
+        term.assumed_value = assumedCode;
+      }
       return term;
     }
     return null;
@@ -99550,8 +99701,47 @@ var CadlParser = class {
       }
     }
     if (items.length) q4.list = items;
+    const assumed = this.readQuantityAssumedValue(obj2, qtyTuple);
+    if (assumed) {
+      q4.assumed_value = assumed;
+    }
     copyAttributeTuples(obj2, q4);
     return q4;
+  }
+  readQuantityAssumedValue(obj2, qtyTuple) {
+    const out = {};
+    const applyAssumed = (col, cell) => {
+      if (!(cell instanceof C_PRIMITIVE_OBJECT) || !cell.item) return;
+      const val = cell.item.assumed_value;
+      if (val === void 0) return;
+      if (col === "units" && typeof val === "string" && out.units === void 0) {
+        out.units = val;
+      } else if (col === "magnitude" && out.magnitude === void 0) {
+        const n10 = typeof val === "number" ? val : Number(val);
+        if (Number.isFinite(n10)) out.magnitude = n10;
+      } else if (col === "precision" && out.precision === void 0) {
+        const n10 = typeof val === "number" ? val : Number(val);
+        if (Number.isFinite(n10)) out.precision = n10;
+      }
+    };
+    if (qtyTuple) {
+      const cols = tupleColumnNames(qtyTuple);
+      for (const row of qtyTuple.tuples ?? []) {
+        const members = row.members ?? [];
+        for (let i12 = 0; i12 < cols.length; i12++) {
+          applyAssumed(cols[i12], members[i12]);
+        }
+      }
+    }
+    for (const attr of obj2.attributes ?? []) {
+      const name2 = attr.rm_attribute_name;
+      if (name2 !== "units" && name2 !== "magnitude" && name2 !== "precision") {
+        continue;
+      }
+      const child = attr.children?.[0];
+      applyAssumed(name2, child);
+    }
+    return out.units !== void 0 || out.magnitude !== void 0 || out.precision !== void 0 ? out : void 0;
   }
   reifyOrdinal(obj2) {
     const o12 = new C_ORDINAL();
@@ -99721,7 +99911,12 @@ var CadlParser = class {
         const prim = new C_PRIMITIVE_OBJECT();
         prim.rm_type_name = "STRING";
         const str3 = new C_STRING();
-        str3.pattern = this.advance().value;
+        const values2 = [this.advance().value];
+        while (this.check("COMMA" /* COMMA */) && this.checkAhead("STRING" /* STRING */, 1)) {
+          this.advance();
+          values2.push(this.advance().value);
+        }
+        str3.list = values2;
         prim.item = str3;
         obj2 = prim;
       }
@@ -99734,6 +99929,9 @@ var CadlParser = class {
         if (nested) obj2 = nested;
         else this.position = checkpoint;
       }
+    }
+    if (obj2 instanceof C_PRIMITIVE_OBJECT) {
+      this.maybeApplyAssumedValueSuffix(obj2);
     }
     this.consume("RBRACE" /* RBRACE */, "Expected '}' in tuple cell");
     return obj2;
@@ -100011,12 +100209,12 @@ var CadlParser = class {
       }
       return void 0;
     }
-    if (this.check("INTEGER" /* INTEGER */) || this.check("REAL" /* REAL */) || this.check("IDENTIFIER" /* IDENTIFIER */)) {
+    if (this.check(TokenType.MINUS) || this.check("INTEGER" /* INTEGER */) || this.check("REAL" /* REAL */) || this.check("IDENTIFIER" /* IDENTIFIER */)) {
       const parts = [];
       while (!this.isAtEnd()) {
         const t12 = this.peek();
         if (t12.type === "RBRACE" /* RBRACE */ || t12.type === "COMMA" /* COMMA */) break;
-        if (t12.type === "IDENTIFIER" /* IDENTIFIER */ || t12.type === "INTEGER" /* INTEGER */ || t12.type === "REAL" /* REAL */ || t12.type === "COLON" /* COLON */ || t12.type === "COMMA" /* COMMA */ || t12.type === "DOT" /* DOT */ || t12.type === "SLASH" /* SLASH */) {
+        if (t12.type === TokenType.MINUS || t12.type === "IDENTIFIER" /* IDENTIFIER */ || t12.type === "INTEGER" /* INTEGER */ || t12.type === "REAL" /* REAL */ || t12.type === "COLON" /* COLON */ || t12.type === "COMMA" /* COMMA */ || t12.type === "DOT" /* DOT */ || t12.type === "SLASH" /* SLASH */) {
           const v5 = this.advance().value;
           if (t12.type === "INTEGER" /* INTEGER */ && String(v5).startsWith("-") && parts.length > 0) {
             parts[parts.length - 1] += v5;
@@ -100152,7 +100350,7 @@ function parseCadlIntervalPattern(expr) {
   return void 0;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/adl2_coding_system.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/adl2_coding_system.ts
 var DEFAULT_ADL2_CODING_SYSTEM = "at-coded";
 var AT_CODED_ADL_VERSION = "2.4.0";
 function resolveAdl2CodingSystem(options) {
@@ -100191,7 +100389,7 @@ function isSyntheticNodeId(obj2) {
   return !!obj2 && typeof obj2 === "object" && obj2[SYNTHETIC_NODE_ID_KEY] === true;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/synthetic_node_annotations.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/synthetic_node_annotations.ts
 var SYNTHETIC_NODE_ID_ANNOTATION = "synthetic_node_id";
 function walk(obj2, path, formatId, visit2) {
   for (const attr of obj2.attributes ?? []) {
@@ -100231,7 +100429,7 @@ function restoreSyntheticNodeIds(archetype) {
   });
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/rules_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/rules_parser.ts
 var RULE_TYPE_NAMES = /* @__PURE__ */ new Set([
   "Integer",
   "Real",
@@ -100564,7 +100762,7 @@ var RulesParser = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/aom_odin_sections.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/aom_odin_sections.ts
 function applyAnnotationsOdin(archetype, data) {
   const ann = new RESOURCE_ANNOTATIONS();
   const bag = ann;
@@ -100598,7 +100796,7 @@ function getRmOverlayVisibility(archetype) {
   return vis && typeof vis === "object" ? vis : void 0;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/adl2_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/adl2_parser.ts
 var ADL2Parser = class {
   tokens;
   position = 0;
@@ -101009,7 +101207,7 @@ var ADL2Parser = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/adl_version.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/adl_version.ts
 function hasSectionHeader(source, section) {
   return new RegExp(`^[ \\t]*${section}\\b`, "im").test(source);
 }
@@ -101036,7 +101234,7 @@ function detectAdlVersion(source) {
   return "unknown";
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/opt14_code_mapping.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/opt14_code_mapping.ts
 var OPT14_CODE_MAPPING_VERSION = opt14CodeMappingVersion(
   DEFAULT_ADL2_CODING_SYSTEM
 );
@@ -101172,7 +101370,7 @@ function opt14TerminologyKeyToAdl2(code, nodeIds, valueCodes, options) {
   );
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/adl14_to_adl2_converter.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/adl14_to_adl2_converter.ts
 var DEFAULT_OPTS = {
   rmRelease: "1.0.4",
   markGenerated: true
@@ -101205,6 +101403,7 @@ function convertAdl14ToAdl2(source, options) {
   text = convertTerminologyAcCodes(text, warnings2, codeScopes, options);
   text = mergeConstraintDefinitionsIntoTermDefinitions(text, warnings2, codeScopes);
   text = migrateValueSetsSection(text, warnings2, codeScopes, options);
+  text = convertAdl14DomainTypeBlocks(text, warnings2);
   if (coding === "id-coded") {
     text = convertDefinitionNodeIds(text);
   }
@@ -101498,6 +101697,292 @@ function migrateValueSetsSection(text, warnings2, codeScopes, options) {
 ${inner}${indent}>`;
   });
 }
+function convertAdl14DomainTypeBlocks(text, warnings2) {
+  const sections = splitTopLevelSections(text);
+  let convertedCount = 0;
+  const updated = sections.map((sec) => {
+    if (!/^definition\b/i.test(sec.header.trim())) return sec.raw;
+    const { body, count: count2 } = convertCDvQuantityBlocksInBody(sec.body);
+    convertedCount += count2;
+    return count2 > 0 ? sec.header + "\n" + body : sec.raw;
+  });
+  if (convertedCount > 0) {
+    warnings2.push(
+      `Converted ${convertedCount} ADL 1.4 C_DV_QUANTITY block(s) to ADL2 DV_QUANTITY tuple form.`
+    );
+  }
+  return updated.join("\n");
+}
+function convertCDvQuantityBlocksInBody(body) {
+  let out = "";
+  let pos = 0;
+  let count2 = 0;
+  const len = body.length;
+  while (pos < len) {
+    const ch = body[pos];
+    if (ch === "-" && body[pos + 1] === "-") {
+      const nl = body.indexOf("\n", pos);
+      const end = nl === -1 ? len : nl + 1;
+      out += body.slice(pos, end);
+      pos = end;
+      continue;
+    }
+    if (ch === '"') {
+      const end = skipQuotedString(body, pos);
+      out += body.slice(pos, end);
+      pos = end;
+      continue;
+    }
+    if (body.startsWith("C_DV_QUANTITY", pos) && (pos === 0 || !/[A-Za-z0-9_]/.test(body[pos - 1])) && (pos + 13 >= len || !/[A-Za-z0-9_]/.test(body[pos + 13]))) {
+      let cursor = pos + 13;
+      while (cursor < len && /\s/.test(body[cursor])) cursor++;
+      if (body[cursor] === "<") {
+        const closeIdx = findMatchingOdinAngleClose(body, cursor);
+        if (closeIdx > cursor) {
+          const inner = body.slice(cursor + 1, closeIdx);
+          const lineStart = body.lastIndexOf("\n", pos - 1) + 1;
+          const linePrefix = body.slice(lineStart, pos);
+          const baseIndent = /^[ \t]*$/.test(linePrefix) ? linePrefix : /^[ \t]*/.exec(linePrefix)?.[0] ?? "";
+          const parsed = parseAdl14CDvQuantityOdin(inner);
+          out += formatAdl2DvQuantity(parsed, baseIndent);
+          pos = closeIdx + 1;
+          count2++;
+          continue;
+        }
+      }
+    }
+    out += ch;
+    pos++;
+  }
+  return { body: out, count: count2 };
+}
+function skipQuotedString(text, openQuoteIdx) {
+  let i12 = openQuoteIdx + 1;
+  while (i12 < text.length) {
+    if (text[i12] === "\\") {
+      i12 += 2;
+      continue;
+    }
+    if (text[i12] === '"') return i12 + 1;
+    i12++;
+  }
+  return text.length;
+}
+function findMatchingOdinAngleClose(text, openIdx) {
+  let depth = 0;
+  let i12 = openIdx;
+  while (i12 < text.length) {
+    const ch = text[i12];
+    if (ch === "-" && text[i12 + 1] === "-") {
+      const nl = text.indexOf("\n", i12);
+      i12 = nl === -1 ? text.length : nl + 1;
+      continue;
+    }
+    if (ch === '"') {
+      i12 = skipQuotedString(text, i12);
+      continue;
+    }
+    if (ch === "|") {
+      const closePipe = text.indexOf("|", i12 + 1);
+      if (closePipe !== -1) {
+        i12 = closePipe + 1;
+        continue;
+      }
+    }
+    if (ch === "<") depth++;
+    else if (ch === ">") {
+      depth--;
+      if (depth === 0) return i12;
+    }
+    i12++;
+  }
+  return -1;
+}
+function parseOdinBlockEntries(inner) {
+  const entries = [];
+  let i12 = 0;
+  const len = inner.length;
+  const skipWsAndComments = () => {
+    while (i12 < len) {
+      if (/\s/.test(inner[i12])) {
+        i12++;
+      } else if (inner[i12] === "-" && inner[i12 + 1] === "-") {
+        const nl = inner.indexOf("\n", i12);
+        i12 = nl === -1 ? len : nl + 1;
+      } else {
+        break;
+      }
+    }
+  };
+  while (i12 < len) {
+    skipWsAndComments();
+    if (i12 >= len) break;
+    let key = "";
+    let keyed2 = false;
+    if (inner[i12] === "[") {
+      keyed2 = true;
+      const closeBracket = inner.indexOf("]", i12 + 1);
+      if (closeBracket === -1) break;
+      key = inner.slice(i12 + 1, closeBracket).trim().replace(/^["']|["']$/g, "");
+      i12 = closeBracket + 1;
+    } else if (/[A-Za-z_]/.test(inner[i12])) {
+      const start = i12;
+      while (i12 < len && /[A-Za-z0-9_]/.test(inner[i12])) i12++;
+      key = inner.slice(start, i12);
+    } else {
+      i12++;
+      continue;
+    }
+    skipWsAndComments();
+    if (inner[i12] !== "=") continue;
+    i12++;
+    skipWsAndComments();
+    if (inner[i12] !== "<") continue;
+    const closeIdx = findMatchingOdinAngleClose(inner, i12);
+    if (closeIdx === -1) break;
+    entries.push({
+      key,
+      keyed: keyed2,
+      body: inner.slice(i12 + 1, closeIdx)
+    });
+    i12 = closeIdx + 1;
+  }
+  return entries;
+}
+function unquoteOdinString(raw) {
+  const trimmed = raw.trim();
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+    }
+  }
+  return void 0;
+}
+function extractOdinInterval(raw) {
+  const trimmed = raw.trim();
+  const m5 = /^\|([\s\S]*)\|$/.exec(trimmed);
+  if (m5) return m5[1].trim();
+  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) return trimmed;
+  return void 0;
+}
+function extractOdinNumberLiteral(raw) {
+  const trimmed = raw.trim();
+  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) return trimmed;
+  return void 0;
+}
+function parseAdl14CDvQuantityOdin(inner) {
+  const parsed = { list: [] };
+  for (const entry of parseOdinBlockEntries(inner)) {
+    const key = entry.key.toLowerCase();
+    if (key === "property") {
+      const trimmed = entry.body.trim();
+      if (trimmed) parsed.property = trimmed;
+    } else if (key === "list") {
+      for (const listEntry of parseOdinBlockEntries(entry.body)) {
+        const item = {};
+        for (const field of parseOdinBlockEntries(listEntry.body)) {
+          const fk = field.key.toLowerCase();
+          if (fk === "units") {
+            const u9 = unquoteOdinString(field.body);
+            if (u9 !== void 0) item.units = u9;
+          } else if (fk === "magnitude") {
+            const mag = extractOdinInterval(field.body);
+            if (mag !== void 0) item.magnitude = mag;
+          } else if (fk === "precision") {
+            const prc = extractOdinInterval(field.body);
+            if (prc !== void 0) item.precision = prc;
+          }
+        }
+        if (item.units !== void 0 || item.magnitude !== void 0 || item.precision !== void 0) {
+          parsed.list.push(item);
+        }
+      }
+    } else if (key === "assumed_value") {
+      const av = {};
+      for (const field of parseOdinBlockEntries(entry.body)) {
+        const fk = field.key.toLowerCase();
+        if (fk === "units") {
+          const u9 = unquoteOdinString(field.body);
+          if (u9 !== void 0) av.units = u9;
+        } else if (fk === "magnitude") {
+          const mag = extractOdinNumberLiteral(field.body);
+          if (mag !== void 0) av.magnitude = mag;
+        } else if (fk === "precision") {
+          const prc = extractOdinNumberLiteral(field.body);
+          if (prc !== void 0) av.precision = prc;
+        }
+      }
+      if (av.units !== void 0 || av.magnitude !== void 0 || av.precision !== void 0) {
+        parsed.assumedValue = av;
+      }
+    }
+  }
+  return parsed;
+}
+function formatAdl2DvQuantity(parsed, baseIndent) {
+  const step = baseIndent.includes("	") ? "	" : "    ";
+  const innerIndent = baseIndent + step;
+  const rowIndent = innerIndent + step;
+  const lines = [];
+  if (parsed.property) {
+    lines.push(`${innerIndent}property matches {${parsed.property}}`);
+  }
+  const av = parsed.assumedValue;
+  const rowsSource = parsed.list.length > 0 ? parsed.list : av ? [{}] : [];
+  if (rowsSource.length > 0) {
+    const columns = [];
+    if (rowsSource.some((i12) => i12.units !== void 0) || av?.units !== void 0) {
+      columns.push("units");
+    }
+    if (rowsSource.some((i12) => i12.magnitude !== void 0) || av?.magnitude !== void 0) {
+      columns.push("magnitude");
+    }
+    if (rowsSource.some((i12) => i12.precision !== void 0) || av?.precision !== void 0) {
+      columns.push("precision");
+    }
+    if (columns.length > 0) {
+      let assumedIdx = -1;
+      if (av) {
+        if (av.units !== void 0) {
+          assumedIdx = rowsSource.findIndex((i12) => i12.units === av.units);
+        }
+        if (assumedIdx < 0) assumedIdx = 0;
+      }
+      const formattedRows = rowsSource.map((item, idx) => {
+        const isAssumed = idx === assumedIdx;
+        const cells = columns.map((col) => {
+          if (col === "units") {
+            const base3 = item.units !== void 0 ? JSON.stringify(item.units) : "*";
+            const suffix2 = isAssumed && av?.units !== void 0 ? `; ${JSON.stringify(av.units)}` : "";
+            return `{${base3}${suffix2}}`;
+          }
+          if (col === "magnitude") {
+            const base3 = item.magnitude !== void 0 ? `|${item.magnitude}|` : "*";
+            const suffix2 = isAssumed && av?.magnitude !== void 0 ? `; ${av.magnitude}` : "";
+            return `{${base3}${suffix2}}`;
+          }
+          const base2 = item.precision !== void 0 ? `|${item.precision}|` : "*";
+          const suffix = isAssumed && av?.precision !== void 0 ? `; ${av.precision}` : "";
+          return `{${base2}${suffix}}`;
+        });
+        return `${rowIndent}[${cells.join(", ")}]`;
+      });
+      lines.push(
+        `${innerIndent}[${columns.join(", ")}] matches {
+${formattedRows.join(",\n")}
+${innerIndent}}`
+      );
+    }
+  }
+  if (lines.length === 0) {
+    return "DV_QUANTITY";
+  }
+  return `DV_QUANTITY matches {
+${lines.join("\n")}
+${baseIndent}}`;
+}
 function convertDefinitionNodeIds(text) {
   const sections = splitTopLevelSections(text);
   const converted = sections.map((sec) => {
@@ -101570,7 +102055,7 @@ function splitTopLevelSections(text) {
   return slices;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/parse_adl.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/parse_adl.ts
 function parseAdl(source, options) {
   const convert = options?.convertAdl14 !== false;
   const detectedVersion = detectAdlVersion(source);
@@ -101605,7 +102090,7 @@ function parseAdl(source, options) {
   };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/xml_aom_mapper.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/xml_aom_mapper.ts
 function parseLegacyTemplateXml(xml2) {
   const parser7 = new XMLParser({
     ignoreAttributes: false,
@@ -102290,7 +102775,7 @@ function collectTermDefinitions(node, bag) {
   }
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/opt_l10n.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/opt_l10n.ts
 var L10N_ANNOTATION_KEY = /^L10n\.(.+)$/i;
 var OPT_ANNOTATION_LANG = "_";
 function l10nAnnotationKey(language2) {
@@ -102466,7 +102951,45 @@ function optAnnotationsForXml(opt) {
   return Object.entries(byPath).filter(([, items]) => Object.keys(items).length > 0).sort(([a8], [b9]) => a8.localeCompare(b9)).map(([path, items]) => ({ path, items }));
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/opt_xml_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/opt_view.ts
+var OPT_VIEW_CONSTRAINTS = Symbol.for("ehrtslib.optViewConstraints");
+function parseOptViewConstraints(root) {
+  const out = [];
+  const view = root.view;
+  if (!view || typeof view !== "object") return out;
+  const viewRec = view;
+  for (const raw of asArray(viewRec.constraints)) {
+    if (!raw || typeof raw !== "object") continue;
+    const rec = raw;
+    const path = String(rec["@_path"] ?? rec.path ?? "").trim();
+    if (!path) continue;
+    const entry = { path };
+    for (const it2 of asArray(rec.items)) {
+      if (!it2 || typeof it2 !== "object") continue;
+      const item = it2;
+      const id4 = String(item["@_id"] ?? item.id ?? "").trim();
+      const rawVal = item.value ?? textValue(item);
+      if (!id4 || rawVal === void 0 || rawVal === null) continue;
+      const val = typeof rawVal === "boolean" ? rawVal ? "true" : "false" : String(rawVal).trim();
+      if (id4 === "pass_through") {
+        entry.passThrough = val === "true" || val === "1";
+      } else if (id4 === "VisibleInView") {
+        entry.visibleInView = val;
+      }
+    }
+    if (entry.passThrough !== void 0 || entry.visibleInView !== void 0) {
+      out.push(entry);
+    }
+  }
+  return out;
+}
+function attachOptViewConstraints(opt, root) {
+  const list = parseOptViewConstraints(root);
+  opt[OPT_VIEW_CONSTRAINTS] = list;
+  return list;
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/opt_xml_parser.ts
 function setArchetypeId(target, id4) {
   const aid = new ARCHETYPE_ID2();
   aid.value = id4;
@@ -102529,6 +103052,7 @@ function parseOptXml(source) {
   }
   applyOperationalTemplateTermScopes(opt, origLang);
   parseOptAnnotations(root, opt);
+  attachOptViewConstraints(opt, root);
   if (root.concept) {
     warnings2.push(
       "OPT concept metadata preserved in description only (not full round-trip)."
@@ -102547,8 +103071,10 @@ function parseOptAnnotations(root, opt) {
       if (!it2 || typeof it2 !== "object") continue;
       const item = it2;
       const id4 = String(item["@_id"] ?? item.id ?? "").trim();
-      const val = textValue(item);
-      if (!id4 || !val) continue;
+      const rawVal = item.value ?? textValue(item);
+      if (!id4 || rawVal === void 0 || rawVal === null) continue;
+      const val = typeof rawVal === "boolean" ? rawVal ? "true" : "false" : String(rawVal).trim();
+      if (!val) continue;
       items[id4] = val;
     }
     setOptPathAnnotationItems(opt, path, items);
@@ -102595,7 +103121,7 @@ function parseComponentOntologies(root, rootArchetypeId) {
   return out;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/oet_xml_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/oet_xml_parser.ts
 function isOetXml(source) {
   const t12 = source.trimStart();
   return (t12.startsWith("<?xml") || t12.startsWith("<")) && /<template[\s>]/i.test(t12) && t12.includes("openEHR/v1/Template");
@@ -102672,7 +103198,7 @@ function parseOetXml(source) {
   return { document: document2, template, warnings: warnings2 };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/util/aom_clone.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/util/aom_clone.ts
 function cloneMultiplicity(src2) {
   if (!src2) return void 0;
   const m5 = new Multiplicity_interval();
@@ -102790,7 +103316,7 @@ function cloneAttribute(attr) {
   return out;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/util/ontology_merge.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/util/ontology_merge.ts
 function mergeTermDefinitionTables(target, source) {
   if (!source) return;
   for (const [lang, terms] of Object.entries(source)) {
@@ -102897,7 +103423,7 @@ function applyMergedTerminology(target, merged) {
   target.ontology = ontology;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/util/flattening/specialize.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/util/flattening/specialize.ts
 function attributeChildren(attr) {
   return attr.children ?? [];
 }
@@ -102970,7 +103496,7 @@ function specializeComplexObject(parentFlat, differential) {
   return result;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/util/flattening/template_flattener.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/util/flattening/template_flattener.ts
 function archetypeIdString2(arch) {
   return arch.archetype_id?.value ?? arch.archetype_id?.toString();
 }
@@ -103159,7 +103685,7 @@ function flattenToOperationalTemplate(source, resolver) {
   return opt;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/json_aom_util.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/json_aom_util.ts
 function jsonType(node) {
   const t12 = node["@type"] ?? node["@_type"] ?? "";
   return String(t12).replace(/^.*:/, "");
@@ -103203,7 +103729,7 @@ function parseCodePhrase(node) {
   return cp;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/template_json_normalize.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/template_json_normalize.ts
 var PROPERTY_ALIASES = {
   rmTypeName: "rm_type_name",
   rmAttributeName: "rm_attribute_name",
@@ -103351,7 +103877,7 @@ function walkLint(node, path, warnings2) {
   }
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/template_json_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/template_json_parser.ts
 function isTemplateJson(source) {
   const t12 = source.trimStart();
   if (!t12.startsWith("{")) return false;
@@ -103466,7 +103992,7 @@ function parseJsonOntology(node, _warnings) {
   return onto;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/archetype_repository.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/archetype_repository.ts
 var ArchetypeRepository = class _ArchetypeRepository {
   byId = /* @__PURE__ */ new Map();
   templates = /* @__PURE__ */ new Map();
@@ -103674,7 +104200,7 @@ function templateBasename(path) {
   return stem.length > 0 && stem !== name2 ? stem : void 0;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/am/util/aom_path_navigator.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/am/util/aom_path_navigator.ts
 function nodeIdsMatch2(a8, b9) {
   if (!a8 || !b9) return false;
   const norm = (s8) => {
@@ -103763,7 +104289,7 @@ function replaceAtAomPath(root, path, replacement) {
   return true;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/oet_compiler.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/oet_compiler.ts
 function multiplicityFromMaxMin(max3, min2) {
   const m5 = new Multiplicity_interval();
   m5.lower = min2 ?? 0;
@@ -103866,7 +104392,7 @@ function compileOetToOperational(oet, options) {
   return { operationalTemplate, warnings: warnings2 };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/legacy/parse_template_input.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/legacy/parse_template_input.ts
 function detectTemplateInputFormat(source) {
   const t12 = source.trim();
   if (!t12) return "unknown";
@@ -104006,7 +104532,7 @@ function parseTemplateInput(source, options) {
   throw new Error(`Unsupported template input format: ${format4}`);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/rules_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/rules_serializer.ts
 function serializeRulesSection(invariants, indent) {
   if (!invariants?.length) return "";
   let out = "rules\n";
@@ -104025,7 +104551,7 @@ function serializeRulesSection(invariants, indent) {
   return out + "\n";
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/template_workspace.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/template_workspace.ts
 function canBeGenerationRoot(path, loadResult) {
   if (/\.(opt|oet)$/i.test(path)) return true;
   const kind = loadResult?.kind;
@@ -104233,7 +104759,7 @@ function isOetXmlContent(text) {
   return /openEHR\/v1\/Template/i.test(text);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/clinical_model_paths.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/clinical_model_paths.ts
 var CLINICAL_MODEL_EXTENSIONS = /\.(adl|adls|opt|oet|t\.json|xml)$/i;
 function isClinicalModelPath(path) {
   const lower = path.toLowerCase();
@@ -104244,7 +104770,7 @@ function normalizeClinicalModelPath(path) {
   return path.replace(/\\/g, "/").replace(/^\/+/, "");
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/github_repo_loader.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/github_repo_loader.ts
 function parseGitHubRepoSpec(spec) {
   const trimmed = spec.trim();
   const urlMatch = trimmed.match(
@@ -104359,7 +104885,7 @@ async function loadGitHubRepoTree(ref, options) {
   };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/template_json_dependencies.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/template_json_dependencies.ts
 function archetypeIdValue(node) {
   if (!node) return void 0;
   if (typeof node === "string") return node.trim() || void 0;
@@ -104436,7 +104962,7 @@ function collectTemplateJsonExternalRefsFromText(source) {
   }
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/github_template_closure.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/github_template_closure.ts
 function emit(options, event) {
   options?.onProgress?.(event);
 }
@@ -104687,7 +105213,7 @@ async function loadGitHubClinicalModelClosure(fileUrl, options) {
   };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/odin_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/odin_serializer.ts
 function escapeString(s8) {
   return `"${s8.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
@@ -104871,7 +105397,7 @@ function serializeRmOverlaySection(rmVisibility, indent) {
 `;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/adl2_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/adl2_serializer.ts
 function asTerminologyId(value) {
   if (typeof value === "string") return value;
   if (value && typeof value === "object" && "value" in value) {
@@ -105288,25 +105814,33 @@ ${inner}}
       if (code) return `{${this.formatTermCode(tid, code)}}`;
     }
     if (cell instanceof C_PRIMITIVE_OBJECT && cell.item) {
+      const assumed = cell.item.assumed_value;
+      const suffix = assumed !== void 0 ? `; ${typeof assumed === "string" ? JSON.stringify(assumed) : String(assumed)}` : "";
+      if (cell.item instanceof C_STRING && !cell.item.list?.length && cell.item.pattern === "*") {
+        return `{*${suffix}}`;
+      }
       if (cell.item instanceof C_INTEGER || cell.item instanceof C_REAL) {
         const list = cell.item.list;
         const range = formatInterval(
           cell.item.range
         );
-        if (list?.length === 1 && !range) return `{${list[0]}}`;
-        if (range) return `{|${range}|}`;
+        if (list?.length === 1 && !range) return `{${list[0]}${suffix}}`;
+        if (range) return `{|${range}|${suffix}}`;
         if (list?.length) {
-          return `{${list.map((n10) => `|${n10}|`).join(", ")}}`;
+          return `{${list.map((n10) => `|${n10}|`).join(", ")}${suffix}}`;
         }
       }
       const inline2 = this.inlinePrimitiveMatch(cell);
-      if (inline2) return `{${inline2}}`;
+      if (inline2) return `{${inline2}${suffix}}`;
       const body = this.primitiveBody(cell.item, cell.rm_type_name);
       if (body) {
-        if (body.startsWith("|") && body.endsWith("|")) return `{${body}}`;
-        if (body.startsWith("/")) return `{${body}}`;
-        return `{${body}}`;
+        if (body.startsWith("|") && body.endsWith("|")) {
+          return `{${body}${suffix}}`;
+        }
+        if (body.startsWith("/")) return `{${body}${suffix}}`;
+        return `{${body}${suffix}}`;
       }
+      if (suffix) return `{*${suffix}}`;
     }
     return "{*}";
   }
@@ -105573,7 +106107,7 @@ ${indent}}
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/annotation_families.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/annotation_families.ts
 var UNPREFIXED_FAMILY = "(unprefixed)";
 var FAMILY_FILL = {
   "L10n.": "#ede9fe",
@@ -105581,7 +106115,7 @@ var FAMILY_FILL = {
   [UNPREFIXED_FAMILY]: "#e2e8f0"
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/clinical_model_annotations.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/clinical_model_annotations.ts
 function asAnnotationDocumentation(doc2) {
   if (!doc2 || typeof doc2 !== "object") return void 0;
   return doc2;
@@ -105593,7 +106127,7 @@ function serializeAnnotatedResource(resource) {
   return new ADL2Serializer().serialize(resource);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/template_json_annotations.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/template_json_annotations.ts
 function archetypeIdFromJsonField(value) {
   if (typeof value === "string" && value.trim()) return value.trim();
   if (value && typeof value === "object") {
@@ -105667,7 +106201,7 @@ function listTemplateJsonArchetypeIds(text) {
   return ids;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/parser/clinical_model_workspace.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/parser/clinical_model_workspace.ts
 var ClinicalModelWorkspace = class _ClinicalModelWorkspace {
   workspace = new TemplateWorkspace();
   dirtyPaths = /* @__PURE__ */ new Set();
@@ -105838,7 +106372,7 @@ var ClinicalModelWorkspace = class _ClinicalModelWorkspace {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/adl14_code_map_cache.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/adl14_code_map_cache.ts
 var cache = /* @__PURE__ */ new WeakMap();
 var warnings = /* @__PURE__ */ new WeakMap();
 function collect(opt) {
@@ -105915,7 +106449,86 @@ function adl14CodeFor(opt, code, scope) {
   return m5 !== void 0 && m5 !== "" ? m5 : idToAtCode(code);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/term/openehr_group_rubrics.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/cdr_profiles.ts
+var DEFAULT_CDR_PROFILE = "ehrbase";
+function profileWebTemplate(profile) {
+  switch (profile) {
+    case "ferroehr":
+      return {
+        treeRootId: "archetype",
+        omitSectionNameNode: true,
+        renamedArchetypeRootId: "archetype",
+        elementNameId: "name_constraint"
+      };
+    case "ehrbase":
+      return {
+        treeRootId: "template",
+        omitSectionNameNode: true,
+        renamedArchetypeRootId: "label",
+        elementNameId: "term"
+      };
+    case "better":
+      return {
+        treeRootId: "archetype",
+        omitSectionNameNode: true,
+        renamedArchetypeRootId: "label",
+        elementNameId: "term"
+      };
+  }
+}
+function profileFlat(profile) {
+  switch (profile) {
+    case "ferroehr":
+      return { flavor: "output", locatableName: "omit" };
+    case "ehrbase":
+      return { flavor: "output", locatableName: "path" };
+    case "better":
+      return { flavor: "output", locatableName: "path" };
+  }
+}
+function profileFlatValidator(_profile) {
+  return { strictUnknownKeys: true };
+}
+function resolveCdrProfile(options) {
+  const profile = options?.cdrProfile ?? DEFAULT_CDR_PROFILE;
+  const wtIn = stripCdrProfile(options?.webTemplate);
+  const flatIn = stripCdrProfile(options?.flat);
+  const valIn = stripCdrProfile(options?.flatValidator);
+  return {
+    profile,
+    webTemplate: { ...profileWebTemplate(profile), ...wtIn, cdrProfile: profile },
+    flat: { ...profileFlat(profile), ...flatIn },
+    flatValidator: { ...profileFlatValidator(profile), ...valIn }
+  };
+}
+function mergeWebTemplateBuilderOptions(options) {
+  const { webTemplate } = resolveCdrProfile({
+    cdrProfile: options?.cdrProfile,
+    webTemplate: options
+  });
+  return webTemplate;
+}
+function mergeFlatSerializerOptions(options) {
+  const { flat } = resolveCdrProfile({
+    cdrProfile: options?.cdrProfile,
+    flat: options
+  });
+  return flat;
+}
+function mergeFlatValidatorOptions(options) {
+  const { flatValidator } = resolveCdrProfile({
+    cdrProfile: options?.cdrProfile,
+    flatValidator: options
+  });
+  return flatValidator;
+}
+function stripCdrProfile(opts) {
+  if (!opts) return void 0;
+  const { cdrProfile: _p, ...rest } = opts;
+  return rest;
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/term/openehr_group_rubrics.ts
 var INSTRUCTION_STATES_GROUP = "instruction_states";
 var SETTING_GROUP = "setting";
 var COMPOSITION_CATEGORY_GROUP = "composition_category";
@@ -106019,7 +106632,7 @@ function instructionStateCodes() {
   return group ? [...group.keys()] : [];
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/term/terminology_service.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/term/terminology_service.ts
 var OpenEHRTerminologyService = class _OpenEHRTerminologyService {
   static instance;
   terminologies = /* @__PURE__ */ new Map();
@@ -106294,7 +106907,7 @@ function readXmlAttributes(attrText) {
   return attrs;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/bmm_invariants.generated.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/bmm_invariants.generated.ts
 var BMM_INVARIANTS = [
   {
     "schema": "base",
@@ -108153,7 +108766,7 @@ var BMM_CONSTANTS = {
   "Metadata_schema_path": "schema_path"
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/bmm_invariant_eval.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/bmm_invariant_eval.ts
 var UNSUPPORTED = Symbol("unsupported");
 var astCache = /* @__PURE__ */ new Map();
 function evaluateBmmExpression(expression2, target) {
@@ -108191,7 +108804,8 @@ function attributeNamesInExpression(expression2) {
     "is_empty",
     "is_equal",
     "has_code",
-    "has_code_for_group_id"
+    "has_code_for_group_id",
+    "is_valid_match_code"
   ]);
   for (const match of expression2.matchAll(re2)) {
     const name2 = match[0];
@@ -108510,6 +109124,11 @@ function evalCall(expr, ctx) {
       if (id4 === UNSUPPORTED) return UNSUPPORTED;
       return { kind: "code_set", id: String(id4) };
     }
+    if (expr.x.v === "is_valid_match_code" && expr.args.length === 1) {
+      const code = evalExpr(expr.args[0], ctx);
+      if (code === UNSUPPORTED) return UNSUPPORTED;
+      return isValidMatchCode(code);
+    }
     return UNSUPPORTED;
   }
   if (expr.x.t === "member") {
@@ -108600,6 +109219,19 @@ function findCodeSetByName(service, name2) {
   }
   return void 0;
 }
+var VALID_MATCH_CODES = /* @__PURE__ */ new Set([">", "=", "<", "?"]);
+function isValidMatchCode(code) {
+  const text = matchCodeText(code);
+  return text !== void 0 && VALID_MATCH_CODES.has(text);
+}
+function matchCodeText(value) {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "value" in value) {
+    const inner = value.value;
+    if (typeof inner === "string") return inner;
+  }
+  return void 0;
+}
 function codeStringOf3(value) {
   if (typeof value === "string" && value.length > 0) return value;
   if (!value || typeof value !== "object") return void 0;
@@ -108630,7 +109262,7 @@ function isService(value, kind) {
   return !!value && typeof value === "object" && value.kind === kind;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/rm_type.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/rm_type.ts
 function instanceRmType(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return void 0;
@@ -108644,7 +109276,7 @@ function instanceRmType(value) {
   return typeof type === "string" && type.length > 0 ? type : void 0;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/rm_specification_validator.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/rm_specification_validator.ts
 var RM_CONSTRAINTS = {
   // COMPOSITION.category - RM 1.1.0 Section 5.1.2
   // https://specifications.openehr.org/releases/RM/latest/ehr.html#_composition_class
@@ -108924,16 +109556,15 @@ var RMSpecificationValidator = class {
     this.enabled = enabled;
     this.strict = options?.strict === true;
   }
-  /**
-   * Validate an RM instance against specification constraints
-   *
-   * @param rmValue - The RM instance
-   * @param rmTypeName - The RM type name (e.g., "COMPOSITION")
-   * @param attributeName - The attribute name (e.g., "category")
-   * @param path - Path for error reporting
-   * @returns Array of validation messages
-   */
   validate(rmValue, rmTypeName3, attributeName, path) {
+    if (arguments.length === 1) {
+      return this.validateInstance(rmValue);
+    }
+    if (arguments.length !== 4 || typeof rmTypeName3 !== "string" || typeof attributeName !== "string" || typeof path !== "string") {
+      throw new TypeError(
+        "RMSpecificationValidator.validate(value, rmTypeName, attributeName, path) needs four arguments. To validate a whole RM instance, call validate(value) or validateInstance(value)."
+      );
+    }
     if (!this.enabled) {
       return [];
     }
@@ -109649,7 +110280,7 @@ function isIso3166Region(code) {
   }
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/coded_text_value.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/coded_text_value.ts
 function terminologyIdValue2(definingCode) {
   const tid = definingCode?.terminology_id;
   if (typeof tid === "string") return tid;
@@ -109682,7 +110313,7 @@ function resolveInstructionStateCode(raw) {
   return void 0;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/instance_nav.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/instance_nav.ts
 function rmTypeName(obj2) {
   if (obj2 == null || typeof obj2 !== "object") return "";
   const record = obj2;
@@ -109793,7 +110424,7 @@ function resolveAllValuesAtPath(instance, aqlPath) {
   });
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/flat_rm_defaults.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/flat_rm_defaults.ts
 var CodedTextMismatchError = class extends Error {
   constructor(issues) {
     super(issues.map((issue) => `${issue.path}: ${issue.message}`).join("\n"));
@@ -110298,7 +110929,7 @@ function applyFlatRmDefaults(composition, webTemplate, flat, issues = [], option
   dedupeIssues(issues);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/dv_field_maps.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/dv_field_maps.ts
 var MAPS = {};
 function def(rmType, fields) {
   MAPS[rmType] = { rmType, fields };
@@ -110854,7 +111485,7 @@ function isPrimary(map, f8) {
   return f8.suffix === "";
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/element_value_choice.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/element_value_choice.ts
 var UNCONSTRAINED_ELEMENT_VALUE_TYPES = [
   "DV_TEXT",
   "DV_CODED_TEXT",
@@ -110974,7 +111605,7 @@ function localCodesByArchetype(tree) {
   return out;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/web_template_id_hints.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/web_template_id_hints.ts
 var CONTAINER_ATTRIBUTES = /* @__PURE__ */ new Set([
   "content",
   "items",
@@ -111018,7 +111649,7 @@ function webTemplateChildIdHint(parentRmType, attrName2, child) {
   return child.rm_type_name?.toLowerCase() ?? attrName2;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/web_template_builder.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/web_template_builder.ts
 function complexShellFromSlot(slot) {
   const obj2 = new C_COMPLEX_OBJECT();
   obj2.rm_type_name = slot.rm_type_name;
@@ -111159,6 +111790,17 @@ function isRmAttributeValueLeaf(obj2) {
   const rmType = obj2.rm_type_name ?? "";
   return isDataValueType3(rmType);
 }
+function firstNameDefiningCodes(element) {
+  const nameAttr = element.attributes?.find((a8) => a8.rm_attribute_name === "name");
+  const nameDv = nameAttr?.children?.[0];
+  if (!(nameDv instanceof C_COMPLEX_OBJECT)) return void 0;
+  const dcAttr = nameDv.attributes?.find(
+    (a8) => a8.rm_attribute_name === "defining_code"
+  );
+  const phrase2 = dcAttr?.children?.[0];
+  const list = phrase2?.code_list;
+  return list?.length ? list : void 0;
+}
 function singleConstrainedCode(ism, attrName2) {
   const attr = ism.attributes?.find((a8) => a8.rm_attribute_name === attrName2);
   const dv = attr?.children?.[0];
@@ -111281,6 +111923,14 @@ function isDataValueType3(rmType) {
   const base2 = rmType.split("<")[0].trim();
   return isDataValueType(base2) || base2 === "CODE_PHRASE" || base2.startsWith("C_");
 }
+function archetypeRefOf(obj2) {
+  if (obj2 instanceof C_ARCHETYPE_ROOT && obj2.archetype_ref) {
+    return obj2.archetype_ref;
+  }
+  const aid = obj2.archetype_id?.value;
+  if (typeof aid === "string" && aid.trim()) return aid.trim();
+  return void 0;
+}
 function constraintNodeId2(obj2) {
   const ref = obj2.archetype_ref;
   if (obj2 instanceof C_ARCHETYPE_ROOT && ref) return ref;
@@ -111364,14 +112014,90 @@ var WebTemplateBuilder = class {
   /** Primary language first, then the additional languages the caller included. */
   selectedLanguages = [];
   idLanguage = "primary";
+  treeRootId;
+  omitSectionNameNode;
+  renamedArchetypeRootId;
+  elementNameId;
   bagCache = /* @__PURE__ */ new Map();
   pathAnnotations = {};
   originalLang = "en";
   constructor(options) {
-    this.options = options;
-    this.includeContext = options?.includeContextNodes ?? true;
-    this.applyL10n = options?.applyL10nAnnotations ?? true;
-    this.idLanguage = options?.idLanguage === "original" ? "original" : "primary";
+    const merged = mergeWebTemplateBuilderOptions(options);
+    this.options = merged;
+    this.includeContext = merged.includeContextNodes ?? true;
+    this.applyL10n = merged.applyL10nAnnotations ?? true;
+    this.idLanguage = merged.idLanguage === "original" ? "original" : "primary";
+    this.treeRootId = merged.treeRootId === "template" ? "template" : "archetype";
+    this.omitSectionNameNode = merged.omitSectionNameNode !== false;
+    this.renamedArchetypeRootId = merged.renamedArchetypeRootId === "label" ? "label" : "archetype";
+    this.elementNameId = merged.elementNameId === "term" ? "term" : "name_constraint";
+  }
+  resolveTreeRootId(templateId, opt) {
+    if (this.treeRootId === "template") {
+      return templateRootId(templateId);
+    }
+    let compositionArchetype;
+    for (const id4 of Object.keys(
+      termTablesByScope(opt)
+    )) {
+      if (id4.includes("COMPOSITION.")) {
+        compositionArchetype = id4;
+        break;
+      }
+    }
+    compositionArchetype ??= archetypeRefOf(opt.definition);
+    const concept = compositionArchetype ? archetypeConceptFromHrid(compositionArchetype) : void 0;
+    return normalizeWebTemplateId(concept ?? templateRootId(templateId));
+  }
+  nodeIdSlug(obj2, display, idHint) {
+    const fixed = fixedNameConstraint(obj2);
+    if (fixed && obj2.rm_type_name === "SECTION") {
+      return normalizeWebTemplateId(fixed);
+    }
+    if (this.renamedArchetypeRootId === "archetype" && this.inlinedRootUsesArchetypeId(obj2)) {
+      const archRef = archetypeRefOf(obj2);
+      if (archRef) {
+        const concept = archetypeConceptFromHrid(archRef);
+        if (concept) return normalizeWebTemplateId(concept);
+      }
+    }
+    if (this.elementNameId === "name_constraint" && obj2.rm_type_name === "ELEMENT") {
+      const fromName = this.elementNameConstraintSlug(
+        obj2
+      );
+      if (fromName) return fromName;
+    }
+    return normalizeWebTemplateId(this.idText(obj2, display, idHint));
+  }
+  /**
+   * Template inlined an archetype root but overrode the root term (at0000), so
+   * Ferro/EHRbase keep the archetype concept as the Web Template id.
+   */
+  inlinedRootUsesArchetypeId(obj2) {
+    const fixed = fixedNameConstraint(obj2);
+    if (fixed) return true;
+    const archRef = archetypeRefOf(obj2);
+    if (!archRef) return false;
+    const meta4 = obj2;
+    const local = meta4[COMPONENT_TERM_DEFINITIONS_KEY] ?? meta4.opt_component_term_definitions;
+    const localAt0000 = local?.at0000?.text;
+    if (!localAt0000) return false;
+    for (const lang of this.fallbackLanguages()) {
+      const archAt0000 = this.archetypeTerms[archRef]?.[lang]?.at0000?.text ?? this.archetypeTerms[archRef]?.[this.originalLang]?.at0000?.text;
+      if (archAt0000 && localAt0000 !== archAt0000) return true;
+    }
+    return false;
+  }
+  elementNameConstraintSlug(element) {
+    const codes = firstNameDefiningCodes(element);
+    if (!codes || codes.length < 2) return void 0;
+    const first2 = codes[0];
+    const scope = termScopeOf(element);
+    for (const lang of this.fallbackLanguages()) {
+      const text = this.textForCode(first2, lang, scope)?.text;
+      if (text) return normalizeWebTemplateId(text);
+    }
+    return void 0;
   }
   bags(lang) {
     const cached3 = this.bagCache.get(lang);
@@ -111456,7 +112182,7 @@ var WebTemplateBuilder = class {
     const display = this.displayTerm(obj2);
     const maps = this.localizedMaps(obj2);
     return {
-      id: normalizeWebTemplateId(this.idText(obj2, display, idHint)),
+      id: this.nodeIdSlug(obj2, display, idHint),
       name: display.text ?? (nameFallback ? idHint : void 0),
       localizedName: display.text,
       localizedNames: maps.names,
@@ -111585,7 +112311,7 @@ var WebTemplateBuilder = class {
     if (!opt.definition) {
       throw new Error("Operational template has no definition");
     }
-    const rootId = templateRootId(templateId);
+    const rootId = this.resolveTreeRootId(templateId, opt);
     const isComposition = opt.definition.rm_type_name === "COMPOSITION";
     const tree = this.buildFromComplex(
       opt.definition,
@@ -111799,6 +112525,9 @@ var WebTemplateBuilder = class {
     for (const attr of obj2.attributes ?? []) {
       const attrName2 = attr.rm_attribute_name;
       if (!attrName2) continue;
+      if (this.omitSectionNameNode && rmType === "SECTION" && attrName2 === "name" && fixedNameConstraint(obj2)) {
+        continue;
+      }
       if (isCompositionRoot && this.includeContext && CONTEXT_ATTRS.has(attrName2)) {
         const ctxNode = this.buildCompositionAttributeNode(attr);
         if (ctxNode) node.children.push(ctxNode);
@@ -112157,7 +112886,7 @@ var WebTemplateBuilder = class {
    * nodes are added as `inContext` nodes.
    */
   orderCompositionChildren(children) {
-    const byId = (id4) => children.find((c9) => c9.id === id4 && (c9.inContext || c9.rmType === "EVENT_CONTEXT"));
+    const byId = (id4) => children.find((c9) => c9.id === id4);
     const category = byId("category") ?? rmContextNode("category", "DV_CODED_TEXT", "/category");
     const context = children.find((c9) => c9.rmType === "EVENT_CONTEXT" && c9.aqlPath === "/context") ?? this.buildEventContextNode(void 0, { min: 0, max: 1 });
     const special = /* @__PURE__ */ new Set([category, context]);
@@ -112183,7 +112912,16 @@ var WebTemplateBuilder = class {
     }
     if (name2 === "category") {
       const rmType = child?.rm_type_name ?? "DV_CODED_TEXT";
-      return rmContextNode("category", rmType, "/category", this.buildInputs(rmType, child));
+      const { min: min2, max: max3 } = attributeExistenceBounds(attr);
+      return this.decorateWithAnnotations({
+        id: "category",
+        name: "Category",
+        rmType,
+        min: min2,
+        max: max3,
+        aqlPath: "/category",
+        inputs: this.buildInputs(rmType, child)
+      });
     }
     return void 0;
   }
@@ -112224,7 +112962,7 @@ function buildWebTemplate(opt, options) {
   return new WebTemplateBuilder(options).build(opt);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/value_extract.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/value_extract.ts
 function rmTypeName2(obj2) {
   if (obj2 == null || typeof obj2 !== "object") return "";
   const record = obj2;
@@ -112261,7 +112999,7 @@ function extractValueFields(rmValue, inputs2) {
   return Object.keys(out).length ? out : fields;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/rm_attribute_codec.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/rm_attribute_codec.ts
 function newFlatTree() {
   return { fields: {}, children: /* @__PURE__ */ new Map() };
 }
@@ -112820,7 +113558,7 @@ function encodeRmObject(obj2, declared, param, options = {}) {
     if (skip.has(name2)) continue;
     const v5 = rmProp2(obj2, name2);
     if (isEmpty(v5)) continue;
-    if (name2 === "name" && options.templateNames && nameMatches(v5, options.templateNames)) continue;
+    if (name2 === "name" && (options.omitLocatableName || options.templateNames && nameMatches(v5, options.templateNames))) continue;
     if (covered.has(name2) && rmSubset(plainObj[name2], decoded[name2])) continue;
     encodeChild(tree, `_${flatAttributeName(meta4)}`, v5, meta4.typeName, base2, ownParam);
   }
@@ -113005,7 +113743,7 @@ function isRmAttributeSegmentOfAny(rmType, segment) {
   return hasRmType(base2) && subtypesOf(base2).some((t12) => isRmAttributeSegment(t12, segment));
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/flavor.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/flavor.ts
 function rmTypeOf(obj2) {
   if (obj2 == null || typeof obj2 !== "object") return "";
   const record = obj2;
@@ -113061,9 +113799,8 @@ function inputContextFields(instance) {
     const setting = rmProp2(ctx, "setting");
     if (setting != null) {
       const f8 = extractFields("DV_CODED_TEXT", setting);
-      if (f8.value != null) out["ctx/setting"] = f8.value;
-      if (f8.code != null) out["ctx/setting|code"] = f8.code;
-      if (f8.terminology != null) out["ctx/setting|terminology"] = f8.terminology;
+      if (f8.code != null) out["ctx/setting"] = f8.code;
+      else if (f8.value != null) out["ctx/setting"] = f8.value;
     }
     const hcf = rmProp2(ctx, "health_care_facility");
     if (hcf != null) {
@@ -113155,7 +113892,7 @@ function eventTimes(obs) {
   );
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/flat_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/flat_serializer.ts
 function allValueFields(data, node) {
   const declared = extractValueFields(data, node.inputs);
   for (const [suffix, value] of Object.entries(extractValueFields(data))) {
@@ -113196,14 +113933,15 @@ function templateAttributes(node, wt2) {
 var FlatSerializer = class {
   constructor(webTemplate, options = {}) {
     this.webTemplate = webTemplate;
-    this.options = options;
-    this.rootId = templateRootId(webTemplate.templateId);
+    this.options = mergeFlatSerializerOptions(options);
+    this.rootId = flatRootId(webTemplate);
   }
   out = {};
   rootId;
   instance;
   policy;
   covered = /* @__PURE__ */ new WeakMap();
+  options;
   serialize(instance) {
     this.instance = instance;
     const input = this.options.flavor === "input";
@@ -113306,14 +114044,19 @@ var FlatSerializer = class {
     }
     const skip = this.policy && node.rmType === "EVENT_CONTEXT" ? /* @__PURE__ */ new Set([...covered, ...INPUT_CTX_CONTEXT]) : covered;
     const type = rmTypeOf(data) || node.rmType;
-    const tree = encodeRmObject(data, type, void 0, { skip, templateNames: templateNames(node) });
+    const tree = encodeRmObject(data, type, void 0, {
+      skip,
+      templateNames: templateNames(node),
+      omitLocatableName: this.options.locatableName === "omit"
+    });
     emitFlatTree(base2, tree, this.out);
   }
   /** `_uid`, `_link:i`, `_feeder_audit`, `_name` of the ELEMENT of a leaf. */
   writeElementAttributes(node, base2, element) {
     const tree = encodeRmObject(element, "ELEMENT", void 0, {
       skip: ELEMENT_WRITTEN,
-      templateNames: templateNames(node)
+      templateNames: templateNames(node),
+      omitLocatableName: this.options.locatableName === "omit"
     });
     emitFlatTree(base2, { fields: {}, children: tree.children }, this.out);
   }
@@ -113340,7 +114083,7 @@ function dataValueType(data) {
   return bound ? `DV_INTERVAL<${bound}>` : type;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/rm_instance_builder.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/rm_instance_builder.ts
 function newRmObject(rmType, nodeId, nameValue) {
   if (hasRmType(rmType) && !isSubtypeOf(rmType, "LOCATABLE")) {
     return { _type: rmType };
@@ -113494,12 +114237,12 @@ function ensureAtAqlPath(root, aqlPath, rmType, lastNodeId, occurrences, rmTypes
   return current;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/value_build.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/value_build.ts
 function buildRmValue(rmType, fields, context) {
   return buildDvValue(rmType, fields, context);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/flat_context_defaults.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/flat_context_defaults.ts
 var KNOWN_CTX_FIELDS = /* @__PURE__ */ new Set([
   "language",
   "territory",
@@ -113979,7 +114722,7 @@ function reportMissingActionState(comp, issues) {
   visit2(comp.content, "/content");
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/flat_deserializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/flat_deserializer.ts
 function parseSegments(basePath2) {
   return basePath2.split("/").map((seg) => {
     const m5 = /^(.*?)(?::(\d+))?$/.exec(seg);
@@ -114021,9 +114764,9 @@ var FlatDeserializer = class {
   constructor(webTemplate, options = {}) {
     this.webTemplate = webTemplate;
     this.options = options;
-    this.rootId = templateRootId(webTemplate.templateId);
+    this.rootId = flatRootId(webTemplate);
     const tree = webTemplate.tree;
-    this.roots.add(this.rootId);
+    for (const root of acceptedFlatRoots(webTemplate)) this.roots.add(root);
     if (tree.id) this.roots.add(tree.id);
     for (const name2 of [tree.name, ...Object.values(tree.localizedNames ?? {})]) {
       if (name2) this.roots.add(normalizeWebTemplateId(name2));
@@ -114490,7 +115233,7 @@ function deserializeFromFlatWithIssues(flat, webTemplate, options) {
   };
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/structured_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/structured_serializer.ts
 function flatToStructured(flat) {
   const result = {};
   const ctx = {};
@@ -114575,7 +115318,7 @@ function serializeToStructuredJson(instance, webTemplate, options) {
   return new StructuredSerializer(webTemplate, options).serializeJson(instance);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/structured_to_flat.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/structured_to_flat.ts
 function isPlainObject2(v5) {
   return v5 != null && typeof v5 === "object" && !Array.isArray(v5);
 }
@@ -114694,7 +115437,7 @@ function structuredToFlat(structured, webTemplate) {
   return new StructuredToFlatConverter(webTemplate).convert(structured);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/structured_deserializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/structured_deserializer.ts
 function deserializeFromStructuredWithIssues(structured, webTemplate, options) {
   return deserializeFromFlatWithIssues(
     structuredToFlat(structured, webTemplate),
@@ -114703,7 +115446,1699 @@ function deserializeFromStructuredWithIssues(structured, webTemplate, options) {
   );
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/web_template_parser.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/json_source_index.ts
+function escapeJsonPointerSegment(segment) {
+  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+function rmPathToJsonPointer(rmPath) {
+  const trimmed = rmPath.replace(/\/+$/, "");
+  if (!trimmed || trimmed === "/") {
+    return "";
+  }
+  const segments = [];
+  for (const part of trimmed.split("/").filter(Boolean)) {
+    const match = part.match(/^([^[]+)(?:\[(\d+)\])?$/);
+    if (!match) {
+      segments.push(escapeJsonPointerSegment(part));
+      continue;
+    }
+    const [, name2, index] = match;
+    segments.push(escapeJsonPointerSegment(name2));
+    if (index !== void 0) {
+      segments.push(index);
+    }
+  }
+  return segments.length ? `/${segments.join("/")}` : "";
+}
+function buildJsonSourceIndex(source) {
+  const parser7 = new JsonSourceParser(source);
+  return parser7.parse();
+}
+function lookupSourceLocation(index, jsonPointer) {
+  return index.get(jsonPointer) ?? index.get(jsonPointer.replace(/\/+$/, ""));
+}
+var JsonSourceParser = class {
+  constructor(source) {
+    this.source = source;
+  }
+  pos = 0;
+  line = 1;
+  column = 1;
+  index = /* @__PURE__ */ new Map();
+  parse() {
+    this.skipWhitespace();
+    if (this.pos >= this.source.length) {
+      throw new SyntaxError("Unexpected end of JSON input");
+    }
+    this.parseValue("");
+    this.skipWhitespace();
+    if (this.pos < this.source.length) {
+      throw new SyntaxError("Unexpected non-whitespace character after JSON value");
+    }
+    return this.index;
+  }
+  parseValue(pointer) {
+    this.skipWhitespace();
+    this.record(pointer);
+    const ch = this.peek();
+    if (ch === "{") {
+      this.parseObject(pointer);
+    } else if (ch === "[") {
+      this.parseArray(pointer);
+    } else if (ch === '"') {
+      this.parseString();
+    } else if (ch === "t" || ch === "f" || ch === "n" || ch === "-" || ch >= "0" && ch <= "9") {
+      this.parsePrimitive();
+    } else {
+      throw new SyntaxError(`Unexpected token at line ${this.line}, column ${this.column}`);
+    }
+  }
+  parseObject(pointer) {
+    this.consume("{");
+    this.skipWhitespace();
+    if (this.peek() === "}") {
+      this.consume("}");
+      return;
+    }
+    while (true) {
+      this.skipWhitespace();
+      const key = this.parseString();
+      this.skipWhitespace();
+      this.consume(":");
+      const childPointer = pointer === "" ? `/${escapeJsonPointerSegment(key)}` : `${pointer}/${escapeJsonPointerSegment(key)}`;
+      this.parseValue(childPointer);
+      this.skipWhitespace();
+      if (this.peek() === ",") {
+        this.consume(",");
+        continue;
+      }
+      break;
+    }
+    this.consume("}");
+  }
+  parseArray(pointer) {
+    this.consume("[");
+    this.skipWhitespace();
+    if (this.peek() === "]") {
+      this.consume("]");
+      return;
+    }
+    let index = 0;
+    while (true) {
+      this.parseValue(`${pointer}/${index}`);
+      index++;
+      this.skipWhitespace();
+      if (this.peek() === ",") {
+        this.consume(",");
+        this.skipWhitespace();
+        continue;
+      }
+      break;
+    }
+    this.consume("]");
+  }
+  parseString() {
+    this.consume('"');
+    let value = "";
+    while (this.pos < this.source.length) {
+      const ch = this.source[this.pos];
+      this.advance();
+      if (ch === '"') {
+        return value;
+      }
+      if (ch === "\\") {
+        if (this.pos >= this.source.length) {
+          throw new SyntaxError("Unterminated string escape");
+        }
+        const escaped = this.source[this.pos];
+        this.advance();
+        switch (escaped) {
+          case '"':
+          case "\\":
+          case "/":
+            value += escaped;
+            break;
+          case "b":
+            value += "\b";
+            break;
+          case "f":
+            value += "\f";
+            break;
+          case "n":
+            value += "\n";
+            break;
+          case "r":
+            value += "\r";
+            break;
+          case "t":
+            value += "	";
+            break;
+          case "u": {
+            const hex = this.source.slice(this.pos, this.pos + 4);
+            if (!/^[0-9a-fA-F]{4}$/.test(hex)) {
+              throw new SyntaxError("Invalid Unicode escape");
+            }
+            this.pos += 4;
+            this.column += 4;
+            value += String.fromCharCode(parseInt(hex, 16));
+            break;
+          }
+          default:
+            throw new SyntaxError(`Invalid escape sequence: \\${escaped}`);
+        }
+        continue;
+      }
+      value += ch;
+    }
+    throw new SyntaxError("Unterminated string");
+  }
+  parsePrimitive() {
+    const start = this.pos;
+    if (this.peek() === "t") {
+      this.expectLiteral("true");
+      return;
+    }
+    if (this.peek() === "f") {
+      this.expectLiteral("false");
+      return;
+    }
+    if (this.peek() === "n") {
+      this.expectLiteral("null");
+      return;
+    }
+    if (this.peek() === "-") {
+      this.advance();
+    }
+    while (this.pos < this.source.length) {
+      const ch = this.source[this.pos];
+      if (ch >= "0" && ch <= "9" || ch === "." || ch === "e" || ch === "E" || ch === "+" || ch === "-") {
+        this.advance();
+        continue;
+      }
+      break;
+    }
+    const literal2 = this.source.slice(start, this.pos);
+    if (!literal2 || literal2 === "-" || !isFinite(Number(literal2))) {
+      throw new SyntaxError(`Invalid number at line ${this.line}, column ${this.column}`);
+    }
+  }
+  record(pointer) {
+    this.index.set(pointer, {
+      jsonPointer: pointer,
+      sourceLine: this.line,
+      sourceColumn: this.column
+    });
+  }
+  expectLiteral(literal2) {
+    if (!this.source.startsWith(literal2, this.pos)) {
+      throw new SyntaxError(`Expected '${literal2}' at line ${this.line}, column ${this.column}`);
+    }
+    for (let i12 = 0; i12 < literal2.length; i12++) {
+      this.advance();
+    }
+  }
+  skipWhitespace() {
+    while (this.pos < this.source.length) {
+      const ch = this.source[this.pos];
+      if (ch === " " || ch === "	" || ch === "\n" || ch === "\r") {
+        this.advance();
+        continue;
+      }
+      break;
+    }
+  }
+  peek() {
+    return this.source[this.pos] ?? "";
+  }
+  consume(expected) {
+    if (this.peek() !== expected) {
+      throw new SyntaxError(
+        `Expected '${expected}' at line ${this.line}, column ${this.column}`
+      );
+    }
+    this.advance();
+  }
+  advance() {
+    const ch = this.source[this.pos];
+    if (ch === void 0) {
+      return;
+    }
+    this.pos++;
+    if (ch === "\n") {
+      this.line++;
+      this.column = 1;
+    } else {
+      this.column++;
+    }
+  }
+};
+function lookupJsonSourceLocation(index, jsonPointer) {
+  return lookupSourceLocation(index, jsonPointer);
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/source_location.ts
+function detectJsonSourceFormat(jsonSource) {
+  try {
+    const parsed = JSON.parse(jsonSource);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return "canonical-json";
+    }
+    const rec = parsed;
+    if ("_type" in rec || "archetype_node_id" in rec) {
+      return "canonical-json";
+    }
+    const keys = Object.keys(rec);
+    if (keys.some((k5) => k5.startsWith("ctx/") || k5.includes("/"))) {
+      return "flat-json";
+    }
+    const nonCtx = keys.filter((k5) => k5 !== "ctx");
+    if (nonCtx.length === 1 && rec[nonCtx[0]] != null && typeof rec[nonCtx[0]] === "object") {
+      return "structured-json";
+    }
+  } catch {
+  }
+  return "canonical-json";
+}
+function parseRmPath(rmPath) {
+  const trimmed = rmPath.replace(/^\/+|\/+$/g, "");
+  if (!trimmed) return [];
+  const steps = [];
+  for (const raw of trimmed.split("/")) {
+    if (!raw) continue;
+    const m5 = /^([^[]+)(?:\[([^\]]+)\])?$/.exec(raw);
+    if (!m5) {
+      steps.push({ attr: raw });
+      continue;
+    }
+    const attr = m5[1];
+    const bracket2 = m5[2];
+    if (bracket2 === void 0) {
+      steps.push({ attr });
+    } else if (/^\d+$/.test(bracket2)) {
+      steps.push({ attr, index: parseInt(bracket2, 10) });
+    } else {
+      steps.push({ attr, nodePredicate: bracket2 });
+    }
+  }
+  return steps;
+}
+function readProp(obj2, key) {
+  if (obj2 == null || typeof obj2 !== "object") return void 0;
+  const rec = obj2;
+  if (key in rec) return rec[key];
+  let proto = Object.getPrototypeOf(obj2);
+  while (proto && proto !== Object.prototype) {
+    const desc = Object.getOwnPropertyDescriptor(proto, key);
+    if (desc?.get) {
+      try {
+        return desc.get.call(obj2);
+      } catch {
+        return void 0;
+      }
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+  return void 0;
+}
+function readStringProp(obj2, key) {
+  const v5 = readProp(obj2, key);
+  if (v5 == null) return void 0;
+  if (typeof v5 === "string") return v5;
+  if (typeof v5 === "object" && "value" in v5) {
+    const inner = v5.value;
+    return inner != null ? String(inner) : void 0;
+  }
+  return String(v5);
+}
+function readRmType(obj2) {
+  if (obj2 == null || typeof obj2 !== "object") return void 0;
+  const rec = obj2;
+  if (typeof rec._type === "string" && rec._type) return rec._type;
+  const ctor = obj2.constructor?.name;
+  if (ctor && ctor !== "Object" && ctor !== "Array") return ctor;
+  return void 0;
+}
+function walkRmPath(rmInstance, rmPath) {
+  const steps = parseRmPath(rmPath);
+  const canonicalPointerSegments = [];
+  const aqlSteps = [];
+  const leafAttrTrail = [];
+  let current = rmInstance;
+  let lastObject = current && typeof current === "object" && !Array.isArray(current) ? current : void 0;
+  let inLeafValue = false;
+  for (let i12 = 0; i12 < steps.length; i12++) {
+    const step = steps[i12];
+    if (current == null || typeof current !== "object") {
+      return {
+        canonicalPointerSegments,
+        aqlSteps,
+        leafAttrTrail: [...leafAttrTrail, ...steps.slice(i12).map((s8) => s8.attr)],
+        resolvedCompletely: false,
+        lastObject,
+        missingAttribute: step.attr
+      };
+    }
+    const propVal = readProp(current, step.attr);
+    canonicalPointerSegments.push(escapeJsonPointerSegment(step.attr));
+    if (propVal === void 0 || propVal === null) {
+      if (inLeafValue || step.attr === "value" || step.attr === "null_flavour") {
+        leafAttrTrail.push(...steps.slice(i12).map((s8) => s8.attr));
+      } else {
+        aqlSteps.push({ attr: step.attr, occurrence: 0, value: void 0 });
+      }
+      return {
+        canonicalPointerSegments,
+        aqlSteps,
+        leafAttrTrail,
+        resolvedCompletely: false,
+        lastObject,
+        missingAttribute: step.attr
+      };
+    }
+    let next = propVal;
+    let occurrence = 0;
+    if (Array.isArray(propVal)) {
+      let idx = step.index;
+      if (idx === void 0 && step.nodePredicate) {
+        idx = propVal.findIndex(
+          (item) => nodeIdsMatch(readStringProp(item, "archetype_node_id"), step.nodePredicate)
+        );
+      }
+      if (idx === void 0 || idx < 0 || idx >= propVal.length) {
+        return {
+          canonicalPointerSegments,
+          aqlSteps,
+          leafAttrTrail,
+          resolvedCompletely: false,
+          lastObject,
+          missingAttribute: step.attr
+        };
+      }
+      canonicalPointerSegments.push(String(idx));
+      next = propVal[idx];
+      const nodeId2 = readStringProp(next, "archetype_node_id");
+      const nameValue2 = readStringProp(readProp(next, "name"), "value");
+      if (nodeId2) {
+        let count2 = 0;
+        for (let j5 = 0; j5 < idx; j5++) {
+          const sib = propVal[j5];
+          const sibId = readStringProp(sib, "archetype_node_id");
+          const sibName = readStringProp(readProp(sib, "name"), "value");
+          if (nodeIdsMatch(sibId, nodeId2) && (!nameValue2 || !sibName || sibName === nameValue2)) {
+            count2++;
+          }
+        }
+        occurrence = count2;
+      } else {
+        occurrence = idx;
+      }
+    }
+    const nextRmType = readRmType(next);
+    const nodeId = readStringProp(next, "archetype_node_id");
+    const nameValue = readStringProp(readProp(next, "name"), "value");
+    if (inLeafValue) {
+      leafAttrTrail.push(step.attr);
+    } else if (step.attr === "value" && lastObject && readRmType(lastObject) === "ELEMENT") {
+      inLeafValue = true;
+      leafAttrTrail.push(step.attr);
+    } else if (step.attr === "null_flavour") {
+      inLeafValue = true;
+      leafAttrTrail.push(step.attr);
+    } else {
+      aqlSteps.push({
+        attr: step.attr,
+        nodeId,
+        nameValue,
+        occurrence,
+        rmType: nextRmType,
+        value: next
+      });
+    }
+    current = next;
+    if (next && typeof next === "object" && !Array.isArray(next)) {
+      lastObject = next;
+    }
+  }
+  return {
+    canonicalPointerSegments,
+    aqlSteps,
+    leafAttrTrail,
+    resolvedCompletely: true,
+    lastObject
+  };
+}
+function normalizeAqlForMatch(aqlPath) {
+  return aqlPath.trim().replace(/^\[[^\]]+\]/, "").replace(/\s+and\s+name\/value\s*=\s*'[^']*'/gi, "").replace(/\s+and\s+name\/value\s*=\s*"[^"]*"/gi, "").replace(/,'[^']*'/g, "").replace(/,"[^"]*"/g, "");
+}
+function indexWebTemplateEntries(webTemplate) {
+  const entries = [];
+  const walk4 = (node, chain) => {
+    const nextChain = [...chain, node];
+    const aql = node.aqlPath?.trim() ?? "";
+    if (aql && aql !== "/") {
+      entries.push({
+        node,
+        chain: nextChain,
+        aqlSegs: aqlPathSegments(aql),
+        normalizedAql: normalizeAqlForMatch(aql)
+      });
+    }
+    for (const child of node.children ?? []) {
+      walk4(child, nextChain);
+    }
+  };
+  for (const child of webTemplate.tree.children ?? []) {
+    walk4(child, []);
+  }
+  return entries;
+}
+function aqlStepMatchesWtSeg(rmStep, wtSeg) {
+  if (rmStep.attr !== wtSeg.attr) return false;
+  if (wtSeg.nodeId && rmStep.nodeId && !nodeIdsMatch(rmStep.nodeId, wtSeg.nodeId)) {
+    return false;
+  }
+  if (wtSeg.nameValue && rmStep.nameValue && wtSeg.nameValue !== rmStep.nameValue) {
+    return false;
+  }
+  return true;
+}
+function matchWtEntryForWalk(entries, aqlSteps, constraintNodeId3) {
+  if (!aqlSteps.length && !constraintNodeId3) return { occurrences: [] };
+  let bestExact;
+  let bestExactScore = -1;
+  for (const entry of entries) {
+    if (entry.aqlSegs.length !== aqlSteps.length) continue;
+    let ok = true;
+    let score = 0;
+    for (let i12 = 0; i12 < aqlSteps.length; i12++) {
+      if (!aqlStepMatchesWtSeg(aqlSteps[i12], entry.aqlSegs[i12])) {
+        ok = false;
+        break;
+      }
+      if (entry.aqlSegs[i12].nameValue && aqlSteps[i12].nameValue === entry.aqlSegs[i12].nameValue) {
+        score += 2;
+      }
+      if (entry.aqlSegs[i12].nodeId && aqlSteps[i12].nodeId) {
+        score += 1;
+      }
+    }
+    if (ok && score > bestExactScore) {
+      bestExact = entry;
+      bestExactScore = score;
+    }
+  }
+  if (constraintNodeId3) {
+    for (const entry of entries) {
+      if (entry.aqlSegs.length !== aqlSteps.length + 1) continue;
+      let prefixOk = true;
+      for (let i12 = 0; i12 < aqlSteps.length; i12++) {
+        if (!aqlStepMatchesWtSeg(aqlSteps[i12], entry.aqlSegs[i12])) {
+          prefixOk = false;
+          break;
+        }
+      }
+      if (!prefixOk) continue;
+      const lastSeg = entry.aqlSegs[entry.aqlSegs.length - 1];
+      if (lastSeg.nodeId && nodeIdsMatch(lastSeg.nodeId, constraintNodeId3) || entry.node.nodeId && nodeIdsMatch(entry.node.nodeId, constraintNodeId3)) {
+        return {
+          entry,
+          occurrences: computeChainOccurrences(entry.chain, aqlSteps),
+          isMissingChild: true
+        };
+      }
+    }
+    if (aqlSteps.length > 0 && aqlSteps[aqlSteps.length - 1].value === void 0) {
+      const parentSteps = aqlSteps.slice(0, -1);
+      const missingAttr = aqlSteps[aqlSteps.length - 1].attr;
+      for (const entry of entries) {
+        if (entry.aqlSegs.length !== parentSteps.length + 1) continue;
+        let prefixOk = true;
+        for (let i12 = 0; i12 < parentSteps.length; i12++) {
+          if (!aqlStepMatchesWtSeg(parentSteps[i12], entry.aqlSegs[i12])) {
+            prefixOk = false;
+            break;
+          }
+        }
+        if (!prefixOk) continue;
+        const lastSeg = entry.aqlSegs[entry.aqlSegs.length - 1];
+        if (lastSeg.attr === missingAttr && (lastSeg.nodeId && nodeIdsMatch(lastSeg.nodeId, constraintNodeId3) || entry.node.nodeId && nodeIdsMatch(entry.node.nodeId, constraintNodeId3))) {
+          return {
+            entry,
+            occurrences: computeChainOccurrences(entry.chain, parentSteps),
+            isMissingChild: true
+          };
+        }
+      }
+    }
+  }
+  if (bestExact) {
+    return {
+      entry: bestExact,
+      occurrences: computeChainOccurrences(bestExact.chain, aqlSteps)
+    };
+  }
+  let bestPrefix;
+  let bestLen = 0;
+  for (const entry of entries) {
+    const segLen = entry.aqlSegs.length;
+    if (segLen > aqlSteps.length || segLen <= bestLen) continue;
+    let ok = true;
+    for (let i12 = 0; i12 < segLen; i12++) {
+      if (!aqlStepMatchesWtSeg(aqlSteps[i12], entry.aqlSegs[i12])) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) {
+      bestPrefix = entry;
+      bestLen = segLen;
+    }
+  }
+  if (bestPrefix) {
+    return {
+      entry: bestPrefix,
+      occurrences: computeChainOccurrences(bestPrefix.chain, aqlSteps)
+    };
+  }
+  return { occurrences: [] };
+}
+function computeChainOccurrences(chain, aqlSteps) {
+  return chain.map((wtNode) => {
+    const len = aqlPathSegments(wtNode.aqlPath ?? "").length;
+    if (len > 0 && len <= aqlSteps.length) {
+      return aqlSteps[len - 1].occurrence;
+    }
+    return 0;
+  });
+}
+function leafTrailToFlatSuffix(trail, rmType) {
+  const attrs = trail[0] === "value" ? trail.slice(1) : trail;
+  if (!attrs.length) return void 0;
+  const joined = attrs.join("/");
+  if (joined === "units") return "unit";
+  if (joined === "magnitude") return "magnitude";
+  if (joined === "precision") return "precision";
+  if (joined === "magnitude_status") return "magnitude_status";
+  if (joined === "defining_code/code_string" || joined === "defining_code" || joined === "code_string") {
+    return "code";
+  }
+  if (joined === "defining_code/terminology_id/value" || joined === "defining_code/terminology_id" || joined === "terminology_id") {
+    return "terminology";
+  }
+  if (joined === "value") {
+    if (rmType) {
+      const fm = getFieldMap(resolveDvType(rmType));
+      if (fm?.fields.some((f8) => f8.suffix === "value")) return "value";
+    }
+    return "";
+  }
+  if (joined === "numerator") return "numerator";
+  if (joined === "denominator") return "denominator";
+  if (joined === "type") return "type";
+  if (joined === "symbol/defining_code/code_string" || joined === "symbol") return "code";
+  if (joined === "symbol/value") return "value";
+  if (joined === "id") return "id";
+  if (joined === "issuer") return "issuer";
+  if (joined === "assigner") return "assigner";
+  return attrs[attrs.length - 1];
+}
+function parseFlatSourceKeys(jsonSource, index) {
+  const out = [];
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonSource);
+  } catch {
+    return out;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return out;
+  for (const key of Object.keys(parsed)) {
+    const pointer = `/${escapeJsonPointerSegment(key)}`;
+    const loc = index.get(pointer);
+    if (!loc) continue;
+    const pipeIdx = key.indexOf("|");
+    const base2 = pipeIdx === -1 ? key : key.slice(0, pipeIdx);
+    const suffix = pipeIdx === -1 ? "" : key.slice(pipeIdx + 1);
+    const rawSegs = base2.split("/");
+    const root = rawSegs[0] ?? "";
+    const segments = rawSegs.slice(1).map((s8) => {
+      const m5 = /^(.*?)(?::(\d+))?$/.exec(s8);
+      return { id: m5[1], occ: m5[2] ? parseInt(m5[2], 10) : 0 };
+    });
+    out.push({ rawKey: key, root, segments, suffix, location: loc });
+  }
+  return out;
+}
+function formatFlatChainPath(rootId, chain, occurrences, suffix) {
+  const segs = chain.map((node, i12) => {
+    const occ = occurrences[i12] ?? 0;
+    return occ > 0 ? `${node.id}:${occ}` : node.id;
+  });
+  const base2 = segs.length ? `${rootId}/${segs.join("/")}` : rootId;
+  return suffix ? `${base2}|${suffix}` : base2;
+}
+var CONTEXT_RM_TO_FLAT_KEYS = {
+  language: ["ctx/language", "language|code", "language"],
+  territory: ["ctx/territory", "territory|code", "territory"],
+  category: ["ctx/category", "category|code", "category|value", "category"],
+  composer: ["ctx/composer_name", "ctx/composer_id", "ctx/composer_self", "composer|name", "composer|id"],
+  "context/start_time": ["ctx/time", "context/start_time"],
+  "context/end_time": ["ctx/end_time", "context/end_time"],
+  "context/setting": ["ctx/setting", "context/setting|code", "context/setting|value"],
+  "context/location": ["ctx/location", "context/location"],
+  "context/health_care_facility": [
+    "ctx/health_care_facility|name",
+    "ctx/health_care_facility|id",
+    "context/health_care_facility|name"
+  ]
+};
+function contextFlatCandidates(rmPath, rootId) {
+  const norm = rmPath.replace(/^\/+|\/+$/g, "").replace(/\[\d+\]/g, "");
+  for (const [prefix, flatKeys] of Object.entries(CONTEXT_RM_TO_FLAT_KEYS)) {
+    if (norm === prefix || norm.startsWith(`${prefix}/`)) {
+      const expanded = flatKeys.map(
+        (k5) => k5.startsWith("ctx/") ? k5 : `${rootId}/${k5}`
+      );
+      return { candidates: expanded, primary: expanded[0] };
+    }
+  }
+  return void 0;
+}
+function lookupFlatKeyForChain(parsedKeys, roots, chain, occurrences, suffix) {
+  const matchingChain = parsedKeys.filter((k5) => {
+    if (!roots.has(k5.root)) return false;
+    if (k5.segments.length !== chain.length) return false;
+    for (let i12 = 0; i12 < chain.length; i12++) {
+      if (k5.segments[i12].id !== chain[i12].id) return false;
+      if (k5.segments[i12].occ !== (occurrences[i12] ?? 0)) return false;
+    }
+    return true;
+  });
+  if (matchingChain.length) {
+    if (suffix !== void 0) {
+      const exactSuffix = matchingChain.find((k5) => k5.suffix === suffix) ?? (suffix === "value" ? matchingChain.find((k5) => k5.suffix === "") : suffix === "" ? matchingChain.find((k5) => k5.suffix === "value") : void 0);
+      if (exactSuffix) return { key: exactSuffix, exact: true };
+      return { key: matchingChain[0], exact: false };
+    }
+    return { key: matchingChain[0], exact: true };
+  }
+  for (let prefixLen = chain.length; prefixLen >= 1; prefixLen--) {
+    const ancestorKey = parsedKeys.find((k5) => {
+      if (!roots.has(k5.root)) return false;
+      if (k5.segments.length < prefixLen) return false;
+      for (let i12 = 0; i12 < prefixLen; i12++) {
+        if (k5.segments[i12].id !== chain[i12].id) return false;
+        if (k5.segments[i12].occ !== (occurrences[i12] ?? 0)) return false;
+      }
+      return true;
+    });
+    if (ancestorKey) return { key: ancestorKey, exact: false };
+  }
+  return void 0;
+}
+function lookupStructuredPointerForChain(index, roots, chain, occurrences, suffix) {
+  for (const root of roots) {
+    const rootPtr = `/${escapeJsonPointerSegment(root)}`;
+    if (!index.has(rootPtr)) continue;
+    let cur = rootPtr;
+    let matchedDepth = 0;
+    for (let i12 = 0; i12 < chain.length; i12++) {
+      const seg = escapeJsonPointerSegment(chain[i12].id);
+      const occ = occurrences[i12] ?? 0;
+      const arrPtr = `${cur}/${seg}/${occ}`;
+      const objPtr = `${cur}/${seg}`;
+      if (index.has(arrPtr)) {
+        cur = arrPtr;
+        matchedDepth = i12 + 1;
+      } else if (occ === 0 && index.has(objPtr)) {
+        cur = objPtr;
+        matchedDepth = i12 + 1;
+      } else {
+        break;
+      }
+    }
+    const fullTarget = formatFlatChainPath(root, chain, occurrences, suffix);
+    if (matchedDepth === chain.length) {
+      if (suffix) {
+        const leafPtr = `${cur}/${escapeJsonPointerSegment(`|${suffix}`)}`;
+        const leafLoc = index.get(leafPtr);
+        if (leafLoc) {
+          return { location: leafLoc, exact: true, targetPath: fullTarget };
+        }
+        const curLoc2 = index.get(cur);
+        if (curLoc2) {
+          return { location: curLoc2, exact: false, targetPath: fullTarget };
+        }
+      }
+      const curLoc = index.get(cur);
+      if (curLoc) {
+        return { location: curLoc, exact: true, targetPath: fullTarget };
+      }
+    }
+    const ancLoc = index.get(cur);
+    if (ancLoc) {
+      return { location: ancLoc, exact: false, targetPath: fullTarget };
+    }
+  }
+  return void 0;
+}
+function lookupCanonicalWithAncestor(index, segments) {
+  for (let len = segments.length; len >= 0; len--) {
+    const ptr = len === 0 ? "" : `/${segments.slice(0, len).join("/")}`;
+    const loc = lookupJsonSourceLocation(index, ptr);
+    if (loc) {
+      return { location: loc, isAncestor: len < segments.length };
+    }
+  }
+  return void 0;
+}
+function isMissingContentMessage(msg2) {
+  const ct2 = (msg2.constraintType ?? "").toLowerCase();
+  const text = msg2.message.toLowerCase();
+  if (ct2 === "existence") return true;
+  if (ct2 === "occurrences" && (text.includes("below minimum") || text.includes("missing") || text.includes("required"))) {
+    return true;
+  }
+  if (ct2 === "cardinality" && (text.includes("below minimum") || text.includes("minimum") || text.includes("has 0"))) {
+    return true;
+  }
+  if (ct2 === "rm_specification" && (text.includes("missing") || text.includes("mandatory") || text.includes("required"))) {
+    return true;
+  }
+  if (text.includes("mandatory") && text.includes("missing")) return true;
+  if (text.includes("required attribute missing")) return true;
+  return false;
+}
+function sampleLeafFieldsForWtNode(node) {
+  const rmType = resolveDvType(node.rmType);
+  const inputs2 = node.inputs ?? [];
+  if (rmType === "DV_QUANTITY") {
+    const unitInput = inputs2.find((i12) => i12.suffix === "unit");
+    const firstUnit = unitInput?.list?.[0]?.value ?? "1";
+    const magInput = inputs2.find((i12) => i12.suffix === "magnitude");
+    const minVal = magInput?.validation?.range?.min;
+    return [
+      { suffix: "magnitude", value: typeof minVal === "number" ? minVal : 0 },
+      { suffix: "unit", value: firstUnit }
+    ];
+  }
+  if (rmType === "DV_CODED_TEXT") {
+    const codeInput = inputs2.find((i12) => i12.suffix === "code");
+    const first2 = codeInput?.list?.[0];
+    const terminology = codeInput?.terminology ?? "local";
+    return [
+      { suffix: "code", value: first2?.value ?? "at0001" },
+      { suffix: "value", value: first2?.label ?? node.name ?? "Example" },
+      { suffix: "terminology", value: terminology }
+    ];
+  }
+  if (rmType === "DV_ORDINAL") {
+    const codeInput = inputs2.find((i12) => i12.suffix === "code");
+    const first2 = codeInput?.list?.[0];
+    return [
+      { suffix: "code", value: first2?.value ?? "at0001" },
+      { suffix: "ordinal", value: 0 },
+      { suffix: "value", value: first2?.label ?? "Example" }
+    ];
+  }
+  if (rmType === "DV_DATE_TIME") {
+    return [{ suffix: "", value: "2024-01-01T12:00:00Z" }];
+  }
+  if (rmType === "DV_DATE") {
+    return [{ suffix: "", value: "2024-01-01" }];
+  }
+  if (rmType === "DV_TIME") {
+    return [{ suffix: "", value: "12:00:00" }];
+  }
+  if (rmType === "DV_DURATION") {
+    return [{ suffix: "", value: "PT1H" }];
+  }
+  if (rmType === "DV_COUNT") {
+    return [{ suffix: "", value: 0 }];
+  }
+  if (rmType === "DV_BOOLEAN") {
+    return [{ suffix: "", value: true }];
+  }
+  if (rmType === "DV_PROPORTION") {
+    return [
+      { suffix: "numerator", value: 1 },
+      { suffix: "denominator", value: 100 },
+      { suffix: "type", value: 2 }
+    ];
+  }
+  if (rmType === "DV_URI" || rmType === "DV_EHR_URI") {
+    return [{ suffix: "", value: "https://example.org" }];
+  }
+  if (rmType === "DV_IDENTIFIER") {
+    return [
+      { suffix: "id", value: "id-1" },
+      { suffix: "issuer", value: "issuer" }
+    ];
+  }
+  return [{ suffix: "", value: node.name ?? "Example text" }];
+}
+function findFirstLeafChild(node, prefix) {
+  if ((node.inputs?.length ?? 0) > 0 && !node.children?.length) {
+    return { leaf: node, chain: [...prefix, node] };
+  }
+  const children = node.children ?? [];
+  const requiredChild = children.find((c9) => c9.min > 0 && !c9.inContext) ?? children.find((c9) => !c9.inContext) ?? children[0];
+  if (!requiredChild) return void 0;
+  return findFirstLeafChild(requiredChild, [...prefix, node]);
+}
+function buildCanonicalDvObject(node) {
+  const rmType = resolveDvType(node.rmType);
+  const fields = sampleLeafFieldsForWtNode(node);
+  const bySuffix = Object.fromEntries(fields.map((f8) => [f8.suffix, f8.value]));
+  if (rmType === "DV_QUANTITY") {
+    return {
+      _type: "DV_QUANTITY",
+      magnitude: bySuffix.magnitude ?? 0,
+      units: bySuffix.unit ?? "1"
+    };
+  }
+  if (rmType === "DV_CODED_TEXT") {
+    return {
+      _type: "DV_CODED_TEXT",
+      value: bySuffix.value ?? "Example",
+      defining_code: {
+        _type: "CODE_PHRASE",
+        terminology_id: {
+          _type: "TERMINOLOGY_ID",
+          value: bySuffix.terminology ?? "local"
+        },
+        code_string: bySuffix.code ?? "at0001"
+      }
+    };
+  }
+  if (rmType === "DV_COUNT") {
+    return { _type: "DV_COUNT", magnitude: bySuffix[""] ?? 0 };
+  }
+  if (rmType === "DV_BOOLEAN") {
+    return { _type: "DV_BOOLEAN", value: bySuffix[""] ?? true };
+  }
+  if (rmType === "DV_PROPORTION") {
+    return {
+      _type: "DV_PROPORTION",
+      numerator: bySuffix.numerator ?? 1,
+      denominator: bySuffix.denominator ?? 100,
+      type: bySuffix.type ?? 2
+    };
+  }
+  return { _type: rmType, value: bySuffix[""] ?? "Example" };
+}
+function contextMissingExample(rmPath, format4) {
+  const norm = rmPath.replace(/^\/+|\/+$/g, "").replace(/\[\d+\]/g, "");
+  const map = {
+    language: {
+      flat: '"ctx/language": "en"',
+      structured: '"ctx": { "language": "en" }',
+      canonical: '"language": { "_type": "CODE_PHRASE", "terminology_id": { "_type": "TERMINOLOGY_ID", "value": "ISO_639-1" }, "code_string": "en" }'
+    },
+    territory: {
+      flat: '"ctx/territory": "SE"',
+      structured: '"ctx": { "territory": "SE" }',
+      canonical: '"territory": { "_type": "CODE_PHRASE", "terminology_id": { "_type": "TERMINOLOGY_ID", "value": "ISO_3166-1" }, "code_string": "SE" }'
+    },
+    category: {
+      flat: '"ctx/category": "433"',
+      structured: '"ctx": { "category": "433" }',
+      canonical: '"category": { "_type": "DV_CODED_TEXT", "value": "event", "defining_code": { "_type": "CODE_PHRASE", "terminology_id": { "_type": "TERMINOLOGY_ID", "value": "openehr" }, "code_string": "433" } }'
+    },
+    composer: {
+      flat: '"ctx/composer_name": "Dr Name"',
+      structured: '"ctx": { "composer_name": "Dr Name" }',
+      canonical: '"composer": { "_type": "PARTY_IDENTIFIED", "name": "Dr Name" }'
+    },
+    "context/start_time": {
+      flat: '"ctx/time": "2024-01-01T12:00:00Z"',
+      structured: '"ctx": { "time": "2024-01-01T12:00:00Z" }',
+      canonical: '"start_time": { "_type": "DV_DATE_TIME", "value": "2024-01-01T12:00:00Z" }'
+    },
+    "context/setting": {
+      flat: '"ctx/setting": "228"',
+      structured: '"ctx": { "setting": "228" }',
+      canonical: '"setting": { "_type": "DV_CODED_TEXT", "value": "primary medical care", "defining_code": { "_type": "CODE_PHRASE", "terminology_id": { "_type": "TERMINOLOGY_ID", "value": "openehr" }, "code_string": "228" } }'
+    },
+    "context": {
+      flat: '"ctx/time": "2024-01-01T12:00:00Z",\n"ctx/setting": "228"',
+      structured: '"ctx": { "time": "2024-01-01T12:00:00Z", "setting": "228" }',
+      canonical: '"context": { "_type": "EVENT_CONTEXT", "start_time": { "_type": "DV_DATE_TIME", "value": "2024-01-01T12:00:00Z" }, "setting": { "_type": "DV_CODED_TEXT", "value": "primary medical care", "defining_code": { "_type": "CODE_PHRASE", "terminology_id": { "_type": "TERMINOLOGY_ID", "value": "openehr" }, "code_string": "228" } } }'
+    }
+  };
+  for (const [key, snippets2] of Object.entries(map)) {
+    if (norm === key || norm.startsWith(`${key}/`)) {
+      if (format4 === "flat-json") return snippets2.flat;
+      if (format4 === "structured-json") return snippets2.structured;
+      return snippets2.canonical;
+    }
+  }
+  return void 0;
+}
+function findConstraintInTemplate(template, constraintNodeId3) {
+  if (!template?.definition || !constraintNodeId3) return void 0;
+  let found;
+  const walk4 = (node) => {
+    if (found) return;
+    if (node.node_id && nodeIdsMatch(node.node_id, constraintNodeId3)) {
+      found = node;
+      return;
+    }
+    if (node instanceof C_ARCHETYPE_ROOT && node.archetype_ref === constraintNodeId3) {
+      found = node;
+      return;
+    }
+    const attrs = node.attributes ?? [];
+    for (const attr of attrs) {
+      const children = attr.children ?? [];
+      for (const child of children) walk4(child);
+    }
+  };
+  walk4(template.definition);
+  return found;
+}
+function formatExpectedExampleForMissingNode(params) {
+  const ctxExample = contextMissingExample(params.rmPath, params.format);
+  if (ctxExample) return ctxExample;
+  const { format: format4, webTemplateNode } = params;
+  if (webTemplateNode) {
+    const isLeaf = (webTemplateNode.inputs?.length ?? 0) > 0 && !webTemplateNode.children?.length;
+    const targetLeafInfo = isLeaf ? { leaf: webTemplateNode, chain: [] } : findFirstLeafChild(webTemplateNode, []);
+    if (format4 === "flat-json") {
+      const base2 = params.flatBasePath ?? webTemplateNode.id;
+      const leaf = targetLeafInfo?.leaf ?? webTemplateNode;
+      const subPath = targetLeafInfo && targetLeafInfo.chain.length > 1 ? `${base2}/${targetLeafInfo.chain.slice(1).map((n10) => n10.id).join("/")}` : base2;
+      const fields = sampleLeafFieldsForWtNode(leaf);
+      return fields.map((f8) => {
+        const key = f8.suffix ? `${subPath}|${f8.suffix}` : subPath;
+        return `${JSON.stringify(key)}: ${JSON.stringify(f8.value)}`;
+      }).join(",\n");
+    }
+    if (format4 === "structured-json") {
+      const leaf = targetLeafInfo?.leaf ?? webTemplateNode;
+      const fields = sampleLeafFieldsForWtNode(leaf);
+      if (fields.length === 1 && fields[0].suffix === "") {
+        return `${JSON.stringify(leaf.id)}: [${JSON.stringify(fields[0].value)}]`;
+      }
+      const obj2 = Object.fromEntries(
+        fields.map((f8) => [`|${f8.suffix || "value"}`, f8.value])
+      );
+      return `${JSON.stringify(leaf.id)}: [${JSON.stringify(obj2)}]`;
+    }
+    if (isLeaf) {
+      const elem = {
+        _type: "ELEMENT",
+        name: { _type: "DV_TEXT", value: webTemplateNode.name ?? webTemplateNode.id },
+        ...webTemplateNode.nodeId ? { archetype_node_id: webTemplateNode.nodeId } : {},
+        value: buildCanonicalDvObject(webTemplateNode)
+      };
+      return JSON.stringify(elem, null, 2);
+    }
+    const stub = {
+      _type: webTemplateNode.rmType,
+      name: { _type: "DV_TEXT", value: webTemplateNode.name ?? webTemplateNode.id },
+      ...webTemplateNode.nodeId ? { archetype_node_id: webTemplateNode.nodeId } : {}
+    };
+    return JSON.stringify(stub, null, 2);
+  }
+  const cObj = findConstraintInTemplate(params.template, params.constraintNodeId);
+  if (cObj && format4 === "canonical-json") {
+    const stub = {
+      _type: cObj.rm_type_name || "OBJECT",
+      ...cObj.node_id ? { archetype_node_id: cObj.node_id } : {}
+    };
+    if (cObj.rm_type_name === "ELEMENT") {
+      const valAttr = cObj.attributes?.find((a8) => a8.rm_attribute_name === "value");
+      const valChild = valAttr?.children?.[0];
+      if (valChild) {
+        stub.value = { _type: valChild.rm_type_name || "DV_TEXT" };
+      }
+    }
+    return JSON.stringify(stub, null, 2);
+  }
+  if (params.missingAttribute && format4 === "canonical-json") {
+    return `${JSON.stringify(params.missingAttribute)}: { ... }`;
+  }
+  return void 0;
+}
+function inferLeafSuffixFromMessage(msg2) {
+  const ct2 = (msg2.constraintType ?? "").toLowerCase();
+  const text = msg2.message.toLowerCase();
+  if (ct2 === "units" || ct2 === "ucum" || /\bunit[s]?\b/.test(text)) {
+    return "unit";
+  }
+  if (ct2 === "magnitude" || /\bmagnitude\b/.test(text)) {
+    return "magnitude";
+  }
+  if (ct2 === "precision" || /\bprecision\b/.test(text)) {
+    return "precision";
+  }
+  if (ct2 === "terminology" || /\bdefining_code\b|\bcode_string\b|\bcode\b|\bterminology\b|\brubric\b/.test(
+    text
+  )) {
+    return "code";
+  }
+  return void 0;
+}
+function enrichValidationMessagesWithSource(messages, options) {
+  const { jsonSource, webTemplate, template, rmInstance } = options;
+  const includeHints = options.includeMissingHints !== false;
+  let sourceIndex;
+  if (jsonSource) {
+    try {
+      sourceIndex = buildJsonSourceIndex(jsonSource);
+    } catch {
+      sourceIndex = void 0;
+    }
+  }
+  const format4 = options.sourceFormat ?? (jsonSource ? detectJsonSourceFormat(jsonSource) : "canonical-json");
+  const wtEntries = webTemplate ? indexWebTemplateEntries(webTemplate) : [];
+  const parsedFlatKeys = format4 === "flat-json" && jsonSource && sourceIndex ? parseFlatSourceKeys(jsonSource, sourceIndex) : [];
+  const rootId = webTemplate ? flatRootId(webTemplate) : "";
+  const acceptedRoots = webTemplate ? acceptedFlatRoots(webTemplate) : /* @__PURE__ */ new Set();
+  for (const k5 of parsedFlatKeys) {
+    if (k5.root && k5.root !== "ctx") acceptedRoots.add(k5.root);
+  }
+  const actualFlatRoot = parsedFlatKeys.find((k5) => k5.root && k5.root !== "ctx")?.root ?? rootId;
+  const structuredRoots = (() => {
+    const out = [];
+    if (actualFlatRoot) out.push(actualFlatRoot);
+    for (const r10 of acceptedRoots) {
+      if (!out.includes(r10)) out.push(r10);
+    }
+    return out;
+  })();
+  for (const msg2 of messages) {
+    const walk4 = rmInstance ? walkRmPath(rmInstance, msg2.path || "/") : void 0;
+    const isMissing = isMissingContentMessage(msg2);
+    if (format4 === "canonical-json") {
+      if (sourceIndex) {
+        const ptrSegs = walk4 ? walk4.canonicalPointerSegments : rmPathToJsonPointer(msg2.path || "/").split("/").filter(Boolean);
+        const found = lookupCanonicalWithAncestor(sourceIndex, ptrSegs);
+        if (found) {
+          msg2.jsonPointer = found.location.jsonPointer;
+          msg2.sourceLine = found.location.sourceLine;
+          msg2.sourceColumn = found.location.sourceColumn;
+          if (found.isAncestor) msg2.sourceIsAncestor = true;
+        }
+      }
+      if (includeHints && isMissing) {
+        const matched = webTemplate && walk4 ? matchWtEntryForWalk(wtEntries, walk4.aqlSteps, msg2.constraintNodeId) : void 0;
+        const example = formatExpectedExampleForMissingNode({
+          format: "canonical-json",
+          rmPath: msg2.path || "/",
+          webTemplateNode: matched?.entry?.node,
+          constraintNodeId: msg2.constraintNodeId,
+          missingAttribute: walk4?.missingAttribute,
+          template
+        });
+        if (example) msg2.expectedExample = example;
+      }
+      continue;
+    }
+    const ctxMatch = contextFlatCandidates(msg2.path || "/", actualFlatRoot);
+    if (ctxMatch) {
+      msg2.targetPath = ctxMatch.primary;
+      if (sourceIndex) {
+        if (format4 === "flat-json") {
+          const hit = ctxMatch.candidates.map((c9) => parsedFlatKeys.find((k5) => k5.rawKey === c9)).find((k5) => k5 !== void 0);
+          if (hit) {
+            msg2.targetPath = hit.rawKey;
+            msg2.jsonPointer = hit.location.jsonPointer;
+            msg2.sourceLine = hit.location.sourceLine;
+            msg2.sourceColumn = hit.location.sourceColumn;
+          } else {
+            const anyCtx = parsedFlatKeys.find((k5) => k5.root === "ctx");
+            const fallback2 = anyCtx?.location ?? sourceIndex.get("");
+            if (fallback2) {
+              msg2.jsonPointer = fallback2.jsonPointer;
+              msg2.sourceLine = fallback2.sourceLine;
+              msg2.sourceColumn = fallback2.sourceColumn;
+              msg2.sourceIsAncestor = true;
+            }
+          }
+        } else {
+          const ctxField = ctxMatch.primary.replace(/^ctx\//, "");
+          const ctxPtr = `/ctx/${escapeJsonPointerSegment(ctxField)}`;
+          const exactLoc = sourceIndex.get(ctxPtr);
+          if (exactLoc) {
+            msg2.jsonPointer = exactLoc.jsonPointer;
+            msg2.sourceLine = exactLoc.sourceLine;
+            msg2.sourceColumn = exactLoc.sourceColumn;
+          } else {
+            const fallback2 = sourceIndex.get("/ctx") ?? sourceIndex.get("");
+            if (fallback2) {
+              msg2.jsonPointer = fallback2.jsonPointer;
+              msg2.sourceLine = fallback2.sourceLine;
+              msg2.sourceColumn = fallback2.sourceColumn;
+              msg2.sourceIsAncestor = true;
+            }
+          }
+        }
+      }
+      if (includeHints && isMissing) {
+        const example = formatExpectedExampleForMissingNode({
+          format: format4,
+          rmPath: msg2.path || "/",
+          template
+        });
+        if (example) msg2.expectedExample = example;
+      }
+      continue;
+    }
+    if (webTemplate && walk4) {
+      const matched = matchWtEntryForWalk(
+        wtEntries,
+        walk4.aqlSteps,
+        msg2.constraintNodeId
+      );
+      if (matched.entry) {
+        const leafSuffix = matched.isMissingChild ? void 0 : leafTrailToFlatSuffix(walk4.leafAttrTrail, matched.entry.node.rmType) ?? inferLeafSuffixFromMessage(msg2);
+        const flatBase = formatFlatChainPath(
+          actualFlatRoot,
+          matched.entry.chain,
+          matched.occurrences
+        );
+        msg2.targetPath = leafSuffix ? `${flatBase}|${leafSuffix}` : flatBase;
+        if (sourceIndex) {
+          if (format4 === "flat-json") {
+            const hit = lookupFlatKeyForChain(
+              parsedFlatKeys,
+              acceptedRoots,
+              matched.entry.chain,
+              matched.occurrences,
+              leafSuffix
+            );
+            if (hit) {
+              if (hit.exact) msg2.targetPath = hit.key.rawKey;
+              msg2.jsonPointer = hit.key.location.jsonPointer;
+              msg2.sourceLine = hit.key.location.sourceLine;
+              msg2.sourceColumn = hit.key.location.sourceColumn;
+              if (!hit.exact || matched.isMissingChild) {
+                msg2.sourceIsAncestor = true;
+              }
+            } else {
+              const rootLoc = sourceIndex.get("");
+              if (rootLoc) {
+                msg2.jsonPointer = rootLoc.jsonPointer;
+                msg2.sourceLine = rootLoc.sourceLine;
+                msg2.sourceColumn = rootLoc.sourceColumn;
+                msg2.sourceIsAncestor = true;
+              }
+            }
+          } else {
+            const hit = lookupStructuredPointerForChain(
+              sourceIndex,
+              structuredRoots,
+              matched.entry.chain,
+              matched.occurrences,
+              leafSuffix
+            );
+            if (hit) {
+              msg2.targetPath = hit.targetPath;
+              msg2.jsonPointer = hit.location.jsonPointer;
+              msg2.sourceLine = hit.location.sourceLine;
+              msg2.sourceColumn = hit.location.sourceColumn;
+              if (!hit.exact || matched.isMissingChild) {
+                msg2.sourceIsAncestor = true;
+              }
+            } else {
+              const rootLoc = sourceIndex.get("");
+              if (rootLoc) {
+                msg2.jsonPointer = rootLoc.jsonPointer;
+                msg2.sourceLine = rootLoc.sourceLine;
+                msg2.sourceColumn = rootLoc.sourceColumn;
+                msg2.sourceIsAncestor = true;
+              }
+            }
+          }
+        }
+        if (includeHints && isMissing) {
+          const example = formatExpectedExampleForMissingNode({
+            format: format4,
+            rmPath: msg2.path || "/",
+            webTemplateNode: matched.entry.node,
+            flatBasePath: flatBase,
+            constraintNodeId: msg2.constraintNodeId,
+            missingAttribute: walk4.missingAttribute,
+            template
+          });
+          if (example) msg2.expectedExample = example;
+        }
+        continue;
+      }
+    }
+    if (sourceIndex) {
+      const rootLoc = sourceIndex.get("");
+      if (rootLoc) {
+        msg2.jsonPointer = rootLoc.jsonPointer;
+        msg2.sourceLine = rootLoc.sourceLine;
+        msg2.sourceColumn = rootLoc.sourceColumn;
+        msg2.sourceIsAncestor = true;
+      }
+    }
+  }
+}
+function enrichSimplifiedMessagesWithSource(messages, jsonSource, options) {
+  let index;
+  try {
+    index = buildJsonSourceIndex(jsonSource);
+  } catch {
+    return;
+  }
+  const format4 = options?.sourceFormat ?? detectJsonSourceFormat(jsonSource);
+  const includeHints = options?.includeMissingHints !== false;
+  const parsedFlatKeys = format4 === "flat-json" ? parseFlatSourceKeys(jsonSource, index) : [];
+  const wtEntries = options?.webTemplate ? indexWebTemplateEntries(options.webTemplate) : [];
+  const acceptedRoots = options?.webTemplate ? acceptedFlatRoots(options.webTemplate) : /* @__PURE__ */ new Set();
+  for (const k5 of parsedFlatKeys) {
+    if (k5.root && k5.root !== "ctx") acceptedRoots.add(k5.root);
+  }
+  const actualFlatRoot = parsedFlatKeys.find((k5) => k5.root && k5.root !== "ctx")?.root ?? (options?.webTemplate ? flatRootId(options.webTemplate) : "");
+  const structuredRoots = (() => {
+    const out = [];
+    if (actualFlatRoot) out.push(actualFlatRoot);
+    for (const r10 of acceptedRoots) {
+      if (!out.includes(r10)) out.push(r10);
+    }
+    return out;
+  })();
+  const wtByChain = /* @__PURE__ */ new Map();
+  if (options?.webTemplate) {
+    const walk4 = (nodes, prefix) => {
+      for (const n10 of nodes) {
+        const chain = prefix ? `${prefix}/${n10.id}` : n10.id;
+        wtByChain.set(chain, n10);
+        if (n10.children?.length) walk4(n10.children, chain);
+      }
+    };
+    walk4(options.webTemplate.tree.children ?? [], "");
+  }
+  for (const msg2 of messages) {
+    const rawPath = msg2.path || "";
+    if (!rawPath) continue;
+    if (rawPath.startsWith("/") && wtEntries.length > 0) {
+      const normPath = normalizeAqlForMatch(rawPath);
+      const entry = wtEntries.find((e12) => e12.normalizedAql === normPath);
+      if (entry) {
+        const suffix = inferLeafSuffixFromMessage(msg2);
+        const occs = entry.chain.map(() => 0);
+        const flatBase = formatFlatChainPath(actualFlatRoot, entry.chain, occs);
+        msg2.targetPath = suffix ? `${flatBase}|${suffix}` : flatBase;
+        if (format4 === "flat-json") {
+          const hit = lookupFlatKeyForChain(
+            parsedFlatKeys,
+            acceptedRoots,
+            entry.chain,
+            occs,
+            suffix
+          );
+          if (hit) {
+            if (hit.exact) msg2.targetPath = hit.key.rawKey;
+            msg2.jsonPointer = hit.key.location.jsonPointer;
+            msg2.sourceLine = hit.key.location.sourceLine;
+            msg2.sourceColumn = hit.key.location.sourceColumn;
+            if (!hit.exact) msg2.sourceIsAncestor = true;
+          }
+        } else if (format4 === "structured-json") {
+          const hit = lookupStructuredPointerForChain(
+            index,
+            structuredRoots,
+            entry.chain,
+            occs,
+            suffix
+          );
+          if (hit) {
+            msg2.targetPath = hit.targetPath;
+            msg2.jsonPointer = hit.location.jsonPointer;
+            msg2.sourceLine = hit.location.sourceLine;
+            msg2.sourceColumn = hit.location.sourceColumn;
+            if (!hit.exact) msg2.sourceIsAncestor = true;
+          }
+        }
+        if (includeHints && isMissingContentMessage(msg2)) {
+          const example = formatExpectedExampleForMissingNode({
+            format: format4,
+            rmPath: rawPath,
+            webTemplateNode: entry.node,
+            flatBasePath: flatBase
+          });
+          if (example) msg2.expectedExample = example;
+        }
+        continue;
+      }
+    }
+    const flatPath = rawPath;
+    msg2.targetPath = flatPath;
+    if (format4 === "flat-json") {
+      const exactPtr = `/${escapeJsonPointerSegment(flatPath)}`;
+      const exactLoc = index.get(exactPtr);
+      if (exactLoc) {
+        msg2.jsonPointer = exactLoc.jsonPointer;
+        msg2.sourceLine = exactLoc.sourceLine;
+        msg2.sourceColumn = exactLoc.sourceColumn;
+      } else {
+        const pipeIdx = flatPath.indexOf("|");
+        const base2 = pipeIdx === -1 ? flatPath : flatPath.slice(0, pipeIdx);
+        const wantSuffix = pipeIdx === -1 ? void 0 : flatPath.slice(pipeIdx + 1);
+        const rawSegs = base2.split("/");
+        const wantRoot = rawSegs[0] ?? "";
+        const wantSegs = rawSegs.slice(1).map((s8) => {
+          const m5 = /^(.*?)(?::(\d+))?$/.exec(s8);
+          return { id: m5[1], occ: m5[2] ? parseInt(m5[2], 10) : 0 };
+        });
+        const normMatch = parsedFlatKeys.find((k5) => {
+          if (k5.root !== wantRoot || k5.segments.length !== wantSegs.length) {
+            return false;
+          }
+          for (let i12 = 0; i12 < wantSegs.length; i12++) {
+            if (k5.segments[i12].id !== wantSegs[i12].id || k5.segments[i12].occ !== wantSegs[i12].occ) {
+              return false;
+            }
+          }
+          return wantSuffix === void 0 || k5.suffix === wantSuffix;
+        });
+        if (normMatch) {
+          msg2.targetPath = normMatch.rawKey;
+          msg2.jsonPointer = normMatch.location.jsonPointer;
+          msg2.sourceLine = normMatch.location.sourceLine;
+          msg2.sourceColumn = normMatch.location.sourceColumn;
+          if (wantSuffix === void 0 && normMatch.suffix !== "") {
+            msg2.sourceIsAncestor = true;
+          }
+        } else {
+          let foundLoc;
+          for (let len = wantSegs.length - 1; len >= 1; len--) {
+            const anc = parsedFlatKeys.find((k5) => {
+              if (k5.root !== wantRoot || k5.segments.length < len) return false;
+              for (let i12 = 0; i12 < len; i12++) {
+                if (k5.segments[i12].id !== wantSegs[i12].id || k5.segments[i12].occ !== wantSegs[i12].occ) {
+                  return false;
+                }
+              }
+              return true;
+            });
+            if (anc) {
+              foundLoc = anc.location;
+              break;
+            }
+          }
+          const loc = foundLoc ?? index.get("");
+          if (loc) {
+            msg2.jsonPointer = loc.jsonPointer;
+            msg2.sourceLine = loc.sourceLine;
+            msg2.sourceColumn = loc.sourceColumn;
+            msg2.sourceIsAncestor = true;
+          }
+        }
+      }
+    } else if (format4 === "structured-json") {
+      const pipeIdx = flatPath.indexOf("|");
+      const base2 = pipeIdx === -1 ? flatPath : flatPath.slice(0, pipeIdx);
+      const suffix = pipeIdx === -1 ? void 0 : flatPath.slice(pipeIdx + 1);
+      const rawSegs = base2.split("/");
+      if (rawSegs[0] === "ctx" && rawSegs.length >= 2) {
+        const ptr = `/ctx/${escapeJsonPointerSegment(rawSegs[1].replace(/:\d+$/, ""))}`;
+        const loc = index.get(ptr) ?? index.get("/ctx") ?? index.get("");
+        if (loc) {
+          msg2.jsonPointer = loc.jsonPointer;
+          msg2.sourceLine = loc.sourceLine;
+          msg2.sourceColumn = loc.sourceColumn;
+          if (!index.has(ptr)) msg2.sourceIsAncestor = true;
+        }
+      } else {
+        let cur = "";
+        let exact = true;
+        for (let i12 = 0; i12 < rawSegs.length; i12++) {
+          const m5 = /^(.*?)(?::(\d+))?$/.exec(rawSegs[i12]);
+          const id4 = escapeJsonPointerSegment(m5[1]);
+          const occ = m5[2] ? parseInt(m5[2], 10) : 0;
+          const arrPtr = `${cur}/${id4}/${occ}`;
+          const objPtr = `${cur}/${id4}`;
+          if (i12 > 0 && index.has(arrPtr)) {
+            cur = arrPtr;
+          } else if (index.has(objPtr)) {
+            cur = objPtr;
+          } else {
+            exact = false;
+            break;
+          }
+        }
+        if (exact && suffix) {
+          const leafPtr = `${cur}/${escapeJsonPointerSegment(`|${suffix}`)}`;
+          if (index.has(leafPtr)) cur = leafPtr;
+          else exact = false;
+        }
+        const loc = index.get(cur) ?? index.get("");
+        if (loc) {
+          msg2.jsonPointer = loc.jsonPointer;
+          msg2.sourceLine = loc.sourceLine;
+          msg2.sourceColumn = loc.sourceColumn;
+          if (!exact) msg2.sourceIsAncestor = true;
+        }
+      }
+    }
+    if (includeHints && isMissingContentMessage(msg2)) {
+      if (flatPath.startsWith("ctx/")) {
+        const ctxKey = flatPath.slice(4);
+        const rmAlias = ctxKey === "time" ? "/context/start_time" : ctxKey === "setting" ? "/context/setting" : `/${ctxKey}`;
+        const example = contextMissingExample(rmAlias, format4);
+        if (example) msg2.expectedExample = example;
+      } else if (wtByChain.size > 0) {
+        const pipeIdx = flatPath.indexOf("|");
+        const base2 = pipeIdx === -1 ? flatPath : flatPath.slice(0, pipeIdx);
+        const chainKey = base2.split("/").slice(1).map((s8) => s8.replace(/:\d+$/, "")).join("/");
+        const wtNode = wtByChain.get(chainKey);
+        if (wtNode) {
+          const example = formatExpectedExampleForMissingNode({
+            format: format4,
+            rmPath: wtNode.aqlPath || "/",
+            webTemplateNode: wtNode,
+            flatBasePath: base2
+          });
+          if (example) msg2.expectedExample = example;
+        }
+      }
+    }
+  }
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/flat_validator.ts
+var CTX_FIELDS = /* @__PURE__ */ new Set([
+  "language",
+  "territory",
+  "composer_name",
+  "composer_id",
+  "composer_self",
+  "id_namespace",
+  "id_scheme",
+  "time",
+  "end_time",
+  "history_origin",
+  "action_time",
+  "activity_timing",
+  "instruction_narrative",
+  "action_ism_transition_current_state",
+  "location",
+  "setting",
+  "category",
+  "work_flow_id",
+  "health_care_facility",
+  "provider_name",
+  "provider_id"
+]);
+function stripIndex(segment) {
+  return segment.replace(/:\d+$/, "");
+}
+function buildChainSet(webTemplate) {
+  const map = /* @__PURE__ */ new Map();
+  const walk4 = (nodes, prefix) => {
+    for (const node of nodes) {
+      const chain = prefix ? `${prefix}/${node.id}` : node.id;
+      map.set(chain, node);
+      if (node.children?.length) walk4(node.children, chain);
+    }
+  };
+  walk4(webTemplate.tree.children ?? [], "");
+  return map;
+}
+function knownSuffixes(node) {
+  const suffixes = /* @__PURE__ */ new Set(["raw"]);
+  for (const input of node.inputs ?? []) {
+    suffixes.add(input.suffix ?? "");
+  }
+  const map = getFieldMap(node.rmType);
+  if (map) for (const f8 of map.fields) suffixes.add(f8.suffix);
+  if (node.rmType === "DV_TEXT") {
+    for (const f8 of getFieldMap("DV_CODED_TEXT")?.fields ?? []) suffixes.add(f8.suffix);
+  }
+  if (suffixes.has("")) suffixes.add("value");
+  if (node.rmType === "DV_CODED_TEXT") suffixes.add("other");
+  if (node.rmType.startsWith("PARTY_")) suffixes.add("_type");
+  return suffixes;
+}
+var READER_REJECTS = /* @__PURE__ */ new Set([
+  "coded-text-mismatch",
+  "element-value",
+  "unknown-key"
+]);
+function validateFlatPayload(payload, webTemplate, options = {}) {
+  const merged = mergeFlatValidatorOptions(options);
+  const errors = [];
+  const warnings2 = [];
+  const rootId = flatRootId(webTemplate);
+  const roots = acceptedFlatRoots(webTemplate);
+  const chains = buildChainSet(webTemplate);
+  const strict = merged.strictUnknownKeys ?? true;
+  const report = (path, message) => {
+    if (strict) {
+      errors.push({ path, message, severity: "error" });
+    } else {
+      warnings2.push({ path, message, severity: "warning" });
+    }
+  };
+  const seenChains = /* @__PURE__ */ new Set();
+  const indexCounts = /* @__PURE__ */ new Map();
+  for (const key of Object.keys(payload)) {
+    if (key.startsWith("ctx/")) {
+      const rest = key.slice(4);
+      const field = stripIndex(rest.split("|")[0]).replace(/:\d+.*$/, "");
+      const base2 = field.split("/")[0].replace(/:\d+$/, "");
+      if (!CTX_FIELDS.has(base2) && !base2.startsWith("participation")) {
+        report(key, "Unknown ctx field");
+      }
+      continue;
+    }
+    const pipeIdx = key.indexOf("|");
+    const basePath2 = pipeIdx === -1 ? key : key.slice(0, pipeIdx);
+    const suffix = pipeIdx === -1 ? "" : key.slice(pipeIdx + 1);
+    const rawSegments = basePath2.split("/");
+    const segments = rawSegments.map(stripIndex);
+    if (!roots.has(segments[0])) {
+      report(key, `Key does not start with template root "${rootId}"`);
+      continue;
+    }
+    const rmAttrIdx = segments.findIndex((s8) => s8.startsWith("_"));
+    const chainSegs = rmAttrIdx === -1 ? segments.slice(1) : segments.slice(1, rmAttrIdx);
+    if (!chainSegs.length) continue;
+    let chain = chainSegs.join("/");
+    let node = nodeForChain(chains, chain);
+    const bound = node ? void 0 : /^(.*)\/(?:lower|upper)$/.exec(chain);
+    if (bound) {
+      const interval = nodeForChain(chains, bound[1]);
+      const param = interval && /^DV_INTERVAL<(.+)>$/.exec(interval.rmType);
+      if (param) {
+        chain = bound[1];
+        node = { ...interval, rmType: param[1], inputs: void 0 };
+      }
+    }
+    if (!node) {
+      report(key, "Unknown flat key for template");
+      continue;
+    }
+    seenChains.add(chain);
+    if (rmAttrIdx === -1) {
+      const lastRaw = rawSegments[rawSegments.length - 1] ?? "";
+      const indexMatch = lastRaw.match(/:(\d+)$/);
+      const instanceIndex = indexMatch ? Number(indexMatch[1]) : 0;
+      const parentRaw = rawSegments.slice(0, -1).join("/");
+      const countKey = `${parentRaw}
+${chain}`;
+      const prev = indexCounts.get(countKey) ?? 0;
+      indexCounts.set(countKey, Math.max(prev, instanceIndex + 1));
+    }
+    if (rmAttrIdx === -1 && suffix && !knownSuffixes(node).has(suffix)) {
+      warnings2.push({
+        path: key,
+        message: `Unknown suffix "|${suffix}" for rmType ${node.rmType}`,
+        severity: "warning"
+      });
+    }
+  }
+  for (const [countKey, count2] of indexCounts) {
+    const chain = countKey.slice(countKey.indexOf("\n") + 1);
+    const node = chains.get(chain);
+    if (!node) continue;
+    if (node.max >= 0 && count2 > node.max) {
+      errors.push({
+        path: `${rootId}/${chain}`,
+        message: `instance count ${count2} exceeds the template cardinality ${node.max} for the node`,
+        severity: "error"
+      });
+    }
+  }
+  for (const field of ["language", "territory"]) {
+    const atPath = Object.keys(payload).some(
+      (k5) => k5 === `${rootId}/${field}` || k5.startsWith(`${rootId}/${field}|`)
+    );
+    if (!(`ctx/${field}` in payload) && !atPath) {
+      warnings2.push({
+        path: `ctx/${field}`,
+        message: "Mandatory context field missing",
+        severity: "warning"
+      });
+    }
+  }
+  const requireChains = (nodes, prefix, ancestorsRequired) => {
+    for (const node of nodes) {
+      if (node.inContext) continue;
+      const chain = prefix ? `${prefix}/${node.id}` : node.id;
+      const required = ancestorsRequired && node.min > 0;
+      const isLeaf = !!node.inputs?.length && !node.children?.length;
+      if (isLeaf && required && !seenChains.has(chain)) {
+        warnings2.push({
+          path: `${rootId}/${chain}`,
+          message: "Mandatory field missing from payload",
+          severity: "warning"
+        });
+      }
+      if (node.children?.length) {
+        requireChains(node.children, chain, required);
+      }
+    }
+  };
+  requireChains(webTemplate.tree.children ?? [], "", true);
+  const known = new Set([...errors, ...warnings2].map((m5) => m5.path));
+  try {
+    const reader = new FlatDeserializer(webTemplate, {
+      unknownKeys: strict ? "error" : "warning"
+    });
+    reader.deserialize(payload);
+    for (const issue of reader.issues) {
+      if (!issue.kind || !READER_REJECTS.has(issue.kind)) continue;
+      if (issue.kind === "unknown-key" && known.has(issue.path)) continue;
+      if (issue.severity !== "error" && issue.kind !== "unknown-key") continue;
+      (issue.severity === "error" ? errors : warnings2).push({
+        path: issue.path,
+        message: issue.message,
+        severity: issue.severity
+      });
+    }
+  } catch (e12) {
+    errors.push({
+      path: rootId,
+      message: `FLAT reader failed: ${e12 instanceof Error ? e12.message : String(e12)}`,
+      severity: "error"
+    });
+  }
+  if (options.jsonSource) {
+    enrichSimplifiedMessagesWithSource(
+      [...errors, ...warnings2],
+      options.jsonSource,
+      {
+        webTemplate,
+        sourceFormat: options.sourceFormat,
+        includeMissingHints: options.includeMissingHints
+      }
+    );
+  }
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings: warnings2
+  };
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/web_template_parser.ts
 function isObject(v5) {
   return v5 != null && typeof v5 === "object" && !Array.isArray(v5);
 }
@@ -114809,7 +117244,7 @@ function parseWebTemplate(source) {
   return webTemplate;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/simplified/web_template_to_opt.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/simplified/web_template_to_opt.ts
 var MULTIPLE_ATTRS = /* @__PURE__ */ new Set([
   "content",
   "items",
@@ -115370,7 +117805,7 @@ function webTemplateToOpt(webTemplate) {
   return new WebTemplateToOptConverter().convert(webTemplate);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/mod.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/mod.ts
 var mod_exports3 = {};
 __export(mod_exports3, {
   ACCESS_CONTROL_SETTINGS: () => ACCESS_CONTROL_SETTINGS,
@@ -115521,7 +117956,7 @@ __export(mod_exports3, {
   X_VERSIONED_PARTY: () => X_VERSIONED_PARTY
 });
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/basic.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/basic.ts
 var DATA_VALUE = class extends OPENEHR_DEFINITIONS {
 };
 var DV_BOOLEAN = class extends DATA_VALUE {
@@ -115727,7 +118162,7 @@ var DV_IDENTIFIER = class extends DATA_VALUE {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/uri.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/uri.ts
 var DV_URI = class extends DATA_VALUE {
   constructor(init) {
     super();
@@ -115835,7 +118270,7 @@ var DV_EHR_URI = class extends DV_URI {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/terse_format.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/terse_format.ts
 function parseTerseCodePhrase(terse) {
   const parts = matchTerseCodePhrase(terse);
   if (!parts) return null;
@@ -115866,7 +118301,7 @@ function isTerseDvCodedText(str3) {
   return isTerseDvCodedTextString(str3);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/base/init_helpers.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/base/init_helpers.ts
 function initSingleValueWrapper(value, constructor) {
   if (value === void 0 || value === null) {
     return void 0;
@@ -116021,7 +118456,7 @@ rmInitLate.initHelpers = {
   initDvText
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/text.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/text.ts
 var DV_PARAGRAPH = class extends DATA_VALUE {
   constructor(init) {
     super();
@@ -116394,7 +118829,7 @@ var CODE_PHRASE2 = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/encapsulated.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/encapsulated.ts
 var DV_ENCAPSULATED = class extends DATA_VALUE {
   /**
    * Name of character encoding scheme in which this value is encoded. Coded from openEHR Code Set  character sets . Unicode is the default assumption in openEHR, with UTF-8 being the assumed encoding. This attribute allows for variations from these assumptions.
@@ -116604,7 +119039,7 @@ var DV_PARSABLE = class extends DV_ENCAPSULATED {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/_shared.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/_shared.ts
 function accuracyAsNumber(acc) {
   if (acc === void 0) return void 0;
   if (acc instanceof Real) return acc.value;
@@ -116614,7 +119049,7 @@ function accuracyAsNumber(acc) {
   return void 0;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/quantity.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/quantity.ts
 var DV_ORDERED = class extends DATA_VALUE {
   /**
    * Optional normal status indicator of value with respect to normal range for this value. Often included by lab, even if the normal range itself is not included. Coded by ordinals in series HHH, HH, H, (nothing), L, LL, LLL; see openEHR terminology group  \`normal_status\`.
@@ -117518,7 +119953,7 @@ var DV_SCALE = class _DV_SCALE extends DV_ORDERED {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/quantity/date_time.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/quantity/date_time.ts
 var DV_DURATION = class _DV_DURATION extends DV_AMOUNT {
   constructor(init) {
     super();
@@ -118122,7 +120557,7 @@ var DV_DATE_TIME = class _DV_DATE_TIME extends DV_TEMPORAL {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_types/time_specification.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_types/time_specification.ts
 var DV_TIME_SPECIFICATION = class extends DATA_VALUE {
   /**
    * The specification, in the HL7v3 syntax for \`PIVL\` or \`EIVL\` types.
@@ -118350,7 +120785,7 @@ var DV_GENERAL_TIME_SPECIFICATION = class _DV_GENERAL_TIME_SPECIFICATION extends
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/common/archetyped.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/common/archetyped.ts
 var PATHABLE = class _PATHABLE extends Any {
   /**
    * Internal storage for parent reference.
@@ -118799,7 +121234,7 @@ var FEEDER_AUDIT_DETAILS = class {
   other_details;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_structures/representation.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_structures/representation.ts
 var ITEM = class extends LOCATABLE {
 };
 var CLUSTER = class extends ITEM {
@@ -118840,7 +121275,7 @@ var ELEMENT = class extends ITEM {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_structures/data_structures.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_structures/data_structures.ts
 var DATA_STRUCTURE = class extends LOCATABLE {
   /**
    * Hierarchical equivalent of the physical representation of each subtype, compatible with CEN EN 13606 structures.
@@ -118851,7 +121286,7 @@ var DATA_STRUCTURE = class extends LOCATABLE {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_structures/item_structure.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_structures/item_structure.ts
 var ITEM_STRUCTURE = class extends DATA_STRUCTURE {
 };
 var ITEM_TREE = class extends ITEM_STRUCTURE {
@@ -119105,7 +121540,7 @@ var ITEM_LIST = class extends ITEM_STRUCTURE {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/data_structures/history.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/data_structures/history.ts
 var EVENT = class extends LOCATABLE {
   /**
    * Time of this event. If the width is non-zero, it is the time point of the trailing edge of the event.
@@ -119230,7 +121665,7 @@ var HISTORY = class extends DATA_STRUCTURE {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/common/generic.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/common/generic.ts
 var REVISION_HISTORY_ITEM = class {
   constructor(init) {
     applyRmInit(this, init);
@@ -119491,7 +121926,7 @@ var REVISION_HISTORY = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/common/change_control.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/common/change_control.ts
 var VERSIONED_OBJECT = class {
   constructor(init) {
     applyRmInit(this, init);
@@ -119909,7 +122344,7 @@ var ORIGINAL_VERSION = class extends VERSION2 {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/common/directory.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/common/directory.ts
 var VERSIONED_FOLDER = class extends VERSIONED_OBJECT {
   constructor(init) {
     super();
@@ -119935,7 +122370,7 @@ var FOLDER = class extends LOCATABLE {
   details;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/common/resource.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/common/resource.ts
 var AUTHORED_RESOURCE2 = class {
   /**
    * Language in which this resource was initially authored. Although there is no language primacy of resources overall, the language of original authoring is required to ensure natural language translations can preserve quality. Language is relevant in both the description and ontology sections.
@@ -120287,7 +122722,7 @@ var RESOURCE_DESCRIPTION_ITEM2 = class {
   other_details;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/common/tags.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/common/tags.ts
 var ITEM_TAG = class {
   constructor(init) {
     applyRmInit(this, init);
@@ -120392,7 +122827,7 @@ var ITEM_TAG = class {
   owner_id;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/composition/composition.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/composition/composition.ts
 var COMPOSITION = class extends LOCATABLE {
   /**
    * Constructor supports partial initialization via spread syntax.
@@ -120584,11 +123019,11 @@ var EVENT_CONTEXT = class extends PATHABLE {
   participations;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/composition/content.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/composition/content.ts
 var CONTENT_ITEM = class extends LOCATABLE {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/composition/content/entry.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/composition/content/entry.ts
 var ENTRY = class extends CONTENT_ITEM {
   /**
    * Mandatory indicator of the localised language in which this Entry is written. Coded from openEHR Code Set  languages .
@@ -120846,7 +123281,7 @@ var INSTRUCTION = class extends CARE_ENTRY {
   activities;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/composition/content/navigation.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/composition/content/navigation.ts
 var SECTION = class extends CONTENT_ITEM {
   constructor(init) {
     super();
@@ -120861,7 +123296,7 @@ var SECTION = class extends CONTENT_ITEM {
   items;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/demographic/demographic.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/demographic/demographic.ts
 var PARTY = class extends LOCATABLE {
   /**
    * Identities used by the party to identify itself, such as legal name, stage names, aliases, nicknames and so on.
@@ -121063,7 +123498,7 @@ var VERSIONED_PARTY = class extends VERSIONED_OBJECT {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/ehr/ehr.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/ehr/ehr.ts
 var EHR = class {
   constructor(init) {
     applyRmInit(this, init);
@@ -121233,7 +123668,7 @@ var EHR_STATUS = class extends LOCATABLE {
 var ACCESS_CONTROL_SETTINGS = class {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/ehr_extract/common.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/ehr_extract/common.ts
 var EXTRACT = class extends LOCATABLE {
   constructor(init) {
     super();
@@ -121932,7 +124367,7 @@ var EXTRACT_VERSION_SPEC = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/ehr_extract/generic_extract.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/ehr_extract/generic_extract.ts
 var GENERIC_CONTENT_ITEM = class extends EXTRACT_CONTENT_ITEM {
   constructor(init) {
     super();
@@ -122144,7 +124579,7 @@ var GENERIC_CONTENT_ITEM = class extends EXTRACT_CONTENT_ITEM {
   item = void 0;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/ehr_extract/message.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/ehr_extract/message.ts
 var MESSAGE_CONTENT = class {
 };
 var MESSAGE = class {
@@ -122302,7 +124737,7 @@ var ADDRESSED_MESSAGE = class {
   message;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/ehr_extract/openehr_extract.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/ehr_extract/openehr_extract.ts
 var OPENEHR_CONTENT_ITEM = class extends EXTRACT_CONTENT_ITEM {
   constructor(init) {
     super();
@@ -122429,7 +124864,7 @@ var X_VERSIONED_PARTY = class extends X_VERSIONED_OBJECT {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/ehr_extract/sync_extract.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/ehr_extract/sync_extract.ts
 var SYNC_EXTRACT_REQUEST = class extends MESSAGE_CONTENT {
   constructor(init) {
     super();
@@ -122545,7 +124980,7 @@ var SYNC_EXTRACT_SPEC = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/integration/integration.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/integration/integration.ts
 var GENERIC_ENTRY = class extends CONTENT_ITEM {
   constructor(init) {
     super();
@@ -122557,7 +124992,7 @@ var GENERIC_ENTRY = class extends CONTENT_ITEM {
   data;
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/support/measurement.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/support/measurement.ts
 var MEASUREMENT_SERVICE = class _MEASUREMENT_SERVICE {
   constructor(init) {
     applyRmInit(this, init);
@@ -122790,7 +125225,7 @@ var MEASUREMENT_SERVICE = class _MEASUREMENT_SERVICE {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/support/terminology.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/support/terminology.ts
 var OPENEHR_TERMINOLOGY_GROUP_IDENTIFIERS = class {
   constructor(init) {
     applyRmInit(this, init);
@@ -123096,11 +125531,11 @@ var TERMINOLOGY_ACCESS = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/rm/support/support.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/rm/support/support.ts
 var EXTERNAL_ENVIRONMENT_ACCESS = class extends TERMINOLOGY_SERVICE {
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/openehr_model_registry.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/openehr_model_registry.ts
 var OPENEHR_TYPE_NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 function registerOpenEhrModelTypes() {
   if (TypeRegistry.isOpenEhrModelTypesRegistered()) {
@@ -123117,7 +125552,7 @@ function registerOpenEhrModelTypes() {
 rmInitLate.registerModelTypes = registerOpenEhrModelTypes;
 rmInitLate.ctorModules.push(mod_exports3, mod_exports);
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/errors.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/errors.ts
 var SerializationError = class _SerializationError extends Error {
   constructor(message, object, cause) {
     super(message);
@@ -126586,7 +129021,7 @@ function xqueryHelperModules() {
   ];
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/openehr_rm.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/openehr_rm.ts
 var openehr_rm_exports = {};
 __export(openehr_rm_exports, {
   ACCESS_CONTROL_SETTINGS: () => ACCESS_CONTROL_SETTINGS,
@@ -126737,7 +129172,7 @@ __export(openehr_rm_exports, {
   X_VERSIONED_PARTY: () => X_VERSIONED_PARTY
 });
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/type_inference.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/type_inference.ts
 var PRIMITIVE_LIKE = /* @__PURE__ */ new Set([
   "String",
   "Boolean",
@@ -126948,7 +129383,7 @@ var TypeInferenceEngine = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/property_order.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/property_order.ts
 function orderSerializationKeys(props, options = {}) {
   const archIdLocation = options.archetypeNodeIdLocation ?? "after_name";
   const nameLocation = options.nameLocation ?? "default";
@@ -126990,267 +129425,7 @@ function orderSerializationKeys(props, options = {}) {
   return [...rest, "archetype_node_id"];
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/json_source_index.ts
-function escapeJsonPointerSegment(segment) {
-  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
-}
-function rmPathToJsonPointer(rmPath) {
-  const trimmed = rmPath.replace(/\/+$/, "");
-  if (!trimmed || trimmed === "/") {
-    return "";
-  }
-  const segments = [];
-  for (const part of trimmed.split("/").filter(Boolean)) {
-    const match = part.match(/^([^[]+)(?:\[(\d+)\])?$/);
-    if (!match) {
-      segments.push(escapeJsonPointerSegment(part));
-      continue;
-    }
-    const [, name2, index] = match;
-    segments.push(escapeJsonPointerSegment(name2));
-    if (index !== void 0) {
-      segments.push(index);
-    }
-  }
-  return segments.length ? `/${segments.join("/")}` : "";
-}
-function buildJsonSourceIndex(source) {
-  const parser7 = new JsonSourceParser(source);
-  return parser7.parse();
-}
-function lookupSourceLocation(index, jsonPointer) {
-  return index.get(jsonPointer) ?? index.get(jsonPointer.replace(/\/+$/, ""));
-}
-function enrichValidationMessageWithSource(message, index) {
-  const jsonPointer = rmPathToJsonPointer(message.path);
-  const location2 = lookupSourceLocation(index, jsonPointer);
-  if (!location2) {
-    return;
-  }
-  message.jsonPointer = location2.jsonPointer;
-  message.sourceLine = location2.sourceLine;
-  message.sourceColumn = location2.sourceColumn;
-}
-var JsonSourceParser = class {
-  constructor(source) {
-    this.source = source;
-  }
-  pos = 0;
-  line = 1;
-  column = 1;
-  index = /* @__PURE__ */ new Map();
-  parse() {
-    this.skipWhitespace();
-    if (this.pos >= this.source.length) {
-      throw new SyntaxError("Unexpected end of JSON input");
-    }
-    this.parseValue("");
-    this.skipWhitespace();
-    if (this.pos < this.source.length) {
-      throw new SyntaxError("Unexpected non-whitespace character after JSON value");
-    }
-    return this.index;
-  }
-  parseValue(pointer) {
-    this.skipWhitespace();
-    this.record(pointer);
-    const ch = this.peek();
-    if (ch === "{") {
-      this.parseObject(pointer);
-    } else if (ch === "[") {
-      this.parseArray(pointer);
-    } else if (ch === '"') {
-      this.parseString();
-    } else if (ch === "t" || ch === "f" || ch === "n" || ch === "-" || ch >= "0" && ch <= "9") {
-      this.parsePrimitive();
-    } else {
-      throw new SyntaxError(`Unexpected token at line ${this.line}, column ${this.column}`);
-    }
-  }
-  parseObject(pointer) {
-    this.consume("{");
-    this.skipWhitespace();
-    if (this.peek() === "}") {
-      this.consume("}");
-      return;
-    }
-    while (true) {
-      this.skipWhitespace();
-      const key = this.parseString();
-      this.skipWhitespace();
-      this.consume(":");
-      const childPointer = pointer === "" ? `/${escapeJsonPointerSegment(key)}` : `${pointer}/${escapeJsonPointerSegment(key)}`;
-      this.parseValue(childPointer);
-      this.skipWhitespace();
-      if (this.peek() === ",") {
-        this.consume(",");
-        continue;
-      }
-      break;
-    }
-    this.consume("}");
-  }
-  parseArray(pointer) {
-    this.consume("[");
-    this.skipWhitespace();
-    if (this.peek() === "]") {
-      this.consume("]");
-      return;
-    }
-    let index = 0;
-    while (true) {
-      this.parseValue(`${pointer}/${index}`);
-      index++;
-      this.skipWhitespace();
-      if (this.peek() === ",") {
-        this.consume(",");
-        this.skipWhitespace();
-        continue;
-      }
-      break;
-    }
-    this.consume("]");
-  }
-  parseString() {
-    this.consume('"');
-    let value = "";
-    while (this.pos < this.source.length) {
-      const ch = this.source[this.pos];
-      this.advance();
-      if (ch === '"') {
-        return value;
-      }
-      if (ch === "\\") {
-        if (this.pos >= this.source.length) {
-          throw new SyntaxError("Unterminated string escape");
-        }
-        const escaped = this.source[this.pos];
-        this.advance();
-        switch (escaped) {
-          case '"':
-          case "\\":
-          case "/":
-            value += escaped;
-            break;
-          case "b":
-            value += "\b";
-            break;
-          case "f":
-            value += "\f";
-            break;
-          case "n":
-            value += "\n";
-            break;
-          case "r":
-            value += "\r";
-            break;
-          case "t":
-            value += "	";
-            break;
-          case "u": {
-            const hex = this.source.slice(this.pos, this.pos + 4);
-            if (!/^[0-9a-fA-F]{4}$/.test(hex)) {
-              throw new SyntaxError("Invalid Unicode escape");
-            }
-            this.pos += 4;
-            this.column += 4;
-            value += String.fromCharCode(parseInt(hex, 16));
-            break;
-          }
-          default:
-            throw new SyntaxError(`Invalid escape sequence: \\${escaped}`);
-        }
-        continue;
-      }
-      value += ch;
-    }
-    throw new SyntaxError("Unterminated string");
-  }
-  parsePrimitive() {
-    const start = this.pos;
-    if (this.peek() === "t") {
-      this.expectLiteral("true");
-      return;
-    }
-    if (this.peek() === "f") {
-      this.expectLiteral("false");
-      return;
-    }
-    if (this.peek() === "n") {
-      this.expectLiteral("null");
-      return;
-    }
-    if (this.peek() === "-") {
-      this.advance();
-    }
-    while (this.pos < this.source.length) {
-      const ch = this.source[this.pos];
-      if (ch >= "0" && ch <= "9" || ch === "." || ch === "e" || ch === "E" || ch === "+" || ch === "-") {
-        this.advance();
-        continue;
-      }
-      break;
-    }
-    const literal2 = this.source.slice(start, this.pos);
-    if (!literal2 || literal2 === "-" || !isFinite(Number(literal2))) {
-      throw new SyntaxError(`Invalid number at line ${this.line}, column ${this.column}`);
-    }
-  }
-  record(pointer) {
-    this.index.set(pointer, {
-      jsonPointer: pointer,
-      sourceLine: this.line,
-      sourceColumn: this.column
-    });
-  }
-  expectLiteral(literal2) {
-    if (!this.source.startsWith(literal2, this.pos)) {
-      throw new SyntaxError(`Expected '${literal2}' at line ${this.line}, column ${this.column}`);
-    }
-    for (let i12 = 0; i12 < literal2.length; i12++) {
-      this.advance();
-    }
-  }
-  skipWhitespace() {
-    while (this.pos < this.source.length) {
-      const ch = this.source[this.pos];
-      if (ch === " " || ch === "	" || ch === "\n" || ch === "\r") {
-        this.advance();
-        continue;
-      }
-      break;
-    }
-  }
-  peek() {
-    return this.source[this.pos] ?? "";
-  }
-  consume(expected) {
-    if (this.peek() !== expected) {
-      throw new SyntaxError(
-        `Expected '${expected}' at line ${this.line}, column ${this.column}`
-      );
-    }
-    this.advance();
-  }
-  advance() {
-    const ch = this.source[this.pos];
-    if (ch === void 0) {
-      return;
-    }
-    this.pos++;
-    if (ch === "\n") {
-      this.line++;
-      this.column = 1;
-    } else {
-      this.column++;
-    }
-  }
-};
-function lookupJsonSourceLocation(index, jsonPointer) {
-  return lookupSourceLocation(index, jsonPointer);
-}
-
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/rm_tree_walker.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/rm_tree_walker.ts
 function collectRmPropertyNames(obj2, options = {}) {
   const includeNull = options.includeNullValues ?? false;
   const allProperties = /* @__PURE__ */ new Set();
@@ -127300,7 +129475,7 @@ function walkRmTreeToPlain(obj2, options, visitObject, parentType, propertyName2
   );
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/json/canonical_rm_values.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/json/canonical_rm_values.ts
 var PRIMITIVE_LIKE2 = /* @__PURE__ */ new Set([
   "String",
   "Boolean",
@@ -127426,7 +129601,7 @@ function prepareCanonicalAttributeValue(parentType, propertyName2, value, mode) 
   return prepareOne(slot, value, mode, propertyName2);
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/json/json_canonical_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/json/json_canonical_serializer.ts
 var JsonCanonicalSerializer = class {
   TYPE_PROPERTY = "_type";
   INDENT = 2;
@@ -127497,7 +129672,7 @@ var JsonCanonicalSerializer = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/json/json_config.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/json/json_config.ts
 var DEFAULT_JSON_DESERIALIZATION_CONFIG = {
   typePropertyName: "_type",
   strict: false,
@@ -127532,7 +129707,7 @@ var NON_STANDARD_VERY_COMPACT_JSON_DESERIALIZE_CONFIG = {
   // Must enable to deserialize terse format
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/term/ucum_service.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/term/ucum_service.ts
 var UcumService = class _UcumService {
   ucumUtils = null;
   initialized = false;
@@ -127806,7 +129981,7 @@ var UcumService = class _UcumService {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/interval_validator.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/interval_validator.ts
 var IntervalValidator = class {
   /**
    * Validate a DV_INTERVAL instance
@@ -127928,7 +130103,7 @@ var IntervalValidator = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/archetype_path_resolver.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/archetype_path_resolver.ts
 var ArchetypePathResolver = class {
   definition;
   constructor(options) {
@@ -128040,7 +130215,7 @@ var ArchetypePathResolver = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/invariant_evaluator.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/invariant_evaluator.ts
 var InvariantEvaluator = class {
   pathResolver;
   constructor(options) {
@@ -128049,15 +130224,19 @@ var InvariantEvaluator = class {
     });
   }
   /**
-   * Evaluate all assertions in order (variable declarations accumulate).
+   * Evaluate archetype rule assertions in order (variable declarations accumulate).
+   *
+   * When `invariants` is omitted or not an array, returns an empty list (no RM
+   * rules are inferred from the instance type).
    */
   validateInvariants(rmInstance, invariants, definition) {
     if (definition) {
       this.pathResolver = new ArchetypePathResolver({ definition });
     }
+    const rules = Array.isArray(invariants) ? invariants : [];
     const messages = [];
     const env = /* @__PURE__ */ new Map();
-    for (const assertion of invariants) {
+    for (const assertion of rules) {
       this.applyVariableDeclarations(rmInstance, assertion, env);
       const expr = assertion.string_expression?.trim();
       if (!expr) continue;
@@ -128389,7 +130568,74 @@ var InvariantEvaluator = class {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/validation/template_validator.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/archetype_rules.ts
+function archetypeIdString3(arch) {
+  return arch.archetype_id?.value ?? arch.archetype_id?.toString();
+}
+function copyAssertions(list) {
+  return list?.length ? [...list] : [];
+}
+function collectArchetypeAssertionSources(archetype, resolver) {
+  const chain = [];
+  const seen = /* @__PURE__ */ new Set();
+  let current = archetype;
+  while (current) {
+    const id4 = archetypeIdString3(current);
+    if (id4) {
+      if (seen.has(id4)) break;
+      seen.add(id4);
+    }
+    chain.unshift(current);
+    const parentId2 = current.parent_archetype_id?.value ?? current.parent_archetype_id?.toString();
+    if (!parentId2 || !resolver) break;
+    current = resolver.resolve(parentId2);
+    if (!current) break;
+  }
+  const sources = [];
+  for (const arch of chain) {
+    const assertions = copyAssertions(arch.invariants);
+    if (!assertions.length) continue;
+    sources.push({
+      archetypeId: archetypeIdString3(arch) ?? "(unknown)",
+      assertions
+    });
+  }
+  return sources;
+}
+function flattenArchetypeAssertionSources(sources) {
+  return sources.flatMap((s8) => s8.assertions);
+}
+function collectTemplateAssertionSources(source, options) {
+  const sources = collectArchetypeAssertionSources(source, options?.resolver);
+  const seen = new Set(sources.map((s8) => s8.archetypeId));
+  const mergeComponent = (arch) => {
+    for (const src2 of collectArchetypeAssertionSources(arch, options?.resolver)) {
+      if (seen.has(src2.archetypeId)) continue;
+      seen.add(src2.archetypeId);
+      sources.push(src2);
+    }
+  };
+  for (const arch of options?.componentArchetypes ?? []) {
+    mergeComponent(arch);
+  }
+  if (options?.resolver) {
+    const scoped = source;
+    const rootId = archetypeIdString3(source);
+    for (const key of Object.keys(scoped.archetype_term_definitions ?? {})) {
+      if (key === rootId) continue;
+      const arch = options.resolver.resolve(key);
+      if (arch) mergeComponent(arch);
+    }
+  }
+  return sources;
+}
+function collectArchetypeAssertions(source, options) {
+  return flattenArchetypeAssertionSources(
+    collectTemplateAssertionSources(source, options)
+  );
+}
+
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/validation/template_validator.ts
 var TemplateValidator = class {
   config;
   occurrenceValidator;
@@ -128401,6 +130647,8 @@ var TemplateValidator = class {
   rmSpecValidator;
   /** Paths already checked for UCUM during the current `validate()` call. */
   ucumPathsChecked = /* @__PURE__ */ new Set();
+  /** Active archetype / occurrence scopes for rubric lookup during `validate()`. */
+  rubricArchetypeStack = [];
   constructor(config2) {
     this.config = {
       failFast: false,
@@ -128456,14 +130704,19 @@ var TemplateValidator = class {
     const errors = [];
     const warnings2 = [];
     this.ucumPathsChecked.clear();
+    this.rubricArchetypeStack = [];
     if (this.terminologyValidator) {
       const language2 = compositionLanguage2(rmInstance, template);
       this.terminologyValidator.setRubricContext({
         language: language2,
-        lookup: (code) => lookupTemplateRubric(template, code, language2)
+        lookup: (code) => lookupTemplateRubric(
+          template,
+          code,
+          language2,
+          this.rubricArchetypeStack
+        )
       });
     }
-    const sourceIndex = options?.jsonSource ? buildJsonSourceIndex(options.jsonSource) : void 0;
     if (!template.definition) {
       errors.push({
         path: "/",
@@ -128497,21 +130750,27 @@ var TemplateValidator = class {
       errors.push(...rmMsgs.filter((m5) => m5.severity === "error"));
       warnings2.push(...rmMsgs.filter((m5) => m5.severity === "warning"));
     }
-    if (this.config.validateInvariants && template.invariants?.length) {
+    const archetypeRules = this.config.validateInvariants ? collectArchetypeAssertions(template) : [];
+    if (archetypeRules.length) {
       const invariantMsgs = new InvariantEvaluator({
         definition: template.definition
       }).validateInvariants(
         rmInstance,
-        template.invariants,
+        archetypeRules,
         template.definition
       );
       errors.push(...invariantMsgs.filter((m5) => m5.severity === "error"));
       warnings2.push(...invariantMsgs.filter((m5) => m5.severity === "warning"));
     }
-    if (sourceIndex) {
-      for (const message of [...errors, ...warnings2]) {
-        enrichValidationMessageWithSource(message, sourceIndex);
-      }
+    if (options?.jsonSource || options?.webTemplate || options?.includeMissingHints) {
+      enrichValidationMessagesWithSource([...errors, ...warnings2], {
+        jsonSource: options.jsonSource,
+        sourceFormat: options.sourceFormat,
+        webTemplate: options.webTemplate,
+        template,
+        rmInstance,
+        includeMissingHints: options.includeMissingHints
+      });
     }
     return {
       valid: errors.length === 0,
@@ -128540,6 +130799,35 @@ var TemplateValidator = class {
     return { valid: errors.length === 0, errors, warnings: warnings2 };
   }
   validateNode(rmNode, cObject, path, errors, warnings2, depth, parentRmType) {
+    const rubricScope = this.pushRubricArchetypeScope(cObject);
+    try {
+      this.validateNodeScoped(
+        rmNode,
+        cObject,
+        path,
+        errors,
+        warnings2,
+        depth,
+        parentRmType
+      );
+    } finally {
+      this.popRubricArchetypeScope(rubricScope);
+    }
+  }
+  pushRubricArchetypeScope(cObject) {
+    if (cObject instanceof C_ARCHETYPE_ROOT && typeof cObject.archetype_ref === "string" && cObject.archetype_ref) {
+      const scope = termScopeOf(cObject) ?? cObject.archetype_ref;
+      this.rubricArchetypeStack.push(scope);
+      return scope;
+    }
+    return void 0;
+  }
+  popRubricArchetypeScope(scope) {
+    if (!scope) return;
+    const top2 = this.rubricArchetypeStack[this.rubricArchetypeStack.length - 1];
+    if (top2 === scope) this.rubricArchetypeStack.pop();
+  }
+  validateNodeScoped(rmNode, cObject, path, errors, warnings2, depth, parentRmType) {
     if (depth > (this.config.maxDepth || 100)) {
       warnings2.push({
         path,
@@ -128585,7 +130873,9 @@ var TemplateValidator = class {
       warnings2.push(...msgs.filter((m5) => m5.severity === "warning"));
     }
     if (isPrimitiveConstraint(cObject) && rmNode !== null && rmNode !== void 0) {
-      const msgs = this.primitiveValidator.validate(rmNode, cObject, path);
+      const msgs = this.primitiveValidator.validate(rmNode, cObject, path, {
+        parentRmType
+      });
       errors.push(...msgs.filter((m5) => m5.severity === "error"));
       warnings2.push(...msgs.filter((m5) => m5.severity === "warning"));
     }
@@ -128867,11 +131157,15 @@ var CardinalityValidator = class {
   }
 };
 var PrimitiveValidator = class {
-  validate(rmValue, cObject, path) {
+  validate(rmValue, cObject, path, context) {
     const messages = [];
     const constraint = unwrapPrimitiveConstraint(cObject);
-    if (!constraint) return messages;
     const value = extractPrimitiveValue(rmValue);
+    if (typeof value === "boolean" && (isBooleanCarrier(context?.parentRmType) || isBooleanCarrier(cObject.rm_type_name) || isBooleanLiteralConstraint(constraint))) {
+      this.applyBooleanAllowance(value, constraint, path, messages);
+      return messages;
+    }
+    if (!constraint) return messages;
     if (constraint instanceof C_STRING) {
       this.validateString(value, constraint, path, messages);
     } else if (constraint instanceof C_INTEGER) {
@@ -128993,7 +131287,43 @@ var PrimitiveValidator = class {
       });
       return;
     }
-    if (constraint.true_valid === false && value === true) {
+    this.applyBooleanFlags(
+      value,
+      constraint.true_valid !== false,
+      constraint.false_valid !== false,
+      path,
+      messages
+    );
+  }
+  /**
+   * A boolean on DV_BOOLEAN. C_BOOLEAN flags apply. A C_STRING whose pattern
+   * or list is only True/False (the pre-#313 OPT shape) applies the same
+   * way. Any other constraint, including none, accepts the boolean.
+   */
+  applyBooleanAllowance(value, constraint, path, messages) {
+    if (constraint instanceof C_BOOLEAN) {
+      this.applyBooleanFlags(
+        value,
+        constraint.true_valid !== false,
+        constraint.false_valid !== false,
+        path,
+        messages
+      );
+      return;
+    }
+    const tokens2 = booleanLiteralTokens(constraint);
+    if (tokens2) {
+      this.applyBooleanFlags(
+        value,
+        tokens2.includes("true"),
+        tokens2.includes("false"),
+        path,
+        messages
+      );
+    }
+  }
+  applyBooleanFlags(value, trueValid, falseValid, path, messages) {
+    if (!trueValid && value === true) {
       messages.push({
         path,
         message: `Boolean value 'true' is not allowed`,
@@ -129001,7 +131331,7 @@ var PrimitiveValidator = class {
         constraintType: "boolean_constraint"
       });
     }
-    if (constraint.false_valid === false && value === false) {
+    if (!falseValid && value === false) {
       messages.push({
         path,
         message: `Boolean value 'false' is not allowed`,
@@ -129181,6 +131511,27 @@ function unwrapPrimitiveConstraint(cObject) {
   }
   return cObject;
 }
+function isBooleanCarrier(rmType) {
+  if (!rmType) return false;
+  const base2 = rmType.replace(/<.*$/, "").toUpperCase();
+  return base2 === "DV_BOOLEAN" || base2 === "BOOLEAN";
+}
+function booleanLiteralTokens(constraint) {
+  if (!(constraint instanceof C_STRING)) return void 0;
+  const pattern = constraint.pattern;
+  const list = constraint.list;
+  const raw = [
+    ...list ?? [],
+    ...pattern ? pattern.split(/[|,]/) : []
+  ].map((s8) => s8.trim()).filter(Boolean);
+  if (!raw.length) return void 0;
+  const tokens2 = raw.map((s8) => s8.toLowerCase());
+  if (!tokens2.every((t12) => t12 === "true" || t12 === "false")) return void 0;
+  return tokens2;
+}
+function isBooleanLiteralConstraint(constraint) {
+  return constraint instanceof C_BOOLEAN || booleanLiteralTokens(constraint) !== void 0;
+}
 function extractPrimitiveValue(rmValue) {
   if (rmValue && typeof rmValue === "object" && "value" in rmValue) {
     return rmValue.value;
@@ -129261,8 +131612,8 @@ function languageCodeOf(value) {
   if (typeof rec.value === "string") return languageCodeOf(rec.value);
   return void 0;
 }
-function lookupTemplateRubric(template, code, language2) {
-  const tables = termTablesOf(template);
+function lookupTemplateRubric(template, code, language2, archetypeStack = []) {
+  const tables = termTablesForRubricLookup(template, archetypeStack);
   const preferred = rubricInTables(tables, code, language2);
   if (preferred) return preferred;
   if (tables.some((table) => tableHasLanguage(table, language2))) return void 0;
@@ -129275,14 +131626,15 @@ function lookupTemplateRubric(template, code, language2) {
   }
   return void 0;
 }
-function termTablesOf(template) {
+function termTablesForRubricLookup(template, archetypeStack) {
   const tables = [];
-  const onto = template.ontology?.term_definitions;
-  tables.push(onto);
-  const scoped = template.archetype_term_definitions;
-  if (scoped) {
-    for (const bag of Object.values(scoped)) tables.push(bag);
+  const scopedTemplate = template;
+  for (let i12 = archetypeStack.length - 1; i12 >= 0; i12--) {
+    const key = archetypeStack[i12];
+    const bag = scopedTemplate.archetype_term_definitions?.[key] ?? scopedTemplate.occurrence_term_definitions?.[key];
+    if (bag) tables.push(bag);
   }
+  tables.push(scopedTemplate.ontology?.term_definitions);
   return tables;
 }
 function rubricInTables(tables, code, language2) {
@@ -129368,7 +131720,7 @@ function validateOrdinalConstraint(rmValue, cObject, path) {
   return messages;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/common/post_deserialize_validation.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/common/post_deserialize_validation.ts
 function validateDeserializedInstance(instance, options) {
   const template = options?.validateAgainstTemplate;
   if (!template || instance === null || instance === void 0) {
@@ -129380,7 +131732,7 @@ function validateDeserializedInstance(instance, options) {
   });
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/json/json_configurable_deserializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/json/json_configurable_deserializer.ts
 var JsonConfigurableDeserializer = class _JsonConfigurableDeserializer {
   config;
   /**
@@ -129706,7 +132058,7 @@ var JsonConfigurableDeserializer = class _JsonConfigurableDeserializer {
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/xml/xml_config.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/xml/xml_config.ts
 var DEFAULT_XML_SERIALIZATION_CONFIG = {
   rootElement: "",
   includeDeclaration: true,
@@ -129723,8 +132075,30 @@ var DEFAULT_XML_DESERIALIZATION_CONFIG = {
   ignoreAttributes: false,
   validateAgainstTemplate: void 0
 };
+var ITS_XML_LIST_ELEMENT_NAMES = /* @__PURE__ */ new Set([
+  "activities",
+  "attestations",
+  "attested_view",
+  "audit",
+  "content",
+  "events",
+  "identifiers",
+  "items",
+  "languages",
+  "links",
+  "mappings",
+  "other_participations",
+  "parts",
+  "precisions",
+  "revisions",
+  "subject_reviews",
+  "versions"
+]);
+function itsXmlTagIsRepeatingList(tagName2) {
+  return ITS_XML_LIST_ELEMENT_NAMES.has(tagName2.toLowerCase());
+}
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/xml/xml_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/xml/xml_serializer.ts
 var XmlSerializer = class {
   config;
   /**
@@ -129817,10 +132191,10 @@ ${xml2}` : `${declaration}${xml2}`;
         continue;
       }
       if (typeof value === "object" && !Array.isArray(value)) {
-        rootContent[key] = this.convertNestedObject(value, config2);
+        rootContent[key] = this.convertNestedObject(value, config2, key);
       } else if (Array.isArray(value)) {
         rootContent[key] = value.map(
-          (item) => typeof item === "object" ? this.convertNestedObject(item, config2) : typeof item === "number" ? this.formatNumber(item) : item
+          (item) => typeof item === "object" ? this.convertNestedObject(item, config2, key) : typeof item === "number" ? this.formatNumber(item) : item
         );
       } else {
         rootContent[key] = typeof value === "number" ? this.formatNumber(value) : value;
@@ -129845,7 +132219,7 @@ ${xml2}` : `${declaration}${xml2}`;
   /**
    * Convert a nested object to XML structure
    */
-  convertNestedObject(obj2, config2) {
+  convertNestedObject(obj2, config2, parentPropertyKey) {
     if (obj2 === null || obj2 === void 0) {
       return null;
     }
@@ -129853,10 +132227,17 @@ ${xml2}` : `${declaration}${xml2}`;
       return typeof obj2 === "number" ? this.formatNumber(obj2) : obj2;
     }
     if (Array.isArray(obj2)) {
-      return obj2.map((item) => this.convertNestedObject(item, config2));
+      return obj2.map((item) => this.convertNestedObject(item, config2, parentPropertyKey));
+    }
+    const typeName2 = TypeRegistry.getTypeNameFromInstance(obj2);
+    if (parentPropertyKey === "value" && typeName2 === "DV_BOOLEAN") {
+      const wire = { "@_xsi:type": "DV_BOOLEAN" };
+      if (obj2.value !== void 0 && obj2.value !== null) {
+        wire["#text"] = obj2.value === true || obj2.value === "true" ? "true" : "false";
+      }
+      return wire;
     }
     const result = {};
-    const typeName2 = TypeRegistry.getTypeNameFromInstance(obj2);
     if (typeName2) {
       result["@_xsi:type"] = typeName2;
     }
@@ -129873,10 +132254,10 @@ ${xml2}` : `${declaration}${xml2}`;
       }
       if (Array.isArray(value)) {
         result[key] = value.map(
-          (item) => typeof item === "object" ? this.convertNestedObject(item, config2) : typeof item === "number" ? this.formatNumber(item) : item
+          (item) => typeof item === "object" ? this.convertNestedObject(item, config2, key) : typeof item === "number" ? this.formatNumber(item) : item
         );
       } else if (typeof value === "object") {
-        result[key] = this.convertNestedObject(value, config2);
+        result[key] = this.convertNestedObject(value, config2, key);
       } else {
         result[key] = typeof value === "number" ? this.formatNumber(value) : value;
       }
@@ -129921,7 +132302,7 @@ ${xml2}` : `${declaration}${xml2}`;
   }
 };
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/xml/xml_deserializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/xml/xml_deserializer.ts
 var XmlDeserializer = class {
   config;
   /**
@@ -129946,11 +132327,9 @@ var XmlDeserializer = class {
         ignoreAttributes: this.config.ignoreAttributes,
         attributeNamePrefix: "@_",
         parseAttributeValue: false,
-        parseTagValue: true,
+        parseTagValue: false,
         trimValues: true,
-        isArray: (name2, jpath, isLeafNode, isAttribute2) => {
-          return false;
-        }
+        isArray: (name2, _jpath, _isLeafNode, isAttribute2) => !isAttribute2 && itsXmlTagIsRepeatingList(name2)
       });
       const parsed = parser7.parse(xml2);
       const rootKey = Object.keys(parsed).find((k5) => !k5.startsWith("?")) ?? Object.keys(parsed)[0];
@@ -129977,8 +132356,9 @@ var XmlDeserializer = class {
         ignoreAttributes: this.config.ignoreAttributes,
         attributeNamePrefix: "@_",
         parseAttributeValue: false,
-        parseTagValue: true,
-        trimValues: true
+        parseTagValue: false,
+        trimValues: true,
+        isArray: (name2, _jpath, _isLeafNode, isAttribute2) => !isAttribute2 && itsXmlTagIsRepeatingList(name2)
       });
       const parsed = parser7.parse(xml2);
       const rootKey = Object.keys(parsed).find((k5) => !k5.startsWith("?")) ?? Object.keys(parsed)[0];
@@ -130028,6 +132408,15 @@ var XmlDeserializer = class {
       }
       return this.reconstructPlainObject(data);
     }
+    if (typeName2 === "DV_BOOLEAN") {
+      const instance2 = new Constructor();
+      const raw = typeof data === "object" && data !== null && !Array.isArray(data) ? data.value ?? data["#text"] : data;
+      if (typeof raw === "boolean") instance2.value = raw;
+      else if (typeof raw === "string") {
+        instance2.value = raw.trim().toLowerCase() === "true";
+      }
+      return instance2;
+    }
     const instance = new Constructor();
     for (const [key, value] of Object.entries(data)) {
       if (key.startsWith("@_")) {
@@ -130044,7 +132433,8 @@ var XmlDeserializer = class {
             (item) => typeof item === "object" ? this.reconstructObject(item, key) : item
           );
         } else {
-          instance[key] = this.reconstructObject(value, key);
+          const nested = this.reconstructObject(value, key);
+          instance[key] = itsXmlTagIsRepeatingList(key) ? [nested] : nested;
         }
       } else {
         instance[key] = value;
@@ -130068,7 +132458,8 @@ var XmlDeserializer = class {
         const propName3 = key.substring(2);
         result[propName3] = value;
       } else if (typeof value === "object") {
-        result[key] = this.reconstructPlainObject(value);
+        const nested = this.reconstructPlainObject(value);
+        result[key] = itsXmlTagIsRepeatingList(key) ? Array.isArray(nested) ? nested : [nested] : nested;
       } else {
         result[key] = value;
       }
@@ -135615,7 +138006,7 @@ function isDomNode(value) {
   );
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/generation/opt_xml_serializer.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/generation/opt_xml_serializer.ts
 function atNodeId(nodeId) {
   if (!nodeId) return "";
   const m5 = /^id(\d+(?:\.\d+)*)$/i.exec(nodeId);
@@ -137397,7 +139788,7 @@ function resolveBlockly() {
 }
 var Blockly2 = resolveBlockly();
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/spec/spec_docs.generated.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/spec/spec_docs.generated.ts
 var SPEC_CLASS_ROWS = [
   {
     "name": "ACCESS_CONTROL_SETTINGS",
@@ -146501,7 +148892,7 @@ var SPEC_CLASS_ROWS = [
   }
 ];
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/spec/spec_descriptions.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/spec/spec_descriptions.ts
 var byName = /* @__PURE__ */ new Map();
 for (const row of SPEC_CLASS_ROWS) {
   const key = row.name.toUpperCase();
@@ -152754,7 +155145,7 @@ function deprecationHref(definingClass, attributeName) {
   return row?.specHtmlUrl ?? null;
 }
 
-// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.12/serialization/zipehr/symbol_table.ts
+// https://cdn.jsdelivr.net/gh/ErikSundvall/ehrtslib@v0.15/serialization/zipehr/symbol_table.ts
 var SYMBOL_TABLE_EMOJI_SYMBOLS = {
   "LOCATABLE.archetype_node_id": "\u{1F194}",
   "LOCATABLE.name": "\u{1FAA7}",
@@ -158908,6 +161299,18 @@ function csvField(value) {
 
 // src/core/output/json_line_lookup.ts
 function lineNumberForRmPath(json2, rmPath) {
+  try {
+    const index = buildJsonSourceIndex(json2);
+    const pointer = rmPathToJsonPointer(rmPath);
+    const exact = index.get(pointer);
+    if (exact) return exact.sourceLine;
+    const parts = pointer.split("/").filter(Boolean);
+    for (let len = parts.length - 1; len >= 1; len--) {
+      const anc = index.get(`/${parts.slice(0, len).join("/")}`);
+      if (anc) return anc.sourceLine;
+    }
+  } catch {
+  }
   const segments = rmPath.split("/").filter(Boolean).map((segment) => segment.replace(/\[\d+\]/g, ""));
   const leaf = segments.at(-1);
   if (!leaf) return void 0;
@@ -158975,10 +161378,13 @@ function validateConvertedOutput(output, target, options = {}) {
       }]
     };
   }
+  let rawJsonSource;
+  let isXmlOutput = false;
   if (typeof output === "string") {
     const trimmed = output.trim();
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       try {
+        rawJsonSource = output;
         output = JSON.parse(trimmed);
       } catch {
         return notApplicableOutputValidation();
@@ -158987,6 +161393,7 @@ function validateConvertedOutput(output, target, options = {}) {
       try {
         ensureRmTypeRegistry2();
         output = new XmlDeserializer().deserialize(trimmed);
+        isXmlOutput = true;
       } catch {
         return notApplicableOutputValidation();
       }
@@ -159005,7 +161412,8 @@ function validateConvertedOutput(output, target, options = {}) {
       }]
     };
   }
-  const jsonText = JSON.stringify(output, null, 2);
+  const jsonText = rawJsonSource ?? JSON.stringify(output, null, 2);
+  const jsonSource = isXmlOutput ? void 0 : jsonText;
   const deserializeMode = options.deserializeMode ?? "canonical-strict";
   try {
     const opt = operationalTemplateFromTarget(target);
@@ -159020,18 +161428,29 @@ function validateConvertedOutput(output, target, options = {}) {
         }]
       };
     }
-    const flat = rmFromFlatDocument(output, target);
+    const webTemplate = webTemplateFromTarget(target, opt);
+    const flat = rmFromFlatDocument(output, webTemplate, jsonSource);
     const rmInstance = flat?.composition ?? asRmInstance2(output, jsonText, deserializeMode);
-    const result = validator.validate(rmInstance, opt);
+    const sourceFormat = flat?.sourceFormat ?? "canonical-json";
+    const includeMissingHints = !isXmlOutput;
+    const result = validator.validate(rmInstance, opt, {
+      jsonSource,
+      sourceFormat,
+      webTemplate,
+      includeMissingHints
+    });
     const flatMessages = flat?.messages ?? [];
     const messages = [
       ...flatMessages,
-      ...[...result.errors, ...result.warnings].map((msg2) => ({
-        path: msg2.path || "/",
-        message: msg2.message,
-        severity: msg2.severity,
-        line: lineNumberForRmPath(jsonText, msg2.path || "/")
-      }))
+      ...[...result.errors, ...result.warnings].map(
+        (msg2) => toOutputValidationMessage(msg2, {
+          jsonSource,
+          sourceFormat,
+          webTemplate,
+          opt,
+          includeMissingHints
+        })
+      )
     ];
     return {
       applicable: true,
@@ -159050,26 +161469,84 @@ function validateConvertedOutput(output, target, options = {}) {
         path: "/",
         message,
         severity: "error",
-        line: lineNumberForDeserializeError(jsonText, message)
+        line: jsonSource ? lineNumberForDeserializeError(jsonSource, message) : void 0
       }]
     };
   }
 }
-function rmFromFlatDocument(output, target) {
-  const json2 = flatCompositionJson(output);
-  const structured = json2 ? null : structuredCompositionJson(output);
-  if (!json2 && !structured || !target.webTemplateJson?.trim()) return null;
+function spreadSourceLocationFields(source, lineOverride) {
+  const line = lineOverride ?? source.sourceLine;
+  return {
+    ...line !== void 0 ? { line } : {},
+    ...source.sourceColumn !== void 0 ? { column: source.sourceColumn } : {},
+    ...source.jsonPointer !== void 0 ? { jsonPointer: source.jsonPointer } : {},
+    ...source.sourceIsAncestor ? { sourceIsAncestor: true } : {},
+    ...source.targetPath ? { targetPath: source.targetPath } : {},
+    ...source.expectedExample ? { expectedExample: source.expectedExample } : {}
+  };
+}
+function toOutputValidationMessage(msg2, ctx) {
+  const path = msg2.path || "/";
+  const line = msg2.sourceLine ?? (ctx.sourceFormat === "canonical-json" && ctx.jsonSource ? lineNumberForRmPath(ctx.jsonSource, path) : void 0);
+  const expectedExample = msg2.expectedExample ?? (ctx.includeMissingHints ? fallbackExpectedExample(msg2, ctx.sourceFormat, ctx.webTemplate, ctx.opt) : void 0);
+  return {
+    path,
+    message: msg2.message,
+    severity: msg2.severity,
+    ...spreadSourceLocationFields({ ...msg2, expectedExample }, line)
+  };
+}
+function isMissingOrEmptyMessage(message) {
+  if (classifyOpenEhrValidationMessage(message) === "required-missing") return true;
+  const m5 = message.toLowerCase();
+  return m5.includes("is_empty") || /\/=\s*void/.test(m5) || m5.includes("below minimum");
+}
+function fallbackExpectedExample(msg2, sourceFormat, webTemplate, opt) {
+  if (!isMissingOrEmptyMessage(msg2.message)) return void 0;
+  const wtNode = webTemplate && msg2.targetPath ? findWebTemplateNodeForTargetPath(webTemplate, msg2.targetPath) : void 0;
+  return formatExpectedExampleForMissingNode({
+    format: sourceFormat,
+    rmPath: msg2.path || "/",
+    webTemplateNode: wtNode,
+    flatBasePath: msg2.targetPath,
+    constraintNodeId: msg2.constraintNodeId,
+    template: opt
+  });
+}
+function findWebTemplateNodeForTargetPath(webTemplate, targetPath) {
+  const pipeIdx = targetPath.indexOf("|");
+  const base2 = pipeIdx === -1 ? targetPath : targetPath.slice(0, pipeIdx);
+  const segments = base2.split("/").slice(1).map((s8) => s8.replace(/:\d+$/, ""));
+  if (!segments.length) return webTemplate.tree;
+  let cur = webTemplate.tree;
+  for (const seg of segments) {
+    cur = cur?.children?.find((c9) => c9.id === seg);
+    if (!cur) return void 0;
+  }
+  return cur;
+}
+function rmFromFlatDocument(output, webTemplate, jsonSource) {
+  if (!webTemplate) return null;
+  const flatPayload = flatCompositionPayload(output);
+  const structuredPayload = flatPayload ? null : structuredCompositionPayload(output);
+  if (!flatPayload && !structuredPayload) return null;
+  const sourceFormat = flatPayload ? "flat-json" : "structured-json";
   try {
     ensureRmTypeRegistry2();
-    const webTemplate = parseWebTemplate(target.webTemplateJson);
-    const { composition, issues } = json2 ? deserializeFromFlatWithIssues(JSON.parse(json2), webTemplate) : deserializeFromStructuredWithIssues(
-      JSON.parse(structured),
+    const { composition, issues } = flatPayload ? deserializeFromFlatWithIssues(flatPayload, webTemplate) : deserializeFromStructuredWithIssues(
+      structuredPayload,
       webTemplate
     );
-    return { composition, messages: flatIssueMessages(issues) };
+    return {
+      composition,
+      messages: flatIssueMessages(issues, jsonSource, webTemplate, sourceFormat, flatPayload),
+      sourceFormat
+    };
   } catch (err2) {
     if (err2 instanceof CodedTextMismatchError) {
-      throw new FlatIssuesError(flatIssueMessages(err2.issues));
+      throw new FlatIssuesError(
+        flatIssueMessages(err2.issues, jsonSource, webTemplate, sourceFormat, flatPayload)
+      );
     }
     return null;
   }
@@ -159081,32 +161558,86 @@ var FlatIssuesError = class extends Error {
     this.name = "FlatIssuesError";
   }
 };
-function flatIssueMessages(issues) {
-  return issues.map((issue) => ({
-    path: issue.path || "/",
-    message: issue.message,
-    severity: issue.severity
-  }));
-}
-function flatCompositionJson(output) {
-  let value = output;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed.startsWith("{")) return null;
-    try {
-      value = JSON.parse(trimmed);
-    } catch {
-      return null;
+function flatIssueMessages(issues, jsonSource, webTemplate, sourceFormat, flatPayload) {
+  if (!issues.length) return [];
+  const enriched = issues.map((issue) => ({ ...issue }));
+  if (jsonSource) {
+    enrichSimplifiedMessagesWithSource(enriched, jsonSource, {
+      webTemplate,
+      sourceFormat,
+      includeMissingHints: true
+    });
+    if (sourceFormat === "flat-json" && flatPayload) {
+      refineFlatOccurrenceLocations(enriched, flatPayload, jsonSource);
     }
   }
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value;
+  return enriched.map((issue) => ({
+    path: issue.path || "/",
+    message: issue.message,
+    severity: issue.severity,
+    ...spreadSourceLocationFields(issue)
+  }));
+}
+function refineFlatOccurrenceLocations(issues, flatPayload, jsonSource) {
+  const needsRefine = issues.some((i12) => Boolean(i12.targetPath && i12.path.startsWith("/")));
+  if (!needsRefine) return;
+  let index;
+  try {
+    index = buildJsonSourceIndex(jsonSource);
+  } catch {
+    return;
+  }
+  const stripOccurrences = (key) => key.replace(/:\d+(?=\/|\||$)/g, "");
+  const stripSuffix2 = (key) => {
+    const idx = key.indexOf("|");
+    return idx === -1 ? key : key.slice(0, idx);
+  };
+  const payloadKeys = Object.keys(flatPayload);
+  for (const issue of issues) {
+    if (!issue.targetPath || !issue.path.startsWith("/")) continue;
+    const wantNorm = stripOccurrences(issue.targetPath);
+    const wantBaseNorm = stripSuffix2(wantNorm);
+    const quoted = [...issue.message.matchAll(/"([^"]+)"|'([^']+)'/g)].map((m5) => m5[1] ?? m5[2] ?? "").filter(Boolean);
+    let byValue;
+    for (const q4 of quoted) {
+      byValue = payloadKeys.find((k5) => stripOccurrences(k5) === wantNorm && String(flatPayload[k5]) === q4) ?? payloadKeys.find(
+        (k5) => stripSuffix2(stripOccurrences(k5)) === wantBaseNorm && String(flatPayload[k5]) === q4
+      );
+      if (byValue) break;
+    }
+    const byNorm = issue.sourceIsAncestor ? payloadKeys.find((k5) => stripOccurrences(k5) === wantNorm) : void 0;
+    const matchingKey = byValue ?? byNorm;
+    if (!matchingKey) continue;
+    const loc = index.get(`/${escapeJsonPointerSegment(matchingKey)}`);
+    if (!loc) continue;
+    issue.targetPath = matchingKey;
+    issue.jsonPointer = loc.jsonPointer;
+    issue.sourceLine = loc.sourceLine;
+    issue.sourceColumn = loc.sourceColumn;
+    issue.sourceIsAncestor = void 0;
+  }
+}
+function flatCompositionPayload(output) {
+  const record = asJsonObjectRecord(output);
+  if (!record) return null;
   if ("_type" in record || "archetype_node_id" in record) return null;
   const keys = Object.keys(record);
   if (!keys.some((key) => key.startsWith("ctx/") || key.includes("/"))) return null;
-  return JSON.stringify(record);
+  return record;
 }
-function structuredCompositionJson(output) {
+function structuredCompositionPayload(output) {
+  const record = asJsonObjectRecord(output);
+  if (!record) return null;
+  if ("_type" in record || "archetype_node_id" in record) return null;
+  const keys = Object.keys(record);
+  if (keys.some((k5) => k5.includes("/"))) return null;
+  const nonCtx = keys.filter((k5) => k5 !== "ctx");
+  if (nonCtx.length !== 1 || nonCtx[0].startsWith("_")) return null;
+  const tree = record[nonCtx[0]];
+  if (!tree || typeof tree !== "object" || Array.isArray(tree)) return null;
+  return record;
+}
+function asJsonObjectRecord(output) {
   let value = output;
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -159118,12 +161649,26 @@ function structuredCompositionJson(output) {
     }
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value;
-  const keys = Object.keys(record);
-  if (keys.length !== 1 || keys[0].startsWith("_") || keys[0].includes("/")) return null;
-  const tree = record[keys[0]];
-  if (!tree || typeof tree !== "object") return null;
-  return JSON.stringify(record);
+  return value;
+}
+var webTemplateCache = /* @__PURE__ */ new Map();
+function webTemplateFromTarget(target, opt) {
+  const wtJson = target.webTemplateJson?.trim() || (target.content?.trim().startsWith("{") ? target.content.trim() : "");
+  const cacheKey = wtJson || target.content?.trim() || "";
+  if (cacheKey) {
+    const cached3 = webTemplateCache.get(cacheKey);
+    if (cached3) return cached3;
+  }
+  try {
+    const wt2 = wtJson ? parseWebTemplate(wtJson) : buildWebTemplate(opt);
+    if (cacheKey) {
+      if (webTemplateCache.size > 16) webTemplateCache.clear();
+      webTemplateCache.set(cacheKey, wt2);
+    }
+    return wt2;
+  } catch {
+    return void 0;
+  }
 }
 function operationalTemplateFromTarget(target) {
   const content2 = target.content?.trim() ?? "";
@@ -159143,6 +161688,34 @@ function looksLikeRmInstance(value) {
   if (value == null || typeof value !== "object") return false;
   const ctor = value.constructor?.name;
   return typeof ctor === "string" && ctor !== "Object" && ctor !== "Array";
+}
+function classifyOpenEhrValidationMessage(message) {
+  const m5 = message.toLowerCase();
+  if (m5.includes("required attribute missing") || /\(min:\s*1\)/.test(m5) || m5.includes("mandatory") && m5.includes("missing")) {
+    return "required-missing";
+  }
+  if (m5.includes("c_dv_quantity") || m5.includes("unit") && (m5.includes("list") || m5.includes("not in") || m5.includes("not allowed") || m5.includes("constraint"))) {
+    return "unit-list";
+  }
+  if (m5.includes("type mismatch") || m5.includes("cluster") && m5.includes("element")) {
+    return "type-mismatch";
+  }
+  if (m5.includes("code_phrase") || m5.includes("code phrase") || m5.includes("terminology") || m5.includes("defining_code")) {
+    return "code-phrase";
+  }
+  if (m5.includes("does not match template archetype")) return "archetype-sibling";
+  return "other";
+}
+function formatOutputValidationMessage(msg2) {
+  const linePrefix = msg2.line ? msg2.sourceIsAncestor ? `near line ${msg2.line}: ` : `line ${msg2.line}: ` : "";
+  const locationPath = msg2.targetPath && msg2.targetPath !== msg2.path ? `${msg2.targetPath} (${msg2.path})` : msg2.path;
+  let text = `${linePrefix}${locationPath}: ${msg2.message}`;
+  if (msg2.expectedExample) {
+    const whereHint = msg2.targetPath ? `at ${msg2.targetPath}${msg2.line ? ` (near line ${msg2.line})` : ""}` : msg2.jsonPointer ? `inside ${msg2.jsonPointer}${msg2.line ? ` (near line ${msg2.line})` : ""}` : `in root object${msg2.line ? ` (near line ${msg2.line})` : ""}`;
+    const compactExample = msg2.expectedExample.replace(/\s*\n\s*/g, " ");
+    text += ` \u2014 expected ${whereHint}, e.g. ${compactExample}`;
+  }
+  return text;
 }
 
 // src/core/test_runner/mod.ts
@@ -160862,6 +163435,8 @@ function jsonPointerToPath(pointer) {
 function validateInstanceAgainstSchema(content2, format4, schema, schemaDocument) {
   const jsonSchemaIssues = validateAgainstJsonSchemaDocument(content2, format4, schemaDocument);
   if (jsonSchemaIssues) return jsonSchemaIssues;
+  const openEhrIssues = validateOpenEhrExample(content2, format4, schemaDocument);
+  if (openEhrIssues !== null) return openEhrIssues;
   let instanceTree;
   try {
     instanceTree = getSourceFormatHandler(format4).loadInstance(content2, schema.name);
@@ -160902,6 +163477,98 @@ function validateAgainstJsonSchemaDocument(content2, format4, schemaDocument) {
     }];
   }
   return validateJsonAgainstJsonSchema(instance, schema);
+}
+var webTemplateCache2 = /* @__PURE__ */ new Map();
+function validateOpenEhrExample(content2, format4, schemaDocument) {
+  if (format4 !== "openehr-flat-json" && format4 !== "openehr-canonical-json" && format4 !== "openehr-composition") {
+    return null;
+  }
+  const webTemplate = webTemplateFromSchemaDocument(schemaDocument);
+  if (!webTemplate) return null;
+  if (format4 === "openehr-flat-json") return validateFlatExample(content2, webTemplate);
+  return validateCanonicalExample(content2, webTemplate);
+}
+function validateFlatExample(content2, webTemplate) {
+  let parsed;
+  let payload;
+  try {
+    parsed = parseJsonDocument(content2);
+    payload = unwrapExecuteEnvelope(parsed);
+  } catch (err2) {
+    return [{
+      path: "$",
+      message: err2 instanceof Error ? err2.message : String(err2)
+    }];
+  }
+  if (!isRecord7(payload)) {
+    return [{ path: "$", message: "FLAT example must be a JSON object of template paths" }];
+  }
+  const jsonSource = payload === parsed && content2.trim().startsWith("{") ? content2 : JSON.stringify(payload, null, 2);
+  return validateFlatPayload(payload, webTemplate, {
+    jsonSource
+  }).errors.map((error) => ({
+    path: appendJsonPath("$", error.path),
+    message: error.message.startsWith("Unknown flat key") ? `Not in schema: ${error.path}` : error.message,
+    ...error.sourceLine !== void 0 ? { line: error.sourceLine } : {},
+    ...error.sourceIsAncestor ? { sourceIsAncestor: true } : {},
+    ...error.expectedExample ? { expectedExample: error.expectedExample } : {}
+  }));
+}
+function validateCanonicalExample(content2, webTemplate) {
+  let data;
+  try {
+    data = parseJsonDocument(content2);
+  } catch {
+    return null;
+  }
+  if (!isRecord7(data) || data._type !== "COMPOSITION") return null;
+  const templateId = compositionTemplateId(data);
+  const accepted = new Set(
+    [webTemplate.templateId, webTemplate.tree?.id].filter((id4) => Boolean(id4))
+  );
+  if (templateId && !accepted.has(templateId)) {
+    return [{
+      path: "$.archetype_details.template_id.value",
+      message: `Template id mismatch: expected ${webTemplate.templateId}, got ${templateId}`
+    }];
+  }
+  return [];
+}
+function compositionTemplateId(doc2) {
+  const details = doc2.archetype_details;
+  if (!isRecord7(details)) return null;
+  const templateId = details.template_id;
+  if (typeof templateId === "string") return templateId;
+  if (isRecord7(templateId) && typeof templateId.value === "string") return templateId.value;
+  return null;
+}
+function webTemplateFromSchemaDocument(schemaDocument) {
+  if (!schemaDocument) return null;
+  const cached3 = webTemplateCache2.get(schemaDocument);
+  if (cached3 !== void 0) return cached3;
+  const parsed = readSchemaWebTemplate(schemaDocument);
+  if (webTemplateCache2.size > 8) webTemplateCache2.clear();
+  webTemplateCache2.set(schemaDocument, parsed);
+  return parsed;
+}
+function readSchemaWebTemplate(schemaDocument) {
+  const trimmed = schemaDocument.trim();
+  try {
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      const data = JSON.parse(trimmed);
+      return isWebTemplateJson(data) ? parseWebTemplate(data) : null;
+    }
+    if (trimmed.startsWith("<") || trimmed.startsWith("operational_template") || trimmed.startsWith("archetype")) {
+      const json2 = generateSkeleton(schemaDocument).webTemplateJson;
+      return json2 ? parseWebTemplate(json2) : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+function isRecord7(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function collectInstanceValidationIssues(instance, schema) {
   const issues = [];
@@ -161332,11 +163999,11 @@ init_language_plugin();
 
 // src/blockly/strip_grid_declarations.ts
 var GRID_DECLARATION_TYPES = /* @__PURE__ */ new Set(["sheet", "decision_table_decl"]);
-function isRecord7(value) {
+function isRecord8(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function isDeclaration(value) {
-  return isRecord7(value) && GRID_DECLARATION_TYPES.has(String(value.type ?? ""));
+  return isRecord8(value) && GRID_DECLARATION_TYPES.has(String(value.type ?? ""));
 }
 function stripGridDeclarationBlocks(state) {
   return strip(state);
@@ -161346,7 +164013,7 @@ function strip(node) {
     const out2 = [];
     for (const item of node) {
       if (isDeclaration(item)) {
-        const next = isRecord7(item.next) ? item.next.block : void 0;
+        const next = isRecord8(item.next) ? item.next.block : void 0;
         if (next !== void 0) out2.push(strip(next));
         continue;
       }
@@ -161354,11 +164021,11 @@ function strip(node) {
     }
     return out2;
   }
-  if (!isRecord7(node)) return node;
+  if (!isRecord8(node)) return node;
   const out = {};
   for (const [key, value] of Object.entries(node)) {
     if ((key === "block" || key === "shadow") && isDeclaration(value)) {
-      const next = isRecord7(value.next) ? value.next.block : void 0;
+      const next = isRecord8(value.next) ? value.next.block : void 0;
       if (next !== void 0) out[key] = strip(next);
       continue;
     }
@@ -161391,14 +164058,14 @@ function walk2(node) {
   return out;
 }
 function migrateLoopBlock(block) {
-  const fieldsIn = isRecord8(block.fields) ? block.fields : {};
+  const fieldsIn = isRecord9(block.fields) ? block.fields : {};
   const path = String(fieldsIn.PATH ?? "/");
   const fields = {};
   for (const [key, value] of Object.entries(fieldsIn)) {
     if (key === "PATH") continue;
     fields[key] = value;
   }
-  const inputsIn = isRecord8(block.inputs) ? block.inputs : {};
+  const inputsIn = isRecord9(block.inputs) ? block.inputs : {};
   const inputs2 = {};
   for (const [name2, value] of Object.entries(inputsIn)) {
     inputs2[name2] = walk2(value);
@@ -161417,10 +164084,10 @@ function migrateLoopBlock(block) {
   return out;
 }
 function hasListChild(listInput) {
-  if (!isRecord8(listInput)) return false;
-  return isRecord8(listInput.block) || isRecord8(listInput.shadow);
+  if (!isRecord9(listInput)) return false;
+  return isRecord9(listInput.block) || isRecord9(listInput.shadow);
 }
-function isRecord8(value) {
+function isRecord9(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
@@ -162633,7 +165300,7 @@ var IGNORED_BLOCK_KEYS = /* @__PURE__ */ new Set([
   "movable",
   "editable"
 ]);
-function isRecord9(value) {
+function isRecord10(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function looksLikeSuggestionsPayload(text) {
@@ -162642,7 +165309,7 @@ function looksLikeSuggestionsPayload(text) {
   if (trimmed.startsWith("# intEHRgrator")) return false;
   try {
     const parsed = extractSuggestionsJson(trimmed);
-    return isRecord9(parsed) && Array.isArray(parsed.suggestions);
+    return isRecord10(parsed) && Array.isArray(parsed.suggestions);
   } catch {
     return false;
   }
@@ -162654,7 +165321,7 @@ function extractSuggestionsJson(text) {
   const jsonFence = trimmed.match(/```json\s*([\s\S]*?)```/);
   if (jsonFence?.[1]) {
     const inner = JSON.parse(jsonFence[1].trim());
-    if (isRecord9(inner) && Array.isArray(inner.suggestions)) return inner;
+    if (isRecord10(inner) && Array.isArray(inner.suggestions)) return inner;
   }
   if (trimmed.startsWith("{")) {
     try {
@@ -162797,7 +165464,7 @@ function parseSuggestionsPayload(text, options = {}) {
   return normalizeSuggestionEnvelope(parsed, options.fallbackTarget);
 }
 function normalizeSuggestionEnvelope(raw, fallbackTarget) {
-  if (!isRecord9(raw)) throw new Error("Suggestions payload must be a JSON object");
+  if (!isRecord10(raw)) throw new Error("Suggestions payload must be a JSON object");
   if (raw.format != null && raw.format !== "intehrgrator-suggestions") {
     throw new Error("Invalid format field");
   }
@@ -162808,7 +165475,7 @@ function normalizeSuggestionEnvelope(raw, fallbackTarget) {
   if (!Array.isArray(raw.suggestions)) {
     throw new Error("Missing suggestions array");
   }
-  const targetRaw = isRecord9(raw.target) ? raw.target : {};
+  const targetRaw = isRecord10(raw.target) ? raw.target : {};
   const targetId = String(targetRaw.targetId ?? fallbackTarget?.targetId ?? "");
   const targetFormat = String(targetRaw.format ?? fallbackTarget?.format ?? "");
   if (!targetId || !targetFormat) {
@@ -162841,7 +165508,7 @@ function includeList(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
   for (const item of raw) {
-    if (!isRecord9(item) || !isRecord9(item.when)) continue;
+    if (!isRecord10(item) || !isRecord10(item.when)) continue;
     const slotId = String(item.slotId ?? "");
     if (!slotId) continue;
     out.push({
@@ -162857,7 +165524,7 @@ function flattenSuggestionGroups(raw) {
   const suggestions = [];
   if (Array.isArray(raw.loops)) {
     for (const item of raw.loops) {
-      if (!isRecord9(item)) continue;
+      if (!isRecord10(item)) continue;
       const attachSlotId = String(item.attachSlotId ?? "");
       const block = coerceLoopBlock(item);
       if (attachSlotId && block) loops2.push({ attachSlotId, block, note: optionalNote(item.note) });
@@ -162869,7 +165536,7 @@ function flattenSuggestionGroups(raw) {
 function collectSuggestionItems(items, loops2, suggestions, inheritedLoopVar) {
   if (!Array.isArray(items)) return;
   for (const item of items) {
-    if (!isRecord9(item)) continue;
+    if (!isRecord10(item)) continue;
     const nested = Array.isArray(item.suggestions) ? item.suggestions : null;
     const attachSlotId = typeof item.attachSlotId === "string" ? item.attachSlotId : "";
     if (attachSlotId && nested) {
@@ -162879,7 +165546,7 @@ function collectSuggestionItems(items, loops2, suggestions, inheritedLoopVar) {
       collectSuggestionItems(nested, loops2, suggestions, loopVar);
       continue;
     }
-    if (typeof item.slotId === "string" && isRecord9(item.block)) {
+    if (typeof item.slotId === "string" && isRecord10(item.block)) {
       suggestions.push({
         slotId: item.slotId,
         block: sanitizeBlock(item.block),
@@ -162892,15 +165559,15 @@ function collectSuggestionItems(items, loops2, suggestions, inheritedLoopVar) {
   }
 }
 function coerceLoopBlock(item) {
-  if (isRecord9(item.block) && item.block.type === "for_each_list") {
+  if (isRecord10(item.block) && item.block.type === "for_each_list") {
     return sanitizeBlock(item.block);
   }
-  if (isRecord9(item.for_each_list) && item.for_each_list.type === "for_each_list") {
+  if (isRecord10(item.for_each_list) && item.for_each_list.type === "for_each_list") {
     return sanitizeBlock(item.for_each_list);
   }
-  const sourceBlock = isRecord9(item.block) && item.block.type === "for_each_source" ? item.block : isRecord9(item.for_each_source) && item.for_each_source.type === "for_each_source" ? item.for_each_source : null;
+  const sourceBlock = isRecord10(item.block) && item.block.type === "for_each_source" ? item.block : isRecord10(item.for_each_source) && item.for_each_source.type === "for_each_source" ? item.for_each_source : null;
   if (sourceBlock) {
-    const fields = isRecord9(sourceBlock.fields) ? sourceBlock.fields : {};
+    const fields = isRecord10(sourceBlock.fields) ? sourceBlock.fields : {};
     return sourceLoopBlock(String(fields.VAR ?? item.loopVar ?? "item"), String(fields.PATH ?? ""));
   }
   const path = typeof item.for_each_source === "string" ? item.for_each_source : typeof item.PATH === "string" ? item.PATH : "";
@@ -162932,12 +165599,12 @@ function stringList(value) {
   return value.filter((v5) => typeof v5 === "string" && v5.trim() !== "").map((v5) => v5.trim());
 }
 function confidenceIssues(instance) {
-  if (!isRecord9(instance)) return [];
+  if (!isRecord10(instance)) return [];
   const issues = [];
   const walk4 = (items, base2) => {
     if (!Array.isArray(items)) return;
     items.forEach((item, i12) => {
-      if (!isRecord9(item)) return;
+      if (!isRecord10(item)) return;
       const path = `${base2}[${i12}]`;
       if (item.confidence !== void 0 && parseAiConfidence(item.confidence) === void 0) {
         issues.push({
@@ -162955,15 +165622,15 @@ function confidenceIssues(instance) {
 function sanitizeBlock(raw) {
   const type = BLOCK_TYPE_ALIASES[String(raw.type ?? "")] ?? String(raw.type ?? "");
   const out = { type };
-  if (isRecord9(raw.fields)) out.fields = raw.fields;
+  if (isRecord10(raw.fields)) out.fields = raw.fields;
   if (raw.extraState !== void 0) out.extraState = raw.extraState;
-  if (isRecord9(raw.inputs)) {
+  if (isRecord10(raw.inputs)) {
     const inputs2 = {};
     for (const [name2, input] of Object.entries(raw.inputs)) {
-      if (!isRecord9(input)) continue;
+      if (!isRecord10(input)) continue;
       const next = {};
-      if (isRecord9(input.block)) next.block = sanitizeBlock(input.block);
-      if (isRecord9(input.shadow)) next.shadow = sanitizeBlock(input.shadow);
+      if (isRecord10(input.block)) next.block = sanitizeBlock(input.block);
+      if (isRecord10(input.shadow)) next.shadow = sanitizeBlock(input.shadow);
       inputs2[name2] = next;
     }
     out.inputs = inputs2;
@@ -163167,9 +165834,9 @@ function applySuggestionReviewDefaults(text, note, confidence) {
   } catch {
     return text;
   }
-  if (!isRecord9(envelope) || !Array.isArray(envelope.suggestions)) return text;
+  if (!isRecord10(envelope) || !Array.isArray(envelope.suggestions)) return text;
   const suggestions = envelope.suggestions.map((item) => {
-    if (!isRecord9(item)) return item;
+    if (!isRecord10(item)) return item;
     return {
       ...item,
       ...text0 && item.note === void 0 ? { note: text0 } : {},
@@ -195241,6 +197908,15 @@ function setEditorDoc(view, doc2, language2) {
     effects
   });
 }
+function scrollEditorToLine(view, lineNumber) {
+  const doc2 = view.state.doc;
+  if (!Number.isFinite(lineNumber) || lineNumber < 1 || lineNumber > doc2.lines) return;
+  const line = doc2.line(Math.trunc(lineNumber));
+  view.dispatch({
+    selection: EditorSelection.single(line.from, line.to),
+    effects: EditorView.scrollIntoView(line.from, { y: "center" })
+  });
+}
 
 // src/ui/editor_action_toolbar.ts
 var COPY_PATH = "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z";
@@ -211924,8 +214600,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "b9fb643" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-08T20:09:52.772Z" : "not built";
+var BUILD_ID = true ? "72653a0" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-22T05:40:24.154Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
@@ -219208,11 +221884,11 @@ async function readTextInput(args, fallbackName) {
   }
   throw new Error(`Provide content (+ optional filename), path, or url`);
 }
-function isRecord10(value) {
+function isRecord11(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function isProjectBundleArg(args) {
-  return typeof args.version === "number" && isRecord10(args.mapping);
+  return typeof args.version === "number" && isRecord11(args.mapping);
 }
 function projectBundleFromArgs(args) {
   const rest = { ...args };
@@ -225943,24 +228619,28 @@ function renderTestOutputTabs(s8) {
     testOutputTabsEl.appendChild(tab);
   }
 }
-function formatValidationListItem(path, message, line) {
-  const where = line ? `line ${line}: ${path}` : path;
-  return `${where}: ${message}`;
-}
 function renderTestOutputValidation(s8) {
-  const items = [];
+  const entries = [];
   const result = s8.testResult;
   const validation = s8.activeExample ? s8.outputValidations[s8.activeExample.id] : void 0;
   if (validation?.applicable && !validation.valid) {
     for (const msg2 of validation.messages) {
-      items.push(formatValidationListItem(msg2.path, msg2.message, msg2.line));
+      entries.push({ text: formatOutputValidationMessage(msg2), line: msg2.line });
     }
   } else if (result?.error) {
     const line = validation?.messages[0]?.line;
-    items.push(formatValidationListItem("/", result.error, line));
+    entries.push({
+      text: formatOutputValidationMessage({
+        path: "/",
+        message: result.error,
+        severity: "error",
+        line
+      }),
+      line
+    });
   }
-  for (const warning of result?.warnings ?? []) items.push(warning);
-  if (!items.length) {
+  for (const warning of result?.warnings ?? []) entries.push({ text: warning });
+  if (!entries.length) {
     testOutputValidationEl.hidden = true;
     testOutputValidationEl.replaceChildren();
     return;
@@ -225970,9 +228650,14 @@ function renderTestOutputValidation(s8) {
   const title = document.createElement("strong");
   title.textContent = result?.error ? uiChrome().conversionFailed : uiChrome().templateValidation;
   const list = document.createElement("ul");
-  for (const text of items) {
+  for (const entry of entries) {
     const item = document.createElement("li");
-    item.textContent = text;
+    item.textContent = entry.text;
+    if (entry.line) {
+      item.classList.add("example-validation-item--clickable");
+      item.dataset.line = String(entry.line);
+      item.addEventListener("click", () => scrollEditorToLine(testOutputEditor, entry.line));
+    }
     list.appendChild(item);
   }
   testOutputValidationEl.append(title, list);
@@ -225991,7 +228676,9 @@ function renderExampleValidation(s8) {
   const list = document.createElement("ul");
   for (const issue of issues) {
     const item = document.createElement("li");
-    item.textContent = `${issue.path}: ${issue.message}`;
+    const linePrefix = issue.line ? issue.sourceIsAncestor ? `near line ${issue.line}: ` : `line ${issue.line}: ` : "";
+    const hint = issue.expectedExample ? ` \u2014 e.g. ${issue.expectedExample.replace(/\s*\n\s*/g, " ")}` : "";
+    item.textContent = `${linePrefix}${issue.path}: ${issue.message}${hint}`;
     list.appendChild(item);
   }
   exampleValidationEl.append(title, list);

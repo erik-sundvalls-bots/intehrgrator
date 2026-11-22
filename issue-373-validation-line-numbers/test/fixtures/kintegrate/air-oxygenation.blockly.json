@@ -1,0 +1,137 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "source_query",
+        "id": "hbs_path_0",
+        "x": 20,
+        "y": 20,
+        "fields": {
+          "EXPRESSION": "$.akutmall_undervisningsexempel_2a",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_1",
+        "x": 20,
+        "y": 68,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_1_src",
+              "fields": {
+                "EXPRESSION": "$.abcde"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_2",
+        "x": 20,
+        "y": 116,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_2_src",
+              "fields": {
+                "EXPRESSION": "$.andning"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "for_each_list",
+        "id": "hbs_each_3",
+        "x": 20,
+        "y": 164,
+        "fields": {
+          "VAR": "item"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "id": "hbs_each_3_src",
+              "fields": {
+                "EXPRESSION": "$.ospecificerad_händelse"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_4",
+        "x": 20,
+        "y": 212,
+        "fields": {
+          "EXPRESSION": "$.akutmall_undervisningsexempel_2a.abcde[1].pulsoximetri[1].ospecificerad_händelse[1].spo[1][\"|numerator\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_5",
+        "x": 20,
+        "y": 260,
+        "fields": {
+          "EXPRESSION": "$.förekomst[1][\"|value\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_6",
+        "x": 20,
+        "y": 308,
+        "fields": {
+          "EXPRESSION": "$.frekvens[1][\"|magnitude\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_7",
+        "x": 20,
+        "y": 356,
+        "fields": {
+          "EXPRESSION": "$.frekvens[1][\"|unit\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_8",
+        "x": 20,
+        "y": 404,
+        "fields": {
+          "EXPRESSION": "$.inandad_syrgas[1].syrgasflöde[1][\"|magnitude\"]",
+          "RETURN_TYPE": "string"
+        }
+      },
+      {
+        "type": "source_query",
+        "id": "hbs_path_9",
+        "x": 20,
+        "y": 452,
+        "fields": {
+          "EXPRESSION": "$.inandad_syrgas[1].syrgasflöde[1][\"|unit\"]",
+          "RETURN_TYPE": "string"
+        }
+      }
+    ]
+  }
+}
