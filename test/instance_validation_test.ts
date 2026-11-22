@@ -132,3 +132,31 @@ Deno.test("jsonPointerToPath matches Source Pane instance paths", () => {
   assertEquals(jsonPointerToPath("#/bodyPosition"), "$.bodyPosition");
   assertEquals(jsonPointerToPath("#/items/0"), "$.items[1]");
 });
+
+Deno.test("validateInstanceAgainstSchema attaches source line numbers for FLAT openEHR examples (#373)", async () => {
+  const optText = await Deno.readTextFile(
+    join(import.meta.dirname!, "fixtures", "blood_pressure.opt"),
+  );
+  const root = "ehrbase_blood_pressure_simple.de.v0";
+  const flatText = JSON.stringify(
+    {
+      "ctx/language": "en",
+      [`${root}/blood_pressure_training_sample:0/systolic|magnitude`]: 120,
+      [`${root}/blood_pressure_training_sample:0/systolic|unit`]: "mm[Hg]",
+      [`${root}/blood_pressure_training_sample:0/bogus_field`]: "nope",
+    },
+    null,
+    2,
+  );
+  const dummyTree = { name: "root", path: "$", type: "object", children: [] };
+  const issues = validateInstanceAgainstSchema(
+    flatText,
+    "openehr-flat-json",
+    dummyTree,
+    optText,
+  );
+  const bogusIssue = issues.find((i) => i.path.includes("bogus_field"));
+  assert(bogusIssue, `expected bogus_field issue, got: ${JSON.stringify(issues)}`);
+  assertEquals(bogusIssue.line, 5);
+});
+

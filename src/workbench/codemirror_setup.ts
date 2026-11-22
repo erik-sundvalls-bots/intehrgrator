@@ -410,3 +410,15 @@ export function setEditorDoc(
     effects,
   });
 }
+
+/** Select and scroll a 1-based line into view in a CodeMirror editor (#373). */
+export function scrollEditorToLine(view: EditorView, lineNumber: number): void {
+  const doc = view.state.doc;
+  if (!Number.isFinite(lineNumber) || lineNumber < 1 || lineNumber > doc.lines) return;
+  const line = doc.line(Math.trunc(lineNumber));
+  view.dispatch({
+    selection: EditorSelection.single(line.from, line.to),
+    effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+  });
+}
+

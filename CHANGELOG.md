@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **ehrtslib 0.15.0 and line numbers in validation errors** ([#373](https://github.com/regionstockholm/intehrgrator/issues/373), [release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.15)): openEHR template and FLAT validation messages across Canonical JSON, Simplified FLAT JSON, and Simplified STRUCTURED JSON report the 1-based line number in the output (or `near line N` for the nearest existing container when required content is missing), show the FLAT/STRUCTURED `targetPath` alongside the RM path, and include an approximate `expectedExample` snippet showing what missing target content should look like and where it belongs. Clicking a line-numbered validation item scrolls and selects that line in the Conversion Test Run(s) editor.
+
 - **ehrtslib 0.13.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.13)). `serializeToFlat` roots keys at the Web Template `tree.id` and can omit a renamed LOCATABLE name (`locatableName: "omit"`; the default still writes `/_name`). A one-argument `RMSpecificationValidator.validate(instance)` now validates the whole instance, and `TERM_MAPPING.match` rejects `~`.
 
 - **Obstetric MHV1 example sets match their source schema.** Simplified FLAT examples are checked as FLAT keys against the Web Template (including one built from an OPT or OPT2), not as a JSON object whose property names are the whole key. Canonical compositions are checked by `template_id` instead of comparing RM fields such as `_type` and `code_string` to Web Template node ids. The generic-entry OPT2 names the nested care-provider cluster `Vårdgivare`, which is the id the FLAT keys and the Web Template use.
