@@ -1052,6 +1052,7 @@ export class WorkbenchService {
         uiLanguage: s.modelLanguage ?? s.settings.modelLanguage ?? "en",
         targetFormat: s.target?.format,
         defaultsMap: pending ?? undefined,
+        scaffoldMode: s.scaffoldMode,
       },
     );
     this.controller.syncFromBlockly(

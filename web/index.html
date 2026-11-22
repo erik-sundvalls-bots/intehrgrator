@@ -814,6 +814,17 @@
           <button type="button" id="joint-map-browse" data-i18n="browseMap">Browse map file…</button>
         </div>
       </fieldset>
+      <fieldset class="joint-load-fieldset">
+        <legend data-i18n="scaffoldLegend">Template scaffolding</legend>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-scaffold-mode" value="full" checked />
+          <span data-i18n="scaffoldFull">Full template (default) — scaffold all paths</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-scaffold-mode" value="sparse" />
+          <span data-i18n="scaffoldSparse">Sparse (mandatory only) — pull optional paths later from Target schema</span>
+        </label>
+      </fieldset>
       <div class="dialog-actions">
         <span class="dialog-actions-spacer"></span>
         <button type="button" id="joint-load-cancel" value="cancel" data-i18n="cancel">Cancel</button>

@@ -282,7 +282,7 @@ import {
   type ExampleSetCatalog,
 } from "../src/core/example_sets/mod.ts";
 import { formatSaveTime } from "../src/core/persistence/mod.ts";
-import { collectValueSlots } from "../src/core/skeleton/generate_skeleton.ts";
+import { collectValueSlots, filterSkeletonMandatoryOnly } from "../src/core/skeleton/generate_skeleton.ts";
 import { createIndexedDbDefaultsCatalog, factoryDefaultsMapBlockState, mapBlockFromDefaultsJson, classAttributeScaffoldTarget } from "../src/core/defaults/mod.ts";
 import {
   createBetterFormBridge,
@@ -3637,6 +3637,12 @@ function selectedJointMapChoice(): string {
   return checked?.value ?? "factory";
 }
 
+function selectedJointScaffoldMode(): "full" | "sparse" {
+  const dialog = document.getElementById("dialog-joint-load");
+  const checked = dialog?.querySelector<HTMLInputElement>('input[name="joint-scaffold-mode"]:checked');
+  return checked?.value === "sparse" ? "sparse" : "full";
+}
+
 async function confirmJointLoad(): Promise<void> {
   const dialog = document.getElementById("dialog-joint-load") as HTMLDialogElement | null;
   const targetKind = selectedJointTargetKind();
@@ -3645,6 +3651,7 @@ async function confirmJointLoad(): Promise<void> {
     return;
   }
   const choice = selectedJointMapChoice();
+  const scaffoldMode = selectedJointScaffoldMode();
   const isNew = choice === "new";
   let mapBlock: unknown | null = null;
   if (choice === "factory") {
@@ -3671,7 +3678,13 @@ async function confirmJointLoad(): Promise<void> {
       });
     } else {
       await withUndoableDocumentReplace(() => {
-        controller.loadTargetContent(jointPendingTarget!.name, jointPendingTarget!.text);
+        controller.loadTargetContent(
+          jointPendingTarget!.name,
+          jointPendingTarget!.text,
+          undefined,
+          "replace",
+          scaffoldMode,
+        );
       });
     }
   } else if (controller.getState().templateId) {
