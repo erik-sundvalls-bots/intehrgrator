@@ -91,18 +91,18 @@ All non-Blockly edits (both D3 inline popovers and bottom tile editor tree mutat
 2. **Blockly Batch-Load Audit & Fix:**
    - Audit current template load path for unbatched `Events`, imperative creation, and slow collapsed `toString()` traversals.
    - Apply Invariant C fixes so any slice of ≤80 blocks mounts in `< 150 ms`.
-3. **Canonical Blockly JSON Store & Slice Engine (`src/state/sliceEngine.ts` or repo-idiomatic path):**
+3. **Canonical Blockly JSON Store & Slice Engine (`src/core/slice_engine.ts`):**
    - Implement `indexDocument(docJson)` returning a fast tree index (node IDs, openEHR paths, RM types, node counts, mandatory flags, mapping status, AI suggestion flags).
    - Implement `computeAdaptiveSliceTarget(index, nodeId, threshold = 70)` (`3B`): returns the owning `ENTRY` (or `COMPOSITION.context`), or drills down to the containing `CLUSTER` if the `ENTRY` subtree exceeds `threshold`.
    - Implement `extractSlice` and `graftSlice` obeying Invariant A.
    - Auto-collapse unmapped optional `CLUSTER` blocks (`collapsed: true`) when preparing a `4B` scoped slice view (preserving explicit user expand/collapse choices where applicable).
 4. **Decouple Codegen & Validation (Invariant B):**
-   - Verify or refactor codegen and formal validation to operate on canonical `docJson` (directly or via headless `Blockly.Workspace`).
+   - Verify or refactor codegen and formal validation to operate on canonical `docJson` via `extractModelFromBlocklyJson` in `src/workbench/blockly_sync.ts` (headless `Blockly.Workspace`, zero `WorkspaceSvg` mount).
 5. **Pre-Scaffolding Dialogue Enhancement (`Full` vs. `Sparse`):**
-   - Locate the existing pre-scaffolding dialogue triggered when opening a target template.
+   - Enhance the existing joint load dialogue (`#dialog-joint-load` in `web/index.html` / `web/main.ts`) triggered when opening a target template.
    - Add a clear radio/toggle option:
      - **Full template (default)** — scaffolds all paths as today.
-     - **Sparse (mandatory only)** — scaffolds only mandatory (`min >= 1`) paths and their required ancestor spine.
+     - **Sparse (mandatory only)** — scaffolds only mandatory (`min >= 1`) paths along an unbroken mandatory ancestor spine (`filterSkeletonMandatoryOnly`), while keeping the full template in the **Target schema** tab.
    - Do **not** auto-inject optional paths later in Sparse mode; ensure the existing mechanism for pulling target schema nodes onto the canvas works cleanly for user-added optional paths.
 
 **PR 1 Acceptance Gates (Automated):**

@@ -17,6 +17,7 @@ import type { MappingModelExtract } from "../blockly/mapping_ir.ts";
 import type { MappingModel, SkeletonNode, TargetFormatId } from "../types/mod.ts";
 import type { WorkspaceSvg } from "blockly/core";
 import { ensureRmBlockType } from "../blockly/blocks/rm_blocks.ts";
+import { filterSkeletonMandatoryOnly } from "../core/skeleton/generate_skeleton.ts";
 let generatorsReady = false;
 
 function ensureGenerators(): void {
@@ -81,9 +82,13 @@ export function scaffoldBlocklyFromSkeleton(
     uiLanguage?: string;
     targetFormat?: TargetFormatId;
     defaultsMap?: unknown;
+    scaffoldMode?: "full" | "sparse";
   },
 ): { blocklyState: unknown; extract: MappingModelExtract } {
   ensureGenerators();
+  const effectiveSkeleton = options?.scaffoldMode === "sparse"
+    ? filterSkeletonMandatoryOnly(skeleton)
+    : skeleton;
   const workspace = new Blockly.Workspace();
   const uiLanguage = options?.uiLanguage ?? "en";
   try {
@@ -100,7 +105,7 @@ export function scaffoldBlocklyFromSkeleton(
     }
     loadSkeletonIntoWorkspace(
       workspace as unknown as WorkspaceSvg,
-      skeleton,
+      effectiveSkeleton,
       model,
       null,
       uiLanguage,
@@ -156,3 +161,31 @@ export function adoptBlocklyState(
     workspace.dispose();
   }
 }
+
+/**
+ * Invariant B — Extract MappingModelExtract from canonical Blockly JSON using a
+ * headless `Blockly.Workspace` (no DOM / no `WorkspaceSvg` mount).
+ */
+export function extractModelFromBlocklyJson(
+  blocklyState: unknown,
+  skeleton: SkeletonNode[] = [],
+): MappingModelExtract {
+  if (!blocklyState || typeof blocklyState !== "object") {
+    throw new Error("extractModelFromBlocklyJson requires Blockly workspace JSON");
+  }
+  ensureSchemaBlocksForSkeleton(skeleton);
+  const workspace = new Blockly.Workspace();
+  const prevEvents = Blockly.Events.isEnabled();
+  if (prevEvents) Blockly.Events.disable();
+  try {
+    Blockly.serialization.workspaces.load(
+      migrateForEachSourceState(structuredClone(blocklyState)) as Record<string, unknown>,
+      workspace,
+    );
+    return workspaceToModelJson(workspace);
+  } finally {
+    workspace.dispose();
+    if (prevEvents) Blockly.Events.enable();
+  }
+}
+

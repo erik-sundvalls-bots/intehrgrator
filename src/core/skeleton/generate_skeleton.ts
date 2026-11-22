@@ -1534,3 +1534,25 @@ export function collectValueSlots(nodes: SkeletonNode[]): SkeletonNode[] {
 export function slotReturnType(node: Pick<SkeletonNode, "rmType">): string {
   return returnTypeForDv(node.rmType);
 }
+
+/**
+ * Filter a Template Skeleton to only mandatory (`min >= 1`) paths from the
+ * root, preserving the required root/ancestor spine. Optional branches
+ * (`mandatory === false`) are omitted so the user can pull them in later from
+ * the Target schema tab (Sparse pre-scaffolding mode).
+ */
+export function filterSkeletonMandatoryOnly(nodes: SkeletonNode[]): SkeletonNode[] {
+  const filterLevel = (list: SkeletonNode[], depth: number): SkeletonNode[] => {
+    const kept: SkeletonNode[] = [];
+    for (const node of list) {
+      if (depth > 0 && !node.mandatory) continue;
+      kept.push({
+        ...node,
+        children: filterLevel(node.children, depth + 1),
+      });
+    }
+    return kept;
+  };
+  return filterLevel(nodes, 0);
+}
+
