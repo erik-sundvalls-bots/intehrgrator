@@ -6,6 +6,8 @@ import {
 import {
   buildBreadcrumbTrail,
   buildTreemapHierarchy,
+  CASCADE_OFFSET,
+  computeCascadedTreemapLayout,
   computeTreemapLayout,
 } from "@intehrgrator/treemap/mod.ts";
 import {
@@ -103,3 +105,34 @@ Deno.test("buildBreadcrumbTrail builds clinical path from COMPOSITION down to ta
   assertEquals(trail[0].rmType, "COMPOSITION");
   assertEquals(trail[trail.length - 1].id, obs.id);
 });
+
+Deno.test("computeCascadedTreemapLayout applies TermViz V8 overhang and collapses containers into blobs", async () => {
+  const doc = JSON.parse(await Deno.readTextFile(MHV1_MAPPING_URL)) as BlocklyWorkspaceJson;
+  const idx = indexDocument(doc);
+  const root = buildTreemapHierarchy(idx)!;
+
+  const { tiles } = computeCascadedTreemapLayout(root, 1000, 600, { maxDepth: 3 });
+  const expandedContainer = tiles.find((t) => t.isContainer && !t.isBlob)!;
+  assert(expandedContainer !== undefined, "expected expanded container tile");
+  assertEquals(
+    expandedContainer.cardW,
+    (expandedContainer.x1 - expandedContainer.x0) - CASCADE_OFFSET,
+    "expanded container cardW must overhang by CASCADE_OFFSET",
+  );
+  assertEquals(
+    expandedContainer.cardH,
+    (expandedContainer.y1 - expandedContainer.y0) - CASCADE_OFFSET,
+    "expanded container cardH must overhang by CASCADE_OFFSET",
+  );
+
+  // Collapsing a top section turns it into a compact 21px blob and hides its descendants.
+  const collapsed = computeCascadedTreemapLayout(root, 1000, 600, {
+    maxDepth: 3,
+    collapsedIds: new Set([expandedContainer.datum.id]),
+  });
+  const blobTile = collapsed.tiles.find((t) => t.datum.id === expandedContainer.datum.id)!;
+  assertEquals(blobTile.isBlob, true);
+  assertEquals(blobTile.cardH, 21);
+  assert(collapsed.tiles.length < tiles.length, "collapsing a section must omit its children");
+});
+
