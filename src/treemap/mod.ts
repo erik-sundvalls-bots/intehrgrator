@@ -1,9 +1,13 @@
 export {
   buildBreadcrumbTrail,
   buildTreemapHierarchy,
+  CASCADE_OFFSET,
+  computeCascadedTreemapLayout,
   computeTreemapLayout,
   filterTreemapTree,
   type BuildTreemapOptions,
+  type CascadedLayoutOptions,
+  type CascadedLayoutResult,
   type ComputedTreemapTile,
   type TreemapDatum,
   type TreemapFilterOptions,

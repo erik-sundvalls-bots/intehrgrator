@@ -1,16 +1,19 @@
 /**
- * Self-contained TermViz-inspired D3 Cascaded Treemap DOM renderer (Decision 6A).
+ * Self-contained TermViz V8-inspired Cascaded Treemap DOM renderer (Decision 6A).
  *
- * Renders cascaded header bars (SECTION -> ENTRY -> CLUSTER), reveals leaf
- * ELEMENT tiles on zoom/drill-in, encodes mapping status with color + accessible
- * icon/border patterns, and provides rich hover tooltips + "Open in Blockly"
- * escalation.
+ * Uses Lü & Fogarty (2008) content-sized cascaded box layout:
+ * - Expanded containers shift their card up-left by CASCADE_OFFSET (4px) so
+ *   children overhang down-right with zero wasted right/bottom padding.
+ * - Leaf ELEMENT tiles are text-measured and compact so every label stays legible.
+ * - Containers can be collapsed in place to compact blobs (`−` / `+`), drilled
+ *   into via header click, or opened in Scoped Blockly (`Blockly ↗` / dblclick).
+ * - Combines TermViz V8 openEHR RM colors with accessible status heatmaps.
  */
 import type { DocumentIndex, TileStatus } from "../core/slice_engine.ts";
 import type { SkeletonNode } from "../types/mod.ts";
 import {
   buildTreemapHierarchy,
-  computeTreemapLayout,
+  computeCascadedTreemapLayout,
   type ComputedTreemapTile,
   type TreemapDatum,
   type TreemapStatusFilter,
@@ -21,11 +24,11 @@ export interface TreemapRendererCallbacks {
   onZoomChange?: (zoomRootId: string | null) => void;
   /** Called when the user clicks "Open in Blockly" or double-clicks a tile. */
   onOpenInBlockly: (nodeId: string) => void;
-  /** Called when the user clicks a leaf ELEMENT tile (PR 2 selects; PR 3 opens inline popover). */
+  /** Called when the user clicks a leaf ELEMENT tile (opens inline popover). */
   onLeafClick?: (datum: TreemapDatum, anchorEl: HTMLElement) => void;
   /** Called when the user clicks an unscaffolded-optional ghost tile in Sparse mode. */
   onGhostClick?: (datum: TreemapDatum, anchorEl: HTMLElement) => void;
-  /** Called when the user clicks Accept/Reject AI triage on a tile or container (PR 3). */
+  /** Called when the user clicks Accept/Reject AI triage on a tile or container. */
   onAiTriage?: (nodeId: string, action: "accept" | "reject", bulk: boolean) => void;
 }
 
@@ -55,6 +58,20 @@ const STATUS_LABEL: Record<TileStatus, string> = {
   "mapped": "Mapped",
   "validation-error": "Validation error",
   "unscaffolded-optional": "Optional (not scaffolded)",
+};
+
+/** TermViz V8 openEHR RM accent palette. */
+const RM_COLOR: Record<string, string> = {
+  OBSERVATION: "#2f6f9f",
+  EVALUATION: "#7a4b8c",
+  ACTION: "#c46b1a",
+  INSTRUCTION: "#b0882a",
+  CLUSTER: "#0f6e6b",
+  COMPOSITION: "#1c2430",
+  SECTION: "#5c675f",
+  ADMIN_ENTRY: "#5c675f",
+  ENTRY: "#2f6f9f",
+  EVENT_CONTEXT: "#5c675f",
 };
 
 export interface TreemapRenderer {
@@ -101,6 +118,10 @@ export function createTreemapRenderer(
   canvas.setAttribute("role", "region");
   canvas.setAttribute("aria-label", "Template treemap overview");
 
+  const stage = document.createElement("div");
+  stage.className = "treemap-stage";
+  canvas.append(stage);
+
   const tooltip = document.createElement("div");
   tooltip.className = "treemap-tooltip";
   tooltip.hidden = true;
@@ -110,6 +131,7 @@ export function createTreemapRenderer(
 
   let lastState: TreemapRenderState | null = null;
   let resizeObserver: ResizeObserver | null = null;
+  const collapsedIds = new Set<string>();
 
   if (typeof ResizeObserver !== "undefined") {
     resizeObserver = new ResizeObserver(() => {
@@ -143,13 +165,16 @@ export function createTreemapRenderer(
     state: TreemapRenderState,
   ): HTMLElement {
     const d = tile.datum;
-    const w = Math.max(0, tile.x1 - tile.x0);
-    const h = Math.max(0, tile.y1 - tile.y0);
+    const rmAccent = RM_COLOR[d.rmType] ?? "#5c675f";
 
     const el = document.createElement("div");
     el.className = [
       "tm-tile",
-      tile.isContainer ? "tm-tile--container" : "tm-tile--leaf",
+      tile.isBlob
+        ? "tm-tile--blob"
+        : tile.isContainer
+        ? "tm-tile--container"
+        : "tm-tile--leaf",
       `tm-status--${d.status}`,
       `tm-depth--${Math.min(tile.depth, 4)}`,
       state.selectedBlockId === d.id ? "tm-tile--selected" : "",
@@ -159,15 +184,17 @@ export function createTreemapRenderer(
     el.dataset.status = d.status;
     el.style.left = `${tile.x0}px`;
     el.style.top = `${tile.y0}px`;
-    el.style.width = `${w}px`;
-    el.style.height = `${h}px`;
+    el.style.width = `${tile.cardW}px`;
+    el.style.height = `${tile.cardH}px`;
+    el.style.setProperty("--tm-rm-color", rmAccent);
     el.setAttribute(
       "aria-label",
       `${d.label} (${d.rmType}) — ${STATUS_LABEL[d.status]}`,
     );
 
+    const isHeaderRow = tile.isContainer || tile.isBlob;
     const header = document.createElement("div");
-    header.className = tile.isContainer ? "tm-header" : "tm-leaf-body";
+    header.className = isHeaderRow ? "tm-header" : "tm-leaf-body";
 
     const glyph = document.createElement("span");
     glyph.className = "tm-status-glyph";
@@ -178,51 +205,70 @@ export function createTreemapRenderer(
     title.className = "tm-title";
     title.textContent = d.label;
 
-    header.append(glyph, title);
-
-    if (w >= 90 && !d.isGhost) {
-      if (tile.isContainer && d.counts.totalLeaves > 0) {
+    if (isHeaderRow) {
+      header.append(glyph, title);
+      if (!d.isGhost && d.counts.totalLeaves > 0) {
         const stat = document.createElement("span");
         stat.className = "tm-stat";
         const done = d.counts.mappedLeaves + d.counts.aiDraftLeaves;
         stat.textContent = `${done}/${d.counts.totalLeaves}`;
         header.append(stat);
-      } else if (!tile.isContainer && d.mappingSummary && h >= 36) {
+      }
+
+      if (!d.isGhost && !tile.isBlob) {
+        const actions = document.createElement("span");
+        actions.className = "tm-header-actions";
+
+        if (state.showAiBulkActions && d.counts.aiDraftLeaves > 0 && callbacks.onAiTriage) {
+          const acceptBtn = document.createElement("button");
+          acceptBtn.type = "button";
+          acceptBtn.className = "tm-action-btn tm-action-btn--accept";
+          acceptBtn.title = "Accept all AI drafts in this section";
+          acceptBtn.textContent = "✓ AI";
+          acceptBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            callbacks.onAiTriage?.(d.id, "accept", true);
+          });
+          actions.append(acceptBtn);
+        }
+
+        const openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.className = "tm-action-btn tm-open-blockly-btn";
+        openBtn.title = `Open ${d.label} in Scoped Blockly`;
+        openBtn.textContent = "Blockly ↗";
+        openBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          callbacks.onOpenInBlockly(d.id);
+        });
+        actions.append(openBtn);
+
+        const collapseBtn = document.createElement("button");
+        collapseBtn.type = "button";
+        collapseBtn.className = "tm-collapse-btn";
+        collapseBtn.title = `Collapse ${d.label} to blob`;
+        collapseBtn.setAttribute("aria-label", `Collapse ${d.label}`);
+        collapseBtn.textContent = "−";
+        collapseBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          collapsedIds.add(d.id);
+          if (lastState) paint(lastState);
+        });
+        actions.append(collapseBtn);
+
+        header.append(actions);
+      }
+    } else {
+      const topRow = document.createElement("div");
+      topRow.className = "tm-leaf-row";
+      topRow.append(glyph, title);
+      header.append(topRow);
+      if (d.mappingSummary) {
         const sub = document.createElement("div");
         sub.className = "tm-leaf-summary";
         sub.textContent = d.mappingSummary;
         header.append(sub);
       }
-    }
-
-    if (tile.isContainer && !d.isGhost && w >= 120) {
-      const actions = document.createElement("span");
-      actions.className = "tm-header-actions";
-
-      if (state.showAiBulkActions && d.counts.aiDraftLeaves > 0 && callbacks.onAiTriage) {
-        const acceptBtn = document.createElement("button");
-        acceptBtn.type = "button";
-        acceptBtn.className = "tm-action-btn tm-action-btn--accept";
-        acceptBtn.title = "Accept all AI drafts in this section";
-        acceptBtn.textContent = "✓ AI";
-        acceptBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          callbacks.onAiTriage?.(d.id, "accept", true);
-        });
-        actions.append(acceptBtn);
-      }
-
-      const openBtn = document.createElement("button");
-      openBtn.type = "button";
-      openBtn.className = "tm-action-btn tm-open-blockly-btn";
-      openBtn.title = `Open ${d.label} in Scoped Blockly`;
-      openBtn.textContent = "Blockly ↗";
-      openBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        callbacks.onOpenInBlockly(d.id);
-      });
-      actions.append(openBtn);
-      header.append(actions);
     }
 
     el.append(header);
@@ -234,6 +280,20 @@ export function createTreemapRenderer(
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         callbacks.onGhostClick?.(d, el);
+      });
+    } else if (tile.isBlob) {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (collapsedIds.has(d.id)) {
+          collapsedIds.delete(d.id);
+          if (lastState) paint(lastState);
+        } else {
+          callbacks.onZoomChange?.(d.id);
+        }
+      });
+      el.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        callbacks.onOpenInBlockly(d.id);
       });
     } else if (tile.isContainer) {
       el.addEventListener("click", (e) => {
@@ -247,11 +307,7 @@ export function createTreemapRenderer(
     } else {
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (d.children.length > 0 || !d.isLeaf) {
-          callbacks.onZoomChange?.(d.id);
-        } else {
-          callbacks.onLeafClick?.(d, el);
-        }
+        callbacks.onLeafClick?.(d, el);
       });
       el.addEventListener("dblclick", (e) => {
         e.stopPropagation();
@@ -284,20 +340,30 @@ export function createTreemapRenderer(
       empty.textContent = state.query || state.statusFilter !== "all"
         ? "No template nodes match the current search/filter."
         : "Load a target template to view its Treemap overview.";
-      canvas.replaceChildren(empty);
+      stage.style.width = "100%";
+      stage.style.height = "100%";
+      stage.replaceChildren(empty);
       return;
     }
 
-    // Cap initial depth at 3 (SECTION -> ENTRY -> CLUSTER) when at template root;
-    // when zoomed into a SECTION/ENTRY/CLUSTER, show 3 levels deeper (revealing leaf ELEMENTs).
-    const maxDepth = state.zoomRootId && state.zoomRootId !== state.index.compositionId ? 4 : 3;
-    const tiles = computeTreemapLayout(rootDatum, width, height, maxDepth);
+    // At template root, cap depth at 3 (SECTION -> ENTRY -> CLUSTER blobs) for crisp overview;
+    // when zoomed into a SECTION/ENTRY/CLUSTER, expand deeper to reveal all leaf ELEMENTs.
+    const maxDepth = state.zoomRootId && state.zoomRootId !== state.index.compositionId ? 5 : 3;
+    const { tiles, contentWidth, contentHeight } = computeCascadedTreemapLayout(
+      rootDatum,
+      width,
+      height,
+      { maxDepth, collapsedIds },
+    );
+
+    stage.style.width = `${contentWidth}px`;
+    stage.style.height = `${contentHeight}px`;
 
     const frag = document.createDocumentFragment();
     for (const tile of tiles) {
       frag.append(renderTileElement(tile, state));
     }
-    canvas.replaceChildren(frag);
+    stage.replaceChildren(frag);
   }
 
   return {
