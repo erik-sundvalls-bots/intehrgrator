@@ -344,13 +344,14 @@ function analyzeValueSubtree(block: BlocklyBlockJson | undefined): LeafAnalysis 
   if (block.inputs) {
     for (const [inputName, inp] of Object.entries(block.inputs)) {
       if (!inp.block) continue;
-      // Ignore fixed terminology_id / units shells if nothing else is mapped.
       const sub = analyzeValueSubtree(inp.block);
       if (sub.hasAiDraft && !hasAiDraft) {
         hasAiDraft = true;
         aiConfidence = sub.aiConfidence;
         aiNote = sub.aiNote;
       }
+      // Fixed unit/terminology metadata alone does not make an empty DV_* slot mapped.
+      if (inputName === "FLD_units" || inputName === "FLD_terminology_id") continue;
       if (sub.mapped) {
         anyMapped = true;
         if (sub.summary) {

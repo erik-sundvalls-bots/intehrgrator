@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+// deno-lint-ignore no-import-prefix
 import { chromium } from "npm:playwright@1.51.0";
 import { baseUrl, fixtureText, waitForTestApi } from "./helpers.ts";
 import type { IntehrgratorTestApi } from "../../src/ui_test/test_api.ts";

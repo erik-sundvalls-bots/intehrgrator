@@ -15,3 +15,9 @@ export {
   type TreemapRendererCallbacks,
   type TreemapRenderState,
 } from "./renderer.ts";
+export {
+  createTreemapInlinePopover,
+  type InlinePopoverCallbacks,
+  type InlinePopoverController,
+  type SourceFieldOption,
+} from "./inline_popover.ts";
