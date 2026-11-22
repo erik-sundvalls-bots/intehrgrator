@@ -266,7 +266,28 @@
         data-split-sizes="1.2,1"
         data-split-preferred="0"
       >
-        <div id="blockly-mount" class="blockly-mount"></div>
+        <div id="mapping-top-stage" class="mapping-top-stage">
+          <div id="editor-mode-bar" class="editor-mode-bar" hidden>
+            <div class="editor-mode-switch" role="tablist" aria-label="Editor mode">
+              <button id="btn-mode-treemap" class="editor-mode-btn" type="button" role="tab" aria-selected="false">Treemap Overview</button>
+              <button id="btn-mode-scoped" class="editor-mode-btn" type="button" role="tab" aria-selected="false" hidden>Scoped Blockly</button>
+              <button id="btn-mode-full" class="editor-mode-btn active" type="button" role="tab" aria-selected="true">Blockly Canvas</button>
+            </div>
+            <nav id="treemap-breadcrumb" class="treemap-breadcrumb" aria-label="Template path" hidden></nav>
+            <div id="treemap-controls" class="treemap-controls" hidden>
+              <input id="treemap-search" class="treemap-search" type="search" placeholder="Search label, archetype, path…" aria-label="Search template nodes" />
+              <div class="treemap-filters" role="group" aria-label="Filter by mapping status">
+                <button type="button" class="tm-filter-chip active" data-tm-filter="all">All</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="mandatory-missing">⚠ Mandatory Missing</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="unmapped">○ Unmapped</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="ai-draft">✦ AI Draft</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="mapped">✓ Mapped</button>
+              </div>
+            </div>
+          </div>
+          <div id="treemap-host" class="treemap-host" hidden></div>
+          <div id="blockly-mount" class="blockly-mount"></div>
+        </div>
         <div class="mapping-bottom">
           <div class="mapping-editor-tabs" role="tablist" aria-label="Mapping editor text views" data-i18n-aria="mappingViewsAria">
             <div class="mapping-editor-tab-group">
