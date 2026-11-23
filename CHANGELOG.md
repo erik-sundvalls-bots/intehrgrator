@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **ehrtslib 0.16.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.16)). The ADL parser accepts header `uid` / `build_uid` values that start with `at`, `ac` or `id` plus a digit ([ehrtslib #328](https://github.com/ErikSundvall/ehrtslib/issues/328)). This bump also picks up ehrtslib 0.14 and 0.15: ZipEHR display localization and `tm` escaping, ADL 1.4 `C_DV_QUANTITY` blocks, and format-aware validation source locations.
+
 - **ehrtslib 0.13.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.13)). `serializeToFlat` roots keys at the Web Template `tree.id` and can omit a renamed LOCATABLE name (`locatableName: "omit"`; the default still writes `/_name`). A one-argument `RMSpecificationValidator.validate(instance)` now validates the whole instance, and `TERM_MAPPING.match` rejects `~`.
 
 - **Obstetric MHV1 example sets match their source schema.** Simplified FLAT examples are checked as FLAT keys against the Web Template (including one built from an OPT or OPT2), not as a JSON object whose property names are the whole key. Canonical compositions are checked by `template_id` instead of comparing RM fields such as `_type` and `code_string` to Web Template node ids. The generic-entry OPT2 names the nested care-provider cluster `Vårdgivare`, which is the id the FLAT keys and the Web Template use.
