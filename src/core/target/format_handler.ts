@@ -131,18 +131,27 @@ export function reloadTargetLanguage(
       idLanguage: undefined,
     };
   }
-  // An OPT XML file is re-read itself (#279): target languages keep the OPT's
-  // order, and `webTemplateJson` (Simplified FLAT ids) stays the first load's.
-  if (definition.webTemplateJson && !definition.content.trimStart().startsWith("<")) {
-    const generated = generateSkeletonFromWebTemplate(definition.webTemplateJson, {
-      language,
-    });
-    return {
-      ...definition,
-      skeleton: generated.skeleton,
-      language: generated.language,
-      languages: generated.languages,
-    };
+  // Only reload from `webTemplateJson` when the loaded file itself is a Web Template JSON;
+  // OPT XML (`<...`) and ADL2 OPT2 (`operational_template...`) must be re-read from `definition.content`
+  // so language switching does not fall back to lossy synthetic Web Template labels.
+  if (definition.webTemplateJson && definition.content.trimStart().startsWith("{")) {
+    let isWtContent = false;
+    try {
+      isWtContent = isWebTemplateJson(JSON.parse(definition.content));
+    } catch {
+      isWtContent = false;
+    }
+    if (isWtContent) {
+      const generated = generateSkeletonFromWebTemplate(definition.webTemplateJson, {
+        language,
+      });
+      return {
+        ...definition,
+        skeleton: generated.skeleton,
+        language: generated.language,
+        languages: generated.languages,
+      };
+    }
   }
   const reloaded = getTargetFormatHandler(definition.format).load(
     definition.filename,

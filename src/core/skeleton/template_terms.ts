@@ -174,6 +174,22 @@ export function liveArchetypeTermsIndex(
   return new Map(Object.entries(archetypeTermBagsForLanguage(opt, lang)));
 }
 
+const GENERIC_RM_LABEL_RE =
+  /^(?:composition|section|observation|evaluation|instruction|action|admin[_ ]entry|entry|cluster|element|event[_ ]context|item[_ ](?:tree|list|single|table)|history|point[_ ]event|interval[_ ]event|event|activity|careflow[_ ]step|ism[_ ]transition)$/i;
+
+/** True when `label` is just a bare RM class placeholder (e.g. `"element"`, `"SECTION"`). */
+export function isGenericRmTypeLabel(label: string | undefined, rmType?: string): boolean {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return true;
+  if (GENERIC_RM_LABEL_RE.test(trimmed)) return true;
+  if (rmType) {
+    const normLabel = trimmed.toLowerCase().replace(/[\s_]+/g, "_");
+    const normRm = rmType.trim().toLowerCase().replace(/[\s_]+/g, "_");
+    if (normLabel === normRm) return true;
+  }
+  return false;
+}
+
 function webTemplateNodeName(node: WebTemplateNode, lang: string): string | undefined {
   return node.localizedNames?.[lang] ??
     node.localizedName ??
@@ -189,7 +205,14 @@ function putTerm(
   overwrite = false,
 ): void {
   const bag = index.get(scope) ?? {};
-  if (overwrite || !bag[code]?.text) bag[code] = { text };
+  const existing = bag[code]?.text;
+  if (existing && isGenericRmTypeLabel(text) && !isGenericRmTypeLabel(existing)) {
+    index.set(scope, bag);
+    return;
+  }
+  if (overwrite || !existing || (isGenericRmTypeLabel(existing) && !isGenericRmTypeLabel(text))) {
+    bag[code] = { text };
+  }
   index.set(scope, bag);
 }
 
@@ -218,6 +241,7 @@ export function buildWebTemplateTermsIndex(
     : defaultLang;
 
   function record(node: WebTemplateNode, inherited: string | undefined): string | undefined {
+    if (node.max === 0) return inherited;
     const name = webTemplateNodeName(node, lang);
     if (isArchetypeId(node.nodeId)) {
       const qualified = occurrenceScope(node.nodeId!, occurrenceName(node, defaultLang));
@@ -236,6 +260,7 @@ export function buildWebTemplateTermsIndex(
   }
 
   function walk(node: WebTemplateNode, inherited: string | undefined): void {
+    if (node.max === 0) return;
     const scope = record(node, inherited);
     for (const child of node.children ?? []) walk(child, scope);
   }

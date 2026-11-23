@@ -88,6 +88,7 @@ import {
   workspacePositionFromClient,
   registerCompactThrasosRenderer,
   openWorkspaceSnapshotWindow,
+  relabelBlocklyJsonFromSkeleton,
   relabelWorkspaceFromSkeleton,
   ensureDefaultsBlock,
   findDefaultsBlock,
@@ -3087,7 +3088,10 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
 
   if (skeletonKey !== blocklySkeletonKey) {
     if (s.blocklyState && typeof s.blocklyState === "object") {
-      const savedState = migrateForEachSourceState(s.blocklyState) as BlocklyWorkspaceJson;
+      const savedState = relabelBlocklyJsonFromSkeleton(
+        migrateForEachSourceState(s.blocklyState) as BlocklyWorkspaceJson,
+        s.skeleton,
+      );
       const idx = indexDocument(savedState);
       if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && idx.compositionId) {
         // Large template: open instantaneously into Treemap Overview (zero WorkspaceSvg mount).
@@ -3252,6 +3256,14 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
     runWithoutBlocklyEvents(() => {
       relabelWorkspaceFromSkeleton(workspace, s.skeleton);
     });
+    if (canonicalBlocklyState) {
+      canonicalBlocklyState = relabelBlocklyJsonFromSkeleton(canonicalBlocklyState, s.skeleton);
+      canonicalDocIndex = indexDocument(canonicalBlocklyState);
+      if (editorMode === "treemap") {
+        renderTreemapAndModeBar();
+        refreshMappingSpecView(canonicalBlocklyState);
+      }
+    }
     blocklyLabelLanguage = labelLanguage;
     toolboxKey = "";
     syncToolbox(s);

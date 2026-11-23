@@ -409,3 +409,48 @@ Deno.test("#194 collapse children folds nested blocks and leaves the parent expa
   assertEquals(child.isCollapsed(), false);
   workspace.dispose();
 });
+
+Deno.test("#374 relabelWorkspaceFromSkeleton preserves human block labels when OPT skeleton only has bare at-codes", async () => {
+  const obxOpt = await Deno.readTextFile(
+    new URL("./fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt", import.meta.url),
+  );
+  const obxDef = getTargetFormatHandler(detectTargetFormat("t.opt", obxOpt)).load("t.opt", obxOpt);
+  const obxSaved = JSON.parse(
+    await Deno.readTextFile(
+      new URL("./fixtures/Obstetrix-MHV1/mapping/mapping.blockly.json", import.meta.url),
+    ),
+  ) as Record<string, unknown>;
+
+  const { initBlocklyGenerators } = await import("@intehrgrator/blockly/mod.ts");
+  const { registerRmBlocksFromJson } = await import("@intehrgrator/workbench/blockly_sync.ts");
+  initBlocklyGenerators();
+  registerRmBlocksFromJson(obxSaved);
+  const workspace = new Blockly.Workspace();
+  Blockly.serialization.workspaces.load(obxSaved, workspace);
+  relabelWorkspaceFromSkeleton(workspace, obxDef.skeleton);
+
+  const sectionNames = workspace.getAllBlocks(false)
+    .filter((b) => b.type === "section")
+    .map((b) => String(b.getFieldValue("NAME") || ""));
+  assert(
+    sectionNames.includes("General information"),
+    `expected preserved 'General information', got: ${sectionNames.slice(0, 6).join(", ")}`,
+  );
+  assert(
+    sectionNames.includes("Social summary"),
+    `expected preserved 'Social summary', got: ${sectionNames.slice(0, 6).join(", ")}`,
+  );
+  assert(
+    !sectionNames.some((n) => /^at0\.\d+$/i.test(n)),
+    `bare at-codes must not overwrite human section labels: ${sectionNames.join(", ")}`,
+  );
+
+  const elementNames = workspace.getAllBlocks(false)
+    .filter((b) => b.type === "element")
+    .map((b) => String(b.getFieldValue("NAME") || ""));
+  assert(
+    elementNames.includes("Weight"),
+    `expected preserved ELEMENT 'Weight', got: ${elementNames.slice(0, 8).join(", ")}`,
+  );
+  workspace.dispose();
+});

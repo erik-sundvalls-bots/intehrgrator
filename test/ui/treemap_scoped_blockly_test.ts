@@ -128,6 +128,53 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       `hovered parent z-index (${zOrder.parentZ}) must stay below child z-index (${zOrder.childZ})`,
     );
 
+    // 4b. Fixed sibling output order badges (1, 2, 3...) + hover sequence trace + stable scrollbars (zero flicker).
+    const orderAndScrollCheck = await page.evaluate(async () => {
+      const depth1Orders = [
+        ...document.querySelectorAll("#treemap-host .tm-depth--1 > .tm-header > .tm-order"),
+      ].map((el) => el.textContent?.trim());
+      const seqHighlighted = document.querySelectorAll("#treemap-host .tm-tile--sibling-seq").length;
+      const seqLines = document.querySelectorAll("#treemap-host .tm-order-overlay .tm-seq-line").length;
+
+      // Monitor `.treemap-stage` childList mutations over 250ms to prove ResizeObserver does not flicker/loop.
+      const stage = document.querySelector("#treemap-host .treemap-stage");
+      const canvas = document.querySelector("#treemap-host .treemap-canvas") as HTMLElement | null;
+      let repaints = 0;
+      const obs = new MutationObserver(() => {
+        repaints++;
+      });
+      if (stage) obs.observe(stage, { childList: true });
+      await new Promise((r) => setTimeout(r, 250));
+      obs.disconnect();
+      return {
+        depth1Orders,
+        seqHighlighted,
+        seqLines,
+        repaints,
+        overflowX: canvas?.style.overflowX ?? "",
+        overflowY: canvas?.style.overflowY ?? "",
+      };
+    });
+    assert(orderAndScrollCheck.depth1Orders.length >= 10, "expected ordinal badges on depth-1 sections");
+    assertEquals(orderAndScrollCheck.depth1Orders.slice(0, 4), ["1", "2", "3", "4"]);
+    assert(
+      orderAndScrollCheck.seqHighlighted >= 10,
+      `expected hovered depth-1 sibling sequence highlight, got ${orderAndScrollCheck.seqHighlighted}`,
+    );
+    assert(
+      orderAndScrollCheck.seqLines >= 9,
+      `expected SVG sequence connector lines between siblings, got ${orderAndScrollCheck.seqLines}`,
+    );
+    assertEquals(
+      orderAndScrollCheck.repaints,
+      0,
+      `treemap must not flicker/re-paint in a ResizeObserver loop (saw ${orderAndScrollCheck.repaints} repaints)`,
+    );
+    assert(
+      orderAndScrollCheck.overflowX === "hidden" || orderAndScrollCheck.overflowX === "auto",
+      `expected explicit overflowX, got "${orderAndScrollCheck.overflowX}"`,
+    );
+
     // 5. Feature 1: clicking a container zooms in with animation + pulses the newly added breadcrumb;
     //    clicking the root breadcrumb zooms out with animation + pulses the root breadcrumb.
     await depth1Header.click();

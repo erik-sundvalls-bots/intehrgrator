@@ -1,9 +1,40 @@
 import type { Block } from "blockly/core";
 import type { SkeletonNode } from "../types/mod.ts";
-import { archetypeShortName } from "../core/skeleton/template_terms.ts";
+import type { BlocklyBlockJson, BlocklyWorkspaceJson } from "../core/slice_engine.ts";
+import { archetypeShortName, isGenericRmTypeLabel } from "../core/skeleton/template_terms.ts";
+import { isDataValueType } from "../core/rm_mandatory.ts";
 import { humanizeRmType, isSkeletonTitleField } from "./field_skeleton_title.ts";
 import { isDataValueBlock } from "./blocks/rm_blocks.ts";
 import { isTermPickBlock } from "./blocks/term_pick.ts";
+
+const BARE_NODE_CODE_RE = /^(?:at|id)\d+(?:\.\d+)*$/i;
+
+/**
+ * True when `label` is empty, a bare openEHR `at`/`id` code (e.g. `at0.6`,
+ * `at0004.1`), or a generic RM class placeholder (e.g. `SECTION`, `element`).
+ */
+export function isUnresolvedSkeletonLabel(
+  label: string | undefined,
+  rmType?: string,
+  archetypeNodeId?: string,
+): boolean {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return true;
+  if (BARE_NODE_CODE_RE.test(trimmed)) return true;
+  if (archetypeNodeId && trimmed === archetypeNodeId.trim()) return true;
+  if (isGenericRmTypeLabel(trimmed, rmType)) return true;
+  return false;
+}
+
+function shouldPreserveExistingLabel(
+  existingLabel: string | undefined,
+  candidateLabel: string | undefined,
+  rmType?: string,
+  archetypeNodeId?: string,
+): boolean {
+  return !isUnresolvedSkeletonLabel(existingLabel, rmType, archetypeNodeId) &&
+    isUnresolvedSkeletonLabel(candidateLabel, rmType, archetypeNodeId);
+}
 
 export function skeletonBlockTooltip(node: SkeletonNode): string {
   const parts: string[] = [];
@@ -23,10 +54,14 @@ export function applySkeletonBlockLabels(block: Block, node: SkeletonNode): void
   // `maps_get` (and other lookups) reuse field name NAME for the Map name.
   // Relabel must not overwrite that with the skeleton slot label (e.g. "territory").
   if (isSkeletonTitleField(nameField) && !isTermPickBlock(block)) {
+    const existing = String(nameField.getValue() ?? "").trim();
     if (block.type === "element") {
       // Ontology name stays on ELEMENT. Class is always ELEMENT, even when
-      // SLOT_ID points at the value child (#187).
-      nameField.setValue(node.label);
+      // SLOT_ID points at the value child (#187). Never downgrade an existing
+      // human label to a bare at-code when the loaded OPT lacks term definitions (#374).
+      if (!shouldPreserveExistingLabel(existing, node.label, "ELEMENT", node.archetypeNodeId)) {
+        nameField.setValue(node.label);
+      }
       nameField.setClassName("ELEMENT");
       nameField.setAtCode(node.archetypeNodeId ?? "");
     } else if (isDataValueShell(block)) {
@@ -36,7 +71,9 @@ export function applySkeletonBlockLabels(block: Block, node: SkeletonNode): void
       if (rmType) nameField.setClassName(rmType);
       nameField.setAtCode("");
     } else {
-      nameField.setValue(node.label);
+      if (!shouldPreserveExistingLabel(existing, node.label, node.rmType, node.archetypeNodeId)) {
+        nameField.setValue(node.label);
+      }
       if (node.rmType) nameField.setClassName(node.rmType);
       nameField.setAtCode(node.archetypeNodeId ?? "");
     }
@@ -66,6 +103,78 @@ export function relabelWorkspaceFromSkeleton(
     const node = bySlot.get(slotId);
     if (node) applySkeletonBlockLabels(block, node);
   }
+}
+
+const NON_SKELETON_NAME_BLOCK_TYPES = new Set([
+  "maps_get",
+  "maps_set",
+  "maps_has",
+  "maps_delete",
+  "term_pick",
+  "decision_table_eval",
+  "sheet_lookup",
+]);
+
+function jsonBlockLabelSlotId(block: BlocklyBlockJson): string {
+  const fields = block.fields ?? {};
+  if (block.type === "element") {
+    const stored = String(fields.ELEMENT_SLOT_ID ?? "");
+    if (stored) return stored;
+    const slotId = String(fields.SLOT_ID ?? "");
+    const cut = slotId.search(/\/value(?:\/|$)/);
+    return cut > 0 ? slotId.slice(0, cut) : slotId;
+  }
+  return String(fields.SLOT_ID ?? "");
+}
+
+/**
+ * Pure JSON counterpart to `relabelWorkspaceFromSkeleton` for Treemap / headless
+ * mode: updates `fields.NAME` from `skeleton` without mounting a `WorkspaceSvg`,
+ * while preserving existing human-readable labels when `skeleton` only has bare
+ * at-codes or generic RM placeholders (#374).
+ */
+export function relabelBlocklyJsonFromSkeleton(
+  docJson: BlocklyWorkspaceJson,
+  skeleton: SkeletonNode[],
+): BlocklyWorkspaceJson {
+  if (!skeleton.length || !docJson?.blocks?.blocks?.length) return docJson;
+  const bySlot = new Map<string, SkeletonNode>();
+  walkSkeleton(skeleton, (node) => bySlot.set(node.slotId, node));
+  if (bySlot.size === 0) return docJson;
+
+  const clone = structuredClone(docJson);
+  const walk = (block: BlocklyBlockJson | undefined): void => {
+    if (!block) return;
+    if (!NON_SKELETON_NAME_BLOCK_TYPES.has(block.type) && !block.type.startsWith("sheet_")) {
+      const slotId = jsonBlockLabelSlotId(block);
+      const node = slotId ? bySlot.get(slotId) : undefined;
+      if (node && block.fields) {
+        const rmType = String(block.fields.RM_TYPE ?? node.rmType ?? "");
+        const isDvShell = block.type !== "element" && isDataValueType(rmType);
+        if (!isDvShell && typeof block.fields.NAME === "string") {
+          const existing = block.fields.NAME.trim();
+          const targetRm = block.type === "element" ? "ELEMENT" : node.rmType;
+          if (!shouldPreserveExistingLabel(existing, node.label, targetRm, node.archetypeNodeId)) {
+            block.fields.NAME = node.label;
+          }
+        }
+        if (node.archetypeNodeId && typeof block.fields.ARCHETYPE_NODE_ID === "string" && !block.fields.ARCHETYPE_NODE_ID) {
+          block.fields.ARCHETYPE_NODE_ID = node.archetypeNodeId;
+        }
+      }
+    }
+    if (block.inputs) {
+      for (const inp of Object.values(block.inputs)) {
+        if (inp.block) walk(inp.block);
+        if (inp.shadow) walk(inp.shadow);
+      }
+    }
+    if (block.next?.block) walk(block.next.block);
+    if (block.next?.shadow) walk(block.next.shadow);
+  };
+
+  for (const top of clone.blocks?.blocks ?? []) walk(top);
+  return clone;
 }
 
 /** ELEMENT blocks store the value-leaf id in SLOT_ID; labels use the container. */
