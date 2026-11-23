@@ -2953,24 +2953,24 @@ span.ai-notes-option { cursor: default; }
 }
 .treemap-stage--zoom-in {
   transform-origin: top left;
-  animation: tmStageZoomIn 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: tmStageZoomIn 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .treemap-stage--zoom-out {
   transform-origin: top left;
-  animation: tmStageZoomOut 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: tmStageZoomOut 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes tmCrumbPulse {
   0% {
     background: #e87722;
     color: #fff;
     border-color: #c25100;
-    box-shadow: 0 0 0 3px rgba(232, 119, 34, 0.35);
+    box-shadow: 0 0 0 3px rgba(232, 119, 34, 0.38);
   }
   45% {
     background: #fff1e0;
     color: #9a3412;
     border-color: #e87722;
-    box-shadow: 0 0 0 2px rgba(232, 119, 34, 0.18);
+    box-shadow: 0 0 0 2px rgba(232, 119, 34, 0.2);
   }
   100% {
     background: transparent;
@@ -2980,20 +2980,21 @@ span.ai-notes-option { cursor: default; }
   }
 }
 .tm-crumb-btn--pulse {
-  animation: tmCrumbPulse 950ms ease-out;
+  animation: tmCrumbPulse 1050ms ease-out;
 }
 .tm-fly-pill {
   position: fixed;
   z-index: 120;
   pointer-events: none;
-  background: rgba(0, 92, 83, 0.16);
-  border: 1.5px solid var(--primary, #005c53);
-  box-shadow: 0 2px 8px rgba(0, 59, 73, 0.22);
-  transition: left 240ms cubic-bezier(0.22, 1, 0.36, 1),
-              top 240ms cubic-bezier(0.22, 1, 0.36, 1),
-              width 240ms cubic-bezier(0.22, 1, 0.36, 1),
-              height 240ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 240ms ease-out;
+  border-radius: 4px;
+  background: rgba(0, 92, 83, 0.22);
+  border: 2px solid var(--primary, #005c53);
+  box-shadow: 0 3px 12px rgba(0, 59, 73, 0.28);
+  transition: left 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              top 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              height 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 320ms ease-out;
 }
 
 /* ─── Full Blockly Canvas Layout Progress Spinner ───────────────────────── */
@@ -3012,7 +3013,7 @@ span.ai-notes-option { cursor: default; }
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  min-width: 240px;
+  min-width: 260px;
   padding: 18px 24px;
   background: #fff;
   border: 1px solid #c8c8c0;
@@ -3043,7 +3044,7 @@ span.ai-notes-option { cursor: default; }
   color: var(--primary, #005c53);
 }
 .blockly-load-track {
-  width: 200px;
+  width: 210px;
   height: 7px;
   background: #e7e1d4;
   border-radius: 999px;
@@ -3052,7 +3053,7 @@ span.ai-notes-option { cursor: default; }
 .blockly-load-bar {
   height: 100%;
   background: var(--primary, #005c53);
-  transition: width 120ms ease-out;
+  transition: width 80ms ease-out;
 }
 .blockly-load-counts {
   font-size: 11px;
@@ -3060,14 +3061,73 @@ span.ai-notes-option { cursor: default; }
   font-variant-numeric: tabular-nums;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .treemap-stage--zoom-in,
-  .treemap-stage--zoom-out,
-  .tm-crumb-btn--pulse {
-    animation: none;
-  }
-  .tm-fly-pill { display: none; }
+/* ─── Settings Menu Panel (Animations preference) ───────────────────────── */
+.settings-menu-panel {
+  min-width: 255px;
+  padding: 10px 12px;
+  background: #fdfbf6;
+  color: #1c2430;
 }
+.settings-fieldset {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border: 1px solid #d5cfc0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-fieldset legend {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark, #003b49);
+}
+.settings-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #1c2430;
+  cursor: pointer;
+  user-select: none;
+}
+.settings-radio-row input[type="radio"] {
+  margin: 0;
+  accent-color: var(--primary, #005c53);
+  cursor: pointer;
+}
+.settings-system-note {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #5c675f;
+}
+.settings-reset-btn {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 3px 10px;
+  border: 1px solid #c9c2b2;
+  border-radius: 999px;
+  background: #f3efe6;
+  color: #1c2430;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.settings-reset-btn:hover {
+  background: #e7e1d4;
+}
+
+/* Controlled by Settings -> Animations (defaults to "on", overriding OS reduce-motion unless "system" or "off" is chosen) */
+html[data-animations="off"] .treemap-stage--zoom-in,
+html[data-animations="off"] .treemap-stage--zoom-out,
+html[data-animations="off"] .tm-crumb-btn--pulse {
+  animation: none;
+}
+html[data-animations="off"] .tm-fly-pill {
+  display: none;
+}
+
 
 
 

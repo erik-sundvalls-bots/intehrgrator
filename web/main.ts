@@ -1758,11 +1758,49 @@ function applyCanonicalFieldEdit(blockId: string, field: string, value: string):
 let pulseCrumbId: string | null = null;
 let switchingFullCanvas = false;
 
+type AnimationSetting = "system" | "on" | "off";
+const ANIMATIONS_STORAGE_KEY = "intehrgrator.animations";
+
+function getAnimationSetting(): AnimationSetting {
+  try {
+    const raw = localStorage.getItem(ANIMATIONS_STORAGE_KEY);
+    if (raw === "system" || raw === "on" || raw === "off") return raw;
+  } catch {
+    // Ignore storage errors in restricted contexts.
+  }
+  return "on";
+}
+
+function systemPrefersReducedMotion(): boolean {
+  return typeof globalThis.matchMedia === "function" &&
+    globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function areAnimationsEnabled(): boolean {
+  const mode = getAnimationSetting();
+  if (mode === "on") return true;
+  if (mode === "off") return false;
+  return !systemPrefersReducedMotion();
+}
+
+function applyAnimationSetting(): void {
+  const enabled = areAnimationsEnabled();
+  document.documentElement.dataset.animations = enabled ? "on" : "off";
+  const statusEl = document.getElementById("settings-reduce-motion-status");
+  if (statusEl) {
+    statusEl.textContent = systemPrefersReducedMotion()
+      ? "System: reduce motion is ON"
+      : "System: reduce motion is OFF";
+  }
+  const mode = getAnimationSetting();
+  document.querySelectorAll<HTMLInputElement>('input[name="settings-animations"]').forEach((input) => {
+    input.checked = input.value === mode;
+  });
+}
+
 function animateCrumbFly(fromRect: DOMRect | null | undefined, toRect: DOMRect | null | undefined): void {
   if (!fromRect || !toRect) return;
-  if (typeof globalThis.matchMedia === "function" && globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
+  if (!areAnimationsEnabled()) return;
   const pill = document.createElement("div");
   pill.className = "tm-fly-pill";
   pill.style.left = `${fromRect.left}px`;
@@ -1779,18 +1817,26 @@ function animateCrumbFly(fromRect: DOMRect | null | undefined, toRect: DOMRect |
     pill.style.height = `${Math.max(16, toRect.height)}px`;
     pill.style.opacity = "0";
   });
-  setTimeout(() => pill.remove(), 280);
+  setTimeout(() => pill.remove(), 360);
 }
 
-function setBlocklyLoadOverlay(visible: boolean, pct = 0, laidOut = 0, total = 0): void {
+function setBlocklyLoadOverlay(
+  visible: boolean,
+  pct = 0,
+  laidOut = 0,
+  total = 0,
+  title?: string,
+): void {
   const overlay = document.getElementById("blockly-load-overlay");
   if (!overlay) return;
   overlay.hidden = !visible;
   if (!visible) return;
   const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  const titleEl = document.getElementById("blockly-load-title");
   const pctEl = document.getElementById("blockly-load-pct");
   const barEl = document.getElementById("blockly-load-bar");
   const countsEl = document.getElementById("blockly-load-counts");
+  if (titleEl && title) titleEl.textContent = title;
   if (pctEl) pctEl.textContent = `${clamped}%`;
   if (barEl) barEl.style.width = `${clamped}%`;
   if (countsEl) {
@@ -2021,7 +2067,7 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
 
   try {
     if (showProgress) {
-      setBlocklyLoadOverlay(true, 0, 0, totalBlocks);
+      setBlocklyLoadOverlay(true, 0, 0, totalBlocks, "Mounting Blockly blocks…");
       await paintFrame();
     }
 
@@ -2037,6 +2083,14 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
       }
     ).appendInternal;
     const appendFn = appendInternal ?? Blockly.serialization.blocks.append;
+    const flushRenders = async (): Promise<void> => {
+      const rm = (Blockly as unknown as {
+        renderManagement?: { finishQueuedRenders?: () => Promise<void> };
+      }).renderManagement;
+      if (typeof rm?.finishQueuedRenders === "function") {
+        await rm.finishQueuedRenders();
+      }
+    };
     const yieldTick = () => new Promise<void>((r) => setTimeout(r, 0));
 
     if (split) {
@@ -2049,7 +2103,13 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
         );
       });
       const mountedBase = workspace.getAllBlocks(false).length;
-      setBlocklyLoadOverlay(true, (mountedBase / Math.max(1, totalBlocks)) * 85, mountedBase, totalBlocks);
+      setBlocklyLoadOverlay(
+        true,
+        (mountedBase / Math.max(1, totalBlocks)) * 65,
+        mountedBase,
+        totalBlocks,
+        "Mounting Blockly blocks…",
+      );
       await yieldTick();
 
       const appendedChunks: Blockly.Block[] = [];
@@ -2066,9 +2126,25 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
           }
         });
         const mounted = workspace.getAllBlocks(false).length;
-        setBlocklyLoadOverlay(true, Math.min(85, (mounted / Math.max(1, totalBlocks)) * 85), mounted, totalBlocks);
+        setBlocklyLoadOverlay(
+          true,
+          Math.min(65, (mounted / Math.max(1, totalBlocks)) * 65),
+          mounted,
+          totalBlocks,
+          "Mounting Blockly blocks…",
+        );
         await yieldTick();
       }
+
+      const mountedAll = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        72,
+        mountedAll,
+        Math.max(totalBlocks, mountedAll),
+        "Laying out Blockly canvas…",
+      );
+      await yieldTick();
 
       const compBlock = workspace.getBlockById(split.compositionId);
       const contentInput = compBlock?.getInput("ATTR_content");
@@ -2083,9 +2159,7 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
           prevBlock = appended;
         }
       });
-      const mountedAll = workspace.getAllBlocks(false).length;
-      setBlocklyLoadOverlay(true, 92, mountedAll, Math.max(totalBlocks, mountedAll));
-      await yieldTick();
+      await flushRenders();
     } else {
       runWithoutBlocklyEvents(() => {
         if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
@@ -2097,9 +2171,22 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
       });
       if (showProgress) {
         const mounted = workspace.getAllBlocks(false).length;
-        setBlocklyLoadOverlay(true, 92, mounted, totalBlocks);
+        setBlocklyLoadOverlay(true, 72, mounted, totalBlocks, "Laying out Blockly canvas…");
         await yieldTick();
+        await flushRenders();
       }
+    }
+
+    if (showProgress) {
+      const mounted = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        84,
+        mounted,
+        Math.max(totalBlocks, mounted),
+        "Applying labels & constraints…",
+      );
+      await yieldTick();
     }
 
     runWithoutBlocklyEvents(() => {
@@ -2110,12 +2197,37 @@ async function switchToFullBlocklyCanvas(): Promise<void> {
     refreshAiReviewMarkers(workspace);
     separateContextMapFromProductTree(workspace);
     Blockly.svgResize(workspace);
+    if (showProgress) {
+      await flushRenders();
+      const mounted = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        94,
+        mounted,
+        Math.max(totalBlocks, mounted),
+        "Painting canvas…",
+      );
+      await yieldTick();
+    }
+
     refreshMappingSpecView();
 
     if (showProgress) {
-      const finalCount = workspace.getAllBlocks(false).length;
-      setBlocklyLoadOverlay(true, 100, finalCount, Math.max(totalBlocks, finalCount));
+      // Reveal #blockly-mount while the overlay is still on top at 94% so the browser's
+      // first full SVG rasterization completes BEFORE the counter hits 100%.
+      if (blocklyMountEl) {
+        blocklyMountEl.style.visibility = "";
+      }
       await paintFrame();
+      const finalCount = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        100,
+        finalCount,
+        Math.max(totalBlocks, finalCount),
+        "Canvas ready",
+      );
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
     }
   } finally {
     if (blocklyMountEl) {
@@ -3397,6 +3509,7 @@ installLocalMcpDialog();
 installExampleSetsMenu();
 installFunctionLibraryUi();
 installFileMenu();
+installSettingsMenu();
 installHelpMenu();
 
 const HELP_TUTORIAL_URL =
@@ -3443,6 +3556,54 @@ function installFileMenu(): void {
   });
   menu.querySelectorAll("button").forEach((btn) => {
     btn.addEventListener("click", () => handle.close());
+  });
+}
+
+function installSettingsMenu(): void {
+  applyAnimationSetting();
+
+  if (typeof globalThis.matchMedia === "function") {
+    const mq = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", () => applyAnimationSetting());
+    }
+  }
+
+  const trigger = document.getElementById("btn-menu-settings");
+  const menu = document.getElementById("menu-settings");
+  if (!(trigger instanceof HTMLButtonElement) || !menu) return;
+
+  installAnchoredMenu({
+    menu,
+    trigger,
+    roots: [trigger],
+    referenceEls: [trigger],
+    minWidth: 255,
+  });
+
+  menu.querySelectorAll<HTMLInputElement>('input[name="settings-animations"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      const val = radio.value;
+      if (val === "system" || val === "on" || val === "off") {
+        try {
+          localStorage.setItem(ANIMATIONS_STORAGE_KEY, val);
+        } catch {
+          // Ignore storage errors.
+        }
+        applyAnimationSetting();
+      }
+    });
+  });
+
+  const resetBtn = document.getElementById("btn-settings-animations-reset");
+  resetBtn?.addEventListener("click", () => {
+    try {
+      localStorage.setItem(ANIMATIONS_STORAGE_KEY, "on");
+    } catch {
+      // Ignore storage errors.
+    }
+    applyAnimationSetting();
   });
 }
 
