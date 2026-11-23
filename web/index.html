@@ -77,6 +77,28 @@
     </div>
     <button id="btn-functions" class="menubar-btn" type="button" title="Save, load, or contribute Blockly Functions; browse the GitHub Function library" data-i18n="functions" data-i18n-title="functionsTitle">Functions</button>
     <div class="menubar-item">
+      <button id="btn-menu-settings" class="menubar-btn" type="button" title="Workbench preferences" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-settings">Settings</button>
+      <div id="menu-settings" class="split-btn-menu settings-menu-panel" hidden role="menu">
+        <fieldset class="settings-fieldset">
+          <legend>Animations</legend>
+          <label class="settings-radio-row">
+            <input type="radio" name="settings-animations" value="system" />
+            <span>Follow system</span>
+          </label>
+          <label class="settings-radio-row">
+            <input type="radio" name="settings-animations" value="on" checked />
+            <span>Always on (default)</span>
+          </label>
+          <label class="settings-radio-row">
+            <input type="radio" name="settings-animations" value="off" />
+            <span>Off</span>
+          </label>
+          <div id="settings-reduce-motion-status" class="settings-system-note">System: reduce motion is OFF</div>
+          <button id="btn-settings-animations-reset" class="settings-reset-btn" type="button">Reset to default</button>
+        </fieldset>
+      </div>
+    </div>
+    <div class="menubar-item">
       <button id="btn-help" class="menubar-btn" type="button" title="Tutorial and issue reporting" data-i18n="help" data-i18n-title="helpTitle" aria-haspopup="menu" aria-controls="menu-help">Help</button>
       <div id="menu-help" class="split-btn-menu" hidden role="menu">
         <a
@@ -292,7 +314,7 @@
           <div id="blockly-load-overlay" class="blockly-load-overlay" hidden role="status" aria-live="polite">
             <div class="blockly-load-card">
               <div class="blockly-load-spinner" aria-hidden="true"></div>
-              <div class="blockly-load-title">Laying out Blockly canvas…</div>
+              <div id="blockly-load-title" class="blockly-load-title">Laying out Blockly canvas…</div>
               <div id="blockly-load-pct" class="blockly-load-pct">0%</div>
               <div class="blockly-load-track">
                 <div id="blockly-load-bar" class="blockly-load-bar" style="width: 0%"></div>

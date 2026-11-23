@@ -208,6 +208,33 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
     const loadPcts = await page.evaluate(() => (globalThis as unknown as { __loadPcts: string[] }).__loadPcts);
     assert(loadPcts.length >= 2, `expected live percentage updates while laying out full canvas, saw: ${loadPcts.join(", ")}`);
     assert(loadPcts.some((p) => p.endsWith("%")), `expected percentage values, saw: ${loadPcts.join(", ")}`);
+
+    // 7. Settings menu -> Animations: Always on (default) overrides OS reduce-motion,
+    //    Follow system respects it, Off disables it, and Reset restores Always on.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.click("#btn-menu-settings");
+    const defaultSettings = await page.evaluate(() => ({
+      dataAnim: document.documentElement.dataset.animations,
+      statusText: document.getElementById("settings-reduce-motion-status")?.textContent?.trim(),
+      checkedVal: (document.querySelector('input[name="settings-animations"]:checked') as HTMLInputElement | null)?.value,
+    }));
+    assertEquals(defaultSettings.checkedVal, "on", "Animations should default to Always on");
+    assertEquals(defaultSettings.dataAnim, "on", "Always on must keep data-animations=on even when OS reduce-motion is ON");
+    assertEquals(defaultSettings.statusText, "System: reduce motion is ON");
+
+    await page.click('input[name="settings-animations"][value="system"]');
+    assertEquals(
+      await page.evaluate(() => document.documentElement.dataset.animations),
+      "off",
+      "Follow system must disable animations when OS reduce-motion is ON",
+    );
+
+    await page.click("#btn-settings-animations-reset");
+    assertEquals(
+      await page.evaluate(() => document.documentElement.dataset.animations),
+      "on",
+      "Reset to default must restore Always on",
+    );
   } finally {
     await browser.close();
   }
