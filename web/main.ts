@@ -310,6 +310,7 @@ import {
 } from "../src/core/json_patch_helpers.ts";
 import {
   extractModelFromBlocklyJson,
+  registerRmBlocksFromJson,
   scaffoldBlocklyFromSkeleton,
 } from "../src/workbench/blockly_sync.ts";
 import { createIndexedDbDefaultsCatalog, factoryDefaultsMapBlockState, mapBlockFromDefaultsJson, classAttributeScaffoldTarget } from "../src/core/defaults/mod.ts";
@@ -1754,7 +1755,51 @@ function applyCanonicalFieldEdit(blockId: string, field: string, value: string):
   }
 }
 
+let pulseCrumbId: string | null = null;
+let switchingFullCanvas = false;
+
+function animateCrumbFly(fromRect: DOMRect | null | undefined, toRect: DOMRect | null | undefined): void {
+  if (!fromRect || !toRect) return;
+  if (typeof globalThis.matchMedia === "function" && globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const pill = document.createElement("div");
+  pill.className = "tm-fly-pill";
+  pill.style.left = `${fromRect.left}px`;
+  pill.style.top = `${fromRect.top}px`;
+  pill.style.width = `${Math.max(24, fromRect.width)}px`;
+  pill.style.height = `${Math.max(16, Math.min(fromRect.height, 26))}px`;
+  pill.style.opacity = "0.95";
+  document.body.append(pill);
+  // Trigger CSS transition on next frame.
+  requestAnimationFrame(() => {
+    pill.style.left = `${toRect.left}px`;
+    pill.style.top = `${toRect.top}px`;
+    pill.style.width = `${Math.max(24, toRect.width)}px`;
+    pill.style.height = `${Math.max(16, toRect.height)}px`;
+    pill.style.opacity = "0";
+  });
+  setTimeout(() => pill.remove(), 280);
+}
+
+function setBlocklyLoadOverlay(visible: boolean, pct = 0, laidOut = 0, total = 0): void {
+  const overlay = document.getElementById("blockly-load-overlay");
+  if (!overlay) return;
+  overlay.hidden = !visible;
+  if (!visible) return;
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  const pctEl = document.getElementById("blockly-load-pct");
+  const barEl = document.getElementById("blockly-load-bar");
+  const countsEl = document.getElementById("blockly-load-counts");
+  if (pctEl) pctEl.textContent = `${clamped}%`;
+  if (barEl) barEl.style.width = `${clamped}%`;
+  if (countsEl) {
+    countsEl.textContent = total > 0 ? `${laidOut} / ${total} blocks` : `${laidOut} blocks`;
+  }
+}
+
 function renderTreemapAndModeBar(): void {
+  const modeSwitch = document.getElementById("editor-mode-switch");
   const modeBar = document.getElementById("editor-mode-bar");
   const btnTreemap = document.getElementById("btn-mode-treemap");
   const btnScoped = document.getElementById("btn-mode-scoped");
@@ -1765,7 +1810,8 @@ function renderTreemapAndModeBar(): void {
   const blocklyEl = document.getElementById("blockly-mount");
 
   const hasContent = Boolean(canonicalDocIndex?.compositionId || controller.getState().templateId);
-  if (modeBar) modeBar.hidden = !hasContent;
+  if (modeSwitch) modeSwitch.hidden = !hasContent;
+  if (modeBar) modeBar.hidden = !hasContent || editorMode === "full-blockly";
 
   const setActive = (el: HTMLElement | null, active: boolean) => {
     if (!el) return;
@@ -1810,15 +1856,34 @@ function renderTreemapAndModeBar(): void {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "tm-crumb-btn";
+        btn.dataset.crumbId = crumb.id;
+        if (pulseCrumbId && pulseCrumbId === crumb.id) {
+          btn.classList.add("tm-crumb-btn--pulse");
+        }
         btn.textContent = crumb.label;
         btn.title = `${crumb.label} (${crumb.rmType})`;
         btn.addEventListener("click", () => {
+          const fromRect = btn.getBoundingClientRect();
           const updated = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
-          treemapZoomRootId = idx === 0 ? null : crumb.id;
+          const nextZoom = idx === 0 ? null : crumb.id;
+          const changed = nextZoom !== treemapZoomRootId || editorMode !== "treemap";
+          treemapZoomRootId = nextZoom;
+          pulseCrumbId = crumb.id;
           enterTreemapMode(updated, { keepZoom: true });
+          if (changed) {
+            treemapRenderer?.animateZoom("out");
+            const hostRect = document.getElementById("treemap-host")?.getBoundingClientRect();
+            if (hostRect) {
+              animateCrumbFly(
+                fromRect,
+                new DOMRect(hostRect.left + 12, hostRect.top + 12, Math.min(260, hostRect.width - 24), 26),
+              );
+            }
+          }
         });
         breadcrumbEl.append(btn);
       });
+      pulseCrumbId = null;
     } else {
       breadcrumbEl.hidden = true;
     }
@@ -1869,9 +1934,11 @@ function openNodeInScopedBlockly(nodeId: string): void {
   });
   activeSliceHandle = handle;
   editorMode = "scoped-blockly";
+  pulseCrumbId = targetId;
   renderTreemapAndModeBar();
 
   const s = controller.getState();
+  registerRmBlocksFromJson(sliceJson);
   runWithoutBlocklyEvents(() => {
     if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
     workspace.clear();
@@ -1891,40 +1958,190 @@ function openNodeInScopedBlockly(nodeId: string): void {
   refreshMappingSpecView(canonicalBlocklyState);
 }
 
-function switchToFullBlocklyCanvas(): void {
+function splitCompositionContentChunks(
+  state: BlocklyWorkspaceJson,
+): {
+  baseState: BlocklyWorkspaceJson;
+  compositionId: string;
+  chunks: Array<Record<string, unknown>>;
+} | null {
+  const clone = structuredClone(state);
+  const topBlocks = clone.blocks?.blocks ?? [];
+  let comp: Record<string, unknown> | null = null;
+  for (const top of topBlocks) {
+    let cur: Record<string, unknown> | undefined = top as Record<string, unknown>;
+    while (cur) {
+      if (cur.type === "composition") {
+        comp = cur;
+        break;
+      }
+      cur = (cur.next as { block?: Record<string, unknown> } | undefined)?.block;
+    }
+    if (comp) break;
+  }
+  if (!comp || typeof comp.id !== "string") return null;
+  const inputs = comp.inputs as Record<string, { block?: Record<string, unknown> }> | undefined;
+  const firstContent = inputs?.ATTR_content?.block;
+  if (!firstContent) return null;
+
+  const chunks: Array<Record<string, unknown>> = [];
+  let cur: Record<string, unknown> | undefined = firstContent;
+  while (cur) {
+    const nextBlock = (cur.next as { block?: Record<string, unknown> } | undefined)?.block;
+    const item = structuredClone(cur);
+    delete item.next;
+    chunks.push(item);
+    cur = nextBlock;
+  }
+  if (chunks.length < 2) return null;
+
+  delete inputs!.ATTR_content;
+  return { baseState: clone, compositionId: comp.id, chunks };
+}
+
+async function switchToFullBlocklyCanvas(): Promise<void> {
+  if (switchingFullCanvas) return;
+  switchingFullCanvas = true;
   treemapPopover?.close();
-  const fullState = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+  const fullState = migrateForEachSourceState(
+    getCanonicalBlocklyState(),
+  ) as BlocklyWorkspaceJson;
   canonicalBlocklyState = structuredClone(fullState);
   canonicalDocIndex = indexDocument(canonicalBlocklyState);
+  const totalBlocks = canonicalDocIndex.totalBlocks;
+  const showProgress = totalBlocks > 80;
   activeSliceHandle = null;
   editorMode = "full-blockly";
   renderTreemapAndModeBar();
-  const s = controller.getState();
-  runWithoutBlocklyEvents(() => {
-    if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
-    workspace.clear();
-    Blockly.serialization.workspaces.load(
-      migrateForEachSourceState(fullState) as Record<string, unknown>,
-      workspace,
-    );
-    refreshWorkspaceConstraints(workspace);
-    relabelWorkspaceFromSkeleton(workspace, s.skeleton);
-  });
-  lockWorkspaceRootsExpanded(workspace);
-  refreshAiReviewMarkers(workspace);
-  separateContextMapFromProductTree(workspace);
-  Blockly.svgResize(workspace);
-  refreshMappingSpecView();
+
+  const blocklyMountEl = document.getElementById("blockly-mount");
+  if (showProgress && blocklyMountEl) {
+    blocklyMountEl.style.visibility = "hidden";
+  }
+
+  try {
+    if (showProgress) {
+      setBlocklyLoadOverlay(true, 0, 0, totalBlocks);
+      await paintFrame();
+    }
+
+    const s = controller.getState();
+    registerRmBlocksFromJson(fullState);
+    const split = showProgress ? splitCompositionContentChunks(fullState) : null;
+    const appendInternal = (
+      Blockly.serialization.blocks as unknown as {
+        appendInternal?: (
+          state: Blockly.serialization.blocks.State,
+          ws: Blockly.Workspace,
+        ) => Blockly.Block;
+      }
+    ).appendInternal;
+    const appendFn = appendInternal ?? Blockly.serialization.blocks.append;
+    const yieldTick = () => new Promise<void>((r) => setTimeout(r, 0));
+
+    if (split) {
+      runWithoutBlocklyEvents(() => {
+        if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+        workspace.clear();
+        Blockly.serialization.workspaces.load(
+          split.baseState as Record<string, unknown>,
+          workspace,
+        );
+      });
+      const mountedBase = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(true, (mountedBase / Math.max(1, totalBlocks)) * 85, mountedBase, totalBlocks);
+      await yieldTick();
+
+      const appendedChunks: Blockly.Block[] = [];
+      const batchSize = Math.max(1, Math.ceil(split.chunks.length / 5));
+      for (let i = 0; i < split.chunks.length; i += batchSize) {
+        const batch = split.chunks.slice(i, i + batchSize);
+        runWithoutBlocklyEvents(() => {
+          for (const chunk of batch) {
+            const appended = appendFn(
+              chunk as Blockly.serialization.blocks.State,
+              workspace,
+            );
+            if (appended) appendedChunks.push(appended);
+          }
+        });
+        const mounted = workspace.getAllBlocks(false).length;
+        setBlocklyLoadOverlay(true, Math.min(85, (mounted / Math.max(1, totalBlocks)) * 85), mounted, totalBlocks);
+        await yieldTick();
+      }
+
+      const compBlock = workspace.getBlockById(split.compositionId);
+      const contentInput = compBlock?.getInput("ATTR_content");
+      runWithoutBlocklyEvents(() => {
+        let prevBlock: Blockly.Block | null = null;
+        for (const appended of appendedChunks) {
+          if (!prevBlock && contentInput?.connection && appended.previousConnection) {
+            contentInput.connection.connect(appended.previousConnection);
+          } else if (prevBlock?.nextConnection && appended.previousConnection) {
+            prevBlock.nextConnection.connect(appended.previousConnection);
+          }
+          prevBlock = appended;
+        }
+      });
+      const mountedAll = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(true, 92, mountedAll, Math.max(totalBlocks, mountedAll));
+      await yieldTick();
+    } else {
+      runWithoutBlocklyEvents(() => {
+        if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+        workspace.clear();
+        Blockly.serialization.workspaces.load(
+          fullState as Record<string, unknown>,
+          workspace,
+        );
+      });
+      if (showProgress) {
+        const mounted = workspace.getAllBlocks(false).length;
+        setBlocklyLoadOverlay(true, 92, mounted, totalBlocks);
+        await yieldTick();
+      }
+    }
+
+    runWithoutBlocklyEvents(() => {
+      refreshWorkspaceConstraints(workspace);
+      relabelWorkspaceFromSkeleton(workspace, s.skeleton);
+    });
+    lockWorkspaceRootsExpanded(workspace);
+    refreshAiReviewMarkers(workspace);
+    separateContextMapFromProductTree(workspace);
+    Blockly.svgResize(workspace);
+    refreshMappingSpecView();
+
+    if (showProgress) {
+      const finalCount = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(true, 100, finalCount, Math.max(totalBlocks, finalCount));
+      await paintFrame();
+    }
+  } finally {
+    if (blocklyMountEl) {
+      blocklyMountEl.style.visibility = "";
+    }
+    setBlocklyLoadOverlay(false);
+    switchingFullCanvas = false;
+  }
 }
 
 function initTreemapUi(): void {
   const hostEl = document.getElementById("treemap-host");
   if (!hostEl) return;
   treemapRenderer = createTreemapRenderer(hostEl, {
-    onZoomChange: (zoomRootId) => {
+    onZoomChange: (zoomRootId, originRect) => {
       treemapPopover?.close();
       treemapZoomRootId = zoomRootId;
+      pulseCrumbId = zoomRootId;
       renderTreemapAndModeBar();
+      treemapRenderer?.animateZoom("in");
+      if (originRect && zoomRootId) {
+        const crumbEl = document.querySelector<HTMLElement>(
+          `#treemap-breadcrumb [data-crumb-id="${CSS.escape(zoomRootId)}"]`,
+        );
+        animateCrumbFly(originRect, crumbEl?.getBoundingClientRect());
+      }
     },
     onOpenInBlockly: (nodeId) => {
       openNodeInScopedBlockly(nodeId);
@@ -1972,7 +2189,7 @@ function initTreemapUi(): void {
     }
   });
   document.getElementById("btn-mode-full")?.addEventListener("click", () => {
-    if (editorMode !== "full-blockly") switchToFullBlocklyCanvas();
+    if (editorMode !== "full-blockly") void switchToFullBlocklyCanvas();
   });
 
   const searchInput = document.getElementById("treemap-search") as HTMLInputElement | null;
