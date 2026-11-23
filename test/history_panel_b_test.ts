@@ -125,3 +125,54 @@ Deno.test("history author badges: you, AI chat + model, MCP + client", () => {
     "Bo · cursor",
   );
 });
+
+Deno.test("#375 undo history is scoped per project and resets when switching projects", async () => {
+  const controller = new WorkbenchController(createFsHostAdapter());
+  controller.loadTemplateContent(
+    "blood_pressure.opt",
+    await Deno.readTextFile(join(FIX, "blood_pressure.opt")),
+  );
+  const service = new WorkbenchService({ controller });
+  const slots = collectValueSlots(service.exportBundle().target?.skeleton ?? []);
+  const sys = slots.find((s) => s.slotId.endsWith("items/at0004/value/value/value"))!.slotId;
+
+  // Edit within Project A creates history.
+  controller.mapNodeToSlot(sys, "$.systolic", "json");
+  assert(service.recordLiveChange("Mapped Systolic") !== null);
+  assertEquals(service.listHistory().length, 1);
+  assertEquals(service.history.canUndo(), true);
+  const projectABundle = service.exportBundle();
+
+  // Starting a new project clears history instead of bridging across projects.
+  controller.newProject();
+  assertEquals(service.recordLiveChange("New project"), null);
+  assertEquals(service.listHistory().length, 0);
+  assertEquals(service.history.canUndo(), false);
+
+  // Loading another project via loadBundle also starts a fresh history for that project.
+  controller.loadTemplateContent(
+    "blood_pressure.opt",
+    await Deno.readTextFile(join(FIX, "blood_pressure.opt")),
+  );
+  const slotsB = collectValueSlots(service.exportBundle().target?.skeleton ?? []);
+  const sysB = slotsB.find((s) => s.slotId.endsWith("items/at0004/value/value/value"))!.slotId;
+  controller.mapNodeToSlot(sysB, "$.systolic", "json");
+  service.recordLiveChange("Project B edit");
+  assertEquals(service.listHistory().length, 1);
+
+  service.loadBundle(projectABundle);
+  assertEquals(service.listHistory().length, 0);
+  assertEquals(service.history.canUndo(), false);
+
+  // Desktop commitFromUi with resetHistory or a different projectId resets backend history too.
+  const backend = new WorkbenchService();
+  backend.loadBundle(projectABundle);
+  backend.mapNodeToSlot(sys, "$.diastolic", "json");
+  assertEquals(backend.listHistory().length, 1);
+
+  const otherProject = { ...structuredClone(projectABundle), projectId: crypto.randomUUID() };
+  const res = backend.commitFromUi(otherProject, "Load example set", "load_bundle");
+  assertEquals(res.overwritten.length, 0);
+  assertEquals(backend.listHistory().length, 0);
+  assertEquals(backend.history.canUndo(), false);
+});

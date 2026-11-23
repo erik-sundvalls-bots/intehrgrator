@@ -85,6 +85,54 @@ Deno.test({
         Boolean(afterRedo.model.slots.find((s) => s.slotId === slotId)?.expression.includes("systolic")),
         true,
       );
+
+      // #376: Blockly canvas zoom control icons must load from bundled local media, not dead appspot URL.
+      const spriteCheck = await page.evaluate(async () => {
+        const imgs = [...document.querySelectorAll(".blocklyZoom image")];
+        const hrefs = imgs.map((el) => el.getAttribute("xlink:href") ?? el.getAttribute("href") ?? "");
+        const firstHref = hrefs[0] ?? "";
+        let status = 0;
+        let contentType = "";
+        let byteLen = 0;
+        if (firstHref) {
+          const res = await fetch(firstHref);
+          status = res.status;
+          contentType = res.headers.get("content-type") ?? "";
+          byteLen = (await res.arrayBuffer()).byteLength;
+        }
+        return { count: imgs.length, hrefs, status, contentType, byteLen };
+      });
+      assert(spriteCheck.count >= 3, `expected >=3 Blockly zoom control images, got ${spriteCheck.count}`);
+      for (const href of spriteCheck.hrefs) {
+        assert(
+          href.includes("vendor/blockly/media/sprites.png"),
+          `expected local bundled Blockly sprites.png, got "${href}"`,
+        );
+        assert(!href.includes("appspot.com"), `must not point at defunct appspot URL: "${href}"`);
+      }
+      assertEquals(spriteCheck.status, 200, "bundled sprites.png must return HTTP 200");
+      assert(
+        spriteCheck.contentType.includes("image/png"),
+        `expected image/png content-type, got "${spriteCheck.contentType}"`,
+      );
+      assert(spriteCheck.byteLen > 500, `expected non-empty PNG bytes, got ${spriteCheck.byteLen}`);
+
+      // #375: Switching to a new project clears Blockly undo stack and resets History panel to that project.
+      page.on("dialog", (dialog) => void dialog.accept());
+      await page.click("#btn-menu-file");
+      await page.click("#btn-new-project");
+      await page.waitForFunction(() => {
+        const api = (globalThis as unknown as {
+          intehrgratorTestApi: { undoCount(): number; redoCount(): number };
+        }).intehrgratorTestApi;
+        const undoBtn = document.getElementById("btn-undo") as HTMLButtonElement | null;
+        return api.undoCount() === 0 && api.redoCount() === 0 && Boolean(undoBtn?.disabled);
+      }, undefined, { timeout: 5_000 });
+
+      await page.click("#btn-history");
+      await page.locator("#history-panel").waitFor({ state: "visible" });
+      const historyRows = await page.locator("#history-panel .history-row").count();
+      assertEquals(historyRows, 0, "history panel must not retain entries from the previous project");
     } finally {
       await browser.close();
     }

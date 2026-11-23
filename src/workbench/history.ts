@@ -126,6 +126,15 @@ export class HistoryLog {
     return this.lastActivity ? { ...this.lastActivity } : null;
   }
 
+  /** Clear entries and undo/redo stacks when switching to a different project (#375). */
+  reset(): void {
+    this.entries = [];
+    this.applied = [];
+    this.redoStack = [];
+    this.headSeq = 0;
+    this.lastActivity = null;
+  }
+
   record(
     beforeBundle: ProjectBundle,
     afterBundle: ProjectBundle,
