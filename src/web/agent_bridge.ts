@@ -95,7 +95,11 @@ export function isDesktopEnvironment(): boolean {
 export function commitUiChange(
   bundle: ProjectBundle,
   summary: string,
-  options: { kind?: "expression" | "block_graph" | "undo" | "redo" | "revert"; origin?: UiCommitOrigin } = {},
+  options: {
+    kind?: "expression" | "block_graph" | "undo" | "redo" | "revert" | "load_bundle";
+    origin?: UiCommitOrigin;
+    resetHistory?: boolean;
+  } = {},
 ): Promise<UiCommitResult | null> {
   if (!isDesktopEnvironment()) return Promise.resolve(null);
   const run = async (): Promise<UiCommitResult | null> => {
@@ -109,6 +113,7 @@ export function commitUiChange(
           kind: options.kind ?? "expression",
           ...(syncedRevision ? { baseRevision: syncedRevision } : {}),
           ...(options.origin ? { origin: options.origin } : {}),
+          ...(options.resetHistory ? { resetHistory: true } : {}),
         }),
       });
       if (!res.ok) return null;

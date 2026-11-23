@@ -174,6 +174,11 @@ await copy(
   join(jssCssDir, "jsuites.css"),
   { overwrite: true },
 );
+const blocklyMediaDir = join(outDir, "vendor", "blockly", "media");
+await copy(join(root, "node_modules", "blockly", "media"), blocklyMediaDir, {
+  overwrite: true,
+  recursive: true,
+});
 await copy(join(root, "web", "wasm"), join(outDir, "wasm"), { overwrite: true });
 await copy(
   join(root, "web", "better-form-viewer.html"),

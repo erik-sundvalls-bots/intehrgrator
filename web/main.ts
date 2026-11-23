@@ -599,6 +599,8 @@ let pendingCommitKind: "undo" | "redo" | "revert" | null = null;
 const undoGroupAuthors = new Map<string, string>();
 /** Set once the start-up project is in place; earlier changes are not history. */
 let historyReady = false;
+let lastHistoryProjectId: string | null = null;
+let projectReplaceDepth = 0;
 let historyPanel: HistoryPanelHandle | null = null;
 /** Desktop: author of the next pulled change when you started it from the history panel. */
 let nextPullAuthor: string | null = null;
@@ -695,8 +697,55 @@ function startHistory(): void {
   markCommitted();
   committedSlots = slotFingerprints(controller.getState().model.slots);
   adoptAiAuthorMarks();
+  lastHistoryProjectId = controller.getState().projectId;
   if (!isDesktopEnvironment()) chatService();
   historyReady = true;
+}
+
+/** Reset per-project canvas undo stack and attributed history on project switch (#375). */
+function resetProjectUndoHistory(
+  options: { syncDesktop?: boolean; summary?: string } = {},
+): void {
+  undoGroupAuthors.clear();
+  workspace?.clearUndo();
+  markCommitted();
+  committedSlots = slotFingerprints(controller.getState().model.slots);
+  adoptAiAuthorMarks();
+  lastHistoryProjectId = controller.getState().projectId;
+  if (!isDesktopEnvironment()) {
+    chatServiceInstance?.resetHistoryForProject();
+  } else if (options.syncDesktop !== false && isAgentBridgeSynced()) {
+    void commitUiChange(
+      controller.exportDocumentSnapshot(),
+      options.summary ?? "Load project",
+      { kind: "load_bundle", resetHistory: true },
+    ).then(() => historyPanel?.refresh());
+  }
+  refreshUndoButtons();
+  historyPanel?.refresh();
+}
+
+async function replaceProjectWithFreshHistory<T>(
+  fn: () => T | Promise<T>,
+  summary?: string,
+): Promise<T> {
+  const before = controller.getState();
+  const beforeHadContent = controller.hasWorkspaceContent();
+  projectReplaceDepth++;
+  try {
+    return await fn();
+  } finally {
+    projectReplaceDepth--;
+    if (projectReplaceDepth === 0) {
+      const after = controller.getState();
+      const changed = after.projectId !== before.projectId ||
+        after.blocklyReloadToken !== before.blocklyReloadToken ||
+        beforeHadContent !== controller.hasWorkspaceContent();
+      if (changed) {
+        resetProjectUndoHistory({ summary });
+      }
+    }
+  }
 }
 
 async function loadHistoryRows(): Promise<HistoryPanelRow[]> {
@@ -1270,6 +1319,7 @@ async function bootBlockly(): Promise<void> {
   setupLanguageWidgets();
 
   workspace = Blockly.inject(blocklyMount, {
+    media: "./vendor/blockly/media/",
     theme: createModestTheme(),
     toolbox: buildDemoToolbox(locale),
     collapse: true,
@@ -2396,7 +2446,15 @@ function commitPendingUiChange(
   options: { ai?: { origin: UiCommitOrigin; notices: string[] }; force?: boolean } = {},
 ): Promise<void> {
   const desktop = isDesktopEnvironment();
-  if ((desktop && !isAgentBridgeSynced()) || applyingAgentBundle || !workspace || !historyReady) {
+  if (
+    (desktop && !isAgentBridgeSynced()) || applyingAgentBundle || !workspace ||
+    !historyReady || projectReplaceDepth > 0
+  ) {
+    return Promise.resolve();
+  }
+  const currentProjectId = controller.getState().projectId;
+  if (lastHistoryProjectId && currentProjectId !== lastHistoryProjectId) {
+    resetProjectUndoHistory();
     return Promise.resolve();
   }
   const signature = documentCommitSignature();
@@ -3451,7 +3509,9 @@ bind("btn-new-project", () => void handleNewProject());
 bind("btn-load-project", () => void openLoadProjectDialog());
 bind("btn-save-project", () => openSaveAsDialog());
 bind("btn-export-project", () => controller.exportProject());
-bind("btn-import-project", () => void withUndoableDocumentReplace(() => controller.importProject()));
+bind("btn-import-project", () =>
+  void replaceProjectWithFreshHistory(() => controller.importProject(), "Import project")
+);
 const importAiDialog = installImportAiDialog({
   dialog: requireEl<HTMLDialogElement>("dialog-import-ai"),
   textarea: requireEl<HTMLTextAreaElement>("import-ai-text"),
@@ -3764,7 +3824,10 @@ function installExampleSetsMenu(): void {
     if (!confirmReplace()) return;
     void (async () => {
       try {
-        await withUndoableDocumentReplace(() => controller.loadExampleSet(set));
+        await replaceProjectWithFreshHistory(
+          () => controller.loadExampleSet(set),
+          `Load example set ${set.id}`,
+        );
       } catch {
         // Status bar already has the error.
       }
@@ -5444,12 +5507,12 @@ function handleNewProject(): void {
     ? uiChrome().confirmNewProject
     : uiChrome().confirmNewEmpty;
   if (!confirm(message)) return;
-  void withUndoableDocumentReplace(() => {
+  void replaceProjectWithFreshHistory(() => {
     controller.newProject();
     resetBlocklyView();
     ephemeralTreeHighlight = null;
     lastActiveExampleId = null;
-  });
+  }, "New project");
 }
 
 function openSaveAsDialog(): void {
@@ -5490,7 +5553,10 @@ async function openLoadProjectDialog(): Promise<void> {
           ) {
             return;
           }
-          await withUndoableDocumentReplace(() => controller.loadStoredProject(entry.storageKey));
+          await replaceProjectWithFreshHistory(
+            () => controller.loadStoredProject(entry.storageKey),
+            `Load project ${entry.displayName}`,
+          );
           resetBlocklyView();
           ephemeralTreeHighlight = null;
         })();
@@ -5503,6 +5569,14 @@ async function openLoadProjectDialog(): Promise<void> {
 
 function render(): void {
   const s = controller.getState();
+  if (
+    historyReady &&
+    projectReplaceDepth === 0 &&
+    lastHistoryProjectId &&
+    s.projectId !== lastHistoryProjectId
+  ) {
+    resetProjectUndoHistory({ syncDesktop: false });
+  }
   const activeExampleId = s.activeExample?.id ?? null;
   if (activeExampleId !== lastActiveExampleId) {
     ephemeralTreeHighlight = null;
