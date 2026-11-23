@@ -39,6 +39,7 @@ import {
   availableOptLanguages,
   availableWebTemplateLanguages,
   buildWebTemplateTermsIndex,
+  isGenericRmTypeLabel,
   liveArchetypeTermsIndex,
   locatableNodeLabel,
   lookupTermText,
@@ -173,20 +174,22 @@ export function generateSkeletonFromWebTemplate(
     buildWebTemplateTermsIndex(webTemplate, language),
     { language, primaryLanguage: webTemplate.defaultLanguage || undefined },
   );
-  applyWebTemplateInputConstraints(
-    (webTemplate as { tree?: unknown }).tree,
-    generated.skeleton,
-  );
+  const wtTree = (webTemplate as { tree?: unknown }).tree;
+  applyWebTemplateLabels(wtTree, generated.skeleton, language);
+  applyWebTemplateInputConstraints(wtTree, generated.skeleton);
   // A Web Template's `defaultLanguage` is the template's primary language (lang.1).
   const primary = webTemplate.defaultLanguage;
   if (primary && primary !== language && languages.includes(primary)) {
-    withPrimaryNames(
-      generated.skeleton,
-      generateSkeletonFromOperational(optFromWebTemplate(webTemplate), buildWebTemplateTermsIndex(webTemplate, primary), {
+    const primaryGenerated = generateSkeletonFromOperational(
+      optFromWebTemplate(webTemplate),
+      buildWebTemplateTermsIndex(webTemplate, primary),
+      {
         language: primary,
         primaryLanguage: primary,
-      }).skeleton,
+      },
     );
+    applyWebTemplateLabels(wtTree, primaryGenerated.skeleton, primary);
+    withPrimaryNames(generated.skeleton, primaryGenerated.skeleton);
   }
   return {
     ...generated,
@@ -263,9 +266,16 @@ export function generateSkeletonFromOperational(
   const fallbackTerms = mergedOntologyTerms(opt, lang);
   const archetypeTerms = mergeTermMaps(liveArchetypeTermsIndex(opt, lang), extraArchetypeTerms);
   const archetypeTermRecord = termBagsRecord(archetypeTerms);
+  const optArchId = typeof opt.archetype_id?.value === "string"
+    ? opt.archetype_id.value
+    : typeof opt.archetype_id?._value?.value === "string"
+    ? opt.archetype_id._value.value
+    : undefined;
   const rootArchetypeRef = (opt.definition?.archetype_ref as string | undefined) ??
     (extraArchetypeTerms?.has(TEMPLATE_ROOT_TERM_SCOPE) ? TEMPLATE_ROOT_TERM_SCOPE : undefined) ??
-    [...archetypeTerms.keys()][0];
+    (archetypeTerms.has(templateId) ? templateId : undefined) ??
+    (optArchId && archetypeTerms.has(optArchId) ? optArchId : undefined) ??
+    (archetypeTerms.size === 1 ? [...archetypeTerms.keys()][0] : undefined);
 
   const root = walkComplex(
     opt.definition,
@@ -1078,6 +1088,161 @@ type WebTemplateInput = {
   defaultValue?: unknown;
   list?: WebTemplateInputListItem[];
 };
+
+/**
+ * Normalize both Web Template `aqlPath` (`/content[at0.6]/items[at0.2]`) and
+ * `SkeletonNode.attachmentPoint` (`/content/at0.6/items/at0.2` or
+ * `/content/[at0003, 'Foo']`) into a single comparable path key.
+ */
+function canonicalizeWebTemplatePath(rawPath: string, stripNamePredicate = false): string {
+  const trimmed = rawPath.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+  if (!trimmed) return "/";
+  let norm = "/" + trimmed
+    // Convert `/attr/[...]` (Skeleton locator style) to `/attr[...]` before uniform parsing.
+    .replace(/\/\[/g, "[")
+    // Normalize EHRbase `and name/value='X'` predicates to AQL shorthand `,'X'`.
+    .replace(/\s+and\s+name\/value\s*=\s*'/gi, ",'")
+    // Normalize spaces around `,` inside predicates.
+    .replace(/,\s*'/g, ",'");
+  if (stripNamePredicate) {
+    norm = norm.replace(/\[([^,\]]+),'(?:[^']|'')*'\]/g, "/$1");
+  }
+  // Flatten simple `[nodeId]` brackets without name predicates to `/nodeId`.
+  norm = norm.replace(/\[([^,\]]+)\]/g, "/$1");
+  // Skeleton paths insert `/EVENT_CONTEXT` after `/context` when EVENT_CONTEXT has no node_id; AQL omits it.
+  norm = norm.replace(/\/context\/EVENT_CONTEXT(?=\/|$)/, "/context");
+  return norm.replace(/\/+/g, "/");
+}
+
+function webTemplateNodeDisplayName(
+  rec: { name?: string; localizedName?: string; localizedNames?: Record<string, string> },
+  language: string,
+): string | undefined {
+  const raw = rec.localizedNames?.[language] ??
+    rec.localizedName ??
+    rec.name ??
+    Object.values(rec.localizedNames ?? {})[0];
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  return trimmed || undefined;
+}
+
+/**
+ * Apply exact per-path labels from a Web Template tree onto `roots`.
+ *
+ * OPT2-derived Web Templates often use bare `at`-codes (`at0.2`, `at0004.1`)
+ * instead of `openEHR-...` archetype IDs on nested nodes, so flat term bags
+ * suffer cross-archetype collisions (e.g. every `at0.2` overwritten by the last
+ * one in DFS order). Matching by canonicalized AQL/slot path restores each
+ * node's own clinical name from `webTemplate.tree`.
+ */
+function applyWebTemplateLabels(
+  tree: unknown,
+  roots: SkeletonNode[],
+  language: string,
+): void {
+  if (!tree || typeof tree !== "object" || roots.length === 0) return;
+
+  type WtEntry = { label: string; rmType?: string; prohibited: boolean };
+  const exactMap = new Map<string, WtEntry>();
+  const looseMap = new Map<string, WtEntry>();
+  const looseCollisions = new Set<string>();
+
+  const recordEntry = (
+    map: Map<string, WtEntry>,
+    key: string,
+    entry: WtEntry,
+    trackCollisions?: Set<string>,
+  ) => {
+    const prev = map.get(key);
+    if (!prev) {
+      map.set(key, entry);
+      return;
+    }
+    // Prefer active (non-prohibited) nodes over prohibited `max === 0` ones.
+    if (prev.prohibited && !entry.prohibited) {
+      map.set(key, entry);
+      return;
+    }
+    if (!prev.prohibited && entry.prohibited) return;
+    // Never overwrite a real clinical name with a generic RM-type placeholder (e.g. choice sub-nodes named "element").
+    const prevGeneric = isGenericRmTypeLabel(prev.label, prev.rmType);
+    const nextGeneric = isGenericRmTypeLabel(entry.label, entry.rmType);
+    if (!prevGeneric && nextGeneric) return;
+    if (prevGeneric && !nextGeneric) {
+      map.set(key, entry);
+      return;
+    }
+    if (trackCollisions && prev.label !== entry.label) {
+      trackCollisions.add(key);
+    }
+  };
+
+  const walkWt = (node: unknown, isRoot: boolean): void => {
+    if (!node || typeof node !== "object") return;
+    const rec = node as {
+      aqlPath?: string;
+      rmType?: string;
+      name?: string;
+      localizedName?: string;
+      localizedNames?: Record<string, string>;
+      max?: number;
+      children?: unknown[];
+    };
+    const prohibited = rec.max === 0;
+    const label = webTemplateNodeDisplayName(rec, language);
+    if (label && (isRoot || rec.aqlPath)) {
+      const aql = isRoot ? (rec.aqlPath ?? "/") : (rec.aqlPath ?? "");
+      const exactKey = canonicalizeWebTemplatePath(aql, false);
+      const looseKey = canonicalizeWebTemplatePath(aql, true);
+      const entry: WtEntry = { label, rmType: rec.rmType, prohibited };
+      recordEntry(exactMap, exactKey, entry);
+      recordEntry(looseMap, looseKey, entry, looseCollisions);
+    }
+    for (const child of rec.children ?? []) walkWt(child, false);
+  };
+  walkWt(tree, true);
+
+  const walkSkeleton = (sk: SkeletonNode, isRoot: boolean): void => {
+    const rawPath = isRoot
+      ? "/"
+      : (sk.attachmentPoint ||
+        (sk.archetypeId && sk.slotId.startsWith(sk.archetypeId)
+          ? sk.slotId.slice(sk.archetypeId.length)
+          : ""));
+    if (rawPath) {
+      const exactKey = canonicalizeWebTemplatePath(rawPath, false);
+      const looseKey = canonicalizeWebTemplatePath(rawPath, true);
+      const hit = exactMap.get(exactKey) ??
+        (!looseCollisions.has(looseKey) ? looseMap.get(looseKey) : undefined);
+      if (hit && !hit.prohibited) {
+        const hitIsGeneric = isGenericRmTypeLabel(hit.label, sk.rmType);
+        const curIsUnresolved = isGenericRmTypeLabel(sk.label, sk.rmType) ||
+          /^(?:at|id)\d+(?:\.\d+)*$/i.test((sk.label ?? "").trim());
+        if (!hitIsGeneric || curIsUnresolved) {
+          const prevLabel = sk.label;
+          sk.label = hit.label;
+          if (sk.rmType === "ELEMENT") {
+            for (const child of sk.children) {
+              if (
+                child.kind === "value" &&
+                (child.label === prevLabel || isGenericRmTypeLabel(child.label, child.rmType))
+              ) {
+                child.label = hit.label;
+              }
+            }
+          }
+        }
+      } else if (!hit && sk.rmAttribute === "other_context") {
+        // Web Templates flatten `context/other_context[at0001]` without a node entry,
+        // so `at0001` otherwise collides with unrelated archetype terms (e.g. "Follow up").
+        sk.label = "Other context";
+      }
+    }
+    for (const child of sk.children) walkSkeleton(child, false);
+  };
+
+  for (const root of roots) walkSkeleton(root, true);
+}
 
 /**
  * Better/EHRbase Web Template `inputs[]` are dropped by `webTemplateToOpt`.

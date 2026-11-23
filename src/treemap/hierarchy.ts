@@ -326,6 +326,12 @@ export interface ComputedTreemapTile {
   isContainer: boolean;
   /** True when rendered as a compact collapsed pill/blob. */
   isBlob: boolean;
+  /** 1-based output order among non-ghost siblings in the parent (0 for ghost tiles). */
+  siblingIndex: number;
+  /** Total non-ghost siblings in the parent (0 for ghost tiles). */
+  siblingCount: number;
+  /** Parent datum ID for grouping/tracing sibling sequence. */
+  parentId: string | null;
 }
 
 export interface CascadedLayoutOptions {
@@ -340,6 +346,10 @@ export interface CascadedLayoutResult {
   tiles: ComputedTreemapTile[];
   contentWidth: number;
   contentHeight: number;
+  /** Exact un-clamped width needed by laid-out tiles (including outer padding). */
+  naturalWidth: number;
+  /** Exact un-clamped height needed by laid-out tiles (including outer padding). */
+  naturalHeight: number;
 }
 
 const HDR_PX: Record<string, number> = {
@@ -385,6 +395,9 @@ interface BoxItem {
   y: number;
   isLeaf: boolean;
   isBlob: boolean;
+  siblingIndex: number;
+  siblingCount: number;
+  parentId: string | null;
   kids: BoxItem[];
 }
 
@@ -501,21 +514,31 @@ export function computeCascadedTreemapLayout(
   options?: CascadedLayoutOptions,
 ): CascadedLayoutResult {
   if (width <= 0 || height <= 0) {
-    return { tiles: [], contentWidth: 0, contentHeight: 0 };
+    return { tiles: [], contentWidth: 0, contentHeight: 0, naturalWidth: 0, naturalHeight: 0 };
   }
 
   const maxDepth = options?.maxDepth ?? 3;
   const P = options?.cascadeOffset ?? CASCADE_OFFSET;
   const g = options?.gap ?? 3;
-  const leafMax = options?.leafMaxWidth ?? 175;
+  const leafMax = options?.leafMaxWidth ?? 185;
   const collapsedIds = options?.collapsedIds;
   const outerPad = 8;
   const usableW = Math.max(240, width - outerPad * 2);
 
-  function layoutNode(datum: TreemapDatum, depth: number, maxAvailW: number): BoxItem {
+  function layoutNode(
+    datum: TreemapDatum,
+    depth: number,
+    maxAvailW: number,
+    siblingIndex: number,
+    siblingCount: number,
+    parentId: string | null,
+  ): BoxItem {
     const hpx = HDR_PX[datum.rmType] ?? 10.5;
     const hasKids = datum.children.length > 0;
     const isCollapsed = hasKids && (Boolean(collapsedIds?.has(datum.id)) || depth >= maxDepth);
+    const orderExtra = !datum.isGhost && siblingCount > 1
+      ? (siblingIndex >= 10 ? 18 : 14)
+      : 0;
 
     if (isCollapsed) {
       const done = datum.counts.mappedLeaves + datum.counts.aiDraftLeaves;
@@ -524,7 +547,8 @@ export function computeCascadedTreemapLayout(
         maxAvailW,
         Math.max(
           54,
-          estimateTextWidth(datum.label, 10.5, true) + 26 + (badge ? estimateTextWidth(badge, 9.5, true) + 12 : 0),
+          estimateTextWidth(datum.label, 10.5, true) + 26 + orderExtra +
+            (badge ? estimateTextWidth(badge, 9.5, true) + 12 : 0),
         ),
       );
       return {
@@ -538,13 +562,16 @@ export function computeCascadedTreemapLayout(
         y: 0,
         isLeaf: false,
         isBlob: true,
+        siblingIndex,
+        siblingCount,
+        parentId,
         kids: [],
       };
     }
 
     if (!hasKids) {
       const sub = datum.mappingSummary;
-      const labelW = estimateTextWidth(datum.label, 10, true) + 20;
+      const labelW = estimateTextWidth(datum.label, 10, true) + 20 + orderExtra;
       const subW = sub ? estimateTextWidth(sub, 9.5, false) + 12 : 0;
       const w = Math.min(leafMax, Math.min(maxAvailW, Math.max(40, labelW, subW)));
       const h = sub ? 29 : 19;
@@ -559,12 +586,21 @@ export function computeCascadedTreemapLayout(
         y: 0,
         isLeaf: true,
         isBlob: false,
+        siblingIndex,
+        siblingCount,
+        parentId,
         kids: [],
       };
     }
 
     const childMaxW = Math.max(120, Math.floor((depth === 0 ? maxAvailW : maxAvailW * 0.94) - P));
-    const kids = datum.children.map((c) => layoutNode(c, depth + 1, childMaxW));
+    const nonGhostTotal = datum.children.filter((c) => !c.isGhost).length;
+    let nonGhostOrdinal = 0;
+    const kids = datum.children.map((c) => {
+      const idx = c.isGhost ? 0 : ++nonGhostOrdinal;
+      const count = c.isGhost ? 0 : nonGhostTotal;
+      return layoutNode(c, depth + 1, childMaxW, idx, count, datum.id);
+    });
 
     if (depth === 0) {
       // Root packs its top-level children directly across the viewport width.
@@ -586,6 +622,9 @@ export function computeCascadedTreemapLayout(
         y: 0,
         isLeaf: false,
         isBlob: false,
+        siblingIndex: 0,
+        siblingCount: 0,
+        parentId: null,
         kids,
       };
     }
@@ -595,7 +634,7 @@ export function computeCascadedTreemapLayout(
     const actionExtra = datum.isGhost ? 0 : 62;
     const labW = Math.min(
       maxAvailW,
-      estimateTextWidth(datum.label, hpx, true) + 22 + statExtra + actionExtra,
+      estimateTextWidth(datum.label, hpx, true) + 22 + orderExtra + statExtra + actionExtra,
     );
     const maxChildW = kids.reduce((m, k) => Math.max(m, k.w), 0);
     const minW = Math.max(maxChildW, Math.max(0, labW - P));
@@ -625,11 +664,14 @@ export function computeCascadedTreemapLayout(
       y: 0,
       isLeaf: false,
       isBlob: false,
+      siblingIndex,
+      siblingCount,
+      parentId,
       kids,
     };
   }
 
-  const rootBox = layoutNode(rootDatum, 0, usableW);
+  const rootBox = layoutNode(rootDatum, 0, usableW, 0, 0, null);
   const tiles: ComputedTreemapTile[] = [];
 
   function place(box: BoxItem, x: number, y: number): void {
@@ -650,6 +692,9 @@ export function computeCascadedTreemapLayout(
         cardH: Math.round(cardH),
         isContainer: !box.isLeaf,
         isBlob: box.isBlob,
+        siblingIndex: box.siblingIndex,
+        siblingCount: box.siblingCount,
+        parentId: box.parentId,
       });
     }
     for (const k of box.kids) {
@@ -659,10 +704,15 @@ export function computeCascadedTreemapLayout(
 
   place(rootBox, 0, 0);
 
+  const naturalWidth = Math.ceil(rootBox.w);
+  const naturalHeight = Math.ceil(rootBox.h);
+
   return {
     tiles,
-    contentWidth: Math.max(width, Math.ceil(rootBox.w + P)),
-    contentHeight: Math.max(height, Math.ceil(rootBox.h + P)),
+    contentWidth: Math.max(width, naturalWidth),
+    contentHeight: Math.max(height, naturalHeight),
+    naturalWidth,
+    naturalHeight,
   };
 }
 

@@ -80,12 +80,18 @@ export interface TreemapRenderer {
   destroy(): void;
 }
 
-function formatTooltipHtml(d: TreemapDatum): string {
+function formatTooltipHtml(tile: ComputedTreemapTile): string {
+  const d = tile.datum;
   const esc = (s: string) =>
     s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const lines: string[] = [
     `<div class="tm-tip-title">${esc(d.label)} <span class="tm-tip-rm">${esc(d.rmType)}</span></div>`,
   ];
+  if (!d.isGhost && tile.siblingCount > 1) {
+    lines.push(
+      `<div class="tm-tip-order">Output order: <strong>#${tile.siblingIndex} of ${tile.siblingCount}</strong> (fixed sibling sequence)</div>`,
+    );
+  }
   if (d.valueRmType) {
     lines.push(`<div class="tm-tip-meta">Datatype: <code>${esc(d.valueRmType)}</code></div>`);
   }
@@ -110,6 +116,24 @@ function formatTooltipHtml(d: TreemapDatum): string {
   return lines.join("");
 }
 
+let cachedScrollbarSize: number | null = null;
+
+/** Measure native classic scrollbar width once (0 on overlay-scrollbar platforms). */
+function measureScrollbarSize(): number {
+  if (cachedScrollbarSize !== null) return cachedScrollbarSize;
+  if (typeof document === "undefined" || !document.body) return 0;
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;top:-9999px;left:-9999px;width:100px;height:100px;overflow:scroll;visibility:hidden;pointer-events:none;";
+  document.body.append(probe);
+  const size = Math.max(0, probe.offsetWidth - probe.clientWidth);
+  probe.remove();
+  cachedScrollbarSize = size;
+  return size;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 export function createTreemapRenderer(
   host: HTMLElement,
   callbacks: TreemapRendererCallbacks,
@@ -132,17 +156,132 @@ export function createTreemapRenderer(
 
   let lastState: TreemapRenderState | null = null;
   let resizeObserver: ResizeObserver | null = null;
+  let resizeRafId: number | null = null;
+  let lastHostW = 0;
+  let lastHostH = 0;
   const collapsedIds = new Set<string>();
 
+  // Sibling order hover-trace state (rebuilt on each paint).
+  let orderOverlay: SVGSVGElement | null = null;
+  let siblingsByParent = new Map<string, ComputedTreemapTile[]>();
+  let tileElementsById = new Map<string, HTMLElement>();
+  let activeSeqParentId: string | null = null;
+
+  // Observe `host` (overflow: hidden), NOT `canvas` (overflow: auto), so toggling
+  // scrollbars inside `canvas` can never shrink the observed element and cause a
+  // ResizeObserver feedback / flicker loop.
   if (typeof ResizeObserver !== "undefined") {
     resizeObserver = new ResizeObserver(() => {
-      if (lastState) paint(lastState);
+      if (!lastState) return;
+      const w = Math.floor(host.clientWidth);
+      const h = Math.floor(host.clientHeight);
+      if (w <= 0 || h <= 0) return;
+      if (w === lastHostW && h === lastHostH) return;
+      if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
+      resizeRafId = requestAnimationFrame(() => {
+        resizeRafId = null;
+        if (!lastState) return;
+        const cw = Math.floor(host.clientWidth);
+        const ch = Math.floor(host.clientHeight);
+        if (cw <= 0 || ch <= 0) return;
+        if (cw === lastHostW && ch === lastHostH) return;
+        paint(lastState);
+      });
     });
-    resizeObserver.observe(canvas);
+    resizeObserver.observe(host);
   }
 
-  function showTooltip(event: PointerEvent, datum: TreemapDatum): void {
-    tooltip.innerHTML = formatTooltipHtml(datum);
+  function clearSiblingSequence(): void {
+    if (activeSeqParentId !== null) {
+      const prevSiblings = siblingsByParent.get(activeSeqParentId) ?? [];
+      for (const s of prevSiblings) {
+        const el = tileElementsById.get(s.datum.id);
+        el?.classList.remove("tm-tile--sibling-seq", "tm-tile--sibling-active");
+      }
+      activeSeqParentId = null;
+    }
+    if (orderOverlay) {
+      orderOverlay.replaceChildren();
+    }
+  }
+
+  function showSiblingSequence(parentId: string | null, hoveredId: string): void {
+    if (!parentId) {
+      clearSiblingSequence();
+      return;
+    }
+    const siblings = siblingsByParent.get(parentId);
+    if (!siblings || siblings.length < 2) {
+      clearSiblingSequence();
+      return;
+    }
+    if (activeSeqParentId !== parentId) {
+      clearSiblingSequence();
+      activeSeqParentId = parentId;
+      for (const s of siblings) {
+        tileElementsById.get(s.datum.id)?.classList.add("tm-tile--sibling-seq");
+      }
+      if (orderOverlay) {
+        const defs = document.createElementNS(SVG_NS, "defs");
+        const marker = document.createElementNS(SVG_NS, "marker");
+        marker.setAttribute("id", "tm-seq-arrow");
+        marker.setAttribute("viewBox", "0 0 8 8");
+        marker.setAttribute("refX", "6.5");
+        marker.setAttribute("refY", "4");
+        marker.setAttribute("markerWidth", "6");
+        marker.setAttribute("markerHeight", "6");
+        marker.setAttribute("orient", "auto-start-reverse");
+        const arrowPath = document.createElementNS(SVG_NS, "path");
+        arrowPath.setAttribute("d", "M 0 1 L 7 4 L 0 7 z");
+        arrowPath.setAttribute("fill", "rgba(0, 92, 83, 0.75)");
+        marker.append(arrowPath);
+        defs.append(marker);
+        orderOverlay.append(defs);
+
+        for (let i = 0; i < siblings.length - 1; i++) {
+          const a = siblings[i];
+          const b = siblings[i + 1];
+          const x1 = a.x0 + 10;
+          const y1 = a.y0 + 10;
+          const x2 = b.x0 + 10;
+          const y2 = b.y0 + 10;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 14) continue;
+          const padStart = 8;
+          const padEnd = 10;
+          const ux = dx / dist;
+          const uy = dy / dist;
+          const sx = x1 + ux * padStart;
+          const sy = y1 + uy * padStart;
+          const ex = x2 - ux * padEnd;
+          const ey = y2 - uy * padEnd;
+
+          const line = document.createElementNS(SVG_NS, "line");
+          line.setAttribute("x1", String(Math.round(sx)));
+          line.setAttribute("y1", String(Math.round(sy)));
+          line.setAttribute("x2", String(Math.round(ex)));
+          line.setAttribute("y2", String(Math.round(ey)));
+          line.setAttribute("class", "tm-seq-line");
+          line.setAttribute("marker-end", "url(#tm-seq-arrow)");
+          orderOverlay.append(line);
+        }
+      }
+    }
+    for (const s of siblings) {
+      const el = tileElementsById.get(s.datum.id);
+      if (el) el.classList.toggle("tm-tile--sibling-active", s.datum.id === hoveredId);
+    }
+  }
+
+  stage.addEventListener("pointerleave", () => {
+    clearSiblingSequence();
+    hideTooltip();
+  });
+
+  function showTooltip(event: PointerEvent, tile: ComputedTreemapTile): void {
+    tooltip.innerHTML = formatTooltipHtml(tile);
     tooltip.hidden = false;
     const hostRect = host.getBoundingClientRect();
     const x = Math.min(
@@ -150,7 +289,7 @@ export function createTreemapRenderer(
       Math.max(8, event.clientX - hostRect.left + 14),
     );
     const y = Math.min(
-      hostRect.height - 140,
+      hostRect.height - 150,
       Math.max(8, event.clientY - hostRect.top + 14),
     );
     tooltip.style.left = `${x}px`;
@@ -167,6 +306,7 @@ export function createTreemapRenderer(
   ): HTMLElement {
     const d = tile.datum;
     const rmAccent = RM_COLOR[d.rmType] ?? "#5c675f";
+    const showOrder = !d.isGhost && tile.siblingCount > 1;
 
     const el = document.createElement("div");
     el.className = [
@@ -183,19 +323,34 @@ export function createTreemapRenderer(
     el.dataset.blockId = d.id;
     el.dataset.rmType = d.rmType;
     el.dataset.status = d.status;
+    if (showOrder) {
+      el.dataset.siblingIndex = String(tile.siblingIndex);
+      el.dataset.siblingCount = String(tile.siblingCount);
+    }
+    if (tile.parentId) {
+      el.dataset.parentId = tile.parentId;
+    }
     el.style.left = `${tile.x0}px`;
     el.style.top = `${tile.y0}px`;
     el.style.width = `${tile.cardW}px`;
     el.style.height = `${tile.cardH}px`;
     el.style.setProperty("--tm-rm-color", rmAccent);
+    const orderAria = showOrder ? `, #${tile.siblingIndex} of ${tile.siblingCount}` : "";
     el.setAttribute(
       "aria-label",
-      `${d.label} (${d.rmType}) — ${STATUS_LABEL[d.status]}`,
+      `${d.label} (${d.rmType}${orderAria}) — ${STATUS_LABEL[d.status]}`,
     );
 
     const isHeaderRow = tile.isContainer || tile.isBlob;
     const header = document.createElement("div");
     header.className = isHeaderRow ? "tm-header" : "tm-leaf-body";
+
+    const orderBadge = showOrder ? document.createElement("span") : null;
+    if (orderBadge) {
+      orderBadge.className = "tm-order";
+      orderBadge.setAttribute("aria-hidden", "true");
+      orderBadge.textContent = String(tile.siblingIndex);
+    }
 
     const glyph = document.createElement("span");
     glyph.className = "tm-status-glyph";
@@ -207,6 +362,7 @@ export function createTreemapRenderer(
     title.textContent = d.label;
 
     if (isHeaderRow) {
+      if (orderBadge) header.append(orderBadge);
       header.append(glyph, title);
       if (!d.isGhost && d.counts.totalLeaves > 0) {
         const stat = document.createElement("span");
@@ -262,6 +418,7 @@ export function createTreemapRenderer(
     } else {
       const topRow = document.createElement("div");
       topRow.className = "tm-leaf-row";
+      if (orderBadge) topRow.append(orderBadge);
       topRow.append(glyph, title);
       header.append(topRow);
       if (d.mappingSummary) {
@@ -274,8 +431,18 @@ export function createTreemapRenderer(
 
     el.append(header);
 
-    el.addEventListener("pointermove", (e) => showTooltip(e, d));
-    el.addEventListener("pointerleave", hideTooltip);
+    el.addEventListener("pointerenter", () => {
+      if (showOrder) showSiblingSequence(tile.parentId, d.id);
+      else clearSiblingSequence();
+    });
+    el.addEventListener("pointermove", (e) => showTooltip(e, tile));
+    el.addEventListener("pointerleave", (e) => {
+      hideTooltip();
+      const next = e.relatedTarget as HTMLElement | null;
+      if (!next || !next.closest(".tm-tile")) {
+        clearSiblingSequence();
+      }
+    });
 
     if (d.isGhost) {
       el.addEventListener("click", (e) => {
@@ -322,9 +489,14 @@ export function createTreemapRenderer(
   function paint(state: TreemapRenderState): void {
     lastState = state;
     hideTooltip();
+    clearSiblingSequence();
 
-    const width = Math.max(320, Math.floor(canvas.clientWidth || host.clientWidth || 720));
-    const height = Math.max(220, Math.floor(canvas.clientHeight || host.clientHeight || 420));
+    // Measure the outer `host` (overflow: hidden) rather than `canvas` so
+    // scrollbar appearance/disappearance cannot alter our input dimensions.
+    const viewportW = Math.floor(host.clientWidth || canvas.clientWidth || 720);
+    const viewportH = Math.floor(host.clientHeight || canvas.clientHeight || 420);
+    lastHostW = viewportW;
+    lastHostH = viewportH;
 
     const rootDatum = buildTreemapHierarchy(state.index, {
       zoomRootId: state.zoomRootId,
@@ -341,8 +513,13 @@ export function createTreemapRenderer(
       empty.textContent = state.query || state.statusFilter !== "all"
         ? "No template nodes match the current search/filter."
         : "Load a target template to view its Treemap overview.";
+      canvas.style.overflowX = "hidden";
+      canvas.style.overflowY = "hidden";
       stage.style.width = "100%";
       stage.style.height = "100%";
+      siblingsByParent = new Map();
+      tileElementsById = new Map();
+      orderOverlay = null;
       stage.replaceChildren(empty);
       return;
     }
@@ -350,20 +527,67 @@ export function createTreemapRenderer(
     // At template root, cap depth at 3 (SECTION -> ENTRY -> CLUSTER blobs) for crisp overview;
     // when zoomed into a SECTION/ENTRY/CLUSTER, expand deeper to reveal all leaf ELEMENTs.
     const maxDepth = state.zoomRootId && state.zoomRootId !== state.index.compositionId ? 5 : 3;
-    const { tiles, contentWidth, contentHeight } = computeCascadedTreemapLayout(
+    const sb = measureScrollbarSize();
+
+    // Deterministic scrollbar decision: pack for full viewport first; if vertical
+    // scrolling is needed on a classic-scrollbar platform, re-pack once for
+    // `viewportW - sb` so horizontal content fits cleanly without triggering an X scrollbar.
+    let layout = computeCascadedTreemapLayout(
       rootDatum,
-      width,
-      height,
+      Math.max(320, viewportW),
+      Math.max(220, viewportH),
       { maxDepth, collapsedIds },
     );
+    let needsV = layout.naturalHeight > viewportH;
+    if (needsV && sb > 0 && viewportW - sb >= 320) {
+      layout = computeCascadedTreemapLayout(
+        rootDatum,
+        viewportW - sb,
+        Math.max(220, viewportH),
+        { maxDepth, collapsedIds },
+      );
+      needsV = layout.naturalHeight > viewportH;
+    }
+    const innerW = needsV ? Math.max(320, viewportW - sb) : Math.max(320, viewportW);
+    const needsH = layout.naturalWidth > innerW;
+    if (needsH && !needsV && sb > 0 && layout.naturalHeight > Math.max(220, viewportH - sb)) {
+      needsV = true;
+      if (viewportW - sb >= 320) {
+        layout = computeCascadedTreemapLayout(
+          rootDatum,
+          viewportW - sb,
+          Math.max(220, viewportH - sb),
+          { maxDepth, collapsedIds },
+        );
+      }
+    }
 
-    stage.style.width = `${contentWidth}px`;
-    stage.style.height = `${contentHeight}px`;
+    canvas.style.overflowX = needsH ? "auto" : "hidden";
+    canvas.style.overflowY = needsV ? "auto" : "hidden";
+    stage.style.width = needsH ? `${layout.naturalWidth}px` : "100%";
+    stage.style.height = needsV ? `${layout.naturalHeight}px` : "100%";
+
+    siblingsByParent = new Map();
+    tileElementsById = new Map();
 
     const frag = document.createDocumentFragment();
-    for (const tile of tiles) {
-      frag.append(renderTileElement(tile, state));
+    for (const tile of layout.tiles) {
+      if (!tile.datum.isGhost && tile.siblingCount > 1 && tile.parentId) {
+        const list = siblingsByParent.get(tile.parentId);
+        if (list) list.push(tile);
+        else siblingsByParent.set(tile.parentId, [tile]);
+      }
+      const tileEl = renderTileElement(tile, state);
+      tileElementsById.set(tile.datum.id, tileEl);
+      frag.append(tileEl);
     }
+
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "tm-order-overlay");
+    svg.setAttribute("aria-hidden", "true");
+    orderOverlay = svg;
+    frag.append(svg);
+
     stage.replaceChildren(frag);
   }
 
@@ -382,6 +606,10 @@ export function createTreemapRenderer(
     render: paint,
     animateZoom,
     destroy() {
+      if (resizeRafId !== null) {
+        cancelAnimationFrame(resizeRafId);
+        resizeRafId = null;
+      }
       resizeObserver?.disconnect();
       host.replaceChildren();
     },

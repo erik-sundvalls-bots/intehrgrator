@@ -2689,6 +2689,67 @@ span.ai-notes-option { cursor: default; }
   min-width: 0;
   flex: 1 1 auto;
 }
+.tm-order-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  font-size: 10.5px;
+  color: #4f5d5a;
+  white-space: nowrap;
+  cursor: help;
+}
+.tm-order {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #5c675f;
+  background: rgba(28, 36, 48, 0.08);
+  border: 1px solid rgba(28, 36, 48, 0.14);
+  border-radius: 2px;
+}
+.tm-tile--leaf .tm-order {
+  min-width: 12px;
+  height: 12px;
+  font-size: 8px;
+}
+.tm-tile--sibling-seq > .tm-header > .tm-order,
+.tm-tile--sibling-seq > .tm-leaf-body > .tm-leaf-row > .tm-order {
+  background: var(--primary, #005c53);
+  border-color: var(--primary, #005c53);
+  color: #ffffff;
+}
+.tm-tile--sibling-active > .tm-header > .tm-order,
+.tm-tile--sibling-active > .tm-leaf-body > .tm-leaf-row > .tm-order {
+  background: #e87722;
+  border-color: #c25100;
+  color: #ffffff;
+}
+.tm-order-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 20;
+}
+.tm-seq-line {
+  stroke: rgba(0, 92, 83, 0.6);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  fill: none;
+}
 .tm-status-glyph {
   flex: none;
   font-size: 10px;
@@ -2784,6 +2845,7 @@ span.ai-notes-option { cursor: default; }
 .treemap-tooltip[hidden] { display: none; }
 .tm-tip-title { font-weight: 600; margin-bottom: 3px; }
 .tm-tip-rm { font-weight: 400; opacity: 0.75; font-size: 10.5px; }
+.tm-tip-order { color: #99f6e4; font-size: 10.5px; margin-bottom: 3px; }
 .tm-tip-meta { opacity: 0.9; margin-bottom: 2px; }
 .tm-tip-path { font-family: ui-monospace, monospace; font-size: 10px; opacity: 0.75; word-break: break-all; margin-top: 3px; }
 .tm-tip-map { margin-top: 4px; color: #a7f3d0; word-break: break-all; }

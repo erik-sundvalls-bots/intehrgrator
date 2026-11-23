@@ -136,3 +136,74 @@ Deno.test("computeCascadedTreemapLayout applies TermViz V8 overhang and collapse
   assert(collapsed.tiles.length < tiles.length, "collapsing a section must omit its children");
 });
 
+Deno.test("computeCascadedTreemapLayout assigns 1-based siblingIndex/siblingCount and exact natural bounds", async () => {
+  const doc = JSON.parse(await Deno.readTextFile(MHV1_MAPPING_URL)) as BlocklyWorkspaceJson;
+  const idx = indexDocument(doc);
+  const root = buildTreemapHierarchy(idx)!;
+
+  const res = computeCascadedTreemapLayout(root, 1000, 600, { maxDepth: 3 });
+  const depth1 = res.tiles.filter((t) => t.depth === 1);
+  assert(depth1.length >= 10);
+  depth1.forEach((tile, i) => {
+    assertEquals(tile.siblingIndex, i + 1);
+    assertEquals(tile.siblingCount, depth1.length);
+    assertEquals(tile.parentId, root.id);
+  });
+
+  // Exact naturalWidth must not inflate beyond available width when all tiles fit horizontally.
+  const maxRight = Math.max(...res.tiles.map((t) => t.x1));
+  assert(res.naturalWidth >= maxRight, `naturalWidth (${res.naturalWidth}) must cover rightmost tile (${maxRight})`);
+  assert(res.naturalWidth <= 1000, `naturalWidth (${res.naturalWidth}) should fit within 1000px viewport`);
+});
+
+Deno.test("#374 relabelBlocklyJsonFromSkeleton preserves human labels over bare at-codes and upgrades stale WT labels", async () => {
+  const { relabelBlocklyJsonFromSkeleton } = await import("@intehrgrator/blockly/block_labels.ts");
+  const { detectTargetFormat, getTargetFormatHandler, reloadTargetLanguage } = await import(
+    "@intehrgrator/core/target/format_handler.ts"
+  );
+
+  // 1. OBX MHV1 — mapped: OPT lacks term definitions (at0.6, at0.2, ...), saved mapping has real clinical names.
+  const obxOpt = await Deno.readTextFile(
+    new URL("./fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt", import.meta.url),
+  );
+  const obxDef = getTargetFormatHandler(detectTargetFormat("t.opt", obxOpt)).load("t.opt", obxOpt);
+  const obxSaved = JSON.parse(
+    await Deno.readTextFile(
+      new URL("./fixtures/Obstetrix-MHV1/mapping/mapping.blockly.json", import.meta.url),
+    ),
+  ) as BlocklyWorkspaceJson;
+  const obxRelabeled = relabelBlocklyJsonFromSkeleton(obxSaved, obxDef.skeleton);
+  const obxRoot = buildTreemapHierarchy(indexDocument(obxRelabeled))!;
+  assertEquals(obxRoot.children[0].label, "General information");
+  assertEquals(obxRoot.children[0].children[0].label, "Body weight");
+  assertEquals(obxRoot.children[1].label, "Social summary");
+
+  // 2. MHV1 Web Template: path-exact labels avoid cross-archetype at0.2/at0004.1 collisions.
+  const wtText = await Deno.readTextFile(MHV1_WT_URL);
+  const wtDef = getTargetFormatHandler(detectTargetFormat("t.wt.json", wtText)).load("t.wt.json", wtText);
+  const mhv1Saved = JSON.parse(await Deno.readTextFile(MHV1_MAPPING_URL)) as BlocklyWorkspaceJson;
+  const wtRelabeled = relabelBlocklyJsonFromSkeleton(mhv1Saved, wtDef.skeleton);
+  const wtRoot = buildTreemapHierarchy(indexDocument(wtRelabeled))!;
+  assertEquals(wtRoot.children[0].children[0].label, "Body weight during registration");
+  assertEquals(wtRoot.children[1].children[0].label, "Living arrangement");
+  assertEquals(wtRoot.children[1].children[1].label, "Social summary");
+  assertEquals(wtRoot.children[2].children[0].label, "Problem/Diagnosis screening questionnaire");
+
+  // 3. MHV1 OPT2: root label uses template root (not alphabetical Blood transfusion.v1)
+  //    and reloadTargetLanguage re-reads OPT2 rather than falling back to lossy generic section/observation labels.
+  const opt2Text = await Deno.readTextFile(
+    new URL(
+      "./fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2",
+      import.meta.url,
+    ),
+  );
+  const opt2Def = getTargetFormatHandler(detectTargetFormat("t.opt2", opt2Text)).load("t.opt2", opt2Text);
+  assertEquals(opt2Def.skeleton[0]?.label, "MHV1- Encounter.v1");
+  const opt2En = reloadTargetLanguage(opt2Def, "en");
+  assertEquals(opt2En.skeleton[0]?.label, "MHV1- Encounter.v1");
+  assert(
+    !opt2En.skeleton[0]?.children.some((c) => c.label === "section"),
+    "reloading OPT2 language must not replace nodes with generic 'section' labels",
+  );
+});
+
