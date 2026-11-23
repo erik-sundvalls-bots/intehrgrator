@@ -162,7 +162,7 @@ export function adoptBlocklyState(
   }
 }
 
-function registerRmBlocksFromJson(blocklyState: unknown): void {
+export function registerRmBlocksFromJson(blocklyState: unknown): void {
   if (!blocklyState || typeof blocklyState !== "object") return;
   const blocks = (blocklyState as { blocks?: { blocks?: unknown[] } }).blocks?.blocks;
   if (!Array.isArray(blocks)) return;

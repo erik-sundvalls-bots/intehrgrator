@@ -21,7 +21,7 @@ import {
 
 export interface TreemapRendererCallbacks {
   /** Called when the user clicks a container header to zoom/drill in. */
-  onZoomChange?: (zoomRootId: string | null) => void;
+  onZoomChange?: (zoomRootId: string | null, originRect?: DOMRect | null) => void;
   /** Called when the user clicks "Open in Blockly" or double-clicks a tile. */
   onOpenInBlockly: (nodeId: string) => void;
   /** Called when the user clicks a leaf ELEMENT tile (opens inline popover). */
@@ -76,6 +76,7 @@ const RM_COLOR: Record<string, string> = {
 
 export interface TreemapRenderer {
   render(state: TreemapRenderState): void;
+  animateZoom(direction: "in" | "out"): void;
   destroy(): void;
 }
 
@@ -288,7 +289,7 @@ export function createTreemapRenderer(
           collapsedIds.delete(d.id);
           if (lastState) paint(lastState);
         } else {
-          callbacks.onZoomChange?.(d.id);
+          callbacks.onZoomChange?.(d.id, el.getBoundingClientRect());
         }
       });
       el.addEventListener("dblclick", (e) => {
@@ -298,7 +299,7 @@ export function createTreemapRenderer(
     } else if (tile.isContainer) {
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        callbacks.onZoomChange?.(d.id);
+        callbacks.onZoomChange?.(d.id, el.getBoundingClientRect());
       });
       el.addEventListener("dblclick", (e) => {
         e.stopPropagation();
@@ -366,8 +367,20 @@ export function createTreemapRenderer(
     stage.replaceChildren(frag);
   }
 
+  function animateZoom(direction: "in" | "out"): void {
+    stage.classList.remove("treemap-stage--zoom-in", "treemap-stage--zoom-out");
+    // Force reflow so rapid consecutive zooms re-trigger CSS keyframe animation.
+    void stage.offsetWidth;
+    stage.classList.add(
+      direction === "in" ? "treemap-stage--zoom-in" : "treemap-stage--zoom-out",
+    );
+    canvas.scrollTop = 0;
+    canvas.scrollLeft = 0;
+  }
+
   return {
     render: paint,
+    animateZoom,
     destroy() {
       resizeObserver?.disconnect();
       host.replaceChildren();

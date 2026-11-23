@@ -229,7 +229,14 @@
 
     <section class="pane mapping-pane">
       <div class="pane-header">
-        <h2 data-i18n="mappingEditors">Mapping Editors</h2>
+        <div class="pane-header-title-group">
+          <h2 data-i18n="mappingEditors">Mapping Editors</h2>
+          <div id="editor-mode-switch" class="editor-mode-switch editor-mode-switch--on-dark" role="tablist" aria-label="Editor mode" hidden>
+            <button id="btn-mode-treemap" class="editor-mode-btn" type="button" role="tab" aria-selected="false">Treemap Overview</button>
+            <button id="btn-mode-scoped" class="editor-mode-btn" type="button" role="tab" aria-selected="false" hidden>Scoped Blockly</button>
+            <button id="btn-mode-full" class="editor-mode-btn active" type="button" role="tab" aria-selected="true">Blockly Canvas</button>
+          </div>
+        </div>
         <div class="pane-header-actions">
           <button id="btn-undo" class="pane-btn pane-btn-on-dark pane-btn-icon" type="button" title="Undo last mapping editor action" aria-label="Undo" data-i18n-title="undo" data-i18n-aria="undo" disabled>
             <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"></path></svg>
@@ -268,12 +275,6 @@
       >
         <div id="mapping-top-stage" class="mapping-top-stage">
           <div id="editor-mode-bar" class="editor-mode-bar" hidden>
-            <div class="editor-mode-switch" role="tablist" aria-label="Editor mode">
-              <button id="btn-mode-treemap" class="editor-mode-btn" type="button" role="tab" aria-selected="false">Treemap Overview</button>
-              <button id="btn-mode-scoped" class="editor-mode-btn" type="button" role="tab" aria-selected="false" hidden>Scoped Blockly</button>
-              <button id="btn-mode-full" class="editor-mode-btn active" type="button" role="tab" aria-selected="true">Blockly Canvas</button>
-            </div>
-            <nav id="treemap-breadcrumb" class="treemap-breadcrumb" aria-label="Template path" hidden></nav>
             <div id="treemap-controls" class="treemap-controls" hidden>
               <input id="treemap-search" class="treemap-search" type="search" placeholder="Search label, archetype, path…" aria-label="Search template nodes" />
               <div class="treemap-filters" role="group" aria-label="Filter by mapping status">
@@ -284,9 +285,21 @@
                 <button type="button" class="tm-filter-chip" data-tm-filter="mapped">✓ Mapped</button>
               </div>
             </div>
+            <nav id="treemap-breadcrumb" class="treemap-breadcrumb" aria-label="Template path" hidden></nav>
           </div>
           <div id="treemap-host" class="treemap-host" hidden></div>
           <div id="blockly-mount" class="blockly-mount"></div>
+          <div id="blockly-load-overlay" class="blockly-load-overlay" hidden role="status" aria-live="polite">
+            <div class="blockly-load-card">
+              <div class="blockly-load-spinner" aria-hidden="true"></div>
+              <div class="blockly-load-title">Laying out Blockly canvas…</div>
+              <div id="blockly-load-pct" class="blockly-load-pct">0%</div>
+              <div class="blockly-load-track">
+                <div id="blockly-load-bar" class="blockly-load-bar" style="width: 0%"></div>
+              </div>
+              <div id="blockly-load-counts" class="blockly-load-counts">0 blocks</div>
+            </div>
+          </div>
         </div>
         <div class="mapping-bottom">
           <div class="mapping-editor-tabs" role="tablist" aria-label="Mapping editor text views" data-i18n-aria="mappingViewsAria">
