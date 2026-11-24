@@ -8,6 +8,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 - **ehrtslib 0.18.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.18)). OPT2 flattening keeps inlined archetype, overlay, and nested-template roots as `C_ARCHETYPE_ROOT` with `archetype_ref`, so `OPT2Serializer` emits `use_archetype` markers and term scopes resolve overlay/nested-template labels correctly ([ehrtslib #334](https://github.com/ErikSundvall/ehrtslib/issues/334) / [#335](https://github.com/ErikSundvall/ehrtslib/pull/335)).
 
+- **Obstetric MHV1 and Partogram OPT2 fixtures regenerated.** The stored `mhv1-prenatal-visit.encounter.v1.opt2` and `partogram.v1.opt2` were produced before ehrtslib 0.18 and had no `use_archetype` markers in `definition`. They are now re-serialized from their `.fileset.json` closures so overlay and nested-template roots keep term scopes.
+
 - **ehrtslib 0.17.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.17)). Unified OPT node label resolver, better OPT2/Web Template and L10n naming, and Better `ovl-*` overlay-to-parent term fallback ([ehrtslib #330](https://github.com/ErikSundvall/ehrtslib/issues/330) / [#331](https://github.com/ErikSundvall/ehrtslib/pull/331)).
 
 - **Better `ovl-*` labels use ehrtslib's parent-scope fallback.** Skeleton labelling no longer walks overlay parent term bags itself; it calls ehrtslib `resolveLocatableLabel` (v0.17) and only keeps the local title-case `ovl-concept` last resort when the parent bag has no term.

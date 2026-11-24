@@ -7,7 +7,7 @@ Template id: `Partogram.v1`.
 | File | Use |
 |------|-----|
 | `partogram.v1.wt.json` | Load this as the Web Template target. Web template of the resolved operational template. The template's primary language is English; Swedish labels are in the document. |
-| `partogram.v1.opt2` | The same operational template as OPT2 (ADL2). Template id stays `Partogram.v1`. At-code lists are separate terms (`[at0010], [at0011]`). |
+| `partogram.v1.opt2` | The same operational template as OPT2 (ADL2). Template id stays `Partogram.v1`. At-code lists are separate terms (`[at0010], [at0011]`). The `.opt2` here was regenerated with ehrtslib 0.18 so `definition` carries `use_archetype` links to `component_terminologies` ([ehrtslib #334](https://github.com/ErikSundvall/ehrtslib/issues/334)). |
 | `partogram.v1.fileset.json` | The closure (`sourceUrl`, `rootPath`, `files`). Re-resolve with `scaffoldClinicalModelFileset`. |
 | `partogram.v1.opt` | OPT XML from the same resolver. Archetype term definitions are not in this export, so node labels collapse to at-codes. Load the Web Template or the OPT2 when labels matter. |
 
