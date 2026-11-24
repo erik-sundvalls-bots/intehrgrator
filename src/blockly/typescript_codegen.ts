@@ -796,6 +796,16 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
   }
   // A quantity without a magnitude is only scaffolding (e.g. fixed units): prune it like the preview does.
   if (rmType === "DV_QUANTITY" && !props.some((p) => p[0] === "magnitude")) return "";
+  // An unmapped DV_CODED_TEXT inside an ELEMENT with only a shadow-default defining_code
+  // (no value and no user-mapped code_string) is template scaffolding: prune it like the preview does.
+  if (
+    rmType === "DV_CODED_TEXT" &&
+    !props.some((p) => p[0] === "value") &&
+    block.getParent()?.type === "element" &&
+    isShadowOnlyDefiningCode(block)
+  ) {
+    return "";
+  }
   if (
     rmType === "DV_CODED_TEXT" && props.length === 1 && props[0]![0] === "value"
   ) {
@@ -820,6 +830,15 @@ function emitDvShell(block: Block, ctx: TsEmitContext, indent: number): string {
     }, ctx);
   }
   return formatRmConstruct(rmType, props, indent, ctx);
+}
+
+function isShadowOnlyDefiningCode(dvBlock: Block): boolean {
+  const dc = dvBlock.getInputTargetBlock("FLD_defining_code");
+  if (!dc) return true;
+  if (dc.isShadow()) return true;
+  if (dc.type !== "code_phrase") return false;
+  const codeBlock = dc.getInputTargetBlock("FLD_code_string");
+  return !codeBlock || codeBlock.isShadow();
 }
 
 function emitCodePhrase(block: Block, ctx: TsEmitContext, indent: number): string {

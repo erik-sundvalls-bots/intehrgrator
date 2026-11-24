@@ -1493,10 +1493,12 @@ function applyWebTemplateCodes(
     if (sk.rmType === "DV_QUANTITY") continue;
     if (codes.length === 1) {
       const code = codes[0]!;
+      const label = items[0]?.label?.trim();
       if (!sk.fixedFields?.code_string) {
         sk.fixedFields = {
           ...sk.fixedFields,
           ...(terminology ? { terminology_id: terminology } : {}),
+          ...(sk.rmType === "DV_CODED_TEXT" && label && !sk.fixedFields?.value ? { value: label } : {}),
           defining_code: code,
           code_string: code,
         };

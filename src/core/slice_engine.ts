@@ -90,6 +90,37 @@ export interface DocumentIndex {
   roots: string[];
   totalBlocks: number;
   compositionId: string | null;
+  /** Primary root for Treemap / Scoped Blockly (COMPOSITION, schema instanceRoot, or first root). */
+  primaryRootId: string | null;
+}
+
+export const SYNTHETIC_FIELD_SEP = "::";
+
+/** Parse a synthetic inlined schema-field id (`${parentBlockId}::${inputName}`). */
+export function parseSyntheticFieldId(
+  id: string,
+): { parentId: string; inputName: string } | null {
+  const sep = id.indexOf(SYNTHETIC_FIELD_SEP);
+  if (sep <= 0 || sep + SYNTHETIC_FIELD_SEP.length >= id.length) return null;
+  return {
+    parentId: id.slice(0, sep),
+    inputName: id.slice(sep + SYNTHETIC_FIELD_SEP.length),
+  };
+}
+
+export const LEAF_NODE_TYPES = new Set([
+  "element",
+  "schema_field",
+  "target_value",
+  "json_value",
+  "json_boolean",
+  "json_null",
+  "xml_attribute",
+  "xml_text",
+]);
+
+export function isLeafNodeType(type: string): boolean {
+  return LEAF_NODE_TYPES.has(type);
 }
 
 export interface SliceHandle {
@@ -145,6 +176,30 @@ const STRUCTURAL_CONTAINER_TYPES = new Set([
   "include_when",
   "for_each_list",
 ]);
+
+const GENERIC_VALUE_LEAF_TYPES = new Set([
+  "target_value",
+  "json_value",
+  "json_boolean",
+  "json_null",
+  "xml_attribute",
+]);
+
+function isSchemaContainerBlock(block: BlocklyBlockJson): boolean {
+  const t = block.type;
+  return (
+    t === "target_structure" ||
+    t.startsWith("schema_") ||
+    t === "json_object" ||
+    t === "json_array" ||
+    t === "xml_element" ||
+    t === "xml_document"
+  );
+}
+
+function isGenericValueLeafBlock(block: BlocklyBlockJson): boolean {
+  return GENERIC_VALUE_LEAF_TYPES.has(block.type);
+}
 
 const SOURCE_QUERY_TYPES = new Set([
   "source_query",
@@ -280,9 +335,11 @@ function analyzeValueSubtree(block: BlocklyBlockJson | undefined): LeafAnalysis 
 
   if (t === "text" || t === "text_code") {
     const text = String(fields.TEXT ?? "").trim();
+    const compact = text.replace(/\s+/g, " ");
+    const clipped = compact.length > 44 ? `${compact.slice(0, 41)}…` : compact;
     return {
       mapped: text.length > 0,
-      summary: text.length > 0 ? JSON.stringify(text) : "",
+      summary: text.length > 0 ? (t === "text_code" ? clipped : JSON.stringify(clipped)) : "",
       hasAiDraft,
       aiConfidence,
       aiNote,
@@ -307,23 +364,34 @@ function analyzeValueSubtree(block: BlocklyBlockJson | undefined): LeafAnalysis 
   }
 
   if (
+    t === "decision_table" ||
     t === "decision_table_eval" ||
     t === "sheet_lookup" ||
     t.startsWith("sheet_get_") ||
     t === "variables_get" ||
     t === "procedures_callreturn" ||
     t === "logic_ternary" ||
+    t === "logic_compare" ||
+    t === "logic_operation" ||
     t === "math_arithmetic" ||
     t === "text_join" ||
     t === "text_trim" ||
     t === "text_handlebars" ||
-    t === "logic_list_restriction"
+    t === "logic_list_restriction" ||
+    t === "lists_create_with"
   ) {
-    const summary = t === "variables_get"
-      ? `$${String(fields.VAR ?? "")}`
-      : t === "procedures_callreturn"
-      ? `${String(block.extraState?.name ?? "fn")}()`
-      : t;
+    let summary: string;
+    if (t === "decision_table") {
+      const dtName = String(fields.NAME ?? "").trim();
+      const dtOut = String(fields.OUTPUT ?? "").trim();
+      summary = dtName && dtOut ? `${dtName}.${dtOut}` : (dtName || "decision_table");
+    } else if (t === "variables_get") {
+      summary = `$${String(fields.VAR ?? "")}`;
+    } else if (t === "procedures_callreturn") {
+      summary = `${String(block.extraState?.name ?? "fn")}()`;
+    } else {
+      summary = t;
+    }
     // Still check descendants for AI review markers.
     if (block.inputs) {
       for (const inp of Object.values(block.inputs)) {
@@ -373,6 +441,24 @@ function analyzeValueSubtree(block: BlocklyBlockJson | undefined): LeafAnalysis 
   };
 }
 
+interface SchemaFieldSpecJson {
+  name?: string;
+  kind?: string;
+  check?: string | string[];
+  card?: { min?: number; max?: number | null };
+  slotId?: string;
+  xmlKind?: string;
+  childBlockType?: string;
+}
+
+function schemaHasXmlMetadata(block: BlocklyBlockJson): boolean {
+  const extra = block.extraState;
+  if (!extra || typeof extra !== "object") return false;
+  if (Array.isArray(extra.xmlAttributes) && extra.xmlAttributes.length > 0) return true;
+  const fields = Array.isArray(extra.fields) ? (extra.fields as SchemaFieldSpecJson[]) : [];
+  return fields.some((f) => f?.xmlKind === "element" || f?.xmlKind === "attribute");
+}
+
 function deriveRmType(block: BlocklyBlockJson): string {
   const fields = block.fields ?? {};
   const fromField = typeof fields.RM_TYPE === "string" && fields.RM_TYPE.trim()
@@ -383,13 +469,54 @@ function deriveRmType(block: BlocklyBlockJson): string {
   if (typeof block.extraState?.rmType === "string" && block.extraState.rmType.trim()) {
     return block.extraState.rmType.trim().toUpperCase();
   }
+  if (block.type === "xml_element" || block.type === "xml_document") return "XML_ELEMENT";
+  if (block.type === "xml_attribute") return "XML_ATTRIBUTE";
+  if (block.type === "json_object") return "JSON_OBJECT";
+  if (block.type === "json_array") return "JSON_ARRAY";
+  if (isGenericValueLeafBlock(block)) return "SCHEMA_FIELD";
+  if (block.type === "target_structure" || block.type.startsWith("schema_")) {
+    const targetType = String(fields.TARGET_TYPE ?? "").trim().toLowerCase();
+    if (schemaHasXmlMetadata(block)) return "XML_ELEMENT";
+    if (targetType === "array") return "JSON_ARRAY";
+    if (targetType === "object") return "JSON_OBJECT";
+    return "SCHEMA_OBJECT";
+  }
   return block.type.toUpperCase();
+}
+
+const DISCRIMINATOR_INPUT_KEYS = [
+  "TARGET_TermId",
+  "TARGET_termId",
+  "TARGET_Id",
+  "TARGET_id",
+  "TARGET_Key",
+  "TARGET_key",
+  "TARGET_Code",
+  "TARGET_code",
+];
+
+function schemaDiscriminatorSuffix(block: BlocklyBlockJson): string {
+  if (!block.type.startsWith("schema_") || !block.inputs) return "";
+  for (const key of DISCRIMINATOR_INPUT_KEYS) {
+    const inp = block.inputs[key]?.block;
+    if (!inp) continue;
+    const analysis = analyzeValueSubtree(inp);
+    if (analysis.mapped && analysis.summary) {
+      const cleaned = analysis.summary.replace(/^"|"$/g, "").trim();
+      if (cleaned && cleaned.length <= 28) return cleaned;
+    }
+  }
+  return "";
 }
 
 function deriveLabel(block: BlocklyBlockJson, rmType: string): string {
   const fields = block.fields ?? {};
   const name = typeof fields.NAME === "string" ? fields.NAME.trim() : "";
-  if (name) return name;
+  if (name) {
+    const disc = schemaDiscriminatorSuffix(block);
+    if (disc && !name.includes(disc)) return `${name} · ${disc}`;
+    return name;
+  }
   const arch = typeof fields.ARCHETYPE_NODE_ID === "string" ? fields.ARCHETYPE_NODE_ID.trim() : "";
   if (arch) return arch;
   return rmType.replace(/_/g, " ");
@@ -398,16 +525,177 @@ function deriveLabel(block: BlocklyBlockJson, rmType: string): string {
 function isStructuralNode(block: BlocklyBlockJson): boolean {
   if (block.type === "element") return true;
   if (STRUCTURAL_CONTAINER_TYPES.has(block.type)) return true;
+  if (isSchemaContainerBlock(block) || isGenericValueLeafBlock(block)) return true;
   const rm = deriveRmType(block);
   return ENTRY_RM_TYPES.has(rm) || rm === "SECTION" || rm === "CLUSTER" || rm === "COMPOSITION";
+}
+
+function applyLeafAnalysisToNode(
+  node: IndexedBlockNode,
+  analysis: LeafAnalysis,
+  ownerReview: { active: boolean; confidence?: number; note?: string },
+  validationErrorIds?: ReadonlySet<string>,
+): void {
+  const hasAiDraft = analysis.hasAiDraft || ownerReview.active;
+  const hasError = Boolean(
+    validationErrorIds?.has(node.id) || (node.slotId && validationErrorIds?.has(node.slotId)),
+  );
+
+  node.mappingSummary = analysis.summary;
+  node.hasAiDraft = hasAiDraft;
+  node.aiConfidence = analysis.aiConfidence ?? ownerReview.confidence;
+  node.aiNote = analysis.aiNote ?? ownerReview.note;
+
+  if (hasError) {
+    node.status = "validation-error";
+    node.counts = {
+      totalLeaves: 1,
+      mappedLeaves: analysis.mapped ? 1 : 0,
+      mandatoryMissingLeaves: !analysis.mapped && node.mandatory ? 1 : 0,
+      aiDraftLeaves: hasAiDraft ? 1 : 0,
+      unmappedLeaves: analysis.mapped ? 0 : 1,
+      validationErrorLeaves: 1,
+    };
+  } else if (hasAiDraft) {
+    node.status = "ai-draft";
+    node.counts = {
+      totalLeaves: 1,
+      mappedLeaves: 0,
+      mandatoryMissingLeaves: 0,
+      aiDraftLeaves: 1,
+      unmappedLeaves: 0,
+      validationErrorLeaves: 0,
+    };
+  } else if (analysis.mapped) {
+    node.status = "mapped";
+    node.counts = {
+      totalLeaves: 1,
+      mappedLeaves: 1,
+      mandatoryMissingLeaves: 0,
+      aiDraftLeaves: 0,
+      unmappedLeaves: 0,
+      validationErrorLeaves: 0,
+    };
+  } else if (node.mandatory) {
+    node.status = "mandatory-missing";
+    node.counts = {
+      totalLeaves: 1,
+      mappedLeaves: 0,
+      mandatoryMissingLeaves: 1,
+      aiDraftLeaves: 0,
+      unmappedLeaves: 1,
+      validationErrorLeaves: 0,
+    };
+  } else {
+    node.status = "unmapped";
+    node.counts = {
+      totalLeaves: 1,
+      mappedLeaves: 0,
+      mandatoryMissingLeaves: 0,
+      aiDraftLeaves: 0,
+      unmappedLeaves: 1,
+      validationErrorLeaves: 0,
+    };
+  }
+}
+
+function collectSchemaFieldEntries(
+  block: BlocklyBlockJson,
+): Array<{
+  inputName: string;
+  name: string;
+  mandatory: boolean;
+  slotId: string;
+  valueRmType: string;
+  xmlKind?: string;
+  isContainerSlot: boolean;
+}> {
+  const entries: Array<{
+    inputName: string;
+    name: string;
+    mandatory: boolean;
+    slotId: string;
+    valueRmType: string;
+    xmlKind?: string;
+    isContainerSlot: boolean;
+  }> = [];
+  const seenInputs = new Set<string>();
+  const extra = block.extraState ?? {};
+  const inputs = block.inputs ?? {};
+
+  const pushSpec = (spec: SchemaFieldSpecJson, isOptional: boolean) => {
+    const fieldName = typeof spec?.name === "string" ? spec.name.trim() : "";
+    if (!fieldName) return;
+    const preferredInput = isOptional ? `SCHEMA_OPT_${fieldName}` : `TARGET_${fieldName}`;
+    const altInput = isOptional ? `TARGET_${fieldName}` : `SCHEMA_OPT_${fieldName}`;
+    const inputName = inputs[preferredInput]
+      ? preferredInput
+      : (inputs[altInput] ? altInput : preferredInput);
+    if (seenInputs.has(inputName)) return;
+    seenInputs.add(inputName);
+    const connected = inputs[inputName]?.block;
+    const isContainerSlot = Boolean(
+      spec.childBlockType ||
+        spec.kind === "statement" ||
+        (connected && isStructuralNode(connected)),
+    );
+    const checkVal = Array.isArray(spec.check) ? spec.check[0] : spec.check;
+    entries.push({
+      inputName,
+      name: fieldName,
+      mandatory: !isOptional && Boolean(spec.card && (spec.card.min ?? 0) >= 1),
+      slotId: typeof spec.slotId === "string" ? spec.slotId : "",
+      valueRmType: typeof checkVal === "string" && checkVal ? checkVal : "String",
+      xmlKind: spec.xmlKind,
+      isContainerSlot,
+    });
+  };
+
+  if (Array.isArray(extra.fields)) {
+    for (const spec of extra.fields as SchemaFieldSpecJson[]) {
+      pushSpec(spec, false);
+    }
+  }
+  const activeExtras = new Set(
+    Array.isArray(extra.extras) ? (extra.extras as unknown[]).map((v) => String(v)) : [],
+  );
+  if (Array.isArray(extra.optionalFields)) {
+    for (const spec of extra.optionalFields as SchemaFieldSpecJson[]) {
+      if (spec?.name && activeExtras.has(spec.name)) {
+        pushSpec(spec, true);
+      }
+    }
+  }
+
+  // Defensive fallback for any TARGET_* / SCHEMA_OPT_* input not listed in extraState.
+  for (const [inputName, inp] of Object.entries(inputs)) {
+    if (seenInputs.has(inputName)) continue;
+    if (!inputName.startsWith("TARGET_") && !inputName.startsWith("SCHEMA_OPT_")) continue;
+    seenInputs.add(inputName);
+    const connected = inp?.block;
+    const isContainerSlot = Boolean(connected && isStructuralNode(connected));
+    const name = inputName.replace(/^(?:TARGET_|SCHEMA_OPT_)/, "");
+    entries.push({
+      inputName,
+      name,
+      mandatory: false,
+      slotId: "",
+      valueRmType: "String",
+      isContainerSlot,
+    });
+  }
+
+  return entries;
 }
 
 /**
  * Build a fast structural index over canonical Blockly workspace JSON.
  *
- * Indexes all openEHR structural nodes (`COMPOSITION`, `SECTION`, `ENTRY`
+ * Indexes openEHR structural nodes (`COMPOSITION`, `SECTION`, `ENTRY`
  * subclasses, `CLUSTER`, `ELEMENT`, `EVENT_CONTEXT`, `HISTORY`, `EVENT`,
- * `ITEM_TREE`, `include_when`, `for_each_list`) with O(N) single-pass traversal.
+ * `ITEM_TREE`, `include_when`, `for_each_list`) as well as JSON Schema and
+ * XML Schema container/leaf blocks (`schema_*`, `target_structure`,
+ * `json_*`, `xml_*`, `target_value`) with O(N) single-pass traversal.
  */
 export function indexDocument(
   docJson: BlocklyWorkspaceJson | null | undefined,
@@ -416,6 +704,7 @@ export function indexDocument(
   const nodes = new Map<string, IndexedBlockNode>();
   const roots: string[] = [];
   let compositionId: string | null = null;
+  let instanceRootId: string | null = null;
   let totalBlocks = 0;
   let syntheticCounter = 0;
 
@@ -431,6 +720,8 @@ export function indexDocument(
     const structural = isStructuralNode(block);
 
     let activeParentId = parentId;
+    let handledPrimitiveInputs: Set<string> | null = null;
+    let isLeafBlock = false;
 
     if (structural) {
       const rmType = deriveRmType(block);
@@ -466,71 +757,24 @@ export function indexDocument(
       if (rmType === "COMPOSITION" && !compositionId) {
         compositionId = id;
       }
+      if (
+        !instanceRootId &&
+        parentId === null &&
+        (block.extraState?.instanceRoot === true || isSchemaContainerBlock(block))
+      ) {
+        instanceRootId = id;
+      }
 
       if (block.type === "element") {
+        isLeafBlock = true;
         const analysis = analyzeValueSubtree(block.inputs?.VALUE?.block);
-        const elementReview = readAiReviewFromJson(block);
-        const hasAiDraft = analysis.hasAiDraft || elementReview.active;
-        const hasError = Boolean(
-          validationErrorIds?.has(id) || (slotId && validationErrorIds?.has(slotId)),
-        );
-
-        node.mappingSummary = analysis.summary;
-        node.hasAiDraft = hasAiDraft;
-        node.aiConfidence = analysis.aiConfidence ?? elementReview.confidence;
-        node.aiNote = analysis.aiNote ?? elementReview.note;
-
-        if (hasError) {
-          node.status = "validation-error";
-          node.counts = {
-            totalLeaves: 1,
-            mappedLeaves: analysis.mapped ? 1 : 0,
-            mandatoryMissingLeaves: !analysis.mapped && mandatory ? 1 : 0,
-            aiDraftLeaves: hasAiDraft ? 1 : 0,
-            unmappedLeaves: analysis.mapped ? 0 : 1,
-            validationErrorLeaves: 1,
-          };
-        } else if (hasAiDraft) {
-          node.status = "ai-draft";
-          node.counts = {
-            totalLeaves: 1,
-            mappedLeaves: 0,
-            mandatoryMissingLeaves: 0,
-            aiDraftLeaves: 1,
-            unmappedLeaves: 0,
-            validationErrorLeaves: 0,
-          };
-        } else if (analysis.mapped) {
-          node.status = "mapped";
-          node.counts = {
-            totalLeaves: 1,
-            mappedLeaves: 1,
-            mandatoryMissingLeaves: 0,
-            aiDraftLeaves: 0,
-            unmappedLeaves: 0,
-            validationErrorLeaves: 0,
-          };
-        } else if (mandatory) {
-          node.status = "mandatory-missing";
-          node.counts = {
-            totalLeaves: 1,
-            mappedLeaves: 0,
-            mandatoryMissingLeaves: 1,
-            aiDraftLeaves: 0,
-            unmappedLeaves: 1,
-            validationErrorLeaves: 0,
-          };
-        } else {
-          node.status = "unmapped";
-          node.counts = {
-            totalLeaves: 1,
-            mappedLeaves: 0,
-            mandatoryMissingLeaves: 0,
-            aiDraftLeaves: 0,
-            unmappedLeaves: 1,
-            validationErrorLeaves: 0,
-          };
-        }
+        applyLeafAnalysisToNode(node, analysis, readAiReviewFromJson(block), validationErrorIds);
+      } else if (isGenericValueLeafBlock(block)) {
+        isLeafBlock = true;
+        const analysis: LeafAnalysis = block.type === "json_null"
+          ? { mapped: true, summary: "null", hasAiDraft: false }
+          : analyzeValueSubtree(block.inputs?.VALUE?.block);
+        applyLeafAnalysisToNode(node, analysis, readAiReviewFromJson(block), validationErrorIds);
       }
 
       nodes.set(id, node);
@@ -540,11 +784,90 @@ export function indexDocument(
         roots.push(id);
       }
       activeParentId = id;
+
+      // For schema_* / target_structure blocks, synthesize leaf nodes for
+      // inlined primitive TARGET_* / SCHEMA_OPT_* inputs.
+      if (block.type === "target_structure" || block.type.startsWith("schema_")) {
+        handledPrimitiveInputs = new Set<string>();
+        const ownerReview = readAiReviewFromJson(block);
+        for (const entry of collectSchemaFieldEntries(block)) {
+          if (entry.isContainerSlot) continue;
+          handledPrimitiveInputs.add(entry.inputName);
+          const connected = block.inputs?.[entry.inputName]?.block;
+          const fieldId = `${id}${SYNTHETIC_FIELD_SEP}${entry.inputName}`;
+          const fieldNode: IndexedBlockNode = {
+            id: fieldId,
+            type: "schema_field",
+            rmType: entry.xmlKind === "attribute" ? "XML_ATTRIBUTE" : "SCHEMA_FIELD",
+            label: entry.name,
+            slotId: entry.slotId,
+            archetypeNodeId: "",
+            mandatory: entry.mandatory,
+            valueRmType: entry.valueRmType,
+            parentId: id,
+            parentInput: entry.inputName,
+            children: [],
+            subtreeBlockCount: connected ? countBlocksWithNext(connected) : 0,
+            status: "unmapped",
+            counts: emptyCounts(),
+            mappingSummary: "",
+            hasAiDraft: false,
+            collapsed: false,
+            path: [...path, { kind: "input", inputName: entry.inputName, slot: "block" }],
+          };
+          const analysis = analyzeValueSubtree(connected);
+          applyLeafAnalysisToNode(fieldNode, analysis, ownerReview, validationErrorIds);
+          nodes.set(fieldId, fieldNode);
+          node.children.push(fieldId);
+        }
+      } else if (block.type === "xml_element" && block.inputs?.VALUE?.block) {
+        const hasChildContainers = Boolean(
+          block.inputs.TARGET_children?.block || block.inputs.TARGET_attributes?.block,
+        );
+        if (!hasChildContainers) {
+          // Leaf xml_element with inline VALUE expression.
+          isLeafBlock = true;
+          const analysis = analyzeValueSubtree(block.inputs.VALUE.block);
+          applyLeafAnalysisToNode(node, analysis, readAiReviewFromJson(block), validationErrorIds);
+        } else {
+          handledPrimitiveInputs = new Set(["VALUE"]);
+          const fieldId = `${id}${SYNTHETIC_FIELD_SEP}VALUE`;
+          const fieldNode: IndexedBlockNode = {
+            id: fieldId,
+            type: "schema_field",
+            rmType: "SCHEMA_FIELD",
+            label: "#text",
+            slotId: slotId ? `${slotId}/#text` : "",
+            archetypeNodeId: "",
+            mandatory: false,
+            valueRmType: "String",
+            parentId: id,
+            parentInput: "VALUE",
+            children: [],
+            subtreeBlockCount: countBlocksWithNext(block.inputs.VALUE.block),
+            status: "unmapped",
+            counts: emptyCounts(),
+            mappingSummary: "",
+            hasAiDraft: false,
+            collapsed: false,
+            path: [...path, { kind: "input", inputName: "VALUE", slot: "block" }],
+          };
+          applyLeafAnalysisToNode(
+            fieldNode,
+            analyzeValueSubtree(block.inputs.VALUE.block),
+            readAiReviewFromJson(block),
+            validationErrorIds,
+          );
+          nodes.set(fieldId, fieldNode);
+          node.children.push(fieldId);
+        }
+      }
     }
 
-    // Recurse into inputs (skip ELEMENT.VALUE because ELEMENT is a leaf structural node).
-    if (block.inputs && block.type !== "element") {
+    // Recurse into inputs (skip leaf blocks and already-synthesized primitive schema inputs).
+    if (block.inputs && !isLeafBlock) {
       for (const [inputName, inp] of Object.entries(block.inputs)) {
+        if (handledPrimitiveInputs?.has(inputName)) continue;
         if (inp.block) {
           walkBlock(
             inp.block,
@@ -576,7 +899,9 @@ export function indexDocument(
   // Bottom-up status rollup for container nodes.
   function rollup(nodeId: string): StatusCounts {
     const node = nodes.get(nodeId)!;
-    if (node.type === "element") return node.counts;
+    if (isLeafNodeType(node.type) || (node.type === "xml_element" && node.children.length === 0)) {
+      return node.counts;
+    }
     const agg = emptyCounts();
     for (const childId of node.children) {
       addCounts(agg, rollup(childId));
@@ -606,28 +931,32 @@ export function indexDocument(
     rollup(rootId);
   }
 
-  return { nodes, roots, totalBlocks, compositionId };
+  const primaryRootId = compositionId ?? instanceRootId ?? roots[0] ?? null;
+  return { nodes, roots, totalBlocks, compositionId, primaryRootId };
 }
 
 /**
  * Adaptive Scoped Blockly slice selector (Decision 3B):
  *
- * - Default to the owning `ENTRY` (`OBSERVATION`, `EVALUATION`, `INSTRUCTION`,
- *   `ACTION`, `ADMIN_ENTRY`, `ENTRY`) or `COMPOSITION.context` (`EVENT_CONTEXT`).
- * - If that `ENTRY` exceeds `threshold` blocks (default 70), scope down to the
+ * - For openEHR: default to the owning `ENTRY` (`OBSERVATION`, `EVALUATION`,
+ *   `INSTRUCTION`, `ACTION`, `ADMIN_ENTRY`, `ENTRY`) or `EVENT_CONTEXT`.
+ *   If that `ENTRY` exceeds `threshold` blocks (default 70), scope down to the
  *   containing `CLUSTER` (or structural container) along the path to `nodeId`
  *   that fits within `threshold`.
- * - If `nodeId` is above `ENTRY` (e.g., `SECTION` or `COMPOSITION`), return
- *   `nodeId` itself when within `threshold`, otherwise the first child `ENTRY`
- *   (recursively bounded by `threshold`).
+ * - For JSON/XML Schema: synthetic `schema_field` leaves resolve to their
+ *   owning `schema_*` block; oversized containers adaptively descend to the
+ *   first structural sub-container within `threshold`.
  */
 export function computeAdaptiveSliceTarget(
   index: DocumentIndex,
   nodeId: string,
   threshold = SLICE_NODE_THRESHOLD,
 ): string {
-  const start = index.nodes.get(nodeId);
-  if (!start) return nodeId;
+  // Synthetic inlined schema fields (`parentId::inputName`) belong to their owning block.
+  const synth = parseSyntheticFieldId(nodeId);
+  const resolvedId = synth ? synth.parentId : nodeId;
+  const start = index.nodes.get(resolvedId);
+  if (!start) return resolvedId;
 
   // Build ancestor chain from root down to `start`.
   const chain: IndexedBlockNode[] = [];
@@ -659,18 +988,19 @@ export function computeAdaptiveSliceTarget(
     // check if any structural sub-container on the path fits.
     const fittingContainer = chain
       .slice(entryIdx + 1)
-      .find((n) => n.type !== "element" && n.subtreeBlockCount <= threshold);
+      .find((n) => !isLeafNodeType(n.type) && n.subtreeBlockCount <= threshold);
     if (fittingContainer) return fittingContainer.id;
     return entry.id;
   }
 
-  // Node is above ENTRY (e.g. SECTION or COMPOSITION).
+  // Node is above ENTRY (e.g. SECTION, COMPOSITION) or in a non-openEHR schema tree.
   if (start.subtreeBlockCount <= threshold) {
     return start.id;
   }
 
-  // Find first descendant ENTRY (BFS) and apply adaptive sizing to it.
+  // First prefer a descendant openEHR ENTRY (BFS).
   const queue = [...start.children];
+  let firstFittingSchemaContainer: string | null = null;
   while (queue.length > 0) {
     const cid = queue.shift()!;
     const child = index.nodes.get(cid);
@@ -678,10 +1008,19 @@ export function computeAdaptiveSliceTarget(
     if (ENTRY_RM_TYPES.has(child.rmType)) {
       return computeAdaptiveSliceTarget(index, child.id, threshold);
     }
+    if (
+      !firstFittingSchemaContainer &&
+      !isLeafNodeType(child.type) &&
+      child.type !== "include_when" &&
+      child.type !== "for_each_list" &&
+      child.subtreeBlockCount <= threshold
+    ) {
+      firstFittingSchemaContainer = child.id;
+    }
     queue.push(...child.children);
   }
 
-  return start.id;
+  return firstFittingSchemaContainer ?? start.id;
 }
 
 /** Locate a block and its exact path inside `docJson` by `targetBlockId`. */

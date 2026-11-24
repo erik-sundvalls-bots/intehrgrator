@@ -1751,10 +1751,11 @@ let lastScopedTargetId: string | null = null;
  * first top-level child of the composition → composition root.
  */
 function resolveScopedBlocklyTargetId(index: DocumentIndex | null = canonicalDocIndex): string | null {
-  if (!index?.compositionId) return null;
+  const rootId = index?.primaryRootId ?? index?.compositionId ?? null;
+  if (!index || !rootId) return null;
   if (
     treemapZoomRootId &&
-    treemapZoomRootId !== index.compositionId &&
+    treemapZoomRootId !== rootId &&
     index.nodes.has(treemapZoomRootId)
   ) {
     return treemapZoomRootId;
@@ -1768,11 +1769,11 @@ function resolveScopedBlocklyTargetId(index: DocumentIndex | null = canonicalDoc
   if (lastScopedTargetId && index.nodes.has(lastScopedTargetId)) {
     return lastScopedTargetId;
   }
-  const comp = index.nodes.get(index.compositionId);
-  if (comp && comp.children.length > 0) {
-    return comp.children[0];
+  const rootNode = index.nodes.get(rootId);
+  if (rootNode && rootNode.children.length > 0) {
+    return rootNode.children[0];
   }
-  return index.compositionId;
+  return rootId;
 }
 
 function collectSourceFieldOptions(): SourceFieldOption[] {
@@ -1953,7 +1954,11 @@ function renderTreemapAndModeBar(): void {
   const treemapHost = document.getElementById("treemap-host");
   const blocklyEl = document.getElementById("blockly-mount");
 
-  const hasContent = Boolean(canonicalDocIndex?.compositionId || controller.getState().templateId);
+  const hasContent = Boolean(
+    canonicalDocIndex?.primaryRootId ||
+      canonicalDocIndex?.compositionId ||
+      controller.getState().templateId,
+  );
   if (modeSwitch) modeSwitch.hidden = !hasContent;
   if (modeBar) modeBar.hidden = !hasContent || editorMode === "full-blockly";
 
@@ -2108,7 +2113,8 @@ function openNodeInScopedBlockly(nodeId: string): void {
   });
   refreshAiReviewMarkers(workspace);
   Blockly.svgResize(workspace);
-  const targetBlock = workspace.getBlockById(nodeId) ?? workspace.getBlockById(targetId);
+  const panId = nodeId.includes("::") ? nodeId.slice(0, nodeId.indexOf("::")) : nodeId;
+  const targetBlock = workspace.getBlockById(panId) ?? workspace.getBlockById(targetId);
   if (targetBlock) {
     panToBlock(targetBlock as BlockSvg);
   }
@@ -3233,7 +3239,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
         s.skeleton,
       );
       const idx = indexDocument(savedState);
-      if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && idx.compositionId) {
+      if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && (idx.primaryRootId ?? idx.compositionId)) {
         // Large template: open instantaneously into Treemap Overview (zero WorkspaceSvg mount).
         runWithoutBlocklyEvents(() => {
           workspace.clear();
@@ -6321,7 +6327,7 @@ function installWorkbenchTestApi(): void {
     loadBlocklyState(state: unknown) {
       const doc = migrateForEachSourceState(state) as BlocklyWorkspaceJson;
       const idx = indexDocument(doc);
-      if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && idx.compositionId) {
+      if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && (idx.primaryRootId ?? idx.compositionId)) {
         runWithoutBlocklyEvents(() => {
           workspace.clear();
         });

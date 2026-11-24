@@ -9,6 +9,7 @@ import {
   type BlocklyBlockJson,
   type BlocklyWorkspaceJson,
   findBlockPathById,
+  parseSyntheticFieldId,
 } from "./slice_engine.ts";
 
 let patchIdSeq = 0;
@@ -46,6 +47,7 @@ export type SimpleExpressionSpec =
 const COMPLEX_BLOCK_TYPES = new Set([
   "procedures_callreturn",
   "procedures_callnoreturn",
+  "decision_table",
   "decision_table_eval",
   "sheet_lookup",
   "sheet_get_cell",
@@ -177,6 +179,68 @@ export function setFieldInBlocklyJson(
   return doc;
 }
 
+function inferSchemaReturnType(
+  block: BlocklyBlockJson,
+  inputName: string,
+  rmDatatypeOverride?: string,
+): "string" | "number" | "boolean" {
+  const hint = (rmDatatypeOverride ?? "").trim().toLowerCase();
+  if (hint === "number" || hint === "integer" || hint === "dv_quantity" || hint === "dv_count") {
+    return "number";
+  }
+  if (hint === "boolean" || hint === "dv_boolean") return "boolean";
+  const fieldName = inputName.replace(/^(?:TARGET_|SCHEMA_OPT_)/, "");
+  const lists = [
+    ...(Array.isArray(block.extraState?.fields) ? block.extraState!.fields as Array<{ name?: string; check?: string | string[] }> : []),
+    ...(Array.isArray(block.extraState?.optionalFields) ? block.extraState!.optionalFields as Array<{ name?: string; check?: string | string[] }> : []),
+  ];
+  const spec = lists.find((s) => s?.name === fieldName);
+  const check = (Array.isArray(spec?.check) ? spec?.check[0] : spec?.check ?? "").toLowerCase();
+  if (check === "number") return "number";
+  if (check === "boolean") return "boolean";
+  return "string";
+}
+
+function resolveWritableSlot(
+  docJson: BlocklyWorkspaceJson,
+  targetBlockId: string,
+  rmDatatypeOverride?: string,
+): {
+  doc: BlocklyWorkspaceJson;
+  ownerBlock: BlocklyBlockJson;
+  shell: BlocklyBlockJson;
+  inputName: string;
+  returnType: "string" | "number" | "boolean";
+} {
+  const synth = parseSyntheticFieldId(targetBlockId);
+  if (synth) {
+    const { doc, block } = cloneAndFind(docJson, synth.parentId);
+    if (!block.inputs) block.inputs = {};
+    return {
+      doc,
+      ownerBlock: block,
+      shell: block,
+      inputName: synth.inputName,
+      returnType: inferSchemaReturnType(block, synth.inputName, rmDatatypeOverride),
+    };
+  }
+  const { doc, block } = cloneAndFind(docJson, targetBlockId);
+  if (
+    block.type === "target_value" ||
+    block.type === "json_value" ||
+    block.type === "json_boolean" ||
+    block.type === "xml_attribute"
+  ) {
+    if (!block.inputs) block.inputs = {};
+    const returnType = block.type === "json_boolean"
+      ? "boolean"
+      : inferSchemaReturnType(block, "VALUE", rmDatatypeOverride);
+    return { doc, ownerBlock: block, shell: block, inputName: "VALUE", returnType };
+  }
+  const { shell, inputName, returnType } = ensureElementShell(block, rmDatatypeOverride);
+  return { doc, ownerBlock: block, shell, inputName, returnType };
+}
+
 /**
  * Guardrail detector: returns `{ complex: true, reason }` when a target element
  * contains complex Blockly logic (multi-branch conditionals, functions, decision
@@ -187,10 +251,15 @@ export function isComplexMapping(
   docJson: BlocklyWorkspaceJson,
   targetBlockId: string,
 ): { complex: boolean; reason?: string } {
-  const found = findBlockPathById(docJson, targetBlockId);
+  const synth = parseSyntheticFieldId(targetBlockId);
+  const found = findBlockPathById(docJson, synth ? synth.parentId : targetBlockId);
   if (!found) return { complex: false };
   const root = found.block;
-  const valueBlock = root.type === "element" ? root.inputs?.VALUE?.block : root;
+  const valueBlock = synth
+    ? root.inputs?.[synth.inputName]?.block
+    : (root.type === "element" || root.type === "target_value" || root.type === "json_value" || root.type === "xml_attribute"
+      ? root.inputs?.VALUE?.block
+      : root);
   if (!valueBlock) return { complex: false };
 
   function inspect(b: BlocklyBlockJson | undefined, depth: number): { complex: boolean; reason?: string } {
@@ -242,8 +311,11 @@ export function setSourceBinding(
   sourcePath: string,
   rmDatatypeOverride?: string,
 ): BlocklyWorkspaceJson {
-  const { doc, block } = cloneAndFind(docJson, targetBlockId);
-  const { shell, inputName, returnType } = ensureElementShell(block, rmDatatypeOverride);
+  const { doc, shell, inputName, returnType } = resolveWritableSlot(
+    docJson,
+    targetBlockId,
+    rmDatatypeOverride,
+  );
   shell.inputs![inputName] = {
     block: sourceQueryBlockJson(sourcePath.trim(), returnType),
   };
@@ -260,8 +332,11 @@ export function setLiteralValue(
   rmDatatype: string,
   value: string | number | boolean,
 ): BlocklyWorkspaceJson {
-  const { doc, block } = cloneAndFind(docJson, targetBlockId);
-  const { shell, inputName, returnType } = ensureElementShell(block, rmDatatype);
+  const { doc, shell, inputName, returnType } = resolveWritableSlot(
+    docJson,
+    targetBlockId,
+    rmDatatype,
+  );
 
   let literalBlock: BlocklyBlockJson;
   if (returnType === "number") {
@@ -365,8 +440,11 @@ export function setSimpleExpression(
   exprSpec: SimpleExpressionSpec,
   rmDatatypeOverride?: string,
 ): BlocklyWorkspaceJson {
-  const { doc, block } = cloneAndFind(docJson, targetBlockId);
-  const { shell, inputName } = ensureElementShell(block, rmDatatypeOverride);
+  const { doc, shell, inputName } = resolveWritableSlot(
+    docJson,
+    targetBlockId,
+    rmDatatypeOverride,
+  );
 
   let exprBlock: BlocklyBlockJson;
 
@@ -469,6 +547,14 @@ export function clearMapping(
   docJson: BlocklyWorkspaceJson,
   targetBlockId: string,
 ): BlocklyWorkspaceJson {
+  const synth = parseSyntheticFieldId(targetBlockId);
+  if (synth) {
+    const { doc, block } = cloneAndFind(docJson, synth.parentId);
+    if (block.inputs && synth.inputName in block.inputs) {
+      delete block.inputs[synth.inputName];
+    }
+    return doc;
+  }
   const { doc, block } = cloneAndFind(docJson, targetBlockId);
   if (block.type === "element") {
     const shell = block.inputs?.VALUE?.block;
@@ -485,6 +571,14 @@ export function clearMapping(
         }
       }
     }
+    clearAiReviewData(block);
+  } else if (
+    block.type === "target_value" ||
+    block.type === "json_value" ||
+    block.type === "json_boolean" ||
+    block.type === "xml_attribute"
+  ) {
+    if (block.inputs?.VALUE) delete block.inputs.VALUE;
     clearAiReviewData(block);
   }
   return doc;
