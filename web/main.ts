@@ -301,6 +301,7 @@ import {
   createTreemapRenderer,
   type InlinePopoverController,
   type SourceFieldOption,
+  type TreemapOuterLayout,
   type TreemapRenderer,
   type TreemapStatusFilter,
 } from "../src/treemap/mod.ts";
@@ -1740,7 +1741,39 @@ let treemapPopover: InlinePopoverController | null = null;
 let treemapZoomRootId: string | null = null;
 let treemapQuery = "";
 let treemapStatusFilter: TreemapStatusFilter = "all";
+let treemapOuterLayout: TreemapOuterLayout = "pack";
 let treemapSelectedBlockId: string | null = null;
+let lastScopedTargetId: string | null = null;
+
+/**
+ * Pick the most suitable block id to open in Scoped Blockly from the top bar:
+ * currently zoomed Treemap container → selected tile → active/last scoped slice →
+ * first top-level child of the composition → composition root.
+ */
+function resolveScopedBlocklyTargetId(index: DocumentIndex | null = canonicalDocIndex): string | null {
+  if (!index?.compositionId) return null;
+  if (
+    treemapZoomRootId &&
+    treemapZoomRootId !== index.compositionId &&
+    index.nodes.has(treemapZoomRootId)
+  ) {
+    return treemapZoomRootId;
+  }
+  if (treemapSelectedBlockId && index.nodes.has(treemapSelectedBlockId)) {
+    return treemapSelectedBlockId;
+  }
+  if (activeSliceHandle?.targetBlockId && index.nodes.has(activeSliceHandle.targetBlockId)) {
+    return activeSliceHandle.targetBlockId;
+  }
+  if (lastScopedTargetId && index.nodes.has(lastScopedTargetId)) {
+    return lastScopedTargetId;
+  }
+  const comp = index.nodes.get(index.compositionId);
+  if (comp && comp.children.length > 0) {
+    return comp.children[0];
+  }
+  return index.compositionId;
+}
 
 function collectSourceFieldOptions(): SourceFieldOption[] {
   const s = controller.getState();
@@ -1932,7 +1965,17 @@ function renderTreemapAndModeBar(): void {
   setActive(btnTreemap, editorMode === "treemap");
   setActive(btnScoped, editorMode === "scoped-blockly");
   setActive(btnFull, editorMode === "full-blockly");
-  if (btnScoped) btnScoped.hidden = editorMode !== "scoped-blockly" && !activeSliceHandle;
+  if (btnScoped) {
+    const scopedTargetId = resolveScopedBlocklyTargetId();
+    const scopedAvailable = editorMode === "scoped-blockly" ||
+      Boolean(scopedTargetId) ||
+      (editorMode === "full-blockly" && hasContent);
+    btnScoped.hidden = !scopedAvailable;
+    const scopedNode = scopedTargetId ? canonicalDocIndex?.nodes.get(scopedTargetId) : null;
+    btnScoped.title = scopedNode
+      ? `Open "${scopedNode.label}" in Scoped Blockly`
+      : "Open current scope in Scoped Blockly";
+  }
 
   if (treemapHost) treemapHost.hidden = editorMode !== "treemap";
   if (blocklyEl) blocklyEl.hidden = editorMode === "treemap";
@@ -2011,6 +2054,7 @@ function renderTreemapAndModeBar(): void {
       selectedBlockId: treemapSelectedBlockId,
       sparseFullSkeleton: s.scaffoldMode === "sparse" ? s.skeleton : null,
       showAiBulkActions: true,
+      outerLayout: treemapOuterLayout,
     });
   }
 }
@@ -2045,6 +2089,7 @@ function openNodeInScopedBlockly(nodeId: string): void {
     collapseUnmappedOptionalClusters: true,
   });
   activeSliceHandle = handle;
+  lastScopedTargetId = targetId;
   editorMode = "scoped-blockly";
   pulseCrumbId = targetId;
   renderTreemapAndModeBar();
@@ -2359,12 +2404,19 @@ function initTreemapUi(): void {
   });
 
   document.getElementById("btn-mode-treemap")?.addEventListener("click", () => {
+    if (editorMode === "treemap") return;
     const doc = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
-    enterTreemapMode(doc);
+    enterTreemapMode(doc, { keepZoom: true });
   });
   document.getElementById("btn-mode-scoped")?.addEventListener("click", () => {
-    if (activeSliceHandle) {
-      openNodeInScopedBlockly(activeSliceHandle.targetBlockId);
+    if (!canonicalDocIndex) {
+      const doc = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+      canonicalBlocklyState = structuredClone(doc);
+      canonicalDocIndex = indexDocument(canonicalBlocklyState);
+    }
+    const targetId = resolveScopedBlocklyTargetId();
+    if (targetId) {
+      openNodeInScopedBlockly(targetId);
     }
   });
   document.getElementById("btn-mode-full")?.addEventListener("click", () => {
@@ -2383,6 +2435,20 @@ function initTreemapUi(): void {
       treemapStatusFilter = next;
       document.querySelectorAll<HTMLButtonElement>(".tm-filter-chip").forEach((c) => {
         c.classList.toggle("active", c === chip);
+      });
+      renderTreemapAndModeBar();
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".tm-layout-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = (btn.dataset.tmLayout === "columns" ? "columns" : "pack") as TreemapOuterLayout;
+      if (next === treemapOuterLayout) return;
+      treemapOuterLayout = next;
+      document.querySelectorAll<HTMLButtonElement>(".tm-layout-btn").forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-pressed", String(active));
       });
       renderTreemapAndModeBar();
     });

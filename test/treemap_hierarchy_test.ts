@@ -207,3 +207,37 @@ Deno.test("#374 relabelBlocklyJsonFromSkeleton preserves human labels over bare 
   );
 });
 
+Deno.test("computeCascadedTreemapLayout columns mode orders outermost tiles top-to-bottom in left-aligned columns", async () => {
+  const doc = JSON.parse(await Deno.readTextFile(MHV1_MAPPING_URL)) as BlocklyWorkspaceJson;
+  const idx = indexDocument(doc);
+  const root = buildTreemapHierarchy(idx)!;
+  const cols = computeCascadedTreemapLayout(root, 960, 420, {
+    maxDepth: 3,
+    outerLayout: "columns",
+  });
+  const depth1 = cols.tiles.filter((t) => t.depth === 1);
+  assert(depth1.length >= 10, "expected >=10 depth-1 sections in MHV1");
+
+  // Group depth-1 tiles by column x0; within each column y0 strictly increases,
+  // and each new column begins to the right of the previous column.
+  let prevColX = -1;
+  let prevY = -1;
+  let columnCount = 0;
+  for (let i = 0; i < depth1.length; i++) {
+    const t = depth1[i];
+    assertEquals(t.siblingIndex, i + 1);
+    if (t.x0 !== prevColX) {
+      assert(t.x0 > prevColX, `columns must advance strictly to the right (${t.x0} > ${prevColX})`);
+      assertEquals(t.y0, 8, "each new column must start at top outer padding (8px)");
+      prevColX = t.x0;
+      prevY = t.y0;
+      columnCount++;
+    } else {
+      assert(t.y0 > prevY, `items within a column must flow top-to-bottom (${t.y0} > ${prevY})`);
+      prevY = t.y0;
+    }
+  }
+  assert(columnCount >= 2, `expected multiple columns at height 420, got ${columnCount}`);
+  assert(cols.naturalWidth > 960, `expected columns to extend horizontally for sideways scrolling (${cols.naturalWidth})`);
+});
+

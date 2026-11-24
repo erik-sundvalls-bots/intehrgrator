@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     # release.yml owns Pages deploy when `deno task release` or Release create
     # pushes a `chore: release …` commit together with its tag.
     # head_commit is often null on merge/push webhooks — treat that as a normal main deploy.
@@ -28,9 +28,6 @@ jobs:
       github.event.head_commit == null ||
       !startsWith(github.event.head_commit.message, 'chore: release')
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
       - uses: denoland/setup-deno@v2
@@ -49,5 +46,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist-pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
