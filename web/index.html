@@ -308,7 +308,7 @@
               </div>
               <span
                 class="tm-order-legend"
-                title="Numbers (1, 2, 3…) show each sibling's fixed output order (same top-to-bottom sequence as Blockly). Hover a tile to trace its sibling sequence."
+                title="Numbers (1, 2, 3…) show each sibling's fixed output order (same top-to-bottom sequence as Blockly). Hover any number to highlight siblings and show output arrows."
               ><span class="tm-order tm-order--sample" aria-hidden="true">1</span>→N output order</span>
             </div>
             <nav id="treemap-breadcrumb" class="treemap-breadcrumb" aria-label="Template path" hidden></nav>
@@ -665,6 +665,7 @@
   <aside id="history-panel" class="history-panel" hidden aria-label="History" data-i18n-aria="historyTitle"></aside>
   <footer id="status-bar" class="status-bar">
     <span id="status-main" data-i18n="ready">Ready</span>
+    <span id="status-hover" class="status-hover" hidden></span>
     <span id="status-save" class="status-save"></span>
     <span id="status-build" class="status-build"></span>
   </footer>

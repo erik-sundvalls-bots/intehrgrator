@@ -30,6 +30,8 @@ export interface TreemapRendererCallbacks {
   onGhostClick?: (datum: TreemapDatum, anchorEl: HTMLElement) => void;
   /** Called when the user clicks Accept/Reject AI triage on a tile or container. */
   onAiTriage?: (nodeId: string, action: "accept" | "reject", bulk: boolean) => void;
+  /** Called with a concise single-line summary while hovering a tile, or `null` when leaving. */
+  onHoverStatus?: (text: string | null) => void;
 }
 
 export interface TreemapRenderState {
@@ -54,7 +56,7 @@ const STATUS_GLYPH: Record<TileStatus, string> = {
 const STATUS_LABEL: Record<TileStatus, string> = {
   "unmapped": "Unmapped",
   "mandatory-missing": "Mandatory missing",
-  "ai-draft": "AI draft (pending review)",
+  "ai-draft": "AI draft",
   "mapped": "Mapped",
   "validation-error": "Validation error",
   "unscaffolded-optional": "Optional (not scaffolded)",
@@ -80,40 +82,37 @@ export interface TreemapRenderer {
   destroy(): void;
 }
 
-function formatTooltipHtml(tile: ComputedTreemapTile): string {
+/** Concise single-line node summary for the footer status bar (omits long slot paths). */
+export function formatHoverStatus(tile: ComputedTreemapTile): string {
   const d = tile.datum;
-  const esc = (s: string) =>
-    s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  const lines: string[] = [
-    `<div class="tm-tip-title">${esc(d.label)} <span class="tm-tip-rm">${esc(d.rmType)}</span></div>`,
-  ];
+  const typeTag = d.valueRmType || d.rmType;
+  const parts: string[] = [`${d.label} (${typeTag})`];
   if (!d.isGhost && tile.siblingCount > 1) {
-    lines.push(
-      `<div class="tm-tip-order">Output order: <strong>#${tile.siblingIndex} of ${tile.siblingCount}</strong> (fixed sibling sequence)</div>`,
-    );
+    parts.push(`#${tile.siblingIndex}/${tile.siblingCount}`);
   }
-  if (d.valueRmType) {
-    lines.push(`<div class="tm-tip-meta">Datatype: <code>${esc(d.valueRmType)}</code></div>`);
-  }
-  lines.push(
-    `<div class="tm-tip-meta">Status: <strong>${STATUS_GLYPH[d.status]} ${STATUS_LABEL[d.status]}</strong>${d.mandatory ? " · Mandatory (1..*)" : " · Optional (0..*)"}</div>`,
-  );
-  if (d.slotId) {
-    lines.push(`<div class="tm-tip-path">${esc(d.slotId)}</div>`);
+  parts.push(`${STATUS_GLYPH[d.status]} ${STATUS_LABEL[d.status]}`);
+  if (!d.isGhost) {
+    parts.push(d.mandatory ? "Mandatory" : "Optional");
   }
   if (d.mappingSummary) {
-    lines.push(`<div class="tm-tip-map">Mapping: <code>${esc(d.mappingSummary)}</code></div>`);
-  }
-  if (d.hasAiDraft && (d.aiNote || d.aiConfidence !== undefined)) {
-    const conf = d.aiConfidence !== undefined ? `${d.aiConfidence}% — ` : "";
-    lines.push(`<div class="tm-tip-ai">AI: ${esc(conf + (d.aiNote ?? "Pending review"))}</div>`);
-  }
-  if (!d.isLeaf && d.counts.totalLeaves > 0) {
-    lines.push(
-      `<div class="tm-tip-counts">${d.counts.mappedLeaves} mapped · ${d.counts.aiDraftLeaves} AI draft · ${d.counts.mandatoryMissingLeaves} mandatory missing · ${d.counts.totalLeaves} total elements</div>`,
+    parts.push(d.mappingSummary);
+  } else if (!d.isLeaf && d.counts.totalLeaves > 0) {
+    const mapped = d.counts.mappedLeaves + d.counts.aiDraftLeaves;
+    const extras: string[] = [];
+    if (d.counts.aiDraftLeaves > 0) extras.push(`${d.counts.aiDraftLeaves} AI`);
+    if (d.counts.mandatoryMissingLeaves > 0) {
+      extras.push(`${d.counts.mandatoryMissingLeaves} mandatory missing`);
+    }
+    parts.push(
+      extras.length
+        ? `${mapped}/${d.counts.totalLeaves} mapped (${extras.join(", ")})`
+        : `${mapped}/${d.counts.totalLeaves} mapped`,
     );
   }
-  return lines.join("");
+  if (d.hasAiDraft && d.aiConfidence !== undefined) {
+    parts.push(`AI ${d.aiConfidence}%`);
+  }
+  return parts.join(" · ");
 }
 
 let cachedScrollbarSize: number | null = null;
@@ -147,12 +146,7 @@ export function createTreemapRenderer(
   stage.className = "treemap-stage";
   canvas.append(stage);
 
-  const tooltip = document.createElement("div");
-  tooltip.className = "treemap-tooltip";
-  tooltip.hidden = true;
-  tooltip.setAttribute("role", "tooltip");
-
-  host.replaceChildren(canvas, tooltip);
+  host.replaceChildren(canvas);
 
   let lastState: TreemapRenderState | null = null;
   let resizeObserver: ResizeObserver | null = null;
@@ -277,28 +271,8 @@ export function createTreemapRenderer(
 
   stage.addEventListener("pointerleave", () => {
     clearSiblingSequence();
-    hideTooltip();
+    callbacks.onHoverStatus?.(null);
   });
-
-  function showTooltip(event: PointerEvent, tile: ComputedTreemapTile): void {
-    tooltip.innerHTML = formatTooltipHtml(tile);
-    tooltip.hidden = false;
-    const hostRect = host.getBoundingClientRect();
-    const x = Math.min(
-      hostRect.width - 280,
-      Math.max(8, event.clientX - hostRect.left + 14),
-    );
-    const y = Math.min(
-      hostRect.height - 150,
-      Math.max(8, event.clientY - hostRect.top + 14),
-    );
-    tooltip.style.left = `${x}px`;
-    tooltip.style.top = `${y}px`;
-  }
-
-  function hideTooltip(): void {
-    tooltip.hidden = true;
-  }
 
   function renderTileElement(
     tile: ComputedTreemapTile,
@@ -350,6 +324,15 @@ export function createTreemapRenderer(
       orderBadge.className = "tm-order";
       orderBadge.setAttribute("aria-hidden", "true");
       orderBadge.textContent = String(tile.siblingIndex);
+      orderBadge.addEventListener("pointerenter", () => {
+        showSiblingSequence(tile.parentId, d.id);
+      });
+      orderBadge.addEventListener("pointerleave", (e) => {
+        const next = e.relatedTarget as HTMLElement | null;
+        if (!next || !next.closest(".tm-order")) {
+          clearSiblingSequence();
+        }
+      });
     }
 
     const glyph = document.createElement("span");
@@ -432,15 +415,12 @@ export function createTreemapRenderer(
     el.append(header);
 
     el.addEventListener("pointerenter", () => {
-      if (showOrder) showSiblingSequence(tile.parentId, d.id);
-      else clearSiblingSequence();
+      callbacks.onHoverStatus?.(formatHoverStatus(tile));
     });
-    el.addEventListener("pointermove", (e) => showTooltip(e, tile));
     el.addEventListener("pointerleave", (e) => {
-      hideTooltip();
       const next = e.relatedTarget as HTMLElement | null;
       if (!next || !next.closest(".tm-tile")) {
-        clearSiblingSequence();
+        callbacks.onHoverStatus?.(null);
       }
     });
 
@@ -488,7 +468,7 @@ export function createTreemapRenderer(
 
   function paint(state: TreemapRenderState): void {
     lastState = state;
-    hideTooltip();
+    callbacks.onHoverStatus?.(null);
     clearSiblingSequence();
 
     // Measure the outer `host` (overflow: hidden) rather than `canvas` so
@@ -606,6 +586,7 @@ export function createTreemapRenderer(
     render: paint,
     animateZoom,
     destroy() {
+      callbacks.onHoverStatus?.(null);
       if (resizeRafId !== null) {
         cancelAnimationFrame(resizeRafId);
         resizeRafId = null;

@@ -375,8 +375,22 @@ const paneFinds: Record<string, PaneFind> = {
 };
 const blocklyMount = document.getElementById("blockly-mount")!;
 const statusMain = document.getElementById("status-main")!;
+const statusHover = document.getElementById("status-hover");
 const statusSave = document.getElementById("status-save")!;
 const statusBuild = document.getElementById("status-build")!;
+
+function setTreemapHoverStatus(text: string | null): void {
+  if (!statusHover) return;
+  if (text) {
+    statusHover.textContent = text;
+    statusHover.hidden = false;
+    statusMain.hidden = true;
+  } else {
+    statusHover.hidden = true;
+    statusHover.textContent = "";
+    statusMain.hidden = false;
+  }
+}
 const taskProgressOverlay = document.getElementById(TASK_PROGRESS_OVERLAY_ID)!;
 const exportTargetSelect = document.getElementById("export-target") as HTMLSelectElement;
 const instanceShapeSelect = document.getElementById("openehr-instance-shape") as HTMLSelectElement;
@@ -1923,6 +1937,7 @@ function renderTreemapAndModeBar(): void {
   if (treemapHost) treemapHost.hidden = editorMode !== "treemap";
   if (blocklyEl) blocklyEl.hidden = editorMode === "treemap";
   if (controlsEl) controlsEl.hidden = editorMode !== "treemap";
+  if (editorMode !== "treemap") setTreemapHoverStatus(null);
 
   if (breadcrumbEl) {
     if (canonicalDocIndex && (editorMode === "treemap" || editorMode === "scoped-blockly")) {
@@ -2329,6 +2344,7 @@ function initTreemapUi(): void {
         summary: action === "accept" ? "Accept AI suggestions" : "Reject AI suggestions",
       });
     },
+    onHoverStatus: setTreemapHoverStatus,
   });
 
   treemapPopover = createTreemapInlinePopover(hostEl, {

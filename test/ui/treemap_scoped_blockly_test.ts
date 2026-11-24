@@ -128,12 +128,64 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       `hovered parent z-index (${zOrder.parentZ}) must stay below child z-index (${zOrder.childZ})`,
     );
 
-    // 4b. Fixed sibling output order badges (1, 2, 3...) + hover sequence trace + stable scrollbars (zero flicker).
+    // 4b. Hovering a tile body updates the footer status bar (no floating tooltip, no sibling arrows/boxes);
+    //     hovering the `.tm-order` number area itself shows sibling boxes + dashed arrows; scrollbars stay stable.
+    const tileHoverCheck = await page.evaluate(() => {
+      const statusMain = document.getElementById("status-main") as HTMLElement | null;
+      const statusHover = document.getElementById("status-hover") as HTMLElement | null;
+      const firstOrder = document.querySelector("#treemap-host .tm-depth--1 > .tm-header > .tm-order") as
+        | HTMLElement
+        | null;
+      const orderStyle = firstOrder ? getComputedStyle(firstOrder) : null;
+      return {
+        hasFloatingTooltip: Boolean(document.querySelector("#treemap-host .treemap-tooltip")),
+        statusMainHidden: Boolean(statusMain?.hidden),
+        statusHoverHidden: Boolean(statusHover?.hidden),
+        statusHoverText: statusHover?.textContent?.trim() ?? "",
+        seqHighlightedOnTileHover: document.querySelectorAll("#treemap-host .tm-tile--sibling-seq").length,
+        seqLinesOnTileHover: document.querySelectorAll("#treemap-host .tm-order-overlay .tm-seq-line").length,
+        orderBgOnTileHover: orderStyle?.backgroundColor ?? "",
+      };
+    });
+    assertEquals(tileHoverCheck.hasFloatingTooltip, false, "treemap must not render a floating hover tooltip popup");
+    assertEquals(tileHoverCheck.statusMainHidden, true, "default status bar should temporarily hide on tile hover");
+    assertEquals(tileHoverCheck.statusHoverHidden, false, "footer hover status should be visible on tile hover");
+    assert(
+      tileHoverCheck.statusHoverText.length > 0 && tileHoverCheck.statusHoverText.length < 140,
+      `expected concise footer hover status text, got "${tileHoverCheck.statusHoverText}"`,
+    );
+    assertEquals(
+      tileHoverCheck.statusHoverText.includes("//content/"),
+      false,
+      `footer hover status should omit raw slotId paths, got "${tileHoverCheck.statusHoverText}"`,
+    );
+    assertEquals(
+      tileHoverCheck.seqHighlightedOnTileHover,
+      0,
+      "hovering a tile body must not highlight sibling order boxes",
+    );
+    assertEquals(
+      tileHoverCheck.seqLinesOnTileHover,
+      0,
+      "hovering a tile body must not show dashed sibling arrows",
+    );
+    assertEquals(
+      tileHoverCheck.orderBgOnTileHover,
+      "rgba(0, 0, 0, 0)",
+      `ordering number should not have a box when not hovered, got ${tileHoverCheck.orderBgOnTileHover}`,
+    );
+
+    // Now hover the `.tm-order` number area itself to reveal sibling boxes + dashed connector arrows.
+    const firstOrderBadge = page.locator("#treemap-host .tm-depth--1 > .tm-header > .tm-order").first();
+    await firstOrderBadge.hover();
+    await page.waitForTimeout(50);
+
     const orderAndScrollCheck = await page.evaluate(async () => {
       const depth1Orders = [
         ...document.querySelectorAll("#treemap-host .tm-depth--1 > .tm-header > .tm-order"),
       ].map((el) => el.textContent?.trim());
       const seqHighlighted = document.querySelectorAll("#treemap-host .tm-tile--sibling-seq").length;
+      const seqActive = document.querySelectorAll("#treemap-host .tm-tile--sibling-active").length;
       const seqLines = document.querySelectorAll("#treemap-host .tm-order-overlay .tm-seq-line").length;
 
       // Monitor `.treemap-stage` childList mutations over 250ms to prove ResizeObserver does not flicker/loop.
@@ -149,6 +201,7 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       return {
         depth1Orders,
         seqHighlighted,
+        seqActive,
         seqLines,
         repaints,
         overflowX: canvas?.style.overflowX ?? "",
@@ -161,6 +214,7 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       orderAndScrollCheck.seqHighlighted >= 10,
       `expected hovered depth-1 sibling sequence highlight, got ${orderAndScrollCheck.seqHighlighted}`,
     );
+    assertEquals(orderAndScrollCheck.seqActive, 1, "expected exactly one active hovered sibling order badge");
     assert(
       orderAndScrollCheck.seqLines >= 9,
       `expected SVG sequence connector lines between siblings, got ${orderAndScrollCheck.seqLines}`,
@@ -174,6 +228,20 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       orderAndScrollCheck.overflowX === "hidden" || orderAndScrollCheck.overflowX === "auto",
       `expected explicit overflowX, got "${orderAndScrollCheck.overflowX}"`,
     );
+
+    // Moving the pointer off the treemap clears arrows/boxes and restores the default footer status bar.
+    await page.mouse.move(4, 4);
+    await page.waitForTimeout(50);
+    const leaveCheck = await page.evaluate(() => ({
+      statusMainHidden: Boolean((document.getElementById("status-main") as HTMLElement | null)?.hidden),
+      statusHoverHidden: Boolean((document.getElementById("status-hover") as HTMLElement | null)?.hidden),
+      seqHighlighted: document.querySelectorAll("#treemap-host .tm-tile--sibling-seq").length,
+      seqLines: document.querySelectorAll("#treemap-host .tm-order-overlay .tm-seq-line").length,
+    }));
+    assertEquals(leaveCheck.statusMainHidden, false, "default status bar should return when pointer leaves treemap");
+    assertEquals(leaveCheck.statusHoverHidden, true, "hover status bar should hide when pointer leaves treemap");
+    assertEquals(leaveCheck.seqHighlighted, 0, "sibling order highlight should clear on leave");
+    assertEquals(leaveCheck.seqLines, 0, "sibling dashed arrows should clear on leave");
 
     // 5. Feature 1: clicking a container zooms in with animation + pulses the newly added breadcrumb;
     //    clicking the root breadcrumb zooms out with animation + pulses the root breadcrumb.
