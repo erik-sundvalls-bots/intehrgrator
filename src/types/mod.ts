@@ -314,6 +314,13 @@ export interface SkeletonNode {
    * display language.
    */
   primaryName?: string;
+  /**
+   * Additional unrenamed ontology/base terms for this node (for example the
+   * archetype base term when `L10n` overrides `label`, or a raw per-language
+   * term differing only by casing), so `outputLocatableName` still treats
+   * older saved canvases as unrenamed while preserving genuine user renames.
+   */
+  alternateLabels?: string[];
   kind: SkeletonNodeKind;
   /** RM attribute on the parent object this node occupies (e.g. data, items, value). */
   rmAttribute?: string;

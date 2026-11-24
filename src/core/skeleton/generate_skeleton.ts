@@ -337,7 +337,7 @@ function walkComplex(
   const nodeNames = namesForNode(cObj, nodeArchetypeRef, nameConstraint, names, archetypeTerms);
   const termScope = nodeNames.occurrence ?? rawScope ?? nodeArchetypeRef;
   const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
-  const { label, candidateNames } = resolveNodeDisplayLabel(
+  const { label, candidateNames, alternateLabels } = resolveNodeDisplayLabel(
     cObj,
     nameHint,
     nodeId,
@@ -367,6 +367,7 @@ function walkComplex(
       archetypeId: templateId,
       ...archetypeCtx,
       ...(nameConstraint ? { nameConstraint } : {}),
+      ...(alternateLabels.length ? { alternateLabels } : {}),
       kind: "value",
       mandatory,
       multiplicity,
@@ -479,6 +480,7 @@ function walkComplex(
     archetypeId: templateId,
     ...archetypeCtx,
     ...(nameConstraint ? { nameConstraint } : {}),
+    ...(alternateLabels.length ? { alternateLabels } : {}),
     kind: "container",
     mandatory,
     multiplicity,
@@ -881,7 +883,7 @@ function resolveNodeDisplayLabel(
   archetypeTerms: Record<string, TermBag>,
   templateId: string,
   labelCtx: LabelWalkCtx,
-): { label: string; candidateNames: string[] } {
+): { label: string; candidateNames: string[]; alternateLabels: string[] } {
   const resolved = labelCtx.resolver.resolveNode(
     cObj,
     labelCtx.aqlPath || undefined,
@@ -890,34 +892,60 @@ function resolveNodeDisplayLabel(
       candidateNames: nameHint ? [nameHint] : undefined,
     },
   );
+  const baseLangTerm = labelCtx.resolver.resolveNodeTermInLanguage(
+    cObj,
+    labelCtx.resolver.primaryLanguage,
+  ).text?.trim();
+  const baseOrigTerm = labelCtx.resolver.resolveNodeTermInLanguage(
+    cObj,
+    labelCtx.resolver.originalLanguage,
+  ).text?.trim();
   const candidateNames = [
     nameConstraint,
     nameHint,
     resolved.primaryName,
+    baseLangTerm,
     ...Object.values(resolved.localizedNames ?? {}),
   ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
 
-  if (labelCtx.useResolverPrimary) {
-    const fromResolver = resolved.primaryName?.trim();
-    if (isResolvedClinicalLabel(fromResolver, nodeId, rmType, templateId)) {
-      return { label: fromResolver, candidateNames };
-    }
+  let label: string;
+  if (
+    labelCtx.useResolverPrimary &&
+    isResolvedClinicalLabel(resolved.primaryName?.trim(), nodeId, rmType, templateId)
+  ) {
+    label = resolved.primaryName!.trim();
+  } else {
+    const fallback = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
+      nameHint,
+      nodeId,
+      rmType,
+      termScope,
+      nameFallbackOf(cObj as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
+      fallbackTerms,
+      archetypeTerms,
+      templateId,
+    );
+    label = isResolvedClinicalLabel(fallback, nodeId, rmType, templateId)
+      ? fallback
+      : (resolved.primaryName?.trim() || fallback);
   }
 
-  const fallback = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
-    nameHint,
-    nodeId,
-    rmType,
-    termScope,
-    nameFallbackOf(cObj as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
-    fallbackTerms,
-    archetypeTerms,
-    templateId,
-  );
-  if (isResolvedClinicalLabel(fallback, nodeId, rmType, templateId)) {
-    return { label: fallback, candidateNames };
+  const labelLower = label.trim().toLowerCase();
+  const altSet = new Set<string>();
+  for (
+    const raw of [
+      baseLangTerm,
+      baseOrigTerm,
+      ...Object.values(resolved.localizedNames ?? {}),
+    ]
+  ) {
+    const t = raw?.trim();
+    if (!t) continue;
+    if (t.toLowerCase() === labelLower) continue;
+    if (nameConstraint && t.toLowerCase() === nameConstraint.trim().toLowerCase()) continue;
+    altSet.add(t);
   }
-  return { label: resolved.primaryName?.trim() || fallback, candidateNames };
+  return { label, candidateNames, alternateLabels: [...altSet] };
 }
 
 /**

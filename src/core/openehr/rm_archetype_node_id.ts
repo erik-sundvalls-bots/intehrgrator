@@ -50,11 +50,19 @@ export function rmLocatableName(node: { nameConstraint?: string; primaryName?: s
  */
 export function outputLocatableName(
   shown: string,
-  node: { nameConstraint?: string; primaryName?: string; label?: string } | undefined,
+  node: {
+    nameConstraint?: string;
+    primaryName?: string;
+    label?: string;
+    alternateLabels?: readonly string[];
+  } | undefined,
 ): string {
   if (!node) return shown;
-  const own = [node.label, node.primaryName].map((x) => x?.trim() ?? "");
-  return own.includes(shown) ? rmLocatableName(node) || shown : shown;
+  const shownNorm = shown.trim().toLowerCase();
+  const own = [node.label, node.primaryName, ...(node.alternateLabels ?? [])]
+    .map((x) => x?.trim().toLowerCase() ?? "")
+    .filter(Boolean);
+  return own.includes(shownNorm) ? rmLocatableName(node) || shown : shown;
 }
 
 /** True when every emitted field is identity or RM boilerplate. */

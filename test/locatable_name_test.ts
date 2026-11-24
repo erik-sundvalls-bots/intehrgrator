@@ -13,3 +13,17 @@ Deno.test("outputLocatableName: a renamed block keeps its name", () => {
   assertEquals(outputLocatableName("HSA-id", node), "HSA-id");
   assertEquals(outputLocatableName("HSA-id", undefined), "HSA-id");
 });
+
+Deno.test("outputLocatableName: pre-L10n alternateLabels and case-only differences still normalize", () => {
+  const l10nNode = {
+    label: "Organisational number",
+    primaryName: "Organisationsnummer",
+    nameConstraint: "Organisationsnummer",
+    alternateLabels: ["Identifier", "Identifierare"],
+  };
+  assertEquals(outputLocatableName("Identifier", l10nNode), "Organisationsnummer");
+  assertEquals(outputLocatableName("Organisational number", l10nNode), "Organisationsnummer");
+  assertEquals(outputLocatableName("HSA-id", l10nNode), "HSA-id");
+  assertEquals(outputLocatableName("history", { label: "History" }), "History");
+});
+
