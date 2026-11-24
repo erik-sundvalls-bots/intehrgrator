@@ -572,3 +572,41 @@ Deno.test("web template renamed sections keep their own names in every language"
     );
   }
 });
+
+Deno.test("repeated archetype occurrences with differing inline OPT term_definitions honor ehrtslib occurrence scopes", () => {
+  const optXml = `<?xml version="1.0" encoding="utf-8"?>
+<template xmlns="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <language><terminology_id><value>ISO_639-1</value></terminology_id><code_string>en</code_string></language>
+  <template_id><value>repeated-sections</value></template_id>
+  <concept>repeated-sections</concept>
+  <definition xsi:type="C_ARCHETYPE_ROOT">
+    <rm_type_name>COMPOSITION</rm_type_name>
+    <node_id>at0000</node_id>
+    <archetype_id><value>openEHR-EHR-COMPOSITION.encounter.v1</value></archetype_id>
+    <term_definitions code="at0000"><items id="text">Encounter</items></term_definitions>
+    <attributes xsi:type="C_MULTIPLE_ATTRIBUTE">
+      <rm_attribute_name>content</rm_attribute_name>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>SECTION</rm_type_name>
+        <node_id>at0000</node_id>
+        <archetype_id><value>openEHR-EHR-SECTION.adhoc.v1</value></archetype_id>
+        <term_definitions code="at0000"><items id="text">First heading</items></term_definitions>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>SECTION</rm_type_name>
+        <node_id>at0000</node_id>
+        <archetype_id><value>openEHR-EHR-SECTION.adhoc.v1</value></archetype_id>
+        <term_definitions code="at0000"><items id="text">Second heading</items></term_definitions>
+      </children>
+    </attributes>
+  </definition>
+</template>`;
+  const { skeleton } = generateSkeleton(optXml, { language: "en" });
+  const sections = flattenSkeleton(skeleton).filter((n) => n.rmType === "SECTION");
+  assertEquals(sections.map((n) => n.label), ["First heading", "Second heading"]);
+  // Public archetypeRef strips ehrtslib's internal `#2` occurrence suffix.
+  assertEquals(
+    sections.map((n) => n.archetypeRef),
+    ["openEHR-EHR-SECTION.adhoc.v1", "openEHR-EHR-SECTION.adhoc.v1"],
+  );
+});
