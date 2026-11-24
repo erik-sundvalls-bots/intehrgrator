@@ -243,6 +243,51 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
     assertEquals(leaveCheck.seqHighlighted, 0, "sibling order highlight should clear on leave");
     assertEquals(leaveCheck.seqLines, 0, "sibling dashed arrows should clear on leave");
 
+    // 4c. Top bar shows "Total Blockly ⏳" and keeps "Scoped Blockly" available in Treemap Overview;
+    //     Pack / Columns switch arranges outermost layer into left-aligned top-to-bottom columns.
+    const modeBarLabels = await page.evaluate(() => ({
+      fullText: document.getElementById("btn-mode-full")?.textContent?.trim() ?? "",
+      scopedHidden: Boolean((document.getElementById("btn-mode-scoped") as HTMLElement | null)?.hidden),
+      layoutButtons: [...document.querySelectorAll("#treemap-layout-switch .tm-layout-btn")].map((b) =>
+        b.textContent?.trim()
+      ),
+    }));
+    assertEquals(modeBarLabels.fullText, "Total Blockly ⏳");
+    assertEquals(modeBarLabels.scopedHidden, false, "Scoped Blockly must stay available in the top bar in Treemap mode");
+    assertEquals(modeBarLabels.layoutButtons, ["Pack", "Columns"]);
+
+    await page.click('#treemap-layout-switch [data-tm-layout="columns"]');
+    await page.waitForTimeout(50);
+    const columnsCheck = await page.evaluate(() => {
+      const canvas = document.querySelector("#treemap-host .treemap-canvas") as HTMLElement | null;
+      const depth1 = [...document.querySelectorAll("#treemap-host .tm-depth--1")] as HTMLElement[];
+      const coords = depth1.map((el) => ({
+        x: Math.round(parseFloat(el.style.left || "0")),
+        y: Math.round(parseFloat(el.style.top || "0")),
+      }));
+      const distinctCols = new Set(coords.map((c) => c.x)).size;
+      let orderedTopToBottom = true;
+      for (let i = 1; i < coords.length; i++) {
+        if (coords[i].x === coords[i - 1].x && coords[i].y <= coords[i - 1].y) {
+          orderedTopToBottom = false;
+        }
+        if (coords[i].x < coords[i - 1].x) {
+          orderedTopToBottom = false;
+        }
+      }
+      return {
+        distinctCols,
+        orderedTopToBottom,
+        overflowX: canvas?.style.overflowX ?? "",
+      };
+    });
+    assert(columnsCheck.distinctCols >= 2, `expected multiple left-aligned columns, got ${columnsCheck.distinctCols}`);
+    assertEquals(columnsCheck.orderedTopToBottom, true, "columns mode must keep outermost blocks top-to-bottom then left-to-right");
+    assertEquals(columnsCheck.overflowX, "auto", "columns mode must enable horizontal scrolling when columns extend right");
+
+    await page.click('#treemap-layout-switch [data-tm-layout="pack"]');
+    await page.waitForTimeout(50);
+
     // 5. Feature 1: clicking a container zooms in with animation + pulses the newly added breadcrumb;
     //    clicking the root breadcrumb zooms out with animation + pulses the root breadcrumb.
     await depth1Header.click();
@@ -251,10 +296,12 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       hasZoomInClass: Boolean(document.querySelector("#treemap-host .treemap-stage.treemap-stage--zoom-in")),
       pulsingCrumbs: document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn--pulse").length,
       crumbCount: document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn").length,
+      scopedHidden: Boolean((document.getElementById("btn-mode-scoped") as HTMLElement | null)?.hidden),
     }));
     assertEquals(zoomInCheck.hasZoomInClass, true, "expected zoom-in stage animation class");
     assert(zoomInCheck.pulsingCrumbs >= 1, "expected affected breadcrumb to pulse on zoom-in");
     assert(zoomInCheck.crumbCount >= 2, "expected breadcrumb trail to include zoomed section");
+    assertEquals(zoomInCheck.scopedHidden, false, "Scoped Blockly must stay available when zoomed in Treemap");
 
     await page.locator("#treemap-breadcrumb .tm-crumb-btn").first().click();
     await page.waitForTimeout(50);

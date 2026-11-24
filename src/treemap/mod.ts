@@ -11,10 +11,12 @@ export {
   type ComputedTreemapTile,
   type TreemapDatum,
   type TreemapFilterOptions,
+  type TreemapOuterLayout,
   type TreemapStatusFilter,
 } from "./hierarchy.ts";
 export {
   createTreemapRenderer,
+  formatHoverStatus,
   type TreemapRenderer,
   type TreemapRendererCallbacks,
   type TreemapRenderState,

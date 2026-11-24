@@ -334,12 +334,16 @@ export interface ComputedTreemapTile {
   parentId: string | null;
 }
 
+export type TreemapOuterLayout = "pack" | "columns";
+
 export interface CascadedLayoutOptions {
   maxDepth?: number;
   cascadeOffset?: number;
   gap?: number;
   leafMaxWidth?: number;
   collapsedIds?: ReadonlySet<string>;
+  /** Outermost tree-layer layout algorithm for the current (possibly zoomed) view. */
+  outerLayout?: TreemapOuterLayout;
 }
 
 export interface CascadedLayoutResult {
@@ -499,6 +503,44 @@ function packBestOrderPreserving(
 }
 
 /**
+ * Lay out items top-to-bottom in orderly left-aligned columns, wrapping into
+ * a new column to the right whenever adding the next item would exceed `maxH`.
+ * Strictly preserves item order (1 → 2 → 3 down column 1, then column 2, …).
+ */
+function packColumns(
+  items: ReadonlyArray<{ w: number; h: number }>,
+  maxH: number,
+  rowGap: number,
+  colGap: number,
+): { pos: Array<{ x: number; y: number }>; w: number; h: number } {
+  if (items.length === 0) return { pos: [], w: 0, h: 0 };
+  const limitH = Math.max(80, maxH);
+  const pos: Array<{ x: number; y: number }> = [];
+  let colX = 0;
+  let colY = 0;
+  let colW = 0;
+  let colCount = 0;
+  let maxY = 0;
+
+  for (const item of items) {
+    if (colCount > 0 && colY + rowGap + item.h > limitH) {
+      colX += colW + colGap;
+      colY = 0;
+      colW = 0;
+      colCount = 0;
+    }
+    const y = colCount > 0 ? colY + rowGap : 0;
+    pos.push({ x: colX, y });
+    colY = y + item.h;
+    colW = Math.max(colW, item.w);
+    colCount++;
+    if (colY > maxY) maxY = colY;
+  }
+
+  return { pos, w: colX + colW, h: maxY };
+}
+
+/**
  * Compute TermViz V8 content-sized cascaded treemap layout (Lü & Fogarty 2008).
  *
  * - Leaf ELEMENTs are sized to their text content (never squished into slivers).
@@ -506,6 +548,8 @@ function packBestOrderPreserving(
  *   and shift their visual card up-left by `cascadeOffset` so children overhang
  *   down-right with zero wasted right/bottom padding.
  * - Collapsed containers (or depth-capped containers) render as compact blobs.
+ * - The outermost tree layer (`depth === 0`) supports `"pack"` (skyline packing)
+ *   or `"columns"` (top-to-bottom left-aligned columns growing to the right).
  */
 export function computeCascadedTreemapLayout(
   rootDatum: TreemapDatum,
@@ -522,8 +566,10 @@ export function computeCascadedTreemapLayout(
   const g = options?.gap ?? 3;
   const leafMax = options?.leafMaxWidth ?? 185;
   const collapsedIds = options?.collapsedIds;
+  const outerLayout: TreemapOuterLayout = options?.outerLayout ?? "pack";
   const outerPad = 8;
   const usableW = Math.max(240, width - outerPad * 2);
+  const usableH = Math.max(120, height - outerPad * 2);
 
   function layoutNode(
     datum: TreemapDatum,
@@ -593,7 +639,9 @@ export function computeCascadedTreemapLayout(
       };
     }
 
-    const childMaxW = Math.max(120, Math.floor((depth === 0 ? maxAvailW : maxAvailW * 0.94) - P));
+    const childMaxW = depth === 0 && outerLayout === "columns" && datum.children.length > 1
+      ? Math.max(240, Math.min(usableW - P, Math.max(340, Math.floor(usableW * 0.52))))
+      : Math.max(120, Math.floor((depth === 0 ? maxAvailW : maxAvailW * 0.94) - P));
     const nonGhostTotal = datum.children.filter((c) => !c.isGhost).length;
     let nonGhostOrdinal = 0;
     const kids = datum.children.map((c) => {
@@ -603,6 +651,30 @@ export function computeCascadedTreemapLayout(
     });
 
     if (depth === 0) {
+      if (outerLayout === "columns") {
+        // Orderly top-to-bottom left-aligned columns flowing to the right.
+        const r = packColumns(kids, usableH, g + 3, g + 7);
+        kids.forEach((k, i) => {
+          k.rx = outerPad + r.pos[i].x;
+          k.ry = outerPad + r.pos[i].y;
+        });
+        return {
+          datum,
+          depth: 0,
+          w: r.w + outerPad * 2,
+          h: r.h + outerPad * 2,
+          rx: 0,
+          ry: 0,
+          x: 0,
+          y: 0,
+          isLeaf: false,
+          isBlob: false,
+          siblingIndex: 0,
+          siblingCount: 0,
+          parentId: null,
+          kids,
+        };
+      }
       // Root packs its top-level children directly across the viewport width.
       const maxChildW = kids.reduce((m, k) => Math.max(m, k.w), 0);
       const packW = Math.max(maxChildW, usableW);

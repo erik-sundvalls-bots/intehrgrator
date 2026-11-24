@@ -2571,6 +2571,32 @@ span.ai-notes-option { cursor: default; }
   border-color: var(--primary, #005c53);
   color: #fff;
 }
+.tm-layout-switch {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #c5cdc9;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #fff;
+  flex: none;
+}
+.tm-layout-btn {
+  border: none;
+  border-right: 1px solid #d7dfdb;
+  background: transparent;
+  color: #2f3b39;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.tm-layout-btn:last-child { border-right: none; }
+.tm-layout-btn:hover:not(.active) { background: #edf3f1; }
+.tm-layout-btn.active {
+  background: var(--primary, #005c53);
+  color: #fff;
+}
 
 .treemap-host {
   flex: 1 1 auto;

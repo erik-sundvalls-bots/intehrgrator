@@ -256,7 +256,7 @@
           <div id="editor-mode-switch" class="editor-mode-switch editor-mode-switch--on-dark" role="tablist" aria-label="Editor mode" hidden>
             <button id="btn-mode-treemap" class="editor-mode-btn" type="button" role="tab" aria-selected="false">Treemap Overview</button>
             <button id="btn-mode-scoped" class="editor-mode-btn" type="button" role="tab" aria-selected="false" hidden>Scoped Blockly</button>
-            <button id="btn-mode-full" class="editor-mode-btn active" type="button" role="tab" aria-selected="true">Blockly Canvas</button>
+            <button id="btn-mode-full" class="editor-mode-btn active" type="button" role="tab" aria-selected="true" title="Mount the entire template on the Blockly canvas (may take a few seconds on large templates)">Total Blockly ⏳</button>
           </div>
         </div>
         <div class="pane-header-actions">
@@ -305,6 +305,10 @@
                 <button type="button" class="tm-filter-chip" data-tm-filter="unmapped">○ Unmapped</button>
                 <button type="button" class="tm-filter-chip" data-tm-filter="ai-draft">✦ AI Draft</button>
                 <button type="button" class="tm-filter-chip" data-tm-filter="mapped">✓ Mapped</button>
+              </div>
+              <div id="treemap-layout-switch" class="tm-layout-switch" role="group" aria-label="Outermost layer layout">
+                <button type="button" class="tm-layout-btn active" data-tm-layout="pack" aria-pressed="true" title="Pack outermost blocks to fill available space">Pack</button>
+                <button type="button" class="tm-layout-btn" data-tm-layout="columns" aria-pressed="false" title="List outermost blocks top-to-bottom in left-aligned columns (scroll sideways)">Columns</button>
               </div>
               <span
                 class="tm-order-legend"

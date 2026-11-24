@@ -16,6 +16,7 @@ import {
   computeCascadedTreemapLayout,
   type ComputedTreemapTile,
   type TreemapDatum,
+  type TreemapOuterLayout,
   type TreemapStatusFilter,
 } from "./hierarchy.ts";
 
@@ -42,6 +43,7 @@ export interface TreemapRenderState {
   selectedBlockId: string | null;
   sparseFullSkeleton?: SkeletonNode[] | null;
   showAiBulkActions?: boolean;
+  outerLayout?: TreemapOuterLayout;
 }
 
 const STATUS_GLYPH: Record<TileStatus, string> = {
@@ -507,38 +509,59 @@ export function createTreemapRenderer(
     // At template root, cap depth at 3 (SECTION -> ENTRY -> CLUSTER blobs) for crisp overview;
     // when zoomed into a SECTION/ENTRY/CLUSTER, expand deeper to reveal all leaf ELEMENTs.
     const maxDepth = state.zoomRootId && state.zoomRootId !== state.index.compositionId ? 5 : 3;
+    const outerLayout: TreemapOuterLayout = state.outerLayout ?? "pack";
     const sb = measureScrollbarSize();
 
-    // Deterministic scrollbar decision: pack for full viewport first; if vertical
-    // scrolling is needed on a classic-scrollbar platform, re-pack once for
-    // `viewportW - sb` so horizontal content fits cleanly without triggering an X scrollbar.
+    // Deterministic scrollbar decision:
+    // - In `columns` mode, columns grow horizontally; if a bottom horizontal scrollbar is
+    //   needed on classic-scrollbar platforms, re-pack once for `viewportH - sb` so columns
+    //   wrap cleanly above the horizontal scrollbar without triggering a vertical scrollbar.
+    // - In `pack` mode, pack for full viewport first; if vertical scrolling is needed,
+    //   re-pack once for `viewportW - sb` so horizontal content fits without an X scrollbar.
     let layout = computeCascadedTreemapLayout(
       rootDatum,
       Math.max(320, viewportW),
       Math.max(220, viewportH),
-      { maxDepth, collapsedIds },
+      { maxDepth, collapsedIds, outerLayout },
     );
-    let needsV = layout.naturalHeight > viewportH;
-    if (needsV && sb > 0 && viewportW - sb >= 320) {
-      layout = computeCascadedTreemapLayout(
-        rootDatum,
-        viewportW - sb,
-        Math.max(220, viewportH),
-        { maxDepth, collapsedIds },
-      );
+    let needsH = false;
+    let needsV = false;
+    if (outerLayout === "columns") {
+      needsH = layout.naturalWidth > viewportW;
+      if (needsH && sb > 0 && viewportH - sb >= 180) {
+        layout = computeCascadedTreemapLayout(
+          rootDatum,
+          Math.max(320, viewportW),
+          viewportH - sb,
+          { maxDepth, collapsedIds, outerLayout },
+        );
+        needsH = layout.naturalWidth > viewportW;
+      }
+      const innerH = needsH ? Math.max(180, viewportH - sb) : Math.max(180, viewportH);
+      needsV = layout.naturalHeight > innerH;
+    } else {
       needsV = layout.naturalHeight > viewportH;
-    }
-    const innerW = needsV ? Math.max(320, viewportW - sb) : Math.max(320, viewportW);
-    const needsH = layout.naturalWidth > innerW;
-    if (needsH && !needsV && sb > 0 && layout.naturalHeight > Math.max(220, viewportH - sb)) {
-      needsV = true;
-      if (viewportW - sb >= 320) {
+      if (needsV && sb > 0 && viewportW - sb >= 320) {
         layout = computeCascadedTreemapLayout(
           rootDatum,
           viewportW - sb,
-          Math.max(220, viewportH - sb),
-          { maxDepth, collapsedIds },
+          Math.max(220, viewportH),
+          { maxDepth, collapsedIds, outerLayout },
         );
+        needsV = layout.naturalHeight > viewportH;
+      }
+      const innerW = needsV ? Math.max(320, viewportW - sb) : Math.max(320, viewportW);
+      needsH = layout.naturalWidth > innerW;
+      if (needsH && !needsV && sb > 0 && layout.naturalHeight > Math.max(220, viewportH - sb)) {
+        needsV = true;
+        if (viewportW - sb >= 320) {
+          layout = computeCascadedTreemapLayout(
+            rootDatum,
+            viewportW - sb,
+            Math.max(220, viewportH - sb),
+            { maxDepth, collapsedIds, outerLayout },
+          );
+        }
       }
     }
 
