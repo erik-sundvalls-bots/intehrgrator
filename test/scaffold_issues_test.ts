@@ -7,11 +7,8 @@
 import { assert, assertEquals, assertFalse, assertThrows } from "@std/assert";
 import type { SkeletonNode } from "@intehrgrator/types/mod.ts";
 import { generateSkeletonFromOperational } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
-import {
-  lookupTermText,
-  parentArchetypeRefFromOverlay,
-  parentArchetypeTermBag,
-} from "@intehrgrator/core/skeleton/template_terms.ts";
+import { overlayConceptFallback } from "@intehrgrator/core/skeleton/template_terms.ts";
+import { overlayParentScopes, resolveScopeChain } from "ehrtslib/generation/term_scope.ts";
 import { detectTargetFormat, getTargetFormatHandler } from "@intehrgrator/core/target/mod.ts";
 import { Blockly } from "@intehrgrator/blockly/blockly_core.ts";
 import { registerRmBlocks, rmAttributeInputName } from "@intehrgrator/blockly/blocks/rm_blocks.ts";
@@ -333,18 +330,31 @@ Deno.test("#118 prohibited INTERVAL_EVENT 0..0 is not scaffolded as a math_funct
 Deno.test("Better overlay ids resolve to the specialised parent archetype", () => {
   const overlay = "openEHR-EHR-OBSERVATION.ovl-blood_pressure-001.v2";
   assertEquals(
-    parentArchetypeRefFromOverlay(overlay),
-    "openEHR-EHR-OBSERVATION.blood_pressure.v2",
+    overlayParentScopes(overlay),
+    ["openEHR-EHR-OBSERVATION.blood_pressure.v2"],
   );
-  const bag = parentArchetypeTermBag(overlay, {
+  const bags = {
     "openEHR-EHR-OBSERVATION.ovl-blood_pressure-001.v2": {
       "ac0.1": { text: "overlay-only" },
     },
     "openEHR-EHR-OBSERVATION.blood_pressure.v1": {
       at0000: { text: "Blood pressure" },
     },
-  });
-  assertEquals(lookupTermText(bag ?? {}, "at0000"), "Blood pressure");
+  };
+  // Exact parent version is always first; other present versions follow.
+  assertEquals(
+    overlayParentScopes(overlay, Object.keys(bags)),
+    [
+      "openEHR-EHR-OBSERVATION.blood_pressure.v2",
+      "openEHR-EHR-OBSERVATION.blood_pressure.v1",
+    ],
+  );
+  assertEquals(
+    resolveScopeChain(overlay, Object.keys(bags)),
+    [overlay, "openEHR-EHR-OBSERVATION.blood_pressure.v1"],
+  );
+  // Last-resort title when the parent bag has no term; still local.
+  assertEquals(overlayConceptFallback(overlay), "Blood Pressure");
 });
 
 Deno.test("Better .t.json is not parsed as a Web Template", () => {

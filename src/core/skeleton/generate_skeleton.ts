@@ -46,8 +46,6 @@ import {
   mergeTermMaps,
   nameFallbackOf,
   overlayConceptFallback,
-  parentArchetypeRefFromOverlay,
-  parentArchetypeTermBag,
   isOverlayArchetypeRef,
   publicArchetypeRef,
   resolveOptLanguage,
@@ -781,6 +779,8 @@ function resolvedNodeLabel(
   templateId?: string,
 ): string {
   if (isOverlayArchetypeRef(scope)) {
+    // ehrtslib >= 0.17 resolveLocatableLabel walks Better ovl-* parent
+    // scopes itself (overlayParentScopes / resolveScopeChain).
     const overlayOnly = locatableNodeLabel(
       nodeId,
       rmType,
@@ -790,33 +790,13 @@ function resolvedNodeLabel(
       archetypeTerms,
     );
     if (overlayOnly && overlayOnly !== nodeId && overlayOnly !== rmType) return overlayOnly;
-    const parentBag = parentArchetypeTermBag(scope, archetypeTerms);
-    const parentRef = parentArchetypeRefFromOverlay(scope);
-    if (parentRef) {
-      const parentLabel = locatableNodeLabel(
-        nodeId,
-        rmType,
-        parentRef,
-        nameFallback,
-        {},
-        archetypeTerms,
-      );
-      if (parentLabel && parentLabel !== nodeId && parentLabel !== rmType) {
-        return parentLabel;
-      }
-    }
-    const fromParentBag = lookupTermText(parentBag ?? {}, nodeId ?? "") ??
-      lookupTermText(parentBag ?? {}, nameFallback ?? "");
-    if (fromParentBag) return fromParentBag;
     // Better template slots (`at0.6`) are overlay roots even when term-scope
-    // fallback is tagged as the slot id rather than at0000.
+    // fallback is tagged as the slot id rather than at0000. Title-case the
+    // ovl-* concept only when the parent term bag has no label.
     const overlayRoot = !nodeId || nodeId === "at0000" || nameFallback === "at0000" ||
-      /^at0\.\d/i.test(nodeId);
+      /^at0\.\d/i.test(nodeId ?? "");
     if (overlayRoot) {
-      return nameHint ||
-        lookupTermText(parentBag ?? {}, "at0000") ||
-        overlayConceptFallback(scope) ||
-        overlayOnly;
+      return nameHint || overlayConceptFallback(scope) || overlayOnly;
     }
     return nameHint || overlayOnly;
   }
