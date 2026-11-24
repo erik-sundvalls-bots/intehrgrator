@@ -566,7 +566,7 @@ export function computeCascadedTreemapLayout(
   const g = options?.gap ?? 3;
   const leafMax = options?.leafMaxWidth ?? 185;
   const collapsedIds = options?.collapsedIds;
-  const outerLayout: TreemapOuterLayout = options?.outerLayout ?? "pack";
+  const outerLayout: TreemapOuterLayout = options?.outerLayout ?? "columns";
   const outerPad = 8;
   const usableW = Math.max(240, width - outerPad * 2);
   const usableH = Math.max(120, height - outerPad * 2);

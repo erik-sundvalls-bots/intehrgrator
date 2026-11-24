@@ -244,20 +244,21 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
     assertEquals(leaveCheck.seqLines, 0, "sibling dashed arrows should clear on leave");
 
     // 4c. Top bar shows "Total Blockly ⏳" and keeps "Scoped Blockly" available in Treemap Overview;
-    //     Pack / Columns switch arranges outermost layer into left-aligned top-to-bottom columns.
+    //     Columns is the default outermost layout (top-to-bottom left-aligned columns), with a Pack toggle.
     const modeBarLabels = await page.evaluate(() => ({
       fullText: document.getElementById("btn-mode-full")?.textContent?.trim() ?? "",
       scopedHidden: Boolean((document.getElementById("btn-mode-scoped") as HTMLElement | null)?.hidden),
       layoutButtons: [...document.querySelectorAll("#treemap-layout-switch .tm-layout-btn")].map((b) =>
         b.textContent?.trim()
       ),
+      activeLayout: document.querySelector('#treemap-layout-switch .tm-layout-btn[aria-pressed="true"]')
+        ?.getAttribute("data-tm-layout") ?? "",
     }));
     assertEquals(modeBarLabels.fullText, "Total Blockly ⏳");
     assertEquals(modeBarLabels.scopedHidden, false, "Scoped Blockly must stay available in the top bar in Treemap mode");
-    assertEquals(modeBarLabels.layoutButtons, ["Pack", "Columns"]);
+    assertEquals(modeBarLabels.layoutButtons, ["Columns", "Pack"]);
+    assertEquals(modeBarLabels.activeLayout, "columns", "Columns must be the default Treemap layout");
 
-    await page.click('#treemap-layout-switch [data-tm-layout="columns"]');
-    await page.waitForTimeout(50);
     const columnsCheck = await page.evaluate(() => {
       const canvas = document.querySelector("#treemap-host .treemap-canvas") as HTMLElement | null;
       const depth1 = [...document.querySelectorAll("#treemap-host .tm-depth--1")] as HTMLElement[];
@@ -281,11 +282,19 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
         overflowX: canvas?.style.overflowX ?? "",
       };
     });
-    assert(columnsCheck.distinctCols >= 2, `expected multiple left-aligned columns, got ${columnsCheck.distinctCols}`);
+    assert(columnsCheck.distinctCols >= 2, `expected multiple left-aligned columns by default, got ${columnsCheck.distinctCols}`);
     assertEquals(columnsCheck.orderedTopToBottom, true, "columns mode must keep outermost blocks top-to-bottom then left-to-right");
     assertEquals(columnsCheck.overflowX, "auto", "columns mode must enable horizontal scrolling when columns extend right");
 
     await page.click('#treemap-layout-switch [data-tm-layout="pack"]');
+    await page.waitForTimeout(50);
+    const packActive = await page.evaluate(() =>
+      document.querySelector('#treemap-layout-switch .tm-layout-btn[aria-pressed="true"]')
+        ?.getAttribute("data-tm-layout") ?? ""
+    );
+    assertEquals(packActive, "pack", "clicking Pack must switch active layout to pack");
+
+    await page.click('#treemap-layout-switch [data-tm-layout="columns"]');
     await page.waitForTimeout(50);
 
     // 5. Feature 1: clicking a container zooms in with animation + pulses the newly added breadcrumb;

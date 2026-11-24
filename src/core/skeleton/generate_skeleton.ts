@@ -3,10 +3,12 @@ import {
   parseWebTemplate,
   webTemplateToOpt,
 } from "ehrtslib/serialization/simplified/mod.ts";
+import { buildWebTemplate } from "ehrtslib/serialization/simplified/web_template_builder.ts";
 import {
-  buildWebTemplate,
+  createTemplateLabelResolver,
   fixedNameConstraint,
-} from "ehrtslib/serialization/simplified/web_template_builder.ts";
+  type TemplateLabelResolver,
+} from "ehrtslib/generation/template_label_resolver.ts";
 import { stripNamePredicates } from "ehrtslib/generation/opt_l10n.ts";
 import {
   applyOperationalTemplateTermScopes,
@@ -44,6 +46,7 @@ import {
   availableWebTemplateLanguages,
   buildWebTemplateTermsIndex,
   isGenericRmTypeLabel,
+  isOverlayArchetypeRef,
   liveArchetypeTermsIndex,
   locatableNodeLabel,
   lookupTermText,
@@ -51,9 +54,6 @@ import {
   mergeTermMaps,
   nameFallbackOf,
   overlayConceptFallback,
-  parentArchetypeRefFromOverlay,
-  parentArchetypeTermBag,
-  isOverlayArchetypeRef,
   publicArchetypeRef,
   resolveOptLanguage,
   TEMPLATE_ROOT_TERM_SCOPE,
@@ -265,6 +265,10 @@ export function generateSkeletonFromOperational(
   const lang = preferred && (languages.length === 0 || languages.includes(preferred))
     ? resolveOptLanguage(opt, preferred)
     : resolveOptLanguage(opt);
+  const labelResolver = createTemplateLabelResolver(opt, {
+    language: lang,
+    languages: languages.length ? languages : [lang],
+  });
   applyOperationalTemplateTermScopes(opt, lang);
   const names: NameLabels = { primary: lang === (options?.primaryLanguage ?? resolveOptLanguage(opt)) };
   const fallbackTerms = mergedOntologyTerms(opt, lang);
@@ -289,6 +293,13 @@ export function generateSkeletonFromOperational(
     fallbackTerms,
     archetypeTermRecord,
     names,
+    {
+      resolver: labelResolver,
+      aqlPath: "",
+      ancestorNames: [],
+      useResolverPrimary: !options?.primaryLanguage ||
+        options.primaryLanguage === labelResolver.originalLanguage,
+    },
   );
 
   return {
@@ -300,6 +311,13 @@ export function generateSkeletonFromOperational(
   };
 }
 
+interface LabelWalkCtx {
+  resolver: TemplateLabelResolver;
+  aqlPath: string;
+  ancestorNames: ReadonlyArray<readonly string[] | undefined>;
+  useResolverPrimary: boolean;
+}
+
 function walkComplex(
   cObj: AmObject,
   templateId: string,
@@ -308,6 +326,7 @@ function walkComplex(
   fallbackTerms: TermBag,
   archetypeTerms: Record<string, TermBag>,
   names: NameLabels,
+  labelCtx: LabelWalkCtx,
 ): SkeletonNode | null {
   const rmType = cObj.rm_type_name ?? "ITEM_TREE";
   const { nodeId, nameHint } = splitAqlStyleNodeId(cObj.node_id as string | undefined);
@@ -318,15 +337,18 @@ function walkComplex(
   const nodeNames = namesForNode(cObj, nodeArchetypeRef, nameConstraint, names, archetypeTerms);
   const termScope = nodeNames.occurrence ?? rawScope ?? nodeArchetypeRef;
   const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
-  const label = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
+  const { label, candidateNames, alternateLabels } = resolveNodeDisplayLabel(
+    cObj,
     nameHint,
     nodeId,
     rmType,
+    nameConstraint,
+    nodeNames,
     termScope ?? archetypeRef,
-    nameFallbackOf(cObj as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
     fallbackTerms,
     archetypeTerms,
     templateId,
+    labelCtx,
   );
   const blockType = blockTypeForRm(rmType);
   const archetypeCtx = nodeArchetypeRef
@@ -345,6 +367,7 @@ function walkComplex(
       archetypeId: templateId,
       ...archetypeCtx,
       ...(nameConstraint ? { nameConstraint } : {}),
+      ...(alternateLabels.length ? { alternateLabels } : {}),
       kind: "value",
       mandatory,
       multiplicity,
@@ -356,6 +379,9 @@ function walkComplex(
   const children: SkeletonNode[] = [];
   const presentAttrs = new Set<string>();
   const attributeConstraints: AttributeConstraint[] = [];
+  const childAncestorNames = labelCtx.aqlPath
+    ? [...labelCtx.ancestorNames, candidateNames.length ? candidateNames : undefined]
+    : labelCtx.ancestorNames;
 
   for (const attr of (cObj.attributes ?? []) as AmObject[]) {
     const attrName = attr.rm_attribute_name as string | undefined;
@@ -378,6 +404,12 @@ function walkComplex(
       fallbackTerms,
       archetypeTerms,
       nodeNames,
+      {
+        resolver: labelCtx.resolver,
+        aqlPath: labelCtx.aqlPath,
+        ancestorNames: childAncestorNames,
+        useResolverPrimary: labelCtx.useResolverPrimary,
+      },
     );
     for (const child of childNodes) {
       child.rmAttribute = attrName;
@@ -448,6 +480,7 @@ function walkComplex(
     archetypeId: templateId,
     ...archetypeCtx,
     ...(nameConstraint ? { nameConstraint } : {}),
+    ...(alternateLabels.length ? { alternateLabels } : {}),
     kind: "container",
     mandatory,
     multiplicity,
@@ -465,7 +498,9 @@ function walkAttribute(
   fallbackTerms: TermBag,
   archetypeTerms: Record<string, TermBag>,
   names: NameLabels,
+  labelCtx: LabelWalkCtx,
 ): SkeletonNode[] {
+  const attrName = (attr.rm_attribute_name as string | undefined) ?? "";
   const children = (attr.children ?? []) as AmObject[];
   const nodes: SkeletonNode[] = [];
   const visibleChildren = children.filter((child) => !isProhibitedAmObject(child));
@@ -476,6 +511,13 @@ function walkAttribute(
     const rmType = child.rm_type_name ?? "DV_TEXT";
     const { nodeId, nameHint } = splitAqlStyleNodeId(child.node_id as string | undefined);
     const childPath = locatorChildPath(path, child, visibleChildren);
+    const childAqlPath = attrName
+      ? aqlChildPath(labelCtx.aqlPath, attrName, child, visibleChildren)
+      : labelCtx.aqlPath;
+    const childLabelCtx: LabelWalkCtx = {
+      ...labelCtx,
+      aqlPath: childAqlPath,
+    };
     const nameConstraint = nameConstraintOf(child);
     const isDv = isDataValueType(rmType);
     if (!isDv || child.attributes) {
@@ -487,6 +529,7 @@ function walkAttribute(
         fallbackTerms,
         archetypeTerms,
         names,
+        childLabelCtx,
       );
       if (node) nodes.push(node);
     } else {
@@ -499,22 +542,26 @@ function walkAttribute(
       const leafNames = namesForNode(child, childArchetypeRef, nameConstraint, names, archetypeTerms);
       const termScope = leafNames.occurrence ?? rawChildScope ?? childArchetypeRef;
       const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
+      const { label } = resolveNodeDisplayLabel(
+        child,
+        nameHint,
+        nodeId,
+        rmType,
+        nameConstraint,
+        leafNames,
+        termScope,
+        fallbackTerms,
+        archetypeTerms,
+        templateId,
+        childLabelCtx,
+      );
       nodes.push({
         // Keep unique-OPT DV leaves on `…/value/value/value` (the attribute is
         // already in `path`). locatorChildPath is for siblings with a node id.
         slotId: `${templateId}${path}/${nodeId ?? "value"}/value`,
         blockType: blockTypeForRm(rmType),
         rmType,
-        label: nameLabel(nameConstraint, leafNames) ?? resolvedNodeLabel(
-          nameHint,
-          nodeId,
-          rmType,
-          termScope,
-          nameFallbackOf(child as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
-          fallbackTerms,
-          archetypeTerms,
-          templateId,
-        ),
+        label,
         archetypeNodeId: nodeId,
         archetypeId: templateId,
         rmAttribute: attr.rm_attribute_name as string | undefined,
@@ -778,9 +825,134 @@ export function splitAqlStyleNodeId(nodeId?: string): { nodeId?: string; nameHin
   return { nodeId };
 }
 
+function cObjAqlNodeId(cObj: AmObject): string | undefined {
+  const archRef = typeof cObj.archetype_ref === "string" && cObj.archetype_ref
+    ? cObj.archetype_ref
+    : undefined;
+  if (archRef) return archRef;
+  const nid = splitAqlStyleNodeId(cObj.node_id as string | undefined).nodeId;
+  return nid || undefined;
+}
+
+function aqlChildPath(
+  parentAqlPath: string,
+  attrName: string,
+  child: AmObject,
+  siblings: AmObject[],
+): string {
+  const nid = cObjAqlNodeId(child);
+  if (!nid) return `${parentAqlPath}/${attrName}`;
+  const fixed = nameConstraintOf(child);
+  if (fixed) {
+    const same = siblings.filter((s) => cObjAqlNodeId(s) === nid).length;
+    if (same > 1) {
+      return `${parentAqlPath}/${attrName}[${nid} and name/value='${fixed}']`;
+    }
+  }
+  return `${parentAqlPath}/${attrName}[${nid}]`;
+}
+
+function isResolvedClinicalLabel(
+  label: string | undefined,
+  nodeId: string | undefined,
+  rmType: string,
+  templateId: string,
+): label is string {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return false;
+  if (trimmed === nodeId || trimmed === rmType || trimmed === templateId) return false;
+  if (isGenericRmTypeLabel(trimmed, rmType)) return false;
+  return true;
+}
+
 /**
- * Prefer ontology / localizedNames over AQL name predicates baked into node_id
- * (`at0002,'Injury'`), so model language switching can replace the English hint.
+ * Resolve a node's display label via ehrtslib's unified `TemplateLabelResolver`
+ * (`L10n.{lang}` path annotations → `fixedNameConstraint` in `original_language`
+ * → occurrence/archetype/overlay/WT scopes → ontology terms), falling back to
+ * caller-supplied extra term bags / AQL name hints / overlay concept fallbacks.
+ */
+function resolveNodeDisplayLabel(
+  cObj: AmObject,
+  nameHint: string | undefined,
+  nodeId: string | undefined,
+  rmType: string,
+  nameConstraint: string | undefined,
+  nodeNames: NameLabels,
+  termScope: string | undefined,
+  fallbackTerms: TermBag,
+  archetypeTerms: Record<string, TermBag>,
+  templateId: string,
+  labelCtx: LabelWalkCtx,
+): { label: string; candidateNames: string[]; alternateLabels: string[] } {
+  const resolved = labelCtx.resolver.resolveNode(
+    cObj,
+    labelCtx.aqlPath || undefined,
+    {
+      ancestorNames: labelCtx.ancestorNames.length ? [...labelCtx.ancestorNames] : undefined,
+      candidateNames: nameHint ? [nameHint] : undefined,
+    },
+  );
+  const baseLangTerm = labelCtx.resolver.resolveNodeTermInLanguage(
+    cObj,
+    labelCtx.resolver.primaryLanguage,
+  ).text?.trim();
+  const baseOrigTerm = labelCtx.resolver.resolveNodeTermInLanguage(
+    cObj,
+    labelCtx.resolver.originalLanguage,
+  ).text?.trim();
+  const candidateNames = [
+    nameConstraint,
+    nameHint,
+    resolved.primaryName,
+    baseLangTerm,
+    ...Object.values(resolved.localizedNames ?? {}),
+  ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+  let label: string;
+  if (
+    labelCtx.useResolverPrimary &&
+    isResolvedClinicalLabel(resolved.primaryName?.trim(), nodeId, rmType, templateId)
+  ) {
+    label = resolved.primaryName!.trim();
+  } else {
+    const fallback = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
+      nameHint,
+      nodeId,
+      rmType,
+      termScope,
+      nameFallbackOf(cObj as TermScopeMeta & { node_id?: string; archetype_ref?: string }),
+      fallbackTerms,
+      archetypeTerms,
+      templateId,
+    );
+    label = isResolvedClinicalLabel(fallback, nodeId, rmType, templateId)
+      ? fallback
+      : (resolved.primaryName?.trim() || fallback);
+  }
+
+  const labelLower = label.trim().toLowerCase();
+  const altSet = new Set<string>();
+  for (
+    const raw of [
+      baseLangTerm,
+      baseOrigTerm,
+      ...Object.values(resolved.localizedNames ?? {}),
+    ]
+  ) {
+    const t = raw?.trim();
+    if (!t) continue;
+    if (t.toLowerCase() === labelLower) continue;
+    if (nameConstraint && t.toLowerCase() === nameConstraint.trim().toLowerCase()) continue;
+    altSet.add(t);
+  }
+  return { label, candidateNames, alternateLabels: [...altSet] };
+}
+
+/**
+ * Fallback ontology / extra-terms lookup when `TemplateLabelResolver` does not
+ * yield a clinical label (e.g. AQL name predicates baked into `node_id`,
+ * caller-supplied extra term maps, or Better `ovl-*` overlays without a parent
+ * term bag in the template).
  */
 function resolvedNodeLabel(
   nameHint: string | undefined,
@@ -792,53 +964,12 @@ function resolvedNodeLabel(
   archetypeTerms: Record<string, TermBag>,
   templateId?: string,
 ): string {
-  if (isOverlayArchetypeRef(scope)) {
-    const overlayOnly = locatableNodeLabel(
-      nodeId,
-      rmType,
-      scope,
-      nameFallback,
-      {},
-      archetypeTerms,
-    );
-    if (overlayOnly && overlayOnly !== nodeId && overlayOnly !== rmType) return overlayOnly;
-    const parentBag = parentArchetypeTermBag(scope, archetypeTerms);
-    const parentRef = parentArchetypeRefFromOverlay(scope);
-    if (parentRef) {
-      const parentLabel = locatableNodeLabel(
-        nodeId,
-        rmType,
-        parentRef,
-        nameFallback,
-        {},
-        archetypeTerms,
-      );
-      if (parentLabel && parentLabel !== nodeId && parentLabel !== rmType) {
-        return parentLabel;
-      }
-    }
-    const fromParentBag = lookupTermText(parentBag ?? {}, nodeId ?? "") ??
-      lookupTermText(parentBag ?? {}, nameFallback ?? "");
-    if (fromParentBag) return fromParentBag;
-    // Better template slots (`at0.6`) are overlay roots even when term-scope
-    // fallback is tagged as the slot id rather than at0000.
-    const overlayRoot = !nodeId || nodeId === "at0000" || nameFallback === "at0000" ||
-      /^at0\.\d/i.test(nodeId);
-    if (overlayRoot) {
-      return nameHint ||
-        lookupTermText(parentBag ?? {}, "at0000") ||
-        overlayConceptFallback(scope) ||
-        overlayOnly;
-    }
-    return nameHint || overlayOnly;
-  }
-
   const fromTerms = locatableNodeLabel(
     nodeId,
     rmType,
     scope,
     nameFallback,
-    templateTerms,
+    isOverlayArchetypeRef(scope) ? {} : templateTerms,
     archetypeTerms,
   );
   if (
@@ -847,6 +978,13 @@ function resolvedNodeLabel(
     fromTerms !== rmType &&
     fromTerms !== templateId
   ) return fromTerms;
+  if (isOverlayArchetypeRef(scope)) {
+    const overlayRoot = !nodeId || nodeId === "at0000" || nameFallback === "at0000" ||
+      /^at0\.\d/i.test(nodeId);
+    if (overlayRoot) {
+      return nameHint || overlayConceptFallback(scope) || fromTerms;
+    }
+  }
   return nameHint || fromTerms;
 }
 

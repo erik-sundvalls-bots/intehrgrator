@@ -141,7 +141,7 @@ Deno.test("computeCascadedTreemapLayout assigns 1-based siblingIndex/siblingCoun
   const idx = indexDocument(doc);
   const root = buildTreemapHierarchy(idx)!;
 
-  const res = computeCascadedTreemapLayout(root, 1000, 600, { maxDepth: 3 });
+  const res = computeCascadedTreemapLayout(root, 1000, 600, { maxDepth: 3, outerLayout: "pack" });
   const depth1 = res.tiles.filter((t) => t.depth === 1);
   assert(depth1.length >= 10);
   depth1.forEach((tile, i) => {
@@ -207,13 +207,12 @@ Deno.test("#374 relabelBlocklyJsonFromSkeleton preserves human labels over bare 
   );
 });
 
-Deno.test("computeCascadedTreemapLayout columns mode orders outermost tiles top-to-bottom in left-aligned columns", async () => {
+Deno.test("computeCascadedTreemapLayout defaults to columns mode ordering outermost tiles top-to-bottom", async () => {
   const doc = JSON.parse(await Deno.readTextFile(MHV1_MAPPING_URL)) as BlocklyWorkspaceJson;
   const idx = indexDocument(doc);
   const root = buildTreemapHierarchy(idx)!;
   const cols = computeCascadedTreemapLayout(root, 960, 420, {
     maxDepth: 3,
-    outerLayout: "columns",
   });
   const depth1 = cols.tiles.filter((t) => t.depth === 1);
   assert(depth1.length >= 10, "expected >=10 depth-1 sections in MHV1");
