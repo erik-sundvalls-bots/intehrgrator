@@ -175,4 +175,23 @@ Deno.test("#375 undo history is scoped per project and resets when switching pro
   assertEquals(res.overwritten.length, 0);
   assertEquals(backend.listHistory().length, 0);
   assertEquals(backend.history.canUndo(), false);
+
+  // Loading an example set via WorkbenchService clears earlier project history
+  // and starts with a non-undoable baseline entry scoped to the new project.
+  backend.mapNodeToSlot(sys, "$.systolic", "json");
+  assertEquals(backend.listHistory().length, 1);
+  assertEquals(backend.history.canUndo(), true);
+  const priorProjectId = backend.exportBundle().projectId;
+
+  const catalog = await controller.loadExampleSetCatalog();
+  const vitalsSet = catalog.sets.find((s) => s.id === "Simple-vitals-unmapped") ?? catalog.sets[0]!;
+  await backend.loadExampleSet(vitalsSet);
+  const afterLoadHistory = backend.listHistory();
+  assertEquals(afterLoadHistory.length, 1);
+  assertEquals(afterLoadHistory[0]!.seq, 1);
+  assertEquals(afterLoadHistory[0]!.kind, "load_bundle");
+  assertEquals(afterLoadHistory[0]!.beforeBundle.projectId, backend.exportBundle().projectId);
+  assert(afterLoadHistory[0]!.beforeBundle.projectId !== priorProjectId);
+  assertEquals(backend.history.canUndo(), false);
+  assertEquals(backend.undo(), null);
 });

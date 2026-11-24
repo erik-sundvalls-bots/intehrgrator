@@ -823,7 +823,8 @@ export class WorkbenchService {
     return { catalog };
   }
 
-  async loadExampleSet(set: ExampleSet, _ctx?: MutationContext): Promise<void> {
+  async loadExampleSet(set: ExampleSet, ctx?: MutationContext): Promise<void> {
+    const actor = this.actorNow(ctx);
     this.mutating = true;
     try {
       await this.controller.loadExampleSet(set);
@@ -832,6 +833,17 @@ export class WorkbenchService {
       this.mutating = false;
     }
     this.resetHistoryForProject();
+    if (ctx?.recordHistory !== false) {
+      const after = this.exportBundle();
+      this.history.recordBaseline(
+        emptyBundleForProject(after),
+        after,
+        actor,
+        ctx?.kind ?? "load_bundle",
+        ctx?.summary ?? `Load example set ${set.id}`,
+      );
+      this.liveBaseline = after;
+    }
   }
 
   async loadTargetFromUrl(url: string, ctx?: MutationContext): Promise<void> {
@@ -1193,6 +1205,31 @@ export function isScaffoldedSlotExpression(expression: string | undefined): bool
   return /^map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)$/.test(expression) ||
     /^map\("value",\s*"[^"]*",\s*"defining_code",\s*map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)\)$/
       .test(expression);
+}
+
+function emptyBundleForProject(after: ProjectBundle): ProjectBundle {
+  return {
+    version: after.version,
+    projectId: after.projectId,
+    appVersion: after.appVersion,
+    createdAt: after.createdAt,
+    updatedAt: after.createdAt,
+    target: null,
+    sourceSchema: null,
+    examples: [],
+    activeExampleId: null,
+    mapping: {
+      blocklyState: null,
+      model: {
+        modelVersion: after.mapping.model.modelVersion,
+        templateId: "",
+        slots: [],
+        optionalRm: [],
+      },
+      sheets: [],
+    },
+    settings: structuredClone(after.settings),
+  };
 }
 
 function parseBundleBytes(bytes: Uint8Array): ProjectBundle {
