@@ -5,11 +5,12 @@
  * Pure TypeScript (no DOM required) so layout, filtering, cascade overhang,
  * collapsible blobs, and Sparse-mode ghost overlays can be unit-tested in Deno.
  */
-import type {
-  DocumentIndex,
-  IndexedBlockNode,
-  StatusCounts,
-  TileStatus,
+import {
+  type DocumentIndex,
+  type IndexedBlockNode,
+  isLeafNodeType,
+  type StatusCounts,
+  type TileStatus,
 } from "../core/slice_engine.ts";
 import type { SkeletonNode } from "../types/mod.ts";
 
@@ -99,7 +100,7 @@ function nodeToDatum(
     return childData;
   }
 
-  const isLeaf = node.type === "element" || childData.length === 0;
+  const isLeaf = isLeafNodeType(node.type) || childData.length === 0;
   return [
     {
       id: node.id,
@@ -165,10 +166,13 @@ function buildGhostFromSkeleton(
     rm === "ENTRY" ||
     rm === "CLUSTER" ||
     rm === "ELEMENT" ||
-    rm === "EVENT_CONTEXT";
+    rm === "EVENT_CONTEXT" ||
+    node.blockType.startsWith("schema_") ||
+    node.blockType === "target_structure" ||
+    node.blockType === "target_value";
   if (!isMeaningful) return children;
 
-  const isLeaf = rm === "ELEMENT" || children.length === 0;
+  const isLeaf = rm === "ELEMENT" || node.kind === "value" || children.length === 0;
   return [
     {
       id: `ghost:${node.slotId}`,
@@ -253,20 +257,43 @@ export function buildTreemapHierarchy(
   index: DocumentIndex,
   options?: BuildTreemapOptions,
 ): TreemapDatum | null {
+  const defaultRootId = index.primaryRootId ?? index.compositionId ?? index.roots[0] ?? null;
   const rootId = options?.zoomRootId && index.nodes.has(options.zoomRootId)
     ? options.zoomRootId
-    : (index.compositionId ?? index.roots[0] ?? null);
+    : defaultRootId;
   if (!rootId) return null;
 
   const built = nodeToDatum(index, rootId);
   if (built.length === 0) return null;
-  let root = built[0];
+  let root: TreemapDatum;
+  if (built.length === 1) {
+    root = built[0];
+  } else {
+    const rawRoot = index.nodes.get(rootId)!;
+    root = {
+      id: rawRoot.id,
+      label: rawRoot.label,
+      rmType: rawRoot.rmType,
+      valueRmType: rawRoot.valueRmType,
+      slotId: rawRoot.slotId,
+      archetypeNodeId: rawRoot.archetypeNodeId,
+      mandatory: rawRoot.mandatory,
+      status: rawRoot.status,
+      counts: { ...rawRoot.counts },
+      mappingSummary: rawRoot.mappingSummary,
+      hasAiDraft: rawRoot.hasAiDraft,
+      subtreeBlockCount: rawRoot.subtreeBlockCount,
+      isLeaf: false,
+      isGhost: false,
+      children: built,
+    };
+  }
 
   // Overlay unscaffolded optional nodes when viewing the template root in Sparse mode.
   if (
     options?.sparseFullSkeleton &&
     options.sparseFullSkeleton.length > 0 &&
-    (!options.zoomRootId || options.zoomRootId === index.compositionId)
+    (!options.zoomRootId || options.zoomRootId === defaultRootId)
   ) {
     const presentSlots = collectPresentSlotIds(index);
     const ghosts: TreemapDatum[] = [];
@@ -303,8 +330,9 @@ export function buildBreadcrumbTrail(
     }
     cur = cur.parentId ? index.nodes.get(cur.parentId) : undefined;
   }
-  if (trail.length === 0 && index.compositionId) {
-    const comp = index.nodes.get(index.compositionId);
+  const defaultRootId = index.primaryRootId ?? index.compositionId;
+  if (trail.length === 0 && defaultRootId) {
+    const comp = index.nodes.get(defaultRootId);
     if (comp) trail.push({ id: comp.id, label: comp.label, rmType: comp.rmType });
   }
   return trail;

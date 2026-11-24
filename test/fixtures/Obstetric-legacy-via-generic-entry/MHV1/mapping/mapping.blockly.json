@@ -679,7 +679,7 @@
                     }
                   },
                   "fields": {
-                    "NAME": "Ad hoc heading",
+                    "NAME": "General information",
                     "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.6",
                     "RM_TYPE": "SECTION",
                     "MANDATORY": "",
@@ -2414,7 +2414,7 @@
                         }
                       },
                       "fields": {
-                        "NAME": "Ad hoc heading",
+                        "NAME": "Social summary",
                         "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.20",
                         "RM_TYPE": "SECTION",
                         "MANDATORY": "",
@@ -4517,7 +4517,7 @@
                             }
                           },
                           "fields": {
-                            "NAME": "MHV1- Encounter.v1",
+                            "NAME": "Involuntary childlessness",
                             "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.8",
                             "RM_TYPE": "SECTION",
                             "MANDATORY": "",
@@ -5798,7 +5798,7 @@
                                 }
                               },
                               "fields": {
-                                "NAME": "Ad hoc heading",
+                                "NAME": "Current pregnancy",
                                 "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.21",
                                 "RM_TYPE": "SECTION",
                                 "MANDATORY": "",
@@ -9889,7 +9889,7 @@
                                     }
                                   },
                                   "fields": {
-                                    "NAME": "Ad hoc heading",
+                                    "NAME": "Medical history",
                                     "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.28",
                                     "RM_TYPE": "SECTION",
                                     "MANDATORY": "",
@@ -15172,7 +15172,7 @@
                                         }
                                       },
                                       "fields": {
-                                        "NAME": "Ad hoc heading",
+                                        "NAME": "Previous pregnancies and child birth details",
                                         "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.48",
                                         "RM_TYPE": "SECTION",
                                         "MANDATORY": "",
@@ -16376,7 +16376,7 @@
                                             }
                                           },
                                           "fields": {
-                                            "NAME": "Ad hoc heading",
+                                            "NAME": "Medications",
                                             "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.31",
                                             "RM_TYPE": "SECTION",
                                             "MANDATORY": "",
@@ -18004,7 +18004,7 @@
                                                 }
                                               },
                                               "fields": {
-                                                "NAME": "Ad hoc heading",
+                                                "NAME": "Previous blood transfusion",
                                                 "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.34",
                                                 "RM_TYPE": "SECTION",
                                                 "MANDATORY": "",
@@ -18990,7 +18990,7 @@
                                                     }
                                                   },
                                                   "fields": {
-                                                    "NAME": "Ad hoc heading",
+                                                    "NAME": "Clinical assessment",
                                                     "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.37",
                                                     "RM_TYPE": "SECTION",
                                                     "MANDATORY": "",
@@ -19605,7 +19605,7 @@
                                                         }
                                                       },
                                                       "fields": {
-                                                        "NAME": "Ad hoc heading",
+                                                        "NAME": "Clinical notes",
                                                         "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.40",
                                                         "RM_TYPE": "SECTION",
                                                         "MANDATORY": "",

@@ -64,7 +64,7 @@ const STATUS_LABEL: Record<TileStatus, string> = {
   "unscaffolded-optional": "Optional (not scaffolded)",
 };
 
-/** TermViz V8 openEHR RM accent palette. */
+/** TermViz V8 openEHR RM + XML/JSON Schema accent palette. */
 const RM_COLOR: Record<string, string> = {
   OBSERVATION: "#2f6f9f",
   EVALUATION: "#7a4b8c",
@@ -76,6 +76,12 @@ const RM_COLOR: Record<string, string> = {
   ADMIN_ENTRY: "#5c675f",
   ENTRY: "#2f6f9f",
   EVENT_CONTEXT: "#5c675f",
+  XML_ELEMENT: "#0284c7",
+  XML_ATTRIBUTE: "#0369a1",
+  JSON_OBJECT: "#b45309",
+  JSON_ARRAY: "#c46b1a",
+  SCHEMA_OBJECT: "#475569",
+  SCHEMA_FIELD: "#5c675f",
 };
 
 export interface TreemapRenderer {
@@ -508,7 +514,8 @@ export function createTreemapRenderer(
 
     // At template root, cap depth at 3 (SECTION -> ENTRY -> CLUSTER blobs) for crisp overview;
     // when zoomed into a SECTION/ENTRY/CLUSTER, expand deeper to reveal all leaf ELEMENTs.
-    const maxDepth = state.zoomRootId && state.zoomRootId !== state.index.compositionId ? 5 : 3;
+    const rootId = state.index.primaryRootId ?? state.index.compositionId;
+    const maxDepth = state.zoomRootId && state.zoomRootId !== rootId ? 5 : 3;
     const outerLayout: TreemapOuterLayout = state.outerLayout ?? "columns";
     const sb = measureScrollbarSize();
 

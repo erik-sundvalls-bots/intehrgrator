@@ -478,7 +478,10 @@ function subtreeHasClinicalValue(
   }
   if (Object.hasOwn(values, node.slotId) && valueIsPresent(values[node.slotId])) return true;
   if (node.kind === "value") {
-    const value = Object.hasOwn(values, node.slotId) ? values[node.slotId] : fixedValue(node);
+    const isElementValue = node.rmAttribute === "value";
+    const value = Object.hasOwn(values, node.slotId)
+      ? values[node.slotId]
+      : (isElementValue ? undefined : fixedValue(node));
     return valueIsPresent(value);
   }
   return node.children.some((child) => subtreeHasClinicalValue(child, values, perItemSlots));
@@ -524,7 +527,10 @@ function renderOpenEhrNodeOnce(
   guards?: Readonly<Record<string, unknown>>,
 ): unknown {
   if (node.kind === "value") {
-    let value = Object.hasOwn(values, node.slotId) ? values[node.slotId] : fixedValue(node);
+    const isElementValue = node.rmAttribute === "value";
+    let value = Object.hasOwn(values, node.slotId)
+      ? values[node.slotId]
+      : (isElementValue ? undefined : fixedValue(node));
     if (Array.isArray(value)) {
       value = value.find((item) => !isAbsentValue(item));
     }

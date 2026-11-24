@@ -445,8 +445,28 @@ Deno.test("MHV1 FLAT output validation attaches line numbers, targetPath, and mi
   const tested = await callAgentTool(service, "run_test", { outputMode: "preview" }) as {
     testResult: TestResult;
   };
-  const messages = tested.testResult.outputValidation?.messages ?? [];
-  assert(messages.length > 0, "expected validation messages on 4-nightly-primigravida");
+  assertEquals(
+    tested.testResult.outputValidation?.valid,
+    true,
+    `expected clean baseline validation on 4-nightly-primigravida, got: ${
+      tested.testResult.outputValidation?.messages?.map((m) => m.message).join("; ")
+    }`,
+  );
+
+  // Inject an observation with language/encoding but no HISTORY events to exercise
+  // #373 line-number, targetPath, sourceIsAncestor, and expectedExample diagnostics.
+  const baseFlat = typeof tested.testResult.output === "string"
+    ? JSON.parse(tested.testResult.output) as Record<string, unknown>
+    : structuredClone(tested.testResult.output as Record<string, unknown>);
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/language|code"] = "en";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/language|terminology"] = "ISO_639-1";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/encoding|code"] = "UTF-8";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/encoding|terminology"] = "IANA_character-sets";
+
+  const target = service.controller.getState().target!;
+  const broken = validateConvertedOutput(JSON.stringify(baseFlat, null, 2), target);
+  const messages = broken?.messages ?? [];
+  assert(messages.length > 0, "expected validation messages on broken FLAT payload");
   for (const msg of messages) {
     assert(
       typeof msg.line === "number" && msg.line > 0,
