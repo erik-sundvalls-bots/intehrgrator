@@ -610,3 +610,41 @@ Deno.test("repeated archetype occurrences with differing inline OPT term_definit
     ["openEHR-EHR-SECTION.adhoc.v1", "openEHR-EHR-SECTION.adhoc.v1"],
   );
 });
+
+Deno.test("ehrtslib v0.17 TemplateLabelResolver applies OPT L10n.en path annotations on renamed repeated nodes", async () => {
+  const optXml = await Deno.readTextFile(
+    join(
+      import.meta.dirname!,
+      "fixtures/ordinerad-medicinsk-onkologisk-behandling/target-schema/OrdineradMedicinskOnkologiskBehandling_MedKurdag.1.0.0-alpha.27.sv.en.opt",
+    ),
+  );
+  const enNodes = flattenSkeleton(generateSkeleton(optXml, { language: "en" }).skeleton);
+  const orgNr = enNodes.find((n) =>
+    n.rmType === "ELEMENT" && n.nameConstraint === "Organisationsnummer"
+  );
+  assert(orgNr, "expected Organisationsnummer ELEMENT in MedKurdag");
+  assertEquals(orgNr.label, "Organisational number");
+  assertEquals(orgNr.primaryName, "Organisationsnummer");
+
+  // Sibling at0003 named Identifierare stays Identifier in English (no cross-contamination).
+  const idSibling = enNodes.find((n) =>
+    n.rmType === "ELEMENT" && n.nameConstraint === "Identifierare"
+  );
+  assert(idSibling, "expected Identifierare ELEMENT in MedKurdag");
+  assertEquals(idSibling.label, "Identifier");
+});
+
+Deno.test("ehrtslib v0.17 Web Template synthetic wt: scopes never leak into public archetypeRef", async () => {
+  const wtJson = await Deno.readTextFile(
+    join(
+      import.meta.dirname!,
+      "fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+    ),
+  );
+  const nodes = flattenSkeleton(generateSkeletonFromWebTemplate(wtJson, { language: "en" }).skeleton);
+  const leaked = nodes.filter((n) =>
+    n.archetypeRef && (n.archetypeRef.startsWith("wt:") || n.archetypeRef.includes("#"))
+  );
+  assertEquals(leaked.map((n) => n.archetypeRef), []);
+});
+

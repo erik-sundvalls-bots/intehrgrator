@@ -4,7 +4,9 @@ import {
 } from "ehrtslib/generation/term_codes.ts";
 import {
   archetypeTermBagsForLanguage,
+  isGenericRmFallbackLabel,
   lookupTermInBag,
+  overlayParentScopes,
   resolveLocatableLabel,
   selectTermBag,
   TERM_ARCHETYPE_SCOPE_KEY,
@@ -25,34 +27,23 @@ export function archetypeShortName(archetypeRef: string): string {
   return parts.length >= 2 ? parts[parts.length - 2] : archetypeRef;
 }
 
-/** Better overlay id `openEHR-EHR-OBSERVATION.ovl-blood_pressure-001.v2`. */
-const OVERLAY_ARCHETYPE_RE =
-  /^(openEHR-EHR-[A-Z0-9_]+)\.ovl-([A-Za-z0-9_]+)-\d+\.(v[\w.]+)$/i;
-
 export function isOverlayArchetypeRef(scope?: string): boolean {
-  return Boolean(scope && OVERLAY_ARCHETYPE_RE.test(scope));
+  return Boolean(scope && overlayParentScopes(scope).length > 0);
 }
 
 /** Parent archetype id an overlay specialises, when the id follows Better `ovl-*` shape. */
 export function parentArchetypeRefFromOverlay(scope?: string): string | undefined {
-  if (!scope) return undefined;
-  const match = OVERLAY_ARCHETYPE_RE.exec(scope);
-  if (!match) return undefined;
-  return `${match[1]}.${match[2]}.${match[3]}`;
+  return scope ? overlayParentScopes(scope)[0] : undefined;
 }
 
-/** Term bag for the archetype an overlay specialises, matching exact id or short name. */
+/** Term bag for the archetype an overlay specialises, matching exact id or base concept. */
 export function parentArchetypeTermBag(
   scope: string | undefined,
   bags: Record<string, TermBag>,
 ): TermBag | undefined {
-  const parent = parentArchetypeRefFromOverlay(scope);
-  if (parent && bags[parent]) return bags[parent];
-  const concept = scope ? /ovl-([A-Za-z0-9_]+)-\d+/i.exec(scope)?.[1] : undefined;
-  if (!concept) return undefined;
-  for (const [id, bag] of Object.entries(bags)) {
-    if (isOverlayArchetypeRef(id)) continue;
-    if (archetypeShortName(id) === concept) return bag;
+  if (!scope) return undefined;
+  for (const candidate of overlayParentScopes(scope, Object.keys(bags))) {
+    if (bags[candidate]) return bags[candidate];
   }
   return undefined;
 }
@@ -176,14 +167,11 @@ export function liveArchetypeTermsIndex(
   return new Map(Object.entries(archetypeTermBagsForLanguage(opt, lang)));
 }
 
-const GENERIC_RM_LABEL_RE =
-  /^(?:composition|section|observation|evaluation|instruction|action|admin[_ ]entry|entry|cluster|element|event[_ ]context|item[_ ](?:tree|list|single|table)|history|point[_ ]event|interval[_ ]event|event|activity|careflow[_ ]step|ism[_ ]transition)$/i;
-
-/** True when `label` is just a bare RM class placeholder (e.g. `"element"`, `"SECTION"`). */
+/** True when `label` is empty or a bare RM class placeholder (e.g. `"element"`, `"SECTION"`). */
 export function isGenericRmTypeLabel(label: string | undefined, rmType?: string): boolean {
   const trimmed = (label ?? "").trim();
   if (!trimmed) return true;
-  if (GENERIC_RM_LABEL_RE.test(trimmed)) return true;
+  if (isGenericRmFallbackLabel(trimmed, rmType)) return true;
   if (rmType) {
     const normLabel = trimmed.toLowerCase().replace(/[\s_]+/g, "_");
     const normRm = rmType.trim().toLowerCase().replace(/[\s_]+/g, "_");
@@ -321,8 +309,8 @@ export function locatableNodeLabel(
 }
 
 export function publicArchetypeRef(scope?: string): string | undefined {
-  if (!scope || scope.startsWith("__")) return undefined;
-  return scope.replace(/#\d+$/, "");
+  if (!scope || scope.startsWith("__") || scope.startsWith("wt:")) return undefined;
+  return scope.replace(/#.*$/, "");
 }
 
 export function mergedOntologyTerms(

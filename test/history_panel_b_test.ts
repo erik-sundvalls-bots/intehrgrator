@@ -183,7 +183,8 @@ Deno.test("#375 undo history is scoped per project and resets when switching pro
   assertEquals(backend.history.canUndo(), true);
   const priorProjectId = backend.exportBundle().projectId;
 
-  const catalog = await controller.loadExampleSetCatalog();
+  const catalogUrl = new URL("../examples/example-sets.json", import.meta.url).href;
+  const catalog = await controller.loadExampleSetCatalog(catalogUrl);
   const vitalsSet = catalog.sets.find((s) => s.id === "Simple-vitals-unmapped") ?? catalog.sets[0]!;
   await backend.loadExampleSet(vitalsSet);
   const afterLoadHistory = backend.listHistory();

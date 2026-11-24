@@ -509,7 +509,7 @@ export function createTreemapRenderer(
     // At template root, cap depth at 3 (SECTION -> ENTRY -> CLUSTER blobs) for crisp overview;
     // when zoomed into a SECTION/ENTRY/CLUSTER, expand deeper to reveal all leaf ELEMENTs.
     const maxDepth = state.zoomRootId && state.zoomRootId !== state.index.compositionId ? 5 : 3;
-    const outerLayout: TreemapOuterLayout = state.outerLayout ?? "pack";
+    const outerLayout: TreemapOuterLayout = state.outerLayout ?? "columns";
     const sb = measureScrollbarSize();
 
     // Deterministic scrollbar decision:

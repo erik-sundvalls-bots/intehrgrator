@@ -1741,7 +1741,7 @@ let treemapPopover: InlinePopoverController | null = null;
 let treemapZoomRootId: string | null = null;
 let treemapQuery = "";
 let treemapStatusFilter: TreemapStatusFilter = "all";
-let treemapOuterLayout: TreemapOuterLayout = "pack";
+let treemapOuterLayout: TreemapOuterLayout = "columns";
 let treemapSelectedBlockId: string | null = null;
 let lastScopedTargetId: string | null = null;
 
