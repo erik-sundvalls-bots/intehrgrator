@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **ehrtslib 0.17.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.17)). Unified OPT node label resolver, better OPT2/Web Template and L10n naming, and Better `ovl-*` overlay-to-parent term fallback ([ehrtslib #330](https://github.com/ErikSundvall/ehrtslib/issues/330) / [#331](https://github.com/ErikSundvall/ehrtslib/pull/331)).
+
 - **ehrtslib 0.16.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.16)). The ADL parser accepts header `uid` / `build_uid` values that start with `at`, `ac` or `id` plus a digit ([ehrtslib #328](https://github.com/ErikSundvall/ehrtslib/issues/328)). This bump also picks up ehrtslib 0.14 and 0.15: ZipEHR display localization and `tm` escaping, ADL 1.4 `C_DV_QUANTITY` blocks, and format-aware validation source locations.
 
 - **ehrtslib 0.13.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.13)). `serializeToFlat` roots keys at the Web Template `tree.id` and can omit a renamed LOCATABLE name (`locatableName: "omit"`; the default still writes `/_name`). A one-argument `RMSpecificationValidator.validate(instance)` now validates the whole instance, and `TERM_MAPPING.match` rejects `~`.
