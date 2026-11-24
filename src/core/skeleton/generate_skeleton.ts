@@ -3,7 +3,11 @@ import {
   parseWebTemplate,
   webTemplateToOpt,
 } from "ehrtslib/serialization/simplified/mod.ts";
-import { buildWebTemplate } from "ehrtslib/serialization/simplified/web_template_builder.ts";
+import {
+  buildWebTemplate,
+  fixedNameConstraint,
+} from "ehrtslib/serialization/simplified/web_template_builder.ts";
+import { stripNamePredicates } from "ehrtslib/generation/opt_l10n.ts";
 import {
   applyOperationalTemplateTermScopes,
   type TermScopeMeta,
@@ -308,12 +312,11 @@ function walkComplex(
   const rmType = cObj.rm_type_name ?? "ITEM_TREE";
   const { nodeId, nameHint } = splitAqlStyleNodeId(cObj.node_id as string | undefined);
   const slotPath = path || "/";
-  const nodeArchetypeRef = publicArchetypeRef(
-    termScopeOf(cObj as TermScopeMeta & { archetype_ref?: string }, archetypeRef),
-  );
+  const rawScope = termScopeOf(cObj as TermScopeMeta & { archetype_ref?: string }, archetypeRef);
+  const nodeArchetypeRef = publicArchetypeRef(rawScope);
   const nameConstraint = nameConstraintOf(cObj);
   const nodeNames = namesForNode(cObj, nodeArchetypeRef, nameConstraint, names, archetypeTerms);
-  const termScope = nodeNames.occurrence ?? nodeArchetypeRef;
+  const termScope = nodeNames.occurrence ?? rawScope ?? nodeArchetypeRef;
   const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
   const label = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
     nameHint,
@@ -370,7 +373,7 @@ function walkComplex(
     const childNodes = walkAttribute(
       attr,
       templateId,
-      nodeArchetypeRef ?? archetypeRef,
+      rawScope ?? archetypeRef,
       `${slotPath}/${attrName}`,
       fallbackTerms,
       archetypeTerms,
@@ -468,9 +471,8 @@ function walkAttribute(
   const visibleChildren = children.filter((child) => !isProhibitedAmObject(child));
 
   for (const child of visibleChildren) {
-    const childArchetypeRef = publicArchetypeRef(
-      termScopeOf(child as TermScopeMeta & { archetype_ref?: string }, archetypeRef),
-    ) ?? archetypeRef;
+    const rawChildScope = termScopeOf(child as TermScopeMeta & { archetype_ref?: string }, archetypeRef);
+    const childArchetypeRef = publicArchetypeRef(rawChildScope) ?? publicArchetypeRef(archetypeRef);
     const rmType = child.rm_type_name ?? "DV_TEXT";
     const { nodeId, nameHint } = splitAqlStyleNodeId(child.node_id as string | undefined);
     const childPath = locatorChildPath(path, child, visibleChildren);
@@ -480,7 +482,7 @@ function walkAttribute(
       const node = walkComplex(
         child,
         templateId,
-        childArchetypeRef,
+        rawChildScope ?? archetypeRef,
         childPath,
         fallbackTerms,
         archetypeTerms,
@@ -495,7 +497,7 @@ function walkAttribute(
         }
         : {};
       const leafNames = namesForNode(child, childArchetypeRef, nameConstraint, names, archetypeTerms);
-      const termScope = leafNames.occurrence ?? childArchetypeRef;
+      const termScope = leafNames.occurrence ?? rawChildScope ?? childArchetypeRef;
       const terms = termsForArchetype(termScope, fallbackTerms, archetypeTerms);
       nodes.push({
         // Keep unique-OPT DV leaves on `…/value/value/value` (the attribute is
@@ -931,29 +933,8 @@ function ownArchetypeRefOf(child: AmObject): string | undefined {
 }
 
 function nameConstraintOf(cObj: AmObject): string | undefined {
-  const hinted = splitAqlStyleNodeId(cObj.node_id as string | undefined).nameHint;
-  if (hinted) return hinted;
-  for (const attr of (cObj.attributes ?? []) as AmObject[]) {
-    if ((attr.rm_attribute_name as string | undefined) !== "name") continue;
-    for (const child of (attr.children ?? []) as AmObject[]) {
-      const text = constrainedStringOf(child);
-      if (text) return text;
-    }
-  }
-}
-
-function constrainedStringOf(node: AmObject): string | undefined {
-  const list = (node?.item as AmObject | undefined)?.list ?? node?.list;
-  if (Array.isArray(list) && list.length === 1 && typeof list[0] === "string" && list[0]) {
-    return list[0];
-  }
-  for (const attr of (node.attributes ?? []) as AmObject[]) {
-    if ((attr.rm_attribute_name as string | undefined) !== "value") continue;
-    for (const child of (attr.children ?? []) as AmObject[]) {
-      const text = constrainedStringOf(child);
-      if (text) return text;
-    }
-  }
+  return splitAqlStyleNodeId(cObj.node_id as string | undefined).nameHint ??
+    (fixedNameConstraint(cObj) || undefined);
 }
 
 export function multiplicityOfAm(cObj: AmObject): string | undefined {
@@ -1105,7 +1086,7 @@ function canonicalizeWebTemplatePath(rawPath: string, stripNamePredicate = false
     // Normalize spaces around `,` inside predicates.
     .replace(/,\s*'/g, ",'");
   if (stripNamePredicate) {
-    norm = norm.replace(/\[([^,\]]+),'(?:[^']|'')*'\]/g, "/$1");
+    norm = stripNamePredicates(norm);
   }
   // Flatten simple `[nodeId]` brackets without name predicates to `/nodeId`.
   norm = norm.replace(/\[([^,\]]+)\]/g, "/$1");

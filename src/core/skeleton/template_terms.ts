@@ -6,8 +6,10 @@ import {
   archetypeTermBagsForLanguage,
   lookupTermInBag,
   resolveLocatableLabel,
+  selectTermBag,
   TERM_ARCHETYPE_SCOPE_KEY,
   TERM_NAME_FALLBACK_NODE_ID_KEY,
+  termScopeOf as ehrtslibTermScopeOf,
   type OperationalTemplateWithTermScopes,
   type TermScopeMeta,
 } from "ehrtslib/generation/term_scope.ts";
@@ -286,7 +288,7 @@ export function termScopeOf(
   node: TermScopeMeta & { archetype_ref?: string },
   inherited?: string,
 ): string | undefined {
-  return node[TERM_ARCHETYPE_SCOPE_KEY] ?? node.archetype_ref ?? inherited;
+  return ehrtslibTermScopeOf(node) ?? node.archetype_ref ?? inherited;
 }
 
 export function nameFallbackOf(
@@ -320,13 +322,15 @@ export function locatableNodeLabel(
 
 export function publicArchetypeRef(scope?: string): string | undefined {
   if (!scope || scope.startsWith("__")) return undefined;
-  return scope;
+  return scope.replace(/#\d+$/, "");
 }
 
 export function mergedOntologyTerms(
-  opt: { ontology?: { term_definitions?: Record<string, TermBag> } },
+  opt: {
+    original_language?: unknown;
+    ontology?: { original_language?: { code_string?: string }; term_definitions?: Record<string, TermBag> };
+  },
   lang: string,
 ): TermBag {
-  const defs = opt.ontology?.term_definitions ?? {};
-  return defs[lang] ?? defs.en ?? Object.values(defs)[0] ?? {};
+  return selectTermBag(opt.ontology?.term_definitions, lang, resolveOptLanguage(opt));
 }
