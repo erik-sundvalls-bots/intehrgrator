@@ -394,8 +394,6 @@ function setTreemapHoverStatus(text: string | null): void {
 }
 const taskProgressOverlay = document.getElementById(TASK_PROGRESS_OVERLAY_ID)!;
 const exportTargetSelect = document.getElementById("export-target") as HTMLSelectElement;
-const instanceShapeSelect = document.getElementById("openehr-instance-shape") as HTMLSelectElement;
-const instanceShapeWrap = document.getElementById("openehr-instance-shape-wrap") as HTMLLabelElement;
 const mappingJsonTab = document.getElementById("tab-mapping-json") as HTMLButtonElement;
 const sheetsTab = document.getElementById("tab-sheets") as HTMLButtonElement;
 const hintsTab = document.getElementById("tab-hints") as HTMLButtonElement;
@@ -1050,11 +1048,6 @@ async function loadDesktopLanguagePlugins(): Promise<void> {
     // Static GitHub Pages has no plugin endpoint.
   }
 }
-instanceShapeSelect?.addEventListener("change", () => {
-  controller.setOpenEhrInstanceShape(
-    instanceShapeSelect.value as import("@intehrgrator/types/mod.ts").OpenEhrInstanceShape,
-  );
-});
 
 function setupUiLanguageMenu(locale: IntehrLocale): void {
   const labelEl = document.getElementById("ui-language-label");
@@ -1983,9 +1976,32 @@ function renderTreemapAndModeBar(): void {
   }
 
   if (treemapHost) treemapHost.hidden = editorMode !== "treemap";
+  const wasBlocklyHidden = Boolean(blocklyEl?.hidden);
   if (blocklyEl) blocklyEl.hidden = editorMode === "treemap";
   if (controlsEl) controlsEl.hidden = editorMode !== "treemap";
-  if (editorMode !== "treemap") setTreemapHoverStatus(null);
+  if (editorMode !== "treemap") {
+    setTreemapHoverStatus(null);
+    if (workspace) {
+      if (pendingToolboxState) {
+        const nextToolboxState = pendingToolboxState;
+        pendingToolboxState = null;
+        syncToolbox(nextToolboxState);
+      }
+      const svgEl = blocklyEl?.querySelector("svg.blocklySvg") as SVGSVGElement | null;
+      const rect = svgEl?.getBoundingClientRect();
+      const svgCollapsed = !rect || rect.width < 2 || rect.height < 2;
+      if (wasBlocklyHidden || svgCollapsed) {
+        Blockly.svgResize(workspace);
+        Blockly.renderManagement?.finishQueuedRenders?.();
+        requestAnimationFrame(() => {
+          if (editorMode !== "treemap" && workspace) {
+            Blockly.svgResize(workspace);
+            Blockly.renderManagement?.finishQueuedRenders?.();
+          }
+        });
+      }
+    }
+  }
 
   if (breadcrumbEl) {
     if (canonicalDocIndex && (editorMode === "treemap" || editorMode === "scoped-blockly")) {
@@ -3184,12 +3200,22 @@ function applyDefaultContextMapAfterRefresh(): void {
   persistBlocklyCanvas({ summary: "Refresh target — apply default context map" });
 }
 
+let pendingToolboxState: ReturnType<WorkbenchController["getState"]> | null = null;
+
 function syncToolbox(s: ReturnType<WorkbenchController["getState"]>): void {
   const sig = s.skeleton.length ? skeletonToolboxSignature(s.skeleton) : "";
   const key = `${s.target?.format ?? ""}|${s.templateId}|${sig}|${s.modelLanguage ?? ""}`;
   if (key === toolboxKey) return;
-  toolboxKey = key;
   if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+  const blocklyEl = document.getElementById("blockly-mount");
+  if (editorMode === "treemap" || blocklyEl?.hidden) {
+    // Updating Blockly's toolbox while #blockly-mount is display:none triggers
+    // an internal Blockly.svgResize(workspace) that collapses <svg.blocklySvg> to 0x0.
+    pendingToolboxState = s;
+    return;
+  }
+  pendingToolboxState = null;
+  toolboxKey = key;
   workspace.updateToolbox(buildDemoToolbox(blocklyLocale, {
     targetFormat: s.target?.format,
     skeleton: s.skeleton,
@@ -3271,8 +3297,12 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       editorMode = "full-blockly";
       canonicalBlocklyState = structuredClone(savedState);
       canonicalDocIndex = idx;
+      // Unhide #blockly-mount before loading/laying out blocks so Blockly
+      // measures the real container dimensions instead of 0x0.
+      renderTreemapAndModeBar();
       runWithoutBlocklyEvents(() => {
         if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+        registerRmBlocksFromJson(savedState as Record<string, unknown>);
         workspace.clear();
         Blockly.serialization.workspaces.load(
           savedState as Record<string, unknown>,
@@ -3293,6 +3323,8 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
       renderTreemapAndModeBar();
+      Blockly.svgResize(workspace);
+      Blockly.renderManagement?.finishQueuedRenders?.();
       const derived = workspaceToModelJson(workspace);
       if (s.blocklyReloadToken > 0) {
         controller.syncFromBlockly(
@@ -3357,6 +3389,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       }
       activeSliceHandle = null;
       editorMode = "full-blockly";
+      renderTreemapAndModeBar();
       const hadPending = applyPendingDefaultsMap();
       loadSkeletonIntoWorkspace(
         workspace,
@@ -3371,6 +3404,8 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       canonicalBlocklyState = savedFull;
       canonicalDocIndex = indexDocument(savedFull);
       renderTreemapAndModeBar();
+      Blockly.svgResize(workspace);
+      Blockly.renderManagement?.finishQueuedRenders?.();
       const derived = workspaceToModelJson(workspace);
       if (s.blocklyReloadToken > 0) {
         controller.syncFromBlockly(
@@ -5850,12 +5885,6 @@ function finishCanvas(s: ReturnType<WorkbenchController["getState"]>): void {
   setEditorDoc(testOutputEditor, testOutputText, detectEditorLanguage(testOutputText));
 
   exportTargetSelect.value = s.settings.exportTarget;
-  if (instanceShapeSelect) {
-    instanceShapeSelect.value = s.settings.openEhrInstanceShape ?? "json";
-  }
-  if (instanceShapeWrap) {
-    instanceShapeWrap.hidden = s.target?.format !== "openehr-template";
-  }
   const exportBtn = exportDownloadBtn;
   if (exportBtn) exportBtn.disabled = s.settings.exportTarget === "preview";
   const testDownload = testDownloadBtn;

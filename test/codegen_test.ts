@@ -505,7 +505,7 @@ Deno.test("xquery expression emit maps builtins and JSON paths", () => {
   );
   assertEquals(
     emitXQueryExpr(parseExpression('if(xpathBoolean("$.ok"), "a", "b")')),
-    '(if (xs:boolean(($source?ok)[1])) then "a" else "b")',
+    '(if (boolean(($source?ok)[1])) then "a" else "b")',
   );
   assertEquals(
     emitXQueryExpr(parseExpression('maps_get("defaults", "language")')),

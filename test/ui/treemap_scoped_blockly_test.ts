@@ -406,6 +406,26 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       "on",
       "Reset to default must restore Always on",
     );
+
+    // 8. Obsolete top-bar #openehr-instance-shape dropdown is removed (ADR 0010),
+    //    and loading a small model whose OPT exceeds 400 nodes (OBX MHV1 — 800-node
+    //    OPT + 385-block mapping) must immediately render a non-zero Blockly SVG
+    //    without requiring a Treemap -> Total Blockly toggle.
+    assertEquals(
+      await page.locator("#openehr-instance-shape").count(),
+      0,
+      "Obsolete top-bar #openehr-instance-shape picker must be removed",
+    );
+    await page.click("#btn-menu-examples");
+    await page.click('[data-example-set-id="obx-mhv1-mapped-json-to-openehr"]');
+    await page.waitForFunction(() => {
+      const api = (globalThis as unknown as { intehrgratorTestApi: IntehrgratorTestApi }).intehrgratorTestApi;
+      const svg = document.querySelector("#blockly-mount svg.blocklySvg") as SVGSVGElement | null;
+      const rect = svg?.getBoundingClientRect();
+      return api.getEditorMode() === "full-blockly" &&
+        api.getMountedBlockCount() > 300 &&
+        Boolean(rect && rect.width > 100 && rect.height > 100);
+    }, undefined, { timeout: 30_000 });
   } finally {
     await browser.close();
   }
