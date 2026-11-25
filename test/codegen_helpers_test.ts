@@ -117,7 +117,7 @@ Deno.test("import specifiers resolve to GitHub source pages", () => {
   );
   assertEquals(
     resolveImportHref("ehrtslib/openehr_rm.ts"),
-    "https://github.com/ErikSundvall/ehrtslib/blob/v0.18/openehr_rm.ts",
+    "https://github.com/ErikSundvall/ehrtslib/blob/v0.19/openehr_rm.ts",
   );
   assertEquals(resolveImportHref("fontoxpath"), "https://github.com/FontoXML/fontoxpath");
   assertStringIncludes(
@@ -131,5 +131,5 @@ Deno.test("import specifiers resolve to GitHub source pages", () => {
   const src = 'import { COMPOSITION } from "ehrtslib/openehr_rm.ts";\n';
   const spans = importLinkSpans(src);
   assertEquals(spans.length, 1);
-  assertEquals(spans[0]?.href, "https://github.com/ErikSundvall/ehrtslib/blob/v0.18/openehr_rm.ts");
+  assertEquals(spans[0]?.href, "https://github.com/ErikSundvall/ehrtslib/blob/v0.19/openehr_rm.ts");
 });

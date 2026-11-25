@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **ehrtslib 0.19.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.19), [ehrtslib#336](https://github.com/ErikSundvall/ehrtslib/issues/336)): pinned `ehrtslib` to `v0.19`. Its `XmlDeserializer` now coerces numeric and boolean RM leaves itself, so the local `coerceXmlDeserializedRmPrimitives` workaround in `template_validation.ts` is gone and openEHR `canonical-xml` output is validated with ehrtslib unpatched.
+
 - **ehrtslib 0.18.0, Edge audit fixes, openEHR XML validation, and general Blockly support for Go Template & Handlebars** ([ehrtslib v0.18](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.18), [ehrtslib#334](https://github.com/ErikSundvall/ehrtslib/issues/334), [ehrtslib#336](https://github.com/ErikSundvall/ehrtslib/issues/336)):
   - Upgraded `ehrtslib` to `v0.18`, regenerated `mhv1` and `partogram` `.opt2` fixtures (dropping bare `at`/`id`-codes from 467 → 2 and 403 → 4), fixed `OBX MHV1` `HISTORY`/`ITEM_TREE` relabeling so readable RM names are never overwritten by bare `at`-codes, and restored all 18 MHV1 + 11 Partogram Web Template section headings (including nested sections under `Current pregnancy`) in both English and Swedish.
   - Fixed blank initial Blockly canvas on small models (below the Treemap threshold) by deferring hidden toolbox updates and resizing `<svg.blocklySvg>` whenever Blockly becomes visible; removed the obsolete top-bar `Instance` (`JSON instance` / `XML instance`) dropdown superseded by the `COMPOSITION` block's `INSTANCE_ENCODING` field (ADR 0010).
