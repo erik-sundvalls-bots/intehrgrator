@@ -5831,7 +5831,7 @@
                                       }
                                     },
                                     "fields": {
-                                      "NAME": "Progress note",
+                                      "NAME": "Menstrual cycle",
                                       "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.2",
                                       "RM_TYPE": "SECTION",
                                       "MANDATORY": "",
@@ -7384,7 +7384,7 @@
                                           }
                                         },
                                         "fields": {
-                                          "NAME": "Medication screening questionnaire",
+                                          "NAME": "Pregnancy confirmation",
                                           "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.4",
                                           "RM_TYPE": "SECTION",
                                           "MANDATORY": "",
@@ -7654,7 +7654,7 @@
                                               }
                                             },
                                             "fields": {
-                                              "NAME": "Ad hoc heading",
+                                              "NAME": "Information about contraceptives",
                                               "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.6",
                                               "RM_TYPE": "SECTION",
                                               "MANDATORY": "",
@@ -9103,7 +9103,7 @@
                                                   }
                                                 },
                                                 "fields": {
-                                                  "NAME": "MHV1- Encounter.v1",
+                                                  "NAME": "Estimated due date",
                                                   "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.8",
                                                   "RM_TYPE": "SECTION",
                                                   "MANDATORY": "",
@@ -9922,7 +9922,7 @@
                                           }
                                         },
                                         "fields": {
-                                          "NAME": "Progress note",
+                                          "NAME": "Heredity",
                                           "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.28/items/at0.2",
                                           "RM_TYPE": "SECTION",
                                           "MANDATORY": "",
@@ -11876,7 +11876,7 @@
                                               }
                                             },
                                             "fields": {
-                                              "NAME": "Medication screening questionnaire",
+                                              "NAME": "Previous diagnoses",
                                               "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.28/items/at0.4",
                                               "RM_TYPE": "SECTION",
                                               "MANDATORY": "",
@@ -15205,7 +15205,7 @@
                                               }
                                             },
                                             "fields": {
-                                              "NAME": "Ad hoc heading",
+                                              "NAME": "Previous pregnancies and child birth details",
                                               "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.48/items/at0.6",
                                               "RM_TYPE": "SECTION",
                                               "MANDATORY": "",
@@ -16409,7 +16409,7 @@
                                                   }
                                                 },
                                                 "fields": {
-                                                  "NAME": "Progress note",
+                                                  "NAME": "Medications used before and during the pregnancy",
                                                   "SLOT_ID": "MHV1- Prenatal visit.encounter.v1//content/at0.31/items/at0.2",
                                                   "RM_TYPE": "SECTION",
                                                   "MANDATORY": "",

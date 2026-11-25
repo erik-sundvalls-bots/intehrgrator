@@ -5,6 +5,7 @@ import { VMS_HBS_ALLOWED_HELPERS } from "./vms_hbs.ts";
 export interface HandlebarsRenderOptions {
   strict?: boolean;
   slots?: Readonly<Record<string, unknown>>;
+  defaults?: Readonly<Record<string, unknown>>;
   /** When true (default), reject helpers outside VMS-Hbs (ADR 0009). */
   knownHelpersOnly?: boolean;
 }
@@ -23,8 +24,18 @@ export function renderHandlebars(
 ): string {
   const engine = createKintegrateHandlebars();
   const root = isRecord(source)
-    ? { ...source, _slots: options.slots ?? {} }
-    : { value: source, _slots: options.slots ?? {} };
+    ? {
+      ...source,
+      _data: source,
+      _slots: options.slots ?? {},
+      _defaults: options.defaults ?? {},
+    }
+    : {
+      value: source,
+      _data: source,
+      _slots: options.slots ?? {},
+      _defaults: options.defaults ?? {},
+    };
   const knownHelpersOnly = options.knownHelpersOnly ?? true;
   const template = engine.compile(templateSource, {
     strict: options.strict ?? false,

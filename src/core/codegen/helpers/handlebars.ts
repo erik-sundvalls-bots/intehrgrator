@@ -16,7 +16,14 @@
  */
 
 export interface KintegrateHandlebarsOptions {
-  data?: { root?: { _slots?: Record<string, unknown> } };
+  data?: {
+    root?: {
+      _slots?: Record<string, unknown>;
+      _defaults?: Record<string, unknown>;
+      _sheets?: Record<string, unknown>;
+    };
+  };
+  hash?: Record<string, unknown>;
 }
 
 /** `(v) => v + 1` — JavaScript `+`, so a string concatenates. */
@@ -29,6 +36,83 @@ export function hbsDec(value: unknown): unknown {
   return (value as number) - 1;
 }
 
+function hbsNonEmpty(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length > 0;
+  return true;
+}
+
+function hbsToNum(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function hbsEscapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function hbsWriteRmXmlNode(
+  tag: string,
+  val: unknown,
+  isRoot: boolean,
+  depth: number,
+  out: string[],
+): void {
+  if (val === null || val === undefined) return;
+  if (Array.isArray(val)) {
+    for (const item of val) hbsWriteRmXmlNode(tag, item, isRoot, depth, out);
+    return;
+  }
+  const indent = "  ".repeat(depth);
+  if (typeof val === "object") {
+    const rec = val as Record<string, unknown>;
+    let open = `${indent}<${tag}`;
+    if (isRoot) {
+      open += ' xmlns="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"';
+    }
+    if (typeof rec._type === "string" && rec._type) {
+      open += ` xsi:type="${hbsEscapeXml(rec._type)}"`;
+    }
+    if (typeof rec.archetype_node_id === "string" && rec.archetype_node_id) {
+      open += ` archetype_node_id="${hbsEscapeXml(rec.archetype_node_id)}"`;
+    }
+    const keys = Object.keys(rec)
+      .filter((k) => k !== "_type" && k !== "archetype_node_id")
+      .sort();
+    const childLines: string[] = [];
+    for (const k of keys) {
+      let child = rec[k];
+      if (child === null || child === undefined) continue;
+      if (Array.isArray(child) && child.length === 0) continue;
+      if (k === "terminology_id" && typeof child !== "object") {
+        child = { _type: "TERMINOLOGY_ID", value: String(child) };
+      }
+      hbsWriteRmXmlNode(k, child, false, depth + 1, childLines);
+    }
+    if (childLines.length) {
+      out.push(`${open}>\n`, ...childLines, `${indent}</${tag}>\n`);
+    } else {
+      out.push(`${open}/>\n`);
+    }
+    return;
+  }
+  out.push(`${indent}<${tag}>${hbsEscapeXml(String(val))}</${tag}>\n`);
+}
+
 export const kintegrateHandlebarsHelpers = {
   eq: (left: unknown, right: unknown) => left === right,
   ne: (left: unknown, right: unknown) => left !== right,
@@ -38,10 +122,215 @@ export const kintegrateHandlebarsHelpers = {
   gte: (left: unknown, right: unknown) => Number(left) >= Number(right),
   and: (...args: unknown[]) => args.slice(0, -1).every(Boolean),
   or: (...args: unknown[]) => args.slice(0, -1).some(Boolean),
+  not: (val: unknown) => !hbsNonEmpty(val),
   inc: hbsInc,
   dec: hbsDec,
   toLowerCase: (value: unknown) => value == null ? value : String(value).toLowerCase(),
   toUpperCase: (value: unknown) => value == null ? value : String(value).toUpperCase(),
+  trim: (value: unknown) => value == null ? "" : String(value).trim(),
+  replace: (src: unknown, oldVal: unknown, newVal: unknown) =>
+    String(src ?? "").replaceAll(String(oldVal ?? ""), String(newVal ?? "")),
+  concat: (...args: unknown[]) =>
+    args.slice(0, -1).filter((v) => v !== null && v !== undefined).map(String).join(""),
+  coalesce: (...args: unknown[]) => {
+    for (const v of args.slice(0, -1)) {
+      if (hbsNonEmpty(v)) return v;
+    }
+    return null;
+  },
+  nonEmpty: (val: unknown) => hbsNonEmpty(val),
+  whenVal: (cond: unknown, val: unknown) => {
+    if (typeof cond === "boolean") return cond ? val : null;
+    return hbsNonEmpty(cond) ? val : null;
+  },
+  toNum: (val: unknown) => hbsToNum(val),
+  add: (a: unknown, b: unknown) => Number(a ?? 0) + Number(b ?? 0),
+  sub: (a: unknown, b: unknown) => Number(a ?? 0) - Number(b ?? 0),
+  mul: (a: unknown, b: unknown) => Number(a ?? 0) * Number(b ?? 0),
+  div: (a: unknown, b: unknown) => {
+    const d = Number(b ?? 0);
+    return d === 0 ? 0 : Number(a ?? 0) / d;
+  },
+  jget: (...args: unknown[]) => {
+    const params = args.slice(0, -1);
+    let cur: unknown = params[0];
+    for (let i = 1; i < params.length; i++) {
+      if (cur === null || cur === undefined) return null;
+      const seg = params[i];
+      if (Array.isArray(cur)) {
+        const idx = typeof seg === "number" ? seg : Number(seg);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= cur.length) return null;
+        cur = cur[idx];
+      } else if (typeof cur === "object") {
+        cur = (cur as Record<string, unknown>)[String(seg)];
+      } else {
+        return null;
+      }
+    }
+    return cur ?? null;
+  },
+  defaultVal(this: unknown, key: unknown, options: KintegrateHandlebarsOptions) {
+    return options.data?.root?._defaults?.[String(key)] ?? null;
+  },
+  dict(this: unknown, options: KintegrateHandlebarsOptions) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(options.hash ?? {})) {
+      if (v !== undefined) out[k] = v;
+    }
+    return out;
+  },
+  list: (...args: unknown[]) => {
+    const out: unknown[] = [];
+    for (const item of args.slice(0, -1)) {
+      if (item === null || item === undefined) continue;
+      if (Array.isArray(item)) {
+        for (const sub of item) {
+          if (sub !== null && sub !== undefined) out.push(sub);
+        }
+      } else {
+        out.push(item);
+      }
+    }
+    return out;
+  },
+  rmObj(this: unknown, options: KintegrateHandlebarsOptions) {
+    const m: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(options.hash ?? {})) {
+      if (v === null || v === undefined) continue;
+      if (Array.isArray(v) && v.length === 0) continue;
+      m[k] = v;
+    }
+    const t = typeof m._type === "string" ? m._type : "";
+    if (t === "ELEMENT" && !("value" in m)) return null;
+    if ((t === "ITEM_TREE" || t === "SECTION" || t === "CLUSTER") && !("items" in m)) return null;
+    if ((t === "EVENT" || t === "POINT_EVENT" || t === "INTERVAL_EVENT" || t === "OBSERVATION" || t === "EVALUATION") && !("data" in m)) return null;
+    if ((t === "ACTIVITY" || t === "ACTION") && !("description" in m)) return null;
+    if (t === "HISTORY" && !("events" in m)) return null;
+    if (t === "INSTRUCTION" && !("activities" in m)) return null;
+    return m;
+  },
+  partyVal: (val: unknown, fallbackType: unknown) => {
+    const fb = typeof fallbackType === "string" && fallbackType ? fallbackType : "PARTY_IDENTIFIED";
+    if (val === null || val === undefined) {
+      return fb === "PARTY_SELF" ? { _type: "PARTY_SELF" } : null;
+    }
+    if (typeof val === "object" && !Array.isArray(val)) {
+      const src = val as Record<string, unknown>;
+      const t = typeof src._type === "string" && src._type ? src._type : fb;
+      const rec: Record<string, unknown> = { _type: t };
+      for (const [k, v] of Object.entries(src)) {
+        if (k === "_type") continue;
+        if (t === "PARTY_IDENTIFIED" && k !== "name" && k !== "external_ref" && k !== "identifiers") {
+          continue;
+        }
+        if (t === "PARTY_SELF" && k !== "external_ref") continue;
+        rec[k] = v;
+      }
+      return rec;
+    }
+    const s = String(val).trim();
+    if (!s) return fb === "PARTY_SELF" ? { _type: "PARTY_SELF" } : null;
+    return { _type: "PARTY_IDENTIFIED", name: s };
+  },
+  codePhrase: (val: unknown, terminology: unknown) => {
+    if (val === null || val === undefined) return null;
+    if (typeof val === "object" && !Array.isArray(val)) return val;
+    const s = String(val).trim();
+    if (!s) return null;
+    return {
+      _type: "CODE_PHRASE",
+      terminology_id: { _type: "TERMINOLOGY_ID", value: String(terminology ?? "") },
+      code_string: s,
+    };
+  },
+  codedText: (...args: unknown[]) => {
+    const params = args.slice(0, -1);
+    const val = params[0];
+    const terminology = String(params[1] ?? "openehr");
+    const pairs = params.slice(2).map(String);
+    if (val === null || val === undefined) return null;
+    if (typeof val === "object" && !Array.isArray(val)) return val;
+    const raw = String(val).trim();
+    if (!raw) return null;
+    const lower = raw.toLowerCase();
+    for (const pair of pairs) {
+      const eq = pair.indexOf("=");
+      if (eq <= 0) continue;
+      const code = pair.slice(0, eq);
+      const label = pair.slice(eq + 1);
+      if (lower === label.toLowerCase() || lower === code.toLowerCase()) {
+        return {
+          _type: "DV_CODED_TEXT",
+          value: label,
+          defining_code: {
+            _type: "CODE_PHRASE",
+            terminology_id: { _type: "TERMINOLOGY_ID", value: terminology },
+            code_string: code,
+          },
+        };
+      }
+    }
+    return {
+      _type: "DV_CODED_TEXT",
+      value: raw,
+      defining_code: {
+        _type: "CODE_PHRASE",
+        terminology_id: { _type: "TERMINOLOGY_ID", value: terminology },
+        code_string: "",
+      },
+    };
+  },
+  dvVal: (rmType: unknown, val: unknown, prop: unknown, options: KintegrateHandlebarsOptions) => {
+    if (val === null || val === undefined) return null;
+    if (typeof val === "object" && !Array.isArray(val)) return val;
+    const typeStr = String(rmType ?? "DV_TEXT");
+    const propStr = String(prop ?? "value");
+    let outVal: unknown = val;
+    if (
+      typeStr === "DV_QUANTITY" || typeStr === "DV_COUNT" ||
+      typeStr === "DV_ORDINAL" || typeStr === "DV_PROPORTION"
+    ) {
+      const num = hbsToNum(val);
+      if (num === null) return null;
+      outVal = num;
+    } else if (typeStr === "DV_BOOLEAN") {
+      if (typeof val === "boolean") outVal = val;
+      else {
+        const l = String(val).trim().toLowerCase();
+        if (l === "true" || l === "1") outVal = true;
+        else if (l === "false" || l === "0") outVal = false;
+        else return null;
+      }
+    } else {
+      const s = String(val);
+      if (!s.trim()) return null;
+      outVal = s;
+    }
+    const res: Record<string, unknown> = { _type: typeStr, [propStr]: outVal };
+    for (const [k, v] of Object.entries(options?.hash ?? {})) {
+      if (v !== null && v !== undefined) res[k] = v;
+    }
+    return res;
+  },
+  toJson: (val: unknown) => JSON.stringify(val ?? null),
+  rmToXml: (tag: unknown, val: unknown) => {
+    let target = val;
+    if (typeof target === "string" && target.trim().startsWith("{")) {
+      try {
+        target = JSON.parse(target);
+      } catch {
+        // leave as string
+      }
+    }
+    const out: string[] = ['<?xml version="1.0" encoding="UTF-8"?>\n'];
+    hbsWriteRmXmlNode(String(tag ?? "composition"), target, true, 0, out);
+    return out.join("");
+  },
+  rmToXmlFrag: (tag: unknown, val: unknown) => {
+    const out: string[] = [];
+    hbsWriteRmXmlNode(String(tag ?? "item"), val, false, 1, out);
+    return out.join("");
+  },
   slot(this: unknown, slotId: unknown, options: KintegrateHandlebarsOptions) {
     return options.data?.root?._slots?.[String(slotId)];
   },

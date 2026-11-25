@@ -188,7 +188,12 @@ export function runTest(
     }
 
     if (mode === "handlebars") {
-      const xmlCanvas = renderXmlCanvasFromBlockly(options.blocklyState, ctx);
+      // Only route xml-schema / untargeted XML canvases through canvas_xml_runtime;
+      // json-schema and openEHR targets render JSON or canonical openEHR XML via Handlebars.
+      const allowXmlCanvas = !target || target.format === "xml-schema" || target.format === "free-form";
+      const xmlCanvas = allowXmlCanvas
+        ? renderXmlCanvasFromBlockly(options.blocklyState, ctx)
+        : null;
       if (xmlCanvas != null) {
         const outputValidation = validateConvertedOutput(xmlCanvas, target, {
           deserializeMode: options.openEhrJsonDeserializeMode,
@@ -212,7 +217,15 @@ export function runTest(
           outputValidation,
         };
       }
-      const template = options.handlebarsTemplate ?? target?.content ?? "";
+      let template = (options.handlebarsTemplate?.trim() ? options.handlebarsTemplate : undefined) ??
+        (target?.format === "free-form" ? target.content : undefined) ??
+        "";
+      if (!template.trim() && target?.skeleton?.length) {
+        template = generate(model, "handlebars", {
+          blocklyState: options.blocklyState,
+          skeleton: target.skeleton,
+        });
+      }
       if (!template.trim()) {
         return {
           ok: false,
@@ -222,7 +235,10 @@ export function runTest(
         };
       }
       const { values: slotValues } = evaluateSlotValues(model, handler, ctx, warnings, target?.skeleton ?? []);
-      const output = renderHandlebars(template, ctx.data, { slots: slotValues });
+      const output = renderHandlebars(template, ctx.data, {
+        slots: slotValues,
+        defaults,
+      });
       const outputValidation = validateConvertedOutput(output, target, {
         deserializeMode: options.openEhrJsonDeserializeMode,
       });
@@ -237,11 +253,14 @@ export function runTest(
     if (mode === "go-template") {
       const code = options.generatedCode?.trim()
         ? options.generatedCode
-        : generateGoTemplate(model, { blocklyState: options.blocklyState });
+        : generateGoTemplate(model, {
+          blocklyState: options.blocklyState,
+          skeleton: target?.skeleton,
+        });
       if (!code.trim() || code.split("\n").every((line) => line.startsWith("{{- /*") || !line.trim())) {
         return {
           ok: false,
-          output: "// No Go template code generated. Add XML blocks to the Blockly canvas.\n",
+          output: "// No Go template code generated. Add mapping blocks to the Blockly canvas.\n",
           error: "No Go template code generated.",
           warnings,
         };
@@ -260,7 +279,10 @@ export function runTest(
       };
       try {
         const output = executeGoTemplate(code, envelope, { sheets: options.sheets ?? [] });
-        return { ok: true, output, warnings };
+        const outputValidation = validateConvertedOutput(output, target, {
+          deserializeMode: options.openEhrJsonDeserializeMode,
+        });
+        return { ok: true, output, warnings, outputValidation };
       } catch (e) {
         const output = `// Go template execution error: ${e instanceof Error ? e.message : String(e)}\n` +
           `// Generated script:\n${code}`;

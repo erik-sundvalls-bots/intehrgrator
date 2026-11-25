@@ -34,8 +34,8 @@ Deno.test("XQuery runtime module lazy-loads via dynamic import()", async () => {
 
 Deno.test("generate(xquery) with BP skeleton emits COMPOSITION RM XML", async () => {
   const { model, skeleton, xq } = await mappedBpXQuery("xml");
-  assertStringIncludes(xq, "element rm:composition");
-  assertStringIncludes(xq, 'attribute xsi:type { "COMPOSITION" }');
+  assertStringIncludes(xq, 'local:rm-to-xml("composition"');
+  assertStringIncludes(xq, '"_type": "COMPOSITION"');
   assertStringIncludes(xq, "DV_QUANTITY");
   assertStringIncludes(xq, "$source?systolic");
   assertEquals(xq.includes("element mapping-result"), false);
@@ -47,7 +47,7 @@ Deno.test("openEHR JSON instance shape emits XPath maps instead of RM XML", asyn
   const { xq } = await mappedBpXQuery("json");
   assertStringIncludes(xq, 'declare option output:method "json"');
   assertStringIncludes(xq, 'map { "_type": "COMPOSITION"');
-  assertEquals(xq.includes("element rm:composition"), false);
+  assertEquals(xq.includes('local:rm-to-xml("composition"'), false);
 });
 
 Deno.test("XQuery Output mode runs generated .xq against the Active Example", async () => {
@@ -68,6 +68,7 @@ Deno.test("XQuery Output mode runs generated .xq against the Active Example", as
   assertEquals(result.error, undefined, result.error);
   const xml = String(result.output);
   assertStringIncludes(xml, "composition");
+  assertStringIncludes(xml, 'xmlns="http://schemas.openehr.org/v1"');
   assertStringIncludes(xml, "120");
 });
 

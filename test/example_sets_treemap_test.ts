@@ -238,3 +238,205 @@ Deno.test("All mapped Example Sets pass Preview, TypeScript, Go Template WASM, a
     }
   }
 });
+
+Deno.test("OBX MHV1 preserves HISTORY labels, MHV1 WT has zero Ad hoc heading/Rubrik (EN & SV), and OPT2 v0.18 fixtures resolve terms", async () => {
+  const { generateSkeleton } = await import("@intehrgrator/core/skeleton/generate_skeleton.ts");
+
+  // 1. OBX MHV1 HISTORY blocks keep "history" instead of being overwritten by bare at0002/at0001.
+  const obxOptPath = resolve(CATALOG_DIR, "../test/fixtures/Obstetrix-MHV1/target/mhv1-prenatal-visit.encounter.v1.opt");
+  const obxMapPath = resolve(CATALOG_DIR, "../test/fixtures/Obstetrix-MHV1/mapping/mapping.blockly.json");
+  const obxSkel = generateSkeleton(await Deno.readTextFile(obxOptPath), { filename: obxOptPath, language: "en" }).skeleton;
+  const obxRelabeled = relabelBlocklyJsonFromSkeleton(
+    JSON.parse(await Deno.readTextFile(obxMapPath)) as BlocklyWorkspaceJson,
+    obxSkel,
+  );
+  const historyNames: string[] = [];
+  const collectHistory = (b: Record<string, unknown> | undefined) => {
+    if (!b) return;
+    if (b.type === "history" && b.fields && typeof (b.fields as Record<string, unknown>).NAME === "string") {
+      historyNames.push(String((b.fields as Record<string, unknown>).NAME));
+    }
+    const inputs = (b.inputs ?? {}) as Record<string, { block?: Record<string, unknown>; shadow?: Record<string, unknown> }>;
+    for (const inp of Object.values(inputs)) {
+      collectHistory(inp.block);
+      collectHistory(inp.shadow);
+    }
+    const next = b.next as { block?: Record<string, unknown>; shadow?: Record<string, unknown> } | undefined;
+    collectHistory(next?.block);
+    collectHistory(next?.shadow);
+  };
+  for (const top of (obxRelabeled.blocks?.blocks ?? []) as Array<Record<string, unknown>>) {
+    collectHistory(top);
+  }
+  assert(historyNames.length >= 2, `expected HISTORY blocks in OBX MHV1, got ${historyNames.length}`);
+  for (const name of historyNames) {
+    assert(!BARE_AT_RE.test(name), `HISTORY block header must not downgrade to bare at-code, got "${name}"`);
+  }
+
+  // 2. MHV1 WT has zero "Ad hoc heading" (EN) and zero "Rubrik" (SV), including nested Current pregnancy sections.
+  const mhv1WtPath = resolve(
+    CATALOG_DIR,
+    "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+  );
+  const mhv1WtText = await Deno.readTextFile(mhv1WtPath);
+  for (const lang of ["en", "sv"] as const) {
+    const skel = getTargetFormatHandler("openehr-template").load(mhv1WtPath, mhv1WtText, { language: lang }).skeleton;
+    const badSections: string[] = [];
+    const walkSkel = (nodes: typeof skel) => {
+      for (const n of nodes) {
+        if (n.rmType === "SECTION" && (n.label === "Ad hoc heading" || n.label === "Rubrik")) {
+          badSections.push(`${n.slotId}: ${n.label}`);
+        }
+        walkSkel(n.children);
+      }
+    };
+    walkSkel(skel);
+    assertEquals(badSections, [], `MHV1 WT (${lang}) still had generic section headings: ${badSections.join(", ")}`);
+  }
+
+  // 3. Regenerated MHV1 & Partogram .opt2 fixtures resolve >99% of labels with ehrtslib@v0.18.
+  for (const rel of [
+    "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2",
+    "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2",
+  ]) {
+    const full = resolve(CATALOG_DIR, rel);
+    const skel = generateSkeleton(await Deno.readTextFile(full), { filename: full, language: "en" }).skeleton;
+    let bare = 0;
+    const count = (nodes: typeof skel) => {
+      for (const n of nodes) {
+        if (BARE_AT_RE.test(String(n.label ?? "").trim())) bare++;
+        count(n.children);
+      }
+    };
+    count(skel);
+    assert(bare <= 5, `${rel}: expected <= 5 bare at/id-codes with ehrtslib@v0.18, got ${bare}`);
+  }
+});
+
+Deno.test("Dummy JSON outputs JSON across all 5 engines, and openEHR canonical-xml validates across Preview, TS, XQuery, Go Template, and Handlebars", async () => {
+  const { ensureXQueryRuntime } = await import("@intehrgrator/core/codegen/run_xquery.ts");
+  const { checkVmsHbs } = await import("@intehrgrator/core/output/vms_hbs.ts");
+  const { checkVmsGo } = await import("@intehrgrator/core/output/vms_go.ts");
+  await ensureGoTemplateWasm();
+  await ensureXQueryRuntime();
+
+  // 1. dummy-json-vitals-mapped must output valid JSON in EVERY runnable mode (never XML).
+  {
+    const svc = new WorkbenchService();
+    await callAgentTool(svc, "load_example_set", {
+      catalogPath: CATALOG_PATH,
+      setId: "dummy-json-vitals-mapped",
+      includeMapping: true,
+    });
+    for (const outputMode of ["preview", "typescript", "xquery", "go-template", "handlebars"] as const) {
+      const run = await callAgentTool(svc, "run_test", { outputMode }) as {
+        testResult: { ok: boolean; output: unknown; error?: string };
+      };
+      assertEquals(run.testResult.ok, true, `dummy-json-vitals-mapped (${outputMode}): ${run.testResult.error}`);
+      const obj = typeof run.testResult.output === "string"
+        ? JSON.parse(run.testResult.output)
+        : run.testResult.output;
+      assertEquals(obj, { systolic: 120, diastolic: 80, unit: "mm[Hg]" }, `dummy-json-vitals-mapped (${outputMode}) must emit exact JSON`);
+    }
+  }
+
+  // 2. Helper to switch COMPOSITION.INSTANCE_ENCODING on a Blockly workspace JSON.
+  const setEncoding = (blockly: unknown, enc: string): BlocklyWorkspaceJson => {
+    const clone = structuredClone(blockly) as BlocklyWorkspaceJson;
+    const walk = (b: Record<string, unknown> | undefined) => {
+      if (!b) return;
+      if (b.type === "composition" && b.fields) {
+        (b.fields as Record<string, unknown>).INSTANCE_ENCODING = enc;
+      }
+      const inputs = (b.inputs ?? {}) as Record<string, { block?: Record<string, unknown>; shadow?: Record<string, unknown> }>;
+      for (const inp of Object.values(inputs)) {
+        walk(inp.block);
+        walk(inp.shadow);
+      }
+      const next = b.next as { block?: Record<string, unknown>; shadow?: Record<string, unknown> } | undefined;
+      walk(next?.block);
+      walk(next?.shadow);
+    };
+    for (const top of (clone.blocks?.blocks ?? []) as Array<Record<string, unknown>>) walk(top);
+    return clone;
+  };
+
+  // 3. OpenEHR sets in BOTH canonical-xml AND canonical-json across Preview, TS, XQuery, Go Template, and Handlebars.
+  const openEhrCases: Array<{ setId: string; encodings: Array<"canonical-json" | "canonical-xml">; modes: Array<"preview" | "typescript" | "xquery" | "go-template" | "handlebars"> }> = [
+    { setId: "Simple-vitals", encodings: ["canonical-json", "canonical-xml"], modes: ["preview", "typescript", "xquery", "go-template", "handlebars"] },
+    { setId: "Simple-vitals-series", encodings: ["canonical-json", "canonical-xml"], modes: ["preview", "typescript", "xquery", "go-template", "handlebars"] },
+    { setId: "obx-mhv1-mapped-json-to-openehr", encodings: ["canonical-xml"], modes: ["preview", "typescript", "xquery", "go-template", "handlebars"] },
+    { setId: "karda-ordinationsdata-to-openehr-flat", encodings: ["canonical-xml"], modes: ["preview", "typescript", "xquery"] },
+    { setId: "mhv1-generic-entry-flat-wt", encodings: ["canonical-xml"], modes: ["preview", "typescript", "xquery", "go-template", "handlebars"] },
+  ];
+
+  for (const tc of openEhrCases) {
+    for (const enc of tc.encodings) {
+      const svc = new WorkbenchService();
+      await callAgentTool(svc, "load_example_set", {
+        catalogPath: CATALOG_PATH,
+        setId: tc.setId,
+        includeMapping: true,
+      });
+      const tree = await callAgentTool(svc, "get_source_tree", {}) as {
+        examples: Array<{ id: string; filename: string }>;
+      };
+      const firstValid = tree.examples.find((ex) => !/(?:invalid|broken|fail|bad)/i.test(ex.filename));
+      assert(firstValid, `${tc.setId}: expected valid example`);
+      await callAgentTool(svc, "set_active_example", { id: firstValid.id });
+      const st = svc.controller.getState();
+      const encBlockly = setEncoding(st.blocklyState, enc);
+      const ex = extractModelFromBlocklyJson(encBlockly, st.skeleton);
+      svc.controller.syncFromBlockly(encBlockly, ex.slots, ex.loops, ex.optionalRm, {
+        targetSignature: ex.targetSignature,
+        unsupported: ex.unsupported,
+        sheetNames: ex.sheetNames,
+        instanceEncodings: ex.instanceEncodings,
+        functions: ex.functions,
+        includes: ex.includes,
+      });
+
+      for (const outputMode of tc.modes) {
+        if (outputMode === "go-template" || outputMode === "handlebars") {
+          const gen = await callAgentTool(svc, "generate_script", { language: outputMode }) as { code?: string };
+          const vms = outputMode === "handlebars"
+            ? checkVmsHbs(gen.code ?? "")
+            : await checkVmsGo(gen.code ?? "");
+          assertEquals(
+            vms.ok,
+            true,
+            `${tc.setId} (${enc}, ${outputMode}) VMS check failed: ${vms.diagnostics.map((d) => d.message).join("; ")}`,
+          );
+        }
+        const run = await callAgentTool(svc, "run_test", { outputMode }) as {
+          testResult: {
+            ok: boolean;
+            output: unknown;
+            error?: string;
+            outputValidation?: { applicable?: boolean; valid?: boolean; messages?: Array<{ severity: string; path: string; message: string }> };
+          };
+        };
+        const res = run.testResult;
+        assertEquals(res.ok, true, `${tc.setId} (${enc}, ${outputMode}): ${res.error}`);
+        if (enc === "canonical-xml") {
+          assert(
+            typeof res.output === "string" && res.output.trim().startsWith("<"),
+            `${tc.setId} (${enc}, ${outputMode}): expected XML output`,
+          );
+        }
+        assertEquals(
+          res.outputValidation?.applicable,
+          true,
+          `${tc.setId} (${enc}, ${outputMode}): expected applicable openEHR validation`,
+        );
+        const errs = res.outputValidation?.messages?.filter((m) => m.severity === "error") ?? [];
+        assertEquals(
+          res.outputValidation?.valid,
+          true,
+          `${tc.setId} (${enc}, ${outputMode}): ${errs.map((e) => `${e.path}: ${e.message}`).join("; ")}`,
+        );
+      }
+    }
+  }
+});
+

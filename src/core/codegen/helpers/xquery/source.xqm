@@ -30,7 +30,7 @@ declare function ig:number-at($ctx as item()*, $path as xs:string) as xs:decimal
 
 declare function ig:boolean-at($ctx as item()*, $path as xs:string) as xs:boolean? {
   let $value := ig:lookup($ctx, $path)
-  return if (empty($value)) then () else xs:boolean($value)
+  return if (empty($value)) then () else boolean($value)
 };
 
 declare function ig:lookup($ctx as item()*, $path as xs:string) as item()* {

@@ -16,7 +16,7 @@
  * workspace snapshot is available.
  */
 import type { ExprAst } from "../expression/mod.ts";
-import type { MappingFunction, MappingModel, MappingSlot } from "../../types/mod.ts";
+import type { MappingFunction, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
 import { primaryMappingAttribute } from "../rm_meta.ts";
 import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
 import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
@@ -25,6 +25,10 @@ import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 import { valueFunctions } from "./user_functions.ts";
 import { isRelativeAuthoringPath } from "../mapping_model/loops.ts";
 import { namedLoopBinding } from "../named_loop_path.ts";
+import { usesOpenEhrProduct } from "./product.ts";
+import { preferredInstanceEncoding } from "../output/instance_encoding.ts";
+import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
+import { emitGoJsonSchemaProduct, emitGoOpenEhrProduct } from "./go_template_skeleton.ts";
 import {
   injectXmlnsOnOpenTag,
   wrapXmlCdata,
@@ -59,7 +63,7 @@ export function createGoEmitContext(
 
 export function generateGoTemplate(
   model: MappingModel,
-  options?: { blocklyState?: unknown },
+  options?: { blocklyState?: unknown; skeleton?: SkeletonNode[] },
 ): string {
   const ctx = createGoEmitContext(undefined, model.functions);
   const lines: string[] = [
@@ -69,12 +73,28 @@ export function generateGoTemplate(
   const defines = emitGoFunctionDefines(model, ctx);
   if (defines) lines.push(defines);
 
-  const body = options?.blocklyState
+  const skeleton = options?.skeleton ?? [];
+  const hasCanvasHbs = Boolean(canvasHandlebarsExpression(options?.blocklyState));
+  const useOpenEhrSkeleton = !hasCanvasHbs && skeleton.length > 0 && usesOpenEhrProduct(model, options);
+  const useJsonSchemaSkeleton = !hasCanvasHbs && skeleton.length > 0 && model.targetFormat === "json-schema";
+
+  const body = useOpenEhrSkeleton
+    ? emitGoOpenEhrProduct(model, skeleton, preferredInstanceEncoding(model) === "canonical-xml")
+    : useJsonSchemaSkeleton
+    ? emitGoJsonSchemaProduct(model, skeleton)
+    : options?.blocklyState
     ? generateFromBlockly(options.blocklyState, model)
     : generateFromSlots(model, ctx);
-  const helperNames = ["sheetLookup", "decisionTable", "handlebars", "dict"].filter((name) =>
-    body.includes(name)
-  );
+  const helperNames = [
+    "sheetLookup",
+    "decisionTable",
+    "handlebars",
+    "dict",
+    "toJson",
+    "jget",
+    "rmObj",
+    "rmToXml",
+  ].filter((name) => body.includes(name));
   if (helperNames.length) {
     lines.push(
       `{{- /* Helpers: ${helperNames.join(", ")} — ${GO_TEMPLATE_HELPERS_BLOB} */ -}}`,
@@ -1145,19 +1165,22 @@ function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
     if (path === ".") return ".";
     return `(index . ${goQuote(path)})`;
   }
-  if (path.startsWith("$.")) {
+  if (path.startsWith("$")) {
     return `(${jsonPathToGoIndex(path)})`;
   }
   return `(index .Data ${goQuote(path)})`;
 }
 
-/** JSONPath `$.a.b[0]['flat/key|value']` → chained `index .Data …`. */
+/** JSONPath `$.a.b[0]['flat/key|value']` → valid parenthesized `index` chain. */
 export function jsonPathToGoIndex(path: string): string {
   const segments = jsonPathSegments(path);
   if (!segments.length) return `index .Data ""`;
   let expr = ".Data";
-  for (const seg of segments) {
-    expr = `index ${expr} ${goQuote(seg)}`;
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]!;
+    const target = i === 0 ? expr : `(${expr})`;
+    const key = /^\d+$/.test(seg) ? String(Math.max(0, Number(seg) - 1)) : goQuote(seg);
+    expr = `index ${target} ${key}`;
   }
   return expr;
 }

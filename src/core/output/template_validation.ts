@@ -105,12 +105,25 @@ export function validateConvertedOutput(
         return notApplicableOutputValidation();
       }
     } else if (trimmed.startsWith("<")) {
+      if (trimmed.startsWith("<mapping-result")) {
+        return notApplicableOutputValidation();
+      }
       try {
         ensureRmTypeRegistry();
         output = new XmlDeserializer().deserialize(trimmed);
+        coerceXmlDeserializedRmPrimitives(output);
         isXmlOutput = true;
-      } catch {
-        return notApplicableOutputValidation();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          applicable: true,
+          valid: false,
+          messages: [{
+            path: "/",
+            message: `Invalid openEHR XML: ${message}`,
+            severity: "error",
+          }],
+        };
       }
     } else {
       return notApplicableOutputValidation();
@@ -512,6 +525,100 @@ function looksLikeRmInstance(value: unknown): boolean {
   if (value == null || typeof value !== "object") return false;
   const ctor = (value as { constructor?: { name?: string } }).constructor?.name;
   return typeof ctor === "string" && ctor !== "Object" && ctor !== "Array";
+}
+
+const XML_NUMERIC_RM_FIELDS: Record<string, readonly string[]> = {
+  DV_QUANTITY: ["magnitude", "precision", "accuracy"],
+  DV_COUNT: ["magnitude", "accuracy"],
+  DV_ORDINAL: ["value"],
+  DV_SCALE: ["value"],
+  DV_PROPORTION: ["numerator", "denominator", "type", "precision", "accuracy"],
+  DV_DURATION: ["accuracy"],
+  DV_AMOUNT: ["accuracy"],
+  DV_MULTIMEDIA: ["size"],
+};
+
+const XML_BOOLEAN_RM_FIELDS: Record<string, readonly string[]> = {
+  DV_BOOLEAN: ["value"],
+  DV_QUANTITY: ["accuracy_is_percent"],
+  DV_COUNT: ["accuracy_is_percent"],
+  DV_PROPORTION: ["accuracy_is_percent"],
+  DV_DURATION: ["accuracy_is_percent"],
+  DV_AMOUNT: ["accuracy_is_percent"],
+  DV_INTERVAL: ["lower_included", "upper_included", "lower_unbounded", "upper_unbounded"],
+};
+
+function parseXmlNumber(raw: unknown): number | undefined {
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function parseXmlBoolean(raw: unknown): boolean | undefined {
+  if (typeof raw !== "string") return undefined;
+  const lower = raw.trim().toLowerCase();
+  if (lower === "true" || lower === "1") return true;
+  if (lower === "false" || lower === "0") return false;
+  return undefined;
+}
+
+/**
+ * Workaround for upstream ehrtslib#336: `XmlDeserializer` parses XML leaf text
+ * with `parseTagValue: false` and assigns raw strings onto RM instances without
+ * numeric coercion (leaving `DV_QUANTITY.magnitude` as `"120"` and
+ * `DV_COUNT._magnitude` as `"5"` so `get magnitude()` returns `undefined`).
+ */
+function coerceXmlDeserializedRmPrimitives(
+  root: unknown,
+  seen = new WeakSet<object>(),
+): void {
+  if (root == null || typeof root !== "object") return;
+  if (seen.has(root)) return;
+  seen.add(root);
+  if (Array.isArray(root)) {
+    for (const item of root) coerceXmlDeserializedRmPrimitives(item, seen);
+    return;
+  }
+  const rec = root as Record<string, unknown>;
+  const ctorName = (root as { constructor?: { name?: string } }).constructor?.name ?? "";
+
+  const numFields = XML_NUMERIC_RM_FIELDS[ctorName];
+  if (numFields) {
+    for (const key of numFields) {
+      // DV_COUNT stores the raw assigned string on `_magnitude` because its setter
+      // only wraps `typeof val === "number"` in `Integer64.from(val)`.
+      const backingKey = `_${key}`;
+      const raw = typeof rec[key] === "string"
+        ? rec[key]
+        : (typeof rec[backingKey] === "string" ? rec[backingKey] : undefined);
+      const num = parseXmlNumber(raw);
+      if (num !== undefined) {
+        rec[key] = num;
+      }
+    }
+  }
+
+  const boolFields = XML_BOOLEAN_RM_FIELDS[ctorName];
+  if (boolFields) {
+    for (const key of boolFields) {
+      const backingKey = `_${key}`;
+      const raw = typeof rec[key] === "string"
+        ? rec[key]
+        : (typeof rec[backingKey] === "string" ? rec[backingKey] : undefined);
+      const bool = parseXmlBoolean(raw);
+      if (bool !== undefined) {
+        rec[key] = bool;
+      }
+    }
+  }
+
+  for (const val of Object.values(rec)) {
+    if (val != null && typeof val === "object") {
+      coerceXmlDeserializedRmPrimitives(val, seen);
+    }
+  }
 }
 
 /** Kinds used to split Simple-vitals ⚠ from a real mapping miss (#171). */

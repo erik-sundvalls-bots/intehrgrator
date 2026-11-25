@@ -26,12 +26,31 @@ export function isUnresolvedSkeletonLabel(
   return false;
 }
 
+function isBareNodeCodeLabel(
+  label: string | undefined,
+  archetypeNodeId?: string,
+): boolean {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return true;
+  if (BARE_NODE_CODE_RE.test(trimmed)) return true;
+  if (archetypeNodeId && trimmed === archetypeNodeId.trim()) return true;
+  return false;
+}
+
 function shouldPreserveExistingLabel(
   existingLabel: string | undefined,
   candidateLabel: string | undefined,
   rmType?: string,
   archetypeNodeId?: string,
 ): boolean {
+  // Never downgrade a human-readable label (even a generic RM label like
+  // "history" or "Item tree") to an empty string or bare at/id code ("at0002").
+  if (
+    !isBareNodeCodeLabel(existingLabel, archetypeNodeId) &&
+    isBareNodeCodeLabel(candidateLabel, archetypeNodeId)
+  ) {
+    return true;
+  }
   return !isUnresolvedSkeletonLabel(existingLabel, rmType, archetypeNodeId) &&
     isUnresolvedSkeletonLabel(candidateLabel, rmType, archetypeNodeId);
 }

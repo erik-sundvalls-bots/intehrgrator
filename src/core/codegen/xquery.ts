@@ -123,9 +123,9 @@ export function generateXQuery(
       shape,
       needsRm: true,
       productComment: shape === "xml"
-        ? "Output: COMPOSITION RM XML (Model A/C). Validate with Archie / a CDR."
+        ? "Output: COMPOSITION canonical RM XML (http://schemas.openehr.org/v1). Validate with ehrtslib / Archie / a CDR."
         : "Output: COMPOSITION as XPath 3.1 maps (JSON instance shape).",
-      convertType: shape === "xml" ? "element()" : "item()*",
+      convertType: shape === "xml" ? "element()*" : "item()*",
       body: emitCompositionProduct(model, skeleton, shape, env),
     });
   }
@@ -141,6 +141,17 @@ export function generateXQuery(
         "Output: VMS-Hbs string via intehrgrator:handlebars (Test Run host). BaseX/Saxon need the same external function.",
       convertType: "xs:string",
       body: `  ${emitXQueryExpr(parseExpression(canvas), env)}`,
+    });
+  }
+
+  if (model.targetFormat === "json-schema" && skeleton.length > 0) {
+    return wrapXQueryModule({
+      model,
+      shape: "json",
+      needsRm: false,
+      productComment: "Output: JSON Schema target object as XPath 3.1 map (JSON instance).",
+      convertType: "item()*",
+      body: emitJsonSchemaProduct(model, skeleton, env),
     });
   }
 
@@ -213,6 +224,32 @@ function wrapXQueryModule(args: {
   const method = args.shape === "json" ? "json" : "xml";
   const userFns = emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model));
   const helperImports = xqueryHelperImports(`${userFns.join("\n")}\n${args.body}`);
+  const rmToXmlFn = args.needsRm && args.shape === "xml"
+    ? [
+      "declare function local:rm-to-xml($tag as xs:string, $val as item()*) as element()* {",
+      "  for $item in (if ($val instance of array(*)) then $val?* else $val)",
+      "  return",
+      "    if ($item instance of map(*)) then",
+      '      element { QName("http://schemas.openehr.org/v1", $tag) } {',
+      '        if (map:contains($item, "_type")) then attribute xsi:type { string($item("_type")) } else (),',
+      '        if (map:contains($item, "archetype_node_id")) then attribute archetype_node_id { string($item("archetype_node_id")) } else (),',
+      '        for $k in map:keys($item)[not(. = ("_type", "archetype_node_id"))]',
+      "        let $v := $item($k)",
+      "        where exists($v)",
+      '        return if ($k = "terminology_id" and not($v instance of map(*))) then',
+      '          element { QName("http://schemas.openehr.org/v1", "terminology_id") } {',
+      '            attribute xsi:type { "TERMINOLOGY_ID" },',
+      '            element { QName("http://schemas.openehr.org/v1", "value") } { string($v) }',
+      "          }",
+      "        else local:rm-to-xml($k, $v)",
+      "      }",
+      "    else if (exists($item)) then",
+      '      element { QName("http://schemas.openehr.org/v1", $tag) } { string($item) }',
+      "    else ()",
+      "};",
+      "",
+    ]
+    : [];
   const lines: string[] = [
     'xquery version "3.1";',
     "",
@@ -248,6 +285,7 @@ function wrapXQueryModule(args: {
     "declare variable $defaults as map(*) external := map {};",
     "declare variable $sheets as map(*) external := map {};",
     "",
+    ...rmToXmlFn,
     ...userFns,
     `declare function local:convert($source as item()*) as ${args.convertType} {`,
     args.body,
@@ -696,7 +734,7 @@ export function compileLiteralPath(
   const cast = helper === "number-at"
     ? "xs:decimal"
     : helper === "boolean-at"
-    ? "xs:boolean"
+    ? "boolean"
     : "xs:string";
 
   if (trimmed === "." || trimmed === "./") {
@@ -719,6 +757,12 @@ export function compileLiteralPath(
   if (trimmed.startsWith("$")) {
     const lookup = jsonDollarPathToLookup(trimmed, sourceVar);
     if (!lookup) return null;
+    if (sourceVar !== "$source") {
+      const rootLookup = jsonDollarPathToLookup(trimmed, "$source");
+      if (rootLookup && rootLookup !== lookup) {
+        return `${cast}((${lookup}, ${rootLookup})[1])`;
+      }
+    }
     return `${cast}((${lookup})[1])`;
   }
 
@@ -840,31 +884,75 @@ interface XqSkelCtx {
   shape: OpenEhrInstanceShape;
 }
 
+function emitJsonSchemaProduct(
+  model: MappingModel,
+  skeleton: SkeletonNode[],
+  env: XQueryEmitEnv = {},
+): string {
+  const slots = new Map(model.slots.map((slot) => [slot.slotId, slot]));
+  const emitNode = (node: SkeletonNode): string | null => {
+    if (node.kind === "value") {
+      const slot = slots.get(node.slotId);
+      if (!slot?.expression) return null;
+      try {
+        return emitXQueryExpr(parseExpression(slot.expression), env);
+      } catch {
+        return "()";
+      }
+    }
+    const entries: string[] = [];
+    for (const child of node.children) {
+      const val = emitNode(child);
+      if (!val) continue;
+      const key = child.rmAttribute ?? child.label;
+      entries.push(`${xqString(key)}: ${val}`);
+    }
+    if (!entries.length) return null;
+    if (node.rmType === "array") {
+      return `array { ${entries.map((e) => e.split(": ").slice(1).join(": ")).join(", ")} }`;
+    }
+    return `map { ${entries.join(", ")} }`;
+  };
+  const roots = skeleton
+    .map((node) => emitNode(node))
+    .filter((code): code is string => Boolean(code));
+  if (!roots.length) return "  map {}";
+  if (roots.length === 1) return `  ${roots[0]}`;
+  return `  array { ${roots.join(", ")} }`;
+}
+
 function emitCompositionProduct(
   model: MappingModel,
   skeleton: SkeletonNode[],
   shape: OpenEhrInstanceShape,
   env: XQueryEmitEnv = {},
 ): string {
+  // Always construct the canonical RM XPath 3.1 map tree so dynamic maps from
+  // $defaults (composer, subject, language, territory, encoding), codedText,
+  // loops, and guards work identically in JSON and XML. For XML, serialize via
+  // local:rm-to-xml("composition", ...) in the http://schemas.openehr.org/v1
+  // default namespace with xsi:type and archetype_node_id attributes.
   const ctx: XqSkelCtx = {
     slots: new Map(model.slots.map((slot) => [slot.slotId, slot])),
     loops: model.loops ?? [],
     includes: model.includes,
     env,
-    shape,
+    shape: "json",
   };
   const roots = skeleton
     .map((node) => emitSkelNode(node, ctx, true))
     .filter((code): code is string => Boolean(code));
   if (!roots.length) {
     return shape === "xml"
-      ? '  element rm:composition { attribute xsi:type { "COMPOSITION" } }'
+      ? '  local:rm-to-xml("composition", map { "_type": "COMPOSITION" })'
       : '  map { "_type": "COMPOSITION" }';
   }
-  if (roots.length === 1) return `  ${roots[0]}`;
+  const mapExpr = roots.length === 1
+    ? roots[0]!
+    : `array { ${roots.join(", ")} }`;
   return shape === "xml"
-    ? `  (${roots.join(",\n   ")})`
-    : `  array { ${roots.join(", ")} }`;
+    ? `  local:rm-to-xml("composition", ${mapExpr})`
+    : `  ${mapExpr}`;
 }
 
 function emitSkelNode(
@@ -875,6 +963,26 @@ function emitSkelNode(
 ): string | null {
   if (node.kind === "value") return emitSkelValue(node, ctx);
   if (isAutoFixedValueSlot(node)) return null;
+
+  if (
+    node.rmType === "PARTY_PROXY" ||
+    node.rmType === "PARTY_IDENTIFIED" ||
+    node.rmType === "PARTY_SELF"
+  ) {
+    const directSlot = ctx.slots.get(node.slotId);
+    if (directSlot?.expression) return emitSkelValue(node, ctx);
+    for (const child of node.children) {
+      const childCode = emitSkelNode(child, ctx, false, parentArchetypeRef);
+      if (childCode) return childCode;
+    }
+    if (node.rmType === "PARTY_PROXY" && node.rmAttribute === "subject") {
+      return `map { "_type": "PARTY_SELF" }`;
+    }
+    if (node.rmType === "PARTY_SELF") {
+      return `map { "_type": "PARTY_SELF" }`;
+    }
+    return null;
+  }
 
   const loop = ctx.loops.find((item) => item.attachSlotId === node.slotId);
   if (loop) return emitSkelLoop(node, loop, ctx, parentArchetypeRef);
@@ -952,6 +1060,10 @@ function skelProps(
   if (nodeId) {
     props.push(["archetype_node_id", xqString(nodeId)]);
   }
+  if (node.rmType === "ACTIVITY") {
+    const actionArch = node.fixedFields?.action_archetype_id ?? "/.*/";
+    props.push(["action_archetype_id", xqString(actionArch)]);
+  }
   const childArchetypeRef = node.archetypeRef ?? parentArchetypeRef;
 
   const grouped = new Map<string, SkeletonNode[]>();
@@ -969,7 +1081,7 @@ function skelProps(
       .map((child) => emitSkelNode(child, ctx, false, childArchetypeRef))
       .filter((code): code is string => Boolean(code));
     if (!codes.length) continue;
-    const asList = listAttr || codes.some((c) => c.includes("for $"));
+    const asList = listAttr;
     if (asList) {
       if (ctx.shape === "json") {
         const items = codes.map((c) =>
@@ -986,7 +1098,12 @@ function skelProps(
         props.push([attr, wrapped.length === 1 ? wrapped[0]! : `(${wrapped.join(", ")})`]);
       }
     } else {
-      props.push([attr, codes[0]!]);
+      const existingIdx = props.findIndex(([k]) => k === attr);
+      if (existingIdx >= 0) {
+        props[existingIdx] = [attr, codes[0]!];
+      } else {
+        props.push([attr, codes[0]!]);
+      }
     }
   }
   return props;
@@ -999,6 +1116,28 @@ function formatSkelConstruct(
   isRoot: boolean,
 ): string {
   if (ctx.shape === "json") {
+    if (node.rmType === "ELEMENT") {
+      const valEntry = props.find(([k]) => k === "value");
+      if (valEntry) {
+        const otherFields = [
+          `"_type": ${xqString(node.rmType)}`,
+          ...props.filter(([k]) => k !== "value").map(([key, value]) => `${xqString(key)}: ${value}`),
+          `"value": $__el_val`,
+        ];
+        return `(let $__el_val := ${valEntry[1]} return if (exists($__el_val)) then map { ${otherFields.join(", ")} } else ())`;
+      }
+    }
+    if (node.rmType === "ITEM_TREE") {
+      const itemsEntry = props.find(([k]) => k === "items");
+      if (itemsEntry) {
+        const otherFields = [
+          `"_type": ${xqString(node.rmType)}`,
+          ...props.filter(([k]) => k !== "items").map(([key, value]) => `${xqString(key)}: ${value}`),
+          `"items": $__tree_items`,
+        ];
+        return `(let $__tree_items := ${itemsEntry[1]} return if (array:size($__tree_items) > 0) then map { ${otherFields.join(", ")} } else ())`;
+      }
+    }
     const fields = [
       `"_type": ${xqString(node.rmType)}`,
       ...props.map(([key, value]) => `${xqString(key)}: ${value}`),
@@ -1121,54 +1260,41 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
   }
   const fields = node.fixedFields ?? {};
   const rmType = node.rmType;
+  const isClinicalElementValue = node.rmAttribute === "value";
 
   if (rmType === "CODE_PHRASE") {
     const term = fields.terminology_id;
     const code = fields.code_string ?? fields.defining_code;
     const codeExpr = expr ?? (code ? xqString(code) : null);
     if (!term && !codeExpr) return null;
-    if (ctx.shape === "json") {
-      return `map { "_type": "CODE_PHRASE", "terminology_id": ${
-        xqString(term ?? "")
-      }, "code_string": ${codeExpr ?? '""'} }`;
+    const termMap = `map { "_type": "TERMINOLOGY_ID", "value": ${xqString(term ?? "")} }`;
+    if (expr) {
+      return `(let $__cp := ${expr} return if ($__cp instance of map(*)) then $__cp else map { "_type": "CODE_PHRASE", "terminology_id": ${termMap}, "code_string": $__cp })`;
     }
-    return [
-      "element rm:terminology_id { element rm:value { " + xqString(term ?? "") + " } }",
-      "element rm:code_string { " + (codeExpr ?? '""') + " }",
-    ].join(", ");
+    return `map { "_type": "CODE_PHRASE", "terminology_id": ${termMap}, "code_string": ${codeExpr ?? '""'} }`;
   }
 
   if (rmType === "DV_QUANTITY") {
-    // No magnitude: omit a range-only quantity. A template-fixed unit with no
-    // mapped magnitude stays, as before, and does not carry shell mouths.
-    if (!expr) {
-      if (!fields.units) return null;
-      const units = xqString(fields.units);
-      if (ctx.shape === "json") {
-        return `map { "_type": "DV_QUANTITY", "magnitude": (), "units": ${units} }`;
-      }
-      return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { () }, element rm:units { ${units} }`;
-    }
-    const units = fields.units ? xqString(fields.units) : "()";
+    // Omit unmapped quantity scaffolding so unmapped clinical observations are pruned.
+    if (!expr) return null;
     const shell = xqShellSuffix(slot, ctx);
-    if (ctx.shape === "json") {
-      return `map { "_type": "DV_QUANTITY", "magnitude": ${expr}, "units": ${units}${shell} }`;
-    }
-    return `attribute xsi:type { "DV_QUANTITY" }, element rm:magnitude { ${expr} }, element rm:units { ${units} }${shell}`;
+    const hasShellUnits = Boolean(slot?.shellFragments && "units" in slot.shellFragments);
+    const units = fields.units ? xqString(fields.units) : '""';
+    const unitsProp = hasShellUnits ? "" : `, "units": ${units}`;
+    return `(let $__q := ${expr} return if (empty($__q) or string($__q) = "") then () else map { "_type": "DV_QUANTITY", "magnitude": $__q${unitsProp}${shell} })`;
   }
 
   if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
     const shell = xqShellSuffix(slot, ctx);
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "magnitude": ${expr}${shell} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:magnitude { ${expr} }${shell}`;
+    const prop = rmType === "DV_ORDINAL" ? "value" : "magnitude";
+    return `(let $__n := ${expr} return if (empty($__n) or string($__n) = "") then () else map { "_type": ${xqString(rmType)}, "${prop}": $__n${shell} })`;
   }
 
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
     const shell = xqShellSuffix(slot, ctx);
-    if (ctx.shape === "json") return `map { "_type": "DV_BOOLEAN", "value": ${expr}${shell} }`;
-    return `attribute xsi:type { "DV_BOOLEAN" }, element rm:value { ${expr} }${shell}`;
+    return `(let $__b := ${expr} return if (empty($__b)) then () else map { "_type": "DV_BOOLEAN", "value": $__b${shell} })`;
   }
 
   if (
@@ -1176,51 +1302,69 @@ function emitSkelValue(node: SkeletonNode, ctx: XqSkelCtx): string | null {
     rmType === "DV_DURATION" || rmType === "DV_URI" || rmType === "DV_EHR_URI" ||
     rmType === "DV_TEXT" || rmType === "DV_IDENTIFIER" || rmType === "DV_CODED_TEXT"
   ) {
-    const value = expr ?? (fields.value ? xqString(fields.value) : null);
-    const fixedCode = fields.defining_code ?? fields.code_string;
     if (rmType === "DV_CODED_TEXT") {
-      // A map("value", …, "code_string", …, "terminology_id", …) mapping (#274) wins over fixed fields.
+      // Do not fabricate unmapped clinical ELEMENT.value nodes from template fixedFields
+      // (matching format_handler.ts & typescript_codegen.ts); keep RM metadata attributes
+      // like COMPOSITION.category and EVENT_CONTEXT.setting.
+      if (!expr && !coded && isClinicalElementValue) return null;
+      const value = expr ?? (fields.value ? xqString(fields.value) : null);
+      const fixedCode = fields.defining_code ?? fields.code_string;
       const term = part(coded?.terminology) ?? xqString(fields.terminology_id ?? "openehr");
       const code = part(coded?.code) ?? (fixedCode ? xqString(fixedCode) : null);
       if (!code && !value) return null;
       const shell = xqShellSuffix(slot, ctx);
-      if (ctx.shape === "json") {
-        const fallback = `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": ${term}, "code_string": ${code ?? '""'} }${shell} }`;
-        return value && !coded ? `(let $__coded := ${value} return if ($__coded instance of map(*)) then $__coded else ${fallback})` : fallback;
+      const hasShellDefiningCode = Boolean(
+        slot?.shellFragments && "defining_code" in slot.shellFragments,
+      );
+      if (value && !coded && !hasShellDefiningCode && node.allowedValues?.length) {
+        const cases = node.allowedValues.map((av) => {
+          const avTerm = xqString(av.terminologyId ?? fields.terminology_id ?? "local");
+          const avCode = xqString(av.code);
+          const avLabel = xqString(av.label);
+          const keys = [av.label.toLowerCase(), av.code.toLowerCase()];
+          const uniqueKeys = [...new Set(keys)];
+          return `${uniqueKeys.map((k) => `case ${xqString(k)}`).join(" ")} return map { "_type": "DV_CODED_TEXT", "value": ${avLabel}, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": map { "_type": "TERMINOLOGY_ID", "value": ${avTerm} }, "code_string": ${avCode} }${shell} }`;
+        }).join(" ");
+        const fallbackCode = code ?? '""';
+        return `(let $__coded := ${value} return if ($__coded instance of map(*)) then $__coded else if (empty($__coded) or string($__coded) = "") then () else switch (lower-case(string($__coded))) ${cases} default return map { "_type": "DV_CODED_TEXT", "value": string($__coded), "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": map { "_type": "TERMINOLOGY_ID", "value": ${term} }, "code_string": ${fallbackCode} }${shell} })`;
       }
-      if (value && !coded) {
-        return `(let $__coded := ${value} return if ($__coded instance of map(*)) then (
-          attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { $__coded?value },
-          element rm:defining_code { element rm:terminology_id { element rm:value { $__coded?defining_code?terminology_id?value } }, element rm:code_string { $__coded?defining_code?code_string } },
-          for $m in $__coded?mappings?* return element rm:mappings { element rm:match { $m?match }, element rm:target { element rm:terminology_id { element rm:value { $m?target?terminology_id?value } }, element rm:code_string { $m?target?code_string } } }
-        ) else (attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { $__coded }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${code ?? '\"\"'} } }))`;
+      if (value && !coded && !code && !hasShellDefiningCode && node.rmAttribute === "category") {
+        return `(let $__coded := ${value} return if ($__coded instance of map(*)) then $__coded else switch (lower-case(string($__coded))) case "persistent" case "431" return map { "_type": "DV_CODED_TEXT", "value": "persistent", "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": map { "_type": "TERMINOLOGY_ID", "value": "openehr" }, "code_string": "431" } } case "episodic" case "435" return map { "_type": "DV_CODED_TEXT", "value": "episodic", "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": map { "_type": "TERMINOLOGY_ID", "value": "openehr" }, "code_string": "435" } } default return map { "_type": "DV_CODED_TEXT", "value": string($__coded), "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": map { "_type": "TERMINOLOGY_ID", "value": "openehr" }, "code_string": "433" } })`;
       }
-      return `attribute xsi:type { "DV_CODED_TEXT" }, element rm:value { ${
-        value ?? '""'
-      } }, element rm:defining_code { element rm:terminology_id { element rm:value { ${term} } }, element rm:code_string { ${
-        code ?? '""'
-      } } }${shell}`;
+      const definingCodeProp = hasShellDefiningCode
+        ? ""
+        : `, "defining_code": map { "_type": "CODE_PHRASE", "terminology_id": map { "_type": "TERMINOLOGY_ID", "value": ${term} }, "code_string": ${code ?? '""'} }`;
+      const fallback = `map { "_type": "DV_CODED_TEXT", "value": ${value ?? '""'}${definingCodeProp}${shell} }`;
+      return value && !coded
+        ? `(let $__coded := ${value} return if ($__coded instance of map(*)) then $__coded else if (empty($__coded) or string($__coded) = "") then () else ${fallback})`
+        : fallback;
     }
+    const value = expr ?? (isClinicalElementValue ? null : (fields.value ? xqString(fields.value) : null));
     if (!value) return null;
     const shell = xqShellSuffix(slot, ctx);
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "value": ${value}${shell} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:value { ${value} }${shell}`;
+    const valProp = rmType === "DV_IDENTIFIER" ? "id" : "value";
+    if (expr) {
+      if (isClinicalElementValue) {
+        return `(let $__dv := ${value} return if ($__dv instance of map(*)) then $__dv else if (empty($__dv) or string($__dv) = "") then () else map { "_type": ${xqString(rmType)}, "${valProp}": $__dv${shell} })`;
+      }
+      return `(let $__dv := ${value} return if ($__dv instance of map(*)) then $__dv else map { "_type": ${xqString(rmType)}, "${valProp}": (if (exists($__dv)) then $__dv else "")${shell} })`;
+    }
+    return `map { "_type": ${xqString(rmType)}, "${valProp}": ${value}${shell} }`;
   }
 
-  if (rmType === "PARTY_SELF") {
-    if (ctx.shape === "json") return `map { "_type": "PARTY_SELF" }`;
-    return `attribute xsi:type { "PARTY_SELF" }`;
-  }
-
-  if (rmType === "PARTY_IDENTIFIED") {
-    if (!expr) return null;
-    if (ctx.shape === "json") return `map { "_type": "PARTY_IDENTIFIED", "name": ${expr} }`;
-    return `attribute xsi:type { "PARTY_IDENTIFIED" }, element rm:name { ${expr} }`;
+  if (rmType === "PARTY_PROXY" || rmType === "PARTY_IDENTIFIED" || rmType === "PARTY_SELF") {
+    if (expr) {
+      const defaultType = rmType === "PARTY_SELF" ? "PARTY_SELF" : "PARTY_IDENTIFIED";
+      return `(let $__party := ${expr} return if ($__party instance of map(*)) then (if (map:contains($__party, "_type")) then $__party else map:put($__party, "_type", ${xqString(defaultType)})) else map { "_type": "PARTY_IDENTIFIED", "name": $__party })`;
+    }
+    if (rmType === "PARTY_SELF") {
+      return `map { "_type": "PARTY_SELF" }`;
+    }
+    return null;
   }
 
   if (expr) {
-    if (ctx.shape === "json") return `map { "_type": ${xqString(rmType)}, "value": ${expr} }`;
-    return `attribute xsi:type { ${xqString(rmType)} }, element rm:value { ${expr} }`;
+    return `(let $__val := ${expr} return if ($__val instance of map(*)) then $__val else map { "_type": ${xqString(rmType)}, "value": $__val })`;
   }
   return null;
 }
