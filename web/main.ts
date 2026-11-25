@@ -1987,7 +1987,8 @@ function renderTreemapAndModeBar(): void {
         pendingToolboxState = null;
         syncToolbox(nextToolboxState);
       }
-      const svgEl = blocklyEl?.querySelector("svg.blocklySvg") as SVGSVGElement | null;
+      const svgEl = workspace.getParentSvg?.() ??
+        (blocklyEl?.querySelector(":scope > .injectionDiv > svg.blocklySvg") as SVGSVGElement | null);
       const rect = svgEl?.getBoundingClientRect();
       const svgCollapsed = !rect || rect.width < 2 || rect.height < 2;
       if (wasBlocklyHidden || svgCollapsed) {
