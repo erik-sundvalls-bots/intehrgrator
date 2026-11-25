@@ -101,8 +101,9 @@ Deno.test("XQuery JSON and XML emit mappings and hyperlink", () => {
   assertStringIncludes(json, "TERMINOLOGY_ID");
   const xml = generateXQuery(model, { skeleton: textSkeleton(), instanceShape: "xml" });
   assertMouths(xml);
-  assertStringIncludes(xml, "rm:mappings");
-  assertStringIncludes(xml, "rm:hyperlink");
+  assertStringIncludes(xml, 'local:rm-to-xml("composition"');
+  assertStringIncludes(xml, '"mappings"');
+  assertStringIncludes(xml, '"hyperlink"');
 });
 
 Deno.test("a quantity with no magnitude is omitted even when a range is set", () => {
