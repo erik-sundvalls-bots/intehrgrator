@@ -416,6 +416,7 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
       0,
       "Obsolete top-bar #openehr-instance-shape picker must be removed",
     );
+    page.on("dialog", (dialog) => dialog.accept());
     await page.keyboard.press("Escape");
     await page.click("#btn-example-sets");
     await page.click('[data-example-set-id="obx-mhv1-mapped-json-to-openehr"]');
