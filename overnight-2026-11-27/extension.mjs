@@ -6854,6 +6854,8 @@ var init_handlebars = __esm({
       toLowerCase: (value) => value == null ? value : String(value).toLowerCase(),
       toUpperCase: (value) => value == null ? value : String(value).toUpperCase(),
       trim: (value) => value == null ? "" : String(value).trim(),
+      /** Every regex match replaced with literal text (`regex_replace` Mapping Expression). */
+      regexReplace: (src, pattern, replacement) => String(src ?? "").replace(new RegExp(String(pattern ?? ""), "gu"), () => String(replacement ?? "")),
       replace: (src, oldVal, newVal) => String(src ?? "").replaceAll(String(oldVal ?? ""), String(newVal ?? "")),
       concat: (...args) => args.slice(0, -1).filter((v4) => v4 !== null && v4 !== void 0).map(String).join(""),
       coalesce: (...args) => {
@@ -7276,6 +7278,7 @@ var init_vms_hbs = __esm({
       toUpperCase: true,
       trim: true,
       replace: true,
+      regexReplace: true,
       concat: true,
       coalesce: true,
       nonEmpty: true,
@@ -194637,6 +194640,7 @@ var BUILTIN_NAMES = /* @__PURE__ */ new Set([
   "xpathNode",
   "trim",
   "change_case",
+  "regex_replace",
   "concat",
   "round",
   "modulo",
@@ -214543,7 +214547,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.12.1/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/tmp/previews-lung/src/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/tmp/previews-tut/src/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -246812,6 +246816,8 @@ function emitTsExpression(ast, ctx) {
       switch (ast.name) {
         case "trim":
           return `String(${args[0]} ?? "").trim()`;
+        case "regex_replace":
+          return `String(${args[0]} ?? "").replace(new RegExp(String(${args[1] ?? '""'}), "gu"), () => String(${args[2] ?? '""'}))`;
         case "change_case":
           return emitChangeCaseTs(args[0] ?? '""', ast.args[1]);
         case "concat":
@@ -252110,6 +252116,8 @@ function emitXQueryExpr(ast, env2 = {}) {
       switch (ast.name) {
         case "trim":
           return `normalize-space(${args[0]})`;
+        case "regex_replace":
+          return `replace(string(${args[0]}), string(${args[1] ?? '""'}), replace(string(${args[2] ?? '""'}), "([\\\\$])", "\\\\$1"))`;
         case "change_case":
           return emitChangeCaseXq(args[0] ?? '""', args[1] ?? '"LOWERCASE"');
         case "concat":
@@ -252309,6 +252317,9 @@ function compileRelativeLookup(path, sourceVar) {
   const trimmed = path.trim();
   if (!trimmed || trimmed.startsWith("$") || trimmed.startsWith("/")) return null;
   if (trimmed === "." || trimmed === "./") return sourceVar;
+  if (/[/|]/.test(trimmed) && !trimmed.startsWith("./") && !trimmed.includes("[")) {
+    return `${sourceVar}?(${xqString(trimmed)})`;
+  }
   const body = trimmed.replace(/^\.\//, "");
   const segments = [];
   let i5 = 0;
@@ -252934,6 +252945,12 @@ function emitGoAstExpr(ast, ctx) {
     const mode = args[1]?.kind === "literal" ? String(args[1].value).toUpperCase() : "LOWERCASE";
     return mode === "UPPERCASE" ? `(upper ${val})` : `(lower ${val})`;
   }
+  if (name2 === "regex_replace" || name2 === "regexReplace") {
+    const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
+    const pattern = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
+    const replacement = args[2] ? emitGoAstExpr(args[2], ctx) : '""';
+    return `(regexReplaceAll ${pattern} (concat ${src}) ${replacement})`;
+  }
   if (name2 === "replace") {
     const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
     const oldVal = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
@@ -253459,7 +253476,43 @@ function generateFromBlockly(blocklyState, _model) {
   if (!Array.isArray(blocks2) || blocks2.length === 0) {
     return generateFromSlots(_model);
   }
-  return emitBlockTree(blocks2).join("\n");
+  resolveVariableNames(blocks2, snapshot.variables ?? []);
+  const ctx = createGoEmitContext(void 0, _model.functions);
+  const fromCanvas = canvasValueFunctions(blocks2);
+  if (fromCanvas.length) ctx.mappingFunctions = [...ctx.mappingFunctions ?? [], ...fromCanvas];
+  const tree = blocks2.filter((block) => !String(block.type ?? "").startsWith("procedures_def"));
+  return emitBlockTree(tree, ctx).join("\n");
+}
+function resolveVariableNames(blocks2, variables2) {
+  const names = new Map(variables2.map((v4) => [String(v4.id ?? ""), String(v4.name ?? "")]));
+  const visit2 = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit2);
+      return;
+    }
+    const block = node;
+    const ref = block.fields?.VAR;
+    if (block.type === "variables_get" && ref && typeof ref === "object") {
+      block.fields.VAR = ref.name ?? names.get(String(ref.id ?? "")) ?? "v";
+    }
+    for (const value of Object.values(node)) visit2(value);
+  };
+  visit2(blocks2);
+}
+function canvasValueFunctions(blocks2) {
+  const out = [];
+  for (const raw of blocks2) {
+    const block = raw;
+    if (block.type !== "procedures_defreturn" || inputChild2(block.inputs?.STACK)) continue;
+    const name2 = String(block.fields?.NAME ?? "").trim();
+    const ret = inputChild2(block.inputs?.RETURN);
+    const body = ret ? blockNodeToExpression(ret) : null;
+    if (!name2 || !body) continue;
+    const params = (block.extraState?.params ?? []).map((p4) => String(p4.name ?? ""));
+    out.push({ name: name2, kind: "return", params, body });
+  }
+  return out;
 }
 function inputChild2(input) {
   return input?.block ?? input?.shadow;
@@ -253762,6 +253815,10 @@ function emitValueExpression(block, ctx = createGoEmitContext()) {
         ctx
       )];
     }
+    case "text_regex_replace": {
+      const expr = blockNodeToExpression(block);
+      return expr ? [emitGoExpressionTemplate(parseExpression(expr), ctx)] : [];
+    }
     case "text_changeCase": {
       const inner = inputChild2(block.inputs?.TEXT);
       const caseType = String(block.fields?.CASE ?? "LOWERCASE");
@@ -253823,6 +253880,11 @@ function blockNodeToExpression(block) {
       const expr = inner ? blockNodeToExpression(inner) : '""';
       return expr ? `trim(${expr})` : null;
     }
+    case "text_regex_replace": {
+      const inner = inputChild2(block.inputs?.TEXT);
+      const expr = inner ? blockNodeToExpression(inner) ?? '""' : '""';
+      return `regex_replace(${expr}, ${JSON.stringify(String(block.fields?.PATTERN ?? ""))}, ${JSON.stringify(String(block.fields?.REPLACEMENT ?? ""))})`;
+    }
     case "text_changeCase": {
       const inner = inputChild2(block.inputs?.TEXT);
       const expr = inner ? blockNodeToExpression(inner) ?? '""' : '""';
@@ -253873,6 +253935,18 @@ function blockNodeToExpression(block) {
     }
     case "variables_get":
       return `var(${JSON.stringify(String(block.fields?.VAR ?? "v"))})`;
+    case "procedures_callreturn": {
+      const name2 = String(
+        block.fields?.NAME ?? block.extraState?.name ?? ""
+      ).trim();
+      if (!name2) return null;
+      const args = [];
+      for (let i5 = 0; block.inputs && `ARG${i5}` in block.inputs; i5++) {
+        const arg = inputChild2(block.inputs[`ARG${i5}`]);
+        args.push(arg ? blockNodeToExpression(arg) ?? "null" : "null");
+      }
+      return `call(${JSON.stringify(name2)}${args.length ? `, ${args.join(", ")}` : ""})`;
+    }
     default:
       return null;
   }
@@ -254063,7 +254137,7 @@ function emitXmlOrSchemaElement(block, ctx) {
       inner.push(...emitStatementChain(child, ctx));
       continue;
     }
-    inner.push(`<${xmlName(fieldName)}>`, ...emitValueExpression(child, ctx), `</${xmlName(fieldName)}>`);
+    inner.push(`<${xmlName(fieldName)}>`, ...emitSchemaLeafValue(child, ctx), `</${xmlName(fieldName)}>`);
   }
   const attrs = attrParts.join("");
   if (inner.length) return [`<${tag}${attrs}>`, ...inner, `</${tag}>`];
@@ -254144,6 +254218,21 @@ function emitXmlElement(block, ctx) {
   if (inner.length) return [`<${tag}${attrs}>`, ...inner, `</${tag}>`];
   return [`<${tag}${attrs} />`];
 }
+var COMPOSITE_TEXT_BLOCKS = /* @__PURE__ */ new Set([
+  "text_join",
+  "logic_ternary",
+  "procedures_callreturn",
+  "text_regex_replace",
+  "text_trim",
+  "text_changeCase"
+]);
+function emitSchemaLeafValue(child, ctx) {
+  if (COMPOSITE_TEXT_BLOCKS.has(child.type)) {
+    const expr = blockNodeToExpression(child);
+    if (expr) return [emitGoXmlTextTemplate(parseExpression(expr), ctx)];
+  }
+  return emitValueExpression(child, ctx);
+}
 function emitXmlTextishOrValue(block, ctx) {
   if (block.type === "xml_text" || block.type === "xml_cdata") return emitXmlTextish(block, ctx);
   return emitValueExpression(block, ctx);
@@ -254222,7 +254311,7 @@ function emitGoXmlTextTemplate(ast, ctx = createGoEmitContext()) {
         const cond = emitGoExpr(ast.args[0], ctx);
         const thenPart = emitGoXmlTextTemplate(ast.args[1], ctx);
         const elsePart = ast.args[2] ? emitGoXmlTextTemplate(ast.args[2], ctx) : "";
-        return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
+        return elsePart ? `{{ if ${cond} }}${thenPart}{{ else }}${elsePart}{{ end }}` : `{{ if ${cond} }}${thenPart}{{ end }}`;
       }
       return `{{ xmlEscape (${emitGoExpr(ast, ctx)}) }}`;
   }
@@ -254247,8 +254336,19 @@ function emitGoExpressionTemplate(ast, ctx = createGoEmitContext()) {
         const elsePart = ast.args[2] ? emitGoExpressionTemplate(ast.args[2], ctx) : "";
         return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
       }
+      if (ast.name === "call") {
+        const name2 = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+        return `{{ ${emitGoExpr(ast, { ...ctx, inlining: /* @__PURE__ */ new Set([...ctx.inlining ?? [], name2]) })} }}`;
+      }
       return `{{ ${emitGoExpr(ast, ctx)} }}`;
   }
+}
+function goNeverEmptyText(ast) {
+  if (ast.kind === "literal") return typeof ast.value === "string" && ast.value.length > 0;
+  if (ast.kind !== "call") return false;
+  if (ast.name === "concat") return ast.args.some(goNeverEmptyText);
+  if (ast.name === "if") return ast.args.length >= 3 && goNeverEmptyText(ast.args[1]) && goNeverEmptyText(ast.args[2]);
+  return false;
 }
 function emitGoExpr(ast, ctx = createGoEmitContext()) {
   switch (ast.kind) {
@@ -254288,6 +254388,8 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
         }
         case "trim":
           return `(${args[0]} | trim)`;
+        case "regex_replace":
+          return `(regexReplaceAll ${args[1] ?? '""'} (concat ${args[0] ?? '""'}) ${args[2] ?? '""'})`;
         case "change_case": {
           const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
           if (mode === "UPPERCASE") return `(${args[0]} | upper)`;
@@ -254295,7 +254397,7 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
           return `(${args[0]} | lower)`;
         }
         case "concat":
-          return args.join("");
+          return args.length === 1 ? args[0] : `(concat ${args.join(" ")})`;
         case "round":
           return `(int ${args[0]})`;
         case "modulo":
@@ -254303,17 +254405,32 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
         case "constrain":
           return `(if ge ${args[0]} ${args[2]} then ${args[2]} else (if le ${args[0]} ${args[1]} then ${args[1]} else ${args[0]}))`;
         case "if":
+          if (ast.args.length >= 2 && goNeverEmptyText(ast.args[1])) {
+            return `(or (and ${args[0]} ${args[1]}) ${args[2] ?? '""'})`;
+          }
           throw goUnsupported("a conditional value inside an expression");
         case "switch":
           return args[0] ?? '""';
         case "var": {
           const name2 = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (name2 && ctx.fnArgs?.has(name2)) return ctx.fnArgs.get(name2);
           if (name2 && ctx.fnParams?.has(name2)) return `.${sanitizeGoField(name2)}`;
           return `.`;
         }
         case "call": {
           const fname = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
           const fn2 = ctx.mappingFunctions?.find((item) => item.name === fname);
+          if (fn2?.body && !fn2.stack?.length && !ctx.inlining?.has(fname)) {
+            const fnArgs = /* @__PURE__ */ new Map();
+            fn2.params.forEach((param, i5) => fnArgs.set(param, args[i5 + 1] ?? '""'));
+            const inner = {
+              ...ctx,
+              fnArgs,
+              fnParams: /* @__PURE__ */ new Set(),
+              inlining: /* @__PURE__ */ new Set([...ctx.inlining ?? [], fname])
+            };
+            return `(${emitGoExpr(parseExpression(fn2.body), inner)})`;
+          }
           const pairs = [];
           if (fn2) {
             for (let i5 = 0; i5 < fn2.params.length; i5++) {
@@ -254879,6 +254996,8 @@ function emitJavaExpression(ast, ctx) {
       switch (ast.name) {
         case "trim":
           return `asString(${args[0]}).trim()`;
+        case "regex_replace":
+          return `asString(${args[0]}).replaceAll(asString(${args[1] ?? '""'}), java.util.regex.Matcher.quoteReplacement(asString(${args[2] ?? '""'})))`;
         case "change_case":
           return emitChangeCaseJava(args[0] ?? '""', ast.args[1]);
         case "concat":
@@ -255975,6 +256094,10 @@ function emitHbsAstExpr(ast, ctx) {
     return items.length ? `(coalesce ${items.join(" ")})` : "null";
   }
   if (name2 === "trim") return `(trim ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
+  if (name2 === "regex_replace") {
+    const items = [0, 1, 2].map((i5) => args[i5] ? emitHbsAstExpr(args[i5], ctx) : '""');
+    return `(regexReplace ${items.join(" ")})`;
+  }
   if (name2 === "toLowerCase" || name2 === "lower") {
     return `(toLowerCase ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
   }
@@ -257153,6 +257276,8 @@ function evalAst(ast, ctx) {
       switch (ast.name) {
         case "trim":
           return String(args[0] ?? "").trim();
+        case "regex_replace":
+          return String(args[0] ?? "").replace(new RegExp(String(args[1] ?? ""), "gu"), () => String(args[2] ?? ""));
         case "change_case":
           return changeCase(args[0], String(args[1] ?? "LOWERCASE"));
         case "concat":
@@ -257343,6 +257468,10 @@ function xpathEvalRaw(expr, ctx, type) {
       return jsonAt(named.rest, named.root);
     }
     const relative3 = isRelativeJsonPath(trimmed);
+    const flat = relative3 ? ctx.relativeRoot ?? ctx.json : ctx.json;
+    if (trimmed.includes("/") && flat && typeof flat === "object" && !Array.isArray(flat) && Object.hasOwn(flat, trimmed)) {
+      return flat[trimmed];
+    }
     if (looksLikeOpenEhrLocator(trimmed)) {
       const query = compileAuthoringPath(trimmed, "json");
       const walkRoot2 = relative3 ? ctx.relativeRoot ?? ctx.json : ctx.json;
@@ -257891,6 +258020,9 @@ function igXpathBoolean(evaluateXPathToBoolean2, path, node) {
 function jsonWalk(path, node) {
   const trimmed = path.trim();
   if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "$source") return node;
+  if (node && typeof node === "object" && !Array.isArray(node) && Object.hasOwn(node, trimmed)) {
+    return node[trimmed];
+  }
   let body = trimmed;
   if (body.startsWith("$source")) body = body.slice(7);
   else if (body.startsWith("$")) body = body.slice(1);
@@ -260298,6 +260430,10 @@ function serializeBlock2(block) {
       const thenV = serializeBlock2(inputChild3(block.inputs?.THEN)) ?? "null";
       const elseV = serializeBlock2(inputChild3(block.inputs?.ELSE)) ?? "null";
       return `if(${cond}, ${thenV}, ${elseV})`;
+    }
+    case "text_regex_replace": {
+      const inner = serializeBlock2(inputChild3(block.inputs?.TEXT)) ?? '""';
+      return `regex_replace(${inner}, ${JSON.stringify(String(block.fields?.PATTERN ?? ""))}, ${JSON.stringify(String(block.fields?.REPLACEMENT ?? ""))})`;
     }
     case "text_changeCase": {
       const inner = serializeBlock2(inputChild3(block.inputs?.TEXT)) ?? '""';
@@ -285322,6 +285458,7 @@ var VALUE_BLOCK_TYPES = /* @__PURE__ */ new Set([
   "math_number",
   "logic_boolean",
   "text_trim",
+  "text_regex_replace",
   "text_join",
   "math_arithmetic",
   "logic_ternary",
@@ -286426,6 +286563,10 @@ function blockJsonToExpression(block, rewriteSourcePath) {
       const inner = child("TEXT") ? blockJsonToExpression(child("TEXT"), rewriteSourcePath) : '""';
       return `trim(${inner ?? '""'})`;
     }
+    case "text_regex_replace": {
+      const inner = child("TEXT") ? blockJsonToExpression(child("TEXT"), rewriteSourcePath) : '""';
+      return `regex_replace(${inner ?? '""'}, ${JSON.stringify(String(fields.PATTERN ?? ""))}, ${JSON.stringify(String(fields.REPLACEMENT ?? ""))})`;
+    }
     case "text_changeCase": {
       const inner = child("TEXT") ? blockJsonToExpression(child("TEXT"), rewriteSourcePath) : '""';
       const mode = String(fields.CASE ?? "LOWERCASE");
@@ -287328,7 +287469,18 @@ function isHandlebarsCodeLang(lang) {
 function nestedHandlebarsExpression(template) {
   return `handlebars(${JSON.stringify(template)}, xpathNode("$"))`;
 }
+var GO_TEMPLATE_CODE_TEXT_UNSUPPORTED = "Go template text is not supported in a Code text block; use blocks or Handlebars";
+function isGoTemplateCodeLang(lang) {
+  const value = String(lang ?? "").trim().toLowerCase();
+  return value === "go-template" || value === "go";
+}
+function assertNoGoTemplateCodeText(text, lang) {
+  if (isGoTemplateCodeLang(lang) && String(text ?? "").includes("{{")) {
+    throw new Error(GO_TEMPLATE_CODE_TEXT_UNSUPPORTED);
+  }
+}
 function codeTextExpression(text, lang) {
+  assertNoGoTemplateCodeText(text, lang);
   const template = String(text ?? "");
   return isHandlebarsCodeLang(lang) && template.includes("{{") ? nestedHandlebarsExpression(template) : JSON.stringify(template);
 }
@@ -289133,6 +289285,12 @@ function blockToExpression(block) {
       const inner = blockToExpression(block.getInputTargetBlock("TEXT"));
       return inner ? `trim(${inner})` : 'trim("")';
     }
+    case "text_regex_replace": {
+      const inner = blockToExpression(block.getInputTargetBlock("TEXT")) ?? '""';
+      const pattern = String(block.getFieldValue("PATTERN") ?? "");
+      const replacement = String(block.getFieldValue("REPLACEMENT") ?? "");
+      return `regex_replace(${inner}, ${JSON.stringify(pattern)}, ${JSON.stringify(replacement)})`;
+    }
     case "text_changeCase": {
       const inner = blockToExpression(block.getInputTargetBlock("TEXT")) ?? '""';
       const mode = String(block.getFieldValue("CASE") ?? "LOWERCASE");
@@ -289453,6 +289611,22 @@ function astToExpressionBlock(workspace3, ast, returnType, finalize3) {
       block.getInput("TEXT").connection.connect(inner.outputConnection);
       return finalize3(block);
     }
+    if (ast.name === "change_case" && ast.args[0]) {
+      const block = workspace3.newBlock("text_changeCase");
+      const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
+      block.setFieldValue(mode, "CASE");
+      const inner = astToExpressionBlock(workspace3, ast.args[0], "string", finalize3);
+      block.getInput("TEXT").connection.connect(inner.outputConnection);
+      return finalize3(block);
+    }
+    if (ast.name === "regex_replace" && ast.args[0] && ast.args[1]?.kind === "literal" && ast.args[2]?.kind === "literal") {
+      const block = workspace3.newBlock("text_regex_replace");
+      block.setFieldValue(String(ast.args[1].value), "PATTERN");
+      block.setFieldValue(String(ast.args[2].value), "REPLACEMENT");
+      const inner = astToExpressionBlock(workspace3, ast.args[0], "string", finalize3);
+      block.getInput("TEXT").connection.connect(inner.outputConnection);
+      return finalize3(block);
+    }
     if (ast.name === "concat" && ast.args.length >= 2) {
       const block = workspace3.newBlock("text_join");
       const join3 = block;
@@ -289522,9 +289696,13 @@ function astToExpressionBlock(workspace3, ast, returnType, finalize3) {
       const block = workspace3.newBlock("procedures_callreturn");
       if (name2) block.setFieldValue(name2, "NAME");
       const argAsts = ast.args.slice(1);
+      const definition = workspace3.getAllBlocks(false).find(
+        (candidate) => candidate.type.startsWith("procedures_def") && String(candidate.getFieldValue("NAME") ?? "") === name2
+      );
+      const defined = definition?.getVars?.() ?? [];
       block.loadExtraState?.({
         name: name2,
-        params: argAsts.map((_3, i5) => `arg${i5}`)
+        params: argAsts.map((_3, i5) => defined[i5] ?? `arg${i5}`)
       });
       for (let i5 = 0; i5 < argAsts.length; i5++) {
         const child = astToExpressionBlock(workspace3, argAsts[i5], returnType, finalize3);
@@ -290050,12 +290228,10 @@ function hasPlaceholderSourceQuery(block) {
 
 // src/blockly/vms_linter.ts
 init_vms_hbs();
-init_vms_go();
 var HATCH_REMOVED = "Removed from Verifiable Mapping Subset \u2014 unverified / not in declarative export";
 var HATCH_JSON_XML = "Ad-hoc JSON/XML tree \u2014 unverified / not in declarative export";
 var HATCH_DYNAMIC_PATH = "Non-literal source path \u2014 unverified / not in declarative export";
 var HATCH_OUT_OF_DIALECT_HBS = "Handlebars outside VMS-Hbs \u2014 unverified / not in declarative export";
-var HATCH_OUT_OF_DIALECT_GO = "Go template outside VMS-Go \u2014 unverified / not in declarative export";
 var HATCH_EXECUTABLE_LANG = "Executable Code text language \u2014 unverified / not in declarative export";
 var AD_HOC_TREE_TYPES = /* @__PURE__ */ new Set(["json_object", "xml_element", "xml_document"]);
 function isLiteralSourcePath(path) {
@@ -290115,9 +290291,8 @@ function blockHatchMessages(block) {
       messages.push(HATCH_OUT_OF_DIALECT_HBS);
       return messages;
     }
-    if (lang === "go-template" && text.trim()) {
-      const result = checkVmsGoSync(text);
-      if (!result.ok) messages.push(HATCH_OUT_OF_DIALECT_GO);
+    if (lang === "go-template" && text.includes("{{")) {
+      messages.push(GO_TEMPLATE_CODE_TEXT_UNSUPPORTED);
       return messages;
     }
     return messages;
@@ -290148,10 +290323,7 @@ function isTemplateEscapeHatch(kind, lang, text) {
   if (lang === "handlebars") {
     return Boolean(text.trim()) && !checkVmsHbs(text).ok;
   }
-  if (lang === "go-template") {
-    if (!text.trim()) return false;
-    return !checkVmsGoSync(text).ok;
-  }
+  if (lang === "go-template") return text.includes("{{");
   return false;
 }
 
@@ -290328,7 +290500,7 @@ function fragmentFromBlock(block) {
 var LOOP_TYPES = /* @__PURE__ */ new Set(["for_each_list", "for_each_source"]);
 function partyIdentityExpression(block) {
   const nameBlock = block.getInputTargetBlock(rmAttributeInputName("name"));
-  const nameExpr = nameBlock && !nameBlock.isShadow() ? blockToExpression(nameBlock) : null;
+  const nameExpr = nameBlock && !nameBlock.isShadow() ? blockToExpression2(nameBlock) : null;
   const rows = dvIdentifierRows(block.getInputTargetBlock(rmAttributeInputName("identifiers")));
   if (!rows.length) return nameExpr;
   const parts = [];
@@ -290373,7 +290545,7 @@ function firstInputExpression(block, names) {
   for (const name2 of names) {
     const child = block.getInputTargetBlock(name2);
     if (!child || child.isShadow()) continue;
-    const expr = blockToExpression(child);
+    const expr = blockToExpression2(child);
     if (expr) return expr;
   }
   return null;
@@ -290413,7 +290585,7 @@ function collectSlots(workspace3) {
   for (const block of workspace3.getAllBlocks(false)) {
     if (isTermPickBlock(block) || block.type === "procedures_callreturn") {
       const slotId2 = block.getFieldValue("SLOT_ID");
-      const expression2 = blockToExpression(block);
+      const expression2 = blockToExpression2(block);
       const rmType2 = block.getFieldValue("RM_TYPE") || "DV_CODED_TEXT";
       if (slotId2 && expression2 && !seen.has(slotId2)) {
         seen.add(slotId2);
@@ -290423,7 +290595,7 @@ function collectSlots(workspace3) {
     }
     if (block.type === MAPS_GET) {
       const slotId2 = block.getFieldValue("SLOT_ID");
-      const expression2 = blockToExpression(block);
+      const expression2 = blockToExpression2(block);
       const rmType2 = block.getFieldValue("RM_TYPE") || "CODE_PHRASE";
       if (slotId2 && expression2 && !seen.has(slotId2)) {
         seen.add(slotId2);
@@ -290452,7 +290624,7 @@ function collectSlots(workspace3) {
         if (input.type === 3) continue;
         const fieldSlot = schemaSlotIdForInput(block, input.name);
         const exprBlock2 = block.getInputTargetBlock(input.name);
-        const expression2 = blockToExpression(exprBlock2);
+        const expression2 = blockToExpression2(exprBlock2);
         if (fieldSlot && expression2 && !seen.has(fieldSlot)) {
           seen.add(fieldSlot);
           const attr = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
@@ -290477,7 +290649,7 @@ function collectSlots(workspace3) {
     const shellRm = shell?.getFieldValue("RM_TYPE");
     if (shellRm === "DV_TEXT" || shellRm === "DV_CODED_TEXT") rmType = shellRm;
     const coded = shellRm === "DV_CODED_TEXT" ? codedTextExpression(shell) : null;
-    const expression = coded ?? blockToExpression(exprBlock);
+    const expression = coded ?? blockToExpression2(exprBlock);
     if (slotId && expression && !seen.has(slotId)) {
       seen.add(slotId);
       const hatch = hatchFromExprTree(exprBlock);
@@ -290500,7 +290672,7 @@ function collectSlots(workspace3) {
 function quantityUnitsExpression(shell) {
   const target = shell.getInputTargetBlock(dvFieldInputName("units")) ?? shell.getInputTargetBlock("OPTFLD_units");
   if (target && !target.isShadow() && target.type !== "lists_getIndex" && target.type !== "lists_create_with") {
-    const expression = blockToExpression(target);
+    const expression = blockToExpression2(target);
     if (expression) return expression;
   }
   const field = shell.getField("UNITS") ? String(shell.getFieldValue("UNITS") ?? "").trim() : "";
@@ -290511,7 +290683,7 @@ function identifierFieldExpressions(shell) {
   for (const attr of ["type", "issuer", "assigner"]) {
     const target = shell.getInputTargetBlock(dvFieldInputName(attr)) ?? shell.getInputTargetBlock(`OPTFLD_${attr}`);
     if (!target || target.isShadow()) continue;
-    const expression = blockToExpression(target);
+    const expression = blockToExpression2(target);
     if (expression) out[attr] = expression;
   }
   return Object.keys(out).length ? out : void 0;
@@ -290520,7 +290692,7 @@ function codedTextExpression(shell) {
   const phrase2 = shell.getInputTargetBlock(dvFieldInputName("defining_code"));
   const part = (owner, attr) => {
     const target = owner?.getInputTargetBlock(dvFieldInputName(attr));
-    return target && !target.isShadow() ? blockToExpression(target) : "";
+    return target && !target.isShadow() ? blockToExpression2(target) : "";
   };
   const code = part(phrase2, "code_string") || part(shell, "code_string");
   const term = part(phrase2, "terminology_id") || part(shell, "terminology_id");
@@ -290562,7 +290734,7 @@ function loopsFromWorkspace(workspace3) {
       continue;
     }
     const listBlock = block.getInputTargetBlock("LIST");
-    const collection = blockToExpression(listBlock) ?? void 0;
+    const collection = blockToExpression2(listBlock) ?? void 0;
     loops2.push({
       attachSlotId,
       varName,
@@ -290617,7 +290789,7 @@ function includesFromWorkspace(workspace3) {
     const slotId = firstSlotIdInStack(block.getInputTargetBlock("DO"));
     if (!slotId) continue;
     const whenBlock = block.getInputTargetBlock("WHEN");
-    const when = whenBlock ? blockToExpression(whenBlock) ?? "" : "";
+    const when = whenBlock ? blockToExpression2(whenBlock) ?? "" : "";
     const elseIds = stackSlotIds(block.getInputTargetBlock("ELSE"));
     includes.push({
       slotId,
@@ -290749,11 +290921,21 @@ function unsupportedFromWorkspace(workspace3, slots) {
     const valueBlock = block.getInputTargetBlock("VALUE");
     if (!valueBlock) continue;
     const exprBlock = isDataValueBlock(valueBlock) ? expressionBlockFromDataValueShell(valueBlock) : valueBlock;
-    if (exprBlock && !blockToExpression(exprBlock)) {
+    if (exprBlock && !blockToExpression2(exprBlock)) {
       record(exprBlock, isVmsEscapeBlockType(exprBlock.type) ? "escape" : "unsupported");
     }
   }
   return out;
+}
+function blockToExpression2(block) {
+  try {
+    return blockToExpression(block);
+  } catch (err2) {
+    if (block?.type === "text_code" && err2 instanceof Error && err2.message === GO_TEMPLATE_CODE_TEXT_UNSUPPORTED) {
+      return JSON.stringify(String(block.getFieldValue("TEXT") ?? ""));
+    }
+    throw err2;
+  }
 }
 function functionsFromWorkspace(workspace3) {
   const out = [];
@@ -290771,7 +290953,7 @@ function functionsFromWorkspace(workspace3) {
       continue;
     }
     const bodyBlock = block.getInputTargetBlock("RETURN") ?? block.getInputTargetBlock("VALUE");
-    const expression = blockToExpression(bodyBlock);
+    const expression = blockToExpression2(bodyBlock);
     if (bodyBlock && expression === null) throw new Error(`Unsupported Function return expression: ${bodyBlock.type}`);
     const body = expression ?? (stack.length ? "null" : void 0);
     out.push({ name: name2, kind: "return", params, ...statements, ...body ? { body } : {} });
@@ -317643,7 +317825,8 @@ function vmsTemplateLintExtensions(language2) {
 var EDITOR_LANGUAGE_OPTIONS = [
   ["Plain", "none"],
   ["Handlebars", "handlebars"],
-  ["Go Template", "go-template"],
+  // Kept so older mappings still load; nested Go template text is not executed (#386).
+  ["Go Template (unsupported)", "go-template"],
   ["JSON", "json"],
   ["XML", "xml"],
   ["HTML", "html"]
@@ -318224,6 +318407,7 @@ function registerFieldCodeMirror() {
 // src/blockly/blocks/text_blocks.ts
 var TEXT_CODE_BLOCK_TYPE = "text_code";
 var TEXT_HANDLEBARS_BLOCK_TYPE = "text_handlebars";
+var TEXT_REGEX_REPLACE_BLOCK_TYPE = "text_regex_replace";
 var TEXT_COLOUR = "#FFCA28";
 function registerTextBlocks() {
   registerFieldCodeMirror();
@@ -318261,6 +318445,20 @@ function registerTextBlocks() {
       this.setStyle?.("text_blocks");
       this.setInputsInline(false);
       enforceMouthCaptionLayout(this);
+    }
+  };
+  Blockly.Blocks[TEXT_REGEX_REPLACE_BLOCK_TYPE] = {
+    init: function() {
+      this.appendDummyInput("HEADER").appendField("replace regex").appendField(new Blockly.FieldTextInput("\\s+"), "PATTERN").appendField("with").appendField(new Blockly.FieldTextInput(" "), "REPLACEMENT");
+      const text = this.appendValueInput("TEXT").setCheck(null);
+      text.appendField("in");
+      this.setOutput(true, "String");
+      this.setColour(TEXT_COLOUR);
+      this.setTooltip(
+        "Replace every match of a regular expression in the text. Keep patterns simple (character classes, +, *, ?) so TypeScript, Java, XQuery and Go read them the same way."
+      );
+      this.setStyle?.("text_blocks");
+      this.setInputsInline(true);
     }
   };
   Blockly.Blocks[TEXT_DOCUMENT_BLOCK_TYPE] = {
@@ -319351,7 +319549,8 @@ function generateGoTemplateFromBlocklyState(state, model, skeleton) {
     workspace3.dispose();
   }
 }
-function generateGoTemplateFromWorkspace(workspace3, model, skeleton) {
+function generateGoTemplateFromWorkspace(workspace3, modelIn, skeleton) {
+  const model = modelIn.functions?.length ? modelIn : { ...modelIn, functions: functionsFromWorkspace(workspace3) };
   const ctx = createGoEmitContext(void 0, model.functions);
   if (skeleton?.length) ctx.archetypeRootIds = archetypeRootIdBySlot(skeleton);
   const instanceRoot = findInstanceRootUnderStart(workspace3);

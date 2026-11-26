@@ -145,7 +145,7 @@
     {
       "id": "chemo-symptoms-flat-to-tc-xml",
       "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — mapped",
-      "description": "openEHR FLAT composition from a patient symptom questionnaire, mapped to TakeCare ProfdocHISMessage XML using schema-generated Target schema blocks (TakeCare-CasenoteWrite-edit01.xsd). Rebuilds mappningsscript-1-9-1-prod: all TextKeyWord/NumericKeyword TermIds, the no-symptom 16183 branch, free-text helper, and Defaults Map header parameters. Select Go Template output mode to see generated Go text/template code.",
+      "description": "openEHR FLAT composition from a patient symptom questionnaire, mapped to TakeCare ProfdocHISMessage XML using schema-generated Target schema blocks (TakeCare-CasenoteWrite-edit01.xsd). Rebuilds mappningsscript-1-9-1-prod with ordinary blocks: all TextKeyWord/NumericKeyword TermIds, the no-symptom 16183 branch, Notes built from text join, if/then/else and regex replace, the clean_free_text Function, and Defaults Map header parameters. Every output language (Mapping preview, Handlebars, TypeScript, XQuery, Go) gives the same Notes.",
       "source": {
         "instances": [
           "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
@@ -163,7 +163,7 @@
     {
       "id": "chemo-symptoms-flat-to-tc-xml-decision-tables",
       "title": "Patient-reported chemotherapy symptoms (FLAT → TakeCare XML) — mapped, decision tables",
-      "description": "#70 sibling of chemo-symptoms-flat-to-tc-xml. Same XSD, Defaults Map, FLAT instances, and PROD Go script as gold. Inner Note {{if eq}} branches become FIRST Decision tables with VMS-Mustache snippets. cleanAndQuoteFreeTextInput stays one Go define. Do not rewrite the original chemo Blockly gold.",
+      "description": "#70 sibling of chemo-symptoms-flat-to-tc-xml. Same XSD, Defaults Map, FLAT instances, and PROD Go script as gold. Three Notes (fatigue, swelling, itch) become FIRST Decision tables with VMS-Mustache snippets; patient free text goes through the clean_free_text Function. Other Notes are the same blocks as the mapped set.",
       "source": {
         "instances": [
           "../test/fixtures/patient-reported-chemotherapy-symptoms/source-instance/1-ex-composition.txt",
