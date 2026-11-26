@@ -40,7 +40,36 @@ that read the source or the sheet map.
   (#137).
 - `maps_get("defaults", key)` → `defaults.get(key)`.
 
-### Convert-then-validate hook
+### XML / XML Schema canvas (Target XML)
+
+When the canvas builds Target XML (XML or XML Schema target, `schema_*` /
+`xml_element` blocks), the Java class walks the canvas the same way the XQuery
+export does and writes the document with StAX (`javax.xml.stream.XMLStreamWriter`,
+JDK only, no extra dependency). `convert` returns the XML string.
+
+- **Include when** → `if (asBoolean(…)) { … } else { … }`, so repeated
+  same-name siblings (several `<KeyWord>` elements) each keep their own guard.
+- **For each list** → a Java loop that binds the loop variable plus Loop index /
+  Loop length for the blocks inside it.
+- Attributes are written before child content, as StAX requires.
+- Handlebars Notes (`text_code` LANG=handlebars) render with Handlebars.java. The
+  template text is passed with Handlebars.js whitespace control already applied
+  (`src/core/output/handlebars_whitespace.ts`), because Handlebars.java's
+  standalone-line rules differ. Decision-table snippets are sheet data, so
+  `HandlebarsSupport.mustache` applies a Java port of the Handlebars.js
+  standalone-line rule at run time instead.
+- A block the walker does not know throws at generation time and names the block.
+
+`test/lung_mdt_all_languages_test.ts` compiles and runs the generated Java for
+both lung-MDT mapped Example Sets on every example and checks the keywords and
+the XML against the Handlebars Output. It needs `javac` with `--release 21`
+(CI installs Temurin 21); locally it skips without a JDK, in CI it fails.
+
+The generated class reads JSON (Jackson) or XML sources only. Sources that
+intEHRgrator parses from other formats (for example the flat text of the chemo
+symptom sets) must be converted to JSON before calling `convert`.
+
+## Convert-then-validate hook
 
 Pass an **ADL2** `OperationalTemplate` to the constructor (or
 `ConversionScript.fromAdl2Opt(InputStream)` / `fromAdl2Opt(String)`) so `convert` calls Archie's
