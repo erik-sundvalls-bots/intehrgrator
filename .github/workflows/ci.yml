@@ -14,10 +14,12 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # Pinned JDK: test/lung_mdt_all_languages_test.ts compiles and runs the
+      # generated Java (#388) and fails in CI when javac is missing.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "21.0.13"
       - name: Vendor ehrtslib
         run: deno task vendor
       - name: Test
