@@ -6,20 +6,22 @@ Back to the [tutorial index](../TUTORIAL.md). Assumes [Basic mapping](basic-mapp
 
 ## Load a map with the target
 
-A blank project has **no** factory rows. Click **Load target & default context map** and, for openEHR, pick the openEHR factory.
+A blank project has **no** factory rows: the canvas shows an empty **Default context map** block (*no entries*). Click **Load target & default context map** and, under **Default context map**, pick **openEHR factory** for an openEHR target. **Keep the map already on the canvas** keeps the one you have; **Browse map file…** loads a saved map.
 
 Each **entry** has:
 
 - a **runtime key** (`language`, `facility`, …) read at convert time with `maps_get("defaults", …)`
-- **scaffold targets** (chips such as `*.language`) that light **Default point**s when you confirm or click **Apply**
+- **scaffold targets** (chips such as `*.language`) that light **Default point**s when you click **Load & scaffold** or **Apply**
 
-**New** loads the target into the **Target schema** tab only. Pull PARTY or terminology pieces onto value sockets and chip paths, **Save as**, then Apply.
+**New (empty)** loads the target into the **Target schema** tab only. Pull PARTY or terminology pieces onto value sockets and chip paths, **Save as**, then Apply.
 
 The ▾ menu items **Refresh from file…** and **Refresh from URL…** update a target or source without wiping canvas mappings.
 
-When you confirm a joint load, scaffolding fills **Default point**s with map lookups. Editing a value shows up in Test Run immediately. New chips wait until you Apply.
+When you click **Load & scaffold**, scaffolding fills **Default point**s with map lookups. Editing a value shows up in Test Run immediately. New chips wait until you Apply.
 
-<img src="../assets/tutorial/default-context.png" alt="Load target and default context map dialog with the openEHR factory option" />
+The scaffolded **get defaults** lookups start collapsed, so a large template is not buried in identical lookup blocks. A collapsible block has a small light rounded button just left of its cogwheel: click it to expand or collapse the block. The block's context menu has the same Expand / Collapse.
+
+<img src="../assets/tutorial/default-context.png" width="520" alt="Load target and default context map dialog: Target (file, URL or a minimal JSON, XML or text example), Default context map with the openEHR factory option, Template scaffolding Full or Sparse, and Load and scaffold" />
 
 *The joint load dialog is where you pick both the target and a default context map.*
 

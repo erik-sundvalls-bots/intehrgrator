@@ -4,9 +4,11 @@ The **AI** menu has two sections for the web app, and a third that appears only 
 
 Back to the [tutorial index](../TUTORIAL.md).
 
-<img src="../assets/tutorial/ai-menu.png" alt="AI menu open: copy/paste for an external AI chat above Your own AI, with Configure AI credentials" />
+<img src="../assets/tutorial/ai-menu.png" alt="AI menu open: the three copy choices, Attach original target format too, Languages…, Import AI suggestions, and under Your own AI, Configure AI credentials" />
 
 *Copy-and-paste actions sit above **Configure AI credentials…**. The chat itself is the **AI chat** panel under Target & Previews.*
+
+**Languages…** in the same menu sets the source languages when they cannot be detected, and which target languages' labels go to the AI.
 
 ## Copy for an external chat
 
