@@ -28,7 +28,7 @@ Use a decision table when several independent inputs together pick an output: a 
 
 **Add sheet**, **Add decision table**, **Rename**, **Delete**, **Import CSV**, **Export CSV**, and **Fullscreen** sit to the right of the tab names, where the Mapping Spec actions are on the Mapping Spec tab. Each grid has its own tab under them; a decision table is marked `· DT`.
 
-The **mapped, decision tables** Lung-MDT set has a large XML target, so it opens in **Treemap Overview**. The grids are in Tables & Sheets either way; open the section that reads a grid in **Scoped Blockly** to see its eval block. See [Large templates](treemap.md).
+The **mapped, decision tables** Lung-MDT set has a large XML target, so it opens in **Treemap Overview**. The grids are in Tables & Sheets either way. To see the eval blocks that read them, switch to **Total Blockly ⏳**, or open one section in **Scoped Blockly**. See [Large templates](treemap.md).
 
 On a decision table, **Add input/condition** adds a condition column. **Add output** adds an output column. **Add default row** appends a catch-all row: every input cell is don’t-care (`—`). The same `—` can be written into any cell from that cell’s context menu.
 
