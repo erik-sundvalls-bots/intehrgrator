@@ -97094,7 +97094,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.12.1/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/tmp/previews-tut/src/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/tmp/previews-lung/src/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -204238,6 +204238,34 @@ function moveTo(block, x6, y7) {
   const cur = typeof block.getRelativeToSurfaceXY === "function" ? block.getRelativeToSurfaceXY() : { x: 0, y: 0 };
   block.moveBy(x6 - cur.x, y7 - cur.y);
 }
+function hydrateDefaultsMapInCanvasJson(doc2, mapBlockState, uiLanguage, targetFormat) {
+  const tops = doc2.blocks?.blocks ?? [];
+  const index = tops.findIndex((b9) => b9?.type === DEFAULT_CONTEXT_MAP_TYPE);
+  const workspace2 = new Blockly2.Workspace();
+  try {
+    registerDefaultsBlocks();
+    if (index >= 0) {
+      Blockly2.serialization.blocks.append(structuredClone(tops[index]), workspace2);
+    }
+    hydrateDefaultsMapArgument(workspace2, mapBlockState, uiLanguage, targetFormat);
+    const block = findDefaultsBlock(workspace2);
+    if (!block) return doc2;
+    const json2 = Blockly2.serialization.blocks.save(block);
+    if (!json2) return doc2;
+    const prev = index >= 0 ? tops[index] : null;
+    if (prev && typeof prev.x === "number") json2.x = prev.x;
+    if (prev && typeof prev.y === "number") json2.y = prev.y;
+    const nextTops = [...tops];
+    if (index >= 0) nextTops[index] = json2;
+    else nextTops.unshift(json2);
+    return {
+      ...doc2,
+      blocks: { languageVersion: doc2.blocks?.languageVersion ?? 0, ...doc2.blocks, blocks: nextTops }
+    };
+  } finally {
+    workspace2.dispose();
+  }
+}
 
 // src/blockly/conversion_start_canvas.ts
 var START_X = 20;
@@ -218561,8 +218589,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "fee6cdf" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-26T21:39:42.217Z" : "not built";
+var BUILD_ID = true ? "7935eda" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-26T22:06:17.004Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
@@ -233329,6 +233357,10 @@ function persistBlocklyCanvas(options) {
     updateCanonicalStateAndSync(grafted, options);
     return;
   }
+  if (editorMode === "treemap" && canonicalBlocklyState) {
+    updateCanonicalStateAndSync(canonicalBlocklyState, options);
+    return;
+  }
   const signatureBefore = blocklySlotSignature;
   const saved = serialization.workspaces.save(workspace);
   canonicalBlocklyState = saved;
@@ -233853,6 +233885,16 @@ function fillListeningSourceQuery(blockId, path, format4) {
 function applyPendingDefaultsMap() {
   const pending = controller.consumePendingDefaultsMap();
   if (!pending) return false;
+  if (editorMode === "treemap" && canonicalBlocklyState) {
+    const next = hydrateDefaultsMapInCanvasJson(
+      canonicalBlocklyState,
+      pending,
+      blocklyLocale,
+      targetFormatOf(controller.getState())
+    );
+    updateCanonicalStateAndSync(next, { notify: false });
+    return true;
+  }
   runWithoutBlocklyEvents(() => {
     hydrateDefaultsMapArgument(workspace, pending, blocklyLocale, targetFormatOf(controller.getState()));
     separateContextMapFromProductTree(workspace);
@@ -234001,6 +234043,7 @@ function syncBlocklyWorkspace(s8) {
             }
           );
         }
+        applyPendingDefaultsMap();
         return;
       }
       activeSliceHandle = null;

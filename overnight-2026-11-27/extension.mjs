@@ -214566,7 +214566,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.12.1/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/tmp/previews-tut/src/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/tmp/previews-lung/src/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
