@@ -214547,7 +214547,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.12.1/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/tmp/previews-tut/src/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/tmp/previews-ex/src/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -252800,6 +252800,88 @@ function xqComment(value) {
   return value.replace(/:\)/g, ": )");
 }
 
+// src/core/codegen/go_expr_common.ts
+function goUnsupported(what) {
+  return new Error(`Go templates do not support ${what}; use TypeScript, Java or XQuery`);
+}
+var MAX_INLINE_DEPTH = 16;
+function inlineGoFunctionCall(ast, functions, depth = 0) {
+  const name2 = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+  const fn2 = (functions ?? []).find((item) => item.name === name2);
+  if (!fn2) throw new Error(`Go template: unknown Function ${name2 || "(unnamed)"}`);
+  if (fn2.stack?.length) {
+    throw new Error(
+      `Go templates cannot return values from statement-bodied Function ${fn2.name}; use TypeScript, Java or XQuery`
+    );
+  }
+  if (!fn2.body) throw new Error(`Go template: Function ${fn2.name} has no return value`);
+  if (depth >= MAX_INLINE_DEPTH) {
+    throw goUnsupported(`recursive Function ${fn2.name}`);
+  }
+  const bindings = /* @__PURE__ */ new Map();
+  fn2.params.forEach((param, i5) => {
+    bindings.set(param, ast.args[i5 + 1] ?? { kind: "literal", value: null });
+  });
+  const body = substituteVars(parseExpression(fn2.body), bindings);
+  return expandCalls(body, functions, depth + 1);
+}
+function expandCalls(ast, functions, depth) {
+  if (ast.kind === "literal") return ast;
+  if (ast.kind === "binary") {
+    return { ...ast, left: expandCalls(ast.left, functions, depth), right: expandCalls(ast.right, functions, depth) };
+  }
+  const args = ast.args.map((arg) => expandCalls(arg, functions, depth));
+  const next = { ...ast, args };
+  return ast.name === "call" ? inlineGoFunctionCall(next, functions, depth) : next;
+}
+function substituteVars(ast, bindings) {
+  if (!bindings.size || ast.kind === "literal") return ast;
+  if (ast.kind === "binary") {
+    return { ...ast, left: substituteVars(ast.left, bindings), right: substituteVars(ast.right, bindings) };
+  }
+  if (ast.name === "var" && ast.args[0]?.kind === "literal") {
+    const bound = bindings.get(String(ast.args[0].value));
+    if (bound) return bound;
+  }
+  if (isQuantifyCall(ast.name)) {
+    const card = ast.name === "at_least" || ast.name === "at_most" || ast.name === "exactly";
+    const inner = card ? ast.args[2] : ast.args[1];
+    if (inner?.kind === "literal" && bindings.has(String(inner.value))) {
+      const shadowed = new Map(bindings);
+      shadowed.delete(String(inner.value));
+      return {
+        ...ast,
+        args: ast.args.map((arg, i5) => substituteVars(arg, i5 === 0 ? bindings : shadowed))
+      };
+    }
+  }
+  return { ...ast, args: ast.args.map((arg) => substituteVars(arg, bindings)) };
+}
+function unrollGoQuantifier(ast, emit2) {
+  const card = ast.name === "at_least" || ast.name === "at_most" || ast.name === "exactly";
+  const list = ast.args[0];
+  if (!list || list.kind !== "call" || list.name !== "list") {
+    throw goUnsupported(`${ast.name} over a computed list; use a literal list of values`);
+  }
+  const varAst = card ? ast.args[2] : ast.args[1];
+  const predAst = card ? ast.args[3] : ast.args[2];
+  const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
+  const items = list.args.map(
+    (item) => predAst ? emit2(substituteVars(predAst, /* @__PURE__ */ new Map([[varName, item]]))) : "true"
+  );
+  if (card) {
+    const countArg = ast.args[1] ? emit2(ast.args[1]) : "0";
+    const hits = items.map((item) => `(ifElse ${item} 1 0)`);
+    const total = hits.length ? hits.reduce((acc, hit) => `(add ${acc} ${hit})`, "0") : "0";
+    const op = ast.name === "at_least" ? "ge" : ast.name === "at_most" ? "le" : "";
+    return op ? `(cmpNum "${op}" ${total} ${countArg})` : `(same ${total} (toNum ${countArg}))`;
+  }
+  if (!items.length) return ast.name === "any_of" ? "false" : "true";
+  const truthy = items.map((item) => `(ifElse ${item} true false)`);
+  const joined = truthy.length === 1 ? truthy[0] : `(${ast.name === "all_of" ? "and" : "or"} ${truthy.join(" ")})`;
+  return ast.name === "none_of" ? `(not ${joined})` : joined;
+}
+
 // src/core/codegen/go_template_skeleton.ts
 function goStr(s5) {
   return JSON.stringify(s5);
@@ -252872,26 +252954,37 @@ function emitGoAstExpr(ast, ctx) {
     if (typeof ast.value === "number") return String(ast.value);
     return goStr(String(ast.value));
   }
-  if (ast.kind === "var") {
-    if (ctx.varBindings[ast.name]) return ctx.varBindings[ast.name];
-    if (ctx.loopBindings[ast.name]) return ctx.loopBindings[ast.name];
-    if (ctx.fnParams?.has(ast.name)) return `(jget . ${goStr(ast.name)})`;
-    return `(jget .Data ${goStr(ast.name)})`;
+  if (ast.kind === "binary") {
+    const fn2 = { "+": "add", "-": "sub", "*": "mul", "/": "div" }[ast.op];
+    return `(${fn2} ${emitGoAstExpr(ast.left, ctx)} ${emitGoAstExpr(ast.right, ctx)})`;
   }
   const name2 = ast.name;
   const args = ast.args;
-  if (name2 === "xpathString" || name2 === "xpathNumber" || name2 === "xpathBoolean" || name2 === "xpath" || name2 === "xpathList") {
+  const arg = (i5, fallback) => args[i5] ? emitGoAstExpr(args[i5], ctx) : fallback;
+  if (isQuantifyCall(name2)) return unrollGoQuantifier(ast, (item) => emitGoAstExpr(item, ctx));
+  if (name2 === "xpathString" || name2 === "xpathNumber" || name2 === "xpathBoolean" || name2 === "xpath" || name2 === "xpathList" || name2 === "xpathNode" || name2 === "xpathNodes") {
     const p4 = args[0]?.kind === "literal" ? String(args[0].value) : "";
     const base2 = emitGoPathExpr(p4, ctx);
     if (name2 === "xpathNumber") return `(toNum ${base2})`;
-    if (name2 === "xpathBoolean") return `(nonEmpty ${base2})`;
+    if (name2 === "xpathBoolean") return `(not (not ${base2}))`;
     return base2;
   }
+  if (name2 === "var") {
+    const varName = args[0]?.kind === "literal" ? String(args[0].value) : "";
+    if (ctx.varBindings[varName]) return ctx.varBindings[varName];
+    if (ctx.loopBindings[varName]) return ctx.loopBindings[varName];
+    throw goUnsupported(`the variable ${varName || "(unnamed)"} outside a loop or Function`);
+  }
+  if (name2 === "call") {
+    return emitGoAstExpr(inlineGoFunctionCall(ast, ctx.functions), ctx);
+  }
   if (name2 === "maps_get") {
-    const mapName = args[0]?.kind === "literal" ? String(args[0].value) : "";
-    const keyArg = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    if (mapName === "defaults") return `(jget .Parameters ${keyArg})`;
-    return `(jget .Data ${keyArg})`;
+    const mapArg = args[0];
+    const keyArg = arg(1, '""');
+    if (mapArg?.kind === "literal") {
+      return String(mapArg.value) === "defaults" ? `(jget .Parameters ${keyArg})` : "nil";
+    }
+    return `(jget ${arg(0, "nil")} ${keyArg})`;
   }
   if (name2 === "map") {
     const pairs = [];
@@ -252905,23 +252998,24 @@ function emitGoAstExpr(ast, ctx) {
     return items.length ? `(list ${items.join(" ")})` : "(list)";
   }
   if (name2 === "if") {
-    const cond = args[0] ? emitGoAstExpr(args[0], ctx) : "false";
-    const t6 = args[1] ? emitGoAstExpr(args[1], ctx) : "nil";
-    const f6 = args[2] ? emitGoAstExpr(args[2], ctx) : "nil";
-    return `(coalesce (whenVal ${cond} ${t6}) ${f6})`;
+    return `(ifElse ${arg(0, "false")} ${arg(1, "nil")} ${arg(2, "nil")})`;
+  }
+  if (name2 === "switch") {
+    if (args.length < 2) return "nil";
+    return `(switchVal ${args.map((a5) => emitGoAstExpr(a5, ctx)).join(" ")})`;
   }
   if (name2 === "and" || name2 === "or") {
-    const items = args.map((a5) => `(nonEmpty ${emitGoAstExpr(a5, ctx)})`);
-    return `(${name2} ${items.join(" ")})`;
+    const items = args.map((a5) => emitGoAstExpr(a5, ctx));
+    if (!items.length) return name2 === "and" ? "true" : "false";
+    return items.length === 1 ? items[0] : `(${name2} ${items.join(" ")})`;
   }
   if (name2 === "not") {
-    const a5 = args[0] ? emitGoAstExpr(args[0], ctx) : "false";
-    return `(not (nonEmpty ${a5}))`;
+    return `(not ${arg(0, "false")})`;
   }
-  if (name2 === "eq" || name2 === "ne" || name2 === "lt" || name2 === "le" || name2 === "gt" || name2 === "ge") {
-    const a5 = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const b5 = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    return `(${name2} ${a5} ${b5})`;
+  if (name2 === "eq") return `(same ${arg(0, "nil")} ${arg(1, "nil")})`;
+  if (name2 === "ne") return `(not (same ${arg(0, "nil")} ${arg(1, "nil")}))`;
+  if (name2 === "lt" || name2 === "le" || name2 === "gt" || name2 === "ge") {
+    return `(cmpNum "${name2}" ${arg(0, "nil")} ${arg(1, "nil")})`;
   }
   if (name2 === "concat") {
     const items = args.map((a5) => emitGoAstExpr(a5, ctx));
@@ -252931,19 +253025,15 @@ function emitGoAstExpr(ast, ctx) {
     const items = args.map((a5) => emitGoAstExpr(a5, ctx));
     return items.length ? `(coalesce ${items.join(" ")})` : "nil";
   }
-  if (name2 === "trim") {
-    return `(trim ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name2 === "toLowerCase" || name2 === "lower") {
-    return `(lower ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name2 === "toUpperCase" || name2 === "upper") {
-    return `(upper ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name2 === "changeCase") {
-    const val = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
+  if (name2 === "trim") return `(trim ${arg(0, '""')})`;
+  if (name2 === "toLowerCase" || name2 === "lower") return `(lower ${arg(0, '""')})`;
+  if (name2 === "toUpperCase" || name2 === "upper") return `(upper ${arg(0, '""')})`;
+  if (name2 === "change_case" || name2 === "changeCase") {
+    const val = arg(0, '""');
     const mode = args[1]?.kind === "literal" ? String(args[1].value).toUpperCase() : "LOWERCASE";
-    return mode === "UPPERCASE" ? `(upper ${val})` : `(lower ${val})`;
+    if (mode === "UPPERCASE") return `(upper ${val})`;
+    if (mode === "TITLECASE") return `(title ${val})`;
+    return `(lower ${val})`;
   }
   if (name2 === "regex_replace" || name2 === "regexReplace") {
     const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
@@ -252952,54 +253042,41 @@ function emitGoAstExpr(ast, ctx) {
     return `(regexReplaceAll ${pattern} (concat ${src}) ${replacement})`;
   }
   if (name2 === "replace") {
-    const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const oldVal = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    const newVal = args[2] ? emitGoAstExpr(args[2], ctx) : '""';
-    return `(replace ${oldVal} ${newVal} ${src})`;
+    return `(replace ${arg(1, '""')} ${arg(2, '""')} ${arg(0, '""')})`;
   }
   if (name2 === "add" || name2 === "sub" || name2 === "mul" || name2 === "div") {
-    const a5 = args[0] ? emitGoAstExpr(args[0], ctx) : "0";
-    const b5 = args[1] ? emitGoAstExpr(args[1], ctx) : "0";
-    return `(${name2} ${a5} ${b5})`;
+    return `(${name2} ${arg(0, "0")} ${arg(1, "0")})`;
   }
-  if (name2 === "length" || name2 === "listLength") {
-    return `(len ${args[0] ? emitGoAstExpr(args[0], ctx) : "(list)"})`;
+  if (name2 === "round") return `(round ${arg(0, "0")})`;
+  if (name2 === "modulo") return `(mod ${arg(0, "0")} ${arg(1, "1")})`;
+  if (name2 === "constrain") return `(clamp ${arg(0, "0")} ${arg(1, "0")} ${arg(2, "0")})`;
+  if (name2 === "length" || name2 === "listLength" || name2 === "lists_length") {
+    return `(count ${arg(0, "nil")})`;
+  }
+  if (name2 === "lists_getIndex") {
+    const where = args[1]?.kind === "literal" ? String(args[1].value) : "FROM_START";
+    return `(listAt ${arg(0, "nil")} ${goStr(where)} ${arg(2, "1")})`;
   }
   if (name2 === "sheet_lookup") {
     const sArgs = args.slice(0, 4).map((a5) => emitGoAstExpr(a5, ctx));
     return `(sheetLookup ${sArgs.join(" ")})`;
   }
   if (name2 === "decision_table") {
-    const sheetName = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const outCol = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    const dictPairs = [];
-    for (let i5 = 2; i5 + 1 < args.length; i5 += 2) {
-      dictPairs.push(emitGoAstExpr(args[i5], ctx), emitGoAstExpr(args[i5 + 1], ctx));
-    }
-    return `(decisionTable ${sheetName} (dict ${dictPairs.join(" ")}) ${outCol})`;
+    return `(decisionTable ${arg(0, '""')} ${arg(1, "(dict)")} ${arg(2, '""')})`;
   }
   if (name2 === "handlebars") {
-    const tmpl = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const c5 = args[1] ? emitGoAstExpr(args[1], ctx) : ctx.sourceExpr;
-    return `(handlebars ${tmpl} ${c5})`;
+    return `(handlebars ${arg(0, '""')} ${arg(1, ctx.sourceExpr)})`;
   }
-  if (name2 === "toNumber" || name2 === "number") {
-    return `(toNum ${args[0] ? emitGoAstExpr(args[0], ctx) : "nil"})`;
-  }
-  if (name2 === "toString" || name2 === "string") {
-    return `(concat ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  return '""';
+  if (name2 === "toNumber" || name2 === "number") return `(toNum ${arg(0, "nil")})`;
+  if (name2 === "toString" || name2 === "string") return `(concat ${arg(0, '""')})`;
+  throw goUnsupported(name2 === "maps_entries" ? "Map-value entries" : name2);
+}
+function emitGoExpressionSource(expression, ctx) {
+  return emitGoAstExpr(parseExpression(expression), ctx);
 }
 function goShellGen(ctx) {
   return {
-    expr: (expression) => {
-      try {
-        return emitGoAstExpr(parseExpression(expression), ctx);
-      } catch {
-        return "nil";
-      }
-    },
+    expr: (expression) => emitGoExpressionSource(expression, ctx),
     object: (rmType, fields) => {
       const normalized = rmType === "CODE_PHRASE" ? fields.map(
         ([k4, v4]) => k4 === "terminology_id" && !v4.includes("TERMINOLOGY_ID") ? [k4, `(rmObj "_type" "TERMINOLOGY_ID" "value" ${v4})`] : [k4, v4]
@@ -253028,17 +253105,14 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     includes: model.includes,
     sourceExpr: ".Data",
     loopBindings: {},
-    varBindings: {}
+    varBindings: {},
+    functions: model.functions
   };
   const emitNode3 = (node) => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
-      try {
-        return emitGoAstExpr(parseExpression(slot.expression), ctx);
-      } catch {
-        return "nil";
-      }
+      return emitGoExpressionSource(slot.expression, ctx);
     }
     const pairs = [];
     for (const child of node.children) {
@@ -253071,11 +253145,7 @@ function emitGoSkelValue(node, ctx) {
   const coded = node.rmType === "DV_CODED_TEXT" ? codedTextParts(slot?.expression) : null;
   let expr = null;
   if (slot?.expression) {
-    try {
-      expr = coded ? coded.value ? emitGoAstExpr(coded.value, ctx) : null : emitGoAstExpr(parseExpression(slot.expression), ctx);
-    } catch {
-      expr = "nil";
-    }
+    expr = coded ? coded.value ? emitGoAstExpr(coded.value, ctx) : null : emitGoExpressionSource(slot.expression, ctx);
   }
   const fields = node.fixedFields ?? {};
   const rmType = node.rmType;
@@ -253153,12 +253223,8 @@ function emitGoSkelValue(node, ctx) {
 function guardGoExpr(node, expr, ctx) {
   const inc = ctx.includes?.find((item) => item.slotId === node.slotId);
   if (!inc?.when || inc.elseEmits) return expr;
-  try {
-    const cond = emitGoAstExpr(parseExpression(inc.when), ctx);
-    return `(whenVal ${cond} ${expr})`;
-  } catch {
-    return expr;
-  }
+  const cond = emitGoExpressionSource(inc.when, ctx);
+  return `(whenVal ${cond} ${expr})`;
 }
 function emitGoPureNode(node, ctx, parentArchetypeRef) {
   if (node.kind === "value") return emitGoSkelValue(node, ctx);
@@ -253342,7 +253408,8 @@ function emitGoOpenEhrProduct(model, skeleton, isXml) {
     includes: model.includes,
     sourceExpr: ".Data",
     loopBindings: {},
-    varBindings: {}
+    varBindings: {},
+    functions: model.functions
   };
   const root = skeleton[0];
   if (!root) {
@@ -254336,55 +254403,79 @@ function emitGoExpressionTemplate(ast, ctx = createGoEmitContext()) {
         const elsePart = ast.args[2] ? emitGoExpressionTemplate(ast.args[2], ctx) : "";
         return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
       }
-      if (ast.name === "call") {
-        const name2 = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
-        return `{{ ${emitGoExpr(ast, { ...ctx, inlining: /* @__PURE__ */ new Set([...ctx.inlining ?? [], name2]) })} }}`;
-      }
+      if (ast.name === "call") return emitGoTemplateCall(ast, ctx);
       return `{{ ${emitGoExpr(ast, ctx)} }}`;
   }
 }
-function goNeverEmptyText(ast) {
-  if (ast.kind === "literal") return typeof ast.value === "string" && ast.value.length > 0;
-  if (ast.kind !== "call") return false;
-  if (ast.name === "concat") return ast.args.some(goNeverEmptyText);
-  if (ast.name === "if") return ast.args.length >= 3 && goNeverEmptyText(ast.args[1]) && goNeverEmptyText(ast.args[2]);
-  return false;
+function emitGoTemplateCall(ast, ctx) {
+  const fname = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+  const fn2 = ctx.mappingFunctions?.find((item) => item.name === fname);
+  if (!fn2) return `{{ ${emitGoExpr(ast, ctx)} }}`;
+  const pairs = [];
+  for (let i5 = 0; i5 < fn2.params.length; i5++) {
+    const argAst = ast.args[i5 + 1];
+    pairs.push(goQuote(fn2.params[i5]), argAst ? emitGoExpr(argAst, ctx) : `""`);
+  }
+  return `{{ template ${goQuote(fname)} (dict ${pairs.join(" ")}) }}`;
+}
+function emitGoPlainTextTemplate(ast, ctx = createGoEmitContext()) {
+  switch (ast.kind) {
+    case "literal":
+      return escapeGoTemplateText(ast.value == null ? "null" : String(ast.value));
+    case "binary":
+      return `{{ text ${emitGoExpr(ast, ctx)} }}`;
+    case "call":
+      if (ast.name === "concat") {
+        return ast.args.map((arg) => emitGoPlainTextTemplate(arg, ctx)).join("");
+      }
+      if (ast.name === "if") {
+        const cond = emitGoExpr(ast.args[0], ctx);
+        const thenPart = emitGoPlainTextTemplate(ast.args[1], ctx);
+        const elsePart = ast.args[2] ? emitGoPlainTextTemplate(ast.args[2], ctx) : "";
+        return `{{if ${cond}}}${thenPart}{{else}}${elsePart}{{end}}`;
+      }
+      return `{{ text ${emitGoExpr(ast, ctx)} }}`;
+  }
+}
+function escapeGoTemplateText(value) {
+  return value.replace(/\{\{|\}\}/g, (m4) => `{{ ${goQuote(m4)} }}`);
 }
 function emitGoExpr(ast, ctx = createGoEmitContext()) {
   switch (ast.kind) {
     case "literal":
+      if (ast.value === null || ast.value === void 0) return "nil";
       if (typeof ast.value === "string") return goQuote(ast.value);
       if (typeof ast.value === "boolean") return ast.value ? "true" : "false";
       return String(ast.value);
     case "binary": {
-      const left = emitGoExpr(ast.left, ctx);
-      const right = emitGoExpr(ast.right, ctx);
-      const op = ast.op === "&&" ? "and" : ast.op === "||" ? "or" : ast.op;
-      return `(${left} ${op} ${right})`;
+      const fn2 = { "+": "add", "-": "sub", "*": "mul", "/": "div" }[ast.op];
+      return `(${fn2} ${emitGoExpr(ast.left, ctx)} ${emitGoExpr(ast.right, ctx)})`;
     }
     case "call": {
-      if (isQuantifyCall(ast.name)) return emitQuantifierGo(ast, ctx);
+      if (isQuantifyCall(ast.name)) return unrollGoQuantifier(ast, (item) => emitGoExpr(item, ctx));
+      if (ast.name === "call") return emitGoExpr(inlineGoFunctionCall(ast, ctx.mappingFunctions), ctx);
       const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
-      switch (ast.name) {
+      const name2 = ast.name;
+      switch (name2) {
         case "xpathBoolean":
           return `(not (not ${emitXPathGo(ast.args[0], ctx)}))`;
-        case "xpathString":
         case "xpathNumber":
+          return `(toNum ${emitXPathGo(ast.args[0], ctx)})`;
+        case "xpathString":
         case "xpathNode":
         case "xpath":
           return emitXPathGo(ast.args[0], ctx);
         case "maps_entries":
           throw new Error("Go templates do not support Map-value entries; use TypeScript, Java or XQuery");
         case "maps_get": {
-          if (ast.args[0]?.kind !== "literal" || ast.args[1]?.kind !== "literal") {
-            throw new Error("Go templates do not support Map-value getters or computed Map keys; use TypeScript, Java or XQuery");
+          const mapArg = ast.args[0];
+          if (mapArg?.kind !== "literal") return `(jget ${args[0]} ${args[1] ?? '""'})`;
+          const mapName = String(mapArg.value);
+          if (mapName !== "defaults" && mapName !== "Parameters") return "nil";
+          if (ast.args[1]?.kind === "literal") {
+            return `.Parameters.${sanitizeGoField(String(ast.args[1].value))}`;
           }
-          const mapName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "defaults";
-          const key = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "";
-          if (mapName === "defaults" || mapName === "Parameters") {
-            return `.Parameters.${sanitizeGoField(key)}`;
-          }
-          return `(index .${sanitizeGoField(mapName)} ${goQuote(key)})`;
+          return `(jget .Parameters ${args[1] ?? '""'})`;
         }
         case "trim":
           return `(${args[0]} | trim)`;
@@ -254392,81 +254483,59 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
           return `(regexReplaceAll ${args[1] ?? '""'} (concat ${args[0] ?? '""'}) ${args[2] ?? '""'})`;
         case "change_case": {
           const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
-          if (mode === "UPPERCASE") return `(${args[0]} | upper)`;
-          if (mode === "TITLECASE") return `(${args[0]} | title)`;
-          return `(${args[0]} | lower)`;
+          if (mode === "UPPERCASE") return `(upper ${args[0] ?? '""'})`;
+          if (mode === "TITLECASE") return `(title ${args[0] ?? '""'})`;
+          return `(lower ${args[0] ?? '""'})`;
         }
         case "concat":
-          return args.length === 1 ? args[0] : `(concat ${args.join(" ")})`;
+          return args.length === 0 ? '""' : args.length === 1 ? args[0] : `(concat ${args.join(" ")})`;
         case "round":
-          return `(int ${args[0]})`;
+          return `(round ${args[0] ?? "0"})`;
         case "modulo":
-          return `(${args[0]} % ${args[1]})`;
+          return `(mod ${args[0] ?? "0"} ${args[1] ?? "1"})`;
         case "constrain":
-          return `(if ge ${args[0]} ${args[2]} then ${args[2]} else (if le ${args[0]} ${args[1]} then ${args[1]} else ${args[0]}))`;
+          return `(clamp ${args[0] ?? "0"} ${args[1] ?? "0"} ${args[2] ?? "0"})`;
         case "if":
-          if (ast.args.length >= 2 && goNeverEmptyText(ast.args[1])) {
-            return `(or (and ${args[0]} ${args[1]}) ${args[2] ?? '""'})`;
-          }
-          throw goUnsupported("a conditional value inside an expression");
+          return `(ifElse ${args[0] ?? "false"} ${args[1] ?? "nil"} ${args[2] ?? "nil"})`;
         case "switch":
-          return args[0] ?? '""';
+          return args.length < 2 ? "nil" : `(switchVal ${args.join(" ")})`;
         case "var": {
-          const name2 = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
-          if (name2 && ctx.fnArgs?.has(name2)) return ctx.fnArgs.get(name2);
-          if (name2 && ctx.fnParams?.has(name2)) return `.${sanitizeGoField(name2)}`;
-          return `.`;
-        }
-        case "call": {
-          const fname = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
-          const fn2 = ctx.mappingFunctions?.find((item) => item.name === fname);
-          if (fn2?.body && !fn2.stack?.length && !ctx.inlining?.has(fname)) {
-            const fnArgs = /* @__PURE__ */ new Map();
-            fn2.params.forEach((param, i5) => fnArgs.set(param, args[i5 + 1] ?? '""'));
-            const inner = {
-              ...ctx,
-              fnArgs,
-              fnParams: /* @__PURE__ */ new Set(),
-              inlining: /* @__PURE__ */ new Set([...ctx.inlining ?? [], fname])
-            };
-            return `(${emitGoExpr(parseExpression(fn2.body), inner)})`;
-          }
-          const pairs = [];
-          if (fn2) {
-            for (let i5 = 0; i5 < fn2.params.length; i5++) {
-              pairs.push(goQuote(fn2.params[i5]), args[i5 + 1] ?? `""`);
-            }
-          }
-          return `template ${goQuote(fname)} (dict ${pairs.join(" ")})`;
+          const varName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (varName && ctx.fnArgs?.has(varName)) return ctx.fnArgs.get(varName);
+          if (varName && ctx.fnParams?.has(varName)) return `.${sanitizeGoField(varName)}`;
+          const bound = ctx.loopBindings?.[varName];
+          if (bound) return bound;
+          if (ctx.loopVar && (!varName || varName === ctx.loopVar)) return ".";
+          throw goUnsupported(`the variable ${varName || "(unnamed)"} outside a loop or Function`);
         }
         case "eq":
-          return `(eq (${args[0]}) (${args[1]}))`;
+          return `(same ${args[0] ?? "nil"} ${args[1] ?? "nil"})`;
         case "ne":
-          return `(ne (${args[0]}) (${args[1]}))`;
+          return `(not (same ${args[0] ?? "nil"} ${args[1] ?? "nil"}))`;
         case "lt":
-          return `(lt (${args[0]}) (${args[1]}))`;
         case "le":
-          return `(le (${args[0]}) (${args[1]}))`;
         case "gt":
-          return `(gt (${args[0]}) (${args[1]}))`;
         case "ge":
-          return `(ge (${args[0]}) (${args[1]}))`;
+          return `(cmpNum "${name2}" ${args[0] ?? "nil"} ${args[1] ?? "nil"})`;
         case "and":
-          return `(and (${args[0]}) (${args[1]}))`;
         case "or":
-          return `(or (${args[0]}) (${args[1]}))`;
+          if (!args.length) return name2 === "and" ? "true" : "false";
+          return args.length === 1 ? args[0] : `(${name2} ${args.join(" ")})`;
         case "not":
-          return `(not (${args[0]}))`;
+          return `(not ${args[0] ?? "false"})`;
         case "add":
-          return `(${args[0]} + ${args[1]})`;
-        case "subtract":
-          return `(${args[0]} - ${args[1]})`;
-        case "multiply":
-          return `(${args[0]} * ${args[1]})`;
-        case "divide":
-          return `(${args[0]} / ${args[1]})`;
+        case "sub":
+        case "mul":
+        case "div":
+          return `(${name2} ${args[0] ?? "0"} ${args[1] ?? "0"})`;
         case "list":
-          return `(list ${args.join(" ")})`;
+          return args.length ? `(list ${args.join(" ")})` : "(list)";
+        case "lists_length":
+          return `(count ${args[0] ?? "nil"})`;
+        case "lists_getIndex": {
+          const where = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "FROM_START";
+          return `(listAt ${args[0] ?? "nil"} ${goQuote(where)} ${args[2] ?? "1"})`;
+        }
         case "intersection":
         case "union":
         case "difference":
@@ -254476,32 +254545,29 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
-          throw goUnsupported(ast.name);
+          throw goUnsupported(name2);
         case "sheet_lookup": {
-          const name2 = args[0] ?? `""`;
+          const sheet = args[0] ?? `""`;
           const col = args[1] ?? `""`;
           const val = args[2] ?? `""`;
           const ret = args[3] ?? `""`;
-          return `(sheetLookup ${name2} ${col} ${val} ${ret})`;
+          return `(sheetLookup ${sheet} ${col} ${val} ${ret})`;
         }
         case "decision_table": {
-          const name2 = args[0] ?? `""`;
+          const table = args[0] ?? `""`;
           const inputs = args[1] ?? "(dict)";
           const output = args[2] ?? `""`;
-          return `(decisionTable ${name2} ${inputs} ${output})`;
+          return `(decisionTable ${table} ${inputs} ${output})`;
         }
         case "handlebars":
           return `(handlebars ${args[0] ?? '""'} ${args[1] ?? "(dict)"})`;
         case "map":
           return args.length ? `(dict ${args.join(" ")})` : "(dict)";
         default:
-          throw goUnsupported(ast.name);
+          throw goUnsupported(name2);
       }
     }
   }
-}
-function goUnsupported(what) {
-  return new Error(`Go templates do not support ${what}; use TypeScript, Java or XQuery`);
 }
 function emitXPathGo(pathArg, ctx) {
   const path = pathArg?.kind === "literal" ? String(pathArg.value) : "";
@@ -254558,41 +254624,6 @@ function jsonPathSegments(path) {
     i5 = j4;
   }
   return segments.filter((seg) => seg.length > 0);
-}
-function emitQuantifierGo(ast, ctx) {
-  const card = ast.name === "at_least" || ast.name === "at_most" || ast.name === "exactly";
-  const list = ast.args[0];
-  if (card || list?.kind !== "call" || list.name !== "list") {
-    throw new Error(
-      `Go templates do not support ${ast.name} over ${card ? "a count" : "a computed list"}; use a literal list of values, or TypeScript, Java or XQuery`
-    );
-  }
-  const varAst = ast.args[1];
-  const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
-  const predAst = ast.args[2];
-  const items = list.args.map(
-    (item) => predAst ? substituteVar(predAst, varName, item) : item
-  ).map((item) => emitGoExpr(item, ctx));
-  if (!items.length) return ast.name === "any_of" ? "false" : "true";
-  const joined = items.length === 1 ? items[0] : `(${ast.name === "all_of" ? "and" : "or"} ${items.join(" ")})`;
-  return ast.name === "none_of" ? `(not ${joined})` : joined;
-}
-function substituteVar(pred, name2, value) {
-  if (pred.kind === "literal") return pred;
-  if (pred.kind === "binary") {
-    return { ...pred, left: substituteVar(pred.left, name2, value), right: substituteVar(pred.right, name2, value) };
-  }
-  if (pred.name === "var" && pred.args[0]?.kind === "literal" && String(pred.args[0].value) === name2) {
-    return value;
-  }
-  if (isQuantifyCall(pred.name)) {
-    const card = pred.name === "at_least" || pred.name === "at_most" || pred.name === "exactly";
-    const inner = card ? pred.args[2] : pred.args[1];
-    if (inner?.kind === "literal" && String(inner.value) === name2) {
-      return { ...pred, args: pred.args.map((arg, i5) => i5 === 0 ? substituteVar(arg, name2, value) : arg) };
-    }
-  }
-  return { ...pred, args: pred.args.map((arg) => substituteVar(arg, name2, value)) };
 }
 
 // src/core/output/handlebars_whitespace.ts
@@ -319531,20 +319562,22 @@ function generateGoTemplateFromBlocklyState(state, model, skeleton) {
   if (!state || typeof state !== "object") return null;
   const workspace3 = new Blockly.Workspace();
   try {
-    const snapshot = migrateForEachSourceState(
-      JSON.parse(JSON.stringify(state))
-    );
     let generated = null;
     runWithoutBlocklyEvents(() => {
-      ensureStockBlocklyMessages();
-      if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
-      Blockly.serialization.workspaces.load(snapshot, workspace3);
+      try {
+        const snapshot = migrateForEachSourceState(
+          JSON.parse(JSON.stringify(state))
+        );
+        ensureStockBlocklyMessages();
+        if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
+        Blockly.serialization.workspaces.load(snapshot, workspace3);
+      } catch (err2) {
+        console.warn("Go template codegen could not load the Blockly canvas; falling back to JSON walker", err2);
+        return;
+      }
       generated = generateGoTemplateFromWorkspace(workspace3, model, skeleton);
     });
     return generated;
-  } catch (err2) {
-    console.warn("Go template codegen from Blockly failed; falling back to JSON walker", err2);
-    return null;
   } finally {
     workspace3.dispose();
   }
@@ -319572,7 +319605,7 @@ function generateGoTemplateFromWorkspace(workspace3, modelIn, skeleton) {
   let body = null;
   if (instanceRoot?.type === TEXT_DOCUMENT_BLOCK_TYPE) {
     const value = instanceRoot.getInputTargetBlock("VALUE");
-    body = value ? emitBlock3(value, ctx, 0) : ['""'];
+    body = value ? emitTextDocumentValue(value, ctx) : ['""'];
   } else if (instanceRoot) {
     body = emitBlock3(instanceRoot, ctx, 0);
   } else {
@@ -319641,6 +319674,12 @@ function emitBlock3(block, ctx, indent) {
     return emitJson(block, ctx, indent);
   }
   return [`{{- /* unsupported block: ${block.type} */ -}}`];
+}
+function emitTextDocumentValue(block, ctx) {
+  if (isRawTextBlock(block) || block.type === "term_pick") return emitBlock3(block, ctx, 0);
+  const serialized = blockToExpression(block);
+  if (!serialized) return emitBlock3(block, ctx, 0);
+  return [emitGoPlainTextTemplate(parseExpression(serialized), ctx)];
 }
 function emitLiveValue(block, ctx, indent) {
   if (isRawTextBlock(block)) {
@@ -323198,6 +323237,8 @@ var WorkbenchController = class {
   statusMessage = "Ready";
   taskProgress = null;
   taskDepth = 0;
+  /** Why the last conversion-script generation for the current Output mode failed (null when it worked). */
+  generationError = null;
   /** Suppresses debounced Conversion Test Run while `loadExampleSet` is in progress. */
   exampleSetLoadDepth = 0;
   /**
@@ -325177,6 +325218,7 @@ var WorkbenchController = class {
     });
   }
   refreshDerived() {
+    this.generationError = null;
     this.applyTargetIdLanguage();
     this.specText = formatBlocklyState(this.getBlocklyState?.() ?? this.blocklyState);
     const mode = this.settings.exportTarget;
@@ -325188,13 +325230,20 @@ var WorkbenchController = class {
       this.generatedCode = MAPPING_PREVIEW_SCRIPT_PLACEHOLDER;
       return;
     }
-    this.generatedCode = mode === "go-template" || this.model.templateId || this.blocklyState ? generate(this.model, mode, {
-      handlebarsTemplate: this.handlebarsTemplate,
-      blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
-      skeleton: this.skeleton,
-      instanceShape: this.model.instanceEncodings?.length ? instanceShapeForEncoding(preferredInstanceEncoding(this.model)) : this.settings.openEhrInstanceShape,
-      webTemplateJson: this.target?.webTemplateJson
-    }) : "";
+    try {
+      this.generatedCode = mode === "go-template" || this.model.templateId || this.blocklyState ? generate(this.model, mode, {
+        handlebarsTemplate: this.handlebarsTemplate,
+        blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
+        skeleton: this.skeleton,
+        instanceShape: this.model.instanceEncodings?.length ? instanceShapeForEncoding(preferredInstanceEncoding(this.model)) : this.settings.openEhrInstanceShape,
+        webTemplateJson: this.target?.webTemplateJson
+      }) : "";
+    } catch (err2) {
+      const detail = err2 instanceof Error ? err2.message : String(err2);
+      this.generationError = detail;
+      this.generatedCode = `// Conversion script generation failed: ${detail}
+`;
+    }
   }
   schedulePostLoadOutput() {
     if (this.postLoadTimer !== null) clearTimeout(this.postLoadTimer);
@@ -325301,6 +325350,9 @@ var WorkbenchController = class {
 // Conversion Test Run for a plugin language stays on Mapping preview.
 `;
       return { ok: false, output: message, error: message.trim(), warnings: [] };
+    }
+    if (this.generationError && isConversionScriptLanguage(mode)) {
+      return { ok: false, output: this.generatedCode, error: this.generationError, warnings: [] };
     }
     if (isConversionScriptLanguage(mode) && mode !== "typescript" && mode !== "handlebars" && mode !== "go-template" && mode !== "xquery") {
       const message = unimplementedTestRunMessage(mode);
