@@ -389,6 +389,8 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
       switch (ast.name) {
         case "trim":
           return `asString(${args[0]}).trim()`;
+        case "regex_replace":
+          return `asString(${args[0]}).replaceAll(asString(${args[1] ?? '""'}), java.util.regex.Matcher.quoteReplacement(asString(${args[2] ?? '""'})))`;
         case "change_case":
           return emitChangeCaseJava(args[0] ?? '""', ast.args[1]);
         case "concat":

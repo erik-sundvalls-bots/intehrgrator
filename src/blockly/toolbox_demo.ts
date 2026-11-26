@@ -367,11 +367,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
             type: "text_code",
             fields: { LANG: "handlebars", TEXT: "" },
           },
-          {
-            kind: "block",
-            type: "text_code",
-            fields: { LANG: "go-template", TEXT: "{{ index .Data \"path\" }}" },
-          },
+          { kind: "block", type: "text_regex_replace" },
           {
             kind: "block",
             type: "text_handlebars",

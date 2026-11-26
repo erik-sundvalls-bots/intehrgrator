@@ -1,6 +1,7 @@
 /**
  * Build test/fixtures/patient-reported-chemotherapy-symptoms/mapping/mapping.blockly.json
  * from TakeCare-CasenoteWrite-edit01.xsd + mappningsscript-1-9-1-prod.txt.
+ * Notes are ordinary blocks (scripts/chemo_symptom_notes.ts), never Go text (#386).
  *
  *   deno run -A scripts/build-chemo-symptoms-blockly.ts
  */
@@ -25,6 +26,14 @@ import { createEmptyModel } from "../src/core/mapping_model/mod.ts";
 import { getTargetFormatHandler } from "../src/core/target/mod.ts";
 import { DEFAULTS_MAP_NAME } from "../src/core/defaults/mod.ts";
 import type { SkeletonNode } from "../src/types/mod.ts";
+import { astToExpressionBlock } from "../src/blockly/expression_serialize.ts";
+import { parseExpression } from "../src/core/expression/mod.ts";
+import {
+  chemoNoteExpression,
+  CLEAN_FREE_TEXT_FUNCTION,
+  CLEAN_FREE_TEXT_PARAM,
+  cleanFreeTextBody,
+} from "./chemo_symptom_notes.ts";
 import "blockly/blocks";
 
 const rootDir = join(dirname(fromFileUrl(import.meta.url)), "..");
@@ -310,15 +319,6 @@ export const ALL_NEJ_COMPARES: DataCompare[] = [
   },
 ];
 
-export function extractGoDefine(script: string, name: string): string {
-  const start = script.indexOf(`{{- define "${name}" -}}`);
-  if (start < 0) throw new Error(`missing define ${name}`);
-  const endMarker = "{{- end -}}";
-  const end = script.indexOf(endMarker, start);
-  if (end < 0) throw new Error(`unclosed define ${name}`);
-  return script.slice(start, end + endMarker.length);
-}
-
 export function extractNoteForTermId(script: string, termId: string): string {
   const re = new RegExp(
     `<TermId>\\s*${termId}\\s*</TermId>\\s*<Note>([\\s\\S]*?)</Note>`,
@@ -382,11 +382,35 @@ function textLiteral(workspace: Blockly.Workspace, value: string): Blockly.Block
   return block;
 }
 
-function goTextCode(workspace: Blockly.Workspace, text: string): Blockly.Block {
-  const block = workspace.newBlock("text_code");
-  if (block.getField("LANG")) block.setFieldValue("go-template", "LANG");
-  block.setFieldValue(text, "TEXT");
-  return block;
+/** Blocks for a Mapping Expression (text join, if, compare, regex replace, Function call …). */
+export function expressionBlocks(workspace: Blockly.Workspace, expression: string): Blockly.Block {
+  // deno-lint-ignore no-explicit-any
+  return astToExpressionBlock(workspace as any, parseExpression(expression), "string", (b) => b);
+}
+
+/** Function `clean_free_text(text)`: PROD `cleanAndQuoteFreeTextInput` minus quoting/XML escaping. */
+export function addCleanFreeTextFunction(workspace: Blockly.Workspace): Blockly.Block {
+  const def = Blockly.serialization.blocks.append({
+    type: "procedures_defreturn",
+    id: "clean_free_text_definition",
+    x: 20,
+    y: 20,
+    fields: { NAME: CLEAN_FREE_TEXT_FUNCTION },
+    extraState: { params: [{ name: CLEAN_FREE_TEXT_PARAM, id: "clean_free_text_param_text" }] },
+  }, workspace);
+  def.setCommentText?.(
+    "Patient free text: newlines/tabs to space, drop characters TakeCare rejects, collapse spaces, trim.",
+  );
+  const body = expressionBlocks(
+    workspace,
+    cleanFreeTextBody(`var(${JSON.stringify(CLEAN_FREE_TEXT_PARAM)})`),
+  );
+  def.getInput("RETURN")!.connection!.connect(body.outputConnection!);
+  // `variables_get` starts on Blockly's default "item"; drop it once unused.
+  const map = workspace.getVariableMap();
+  const item = map.getVariable("item");
+  if (item && !workspace.getVariableUsesById(item.getId()).length) map.deleteVariable(item);
+  return def;
 }
 
 function structureFromNode(
@@ -447,12 +471,13 @@ function keywordBlock(
   const block = structureFromNode(workspace, node);
   if (typeof block.setCommentText === "function") block.setCommentText(spec.comment);
   fillValue(block, targetChildInputName("TermId"), mathNumber(workspace, spec.termId));
-  const note = extractNoteForTermId(script, spec.termId);
+  extractNoteForTermId(script, spec.termId); // PROD still has this TermId's Note
+  const note = expressionBlocks(workspace, chemoNoteExpression(spec.termId));
   if (spec.kind === "TextKeyWord") {
-    fillValue(block, targetChildInputName("Note"), goTextCode(workspace, note));
+    fillValue(block, targetChildInputName("Note"), note);
   } else {
     composeSchemaOptionalFields(block, ["Note"]);
-    fillValue(block, schemaOptionalInputName("Note"), goTextCode(workspace, note));
+    fillValue(block, schemaOptionalInputName("Note"), note);
   }
   return block;
 }
@@ -473,8 +498,7 @@ export function buildChemoSymptomsWorkspace(xsd: string, script: string): Blockl
     "xml-schema",
   );
 
-  const define = goTextCode(workspace, extractGoDefine(script, "cleanAndQuoteFreeTextInput"));
-  define.moveBy(20, 20);
+  addCleanFreeTextFunction(workspace);
 
   const root = workspace.getAllBlocks(false).find((block) =>
     block.type === "schema_ProfdocHISMessage"
@@ -579,7 +603,7 @@ if (import.meta.main) {
   };
   const top = state.blocks?.blocks;
   if (Array.isArray(top)) {
-    const defineIdx = top.findIndex((block) => block.type === "text_code");
+    const defineIdx = top.findIndex((block) => block.type === "procedures_defreturn");
     if (defineIdx > 0) {
       const [defineBlock] = top.splice(defineIdx, 1);
       top.unshift(defineBlock!);

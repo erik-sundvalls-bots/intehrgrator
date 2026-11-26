@@ -40,6 +40,7 @@ export const VMS_HBS_HELPERS = [
   "toUpperCase",
   "trim",
   "replace",
+  "regexReplace",
   "concat",
   "coalesce",
   "nonEmpty",

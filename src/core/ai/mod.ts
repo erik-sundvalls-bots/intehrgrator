@@ -135,6 +135,7 @@ const VALUE_BLOCK_TYPES = new Set([
   "math_number",
   "logic_boolean",
   "text_trim",
+  "text_regex_replace",
   "text_join",
   "math_arithmetic",
   "logic_ternary",
@@ -1577,6 +1578,14 @@ function blockJsonToExpression(
         ? blockJsonToExpression(child("TEXT")!, rewriteSourcePath)
         : '""';
       return `trim(${inner ?? '""'})`;
+    }
+    case "text_regex_replace": {
+      const inner = child("TEXT")
+        ? blockJsonToExpression(child("TEXT")!, rewriteSourcePath)
+        : '""';
+      return `regex_replace(${inner ?? '""'}, ${JSON.stringify(String(fields.PATTERN ?? ""))}, ${
+        JSON.stringify(String(fields.REPLACEMENT ?? ""))
+      })`;
     }
     case "text_changeCase": {
       const inner = child("TEXT")

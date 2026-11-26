@@ -573,7 +573,7 @@ function unsupportedFromWorkspace(
   return out;
 }
 
-function functionsFromWorkspace(workspace: Workspace): MappingFunction[] {
+export function functionsFromWorkspace(workspace: Workspace): MappingFunction[] {
   const out: MappingFunction[] = [];
   for (const block of workspace.getTopBlocks(false)) {
     if (block.type !== "procedures_defreturn" && block.type !== "procedures_defnoreturn") {

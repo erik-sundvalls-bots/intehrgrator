@@ -94,6 +94,12 @@ export function blockToExpression(block: Block | null): string | null {
       const inner = blockToExpression(block.getInputTargetBlock("TEXT"));
       return inner ? `trim(${inner})` : 'trim("")';
     }
+    case "text_regex_replace": {
+      const inner = blockToExpression(block.getInputTargetBlock("TEXT")) ?? '""';
+      const pattern = String(block.getFieldValue("PATTERN") ?? "");
+      const replacement = String(block.getFieldValue("REPLACEMENT") ?? "");
+      return `regex_replace(${inner}, ${JSON.stringify(pattern)}, ${JSON.stringify(replacement)})`;
+    }
     case "text_changeCase": {
       const inner = blockToExpression(block.getInputTargetBlock("TEXT")) ?? '""';
       const mode = String(block.getFieldValue("CASE") ?? "LOWERCASE");
@@ -451,6 +457,25 @@ export function astToExpressionBlock(
       block.getInput("TEXT")!.connection!.connect(inner.outputConnection!);
       return finalize(block);
     }
+    if (ast.name === "change_case" && ast.args[0]) {
+      const block = workspace.newBlock("text_changeCase") as BlockSvg;
+      const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
+      block.setFieldValue(mode, "CASE");
+      const inner = astToExpressionBlock(workspace, ast.args[0], "string", finalize);
+      block.getInput("TEXT")!.connection!.connect(inner.outputConnection!);
+      return finalize(block);
+    }
+    if (
+      ast.name === "regex_replace" && ast.args[0] &&
+      ast.args[1]?.kind === "literal" && ast.args[2]?.kind === "literal"
+    ) {
+      const block = workspace.newBlock("text_regex_replace") as BlockSvg;
+      block.setFieldValue(String(ast.args[1].value), "PATTERN");
+      block.setFieldValue(String(ast.args[2].value), "REPLACEMENT");
+      const inner = astToExpressionBlock(workspace, ast.args[0], "string", finalize);
+      block.getInput("TEXT")!.connection!.connect(inner.outputConnection!);
+      return finalize(block);
+    }
     if (ast.name === "concat" && ast.args.length >= 2) {
       const block = workspace.newBlock("text_join") as BlockSvg;
       // deno-lint-ignore no-explicit-any
@@ -526,9 +551,15 @@ export function astToExpressionBlock(
       };
       if (name) block.setFieldValue(name, "NAME");
       const argAsts = ast.args.slice(1);
+      // Reuse the Function's own parameter names when it is already defined.
+      const definition = workspace.getAllBlocks(false).find((candidate) =>
+        candidate.type.startsWith("procedures_def") &&
+        String(candidate.getFieldValue("NAME") ?? "") === name
+      ) as (Block & { getVars?: () => string[] }) | undefined;
+      const defined = definition?.getVars?.() ?? [];
       block.loadExtraState?.({
         name,
-        params: argAsts.map((_, i) => `arg${i}`),
+        params: argAsts.map((_, i) => defined[i] ?? `arg${i}`),
       });
       for (let i = 0; i < argAsts.length; i++) {
         const child = astToExpressionBlock(workspace, argAsts[i]!, returnType, finalize);

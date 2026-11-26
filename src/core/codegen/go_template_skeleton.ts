@@ -196,6 +196,12 @@ function emitGoAstExpr(ast: ExprAst, ctx: GoSkelCtx): string {
     const mode = args[1]?.kind === "literal" ? String(args[1].value).toUpperCase() : "LOWERCASE";
     return mode === "UPPERCASE" ? `(upper ${val})` : `(lower ${val})`;
   }
+  if (name === "regex_replace" || name === "regexReplace") {
+    const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
+    const pattern = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
+    const replacement = args[2] ? emitGoAstExpr(args[2], ctx) : '""';
+    return `(regexReplaceAll ${pattern} (concat ${src}) ${replacement})`;
+  }
   if (name === "replace") {
     const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
     const oldVal = args[1] ? emitGoAstExpr(args[1], ctx) : '""';

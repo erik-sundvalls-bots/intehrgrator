@@ -118,6 +118,8 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
       switch (ast.name) {
         case "trim":
           return String(args[0] ?? "").trim();
+        case "regex_replace":
+          return String(args[0] ?? "").replace(new RegExp(String(args[1] ?? ""), "gu"), () => String(args[2] ?? ""));
         case "change_case":
           return changeCase(args[0], String(args[1] ?? "LOWERCASE"));
         case "concat":
@@ -317,6 +319,14 @@ function xpathEvalRaw(expr: string, ctx: SourceContext, type: string): unknown {
       return jsonAt(named.rest, named.root);
     }
     const relative = isRelativeJsonPath(trimmed);
+    // openEHR FLAT source (`{ Parameters, Data }` unwrapped): the path is the key.
+    const flat = relative ? (ctx.relativeRoot ?? ctx.json) : ctx.json;
+    if (
+      trimmed.includes("/") && flat && typeof flat === "object" && !Array.isArray(flat) &&
+      Object.hasOwn(flat, trimmed)
+    ) {
+      return (flat as Record<string, unknown>)[trimmed];
+    }
     if (looksLikeOpenEhrLocator(trimmed)) {
       const query = compileAuthoringPath(trimmed, "json");
       const walkRoot = relative ? (ctx.relativeRoot ?? ctx.json) : ctx.json;
