@@ -294,7 +294,9 @@ Deno.test("OBX MHV1 preserves HISTORY labels, MHV1 WT has zero Ad hoc heading/Ru
     assertEquals(badSections, [], `MHV1 WT (${lang}) still had generic section headings: ${badSections.join(", ")}`);
   }
 
-  // 3. Regenerated MHV1 & Partogram .opt2 fixtures resolve >99% of labels with ehrtslib@v0.18.
+  // 3. Regenerated MHV1 & Partogram .opt2 fixtures resolve >99% of labels with ehrtslib@v0.20
+  //    (with ehrtslib#338 fixed, genuinely unlabelled nodes stay bare instead of stealing
+  //    unrelated-archetype fallback labels).
   for (const rel of [
     "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2",
     "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2",
@@ -309,7 +311,7 @@ Deno.test("OBX MHV1 preserves HISTORY labels, MHV1 WT has zero Ad hoc heading/Ru
       }
     };
     count(skel);
-    assert(bare <= 5, `${rel}: expected <= 5 bare at/id-codes with ehrtslib@v0.18, got ${bare}`);
+    assert(bare <= 8, `${rel}: expected <= 8 bare at/id-codes with ehrtslib@v0.20, got ${bare}`);
   }
 });
 
