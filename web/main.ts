@@ -96,6 +96,7 @@ import {
   enforceConversionStartUniqueness,
   CONVERSION_START_TYPE,
   hydrateDefaultsMapArgument,
+  hydrateDefaultsMapInCanvasJson,
   separateContextMapFromProductTree,
   serializeDefaultsMapArgument,
   applyDefaultContextMap,
@@ -2498,6 +2499,12 @@ function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }):
     updateCanonicalStateAndSync(grafted, options);
     return;
   }
+  if (editorMode === "treemap" && canonicalBlocklyState) {
+    // The workspace is not mounted in Treemap Overview; saving it would
+    // overwrite the whole mapping with an empty canvas (#390).
+    updateCanonicalStateAndSync(canonicalBlocklyState, options);
+    return;
+  }
   const signatureBefore = blocklySlotSignature;
   const saved = Blockly.serialization.workspaces.save(workspace) as BlocklyWorkspaceJson;
   canonicalBlocklyState = saved;
@@ -3142,6 +3149,18 @@ function fillListeningSourceQuery(blockId: string, path: string, format: string)
 function applyPendingDefaultsMap(): boolean {
   const pending = controller.consumePendingDefaultsMap();
   if (!pending) return false;
+  if (editorMode === "treemap" && canonicalBlocklyState) {
+    // Treemap Overview has no mounted workspace: hydrate the canonical JSON,
+    // never the (empty) Blockly workspace, or the mapping is replaced (#390).
+    const next = hydrateDefaultsMapInCanvasJson(
+      canonicalBlocklyState,
+      pending,
+      blocklyLocale,
+      targetFormatOf(controller.getState()),
+    );
+    updateCanonicalStateAndSync(next, { notify: false });
+    return true;
+  }
   runWithoutBlocklyEvents(() => {
     hydrateDefaultsMapArgument(workspace, pending, blocklyLocale, targetFormatOf(controller.getState()));
     separateContextMapFromProductTree(workspace);
@@ -3305,6 +3324,7 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             },
           );
         }
+        applyPendingDefaultsMap();
         return;
       }
       activeSliceHandle = null;
