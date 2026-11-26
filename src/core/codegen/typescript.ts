@@ -114,6 +114,8 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
       switch (ast.name) {
         case "trim":
           return `String(${args[0]} ?? "").trim()`;
+        case "regex_replace":
+          return `String(${args[0]} ?? "").replace(new RegExp(String(${args[1] ?? '""'}), "gu"), () => String(${args[2] ?? '""'}))`;
         case "change_case":
           return emitChangeCaseTs(args[0] ?? '""', ast.args[1]);
         case "concat":

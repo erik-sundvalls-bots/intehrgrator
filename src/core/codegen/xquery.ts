@@ -555,6 +555,8 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
       switch (ast.name) {
         case "trim":
           return `normalize-space(${args[0]})`;
+        case "regex_replace":
+          return `replace(string(${args[0]}), string(${args[1] ?? '""'}), replace(string(${args[2] ?? '""'}), "([\\\\$])", "\\\\$1"))`;
         case "change_case":
           return emitChangeCaseXq(args[0] ?? '""', args[1] ?? '"LOWERCASE"');
         case "concat":
@@ -793,6 +795,10 @@ function compileRelativeLookup(path: string, sourceVar: string): string | null {
   const trimmed = path.trim();
   if (!trimmed || trimmed.startsWith("$") || trimmed.startsWith("/")) return null;
   if (trimmed === "." || trimmed === "./") return sourceVar;
+  // openEHR FLAT key ("a/b|value", may hold "." as in "t.ex."): one map key, not a dotted walk.
+  if (/[/|]/.test(trimmed) && !trimmed.startsWith("./") && !trimmed.includes("[")) {
+    return `${sourceVar}?(${xqString(trimmed)})`;
+  }
 
   const body = trimmed.replace(/^\.\//, "");
   const segments: string[] = [];

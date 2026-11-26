@@ -210,6 +210,12 @@ function emitGoAstExpr(ast: ExprAst, ctx: GoSkelCtx): string {
     if (mode === "TITLECASE") return `(title ${val})`;
     return `(lower ${val})`;
   }
+  if (name === "regex_replace" || name === "regexReplace") {
+    const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
+    const pattern = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
+    const replacement = args[2] ? emitGoAstExpr(args[2], ctx) : '""';
+    return `(regexReplaceAll ${pattern} (concat ${src}) ${replacement})`;
+  }
   if (name === "replace") {
     return `(replace ${arg(1, '""')} ${arg(2, '""')} ${arg(0, '""')})`;
   }

@@ -133,9 +133,14 @@ Deno.test("#70 sibling mappings keep gold directories and one free-text helper",
   assertEquals(siblingLung.includes("(or granskning"), false);
   assert(siblingLung.includes("decision_table"));
   assert(siblingChemo.includes('"NAME": "fatigue_note"'));
-  const defines = siblingChemo.split('define \\"cleanAndQuoteFreeTextInput\\"').length - 1;
-  assertEquals(defines, 1, `expected one cleanAndQuoteFreeTextInput define, got ${defines}`);
-  assertEquals(goldChemo.includes("define \\\"cleanAndQuoteFreeTextInput\\\""), true);
+  // #386: one clean_free_text Function per set, no Go define text.
+  for (const mapping of [goldChemo, siblingChemo]) {
+    const defs = JSON.parse(mapping).blocks.blocks.filter((block: { type?: string; fields?: { NAME?: string } }) =>
+      block.type === "procedures_defreturn" && block.fields?.NAME === "clean_free_text"
+    );
+    assertEquals(defs.length, 1, "one clean_free_text Function");
+    assertEquals(mapping.includes("cleanAndQuoteFreeTextInput"), false);
+  }
 });
 
 Deno.test("#70 lung-MDT sibling TermIds and Notes match the PROD script", async () => {

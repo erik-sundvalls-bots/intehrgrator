@@ -6,6 +6,7 @@
  * conversion script(s).
  */
 
+import { functionsFromWorkspace } from "./mapping_ir.ts";
 import type { Block, Workspace } from "blockly/core";
 import { Blockly } from "./blockly_core.ts";
 import { blockToExpression } from "./expression_serialize.ts";
@@ -125,9 +126,11 @@ export function generateGoTemplateFromBlocklyState(
 
 export function generateGoTemplateFromWorkspace(
   workspace: Workspace,
-  model: MappingModel,
+  modelIn: MappingModel,
   skeleton?: import("../types/mod.ts").SkeletonNode[],
 ): string | null {
+  // Functions on the canvas count even when the caller's model predates them (#386).
+  const model = modelIn.functions?.length ? modelIn : { ...modelIn, functions: functionsFromWorkspace(workspace) };
   const ctx = createGoEmitContext(undefined, model.functions);
   if (skeleton?.length) ctx.archetypeRootIds = archetypeRootIdBySlot(skeleton);
   const instanceRoot = findInstanceRootUnderStart(workspace);

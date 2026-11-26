@@ -105,6 +105,10 @@ export function igXpathBoolean(evaluateXPathToBoolean: XPathEval, path: unknown,
 function jsonWalk(path: string, node: unknown): unknown {
   const trimmed = path.trim();
   if (!trimmed || trimmed === "$" || trimmed === "." || trimmed === "$source") return node;
+  // openEHR FLAT key (may hold "." as in "t.ex."): read it whole before splitting.
+  if (node && typeof node === "object" && !Array.isArray(node) && Object.hasOwn(node, trimmed)) {
+    return (node as Record<string, unknown>)[trimmed];
+  }
   let body = trimmed;
   if (body.startsWith("$source")) body = body.slice(7);
   else if (body.startsWith("$")) body = body.slice(1);

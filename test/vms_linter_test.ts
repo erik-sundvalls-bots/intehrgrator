@@ -1,3 +1,4 @@
+import { GO_TEMPLATE_CODE_TEXT_UNSUPPORTED } from "@intehrgrator/core/output/code_text.ts";
 import { assertEquals, assert } from "@std/assert";
 import { Blockly } from "@intehrgrator/blockly/blockly_core.ts";
 import { initBlocklyGenerators } from "@intehrgrator/blockly/mod.ts";
@@ -5,7 +6,6 @@ import {
   blockHatchMessages,
   HATCH_DYNAMIC_PATH,
   HATCH_JSON_XML,
-  HATCH_OUT_OF_DIALECT_GO,
   HATCH_OUT_OF_DIALECT_HBS,
   HATCH_REMOVED,
   isLiteralSourcePath,
@@ -44,7 +44,7 @@ Deno.test("workspace hatch: removed types and json/xml get distinct warnings", (
   workspace.dispose();
 });
 
-Deno.test("workspace hatch: in-dialect Handlebars / Go text_code do not warn", async () => {
+Deno.test("workspace hatch: in-dialect Handlebars does not warn; Go text_code always does (#386)", async () => {
   ensure();
   await ensureGoTemplateWasm();
   const workspace = new Blockly.Workspace();
@@ -57,7 +57,8 @@ Deno.test("workspace hatch: in-dialect Handlebars / Go text_code do not warn", a
   const go = workspace.newBlock("text_code");
   go.setFieldValue("go-template", "LANG");
   go.setFieldValue('{{if eq (index .Data "a") "yes"}}ok{{end}}', "TEXT");
-  assertEquals(blockHatchMessages(go), []);
+  // #386: Go template text is never accepted on the canvas, in dialect or not.
+  assertEquals(blockHatchMessages(go), [GO_TEMPLATE_CODE_TEXT_UNSUPPORTED]);
 
   const badHbs = workspace.newBlock("text_code");
   badHbs.setFieldValue("handlebars", "LANG");
@@ -67,7 +68,7 @@ Deno.test("workspace hatch: in-dialect Handlebars / Go text_code do not warn", a
   const badGo = workspace.newBlock("text_code");
   badGo.setFieldValue("go-template", "LANG");
   badGo.setFieldValue("{{call .Fn}}", "TEXT");
-  assertEquals(blockHatchMessages(badGo), [HATCH_OUT_OF_DIALECT_GO]);
+  assertEquals(blockHatchMessages(badGo), [GO_TEMPLATE_CODE_TEXT_UNSUPPORTED]);
 
   const dyn = workspace.newBlock("source_query");
   dyn.setFieldValue("concat('/a/', $x)", "EXPRESSION");

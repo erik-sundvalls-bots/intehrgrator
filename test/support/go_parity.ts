@@ -18,11 +18,7 @@ const catalogPath = join(root, "examples", "example-sets.json");
 const catalog = JSON.parse(Deno.readTextFileSync(catalogPath)) as { sets: Array<{ id: string }> };
 
 /** Sets whose Go output is known to differ, with the reason. */
-const KNOWN_DIFFERENT: Record<string, string> = {
-  // Hatch text holds Go-template code that Go runs and Handlebars prints (#386).
-  "chemo-symptoms-flat-to-tc-xml": "#386",
-  "chemo-symptoms-flat-to-tc-xml-decision-tables": "#386",
-};
+const KNOWN_DIFFERENT: Record<string, string> = {};
 /** Sets Go cannot express: generation must fail loudly, never emit a wrong document. */
 const LOUD_IN_GO: Record<string, string> = {
   "karda-ordinationsdata-to-openehr-flat": "statement-bodied Function",

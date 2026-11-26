@@ -128,6 +128,9 @@ export const kintegrateHandlebarsHelpers = {
   toLowerCase: (value: unknown) => value == null ? value : String(value).toLowerCase(),
   toUpperCase: (value: unknown) => value == null ? value : String(value).toUpperCase(),
   trim: (value: unknown) => value == null ? "" : String(value).trim(),
+  /** Every regex match replaced with literal text (`regex_replace` Mapping Expression). */
+  regexReplace: (src: unknown, pattern: unknown, replacement: unknown) =>
+    String(src ?? "").replace(new RegExp(String(pattern ?? ""), "gu"), () => String(replacement ?? "")),
   replace: (src: unknown, oldVal: unknown, newVal: unknown) =>
     String(src ?? "").replaceAll(String(oldVal ?? ""), String(newVal ?? "")),
   concat: (...args: unknown[]) =>

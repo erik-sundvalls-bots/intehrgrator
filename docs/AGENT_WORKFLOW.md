@@ -100,7 +100,7 @@ Output modes that execute for catalogued families:
 |--------|--------|
 | openEHR FLAT (Karda mapped sets) | TypeScript emits Simplified FLAT. XQuery executes the same instances (canonical JSON maps). |
 | Lung-MDT TakeCare XML | Mapping preview and Handlebars both evaluate the XML canvas (TermId + Note). |
-| Chemo symptoms TakeCare XML | TypeScript and Go template. |
+| Chemo symptoms TakeCare XML | Mapping preview, Handlebars, TypeScript, XQuery and Go template give the same keywords and Notes. |
 
 Go template Test Run uses the live Blockly walker (the same script as Generated Export). Cloud or laptop agents without a desktop MCP server should call the HTTP Agent API (`intEHRgrator --headless`, or `callAgentTool`). stdio MCP with `INTEHR_AGENT_URL` is for watching a GUI session. `deno task mcp` with no `INTEHR_AGENT_URL` embeds a headless workbench. AI chat runs these tool names in-process and does not need stdio MCP.
 
