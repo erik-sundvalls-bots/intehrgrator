@@ -5814,6 +5814,8 @@ function render(): void {
       format,
     );
     applyTreeHighlights(schemaTreeEl, exampleTreeEl, activeTreeHighlight(s));
+  } else if (s.exampleSetExamplesLoading && !s.examples.length) {
+    exampleTreeEl.replaceChildren(examplesLoadingIndicator(s.exampleSetExamplesLoading.total));
   } else {
     exampleTreeEl.textContent = s.examples.length
       ? uiChrome().selectExampleTab
@@ -5824,6 +5826,22 @@ function render(): void {
   // Constraint warning-text events must not persist/re-render during this
   // pass — that used to stack a second canvas-swap on Click-to-Map.
   finishCanvas(s);
+}
+
+/** Examples-pane spinner while an example set's Example Instances load in the background. */
+function examplesLoadingIndicator(total: number): HTMLElement {
+  const box = document.createElement("div");
+  box.className = "examples-loading";
+  box.dataset.examplesLoading = String(total);
+  box.setAttribute("role", "status");
+  box.setAttribute("aria-live", "polite");
+  const spinner = document.createElement("span");
+  spinner.className = "examples-loading-spinner";
+  spinner.setAttribute("aria-hidden", "true");
+  const label = document.createElement("span");
+  label.textContent = formatMessage(uiChrome().examplesLoadingPane, { n: total });
+  box.append(spinner, label);
+  return box;
 }
 
 let renderingCanvas = false;
@@ -6196,6 +6214,7 @@ function installWorkbenchTestApi(): void {
         generatedCode: s.generatedCode,
         statusMessage: s.statusMessage,
         taskProgress: s.taskProgress,
+        examplesLoading: s.exampleSetExamplesLoading?.total ?? null,
         schemaError: s.schemaError,
         exampleIssueCount: s.activeExampleValidation.length,
         autoplay: s.settings.autoplay,

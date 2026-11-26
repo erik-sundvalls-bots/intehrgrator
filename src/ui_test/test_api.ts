@@ -32,6 +32,8 @@ export interface WorkbenchTestSnapshot {
   generatedCode: string;
   statusMessage: string;
   taskProgress: TaskProgress | null;
+  /** Example-set Example Instances still loading in the background (examples-pane spinner). */
+  examplesLoading: number | null;
   schemaError: string | null;
   exampleIssueCount: number;
   autoplay: boolean;
