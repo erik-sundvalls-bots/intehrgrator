@@ -21,9 +21,10 @@ import {
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
 import { namedLoopBinding } from "../named_loop_path.ts";
 import { codedChoicesForNode, isListAttribute } from "./typescript.ts";
-import { usesOpenEhrProduct, xmlCanvasNeedsTreeWalker } from "./product.ts";
+import { usesOpenEhrProduct } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
+import { resolveHandlebarsWhitespace } from "../output/handlebars_whitespace.ts";
 import {
   functionIdentMap,
   jsFunctionIdent,
@@ -143,7 +144,8 @@ export type JavaHelper =
   | "rm"
   | "flatten"
   | "handlebars"
-  | "coded";
+  | "coded"
+  | "xml";
 
 export interface JavaEmitContext {
   sourceVar: string;
@@ -347,7 +349,7 @@ function javaChoicesLiteral(choices: Array<[string, string, string]>): string {
   return `new String[][]{${rows.join(", ")}}`;
 }
 
-function javaIdent(raw: string, fallback = "item"): string {
+export function javaIdent(raw: string, fallback = "item"): string {
   const cleaned = raw.replace(/[^A-Za-z0-9_]/g, "_");
   const base = /^[A-Za-z_]/.test(cleaned) ? cleaned : `_${cleaned}`;
   if (!base || JAVA_RESERVED.has(base)) return fallback;
@@ -474,9 +476,14 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
         case "xpathNode":
           ctx.helpers.add("node");
           return emitXpathCall("xpathNode", ast.args[0], args[0] ?? '""', ctx);
-        case "handlebars":
+        case "handlebars": {
           ctx.helpers.add("handlebars");
-          return `handlebars(${args[0] ?? '""'}, ${args[1] ?? "mapOf()"})`;
+          // Handlebars.java has other standalone-line rules: bake in Handlebars.js whitespace.
+          const tpl = ast.args[0]?.kind === "literal" && typeof ast.args[0].value === "string"
+            ? JSON.stringify(resolveHandlebarsWhitespace(ast.args[0].value))
+            : args[0] ?? '""';
+          return `handlebars(${tpl}, ${args[1] ?? "mapOf()"})`;
+        }
         case "map":
           ctx.helpers.add("logic");
           return `mapOf(${args.join(", ")})`;
@@ -555,7 +562,7 @@ function javaMethodName(name: string): string {
   return name.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
 }
 
-function emitXpathCall(
+export function emitXpathCall(
   fn: string,
   pathAst: ExprAst | undefined,
   pathCode: string,
@@ -594,7 +601,8 @@ function emitQuantifierJava(
     loopBindings: { ...ctx.loopBindings, [varName]: ident },
   };
   const predCode = predAst ? emitJavaExpression(predAst, innerCtx) : "true";
-  const bind = `(vars.put(${JSON.stringify(varName)}, ${ident}), ${predCode})`;
+  // Java has no comma operator: bind the item for var(...), then test it.
+  const bind = `{ vars.put(${JSON.stringify(varName)}, ${ident}); return asBoolean(${predCode}); }`;
   const arr = `asList(${listCode}).stream()`;
   switch (ast.name) {
     case "all_of":
@@ -878,7 +886,7 @@ export function generateJava(
   if (!usesOpenEhrProduct(model, options)) {
     const canvas = canvasHandlebarsExpression(options?.blocklyState);
     if (canvas) return generateJavaFromExpression(model, canvas);
-    return generateJavaGeneric(model, xmlCanvasNeedsTreeWalker(options?.blocklyState));
+    return generateJavaGeneric(model);
   }
   if (options?.skeleton?.length) {
     return generateJavaFromSkeleton(model, options.skeleton);
@@ -899,22 +907,11 @@ function generateJavaFromExpression(model: MappingModel, expression: string): st
   }, ctx);
 }
 
-/** Shown (and thrown) when a slot map would drop repeated or guarded XML content. */
-export const JAVA_XML_TREE_UNSUPPORTED =
-  "Java cannot yet build Target XML from this XML Schema canvas: repeated elements, Include when and " +
-  "For each are not representable in the slot map it emits. Use TypeScript, XQuery or Go template.";
-
-function generateJavaGeneric(model: MappingModel, needsTree = false): string {
+function generateJavaGeneric(model: MappingModel): string {
   const ctx = createJavaEmitContext("sourceRoot", model.functions);
-  const lines: string[] = needsTree
-    ? [
-      `// ${JAVA_XML_TREE_UNSUPPORTED}`,
-      `if (true) throw new UnsupportedOperationException(${JSON.stringify(JAVA_XML_TREE_UNSUPPORTED)});`,
-      "Map<String, Object> values = new LinkedHashMap<>();",
-    ]
-    : [
-      "Map<String, Object> values = new LinkedHashMap<>();",
-    ];
+  const lines: string[] = [
+    "Map<String, Object> values = new LinkedHashMap<>();",
+  ];
   for (const slot of model.slots) {
     const expr = emitJavaExpressionSource(slot.expression, ctx);
     if (!expr) continue;
@@ -928,6 +925,33 @@ function generateJavaGeneric(model: MappingModel, needsTree = false): string {
     types: ctx.types,
     helpers: ctx.helpers,
     source: "slots",
+    archie: false,
+  }, ctx);
+}
+
+/**
+ * Java module for an XML / XML Schema canvas: `body` writes to the StAX
+ * `XMLStreamWriter w`; `convert` returns the Target XML string.
+ */
+export function wrapJavaXmlCanvasModule(model: MappingModel, body: string, ctx: JavaEmitContext): string {
+  ctx.helpers.add("xml");
+  return wrapJavaFromCtx({
+    templateId: model.templateId,
+    body: [
+      "java.io.StringWriter xmlOut = new java.io.StringWriter();",
+      "try {",
+      "  javax.xml.stream.XMLStreamWriter w = javax.xml.stream.XMLOutputFactory.newInstance().createXMLStreamWriter(xmlOut);",
+      indentBlock(body, 1),
+      "  w.flush();",
+      "  w.close();",
+      "} catch (javax.xml.stream.XMLStreamException e) {",
+      '  throw new IllegalStateException("Target XML write failed: " + e.getMessage(), e);',
+      "}",
+      "return xmlOut.toString();",
+    ].join("\n"),
+    types: ctx.types,
+    helpers: ctx.helpers,
+    source: "xml-canvas",
     archie: false,
   }, ctx);
 }
@@ -1325,7 +1349,7 @@ interface JavaModuleParts {
   body: string;
   types: Set<string>;
   helpers: Set<JavaHelper>;
-  source: "skeleton" | "slots" | "blockly";
+  source: "skeleton" | "slots" | "blockly" | "xml-canvas";
   /** When false, omit Archie RM / OPT validator imports (non-openEHR product). */
   archie: boolean;
   extraMethods?: string;
@@ -1364,6 +1388,8 @@ function wrapJavaModule(parts: JavaModuleParts): string {
       ? "// Source: Template Skeleton + Mapping Model expressions"
       : parts.source === "blockly"
       ? "// Source: Blockly canvas product (text_handlebars / Mapping Expressions)"
+      : parts.source === "xml-canvas"
+      ? "// Source: XML / XML Schema canvas, written with StAX (javax.xml.stream)"
       : "// Source: Mapping Model slots (no canvas / skeleton available)",
     "// Mapping preview Test Run evaluates Mapping Model slots through the Target",
     "// instance format handler (ADR 0001). Java Output mode does not execute this",
@@ -1499,6 +1525,7 @@ function javaStaticHelperNames(body: string): string[] {
     "setDifference",
     "flatten",
     "rm",
+    "xmlText",
   ];
   return names.filter((name) => body.includes(`${name}(`));
 }
