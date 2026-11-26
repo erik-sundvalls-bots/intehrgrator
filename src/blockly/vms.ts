@@ -54,6 +54,7 @@ export const VMS_EXPRESSION_BLOCK_TYPES = [
   "source_query_node",
   "text",
   "text_trim",
+  "text_regex_replace",
   "text_join",
   "math_number",
   "math_arithmetic",

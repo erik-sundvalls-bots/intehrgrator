@@ -192,6 +192,10 @@ function emitHbsAstExpr(ast: ExprAst, ctx: HbsSkelCtx): string {
     return items.length ? `(coalesce ${items.join(" ")})` : "null";
   }
   if (name === "trim") return `(trim ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
+  if (name === "regex_replace") {
+    const items = [0, 1, 2].map((i) => args[i] ? emitHbsAstExpr(args[i]!, ctx) : '""');
+    return `(regexReplace ${items.join(" ")})`;
+  }
   if (name === "toLowerCase" || name === "lower") {
     return `(toLowerCase ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
   }

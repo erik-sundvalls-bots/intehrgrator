@@ -147,7 +147,7 @@ Deno.test("text_code LANG is recorded as an escape hatch, not a silent drop", as
   workspace.dispose();
 });
 
-Deno.test("in-dialect go-template text_code is not an escape hatch", async () => {
+Deno.test("any go-template text_code is an escape hatch: Go text is not a canvas language (#386)", async () => {
   ensure();
   await ensureGoTemplateWasm();
   const workspace = new Blockly.Workspace();
@@ -161,10 +161,10 @@ Deno.test("in-dialect go-template text_code is not an escape hatch", async () =>
 
   const ir = workspaceToModelJson(workspace);
   const mapped = ir.slots.find((s) => s.slotId === "slot/note");
-  assertEquals(mapped?.hatch, undefined);
+  assertEquals(mapped?.hatch, { kind: "text_code", lang: "go-template" });
   assertEquals(
-    ir.unsupported.some((u) => u.blockType === "text_code"),
-    false,
+    ir.unsupported.some((u) => u.blockType === "text_code" && u.lang === "go-template"),
+    true,
   );
   workspace.dispose();
 });

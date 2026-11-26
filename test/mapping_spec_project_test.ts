@@ -397,12 +397,14 @@ Deno.test("chemo TakeCare mapping spec omits Blockly JSON chrome and nested AND 
   const projection = projectBlocklyState(state);
   const andRows = projection.lines.filter((l) => l.type === "logic_operation").length;
   assertEquals(andRows, 4, `expected 4 flattened AND/OR rows, got ${andRows}`);
+  // #386: Notes are block trees now (one row per join/branch), not one Go Code text row.
   assert(
-    projection.lines.length / typeCount < 0.6,
+    projection.lines.length / typeCount < 0.75,
     `expected compact rows (${projection.lines.length}) vs Blockly types (${typeCount})`,
   );
   assertEquals(projection.text.includes('"extraState"'), false);
-  assertEquals(projection.lines.some((l) => l.editKind === "code"), true);
+  assertEquals(projection.lines.some((l) => l.editKind === "code"), false);
+  assertEquals(projection.lines.some((l) => l.editKind === "compare"), true);
   assertEquals(projection.lines.some((l) => l.editKind === "map_get"), true);
 });
 

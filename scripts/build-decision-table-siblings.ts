@@ -13,7 +13,8 @@ import { targetChildInputName } from "../src/blockly/blocks/target_blocks.ts";
 import { applyDecisionTableOutputType } from "../src/blockly/blocks/decision_table_blocks.ts";
 import { setWorkspaceSheetsProvider } from "../src/blockly/sheets_bridge.ts";
 import { buildLungMdtWorkspace } from "./build-lung-mdt-blockly.ts";
-import { buildChemoSymptomsWorkspace } from "./build-chemo-symptoms-blockly.ts";
+import { buildChemoSymptomsWorkspace, expressionBlocks } from "./build-chemo-symptoms-blockly.ts";
+import { CLEAN_FREE_TEXT_FUNCTION } from "./chemo_symptom_notes.ts";
 import {
   CHEMO_FLAT,
   chemoDecisionSheets,
@@ -381,6 +382,14 @@ function flatKey(key: string): string {
   return `$.['${key.replace(/'/g, "\\'")}']`;
 }
 
+/** Patient free text through the set's `clean_free_text` Function (#386). */
+function cleanedSource(workspace: Blockly.Workspace, path: string): Blockly.Block {
+  return expressionBlocks(
+    workspace,
+    `call(${JSON.stringify(CLEAN_FREE_TEXT_FUNCTION)}, xpathString(${JSON.stringify(path)}))`,
+  );
+}
+
 function patchChemo(workspace: Blockly.Workspace, sheets: SheetDocument[]): void {
   setWorkspaceSheetsProvider(() => sheets);
   const byTerm = new Map(
@@ -406,7 +415,7 @@ function patchChemo(workspace: Blockly.Workspace, sheets: SheetDocument[]): void
     decisionEval(workspace, "swelling_note", "snippet", [
       ["code", source(workspace, flatKey(CHEMO_FLAT.swellingCode))],
       ["severity", source(workspace, flatKey(CHEMO_FLAT.swellingValue))],
-      ["location", source(workspace, flatKey(CHEMO_FLAT.swellingLocation))],
+      ["location", cleanedSource(workspace, flatKey(CHEMO_FLAT.swellingLocation))],
     ]),
   );
 
@@ -418,7 +427,7 @@ function patchChemo(workspace: Blockly.Workspace, sheets: SheetDocument[]): void
     decisionEval(workspace, "itch_note", "snippet", [
       ["treated", source(workspace, flatKey(CHEMO_FLAT.itchTreated))],
       ["severity", source(workspace, flatKey(CHEMO_FLAT.itchSeverity))],
-      ["treatment", source(workspace, flatKey(CHEMO_FLAT.itchTreatment))],
+      ["treatment", cleanedSource(workspace, flatKey(CHEMO_FLAT.itchTreatment))],
     ]),
   );
 }

@@ -30,7 +30,8 @@ import {
 import { isGenericValueBlockType, isSchemaStructureBlock } from "./blocks/target_blocks.ts";
 import { schemaSlotIdForInput } from "./schema_blocks.ts";
 import { isSchemaOptionalInput, schemaOptionalExtrasOf, schemaOptionalInputName } from "./blocks/schema_mutator.ts";
-import { blockToExpression } from "./expression_serialize.ts";
+import { blockToExpression as serializeBlockExpression } from "./expression_serialize.ts";
+import { GO_TEMPLATE_CODE_TEXT_UNSUPPORTED } from "../core/output/code_text.ts";
 import { isTermPickBlock } from "./blocks/term_pick.ts";
 import { SHEET_ACCESSOR_TYPES } from "./blocks/sheet_blocks.ts";
 import { DECISION_TABLE_BLOCK } from "./blocks/decision_table_blocks.ts";
@@ -573,7 +574,23 @@ function unsupportedFromWorkspace(
   return out;
 }
 
-function functionsFromWorkspace(workspace: Workspace): MappingFunction[] {
+/**
+ * Block → Mapping Expression for the IR. Legacy Go template Code text (#386) is
+ * kept as its literal text so an old project still loads; the slot is recorded
+ * as an escape hatch and the generators refuse to run it.
+ */
+function blockToExpression(block: Parameters<typeof serializeBlockExpression>[0]): string | null {
+  try {
+    return serializeBlockExpression(block);
+  } catch (err) {
+    if (block?.type === "text_code" && err instanceof Error && err.message === GO_TEMPLATE_CODE_TEXT_UNSUPPORTED) {
+      return JSON.stringify(String(block.getFieldValue("TEXT") ?? ""));
+    }
+    throw err;
+  }
+}
+
+export function functionsFromWorkspace(workspace: Workspace): MappingFunction[] {
   const out: MappingFunction[] = [];
   for (const block of workspace.getTopBlocks(false)) {
     if (block.type !== "procedures_defreturn" && block.type !== "procedures_defnoreturn") {

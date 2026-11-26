@@ -47,6 +47,10 @@ export interface GoEmitContext {
   loopBindings?: Readonly<Record<string, string>>;
   mappingFunctions?: MappingFunction[];
   fnParams?: Set<string>;
+  /** Go pipelines for the parameters of an inlined value Function call. */
+  fnArgs?: Map<string, string>;
+  /** Value Functions being inlined (guards recursion). */
+  inlining?: Set<string>;
   /** Slot id → archetype id for archetype-root blocks whose field is still the at-code. */
   archetypeRootIds?: Map<string, string>;
 }
@@ -134,12 +138,54 @@ function generateFromSlots(model: MappingModel, ctx: GoEmitContext): string {
 function generateFromBlockly(blocklyState: unknown, _model: MappingModel): string {
   const snapshot = JSON.parse(JSON.stringify(blocklyState)) as {
     blocks?: { blocks?: unknown[] };
+    variables?: Array<{ id?: string; name?: string }>;
   };
   const blocks = snapshot?.blocks?.blocks;
   if (!Array.isArray(blocks) || blocks.length === 0) {
     return generateFromSlots(_model);
   }
-  return emitBlockTree(blocks).join("\n");
+  resolveVariableNames(blocks, snapshot.variables ?? []);
+  const ctx = createGoEmitContext(undefined, _model.functions);
+  // Value Functions on the canvas are inlined where they are called (#386).
+  const fromCanvas = canvasValueFunctions(blocks);
+  if (fromCanvas.length) ctx.mappingFunctions = [...(ctx.mappingFunctions ?? []), ...fromCanvas];
+  const tree = blocks.filter((block) => !String((block as BlockNode).type ?? "").startsWith("procedures_def"));
+  return emitBlockTree(tree, ctx).join("\n");
+}
+
+/** `variables_get` stores `{ id }` in workspace JSON; the walker needs the variable name. */
+function resolveVariableNames(blocks: unknown[], variables: Array<{ id?: string; name?: string }>): void {
+  const names = new Map(variables.map((v) => [String(v.id ?? ""), String(v.name ?? "")]));
+  const visit = (node: unknown): void => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const block = node as BlockNode;
+    const ref = block.fields?.VAR as { id?: string; name?: string } | undefined;
+    if (block.type === "variables_get" && ref && typeof ref === "object") {
+      block.fields!.VAR = ref.name ?? names.get(String(ref.id ?? "")) ?? "v";
+    }
+    for (const value of Object.values(node as Record<string, unknown>)) visit(value);
+  };
+  visit(blocks);
+}
+
+/** Value Functions (`procedures_defreturn` with a RETURN expression and no statements). */
+function canvasValueFunctions(blocks: unknown[]): MappingFunction[] {
+  const out: MappingFunction[] = [];
+  for (const raw of blocks) {
+    const block = raw as BlockNode & { extraState?: { params?: Array<{ name?: string }> } };
+    if (block.type !== "procedures_defreturn" || inputChild(block.inputs?.STACK)) continue;
+    const name = String(block.fields?.NAME ?? "").trim();
+    const ret = inputChild(block.inputs?.RETURN);
+    const body = ret ? blockNodeToExpression(ret) : null;
+    if (!name || !body) continue;
+    const params = (block.extraState?.params ?? []).map((p) => String(p.name ?? ""));
+    out.push({ name, kind: "return", params, body });
+  }
+  return out;
 }
 
 interface BlockInput {
@@ -498,6 +544,10 @@ export function emitValueExpression(
         ctx,
       )];
     }
+    case "text_regex_replace": {
+      const expr = blockNodeToExpression(block);
+      return expr ? [emitGoExpressionTemplate(parseExpression(expr), ctx)] : [];
+    }
     case "text_changeCase": {
       const inner = inputChild(block.inputs?.TEXT);
       const caseType = String(block.fields?.CASE ?? "LOWERCASE");
@@ -565,6 +615,13 @@ function blockNodeToExpression(block: BlockNode): string | null {
       const expr = inner ? blockNodeToExpression(inner) : '""';
       return expr ? `trim(${expr})` : null;
     }
+    case "text_regex_replace": {
+      const inner = inputChild(block.inputs?.TEXT);
+      const expr = inner ? blockNodeToExpression(inner) ?? '""' : '""';
+      return `regex_replace(${expr}, ${JSON.stringify(String(block.fields?.PATTERN ?? ""))}, ${
+        JSON.stringify(String(block.fields?.REPLACEMENT ?? ""))
+      })`;
+    }
     case "text_changeCase": {
       const inner = inputChild(block.inputs?.TEXT);
       const expr = inner ? blockNodeToExpression(inner) ?? '""' : '""';
@@ -615,6 +672,19 @@ function blockNodeToExpression(block: BlockNode): string | null {
     }
     case "variables_get":
       return `var(${JSON.stringify(String(block.fields?.VAR ?? "v"))})`;
+    case "procedures_callreturn": {
+      // Saved workspaces keep the callee in extraState.name (fields.NAME is optional).
+      const name = String(
+        block.fields?.NAME ?? (block.extraState as { name?: string } | undefined)?.name ?? "",
+      ).trim();
+      if (!name) return null;
+      const args: string[] = [];
+      for (let i = 0; block.inputs && `ARG${i}` in block.inputs; i++) {
+        const arg = inputChild(block.inputs[`ARG${i}`]);
+        args.push(arg ? blockNodeToExpression(arg) ?? "null" : "null");
+      }
+      return `call(${JSON.stringify(name)}${args.length ? `, ${args.join(", ")}` : ""})`;
+    }
     default:
       return null;
   }
@@ -828,7 +898,7 @@ function emitXmlOrSchemaElement(block: BlockNode, ctx: GoEmitContext): string[] 
       inner.push(...emitStatementChain(child, ctx));
       continue;
     }
-    inner.push(`<${xmlName(fieldName)}>`, ...emitValueExpression(child, ctx), `</${xmlName(fieldName)}>`);
+    inner.push(`<${xmlName(fieldName)}>`, ...emitSchemaLeafValue(child, ctx), `</${xmlName(fieldName)}>`);
   }
   const attrs = attrParts.join("");
   if (inner.length) return [`<${tag}${attrs}>`, ...inner, `</${tag}>`];
@@ -927,6 +997,25 @@ function emitXmlElement(block: BlockNode, ctx: GoEmitContext): string[] {
   const attrs = attrParts.join("");
   if (inner.length) return [`<${tag}${attrs}>`, ...inner, `</${tag}>`];
   return [`<${tag}${attrs} />`];
+}
+
+/** Blocks whose whole value tree is one Mapping Expression (joins, branches, Function calls). */
+const COMPOSITE_TEXT_BLOCKS = new Set([
+  "text_join",
+  "logic_ternary",
+  "procedures_callreturn",
+  "text_regex_replace",
+  "text_trim",
+  "text_changeCase",
+]);
+
+/** XML element text: composite text blocks go through the XML-text expression emitter (#386). */
+function emitSchemaLeafValue(child: BlockNode, ctx: GoEmitContext): string[] {
+  if (COMPOSITE_TEXT_BLOCKS.has(child.type)) {
+    const expr = blockNodeToExpression(child);
+    if (expr) return [emitGoXmlTextTemplate(parseExpression(expr), ctx)];
+  }
+  return emitValueExpression(child, ctx);
 }
 
 function emitXmlTextishOrValue(block: BlockNode, ctx: GoEmitContext): string[] {
@@ -1031,7 +1120,10 @@ export function emitGoXmlTextTemplate(
         const cond = emitGoExpr(ast.args[0]!, ctx);
         const thenPart = emitGoXmlTextTemplate(ast.args[1]!, ctx);
         const elsePart = ast.args[2] ? emitGoXmlTextTemplate(ast.args[2]!, ctx) : "";
-        return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
+        // No `{{-`/`-}}` here: spaces at the edges of joined text are content (#386).
+        return elsePart
+          ? `{{ if ${cond} }}${thenPart}{{ else }}${elsePart}{{ end }}`
+          : `{{ if ${cond} }}${thenPart}{{ end }}`;
       }
       return `{{ xmlEscape (${emitGoExpr(ast, ctx)}) }}`;
   }
@@ -1063,8 +1155,22 @@ export function emitGoExpressionTemplate(
           : "";
         return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
       }
+      if (ast.name === "call") {
+        // A whole-value Function call stays the `{{template}}` action of its define.
+        const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+        return `{{ ${emitGoExpr(ast, { ...ctx, inlining: new Set([...(ctx.inlining ?? []), name]) })} }}`;
+      }
       return `{{ ${emitGoExpr(ast, ctx)} }}`;
   }
+}
+
+/** True when the expression is text that is never empty (a literal, or a join holding one). */
+function goNeverEmptyText(ast: ExprAst): boolean {
+  if (ast.kind === "literal") return typeof ast.value === "string" && ast.value.length > 0;
+  if (ast.kind !== "call") return false;
+  if (ast.name === "concat") return ast.args.some(goNeverEmptyText);
+  if (ast.name === "if") return ast.args.length >= 3 && goNeverEmptyText(ast.args[1]!) && goNeverEmptyText(ast.args[2]!);
+  return false;
 }
 
 export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContext()): string {
@@ -1107,6 +1213,8 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         }
         case "trim":
           return `(${args[0]} | trim)`;
+        case "regex_replace":
+          return `(regexReplaceAll ${args[1] ?? '""'} (concat ${args[0] ?? '""'}) ${args[2] ?? '""'})`;
         case "change_case": {
           const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
           if (mode === "UPPERCASE") return `(${args[0]} | upper)`;
@@ -1114,7 +1222,8 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
           return `(${args[0]} | lower)`;
         }
         case "concat":
-          return args.join("");
+          // Inside a pipeline, text joins through the `concat` helper (#386).
+          return args.length === 1 ? args[0]! : `(concat ${args.join(" ")})`;
         case "round":
           return `(int ${args[0]})`;
         case "modulo":
@@ -1122,18 +1231,36 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "constrain":
           return `(if ge ${args[0]} ${args[2]} then ${args[2]} else (if le ${args[0]} ${args[1]} then ${args[1]} else ${args[0]}))`;
         case "if":
-          // Only the template form (emitGoExpressionTemplate) can branch.
+          // `(or (and C A) B)` is if/then/else when A can never be empty text
+          // (Go's and/or return an operand). Other cases need the template form.
+          if (ast.args.length >= 2 && goNeverEmptyText(ast.args[1]!)) {
+            return `(or (and ${args[0]} ${args[1]}) ${args[2] ?? '""'})`;
+          }
           throw goUnsupported("a conditional value inside an expression");
         case "switch":
           return args[0] ?? '""';
         case "var": {
           const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (name && ctx.fnArgs?.has(name)) return ctx.fnArgs.get(name)!;
           if (name && ctx.fnParams?.has(name)) return `.${sanitizeGoField(name)}`;
           return `.`;
         }
         case "call": {
           const fname = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
           const fn = ctx.mappingFunctions?.find((item) => item.name === fname);
+          if (fn?.body && !fn.stack?.length && !ctx.inlining?.has(fname)) {
+            // A value Function inside an expression is inlined: `{{template}}` is an
+            // action and cannot feed `xmlEscape`, `concat` or a comparison (#386).
+            const fnArgs = new Map<string, string>();
+            fn.params.forEach((param, i) => fnArgs.set(param, args[i + 1] ?? '""'));
+            const inner: GoEmitContext = {
+              ...ctx,
+              fnArgs,
+              fnParams: new Set(),
+              inlining: new Set([...(ctx.inlining ?? []), fname]),
+            };
+            return `(${emitGoExpr(parseExpression(fn.body), inner)})`;
+          }
           const pairs: string[] = [];
           if (fn) {
             for (let i = 0; i < fn.params.length; i++) {

@@ -34,6 +34,8 @@ public final class HandlebarsSupport {
       });
       engine.registerHelper("toLowerCase", (ctx, options) -> ctx == null ? ctx : String.valueOf(ctx).toLowerCase());
       engine.registerHelper("toUpperCase", (ctx, options) -> ctx == null ? ctx : String.valueOf(ctx).toUpperCase());
+      engine.registerHelper("regexReplace", (ctx, options) -> String.valueOf(ctx == null ? "" : ctx)
+          .replaceAll(String.valueOf(options.param(0, "")), java.util.regex.Matcher.quoteReplacement(String.valueOf(options.param(1, "")))));
       engine.registerHelper("slot", (ctx, options) -> "");
       engine.registerHelperMissing((ctx, options) -> {
         // Handlebars.java also lands here for a plain lookup that finds nothing.

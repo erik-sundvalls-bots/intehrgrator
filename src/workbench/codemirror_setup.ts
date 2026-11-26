@@ -50,7 +50,8 @@ export type EditorLanguage =
 export const EDITOR_LANGUAGE_OPTIONS: Array<[string, EditorLanguage]> = [
   ["Plain", "none"],
   ["Handlebars", "handlebars"],
-  ["Go Template", "go-template"],
+  // Kept so older mappings still load; nested Go template text is not executed (#386).
+  ["Go Template (unsupported)", "go-template"],
   ["JSON", "json"],
   ["XML", "xml"],
   ["HTML", "html"],

@@ -466,6 +466,12 @@ function serializeBlock(block: BlocklyNode | undefined): string | null {
       const elseV = serializeBlock(inputChild(block.inputs?.ELSE)) ?? "null";
       return `if(${cond}, ${thenV}, ${elseV})`;
     }
+    case "text_regex_replace": {
+      const inner = serializeBlock(inputChild(block.inputs?.TEXT)) ?? '""';
+      return `regex_replace(${inner}, ${JSON.stringify(String(block.fields?.PATTERN ?? ""))}, ${
+        JSON.stringify(String(block.fields?.REPLACEMENT ?? ""))
+      })`;
+    }
     case "text_changeCase": {
       const inner = serializeBlock(inputChild(block.inputs?.TEXT)) ?? '""';
       const mode = String(block.fields?.CASE ?? "LOWERCASE");

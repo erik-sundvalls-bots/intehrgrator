@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import { Blockly } from "@intehrgrator/blockly/blockly_core.ts";
 import { javascriptGenerator } from "blockly/javascript";
 import {
@@ -94,8 +94,10 @@ Deno.test("Text toolbox lists CodeMirror text and Handlebars blocks after stock 
   assertEquals(types[1], "text_document");
   assertEquals(types[2], "text");
   assertEquals(types[3], "text_code");
-  assertEquals(types[4], "text_code");
-  assertEquals(types[5], "text_handlebars");
+  // #386: no Go template Code text in the toolbox; regex replace follows Handlebars.
+  assertEquals(types[4], "text_handlebars");
+  assertEquals(types[5], "text_regex_replace");
+  assertEquals(types.filter((type) => type === "text_code").length, 1);
 });
 
 Deno.test("source_query_node outputs Source and serializes to xpathNode", () => {
@@ -120,8 +122,12 @@ Deno.test("text_code emits a multiline string and stores a language", () => {
   block.setFieldValue("{{name}}\n{{unit}}", "TEXT");
   // A Handlebars Code text is a nested template every language renders (lung-MDT).
   assertEquals(blockToExpression(block), `handlebars(${JSON.stringify("{{name}}\n{{unit}}")}, xpathNode("$"))`);
+  // #386: Go template text is not part of the visual language; it fails loudly.
   block.setFieldValue("go-template", "LANG");
-  assertEquals(blockToExpression(block), JSON.stringify("{{name}}\n{{unit}}"));
+  assertThrows(() => blockToExpression(block), Error, "Go template text is not supported");
+  block.setFieldValue("plain", "TEXT");
+  assertEquals(blockToExpression(block), JSON.stringify("plain"));
+  block.setFieldValue("{{name}}\n{{unit}}", "TEXT");
   block.setFieldValue("handlebars", "LANG");
   const saved = Blockly.serialization.blocks.save(block) as {
     fields?: Record<string, unknown>;

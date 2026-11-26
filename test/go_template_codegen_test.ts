@@ -392,12 +392,14 @@ Deno.test("chemo symptoms Blockly generates TakeCare XML Go template", () => {
   assert(output.includes("13700"), "document UID TermId");
   assert(output.includes("2025"), "temperature numeric TermId");
   assert(output.includes("3484"), "weight numeric TermId");
-  assert(output.includes('{{- define "cleanAndQuoteFreeTextInput"'), "PROD free-text helper define");
+  // #386: no Go text on the canvas; the clean_free_text Function is inlined.
+  assertEquals(output.includes("cleanAndQuoteFreeTextInput"), false);
+  assert(output.includes("regexReplaceAll"), "clean_free_text Function inlined");
   assert(output.includes("besvär_kring_hjärttrakten"), "PROD cardiovascular path");
   assert(output.includes("upplever_du_svårigheter_med_din_andning"), "PROD breathing path");
   assertEquals(output.includes("upplever_du_andnöd_vid_ansträngning"), false);
   assertEquals(output.includes("hjärta-kärl/upplever_du_bröstsmärtor"), false);
-  assert(output.includes("if ne"), "conditional symptom sections");
+  assert(output.includes("if (ne"), "conditional symptom sections");
   assertEquals(output.includes("unsupported block: defaults_block"), false);
 });
 
@@ -711,7 +713,7 @@ Deno.test("chemo generate_script go-template from live walker parses and matches
   const skeleton = takeCareSkeleton().skeleton;
   const live = generateGoTemplateFromBlocklyState(blocklyState, model, skeleton);
   assert(live, "live walker should emit a Go template");
-  assertStringIncludes(live!, '{{- define "cleanAndQuoteFreeTextInput"');
+  assertStringIncludes(live!, "regexReplaceAll");
   assert(!/unexpected "\\\\"/.test(live!), live!.slice(0, 400));
   const json = generateGoTemplate(model, { blocklyState });
   const parsed = parseJsonDocument(source);
