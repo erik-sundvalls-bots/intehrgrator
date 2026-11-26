@@ -7820,6 +7820,9 @@ function resolveOutputIndex(sheet, meta3, outputColumn) {
   if (firstOut >= 0) return firstOut;
   return Math.max(0, sheet.headers.length - 1);
 }
+function renderDecisionSnippet(template, locals) {
+  return renderSnippet(template, locals);
+}
 function renderSnippet(template, locals) {
   if (!template.includes("{{")) return template;
   const engine = import_handlebars4.default.create();
@@ -194619,6 +194622,13 @@ var LOGIC_BOOL_NAMES = ["and", "or", "not"];
 var LOGIC_QUANTIFY_NAMES = ["all_of", "any_of", "none_of"];
 var LOGIC_CARDINALITY_NAMES = ["at_least", "at_most", "exactly"];
 var LOGIC_SET_NAMES = ["intersection", "union", "difference"];
+var STRING_ESCAPES = {
+  n: "\n",
+  t: "	",
+  r: "\r",
+  b: "\b",
+  f: "\f"
+};
 var BUILTIN_NAMES = /* @__PURE__ */ new Set([
   "xpath",
   "xpathString",
@@ -194803,7 +194813,11 @@ function tokenize(input) {
       while (i5 < input.length && input[i5] !== quote) {
         if (input[i5] === "\\") {
           i5++;
-          value += input[i5++];
+          const esc = input[i5++] ?? "";
+          if (esc === "u" && /^[0-9a-fA-F]{4}$/.test(input.slice(i5, i5 + 4))) {
+            value += String.fromCharCode(parseInt(input.slice(i5, i5 + 4), 16));
+            i5 += 4;
+          } else value += STRING_ESCAPES[esc] ?? esc;
         } else value += input[i5++];
       }
       i5++;
@@ -209428,6 +209442,29 @@ function usesOpenEhrProduct(model, options) {
   }
   return model.slots.some((slot) => isOpenEhrRmType(slot.rmType));
 }
+function xmlCanvasNeedsTreeWalker(state) {
+  const start = topBlocks2(state).find((block) => block.type === "conversion_start");
+  const root = start?.next?.block;
+  if (!root?.type || !(root.type === "xml_element" || root.type.startsWith("schema_"))) return false;
+  const visit2 = (node) => {
+    if (!node?.type) return false;
+    if (node.type === "include_when" || node.type === "for_each_list") return true;
+    for (const input of Object.values(node.inputs ?? {})) {
+      const child = input.block;
+      if (!child) continue;
+      const seen = /* @__PURE__ */ new Set();
+      for (let current = child; current?.type; current = current.next?.block) {
+        if (seen.has(current.type) && (current.type === "xml_element" || current.type.startsWith("schema_"))) {
+          return true;
+        }
+        seen.add(current.type);
+        if (visit2(current)) return true;
+      }
+    }
+    return false;
+  };
+  return visit2(root);
+}
 
 // src/core/openehr/coded_text.ts
 var CODED_TEXT = "DV_CODED_TEXT";
@@ -214529,7 +214566,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.12.1/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/tmp/previews-ex/src/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/tmp/previews-lung/src/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -247080,12 +247117,13 @@ function wrapTypeScriptModule(parts) {
     for (const fn2 of fonto) lines.push(`  ${fn2},`);
     lines.push(`} from "fontoxpath";`);
   }
-  if (parts.helpers.has("handlebars")) {
+  const needsHandlebars = parts.helpers.has("handlebars") || parts.body.includes("decisionTable(");
+  if (needsHandlebars) {
     if (types2.length || fonto.length) lines.push("");
     lines.push('import Handlebars from "handlebars";');
   }
   if (parts.extraImports?.length) {
-    if (types2.length || fonto.length || parts.helpers.has("handlebars")) lines.push("");
+    if (types2.length || fonto.length || needsHandlebars) lines.push("");
     for (const line of parts.extraImports) lines.push(line);
   }
   const helperNames = typescriptHelperImportNames(parts.helpers, parts.body);
@@ -247240,7 +247278,13 @@ function typescriptHelperWrappers(helpers, body) {
   if (uses("decisionTable(")) {
     add2(
       "function decisionTable(name: string, inputs: Record<string, unknown> = {}, outputCol?: string) {",
-      "  return igDecisionTable(sheets, name, inputs, outputCol);",
+      "  return igDecisionTable(sheets, name, inputs, outputCol, renderDecisionSnippet);",
+      "}",
+      "",
+      "function renderDecisionSnippet(template: string, locals: Record<string, unknown>): string {",
+      '  // A missing source path is "" here but null in Mapping preview; Handlebars would open a section for "".',
+      '  const bag = Object.fromEntries(Object.entries(locals).filter(([, value]) => value !== ""));',
+      "  return Handlebars.create().compile(template, { noEscape: true, knownHelpersOnly: true, knownHelpers: {} })(bag);",
       "}"
     );
   }
@@ -247768,13 +247812,23 @@ function emitSheetHelpers() {
     "       else $str eq $in",
     "};",
     "",
+    "(: VMS-Mustache snippet. The intEHRgrator Test Run binds intehrgrator:mustache (the same",
+    "   Handlebars renderer as Mapping preview); elsewhere only {{name}} placeholders are",
+    "   supported and a section / segment snippet fails with a clear error. :)",
     "declare function igsh:snippet-interp($tpl as xs:string?, $inputs as map(*)) as xs:string {",
     "  if (empty($tpl)) then ''",
+    "  else if (not(contains($tpl, '{{'))) then $tpl",
+    "  else let $host := function-lookup(QName('http://intehrgrator.local/xquery', 'mustache'), 2)",
+    "  return if (exists($host)) then $host($tpl, $inputs)",
+    "  else if (matches($tpl, '\\{\\{\\s*[#\\^/.!\\[]')) then error(",
+    "    QName('http://intehrgrator.local/xquery', 'SNIPPET-MUSTACHE'),",
+    "    'Decision-table snippet uses Mustache sections or [segments]; bind intehrgrator:mustache($template, $inputs) or use plain {{name}} placeholders'",
+    "  )",
     "  else fold-left(",
     "    map:keys($inputs),",
     "    $tpl,",
     "    function($acc as xs:string, $key as xs:anyAtomicType) as xs:string {",
-    "      replace($acc, '\\{\\{\\s*' || replace(xs:string($key), '([\\\\\\.\\+\\*\\?\\[\\]\\(\\)\\{\\}\\|\\^\\$])', '\\\\$1') || '\\s*\\}\\}', xs:string(map:get($inputs, $key)))",
+    "      replace($acc, '\\{\\{\\s*' || replace(xs:string($key), '([\\\\\\.\\+\\*\\?\\[\\]\\(\\)\\{\\}\\|\\^\\$])', '\\\\$1') || '\\s*\\}\\}', string-join(for $v in map:get($inputs, $key) return string($v), ''))",
     "    }",
     "  )",
     "};",
@@ -251814,6 +251868,17 @@ function generateXQuery(model, options = {}) {
     body: inner.join("\n")
   });
 }
+function wrapXQueryCanvasXmlModule(model, body) {
+  return wrapXQueryModule({
+    model,
+    shape: "xml",
+    needsRm: false,
+    needsHandlebars: body.includes("intehrgrator:handlebars("),
+    productComment: "Output: Target XML built from the canvas (XML / XML Schema blocks).",
+    convertType: "item()*",
+    body
+  });
+}
 function wrapXQueryModule(args) {
   const method = args.shape === "json" ? "json" : "xml";
   const userFns = emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model));
@@ -252331,8 +252396,10 @@ function jsonDollarPathToLookup(path, root = "$source") {
   let expr = root;
   for (const seg of segments) {
     if (seg === "*") expr += "?*";
-    else if (/^\d+$/.test(seg)) expr += `?${seg === "0" ? "1" : seg}`;
-    else if (/^[\p{L}_][\p{L}\p{N}_]*$/u.test(seg)) expr += `?${seg}`;
+    else if (/^\d+$/.test(seg)) {
+      const n5 = seg === "0" ? "1" : seg;
+      expr = `(${expr})!(if (. instance of array(*) and array:size(.) ge ${n5}) then ?${n5} else ())`;
+    } else if (/^[\p{L}_][\p{L}\p{N}_]*$/u.test(seg)) expr += `?${seg}`;
     else expr += `?(${xqString(seg)})`;
   }
   return expr;
@@ -252357,7 +252424,7 @@ function emitMapLiteralXq(args) {
 }
 function emitJsonSchemaProduct(model, skeleton, env2 = {}) {
   const slots = new Map(model.slots.map((slot) => [slot.slotId, slot]));
-  const emitNode = (node) => {
+  const emitNode2 = (node) => {
     if (node.kind === "value") {
       const slot = slots.get(node.slotId);
       if (!slot?.expression) return null;
@@ -252369,7 +252436,7 @@ function emitJsonSchemaProduct(model, skeleton, env2 = {}) {
     }
     const entries = [];
     for (const child of node.children) {
-      const val = emitNode(child);
+      const val = emitNode2(child);
       if (!val) continue;
       const key = child.rmAttribute ?? child.label;
       entries.push(`${xqString(key)}: ${val}`);
@@ -252380,7 +252447,7 @@ function emitJsonSchemaProduct(model, skeleton, env2 = {}) {
     }
     return `map { ${entries.join(", ")} }`;
   };
-  const roots = skeleton.map((node) => emitNode(node)).filter((code) => Boolean(code));
+  const roots = skeleton.map((node) => emitNode2(node)).filter((code) => Boolean(code));
   if (!roots.length) return "  map {}";
   if (roots.length === 1) return `  ${roots[0]}`;
   return `  array { ${roots.join(", ")} }`;
@@ -252969,7 +253036,7 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     loopBindings: {},
     varBindings: {}
   };
-  const emitNode = (node) => {
+  const emitNode2 = (node) => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
@@ -252981,7 +253048,7 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     }
     const pairs = [];
     for (const child of node.children) {
-      const val = emitNode(child);
+      const val = emitNode2(child);
       if (!val) continue;
       const key = child.rmAttribute ?? child.label;
       pairs.push(`${goStr(key)} ${val}`);
@@ -252992,7 +253059,7 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     }
     return `(dict ${pairs.join(" ")})`;
   };
-  const roots = skeleton.map(emitNode).filter((x4) => Boolean(x4));
+  const roots = skeleton.map(emitNode2).filter((x4) => Boolean(x4));
   const rootExpr = !roots.length ? "(dict)" : roots.length === 1 ? roots[0] : `(list ${roots.join(" ")})`;
   return `{{- toJson ${rootExpr} -}}`;
 }
@@ -254149,10 +254216,42 @@ function stripDelimiters(expr) {
   return expr.replace(/^\{\{\s*/, "").replace(/\s*\}\}$/, "").replace(/^\{\{-?\s*/, "").replace(/\s*-?\}\}$/, "");
 }
 function goQuote(s5) {
-  return `"${s5.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  const body = s5.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(
+    // deno-lint-ignore no-control-regex
+    /[\u0000-\u001f]/g,
+    (ch) => GO_CONTROL_ESCAPES[ch] ?? `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`
+  );
+  return `"${body}"`;
 }
+var GO_CONTROL_ESCAPES = {
+  "\n": "\\n",
+  "\r": "\\r",
+  "	": "\\t"
+};
 function sanitizeGoField(name2) {
   return name2.replace(/[^a-zA-Z0-9_]/g, "_");
+}
+function emitGoXmlTextTemplate(ast, ctx = createGoEmitContext()) {
+  switch (ast.kind) {
+    case "literal":
+      return escapeXmlStatic2(ast.value == null ? "" : String(ast.value));
+    case "binary":
+      return `{{ xmlEscape (${emitGoExpr(ast, ctx)}) }}`;
+    case "call":
+      if (ast.name === "concat") {
+        return ast.args.map((arg) => emitGoXmlTextTemplate(arg, ctx)).join("");
+      }
+      if (ast.name === "if") {
+        const cond = emitGoExpr(ast.args[0], ctx);
+        const thenPart = emitGoXmlTextTemplate(ast.args[1], ctx);
+        const elsePart = ast.args[2] ? emitGoXmlTextTemplate(ast.args[2], ctx) : "";
+        return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
+      }
+      return `{{ xmlEscape (${emitGoExpr(ast, ctx)}) }}`;
+  }
+}
+function escapeXmlStatic2(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function emitGoExpressionTemplate(ast, ctx = createGoEmitContext()) {
   switch (ast.kind) {
@@ -254190,9 +254289,10 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
       if (isQuantifyCall(ast.name)) return emitQuantifierGo(ast, ctx);
       const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
       switch (ast.name) {
+        case "xpathBoolean":
+          return `(not (not ${emitXPathGo(ast.args[0], ctx)}))`;
         case "xpathString":
         case "xpathNumber":
-        case "xpathBoolean":
         case "xpathNode":
         case "xpath":
           return emitXPathGo(ast.args[0], ctx);
@@ -254207,7 +254307,7 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
           if (mapName === "defaults" || mapName === "Parameters") {
             return `.Parameters.${sanitizeGoField(key)}`;
           }
-          return `index .${sanitizeGoField(mapName)} ${goQuote(key)}`;
+          return `(index .${sanitizeGoField(mapName)} ${goQuote(key)})`;
         }
         case "trim":
           return `(${args[0]} | trim)`;
@@ -254220,13 +254320,13 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
         case "concat":
           return args.join("");
         case "round":
-          return `int ${args[0]}`;
+          return `(int ${args[0]})`;
         case "modulo":
           return `(${args[0]} % ${args[1]})`;
         case "constrain":
           return `(if ge ${args[0]} ${args[2]} then ${args[2]} else (if le ${args[0]} ${args[1]} then ${args[1]} else ${args[0]}))`;
         case "if":
-          return `if ${args[0]} ${args[1]} ${args[2] ?? '""'}`;
+          throw goUnsupported("a conditional value inside an expression");
         case "switch":
           return args[0] ?? '""';
         case "var": {
@@ -254272,40 +254372,42 @@ function emitGoExpr(ast, ctx = createGoEmitContext()) {
         case "divide":
           return `(${args[0]} / ${args[1]})`;
         case "list":
-          return `[${args.join(", ")}]`;
+          return `(list ${args.join(" ")})`;
         case "intersection":
         case "union":
         case "difference":
-          return `/* ${ast.name} not available in Go template */`;
         case "sheet_get_cell":
         case "sheet_get_xy":
         case "sheet_get_row":
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
-          return `/* ${ast.name} not available in Go template */`;
+          throw goUnsupported(ast.name);
         case "sheet_lookup": {
           const name2 = args[0] ?? `""`;
           const col = args[1] ?? `""`;
           const val = args[2] ?? `""`;
           const ret = args[3] ?? `""`;
-          return `sheetLookup ${name2} ${col} ${val} ${ret}`;
+          return `(sheetLookup ${name2} ${col} ${val} ${ret})`;
         }
         case "decision_table": {
           const name2 = args[0] ?? `""`;
           const inputs = args[1] ?? "(dict)";
           const output = args[2] ?? `""`;
-          return `decisionTable ${name2} ${inputs} ${output}`;
+          return `(decisionTable ${name2} ${inputs} ${output})`;
         }
         case "handlebars":
-          return `handlebars ${args[0] ?? '""'} ${args[1] ?? "(dict)"}`;
+          return `(handlebars ${args[0] ?? '""'} ${args[1] ?? "(dict)"})`;
         case "map":
           return args.length ? `(dict ${args.join(" ")})` : "(dict)";
         default:
-          return `/* unsupported: ${ast.name} */`;
+          throw goUnsupported(ast.name);
       }
     }
   }
+}
+function goUnsupported(what) {
+  return new Error(`Go templates do not support ${what}; use TypeScript, Java or XQuery`);
 }
 function emitXPathGo(pathArg, ctx) {
   const path = pathArg?.kind === "literal" ? String(pathArg.value) : "";
@@ -254318,6 +254420,7 @@ function emitXPathGo(pathArg, ctx) {
     if (path === ".") return ".";
     return `(index . ${goQuote(path)})`;
   }
+  if (path.trim() === "$") return ".Data";
   if (path.startsWith("$")) {
     return `(${jsonPathToGoIndex(path)})`;
   }
@@ -254326,14 +254429,9 @@ function emitXPathGo(pathArg, ctx) {
 function jsonPathToGoIndex(path) {
   const segments = jsonPathSegments(path);
   if (!segments.length) return `index .Data ""`;
-  let expr = ".Data";
-  for (let i5 = 0; i5 < segments.length; i5++) {
-    const seg = segments[i5];
-    const target = i5 === 0 ? expr : `(${expr})`;
-    const key = /^\d+$/.test(seg) ? String(Math.max(0, Number(seg) - 1)) : goQuote(seg);
-    expr = `index ${target} ${key}`;
-  }
-  return expr;
+  const keys = segments.map((seg) => /^\d+$/.test(seg) ? String(Math.max(0, Number(seg) - 1)) : goQuote(seg));
+  if (keys.length === 1) return `index .Data ${keys[0]}`;
+  return `jget .Data ${keys.join(" ")}`;
 }
 function jsonPathSegments(path) {
   const body = path.replace(/^\$\.?/, "");
@@ -254368,8 +254466,39 @@ function jsonPathSegments(path) {
   return segments.filter((seg) => seg.length > 0);
 }
 function emitQuantifierGo(ast, ctx) {
-  const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
-  return `/* ${ast.name}(${args.join(", ")}) */ false`;
+  const card = ast.name === "at_least" || ast.name === "at_most" || ast.name === "exactly";
+  const list = ast.args[0];
+  if (card || list?.kind !== "call" || list.name !== "list") {
+    throw new Error(
+      `Go templates do not support ${ast.name} over ${card ? "a count" : "a computed list"}; use a literal list of values, or TypeScript, Java or XQuery`
+    );
+  }
+  const varAst = ast.args[1];
+  const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
+  const predAst = ast.args[2];
+  const items = list.args.map(
+    (item) => predAst ? substituteVar(predAst, varName, item) : item
+  ).map((item) => emitGoExpr(item, ctx));
+  if (!items.length) return ast.name === "any_of" ? "false" : "true";
+  const joined = items.length === 1 ? items[0] : `(${ast.name === "all_of" ? "and" : "or"} ${items.join(" ")})`;
+  return ast.name === "none_of" ? `(not ${joined})` : joined;
+}
+function substituteVar(pred, name2, value) {
+  if (pred.kind === "literal") return pred;
+  if (pred.kind === "binary") {
+    return { ...pred, left: substituteVar(pred.left, name2, value), right: substituteVar(pred.right, name2, value) };
+  }
+  if (pred.name === "var" && pred.args[0]?.kind === "literal" && String(pred.args[0].value) === name2) {
+    return value;
+  }
+  if (isQuantifyCall(pred.name)) {
+    const card = pred.name === "at_least" || pred.name === "at_most" || pred.name === "exactly";
+    const inner = card ? pred.args[2] : pred.args[1];
+    if (inner?.kind === "literal" && String(inner.value) === name2) {
+      return { ...pred, args: pred.args.map((arg, i5) => i5 === 0 ? substituteVar(arg, name2, value) : arg) };
+    }
+  }
+  return { ...pred, args: pred.args.map((arg) => substituteVar(arg, name2, value)) };
 }
 
 // src/core/codegen/java.ts
@@ -255113,7 +255242,7 @@ function generateJava(model, options) {
   if (!usesOpenEhrProduct(model, options)) {
     const canvas = canvasHandlebarsExpression(options?.blocklyState);
     if (canvas) return generateJavaFromExpression(model, canvas);
-    return generateJavaGeneric(model);
+    return generateJavaGeneric(model, xmlCanvasNeedsTreeWalker(options?.blocklyState));
   }
   if (options?.skeleton?.length) {
     return generateJavaFromSkeleton(model, options.skeleton);
@@ -255132,9 +255261,14 @@ function generateJavaFromExpression(model, expression) {
     archie: false
   }, ctx);
 }
-function generateJavaGeneric(model) {
+var JAVA_XML_TREE_UNSUPPORTED = "Java cannot yet build Target XML from this XML Schema canvas: repeated elements, Include when and For each are not representable in the slot map it emits. Use TypeScript, XQuery or Go template.";
+function generateJavaGeneric(model, needsTree = false) {
   const ctx = createJavaEmitContext("sourceRoot", model.functions);
-  const lines = [
+  const lines = needsTree ? [
+    `// ${JAVA_XML_TREE_UNSUPPORTED}`,
+    `if (true) throw new UnsupportedOperationException(${JSON.stringify(JAVA_XML_TREE_UNSUPPORTED)});`,
+    "Map<String, Object> values = new LinkedHashMap<>();"
+  ] : [
     "Map<String, Object> values = new LinkedHashMap<>();"
   ];
   for (const slot of model.slots) {
@@ -255837,7 +255971,7 @@ function emitHandlebarsJsonSchemaProduct(model, skeleton) {
     loopBindings: {},
     varBindings: {}
   };
-  const emitNode = (node) => {
+  const emitNode2 = (node) => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
@@ -255849,7 +255983,7 @@ function emitHandlebarsJsonSchemaProduct(model, skeleton) {
     }
     const entries = [];
     for (const child of node.children) {
-      const val = emitNode(child);
+      const val = emitNode2(child);
       if (!val) continue;
       entries.push([child.rmAttribute ?? child.label, val]);
     }
@@ -255859,7 +255993,7 @@ function emitHandlebarsJsonSchemaProduct(model, skeleton) {
     }
     return `(dict ${entries.map(([k4, v4]) => `${hbsHashKey(k4)}=${v4}`).join(" ")})`;
   };
-  const roots = skeleton.map(emitNode).filter((x4) => Boolean(x4));
+  const roots = skeleton.map(emitNode2).filter((x4) => Boolean(x4));
   const rootExpr = !roots.length ? "(dict)" : roots.length === 1 ? roots[0] : `(list ${roots.join(" ")})`;
   return [
     `{{!-- Generated by intEHRgrator \u2014 Handlebars Conversion Script (JSON Schema) --}}`,
@@ -256030,7 +256164,7 @@ function emitHbsPureNode(node, ctx, parentArchetypeRef) {
   const hashParts = pairs.map(([k4, v4]) => `${hbsHashKey(k4)}=${v4}`);
   return guardHbsExpr(node, `(rmObj ${hashParts.join(" ")})`, ctx);
 }
-function escapeXmlStatic2(s5) {
+function escapeXmlStatic3(s5) {
   return s5.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function emitHbsLoopedNode(node, ctx, isXml, isRoot, parentArchetypeRef, tagOverride) {
@@ -256084,10 +256218,10 @@ function emitHbsLoopedNode(node, ctx, isXml, isRoot, parentArchetypeRef, tagOver
     if (isRoot) parts.push('<?xml version="1.0" encoding="UTF-8"?>\n');
     parts.push(`<${tag} ${attrs.join(" ")}>`);
     if (locatableName && shouldEmitHbsSkelName(node) && !grouped.has("name")) {
-      parts.push(`<name xsi:type="DV_TEXT"><value>${escapeXmlStatic2(locatableName)}</value></name>`);
+      parts.push(`<name xsi:type="DV_TEXT"><value>${escapeXmlStatic3(locatableName)}</value></name>`);
     }
     if (node.rmType === "ACTIVITY") {
-      parts.push(`<action_archetype_id>${escapeXmlStatic2(node.fixedFields?.action_archetype_id ?? "/.*/")}</action_archetype_id>`);
+      parts.push(`<action_archetype_id>${escapeXmlStatic3(node.fixedFields?.action_archetype_id ?? "/.*/")}</action_archetype_id>`);
     }
     for (const [attr, children] of grouped) {
       for (const child of children) {
@@ -257847,7 +257981,7 @@ function igSheetLookup(sheets, name2, matchCol, matchValue, returnCol) {
   }
   return s5.values[y4][idx(returnCol)] ?? null;
 }
-function igDecisionTable(sheets, name2, inputs = {}, outputCol) {
+function igDecisionTable(sheets, name2, inputs = {}, outputCol, renderSnippet2) {
   const s5 = sheetOf(sheets, name2);
   if (!s5) return null;
   const dontCare = (c5) => c5 == null || typeof c5 === "string" && ["", "\u2014", "\u2013", "-", "*"].includes(c5.trim());
@@ -257918,6 +258052,7 @@ function igDecisionTable(sheets, name2, inputs = {}, outputCol) {
     const kind = meta3[oi2]?.outputKind ?? "value";
     if (kind === "snippet") {
       const tpl = String(cell ?? "");
+      if (renderSnippet2) return tpl.includes("{{") ? renderSnippet2(tpl, inputs) : tpl;
       return tpl.replace(/\{\{\s*([\w.$]+)\s*\}\}/g, (_3, key) => {
         const parts = key.split(".");
         let cur = inputs;
@@ -258179,6 +258314,7 @@ function serializedConversionOutput(value) {
 
 // src/core/codegen/run_xquery.ts
 init_handlebars_dialect();
+init_decision_table();
 var fx = null;
 var slim = null;
 var loading = null;
@@ -258213,6 +258349,21 @@ function registerHandlebarsFunction(fonto) {
       ["xs:string", "item()*"],
       "xs:string",
       (_ctx, template, context) => renderHandlebars(String(template ?? ""), coerceHandlebarsContext(context))
+    );
+  } catch {
+  }
+  try {
+    fonto.registerCustomXPathFunction(
+      { namespaceURI: INTEHRGRATOR_XQUERY_NS, localName: "mustache" },
+      ["xs:string", "item()*"],
+      "xs:string",
+      (_ctx, template, locals) => {
+        const bag = coerceHandlebarsContext(locals);
+        return renderDecisionSnippet(
+          String(template ?? ""),
+          bag && typeof bag === "object" && !Array.isArray(bag) ? bag : {}
+        );
+      }
     );
   } catch {
   }
@@ -287096,6 +287247,19 @@ function loopIsInsideProcedure(block) {
   return false;
 }
 
+// src/core/output/code_text.ts
+function isHandlebarsCodeLang(lang) {
+  const value = String(lang ?? "").trim().toLowerCase();
+  return value === "handlebars" || value === "hbs";
+}
+function nestedHandlebarsExpression(template) {
+  return `handlebars(${JSON.stringify(template)}, xpathNode("$"))`;
+}
+function codeTextExpression(text, lang) {
+  const template = String(text ?? "");
+  return isHandlebarsCodeLang(lang) && template.includes("{{") ? nestedHandlebarsExpression(template) : JSON.stringify(template);
+}
+
 // src/blockly/stock_messages.ts
 init_en();
 function ensureStockBlocklyMessages() {
@@ -288885,8 +289049,9 @@ function blockToExpression(block) {
     }
     // Stock Blockly literals / ops
     case "text":
-    case "text_code":
       return JSON.stringify(block.getFieldValue("TEXT") ?? "");
+    case "text_code":
+      return codeTextExpression(block.getFieldValue("TEXT"), block.getFieldValue("LANG"));
     case "math_number":
       return String(block.getFieldValue("NUM") ?? 0);
     case "logic_boolean":
@@ -289025,7 +289190,8 @@ function blockToExpression(block) {
       return `map(${parts.join(", ")})`;
     }
     case "text_handlebars": {
-      const script = blockToExpression(block.getInputTargetBlock("SCRIPT")) ?? '""';
+      const scriptBlock = block.getInputTargetBlock("SCRIPT");
+      const script = scriptBlock?.type === "text_code" ? JSON.stringify(scriptBlock.getFieldValue("TEXT") ?? "") : blockToExpression(scriptBlock) ?? '""';
       const context = blockToExpression(block.getInputTargetBlock("CONTEXT")) ?? "map()";
       return `handlebars(${script}, ${context})`;
     }
@@ -318699,7 +318865,7 @@ function emitStatementList(first, asList4, ctx, indent, prune = true) {
   }
   const parts = [];
   for (const block of blocks2) {
-    const code = block.type === "for_each_list" ? emitForEachList2(block, ctx, 0) : block.type === INCLUDE_WHEN_BLOCK ? emitIncludeWhen2(block, ctx, indent) : block.type === "variables_set" ? emitVariableSet(block, ctx, indent + 1) : emitBlock2(block, ctx, 0);
+    const code = block.type === "for_each_list" ? emitForEachList2(block, ctx, 0) : block.type === INCLUDE_WHEN_BLOCK ? emitIncludeWhen2(block, ctx, indent, true) : block.type === "variables_set" ? emitVariableSet(block, ctx, indent + 1) : emitBlock2(block, ctx, 0);
     if (!isBlankGeneratedExpr(code)) parts.push(indentTsBlock(code, indent + 2));
   }
   if (!parts.length) return null;
@@ -318748,9 +318914,14 @@ function emitForEachList2(block, ctx, indent) {
   const list = listBlock ? emitBlock2(listBlock, ctx, indent) : "[]";
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
 }
-function emitIncludeWhen2(block, ctx, indent) {
+function emitIncludeWhen2(block, ctx, indent, inList = false) {
   const condBlock = block.getInputTargetBlock("WHEN");
   const cond = condBlock ? emitBlock2(condBlock, ctx, indent) : "false";
+  if (inList) {
+    const thenItems = includeBranchItems(block.getInputTargetBlock("DO"), ctx, indent);
+    const elseItems = includeBranchItems(block.getInputTargetBlock("ELSE"), ctx, indent);
+    return `...((${cond}) ? ${thenItems} : ${elseItems})`;
+  }
   const thenCode = emitIncludeBranch(block.getInputTargetBlock("DO"), ctx, indent);
   const elseCode = emitIncludeBranch(block.getInputTargetBlock("ELSE"), ctx, indent);
   if (thenCode.trimStart().startsWith("...")) {
@@ -318759,6 +318930,15 @@ function emitIncludeWhen2(block, ctx, indent) {
     return `...((${cond}) ? (${thenInner}) : (${elseInner}))`;
   }
   return `((${cond}) ? (${thenCode}) : (${elseCode}))`;
+}
+function includeBranchItems(first, ctx, indent) {
+  if (!first) return "[]";
+  if (first.getNextBlock()) return emitStatementList(first, true, ctx, indent) ?? "[]";
+  const code = emitBlock2(first, ctx, indent);
+  const trimmed = code.trimStart();
+  if (trimmed.startsWith("...")) return `(${trimmed.slice(3)})`;
+  if (isBlankGeneratedExpr(code)) return "[]";
+  return `[${code}]`;
 }
 function emitIncludeBranch(first, ctx, indent) {
   if (!first) return "null";
@@ -319142,9 +319322,13 @@ function generateGoTemplateFromWorkspace(workspace3, model, skeleton) {
   return lines.join("\n");
 }
 var RAW_TEXT_BLOCK_TYPES = /* @__PURE__ */ new Set(["text", "text_code"]);
+function isRawTextBlock(block) {
+  if (!RAW_TEXT_BLOCK_TYPES.has(block.type)) return false;
+  return !(block.type === "text_code" && isHandlebarsCodeLang(block.getFieldValue("LANG")));
+}
 function emitBlock3(block, ctx, indent) {
   if (block.type === "term_pick") return [emitTermPickJson(block)];
-  if (!RAW_TEXT_BLOCK_TYPES.has(block.type)) {
+  if (!isRawTextBlock(block)) {
     const fromExpr = emitExpressionBlock2(block, ctx);
     if (fromExpr !== null) return fromExpr;
   }
@@ -319187,7 +319371,7 @@ function emitBlock3(block, ctx, indent) {
   return [`{{- /* unsupported block: ${block.type} */ -}}`];
 }
 function emitLiveValue(block, ctx, indent) {
-  if (RAW_TEXT_BLOCK_TYPES.has(block.type)) {
+  if (isRawTextBlock(block)) {
     return String(block.getFieldValue("TEXT") ?? "");
   }
   if (block.type === "math_number") {
@@ -319197,6 +319381,14 @@ function emitLiveValue(block, ctx, indent) {
     return block.getFieldValue("BOOL") === "TRUE" ? "true" : "false";
   }
   return (emitExpressionBlock2(block, ctx) ?? emitBlock3(block, ctx, indent)).join("");
+}
+function emitXmlLiveValue(block, ctx) {
+  if (isRawTextBlock(block) || block.type === "math_number" || block.type === "logic_boolean") {
+    return emitLiveValue(block, ctx, 0);
+  }
+  const serialized = blockToExpression(block);
+  if (!serialized) return emitLiveValue(block, ctx, 0);
+  return emitGoXmlTextTemplate(parseExpression(serialized), ctx);
 }
 function emitExpressionBlock2(block, ctx) {
   const serialized = blockToExpression(block);
@@ -319455,7 +319647,7 @@ function emitDvChildJson(child, typeName2, ctx, indent) {
 }
 function emitXmlTextishLive(block, ctx, indent) {
   const value = block.getInputTargetBlock(XML_TEXT_INPUT) ?? block.getInputTargetBlock("VALUE");
-  const rendered = value ? emitLiveValue(value, ctx, indent) : String(block.getFieldValue("TEXT") ?? "");
+  const rendered = value ? block.type === "xml_cdata" ? emitLiveValue(value, ctx, indent) : emitXmlLiveValue(value, ctx) : String(block.getFieldValue("TEXT") ?? "");
   if (block.type === "xml_cdata") return [wrapXmlCdata(rendered)];
   return rendered ? [rendered] : [];
 }
@@ -319512,7 +319704,7 @@ function emitXmlAttributeLive(block, ctx) {
   const name2 = String(block.getFieldValue("NAME") ?? "").trim();
   if (!name2) return "";
   const val = block.getInputTargetBlock(XML_TEXT_INPUT) ?? block.getInputTargetBlock("VALUE");
-  const rendered = val ? emitLiveValue(val, ctx, 0) : "";
+  const rendered = val ? emitXmlLiveValue(val, ctx) : "";
   return ` ${name2}="${rendered}"`;
 }
 function emitXmlOrSchema(block, ctx) {
@@ -319533,7 +319725,7 @@ function emitXmlOrSchema(block, ctx) {
       attr = attr.getNextBlock();
     }
     const text = block.getInputTargetBlock(XML_TEXT_INPUT);
-    if (text) inner.push(emitLiveValue(text, ctx, 0));
+    if (text) inner.push(emitXmlLiveValue(text, ctx));
     let current = block.getInputTargetBlock(XML_CHILDREN_INPUT);
     while (current) {
       inner.push(...emitBlock3(current, ctx, 0));
@@ -319546,14 +319738,14 @@ function emitXmlOrSchema(block, ctx) {
       const child = block.getInputTargetBlock(input.name);
       if (!child) continue;
       if (xmlAttributes.has(fieldName) || child.type === "xml_attribute") {
-        attrParts.push(` ${fieldName}="${emitLiveValue(child, ctx, 0)}"`);
+        attrParts.push(` ${fieldName}="${emitXmlLiveValue(child, ctx)}"`);
         continue;
       }
       if (input.type === STATEMENT_INPUT_TYPE3 || isStructureBlock(child.type)) {
         inner.push(...emitStatementChain2(child, ctx, 0));
         continue;
       }
-      inner.push(`<${xmlName4(fieldName)}>${emitLiveValue(child, ctx, 0)}</${xmlName4(fieldName)}>`);
+      inner.push(`<${xmlName4(fieldName)}>${emitXmlLiveValue(child, ctx)}</${xmlName4(fieldName)}>`);
     }
   }
   const attrs = attrParts.join("");
@@ -319579,6 +319771,156 @@ function rmTypeOf3(block) {
   const fromType = block.type.replace(/-/g, "_").toUpperCase();
   const field = String(block.getFieldValue("RM_TYPE") ?? "").trim();
   return field ? field.toUpperCase() : fromType;
+}
+
+// src/blockly/xquery_codegen.ts
+var STATEMENT_INPUT_TYPE4 = 3;
+function registerXQueryExportAdapter() {
+  registerExportTargetAdapter({
+    id: "xquery",
+    extension: "xq",
+    mime: "application/xquery",
+    generate(model, options) {
+      const xmlCanvas = options?.blocklyState && model.targetFormat !== "json-schema" && !usesOpenEhrProduct(model, options);
+      if (xmlCanvas) {
+        const fromCanvas = generateXQueryFromBlocklyState(options.blocklyState, model, options?.skeleton);
+        if (fromCanvas) return fromCanvas;
+      }
+      return generateXQuery(model, options);
+    }
+  });
+}
+function generateXQueryFromBlocklyState(state, model, skeleton) {
+  if (!state || typeof state !== "object") return null;
+  const workspace3 = new Blockly.Workspace();
+  try {
+    const snapshot = migrateForEachSourceState(
+      JSON.parse(JSON.stringify(state))
+    );
+    let generated = null;
+    runWithoutBlocklyEvents(() => {
+      ensureStockBlocklyMessages();
+      if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
+      Blockly.serialization.workspaces.load(snapshot, workspace3);
+      generated = generateXQueryFromWorkspace(workspace3, model);
+    });
+    return generated;
+  } finally {
+    workspace3.dispose();
+  }
+}
+function generateXQueryFromWorkspace(workspace3, model) {
+  const root = findInstanceRootUnderStart(workspace3);
+  if (!root || !isXmlStructure(root.type)) return null;
+  const body = emitChain(root, {});
+  return wrapXQueryCanvasXmlModule(model, `  ${body}`);
+}
+function isXmlStructure(type) {
+  return type === XML_ELEMENT_TYPE || type.startsWith("schema_");
+}
+function emitChain(first, env2) {
+  const parts = [];
+  let current = first;
+  while (current) {
+    const code = emitNode(current, env2);
+    if (code) parts.push(code);
+    current = current.getNextBlock();
+  }
+  if (!parts.length) return "()";
+  return parts.length === 1 ? parts[0] : `(${parts.join(", ")})`;
+}
+function emitNode(block, env2) {
+  if (block.type === INCLUDE_WHEN_BLOCK) return emitIncludeWhen4(block, env2);
+  if (block.type === "for_each_list") return emitForEachList4(block, env2);
+  if (isXmlStructure(block.type)) return emitElement(block, env2);
+  if (block.type === "variables_set") return "";
+  throw new Error(
+    `XQuery cannot build Target XML from a "${block.type}" block on this canvas; use TypeScript, Go template or Handlebars`
+  );
+}
+function emitIncludeWhen4(block, env2) {
+  const when = block.getInputTargetBlock("WHEN");
+  const cond = when ? emitValue(when, env2) : "false()";
+  const thenPart = emitChain(block.getInputTargetBlock("DO"), env2);
+  const elsePart = emitChain(block.getInputTargetBlock("ELSE"), env2);
+  return `(if (${cond}) then ${thenPart} else ${elsePart})`;
+}
+function emitForEachList4(block, env2) {
+  const varName = String(block.getFieldValue("VAR") || "item");
+  const ident = /^[A-Za-z_][A-Za-z0-9_]*$/.test(varName) ? varName : "item";
+  const sourcePath = sourcePathFromLoopList(block);
+  const listBlock = block.getInputTargetBlock("LIST");
+  const collection = !sourcePath && listBlock ? blockToExpression(listBlock) ?? void 0 : void 0;
+  const loop = {
+    attachSlotId: "",
+    varName,
+    kind: sourcePath ? "source" : "list",
+    path: sourcePath ?? "",
+    ...collection ? { collection } : {}
+  };
+  const sequence = compileLoopSequence(loop, env2.sourceVar);
+  const inner = {
+    ...env2,
+    sourceVar: `$${ident}`,
+    bind: {
+      ...env2.bind,
+      [varName]: ident,
+      [loopIndexBinderName(varName)]: `${ident}_index`,
+      [loopLengthBinderName(varName)]: `${ident}_length`
+    }
+  };
+  const body = emitChain(block.getInputTargetBlock("DO"), inner);
+  return `(let $${ident}_col := ${sequence} for $${ident} at $${ident}_pos in $${ident}_col let $${ident}_index := $${ident}_pos - 1 let $${ident}_length := count($${ident}_col) return ${body})`;
+}
+function emitElement(block, env2) {
+  const tag = xmlName4(xmlTagName4(block));
+  const extra = extraStateOf(block);
+  const xmlAttributes = new Set(extra.xmlAttributes ?? []);
+  for (const field of extra.fields ?? []) {
+    if (field.xmlKind === "attribute") xmlAttributes.add(field.name);
+  }
+  const content2 = [];
+  if (block.type === XML_ELEMENT_TYPE) {
+    let attr = block.getInputTargetBlock(XML_ATTRIBUTES_INPUT);
+    while (attr) {
+      const name2 = String(attr.getFieldValue("NAME") ?? "").trim();
+      const val = attr.getInputTargetBlock(XML_TEXT_INPUT) ?? attr.getInputTargetBlock("VALUE");
+      if (name2) content2.push(`attribute ${xmlName4(name2)} { ${val ? textOf(emitValue(val, env2)) : '""'} }`);
+      attr = attr.getNextBlock();
+    }
+    const text = block.getInputTargetBlock(XML_TEXT_INPUT);
+    if (text) content2.push(textOf(emitValue(text, env2)));
+    const children = block.getInputTargetBlock(XML_CHILDREN_INPUT);
+    if (children) content2.push(emitChain(children, env2));
+  } else {
+    for (const input of block.inputList) {
+      if (!input.name.startsWith("TARGET_") && !input.name.startsWith("SCHEMA_OPT_")) continue;
+      const field = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
+      const child = block.getInputTargetBlock(input.name);
+      if (!child) continue;
+      if (xmlAttributes.has(field)) {
+        content2.push(`attribute ${xmlName4(field)} { ${textOf(emitValue(child, env2))} }`);
+      } else if (input.type === STATEMENT_INPUT_TYPE4 || isXmlStructure(child.type) || child.type === INCLUDE_WHEN_BLOCK || child.type === "for_each_list") {
+        content2.push(emitChain(child, env2));
+      } else {
+        content2.push(`element ${xmlName4(field)} { ${textOf(emitValue(child, env2))} }`);
+      }
+    }
+  }
+  return `element ${tag} { ${content2.length ? content2.join(", ") : "()"} }`;
+}
+function textOf(expr) {
+  return `string-join(for $v in (${expr}) return string($v), "")`;
+}
+function emitValue(block, env2) {
+  if (block.type === "text_code" && !isHandlebarsCodeLang(block.getFieldValue("LANG"))) {
+    return emitXQueryExpr({ kind: "literal", value: String(block.getFieldValue("TEXT") ?? "") }, env2);
+  }
+  const serialized = blockToExpression(block);
+  if (!serialized) {
+    throw new Error(`XQuery cannot express a "${block.type}" value block; use TypeScript or Go template`);
+  }
+  return emitXQueryExpr(parseExpression(serialized), env2);
 }
 
 // src/blockly/hardcode_defaults.ts
@@ -321572,6 +321914,7 @@ function initBlocklyGenerators() {
     registerGenerators();
     registerTypeScriptExportAdapter();
     registerGoTemplateExportAdapter();
+    registerXQueryExportAdapter();
     installCollapsedPreview();
     generatorsReady = true;
   }
@@ -321902,11 +322245,11 @@ function emitForEachListJs(block) {
 function stripTrailingComma(code) {
   return code.trim().replace(/,\s*$/, "");
 }
-var STATEMENT_INPUT_TYPE4 = 3;
+var STATEMENT_INPUT_TYPE5 = 3;
 function generateRmAttributeCode(block, inputName) {
   const input = block.getInput(inputName);
   if (!input) return {};
-  if (input.type === STATEMENT_INPUT_TYPE4) {
+  if (input.type === STATEMENT_INPUT_TYPE5) {
     return { stmt: javascriptGenerator.statementToCode(block, inputName) };
   }
   const value = javascriptGenerator.valueToCode(block, inputName, Order.NONE);
