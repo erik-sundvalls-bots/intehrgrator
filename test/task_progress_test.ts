@@ -121,10 +121,10 @@ Deno.test("loadExampleSet reports waiting/running/finished substeps", async () =
   const ids = snapshots[0]!.steps.map((s) => s.id);
   assert(ids.includes("target"), ids.join(","));
   assert(ids.includes("schema"), ids.join(","));
-  assert(ids.includes("example-0"), ids.join(","));
-  assert(ids.includes("example-1"), ids.join(","));
-  assert(ids.includes("example-2"), ids.join(","));
+  // Example Instances load after the overlay, in the examples pane (not overlay steps).
+  assert(!ids.some((id) => id.startsWith("example-")), ids.join(","));
   assert(ids.includes("generate"), ids.join(","));
+  assertEquals(controller.getState().examples.length, 3);
 
   const sawWaiting = snapshots.some((p) => p.steps.some((s) => s.state === "waiting"));
   const sawRunning = snapshots.some((p) => p.steps.some((s) => s.state === "running"));

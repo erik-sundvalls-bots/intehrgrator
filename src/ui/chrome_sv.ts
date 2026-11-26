@@ -447,6 +447,8 @@ export const sv: ChromeMessages = {
   setPlural: "uppsättningar",
   loadedExampleSet: 'Laddade exempeluppsättning "{name}"',
   exampleSetFailed: 'Exempeluppsättning "{name}" misslyckades: {detail}',
+  examplesLoadingPane: 'Läser in {n} exempel…',
+  loadingExampleSetExamples: 'Läser in {n} exempel för "{name}"',
   addedExample: "Lade till exempel {name}",
   addedExampleMismatch: "Lade till exempel {name} med {n} schema{mismatch}",
   mismatchSingular: "avvikelse",

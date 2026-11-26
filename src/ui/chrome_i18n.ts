@@ -117,6 +117,10 @@ export function localizeStatus(locale: string, message: string): string {
       render: (m) => formatMessage(t.loadedExampleSet, { name: m[1] }),
     },
     {
+      re: /^Loading (\d+) examples? for "(.+)"$/,
+      render: (m) => formatMessage(t.loadingExampleSetExamples, { n: m[1], name: m[2] }),
+    },
+    {
       re: /^Example set "(.+)" failed: ([\s\S]+)$/,
       render: (m) => formatMessage(t.exampleSetFailed, { name: m[1], detail: m[2] }),
     },

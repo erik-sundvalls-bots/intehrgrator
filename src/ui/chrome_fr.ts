@@ -397,6 +397,8 @@ export const fr: ChromeMessages = {
   setPlural: "jeux",
   loadedExampleSet: "Jeu d'exemples « {name} » chargé",
   exampleSetFailed: "Le jeu d'exemples « {name} » a échoué : {detail}",
+  examplesLoadingPane: 'Chargement de {n} exemple(s)…',
+  loadingExampleSetExamples: 'Chargement de {n} exemple(s) pour « {name} »',
   addedExample: "Exemple {name} ajouté",
   addedExampleMismatch: "Exemple {name} ajouté avec {n} {mismatch} de schéma",
   mismatchSingular: "écart",

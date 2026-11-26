@@ -178,6 +178,13 @@ export type { TaskProgress, TaskProgressStep, TaskStepState } from "./task_progr
 
 export type WorkbenchListener = () => void;
 
+/** Example Instances of an example set still loading in the background. */
+export interface ExampleSetExamplesLoading {
+  setId: string;
+  setTitle: string;
+  total: number;
+}
+
 export const AUTOSAVE_DEBOUNCE_MS = 10_000;
 export const POST_LOAD_OUTPUT_MS = 400;
 
@@ -255,6 +262,17 @@ export class WorkbenchController {
   private taskDepth = 0;
   /** Suppresses debounced Conversion Test Run while `loadExampleSet` is in progress. */
   private exampleSetLoadDepth = 0;
+  /**
+   * Example-set Example Instances still loading after the rest of the set is
+   * in place (the Mapping Editor is already usable). Null when nothing is pending.
+   */
+  private exampleSetExamplesLoading: ExampleSetExamplesLoading | null = null;
+  /** Bumped by every workspace replacement so a superseded example-set load drops its examples. */
+  private workspaceGeneration = 0;
+  /** Cache for Example Instance schema validation (pure; keyed by schema tree identity). */
+  private exampleValidationCache = new WeakMap<object, Map<string, InstanceValidationIssue[]>>();
+  private exampleTreeCache: { content: string; format: string; filename: string; tree: SchemaTreeNode | null } | null =
+    null;
 
   constructor(
     private host: HostAdapter,
@@ -372,6 +390,7 @@ export class WorkbenchController {
       treeHighlight: this.treeHighlight,
       statusMessage: this.statusMessage,
       taskProgress: this.taskProgress,
+      exampleSetExamplesLoading: this.exampleSetExamplesLoading,
       saveStatus: this.getSaveStatus(),
       validationIssues: validateModel(this.model, this.skeleton),
       unmappedMandatory: countUnmappedMandatory(this.model, this.skeleton),
@@ -1077,85 +1096,151 @@ export class WorkbenchController {
     }
   }
 
-  /** Replace the workspace with a catalog example set (source, target, optional mapping). */
-  async loadExampleSet(set: ExampleSet): Promise<void> {
+  /**
+   * Replace the workspace with a catalog example set (source, target, optional mapping).
+   *
+   * Target, source schema, mapping, sheets and defaults load first behind the
+   * task overlay. Example Instances load last, in the background, with their
+   * own spinner in the examples pane, so the Mapping Editor is usable sooner.
+   * `onInteractive` fires when the overlay is gone; the returned promise
+   * settles once the examples are in (or the load was superseded by another
+   * workspace replacement, in which case its examples are dropped).
+   */
+  async loadExampleSet(
+    set: ExampleSet,
+    options: { onInteractive?: () => void } = {},
+  ): Promise<void> {
     const steps: Array<{ id: string; label: string }> = [];
     if (set.target) steps.push({ id: "target", label: "Load target" });
     if (set.source.schema) steps.push({ id: "schema", label: "Load source schema" });
-    set.source.instances.forEach((_, i) => {
-      steps.push({ id: `example-${i}`, label: `Load example ${i + 1}` });
-    });
     if (set.mapping) steps.push({ id: "mapping", label: "Load mapping" });
     if (set.sheets) steps.push({ id: "sheets", label: "Load sheets" });
     if (set.defaults) steps.push({ id: "defaults", label: "Load defaults map" });
     steps.push({ id: "generate", label: "Generate conversion script" });
+    let generation = -1;
+    this.exampleSetLoadDepth++;
     try {
-      this.exampleSetLoadDepth++;
-      await this.withTask(`Load example set "${set.title}"`, steps, async () => {
-        this.resetWorkspaceState();
-        if (set.target) {
-          await this.runTaskStep("target", () => this.openTemplateFromUrl(set.target!));
-        }
-        if (set.source.schema) {
-          await this.runTaskStep("schema", () => this.loadSchemaFromUrl(set.source.schema!));
-        }
-        for (const [i, instanceUrl] of set.source.instances.entries()) {
-          await this.runTaskStep(`example-${i}`, () => this.addExampleFromUrl(instanceUrl));
-        }
-        if (set.mapping) {
-          await this.runTaskStep("mapping", async () => {
-            const file = await this.host.fetchTextUrl(set.mapping!);
-            this.loadBlocklyDefinition(file.name, file.text);
+      try {
+        await this.withTask(`Load example set "${set.title}"`, steps, async () => {
+          this.resetWorkspaceState();
+          generation = this.workspaceGeneration;
+          if (set.target) {
+            await this.runTaskStep("target", () => this.openTemplateFromUrl(set.target!));
+          }
+          if (set.source.schema) {
+            await this.runTaskStep("schema", () => this.loadSchemaFromUrl(set.source.schema!));
+          }
+          if (set.mapping) {
+            await this.runTaskStep("mapping", async () => {
+              const file = await this.host.fetchTextUrl(set.mapping!);
+              this.loadBlocklyDefinition(file.name, file.text);
+            });
+          }
+          if (set.sheets) {
+            await this.runTaskStep("sheets", async () => {
+              const file = await this.host.fetchTextUrl(set.sheets!);
+              let parsed: unknown;
+              try {
+                parsed = JSON.parse(file.text);
+              } catch (err) {
+                throw new Error(
+                  `Sheets JSON parse failed: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              }
+              this.replaceSheets(sheetsFromCatalogJson(parsed), { silent: true });
+            });
+          }
+          if (set.defaults) {
+            await this.runTaskStep("defaults", async () => {
+              const file = await this.host.fetchTextUrl(set.defaults!);
+              let parsed: unknown;
+              try {
+                parsed = JSON.parse(file.text);
+              } catch (err) {
+                throw new Error(
+                  `Defaults JSON parse failed: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              }
+              const mapBlock = mapBlockFromDefaultsJson(parsed);
+              if (!mapBlock) {
+                throw new Error("Defaults JSON must be a default context map, maps_create_with block, or workspace");
+              }
+              this.pendingDefaultsMap = mapBlock;
+            });
+          }
+          await this.runTaskStep("generate", () => {
+            // `schedulePostLoadOutput` runs conversion script generation once mapping is on the canvas.
           });
-        }
-        if (set.sheets) {
-          await this.runTaskStep("sheets", async () => {
-            const file = await this.host.fetchTextUrl(set.sheets!);
-            let parsed: unknown;
-            try {
-              parsed = JSON.parse(file.text);
-            } catch (err) {
-              throw new Error(
-                `Sheets JSON parse failed: ${err instanceof Error ? err.message : String(err)}`,
-              );
-            }
-            this.replaceSheets(sheetsFromCatalogJson(parsed), { silent: true });
-          });
-        }
-        if (set.defaults) {
-          await this.runTaskStep("defaults", async () => {
-            const file = await this.host.fetchTextUrl(set.defaults!);
-            let parsed: unknown;
-            try {
-              parsed = JSON.parse(file.text);
-            } catch (err) {
-              throw new Error(
-                `Defaults JSON parse failed: ${err instanceof Error ? err.message : String(err)}`,
-              );
-            }
-            const mapBlock = mapBlockFromDefaultsJson(parsed);
-            if (!mapBlock) {
-              throw new Error("Defaults JSON must be a default context map, maps_create_with block, or workspace");
-            }
-            this.pendingDefaultsMap = mapBlock;
-          });
-        }
-        await this.runTaskStep("generate", () => {
-          // `schedulePostLoadOutput` runs conversion script generation once mapping is on the canvas.
         });
-      });
-      this.statusMessage = `Loaded example set "${set.title}"`;
+      } catch (err) {
+        if (generation === this.workspaceGeneration) {
+          this.statusMessage = `Example set "${set.title}" failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+          this.notifyChange();
+        }
+        throw err;
+      }
+      if (generation !== this.workspaceGeneration) return;
+
+      const total = set.source.instances.length;
+      if (!total) {
+        this.statusMessage = `Loaded example set "${set.title}"`;
+        this.schedulePostLoadOutput();
+        this.notifyChange();
+        options.onInteractive?.();
+        return;
+      }
+      this.exampleSetExamplesLoading = { setId: set.id, setTitle: set.title, total };
+      this.statusMessage = `Loading ${total} example${total === 1 ? "" : "s"} for "${set.title}"`;
       this.schedulePostLoadOutput();
       this.notifyChange();
-    } catch (err) {
-      this.statusMessage = `Example set "${set.title}" failed: ${
-        err instanceof Error ? err.message : String(err)
-      }`;
-      this.notifyChange();
-      throw err;
+      options.onInteractive?.();
+      await this.loadExampleSetInstances(set, generation);
     } finally {
       if (this.exampleSetLoadDepth > 0) this.exampleSetLoadDepth--;
     }
+  }
+
+  /**
+   * Background phase of {@link loadExampleSet}: fetch every Example Instance in
+   * parallel, then add them in one change (one re-render instead of one per file).
+   * Results for a superseded workspace are dropped.
+   */
+  private async loadExampleSetInstances(set: ExampleSet, generation: number): Promise<void> {
+    // Let the view paint the usable workspace before the fetches resolve.
+    await this.yieldUi();
+    if (generation !== this.workspaceGeneration) return;
+    const results = await Promise.allSettled(
+      set.source.instances.map((url) => this.host.fetchTextUrl(url)),
+    );
+    if (generation !== this.workspaceGeneration) return;
+    this.exampleSetExamplesLoading = null;
+    let firstError: unknown = null;
+    for (const [i, result] of results.entries()) {
+      if (result.status === "rejected") {
+        firstError ??= result.reason;
+        continue;
+      }
+      const url = set.source.instances[i]!;
+      const id = this.applyExampleFile(result.value.name, result.value.text);
+      this.exampleOriginUrls.set(id, url);
+      this.rememberLoadUrl("example", url);
+    }
+    if (firstError !== null) {
+      const detail = firstError instanceof Error ? firstError.message : String(firstError);
+      this.statusMessage = `Example set "${set.title}" failed: Example load failed: ${detail}`;
+      this.dirty = true;
+      this.scheduleAutosave();
+      this.schedulePostLoadOutput();
+      this.notifyChange();
+      throw firstError instanceof Error ? firstError : new Error(detail);
+    }
+    this.statusMessage = `Loaded example set "${set.title}"`;
+    this.dirty = true;
+    this.scheduleAutosave();
+    this.schedulePostLoadOutput();
+    this.notifyChange();
   }
 
   async addExamplesFromLocalDirectory(): Promise<void> {
@@ -2263,26 +2348,54 @@ export class WorkbenchController {
   private buildExampleTree(): SchemaTreeNode | null {
     const active = this.examples.getActive();
     if (!active) return null;
+    const cached = this.exampleTreeCache;
+    if (
+      cached && cached.content === active.content && cached.format === active.format &&
+      cached.filename === active.filename
+    ) {
+      return cached.tree;
+    }
     const rootName = active.filename.replace(/\.[^.]+$/, "");
+    let tree: SchemaTreeNode | null;
     try {
-      return getSourceFormatHandler(active.format).loadInstance(active.content, rootName);
+      tree = getSourceFormatHandler(active.format).loadInstance(active.content, rootName);
     } catch {
       // A file-backed Example Instance can be invalid while being edited.
       // Test Run and source validation report its error; keep the Mapping Editor usable.
-      return null;
+      tree = null;
     }
+    this.exampleTreeCache = { content: active.content, format: active.format, filename: active.filename, tree };
+    return tree;
+  }
+
+  /**
+   * Validation is pure in (content, format, schema), and `getState` runs on
+   * every render, so cache it per schema tree instead of re-walking each
+   * Example Instance on every notify.
+   */
+  private validateExampleCached(content: string, format: SourceFormatId): InstanceValidationIssue[] {
+    const tree = this.schemaTree;
+    if (!tree) return [];
+    let bySchema = this.exampleValidationCache.get(tree);
+    if (!bySchema) {
+      bySchema = new Map();
+      this.exampleValidationCache.set(tree, bySchema);
+    }
+    const key = `${this.schemaContent.length}:${format}\u0000${content}`;
+    let issues = bySchema.get(key);
+    if (!issues) {
+      issues = validateInstanceAgainstSchema(content, format, tree, this.schemaContent);
+      if (bySchema.size > 64) bySchema.clear();
+      bySchema.set(key, issues);
+    }
+    return issues;
   }
 
   private buildExampleValidations(): Record<string, InstanceValidationIssue[]> {
     if (!this.schemaTree) return {};
     const out: Record<string, InstanceValidationIssue[]> = {};
     for (const example of this.examples.list()) {
-      out[example.id] = validateInstanceAgainstSchema(
-        example.content,
-        example.format,
-        this.schemaTree,
-        this.schemaContent,
-      );
+      out[example.id] = this.validateExampleCached(example.content, example.format);
     }
     return out;
   }
@@ -2290,12 +2403,7 @@ export class WorkbenchController {
   private buildActiveExampleValidation(): InstanceValidationIssue[] {
     const active = this.examples.getActive();
     if (!active || !this.schemaTree) return [];
-    return validateInstanceAgainstSchema(
-      active.content,
-      active.format,
-      this.schemaTree,
-      this.schemaContent,
-    );
+    return this.validateExampleCached(active.content, active.format);
   }
 
   private exampleLoadStatus(filename: string): string {
@@ -2524,6 +2632,8 @@ export class WorkbenchController {
   }
 
   private resetWorkspaceState(): void {
+    this.workspaceGeneration += 1;
+    this.exampleSetExamplesLoading = null;
     this.projectId = crypto.randomUUID();
     this.templateFilename = "";
     this.templateContent = "";
