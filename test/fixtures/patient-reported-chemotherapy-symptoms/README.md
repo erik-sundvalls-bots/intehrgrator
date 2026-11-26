@@ -14,10 +14,9 @@ text goes through the `clean_free_text` Function, which replaces the PROD
 `cleanAndQuoteFreeTextInput` Go `define`. The note expressions live in
 `scripts/chemo_symptom_notes.ts`.
 
-Mapping preview, Handlebars, TypeScript, XQuery and Go Template give the same
-Notes, and they match what the PROD script wrote
-(`test/chemo_all_languages_test.ts`). Java cannot build this XML tree yet and
-says so.
+Mapping preview, Handlebars, TypeScript, XQuery, Go Template and Java (StAX,
+run on a JVM in the test) give the same Notes, and they match what the PROD
+script wrote (`test/chemo_all_languages_test.ts`).
 
 Earlier versions copied each PROD `<Note>` body into a Code text block
 (LANG=`go-template`). Only Go ran that text; the other languages printed the Go

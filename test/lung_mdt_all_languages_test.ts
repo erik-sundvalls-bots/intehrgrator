@@ -17,6 +17,7 @@ import { ensureGoTemplateWasm } from "@intehrgrator/core/output/go_template_runt
 import { parseExpression } from "@intehrgrator/core/expression/mod.ts";
 import { emitGoExpr, goQuote } from "@intehrgrator/core/codegen/go_template.ts";
 import { namedMapsFromBlocklyState } from "@intehrgrator/core/defaults/mod.ts";
+import { requireJavaOrSkip, runGeneratedJava } from "./support/java_jvm.ts";
 import type { OutputMode, TestResult } from "@intehrgrator/types/mod.ts";
 
 const root = join(dirname(fromFileUrl(import.meta.url)), "..");
@@ -138,62 +139,6 @@ Deno.test("Go template: quoted literals escape newlines; quantifiers unroll or f
 // example. CI sets up a JDK (actions/setup-java) and must run it; locally it
 // is skipped when there is no javac 21.
 
-const MAVEN = "https://repo1.maven.org/maven2";
-const JAVA_JARS = [
-  "com/github/jknack/handlebars/4.4.0/handlebars-4.4.0.jar",
-  "org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
-  "org/apache/commons/commons-text/1.11.0/commons-text-1.11.0.jar",
-  "org/slf4j/slf4j-api/2.0.12/slf4j-api-2.0.12.jar",
-  "org/slf4j/slf4j-nop/2.0.12/slf4j-nop-2.0.12.jar",
-  "com/fasterxml/jackson/core/jackson-databind/2.22.2/jackson-databind-2.22.2.jar",
-  "com/fasterxml/jackson/core/jackson-core/2.22.2/jackson-core-2.22.2.jar",
-  "com/fasterxml/jackson/core/jackson-annotations/2.22/jackson-annotations-2.22.jar",
-];
-
-async function javac21(): Promise<boolean> {
-  try {
-    const out = await new Deno.Command("javac", { args: ["--release", "21", "-version"], stdout: "piped", stderr: "piped" })
-      .output();
-    return out.success;
-  } catch {
-    return false;
-  }
-}
-
-async function fetchJavaJars(dir: string): Promise<string[]> {
-  const paths: string[] = [];
-  for (const jar of JAVA_JARS) {
-    const dest = join(dir, jar.slice(jar.lastIndexOf("/") + 1));
-    const res = await fetch(`${MAVEN}/${jar}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status} for ${jar}`);
-    await Deno.writeFile(dest, new Uint8Array(await res.arrayBuffer()));
-    paths.push(dest);
-  }
-  return paths;
-}
-
-const JAVA_MAIN = `import java.nio.file.*;
-import java.util.*;
-import com.fasterxml.jackson.databind.*;
-import se.regionstockholm.intehrgrator.generated.ConversionScript;
-import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;
-
-/** args: defaults.json sheets.json (source.json out.xml)... */
-public class LungMain {
-  public static void main(String[] args) throws Exception {
-    ObjectMapper json = new ObjectMapper();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> defaults = json.readValue(Files.readString(Path.of(args[0])), Map.class);
-    Map<String, Sheet> sheets = Sheet.mapFromJson(Files.readString(Path.of(args[1])));
-    for (int i = 2; i + 1 < args.length; i += 2) {
-      JsonNode source = json.readTree(Files.readString(Path.of(args[i])));
-      Object out = new ConversionScript().convert(source, defaults, sheets);
-      Files.writeString(Path.of(args[i + 1]), String.valueOf(out));
-    }
-  }
-}
-`;
-
 /** Whitespace between tags and empty-element spellings do not matter; text does. */
 function normalizeXml(xml: string): string {
   return xml.replace(/^<\?xml[^>]*\?>/, "").replace(/>\s+</g, "><").replace(/<([A-Za-z_][\w.-]*)([^<>]*?)\/>/g, "<$1$2></$1>")
@@ -204,16 +149,7 @@ Deno.test({
   name: "lung-MDT mapped sets: generated Java (StAX) on a JVM matches Handlebars on every example",
   sanitizeResources: false,
   async fn() {
-    if (!(await javac21())) {
-      if (Deno.env.get("CI") === "true") throw new Error("CI must provide javac 21 (actions/setup-java)");
-      console.warn("skip: no javac 21 on PATH");
-      return;
-    }
-    const dir = await Deno.makeTempDir({ prefix: "intehrgrator-lung-java-" });
-    const lib = join(dir, "lib");
-    await Deno.mkdir(lib);
-    const cp = (await fetchJavaJars(lib)).join(":");
-    const helperRoot = join(root, "src", "core", "codegen", "helpers", "java");
+    if (!(await requireJavaOrSkip())) return;
     const failures: string[] = [];
     const results: string[] = [];
     for (const setId of SETS) {
@@ -228,34 +164,8 @@ Deno.test({
       const bundle = service.exportBundle() as { mapping?: { blocklyState?: unknown } };
       const defaults = namedMapsFromBlocklyState(bundle.mapping?.blocklyState).defaults ?? {};
       assert(Object.keys(defaults).length > 0, `${setId}: canvas defaults map`);
-      const work = join(dir, setId);
-      const runtimeDir = join(work, "src", "se", "regionstockholm", "intehrgrator", "runtime");
-      const generatedDir = join(work, "src", "se", "regionstockholm", "intehrgrator", "generated");
-      await Deno.mkdir(runtimeDir, { recursive: true });
-      await Deno.mkdir(generatedDir, { recursive: true });
-      for (const file of ["IntehrgratorRuntime.java", "HandlebarsSupport.java"]) {
-        await Deno.copyFile(join(helperRoot, file), join(runtimeDir, file));
-      }
-      await Deno.writeTextFile(join(generatedDir, "ConversionScript.java"), java.code);
-      await Deno.writeTextFile(join(work, "src", "LungMain.java"), JAVA_MAIN);
-      await Deno.writeTextFile(join(work, "defaults.json"), JSON.stringify(defaults));
-      await Deno.writeTextFile(join(work, "sheets.json"), JSON.stringify(service.getSheets().sheets ?? []));
-      const classes = join(work, "classes");
-      const compiled = await new Deno.Command("javac", {
-        args: [
-          "--release", "21", "-nowarn", "-cp", cp, "-d", classes,
-          join(runtimeDir, "IntehrgratorRuntime.java"),
-          join(runtimeDir, "HandlebarsSupport.java"),
-          join(generatedDir, "ConversionScript.java"),
-          join(work, "src", "LungMain.java"),
-        ],
-        stdout: "piped",
-        stderr: "piped",
-      }).output();
-      assert(compiled.success, `${setId}: javac failed\n${new TextDecoder().decode(compiled.stderr)}`);
-
+      const sources: Array<{ name: string; content: string }> = [];
       const expected = new Map<string, string>();
-      const runArgs = [join(work, "defaults.json"), join(work, "sheets.json")];
       for (const ex of tree.examples) {
         await callAgentTool(service, "set_active_example", { id: ex.id });
         const hbs = await run(service, "handlebars");
@@ -263,18 +173,12 @@ Deno.test({
         expected.set(ex.filename, text(hbs.output));
         const content = service.getExampleState().activeExample?.content;
         assert(typeof content === "string", `${setId} ${ex.filename}: example content`);
-        await Deno.writeTextFile(join(work, `${ex.filename}.source.json`), content);
-        runArgs.push(join(work, `${ex.filename}.source.json`), join(work, `${ex.filename}.java.xml`));
+        sources.push({ name: ex.filename, content });
       }
-      const ran = await new Deno.Command("java", {
-        args: ["-cp", `${classes}:${cp}`, "LungMain", ...runArgs],
-        stdout: "piped",
-        stderr: "piped",
-      }).output();
-      assert(ran.success, `${setId}: java failed\n${new TextDecoder().decode(ran.stderr)}`);
+      const outputs = await runGeneratedJava(setId, java.code, defaults, service.getSheets().sheets ?? [], sources);
       for (const ex of tree.examples) {
         const label = `${setId} ${ex.filename} java`;
-        const actual = await Deno.readTextFile(join(work, `${ex.filename}.java.xml`));
+        const actual = outputs.get(ex.filename)!;
         const wanted = expected.get(ex.filename)!;
         if (actual.includes("{{")) failures.push(`${label}: Handlebars source leaked into the output`);
         if (/\bnull\b/.test(actual)) failures.push(`${label}: null in the output`);

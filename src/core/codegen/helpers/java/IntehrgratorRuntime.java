@@ -20,8 +20,39 @@ public class IntehrgratorRuntime {
   private Map<String, Sheet> sheets = Map.of();
 
   public void bind(Object source, Map<String, Sheet> sheets) {
-    this.sourceRoot = source;
+    this.sourceRoot = unwrapExecuteEnvelope(source);
     this.sheets = sheets != null ? sheets : Map.of();
+  }
+
+  private static boolean isFlatBag(com.fasterxml.jackson.databind.JsonNode node) {
+    if (node == null || !node.isObject()) return false;
+    java.util.Iterator<String> names = node.fieldNames();
+    while (names.hasNext()) {
+      String key = names.next();
+      if (key.contains("|") || key.contains("/")) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Production Go mappings execute `{ Parameters, Data }` where Data is openEHR FLAT.
+   * Source paths use the FLAT keys, so read from Data, as Mapping preview does.
+   */
+  public Object unwrapExecuteEnvelope(Object source) {
+    if (source == null) return null;
+    com.fasterxml.jackson.databind.JsonNode tree = toJsonNode(source);
+    if (tree.isObject() && isFlatBag(tree.get("Data"))) return tree.get("Data");
+    return source;
+  }
+
+  /** `Parameters` of a `{ Parameters, Data }` envelope (what the app uses as the defaults map), or null. */
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> executeEnvelopeParameters(Object source) {
+    if (source == null) return null;
+    com.fasterxml.jackson.databind.JsonNode tree = toJsonNode(source);
+    if (!tree.isObject() || !isFlatBag(tree.get("Data"))) return null;
+    com.fasterxml.jackson.databind.JsonNode params = tree.get("Parameters");
+    return params != null && params.isObject() ? JSON.convertValue(params, Map.class) : null;
   }
 
   public static <T> T rm(T object, Consumer<T> init) {
@@ -272,6 +303,8 @@ public class IntehrgratorRuntime {
     com.fasterxml.jackson.databind.JsonNode tree = toJsonNode(node);
     String trimmed = path.trim();
     if (trimmed.isEmpty() || trimmed.equals("$") || trimmed.equals(".") || trimmed.equals("$source")) return tree;
+    // openEHR FLAT key (may hold "." as in "t.ex."): read it whole before splitting.
+    if (trimmed.contains("/") && tree != null && tree.isObject() && tree.has(trimmed)) return tree.get(trimmed);
     return jsonWalk(tree, jsonSegments(trimmed), 0);
   }
 
