@@ -37,6 +37,7 @@ import { registerExtractToFunctionMenu } from "./extract_function.ts";
 import { registerTypeScriptExportAdapter } from "./typescript_codegen.ts";
 import { registerGoTemplateExportAdapter } from "./go_template_codegen.ts";
 import { registerXQueryExportAdapter } from "./xquery_codegen.ts";
+import { registerJavaExportAdapter } from "./java_xml_codegen.ts";
 import { attributesFor, dataValueLeafTypes, blockTypeForRm } from "../core/rm_meta.ts";
 import { octetBytesCall } from "../core/rm_shell_fragment.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
@@ -224,6 +225,11 @@ export {
   generateXQueryFromWorkspace,
   registerXQueryExportAdapter,
 } from "./xquery_codegen.ts";
+export {
+  generateJavaFromBlocklyState,
+  generateJavaFromWorkspace,
+  registerJavaExportAdapter,
+} from "./java_xml_codegen.ts";
 
 import { registerConversionStartBlock } from "./instance_root.ts";
 import { installCollapsedPreview } from "./field_collapsed_preview.ts";
@@ -253,6 +259,7 @@ export function initBlocklyGenerators(): void {
     registerTypeScriptExportAdapter();
     registerGoTemplateExportAdapter();
     registerXQueryExportAdapter();
+    registerJavaExportAdapter();
     installCollapsedPreview();
     generatorsReady = true;
   }
