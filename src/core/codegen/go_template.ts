@@ -20,6 +20,7 @@ import type { MappingFunction, MappingModel, MappingSlot, SkeletonNode } from ".
 import { primaryMappingAttribute } from "../rm_meta.ts";
 import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
 import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
+import { goUnsupported, inlineGoFunctionCall, unrollGoQuantifier } from "./go_expr_common.ts";
 import { octetBytes } from "../rm_shell_fragment.ts";
 import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 import { valueFunctions } from "./user_functions.ts";
@@ -1155,61 +1156,101 @@ export function emitGoExpressionTemplate(
           : "";
         return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
       }
-      if (ast.name === "call") {
-        // A whole-value Function call stays the `{{template}}` action of its define.
-        const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
-        return `{{ ${emitGoExpr(ast, { ...ctx, inlining: new Set([...(ctx.inlining ?? []), name]) })} }}`;
-      }
+      if (ast.name === "call") return emitGoTemplateCall(ast, ctx);
       return `{{ ${emitGoExpr(ast, ctx)} }}`;
   }
 }
 
-/** True when the expression is text that is never empty (a literal, or a join holding one). */
-function goNeverEmptyText(ast: ExprAst): boolean {
-  if (ast.kind === "literal") return typeof ast.value === "string" && ast.value.length > 0;
-  if (ast.kind !== "call") return false;
-  if (ast.name === "concat") return ast.args.some(goNeverEmptyText);
-  if (ast.name === "if") return ast.args.length >= 3 && goNeverEmptyText(ast.args[1]!) && goNeverEmptyText(ast.args[2]!);
-  return false;
+/**
+ * A Function call that is a whole template value: the acyclic
+ * `{{template "name" (dict …)}}` action (not the forbidden `call` builtin).
+ * Nested inside an expression the call is inlined instead (`emitGoExpr`).
+ */
+function emitGoTemplateCall(ast: Extract<ExprAst, { kind: "call" }>, ctx: GoEmitContext): string {
+  const fname = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+  const fn = ctx.mappingFunctions?.find((item) => item.name === fname);
+  if (!fn) return `{{ ${emitGoExpr(ast, ctx)} }}`;
+  const pairs: string[] = [];
+  for (let i = 0; i < fn.params.length; i++) {
+    const argAst = ast.args[i + 1];
+    pairs.push(goQuote(fn.params[i]!), argAst ? emitGoExpr(argAst, ctx) : `""`);
+  }
+  return `{{ template ${goQuote(fname)} (dict ${pairs.join(" ")}) }}`;
+}
+
+/**
+ * Plain text (a Text document): literal text is written as is, computed values
+ * print like TypeScript (`nil` empty, lists and Maps as JSON).
+ */
+export function emitGoPlainTextTemplate(
+  ast: ExprAst,
+  ctx: GoEmitContext = createGoEmitContext(),
+): string {
+  switch (ast.kind) {
+    case "literal":
+      // TypeScript prints a null value as `null` in a Text document.
+      return escapeGoTemplateText(ast.value == null ? "null" : String(ast.value));
+    case "binary":
+      return `{{ text ${emitGoExpr(ast, ctx)} }}`;
+    case "call":
+      if (ast.name === "concat") {
+        return ast.args.map((arg) => emitGoPlainTextTemplate(arg, ctx)).join("");
+      }
+      if (ast.name === "if") {
+        const cond = emitGoExpr(ast.args[0]!, ctx);
+        const thenPart = emitGoPlainTextTemplate(ast.args[1]!, ctx);
+        const elsePart = ast.args[2] ? emitGoPlainTextTemplate(ast.args[2]!, ctx) : "";
+        // No trim markers: they would eat the spaces of adjacent literal text.
+        return `{{if ${cond}}}${thenPart}{{else}}${elsePart}{{end}}`;
+      }
+      return `{{ text ${emitGoExpr(ast, ctx)} }}`;
+  }
+}
+
+/** Static text that may contain `{{`: emit the delimiters as string actions. */
+function escapeGoTemplateText(value: string): string {
+  return value.replace(/\{\{|\}\}/g, (m) => `{{ ${goQuote(m)} }}`);
 }
 
 export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContext()): string {
   switch (ast.kind) {
     case "literal":
+      if (ast.value === null || ast.value === undefined) return "nil";
       if (typeof ast.value === "string") return goQuote(ast.value);
       if (typeof ast.value === "boolean") return ast.value ? "true" : "false";
       return String(ast.value);
     case "binary": {
-      const left = emitGoExpr(ast.left, ctx);
-      const right = emitGoExpr(ast.right, ctx);
-      const op = ast.op === "&&" ? "and" : ast.op === "||" ? "or" : ast.op;
-      return `(${left} ${op} ${right})`;
+      const fn = { "+": "add", "-": "sub", "*": "mul", "/": "div" }[ast.op];
+      return `(${fn} ${emitGoExpr(ast.left, ctx)} ${emitGoExpr(ast.right, ctx)})`;
     }
     case "call": {
-      if (isQuantifyCall(ast.name)) return emitQuantifierGo(ast, ctx);
+      if (isQuantifyCall(ast.name)) return unrollGoQuantifier(ast, (item) => emitGoExpr(item, ctx));
+      // Inside an expression a Function call is inlined: `template` is an action, not a value.
+      if (ast.name === "call") return emitGoExpr(inlineGoFunctionCall(ast, ctx.mappingFunctions), ctx);
       const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
-      switch (ast.name) {
+      const name: string = ast.name;
+      switch (name) {
         case "xpathBoolean":
           // A boolean source is a real bool (as in TypeScript), so a decision
           // table "true" row matches a filled path, not its text.
           return `(not (not ${emitXPathGo(ast.args[0], ctx)}))`;
-        case "xpathString":
         case "xpathNumber":
+          return `(toNum ${emitXPathGo(ast.args[0], ctx)})`;
+        case "xpathString":
         case "xpathNode":
         case "xpath":
           return emitXPathGo(ast.args[0], ctx);
         case "maps_entries":
           throw new Error("Go templates do not support Map-value entries; use TypeScript, Java or XQuery");
         case "maps_get": {
-          if (ast.args[0]?.kind !== "literal" || ast.args[1]?.kind !== "literal") {
-            throw new Error("Go templates do not support Map-value getters or computed Map keys; use TypeScript, Java or XQuery");
+          const mapArg = ast.args[0];
+          if (mapArg?.kind !== "literal") return `(jget ${args[0]} ${args[1] ?? '""'})`;
+          const mapName = String(mapArg.value);
+          if (mapName !== "defaults" && mapName !== "Parameters") return "nil";
+          if (ast.args[1]?.kind === "literal") {
+            return `.Parameters.${sanitizeGoField(String(ast.args[1].value))}`;
           }
-          const mapName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "defaults";
-          const key = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "";
-          if (mapName === "defaults" || mapName === "Parameters") {
-            return `.Parameters.${sanitizeGoField(key)}`;
-          }
-          return `(index .${sanitizeGoField(mapName)} ${goQuote(key)})`;
+          return `(jget .Parameters ${args[1] ?? '""'})`;
         }
         case "trim":
           return `(${args[0]} | trim)`;
@@ -1217,87 +1258,59 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
           return `(regexReplaceAll ${args[1] ?? '""'} (concat ${args[0] ?? '""'}) ${args[2] ?? '""'})`;
         case "change_case": {
           const mode = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "LOWERCASE";
-          if (mode === "UPPERCASE") return `(${args[0]} | upper)`;
-          if (mode === "TITLECASE") return `(${args[0]} | title)`;
-          return `(${args[0]} | lower)`;
+          if (mode === "UPPERCASE") return `(upper ${args[0] ?? '""'})`;
+          if (mode === "TITLECASE") return `(title ${args[0] ?? '""'})`;
+          return `(lower ${args[0] ?? '""'})`;
         }
         case "concat":
-          // Inside a pipeline, text joins through the `concat` helper (#386).
-          return args.length === 1 ? args[0]! : `(concat ${args.join(" ")})`;
+          return args.length === 0 ? '""' : args.length === 1 ? args[0]! : `(concat ${args.join(" ")})`;
         case "round":
-          return `(int ${args[0]})`;
+          return `(round ${args[0] ?? "0"})`;
         case "modulo":
-          return `(${args[0]} % ${args[1]})`;
+          return `(mod ${args[0] ?? "0"} ${args[1] ?? "1"})`;
         case "constrain":
-          return `(if ge ${args[0]} ${args[2]} then ${args[2]} else (if le ${args[0]} ${args[1]} then ${args[1]} else ${args[0]}))`;
+          return `(clamp ${args[0] ?? "0"} ${args[1] ?? "0"} ${args[2] ?? "0"})`;
         case "if":
-          // `(or (and C A) B)` is if/then/else when A can never be empty text
-          // (Go's and/or return an operand). Other cases need the template form.
-          if (ast.args.length >= 2 && goNeverEmptyText(ast.args[1]!)) {
-            return `(or (and ${args[0]} ${args[1]}) ${args[2] ?? '""'})`;
-          }
-          throw goUnsupported("a conditional value inside an expression");
+          return `(ifElse ${args[0] ?? "false"} ${args[1] ?? "nil"} ${args[2] ?? "nil"})`;
         case "switch":
-          return args[0] ?? '""';
+          return args.length < 2 ? "nil" : `(switchVal ${args.join(" ")})`;
         case "var": {
-          const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
-          if (name && ctx.fnArgs?.has(name)) return ctx.fnArgs.get(name)!;
-          if (name && ctx.fnParams?.has(name)) return `.${sanitizeGoField(name)}`;
-          return `.`;
-        }
-        case "call": {
-          const fname = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
-          const fn = ctx.mappingFunctions?.find((item) => item.name === fname);
-          if (fn?.body && !fn.stack?.length && !ctx.inlining?.has(fname)) {
-            // A value Function inside an expression is inlined: `{{template}}` is an
-            // action and cannot feed `xmlEscape`, `concat` or a comparison (#386).
-            const fnArgs = new Map<string, string>();
-            fn.params.forEach((param, i) => fnArgs.set(param, args[i + 1] ?? '""'));
-            const inner: GoEmitContext = {
-              ...ctx,
-              fnArgs,
-              fnParams: new Set(),
-              inlining: new Set([...(ctx.inlining ?? []), fname]),
-            };
-            return `(${emitGoExpr(parseExpression(fn.body), inner)})`;
-          }
-          const pairs: string[] = [];
-          if (fn) {
-            for (let i = 0; i < fn.params.length; i++) {
-              pairs.push(goQuote(fn.params[i]!), args[i + 1] ?? `""`);
-            }
-          }
-          // Action form (`{{template "name" pipeline}}`), not the forbidden `call` builtin.
-          return `template ${goQuote(fname)} (dict ${pairs.join(" ")})`;
+          const varName = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+          if (varName && ctx.fnArgs?.has(varName)) return ctx.fnArgs.get(varName)!;
+          if (varName && ctx.fnParams?.has(varName)) return `.${sanitizeGoField(varName)}`;
+          const bound = ctx.loopBindings?.[varName];
+          if (bound) return bound;
+          if (ctx.loopVar && (!varName || varName === ctx.loopVar)) return ".";
+          throw goUnsupported(`the variable ${varName || "(unnamed)"} outside a loop or Function`);
         }
         case "eq":
-          return `(eq (${args[0]}) (${args[1]}))`;
+          return `(same ${args[0] ?? "nil"} ${args[1] ?? "nil"})`;
         case "ne":
-          return `(ne (${args[0]}) (${args[1]}))`;
+          return `(not (same ${args[0] ?? "nil"} ${args[1] ?? "nil"}))`;
         case "lt":
-          return `(lt (${args[0]}) (${args[1]}))`;
         case "le":
-          return `(le (${args[0]}) (${args[1]}))`;
         case "gt":
-          return `(gt (${args[0]}) (${args[1]}))`;
         case "ge":
-          return `(ge (${args[0]}) (${args[1]}))`;
+          return `(cmpNum "${name}" ${args[0] ?? "nil"} ${args[1] ?? "nil"})`;
         case "and":
-          return `(and (${args[0]}) (${args[1]}))`;
         case "or":
-          return `(or (${args[0]}) (${args[1]}))`;
+          if (!args.length) return name === "and" ? "true" : "false";
+          return args.length === 1 ? args[0]! : `(${name} ${args.join(" ")})`;
         case "not":
-          return `(not (${args[0]}))`;
+          return `(not ${args[0] ?? "false"})`;
         case "add":
-          return `(${args[0]} + ${args[1]})`;
-        case "subtract":
-          return `(${args[0]} - ${args[1]})`;
-        case "multiply":
-          return `(${args[0]} * ${args[1]})`;
-        case "divide":
-          return `(${args[0]} / ${args[1]})`;
+        case "sub":
+        case "mul":
+        case "div":
+          return `(${name} ${args[0] ?? "0"} ${args[1] ?? "0"})`;
         case "list":
-          return `(list ${args.join(" ")})`;
+          return args.length ? `(list ${args.join(" ")})` : "(list)";
+        case "lists_length":
+          return `(count ${args[0] ?? "nil"})`;
+        case "lists_getIndex": {
+          const where = ast.args[1]?.kind === "literal" ? String(ast.args[1].value) : "FROM_START";
+          return `(listAt ${args[0] ?? "nil"} ${goQuote(where)} ${args[2] ?? "1"})`;
+        }
         case "intersection":
         case "union":
         case "difference":
@@ -1307,38 +1320,29 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
-          throw goUnsupported(ast.name);
+          throw goUnsupported(name);
         case "sheet_lookup": {
-          const name = args[0] ?? `""`;
+          const sheet = args[0] ?? `""`;
           const col = args[1] ?? `""`;
           const val = args[2] ?? `""`;
           const ret = args[3] ?? `""`;
-          return `(sheetLookup ${name} ${col} ${val} ${ret})`;
+          return `(sheetLookup ${sheet} ${col} ${val} ${ret})`;
         }
         case "decision_table": {
-          const name = args[0] ?? `""`;
+          const table = args[0] ?? `""`;
           const inputs = args[1] ?? "(dict)";
           const output = args[2] ?? `""`;
-          return `(decisionTable ${name} ${inputs} ${output})`;
+          return `(decisionTable ${table} ${inputs} ${output})`;
         }
         case "handlebars":
           return `(handlebars ${args[0] ?? '""'} ${args[1] ?? "(dict)"})`;
         case "map":
           return args.length ? `(dict ${args.join(" ")})` : "(dict)";
         default:
-          throw goUnsupported(ast.name);
+          throw goUnsupported(name);
       }
     }
   }
-}
-
-/**
- * A construct Go text/template cannot express. Fail the generation with a
- * readable message instead of emitting an inline comment that breaks the
- * template parse (or silently yields an empty value).
- */
-function goUnsupported(what: string): Error {
-  return new Error(`Go templates do not support ${what}; use TypeScript, Java or XQuery`);
 }
 
 function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
@@ -1404,51 +1408,4 @@ function jsonPathSegments(path: string): string[] {
     i = j;
   }
   return segments.filter((seg) => seg.length > 0);
-}
-
-/**
- * any/all/none of a list (Manchester restriction). Go templates have no
- * lambdas, so a literal `list(a, b, …)` is unrolled: the predicate is
- * instantiated per item and joined with `or` / `and`. A computed list or a
- * cardinality restriction cannot be expressed and fails loudly instead of
- * emitting a comment that breaks the template parse.
- */
-function emitQuantifierGo(ast: Extract<ExprAst, { kind: "call" }>, ctx: GoEmitContext): string {
-  const card = ast.name === "at_least" || ast.name === "at_most" || ast.name === "exactly";
-  const list = ast.args[0];
-  if (card || list?.kind !== "call" || list.name !== "list") {
-    throw new Error(
-      `Go templates do not support ${ast.name} over ${card ? "a count" : "a computed list"}; ` +
-        "use a literal list of values, or TypeScript, Java or XQuery",
-    );
-  }
-  const varAst = ast.args[1];
-  const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
-  const predAst = ast.args[2];
-  const items = list.args.map((item) =>
-    predAst ? substituteVar(predAst, varName, item) : item
-  ).map((item) => emitGoExpr(item, ctx));
-  if (!items.length) return ast.name === "any_of" ? "false" : "true";
-  const joined = items.length === 1 ? items[0]! : `(${ast.name === "all_of" ? "and" : "or"} ${items.join(" ")})`;
-  return ast.name === "none_of" ? `(not ${joined})` : joined;
-}
-
-/** `pred` with `var(name)` replaced by `value` (unrolled quantifier item). */
-function substituteVar(pred: ExprAst, name: string, value: ExprAst): ExprAst {
-  if (pred.kind === "literal") return pred;
-  if (pred.kind === "binary") {
-    return { ...pred, left: substituteVar(pred.left, name, value), right: substituteVar(pred.right, name, value) };
-  }
-  if (pred.name === "var" && pred.args[0]?.kind === "literal" && String(pred.args[0].value) === name) {
-    return value;
-  }
-  // An inner quantifier rebinding the same name shadows it.
-  if (isQuantifyCall(pred.name)) {
-    const card = pred.name === "at_least" || pred.name === "at_most" || pred.name === "exactly";
-    const inner = card ? pred.args[2] : pred.args[1];
-    if (inner?.kind === "literal" && String(inner.value) === name) {
-      return { ...pred, args: pred.args.map((arg, i) => (i === 0 ? substituteVar(arg, name, value) : arg)) };
-    }
-  }
-  return { ...pred, args: pred.args.map((arg) => substituteVar(arg, name, value)) };
 }

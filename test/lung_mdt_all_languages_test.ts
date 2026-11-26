@@ -123,7 +123,8 @@ Deno.test("Mapping Expression string literals decode JSON escapes (Code text new
 Deno.test("Go template: quoted literals escape newlines; quantifiers unroll or fail loudly", () => {
   assertEquals(goQuote("a\nb"), '"a\\nb"');
   const anyOf = emitGoExpr(parseExpression('any_of(list(xpathString("$.a"), xpathString("$.b")), "item", var("item"))'));
-  assertEquals(anyOf, '(or (index .Data "a") (index .Data "b"))');
+  // Each item is a real boolean, as TypeScript's `.some(...)`.
+  assertEquals(anyOf, '(or (ifElse (index .Data "a") true false) (ifElse (index .Data "b") true false))');
   assertThrows(
     () => emitGoExpr(parseExpression('any_of(xpathNode("$.list"), "item", var("item"))')),
     Error,

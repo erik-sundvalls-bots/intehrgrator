@@ -1,16 +1,18 @@
 // Go text/template executor compiled to WASM (GOOS=js GOARCH=wasm).
 //
 // JS API after wasm_exec.js + instantiate:
-//   goTextTemplateExecute(templateSource: string, dataJson: string) → JSON string
-//   { ok: boolean, output?: string, error?: string }
-//   goTextTemplateCheck(templateSource: string) → JSON string
-//   { ok: boolean, diagnostics?: [{ message: string }] }
+//
+//	goTextTemplateExecute(templateSource: string, dataJson: string) → JSON string
+//	{ ok: boolean, output?: string, error?: string }
+//	goTextTemplateCheck(templateSource: string) → JSON string
+//	{ ok: boolean, diagnostics?: [{ message: string }] }
 package main
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -117,6 +119,9 @@ var vmsGoAllowedIdents = map[string]bool{
 	"rmObj": true, "list": true, "toNum": true, "nonEmpty": true, "whenVal": true,
 	"concat": true, "coalesce": true,
 	"add": true, "sub": true, "mul": true, "div": true,
+	"same": true, "cmpNum": true, "ifElse": true, "switchVal": true,
+	"title": true, "round": true, "mod": true, "clamp": true,
+	"listAt": true, "count": true, "text": true,
 }
 
 var vmsGoForbiddenIdents = map[string]bool{
@@ -389,14 +394,14 @@ func funcMapWithSheets(sheets map[string]any) template.FuncMap {
 			writeRmXmlNode(&b, tag, v, false, 1)
 			return b.String()
 		},
-		"codedText": codedTextHelper,
+		"codedText":  codedTextHelper,
 		"codePhrase": codePhraseHelper,
-		"partyVal": partyValHelper,
-		"dvVal": dvValHelper,
-		"rmObj": rmObjHelper,
-		"list": listHelper,
-		"toNum": toNumHelper,
-		"nonEmpty": nonEmptyHelper,
+		"partyVal":   partyValHelper,
+		"dvVal":      dvValHelper,
+		"rmObj":      rmObjHelper,
+		"list":       listHelper,
+		"toNum":      toNumHelper,
+		"nonEmpty":   nonEmptyHelper,
 		"whenVal": func(cond any, val any) any {
 			if b, ok := cond.(bool); ok {
 				if b {
@@ -436,7 +441,211 @@ func funcMapWithSheets(sheets map[string]any) template.FuncMap {
 			}
 			return toFloat(a) / d
 		},
+		// TypeScript-parity helpers for Blockly constructs (see go_template*.ts).
+		"same":   sameHelper,
+		"cmpNum": cmpNumHelper,
+		"ifElse": func(cond, t, f any) any {
+			if jsTruthy(cond) {
+				return t
+			}
+			return f
+		},
+		"switchVal": switchValHelper,
+		"title":     titleHelper,
+		"round": func(v any) any {
+			f, ok := numOf(v)
+			if !ok {
+				return nil
+			}
+			return math.Floor(f + 0.5)
+		},
+		"mod": func(a, b any) any {
+			x, okA := numOf(a)
+			y, okB := numOf(b)
+			if !okA || !okB || y == 0 {
+				return nil
+			}
+			return math.Mod(x, y)
+		},
+		"clamp": func(v, lo, hi any) any {
+			return math.Min(toFloat(hi), math.Max(toFloat(lo), toFloat(v)))
+		},
+		"listAt": listAtHelper,
+		"count":  func(v any) int { return len(asListHelper(v)) },
+		"text":   textHelper,
 	}
+}
+
+// numOf is JavaScript Number(v) without NaN: ok=false where JS gives NaN.
+func numOf(v any) (float64, bool) {
+	switch n := v.(type) {
+	case nil:
+		return 0, true
+	case bool:
+		if n {
+			return 1, true
+		}
+		return 0, true
+	case string:
+		s := strings.TrimSpace(n)
+		if s == "" {
+			return 0, true
+		}
+		f, err := strconv.ParseFloat(s, 64)
+		return f, err == nil
+	case float64, float32, int, int64, json.Number:
+		return toFloat(n), true
+	default:
+		return 0, false
+	}
+}
+
+func isNumber(v any) bool {
+	switch v.(type) {
+	case float64, float32, int, int64, json.Number:
+		return true
+	}
+	return false
+}
+
+// sameHelper mirrors TypeScript sameItem: strict equality, numbers by value,
+// objects and lists by JSON.
+func sameHelper(a, b any) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	if isNumber(a) && isNumber(b) {
+		return toFloat(a) == toFloat(b)
+	}
+	switch a.(type) {
+	case map[string]any, []any:
+		ja, errA := json.Marshal(a)
+		jb, errB := json.Marshal(b)
+		return errA == nil && errB == nil && bytes.Equal(ja, jb)
+	}
+	switch x := a.(type) {
+	case string:
+		y, ok := b.(string)
+		return ok && x == y
+	case bool:
+		y, ok := b.(bool)
+		return ok && x == y
+	}
+	return false
+}
+
+// cmpNumHelper mirrors TypeScript `Number(a) < Number(b)` (NaN compares false).
+func cmpNumHelper(op string, a, b any) bool {
+	x, okA := numOf(a)
+	y, okB := numOf(b)
+	if !okA || !okB {
+		return false
+	}
+	switch op {
+	case "lt":
+		return x < y
+	case "le":
+		return x <= y
+	case "gt":
+		return x > y
+	case "ge":
+		return x >= y
+	}
+	return false
+}
+
+// jsTruthy is JavaScript truthiness (empty lists and maps are truthy).
+func jsTruthy(v any) bool {
+	switch x := v.(type) {
+	case nil:
+		return false
+	case bool:
+		return x
+	case string:
+		return x != ""
+	case float64, float32, int, int64, json.Number:
+		f := toFloat(x)
+		return f != 0 && !math.IsNaN(f)
+	}
+	return true
+}
+
+func switchValHelper(d any, rest ...any) any {
+	if len(rest) == 0 {
+		return nil
+	}
+	def := rest[len(rest)-1]
+	pairs := rest[:len(rest)-1]
+	for i := 0; i+1 < len(pairs); i += 2 {
+		if sameHelper(d, pairs[i]) {
+			return pairs[i+1]
+		}
+	}
+	return def
+}
+
+var titleWord = regexp.MustCompile(`\S+`)
+
+func titleHelper(v any) string {
+	s := ""
+	if v != nil {
+		s = fmt.Sprint(v)
+	}
+	return titleWord.ReplaceAllStringFunc(s, func(w string) string {
+		r := []rune(strings.ToLower(w))
+		if len(r) == 0 {
+			return w
+		}
+		return strings.ToUpper(string(r[0])) + string(r[1:])
+	})
+}
+
+func asListHelper(v any) []any {
+	switch x := v.(type) {
+	case nil:
+		return nil
+	case []any:
+		return x
+	}
+	return []any{v}
+}
+
+// listAtHelper mirrors TypeScript listGetIndex (1-based positions).
+func listAtHelper(items any, where string, at any) any {
+	list := asListHelper(items)
+	n := int(toFloat(at))
+	idx := n - 1
+	switch where {
+	case "FIRST":
+		idx = 0
+	case "LAST":
+		idx = len(list) - 1
+	case "FROM_END":
+		idx = len(list) - n
+	}
+	if idx < 0 || idx >= len(list) {
+		return nil
+	}
+	return list[idx]
+}
+
+// textHelper prints a value in a text document: nil is empty, lists and maps are JSON.
+func textHelper(v any) string {
+	switch x := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return x
+	case map[string]any, []any:
+		b, err := json.Marshal(x)
+		if err != nil {
+			return ""
+		}
+		return string(b)
+	case float64:
+		return strconv.FormatFloat(x, 'f', -1, 64)
+	}
+	return fmt.Sprint(v)
 }
 
 func nonEmptyHelper(v any) bool {

@@ -399,7 +399,7 @@ Deno.test("chemo symptoms Blockly generates TakeCare XML Go template", () => {
   assert(output.includes("upplever_du_svårigheter_med_din_andning"), "PROD breathing path");
   assertEquals(output.includes("upplever_du_andnöd_vid_ansträngning"), false);
   assertEquals(output.includes("hjärta-kärl/upplever_du_bröstsmärtor"), false);
-  assert(output.includes("if (ne"), "conditional symptom sections");
+  assert(output.includes("if (not (same"), "conditional symptom sections");
   assertEquals(output.includes("unsupported block: defaults_block"), false);
 });
 
