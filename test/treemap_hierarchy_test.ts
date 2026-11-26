@@ -186,7 +186,7 @@ Deno.test("#374 relabelBlocklyJsonFromSkeleton preserves human labels over bare 
   const wtRoot = buildTreemapHierarchy(indexDocument(wtRelabeled))!;
   assertEquals(wtRoot.children[0].children[0].label, "Body weight during registration");
   assertEquals(wtRoot.children[1].children[0].label, "Living arrangement");
-  assertEquals(wtRoot.children[1].children[1].label, "Social summary");
+  assertEquals(wtRoot.children[1].children[1].label, "Occupation details");
   assertEquals(wtRoot.children[2].children[0].label, "Problem/Diagnosis screening questionnaire");
 
   // 3. MHV1 OPT2: root label uses template root (not alphabetical Blood transfusion.v1)

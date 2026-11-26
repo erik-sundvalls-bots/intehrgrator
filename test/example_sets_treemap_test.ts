@@ -294,7 +294,9 @@ Deno.test("OBX MHV1 preserves HISTORY labels, MHV1 WT has zero Ad hoc heading/Ru
     assertEquals(badSections, [], `MHV1 WT (${lang}) still had generic section headings: ${badSections.join(", ")}`);
   }
 
-  // 3. Regenerated MHV1 & Partogram .opt2 fixtures resolve >99% of labels with ehrtslib@v0.18.
+  // 3. Regenerated MHV1 & Partogram .opt2 fixtures resolve >99% of labels with ehrtslib@v0.20
+  //    (with ehrtslib#338 fixed, genuinely unlabelled nodes stay bare instead of stealing
+  //    unrelated-archetype fallback labels).
   for (const rel of [
     "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.opt2",
     "../test/fixtures/Obstetric-legacy-via-generic-entry/partogram/target-schema/partogram.v1.opt2",
@@ -309,7 +311,7 @@ Deno.test("OBX MHV1 preserves HISTORY labels, MHV1 WT has zero Ad hoc heading/Ru
       }
     };
     count(skel);
-    assert(bare <= 5, `${rel}: expected <= 5 bare at/id-codes with ehrtslib@v0.18, got ${bare}`);
+    assert(bare <= 8, `${rel}: expected <= 8 bare at/id-codes with ehrtslib@v0.20, got ${bare}`);
   }
 });
 
@@ -439,4 +441,36 @@ Deno.test("Dummy JSON outputs JSON across all 5 engines, and openEHR canonical-x
     }
   }
 });
+
+Deno.test("MHV1 Web Template elided ITEM_TREE/HISTORY nodes do not leak CJK or unrelated fallback languages (ehrtslib#338)", async () => {
+  const wtRaw = await Deno.readTextFile(
+    "test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+  );
+  const { getTargetFormatHandler } = await import("../src/core/target/mod.ts");
+  const handler = getTargetFormatHandler("openehr-template");
+  assert(handler, "expected openehr-template handler");
+  for (const lang of ["en", "sv"]) {
+    const def = handler.load("mhv1-prenatal-visit.encounter.v1.wt.json", wtRaw, { language: lang });
+    const cjkHits: string[] = [];
+    let eddTreeLabel = "";
+    const walk = (nodes: typeof def.skeleton) => {
+      for (const n of nodes) {
+        if (/[\u4e00-\u9fff]/.test(n.label)) {
+          cjkHits.push(`${n.slotId}: ${n.label}`);
+        }
+        if (n.slotId.endsWith("/content/at0.21/items/at0.8/items/at0.2/data/at0002")) {
+          eddTreeLabel = n.label;
+        }
+        walk(n.children);
+      }
+    };
+    walk(def.skeleton);
+    assertEquals(cjkHits, [], `MHV1 WT [${lang}] must not contain CJK fallback labels`);
+    assert(
+      eddTreeLabel && !/[\u4e00-\u9fff]/.test(eddTreeLabel) && !/^at\d/i.test(eddTreeLabel),
+      `MHV1 WT [${lang}] EDD ITEM_TREE[at0002] should have a readable RM label, got "${eddTreeLabel}"`,
+    );
+  }
+});
+
 

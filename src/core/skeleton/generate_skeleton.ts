@@ -900,10 +900,12 @@ function resolveNodeDisplayLabel(
     cObj,
     labelCtx.resolver.originalLanguage,
   ).text?.trim();
+  const isWtScope = Boolean(termScope?.startsWith("wt:"));
+  const resolvedPrimary = resolved.primaryName?.trim();
   const candidateNames = [
     nameConstraint,
     nameHint,
-    resolved.primaryName,
+    resolvedPrimary,
     baseLangTerm,
     ...Object.values(resolved.localizedNames ?? {}),
   ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
@@ -911,9 +913,9 @@ function resolveNodeDisplayLabel(
   let label: string;
   if (
     labelCtx.useResolverPrimary &&
-    isResolvedClinicalLabel(resolved.primaryName?.trim(), nodeId, rmType, templateId)
+    isResolvedClinicalLabel(resolvedPrimary, nodeId, rmType, templateId)
   ) {
-    label = resolved.primaryName!.trim();
+    label = resolvedPrimary!;
   } else {
     const fallback = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
       nameHint,
@@ -927,7 +929,17 @@ function resolveNodeDisplayLabel(
     );
     label = isResolvedClinicalLabel(fallback, nodeId, rmType, templateId)
       ? fallback
-      : (resolved.primaryName?.trim() || fallback);
+      : (resolvedPrimary || fallback);
+  }
+  if (isWtScope && !resolvedPrimary && (!label || label === nodeId || /^at\d|^id\d/i.test(label))) {
+    const rmFallback: Record<string, string> = {
+      ITEM_TREE: "Item tree",
+      HISTORY: "History",
+      ITEM_LIST: "Item list",
+      ITEM_SINGLE: "Item single",
+      ITEM_TABLE: "Item table",
+    };
+    if (rmFallback[rmType]) label = rmFallback[rmType];
   }
 
   const labelLower = label.trim().toLowerCase();

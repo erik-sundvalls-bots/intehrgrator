@@ -458,10 +458,10 @@ Deno.test("MHV1 FLAT output validation attaches line numbers, targetPath, and mi
   const baseFlat = typeof tested.testResult.output === "string"
     ? JSON.parse(tested.testResult.output) as Record<string, unknown>
     : structuredClone(tested.testResult.output as Record<string, unknown>);
-  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/language|code"] = "en";
-  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/language|terminology"] = "ISO_639-1";
-  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/encoding|code"] = "UTF-8";
-  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/encoding|terminology"] = "IANA_character-sets";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/language|code"] = "en";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/language|terminology"] = "ISO_639-1";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/encoding|code"] = "UTF-8";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/encoding|terminology"] = "IANA_character-sets";
 
   const target = service.controller.getState().target!;
   const broken = validateConvertedOutput(JSON.stringify(baseFlat, null, 2), target);
@@ -481,7 +481,7 @@ Deno.test("MHV1 FLAT output validation attaches line numbers, targetPath, and mi
   assert(historyErr, "expected HISTORY.Events_valid error");
   assertEquals(historyErr.sourceIsAncestor, true);
   assert(
-    historyErr.expectedExample?.includes("mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/mhv1-_encounter.v1_3/"),
+    historyErr.expectedExample?.includes("mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/"),
     `expected FLAT example for empty HISTORY, got: ${historyErr.expectedExample}`,
   );
 });
