@@ -6,15 +6,19 @@ Back to the [tutorial index](../TUTORIAL.md).
 
 ## Find the hint
 
-Load an **unmapped** openEHR Example Set, such as Dummy vitals → openEHR. **Position** has several allowed codes. Its value socket is empty: no code is emitted just because it is first in the list.
+Load an **unmapped** openEHR Example Set, such as **Dummy vitals (JSON Schema → openEHR Template) — unmapped**. **Position** has several allowed codes. Its value socket is empty: no code is emitted just because it is first in the list. The status bar counts the hints (`3 value-set hints`).
 
 The **Hints 💡 count** chip counts active, non-dismissed hints. A yellow dashed outline surrounds each helped block and its contained blocks until the hint is applied or dismissed.
 
-Click the **💡 badge** on the canvas, or open **Hints** next to **Mapping Spec** and **Tables & Sheets**, then select the slot. Use the search or kind filters for **Coded**, **Ordinal**, **String list**, or **Units**. Selecting a hint brings its canvas block into view.
+Click the **💡 badge** on the canvas, or open **Hints** next to **Mapping Spec** and **Tables & Sheets** (below the canvas), then select the slot. Use the search or kind filters for **Coded**, **Ordinal**, **String list**, or **Units**. Selecting a hint brings its canvas block into view.
 
 <img src="../assets/tutorial/value-set-hints.png" alt="Empty Position value socket with a lightbulb badge; Hints shows allowed posture codes, a star on Sitting, and constant and grid actions" />
 
 *The ★ is the template's assumed value. It is a suggestion, not an applied default or a conversion result.*
+
+Hints are not only for openEHR. In a JSON Schema target an `enum` (with `x-enumDescriptions` for the labels), and in an XSD target an `xs:enumeration` (with its documentation), become **String list** hints the same way. A slot with a single allowed value has no hint.
+
+In **Treemap Overview** (large templates) the Hints tab works the same; applying a hint updates the tiles. See [Large templates](treemap.md).
 
 ## Choose how to map it
 

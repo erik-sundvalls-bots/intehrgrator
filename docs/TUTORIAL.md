@@ -7,17 +7,18 @@ Start with the basic lecture, then open the one that matches what you are trying
 | Lecture | What you learn |
 |---------|----------------|
 | [Basic mapping](tutorial/basic-mapping.md) | Open the workbench, load source and target, click-to-map a field that does not repeat, try an Example Set, save, get help |
+| [Large templates: Treemap Overview](tutorial/treemap.md) | See a big template as tiles, filter what is missing, map leaves in place, and open one section in Scoped Blockly |
 | [Value-set hints](tutorial/value-set-hints.md) | Turn allowed codes, ordinals, text choices, or units into connected constants or grid lookups |
 | [Default context](tutorial/default-context.md) | Factory defaults, scaffold targets, and values that come from the runtime rather than the source |
-| [Optional RM fields](tutorial/optional-rm.md) | Add Reference Model structure the template does not mention (feeder audit and similar) |
+| [Optional RM fields](tutorial/optional-rm.md) | Add Reference Model structure the template does not mention (feeder audit and similar), optional and deprecated RM attributes |
 | [Loops](tutorial/loops.md) | Repeated source rows: `for each`, loop index, and loop length |
 | [Sheets and decision tables](tutorial/sheets-and-decision-tables.md) | Grids pasted from a spreadsheet, and decision tables for combinational rules |
 | [Functions](tutorial/functions.md) | Save, load, and share a Blockly Function |
-| [Tests and export](tutorial/tests-and-export.md) | Conversion Test Run, then download a conversion script |
+| [Tests and export](tutorial/tests-and-export.md) | Conversion Test Run, download a conversion script, and keep a mapping in a repository (VS Code file projects) |
 | [AI in the web app](tutorial/ai-in-the-web-app.md) | Copy a prompt and import the reply, or call an AI with your own credentials |
 | [Desktop and a local IDE](tutorial/desktop-and-local-ai.md) | Downloaded app, start/stop the local MCP server, and connect Cursor or another IDE |
 | [Parallel IDE agents](tutorial/parallel-agents.md) | Two or three agents on one canvas, leases on slots and subtrees, and who leases what |
 
 Formal verification of a mapping (**Verify mapping**, in-app checks that support inspection) is not in the app yet, so it has no chapter. The design is in [formal-verification-export.md](future/formal-verification-export.md), and the work is [issue 41](https://github.com/regionstockholm/intehrgrator/issues/41).
 
-The toolbar **Help** menu opens this page. **ⓘ** next to a pane header explains the formats that pane accepts.
+The toolbar **Help** menu (**User tutorial**) opens this page. **Settings** has the workbench preferences, such as Animations. **ⓘ** next to a pane header explains the formats that pane accepts.
