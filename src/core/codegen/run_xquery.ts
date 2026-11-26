@@ -6,6 +6,7 @@
  */
 import type { SheetBag } from "../sheets/types.ts";
 import { renderHandlebars } from "../output/handlebars_dialect.ts";
+import { renderDecisionSnippet } from "../sheets/decision_table.ts";
 import { INTEHRGRATOR_XQUERY_NS } from "./xquery.ts";
 import { xqueryHelperModules } from "./xquery_modules.ts";
 
@@ -58,6 +59,23 @@ function registerHandlebarsFunction(fonto: FontoxpathApi): void {
     );
   } catch {
     // Already registered in this runtime (HMR / repeated ensureXQueryRuntime).
+  }
+  try {
+    // Decision-table VMS-Mustache snippets (igsh:snippet-interp looks this up).
+    fonto.registerCustomXPathFunction(
+      { namespaceURI: INTEHRGRATOR_XQUERY_NS, localName: "mustache" },
+      ["xs:string", "item()*"],
+      "xs:string",
+      (_ctx, template: unknown, locals: unknown) => {
+        const bag = coerceHandlebarsContext(locals);
+        return renderDecisionSnippet(
+          String(template ?? ""),
+          bag && typeof bag === "object" && !Array.isArray(bag) ? bag as Record<string, unknown> : {},
+        );
+      },
+    );
+  } catch {
+    // Already registered.
   }
 }
 

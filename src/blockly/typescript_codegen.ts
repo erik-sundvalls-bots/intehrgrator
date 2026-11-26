@@ -604,7 +604,7 @@ function emitStatementList(
     const code = block.type === "for_each_list"
       ? emitForEachList(block, ctx, 0)
       : block.type === INCLUDE_WHEN_BLOCK
-      ? emitIncludeWhen(block, ctx, indent)
+      ? emitIncludeWhen(block, ctx, indent, true)
       : block.type === "variables_set"
       ? emitVariableSet(block, ctx, indent + 1)
       : emitBlock(block, ctx, 0);
@@ -669,9 +669,19 @@ function emitForEachList(block: Block, ctx: TsEmitContext, indent: number): stri
   return `...(Array.isArray(${list}) ? ${list} : []).map((${ident}, ${ident}_i, ${ident}_col) => ${bound})`;
 }
 
-function emitIncludeWhen(block: Block, ctx: TsEmitContext, indent: number): string {
+/**
+ * `include_when`: guarded emit. Inside a list (`inList`) a false guard with no
+ * Else leaves the entry out (spread of `[]`), as Mapping preview and Handlebars
+ * omit an empty keyword; it must not leave a `null` in the array.
+ */
+function emitIncludeWhen(block: Block, ctx: TsEmitContext, indent: number, inList = false): string {
   const condBlock = block.getInputTargetBlock("WHEN");
   const cond = condBlock ? emitBlock(condBlock, ctx, indent) : "false";
+  if (inList) {
+    const thenItems = includeBranchItems(block.getInputTargetBlock("DO"), ctx, indent);
+    const elseItems = includeBranchItems(block.getInputTargetBlock("ELSE"), ctx, indent);
+    return `...((${cond}) ? ${thenItems} : ${elseItems})`;
+  }
   const thenCode = emitIncludeBranch(block.getInputTargetBlock("DO"), ctx, indent);
   const elseCode = emitIncludeBranch(block.getInputTargetBlock("ELSE"), ctx, indent);
   if (thenCode.trimStart().startsWith("...")) {
@@ -682,6 +692,17 @@ function emitIncludeWhen(block: Block, ctx: TsEmitContext, indent: number): stri
     return `...((${cond}) ? (${thenInner}) : (${elseInner}))`;
   }
   return `((${cond}) ? (${thenCode}) : (${elseCode}))`;
+}
+
+/** A branch as array items: a statement chain is a list, one block is one item, none is `[]`. */
+function includeBranchItems(first: Block | null, ctx: TsEmitContext, indent: number): string {
+  if (!first) return "[]";
+  if (first.getNextBlock()) return emitStatementList(first, true, ctx, indent) ?? "[]";
+  const code = emitBlock(first, ctx, indent);
+  const trimmed = code.trimStart();
+  if (trimmed.startsWith("...")) return `(${trimmed.slice(3)})`;
+  if (isBlankGeneratedExpr(code)) return "[]";
+  return `[${code}]`;
 }
 
 function emitIncludeBranch(first: Block | null, ctx: TsEmitContext, indent: number): string {

@@ -441,12 +441,14 @@ export function wrapTypeScriptModule(parts: TypeScriptModuleParts): string {
     for (const fn of fonto) lines.push(`  ${fn},`);
     lines.push(`} from "fontoxpath";`);
   }
-  if (parts.helpers.has("handlebars")) {
+  // Decision-table snippets render VMS-Mustache with Handlebars too.
+  const needsHandlebars = parts.helpers.has("handlebars") || parts.body.includes("decisionTable(");
+  if (needsHandlebars) {
     if (types.length || fonto.length) lines.push("");
     lines.push('import Handlebars from "handlebars";');
   }
   if (parts.extraImports?.length) {
-    if (types.length || fonto.length || parts.helpers.has("handlebars")) lines.push("");
+    if (types.length || fonto.length || needsHandlebars) lines.push("");
     for (const line of parts.extraImports) lines.push(line);
   }
   const helperNames = typescriptHelperImportNames(parts.helpers, parts.body);
@@ -605,7 +607,13 @@ function typescriptHelperWrappers(helpers: Set<string>, body: string): string[] 
   if (uses("decisionTable(")) {
     add(
       "function decisionTable(name: string, inputs: Record<string, unknown> = {}, outputCol?: string) {",
-      "  return igDecisionTable(sheets, name, inputs, outputCol);",
+      "  return igDecisionTable(sheets, name, inputs, outputCol, renderDecisionSnippet);",
+      "}",
+      "",
+      "function renderDecisionSnippet(template: string, locals: Record<string, unknown>): string {",
+      "  // A missing source path is \"\" here but null in Mapping preview; Handlebars would open a section for \"\".",
+      "  const bag = Object.fromEntries(Object.entries(locals).filter(([, value]) => value !== \"\"));",
+      "  return Handlebars.create().compile(template, { noEscape: true, knownHelpersOnly: true, knownHelpers: {} })(bag);",
       "}",
     );
   }

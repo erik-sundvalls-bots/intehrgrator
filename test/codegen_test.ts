@@ -493,7 +493,8 @@ Deno.test("typescript and xquery compile openEHR locator sugar before emit", () 
 Deno.test("xquery expression emit maps builtins and JSON paths", () => {
   assertEquals(
     jsonDollarPathToLookup("$.patient.vitals[1].systolic"),
-    "$source?patient?vitals?1?systolic",
+    // A missing array item is empty, not FOAY0001 (lung-MDT decision tables).
+    "($source?patient?vitals)!(if (. instance of array(*) and array:size(.) ge 1) then ?1 else ())?systolic",
   );
   assertEquals(
     jsonDollarPathToLookup("$.KurDagar[*].Substanser"),

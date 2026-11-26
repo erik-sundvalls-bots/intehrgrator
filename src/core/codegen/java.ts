@@ -21,7 +21,7 @@ import {
 import { compileAuthoringPath, looksLikeOpenEhrLocator } from "../openehr/locator.ts";
 import { namedLoopBinding } from "../named_loop_path.ts";
 import { codedChoicesForNode, isListAttribute } from "./typescript.ts";
-import { usesOpenEhrProduct } from "./product.ts";
+import { usesOpenEhrProduct, xmlCanvasNeedsTreeWalker } from "./product.ts";
 import { codedTextParts } from "../openehr/coded_text.ts";
 import { canvasHandlebarsExpression } from "../output/canvas_handlebars.ts";
 import {
@@ -878,7 +878,7 @@ export function generateJava(
   if (!usesOpenEhrProduct(model, options)) {
     const canvas = canvasHandlebarsExpression(options?.blocklyState);
     if (canvas) return generateJavaFromExpression(model, canvas);
-    return generateJavaGeneric(model);
+    return generateJavaGeneric(model, xmlCanvasNeedsTreeWalker(options?.blocklyState));
   }
   if (options?.skeleton?.length) {
     return generateJavaFromSkeleton(model, options.skeleton);
@@ -899,11 +899,22 @@ function generateJavaFromExpression(model: MappingModel, expression: string): st
   }, ctx);
 }
 
-function generateJavaGeneric(model: MappingModel): string {
+/** Shown (and thrown) when a slot map would drop repeated or guarded XML content. */
+export const JAVA_XML_TREE_UNSUPPORTED =
+  "Java cannot yet build Target XML from this XML Schema canvas: repeated elements, Include when and " +
+  "For each are not representable in the slot map it emits. Use TypeScript, XQuery or Go template.";
+
+function generateJavaGeneric(model: MappingModel, needsTree = false): string {
   const ctx = createJavaEmitContext("sourceRoot", model.functions);
-  const lines: string[] = [
-    "Map<String, Object> values = new LinkedHashMap<>();",
-  ];
+  const lines: string[] = needsTree
+    ? [
+      `// ${JAVA_XML_TREE_UNSUPPORTED}`,
+      `if (true) throw new UnsupportedOperationException(${JSON.stringify(JAVA_XML_TREE_UNSUPPORTED)});`,
+      "Map<String, Object> values = new LinkedHashMap<>();",
+    ]
+    : [
+      "Map<String, Object> values = new LinkedHashMap<>();",
+    ];
   for (const slot of model.slots) {
     const expr = emitJavaExpressionSource(slot.expression, ctx);
     if (!expr) continue;
