@@ -22335,7 +22335,7 @@ var require_no_conflict = __commonJS({
   "node_modules/.deno/handlebars@4.7.10/node_modules/handlebars/dist/cjs/handlebars/no-conflict.js"(exports2, module2) {
     "use strict";
     exports2.__esModule = true;
-    exports2["default"] = function(Handlebars5) {
+    exports2["default"] = function(Handlebars6) {
       (function() {
         if (typeof globalThis === "object") return;
         Object.prototype.__defineGetter__("__magic__", function() {
@@ -22345,11 +22345,11 @@ var require_no_conflict = __commonJS({
         delete Object.prototype.__magic__;
       })();
       var $Handlebars = globalThis.Handlebars;
-      Handlebars5.noConflict = function() {
-        if (globalThis.Handlebars === Handlebars5) {
+      Handlebars6.noConflict = function() {
+        if (globalThis.Handlebars === Handlebars6) {
           globalThis.Handlebars = $Handlebars;
         }
-        return Handlebars5;
+        return Handlebars6;
       };
     };
     module2.exports = exports2["default"];
@@ -91970,29 +91970,6 @@ function usesOpenEhrProduct(model, options) {
   }
   return model.slots.some((slot) => isOpenEhrRmType(slot.rmType));
 }
-function xmlCanvasNeedsTreeWalker(state) {
-  const start = topBlocks2(state).find((block) => block.type === "conversion_start");
-  const root = start?.next?.block;
-  if (!root?.type || !(root.type === "xml_element" || root.type.startsWith("schema_"))) return false;
-  const visit2 = (node) => {
-    if (!node?.type) return false;
-    if (node.type === "include_when" || node.type === "for_each_list") return true;
-    for (const input of Object.values(node.inputs ?? {})) {
-      const child = input.block;
-      if (!child) continue;
-      const seen = /* @__PURE__ */ new Set();
-      for (let current = child; current?.type; current = current.next?.block) {
-        if (seen.has(current.type) && (current.type === "xml_element" || current.type.startsWith("schema_"))) {
-          return true;
-        }
-        seen.add(current.type);
-        if (visit2(current)) return true;
-      }
-    }
-    return false;
-  };
-  return visit2(root);
-}
 
 // src/core/openehr/coded_text.ts
 var CODED_TEXT = "DV_CODED_TEXT";
@@ -134973,7 +134950,7 @@ function emitMapLiteralXq(args) {
 }
 function emitJsonSchemaProduct(model, skeleton, env = {}) {
   const slots = new Map(model.slots.map((slot) => [slot.slotId, slot]));
-  const emitNode2 = (node) => {
+  const emitNode3 = (node) => {
     if (node.kind === "value") {
       const slot = slots.get(node.slotId);
       if (!slot?.expression) return null;
@@ -134985,7 +134962,7 @@ function emitJsonSchemaProduct(model, skeleton, env = {}) {
     }
     const entries = [];
     for (const child of node.children) {
-      const val = emitNode2(child);
+      const val = emitNode3(child);
       if (!val) continue;
       const key = child.rmAttribute ?? child.label;
       entries.push(`${xqString(key)}: ${val}`);
@@ -134996,7 +134973,7 @@ function emitJsonSchemaProduct(model, skeleton, env = {}) {
     }
     return `map { ${entries.join(", ")} }`;
   };
-  const roots = skeleton.map((node) => emitNode2(node)).filter((code) => Boolean(code));
+  const roots = skeleton.map((node) => emitNode3(node)).filter((code) => Boolean(code));
   if (!roots.length) return "  map {}";
   if (roots.length === 1) return `  ${roots[0]}`;
   return `  array { ${roots.join(", ")} }`;
@@ -135585,7 +135562,7 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     loopBindings: {},
     varBindings: {}
   };
-  const emitNode2 = (node) => {
+  const emitNode3 = (node) => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
@@ -135597,7 +135574,7 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     }
     const pairs = [];
     for (const child of node.children) {
-      const val = emitNode2(child);
+      const val = emitNode3(child);
       if (!val) continue;
       const key = child.rmAttribute ?? child.label;
       pairs.push(`${goStr(key)} ${val}`);
@@ -135608,7 +135585,7 @@ function emitGoJsonSchemaProduct(model, skeleton) {
     }
     return `(dict ${pairs.join(" ")})`;
   };
-  const roots = skeleton.map(emitNode2).filter((x6) => Boolean(x6));
+  const roots = skeleton.map(emitNode3).filter((x6) => Boolean(x6));
   const rootExpr = !roots.length ? "(dict)" : roots.length === 1 ? roots[0] : `(list ${roots.join(" ")})`;
   return `{{- toJson ${rootExpr} -}}`;
 }
@@ -137050,6 +137027,82 @@ function substituteVar(pred, name2, value) {
   return { ...pred, args: pred.args.map((arg) => substituteVar(arg, name2, value)) };
 }
 
+// src/core/output/handlebars_whitespace.ts
+var import_handlebars5 = __toESM(require_handlebars());
+function resolveHandlebarsWhitespace(template) {
+  if (!template.includes("{{")) return template;
+  try {
+    return printProgram(import_handlebars5.default.parse(template));
+  } catch {
+    return template;
+  }
+}
+function printProgram(program) {
+  if (!program) return "";
+  return program.body.map(printStatement).join("");
+}
+function printStatement(node) {
+  switch (node.type) {
+    case "ContentStatement":
+      return String(node.value).replace(/\{\{/g, "\\{{");
+    case "CommentStatement":
+      return "";
+    case "MustacheStatement": {
+      const inner = printCall(node);
+      return node.escaped === false ? `{{{${inner}}}}` : `{{${inner}}}`;
+    }
+    case "BlockStatement": {
+      const name2 = printPath(node.path);
+      const open = printCall(node);
+      if (!node.program && node.inverse) {
+        return `{{^${open}}}${printProgram(node.inverse)}{{/${name2}}}`;
+      }
+      const inverse = node.inverse ? `{{else}}${printProgram(node.inverse)}` : "";
+      return `{{#${open}}}${printProgram(node.program)}${inverse}{{/${name2}}}`;
+    }
+    default:
+      throw new Error(`unsupported Handlebars node ${node.type}`);
+  }
+}
+function printCall(node) {
+  const parts = [
+    printExpr(node.path),
+    ...(node.params ?? []).map(printExpr)
+  ];
+  for (const pair2 of node.hash?.pairs ?? []) {
+    parts.push(`${pair2.key}=${printExpr(pair2.value)}`);
+  }
+  return parts.join(" ");
+}
+function printExpr(node) {
+  switch (node.type) {
+    case "PathExpression":
+      return printPath(node);
+    case "SubExpression":
+      return `(${printCall(node)})`;
+    case "StringLiteral":
+      return `"${String(node.value).replace(/"/g, '\\"')}"`;
+    case "NumberLiteral":
+    case "BooleanLiteral":
+      return String(node.value);
+    case "UndefinedLiteral":
+      return "undefined";
+    case "NullLiteral":
+      return "null";
+    default:
+      throw new Error(`unsupported Handlebars expression ${node.type}`);
+  }
+}
+var PLAIN_SEGMENT = /^[\p{L}\p{N}_$-]+$/u;
+function printPath(node) {
+  const parts = node.parts;
+  if (!parts.length) return String(node.original);
+  const prefix = (node.data ? "@" : "") + "../".repeat(node.depth ?? 0) + (String(node.original).startsWith("this.") || String(node.original).startsWith("./") ? "this." : "");
+  return prefix + parts.map(
+    (part, i12) => PLAIN_SEGMENT.test(part) && !(i12 === 0 && /^\d/.test(part) && !prefix) ? part : `[${part}]`
+  ).join(".");
+}
+
 // src/core/codegen/java.ts
 var GENERIC_RM = /* @__PURE__ */ new Set(["HISTORY", "POINT_EVENT", "INTERVAL_EVENT", "EVENT"]);
 var CONCRETE_RM = {
@@ -137458,9 +137511,11 @@ function emitJavaExpression(ast, ctx) {
         case "xpathNode":
           ctx.helpers.add("node");
           return emitXpathCall2("xpathNode", ast.args[0], args[0] ?? '""', ctx);
-        case "handlebars":
+        case "handlebars": {
           ctx.helpers.add("handlebars");
-          return `handlebars(${args[0] ?? '""'}, ${args[1] ?? "mapOf()"})`;
+          const tpl = ast.args[0]?.kind === "literal" && typeof ast.args[0].value === "string" ? JSON.stringify(resolveHandlebarsWhitespace(ast.args[0].value)) : args[0] ?? '""';
+          return `handlebars(${tpl}, ${args[1] ?? "mapOf()"})`;
+        }
         case "map":
           ctx.helpers.add("logic");
           return `mapOf(${args.join(", ")})`;
@@ -137560,7 +137615,7 @@ function emitQuantifierJava(ast, ctx) {
     loopBindings: { ...ctx.loopBindings, [varName]: ident }
   };
   const predCode = predAst ? emitJavaExpression(predAst, innerCtx) : "true";
-  const bind3 = `(vars.put(${JSON.stringify(varName)}, ${ident}), ${predCode})`;
+  const bind3 = `{ vars.put(${JSON.stringify(varName)}, ${ident}); return asBoolean(${predCode}); }`;
   const arr = `asList(${listCode}).stream()`;
   switch (ast.name) {
     case "all_of":
@@ -137791,7 +137846,7 @@ function generateJava(model, options) {
   if (!usesOpenEhrProduct(model, options)) {
     const canvas = canvasHandlebarsExpression(options?.blocklyState);
     if (canvas) return generateJavaFromExpression(model, canvas);
-    return generateJavaGeneric(model, xmlCanvasNeedsTreeWalker(options?.blocklyState));
+    return generateJavaGeneric(model);
   }
   if (options?.skeleton?.length) {
     return generateJavaFromSkeleton(model, options.skeleton);
@@ -137810,14 +137865,9 @@ function generateJavaFromExpression(model, expression2) {
     archie: false
   }, ctx);
 }
-var JAVA_XML_TREE_UNSUPPORTED = "Java cannot yet build Target XML from this XML Schema canvas: repeated elements, Include when and For each are not representable in the slot map it emits. Use TypeScript, XQuery or Go template.";
-function generateJavaGeneric(model, needsTree = false) {
+function generateJavaGeneric(model) {
   const ctx = createJavaEmitContext("sourceRoot", model.functions);
-  const lines = needsTree ? [
-    `// ${JAVA_XML_TREE_UNSUPPORTED}`,
-    `if (true) throw new UnsupportedOperationException(${JSON.stringify(JAVA_XML_TREE_UNSUPPORTED)});`,
-    "Map<String, Object> values = new LinkedHashMap<>();"
-  ] : [
+  const lines = [
     "Map<String, Object> values = new LinkedHashMap<>();"
   ];
   for (const slot of model.slots) {
@@ -137833,6 +137883,28 @@ function generateJavaGeneric(model, needsTree = false) {
     types: ctx.types,
     helpers: ctx.helpers,
     source: "slots",
+    archie: false
+  }, ctx);
+}
+function wrapJavaXmlCanvasModule(model, body, ctx) {
+  ctx.helpers.add("xml");
+  return wrapJavaFromCtx({
+    templateId: model.templateId,
+    body: [
+      "java.io.StringWriter xmlOut = new java.io.StringWriter();",
+      "try {",
+      "  javax.xml.stream.XMLStreamWriter w = javax.xml.stream.XMLOutputFactory.newInstance().createXMLStreamWriter(xmlOut);",
+      indentBlock(body, 1),
+      "  w.flush();",
+      "  w.close();",
+      "} catch (javax.xml.stream.XMLStreamException e) {",
+      '  throw new IllegalStateException("Target XML write failed: " + e.getMessage(), e);',
+      "}",
+      "return xmlOut.toString();"
+    ].join("\n"),
+    types: ctx.types,
+    helpers: ctx.helpers,
+    source: "xml-canvas",
     archie: false
   }, ctx);
 }
@@ -138169,7 +138241,7 @@ ${parts.extraMethods ?? ""}`;
     `// Helpers: ${JAVA_RUNTIME_BLOB}`,
     ...parts.helpers.has("handlebars") ? [`// VMS-Hbs render via com.github.jknack.handlebars: ${JAVA_HANDLEBARS_BLOB}`] : [],
     ...parts.helpers.has("coded") ? [`// Coded text value-set lookup (Archie): ${JAVA_CODED_TEXT_BLOB}`] : [],
-    parts.source === "skeleton" ? "// Source: Template Skeleton + Mapping Model expressions" : parts.source === "blockly" ? "// Source: Blockly canvas product (text_handlebars / Mapping Expressions)" : "// Source: Mapping Model slots (no canvas / skeleton available)",
+    parts.source === "skeleton" ? "// Source: Template Skeleton + Mapping Model expressions" : parts.source === "blockly" ? "// Source: Blockly canvas product (text_handlebars / Mapping Expressions)" : parts.source === "xml-canvas" ? "// Source: XML / XML Schema canvas, written with StAX (javax.xml.stream)" : "// Source: Mapping Model slots (no canvas / skeleton available)",
     "// Mapping preview Test Run evaluates Mapping Model slots through the Target",
     "// instance format handler (ADR 0001). Java Output mode does not execute this",
     parts.archie ? "// script in the web app; compile and run it on a JVM with Archie." : "// script in the web app; compile and run it on a JVM.",
@@ -138282,7 +138354,8 @@ function javaStaticHelperNames(body) {
     "setUnion",
     "setDifference",
     "flatten",
-    "rm"
+    "rm",
+    "xmlText"
   ];
   return names.filter((name2) => body.includes(`${name2}(`));
 }
@@ -138520,7 +138593,7 @@ function emitHandlebarsJsonSchemaProduct(model, skeleton) {
     loopBindings: {},
     varBindings: {}
   };
-  const emitNode2 = (node) => {
+  const emitNode3 = (node) => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
@@ -138532,7 +138605,7 @@ function emitHandlebarsJsonSchemaProduct(model, skeleton) {
     }
     const entries = [];
     for (const child of node.children) {
-      const val = emitNode2(child);
+      const val = emitNode3(child);
       if (!val) continue;
       entries.push([child.rmAttribute ?? child.label, val]);
     }
@@ -138542,7 +138615,7 @@ function emitHandlebarsJsonSchemaProduct(model, skeleton) {
     }
     return `(dict ${entries.map(([k5, v5]) => `${hbsHashKey(k5)}=${v5}`).join(" ")})`;
   };
-  const roots = skeleton.map(emitNode2).filter((x6) => Boolean(x6));
+  const roots = skeleton.map(emitNode3).filter((x6) => Boolean(x6));
   const rootExpr = !roots.length ? "(dict)" : roots.length === 1 ? roots[0] : `(list ${roots.join(" ")})`;
   return [
     `{{!-- Generated by intEHRgrator \u2014 Handlebars Conversion Script (JSON Schema) --}}`,
@@ -140272,7 +140345,7 @@ function isRecord6(value) {
 
 // src/core/codegen/run_typescript.ts
 init_fontoxpath_esm();
-var import_handlebars6 = __toESM(require_handlebars());
+var import_handlebars7 = __toESM(require_handlebars());
 
 // src/core/codegen/helpers/typescript.ts
 var typescript_exports = {};
@@ -140690,8 +140763,8 @@ function igDecisionTable(sheets, name2, inputs2 = {}, outputCol, renderSnippet2)
   }
   return all ? rowMap(matches[0]) : cellOut(matches[0], oi);
 }
-function igHandlebars(Handlebars5, template, context) {
-  const engine = Handlebars5.create();
+function igHandlebars(Handlebars6, template, context) {
+  const engine = Handlebars6.create();
   registerKintegrateHandlebarsHelpers(engine);
   return engine.compile(template, { noEscape: true, data: true })(context ?? {});
 }
@@ -140795,7 +140868,7 @@ function generatedScriptRuntime() {
     parseWebTemplate,
     serializeToFlatJson,
     serializeToStructuredJson,
-    Handlebars: import_handlebars6.default
+    Handlebars: import_handlebars7.default
   };
 }
 function stripGeneratedTypeScript(source) {
@@ -203742,6 +203815,207 @@ function emitValue(block, env) {
   return emitXQueryExpr(parseExpression(serialized), env);
 }
 
+// src/blockly/java_xml_codegen.ts
+var STATEMENT_INPUT_TYPE5 = 3;
+function registerJavaExportAdapter() {
+  registerExportTargetAdapter({
+    id: "java",
+    extension: "java",
+    mime: "text/x-java-source",
+    generate(model, options) {
+      const xmlCanvas = options?.blocklyState && model.targetFormat !== "json-schema" && !usesOpenEhrProduct(model, options);
+      if (xmlCanvas) {
+        const fromCanvas = generateJavaFromBlocklyState(
+          options.blocklyState,
+          model,
+          options?.skeleton
+        );
+        if (fromCanvas) return fromCanvas;
+      }
+      return generateJava(model, options);
+    }
+  });
+}
+function generateJavaFromBlocklyState(state, model, skeleton) {
+  if (!state || typeof state !== "object") return null;
+  const workspace2 = new Blockly2.Workspace();
+  try {
+    const snapshot = migrateForEachSourceState(
+      JSON.parse(JSON.stringify(state))
+    );
+    let generated = null;
+    runWithoutBlocklyEvents(() => {
+      ensureStockBlocklyMessages();
+      if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
+      Blockly2.serialization.workspaces.load(snapshot, workspace2);
+      generated = generateJavaFromWorkspace(workspace2, model);
+    });
+    return generated;
+  } finally {
+    workspace2.dispose();
+  }
+}
+function generateJavaFromWorkspace(workspace2, model) {
+  const root = findInstanceRootUnderStart(workspace2);
+  if (!root || !isXmlStructure2(root.type)) return null;
+  const ctx = createJavaEmitContext("sourceRoot", model.functions);
+  ctx.helpers.add("string");
+  const lines = [];
+  emitChain2(root, { ctx, depth: 0 }, lines);
+  return wrapJavaXmlCanvasModule(model, lines.join("\n"), ctx);
+}
+function isXmlStructure2(type) {
+  return type === XML_ELEMENT_TYPE || type.startsWith("schema_");
+}
+function emitChain2(first2, env, out) {
+  let current = first2;
+  while (current) {
+    emitNode2(current, env, out);
+    current = current.getNextBlock();
+  }
+}
+function emitNode2(block, env, out) {
+  if (block.type === INCLUDE_WHEN_BLOCK) {
+    return emitIncludeWhen5(block, env, out);
+  }
+  if (block.type === "for_each_list") return emitForEachList5(block, env, out);
+  if (isXmlStructure2(block.type)) return emitElement2(block, env, out);
+  if (block.type === "variables_set") return;
+  throw new Error(
+    `Java cannot build Target XML from a "${block.type}" block on this canvas; use TypeScript, XQuery or Handlebars`
+  );
+}
+function indented(lines) {
+  return lines.map((line) => line.length ? `  ${line}` : line);
+}
+function emitIncludeWhen5(block, env, out) {
+  const when = block.getInputTargetBlock("WHEN");
+  const cond = when ? `asBoolean(${emitValue2(when, env)})` : "false";
+  const thenLines = [];
+  emitChain2(block.getInputTargetBlock("DO"), env, thenLines);
+  const elseLines = [];
+  emitChain2(block.getInputTargetBlock("ELSE"), env, elseLines);
+  out.push(`if (${cond}) {`, ...indented(thenLines));
+  if (elseLines.length) out.push("} else {", ...indented(elseLines));
+  out.push("}");
+}
+function emitForEachList5(block, env, out) {
+  const varName = String(block.getFieldValue("VAR") || "item");
+  const depth = env.depth + 1;
+  const ident = `${javaIdent(varName, "item")}_${depth}`;
+  const sourcePath = sourcePathFromLoopList(block);
+  const listBlock = block.getInputTargetBlock("LIST");
+  let collection;
+  if (sourcePath) {
+    env.ctx.helpers.add("nodes");
+    collection = emitXpathCall2(
+      "xpathNodes",
+      { kind: "literal", value: sourcePath },
+      JSON.stringify(sourcePath),
+      env.ctx
+    );
+  } else if (listBlock) {
+    env.ctx.helpers.add("logic");
+    collection = `asList(${emitValue2(listBlock, env)})`;
+  } else {
+    collection = "java.util.List.<Object>of()";
+  }
+  const col = `${ident}_col`;
+  const pos = `${ident}_pos`;
+  const inner = {
+    depth,
+    ctx: {
+      ...env.ctx,
+      loopVar: ident,
+      loopBindings: { ...env.ctx.loopBindings, [varName]: ident }
+    }
+  };
+  const body = [];
+  emitChain2(block.getInputTargetBlock("DO"), inner, body);
+  env.ctx.helpers.add("logic");
+  out.push(
+    "{",
+    `  java.util.List<Object> ${col} = new java.util.ArrayList<Object>(${collection});`,
+    `  for (int ${pos} = 0; ${pos} < ${col}.size(); ${pos}++) {`,
+    `    Object ${ident} = ${col}.get(${pos});`,
+    `    vars.put(${JSON.stringify(varName)}, ${ident});`,
+    `    vars.put(${JSON.stringify(loopIndexBinderName(varName))}, ${pos});`,
+    `    vars.put(${JSON.stringify(loopLengthBinderName(varName))}, ${col}.size());`,
+    ...indented(indented(body)),
+    "  }",
+    "}"
+  );
+}
+function emitElement2(block, env, out) {
+  const tag = xmlName4(xmlTagName4(block));
+  const extra = extraStateOf(block);
+  const xmlAttributes = new Set(extra.xmlAttributes ?? []);
+  for (const field of extra.fields ?? []) {
+    if (field.xmlKind === "attribute") xmlAttributes.add(field.name);
+  }
+  const attrs = [];
+  const content2 = [];
+  if (block.type === XML_ELEMENT_TYPE) {
+    let attr = block.getInputTargetBlock(XML_ATTRIBUTES_INPUT);
+    while (attr) {
+      const name2 = String(attr.getFieldValue("NAME") ?? "").trim();
+      const val = attr.getInputTargetBlock(XML_TEXT_INPUT) ?? attr.getInputTargetBlock("VALUE");
+      if (name2) {
+        attrs.push(
+          `w.writeAttribute(${JSON.stringify(xmlName4(name2))}, ${val ? textOf2(emitValue2(val, env)) : '""'});`
+        );
+      }
+      attr = attr.getNextBlock();
+    }
+    const text = block.getInputTargetBlock(XML_TEXT_INPUT);
+    if (text) {
+      content2.push(`w.writeCharacters(${textOf2(emitValue2(text, env))});`);
+    }
+    emitChain2(block.getInputTargetBlock(XML_CHILDREN_INPUT), env, content2);
+  } else {
+    for (const input of block.inputList) {
+      if (!input.name.startsWith("TARGET_") && !input.name.startsWith("SCHEMA_OPT_")) continue;
+      const field = input.name.replace(/^TARGET_|^SCHEMA_OPT_/, "");
+      const child = block.getInputTargetBlock(input.name);
+      if (!child) continue;
+      if (xmlAttributes.has(field)) {
+        attrs.push(
+          `w.writeAttribute(${JSON.stringify(xmlName4(field))}, ${textOf2(emitValue2(child, env))});`
+        );
+      } else if (input.type === STATEMENT_INPUT_TYPE5 || isXmlStructure2(child.type) || child.type === INCLUDE_WHEN_BLOCK || child.type === "for_each_list") {
+        emitChain2(child, env, content2);
+      } else {
+        content2.push(
+          `w.writeStartElement(${JSON.stringify(xmlName4(field))});`,
+          `w.writeCharacters(${textOf2(emitValue2(child, env))});`,
+          "w.writeEndElement();"
+        );
+      }
+    }
+  }
+  out.push(
+    `w.writeStartElement(${JSON.stringify(tag)});`,
+    ...attrs,
+    ...content2,
+    "w.writeEndElement();"
+  );
+}
+function textOf2(expr) {
+  return `xmlText(${expr})`;
+}
+function emitValue2(block, env) {
+  if (block.type === "text_code" && !isHandlebarsCodeLang(block.getFieldValue("LANG"))) {
+    return JSON.stringify(String(block.getFieldValue("TEXT") ?? ""));
+  }
+  const serialized = blockToExpression(block);
+  if (!serialized) {
+    throw new Error(
+      `Java cannot express a "${block.type}" value block; use TypeScript or XQuery`
+    );
+  }
+  return emitJavaExpression(parseExpression(serialized), env.ctx);
+}
+
 // src/blockly/hardcode_defaults.ts
 function listDefaultsMapEntries(workspace2) {
   return listDefaultContextMapEntries(workspace2);
@@ -207476,6 +207750,7 @@ function initBlocklyGenerators() {
     registerTypeScriptExportAdapter();
     registerGoTemplateExportAdapter();
     registerXQueryExportAdapter();
+    registerJavaExportAdapter();
     installCollapsedPreview();
     generatorsReady = true;
   }
@@ -207806,11 +208081,11 @@ function emitForEachListJs(block) {
 function stripTrailingComma(code) {
   return code.trim().replace(/,\s*$/, "");
 }
-var STATEMENT_INPUT_TYPE5 = 3;
+var STATEMENT_INPUT_TYPE6 = 3;
 function generateRmAttributeCode(block, inputName) {
   const input = block.getInput(inputName);
   if (!input) return {};
-  if (input.type === STATEMENT_INPUT_TYPE5) {
+  if (input.type === STATEMENT_INPUT_TYPE6) {
     return { stmt: javascriptGenerator.statementToCode(block, inputName) };
   }
   const value = javascriptGenerator.valueToCode(block, inputName, Order.NONE);
@@ -211754,7 +212029,7 @@ function walkBlock2(block, indent, lines, attribute, extraAliases = [], shell, a
     return;
   }
   if (type === "element") {
-    emitElement2(block, indent, lines, attribute, extraAliases, shell, attributeEdit);
+    emitElement3(block, indent, lines, attribute, extraAliases, shell, attributeEdit);
     if (block.next?.block) walkBlock2(block.next.block, indent, lines, attribute, extraAliases, shell);
     return;
   }
@@ -211762,7 +212037,7 @@ function walkBlock2(block, indent, lines, attribute, extraAliases = [], shell, a
   walkInputs(block, indent + 1, lines);
   if (block.next?.block) walkBlock2(block.next.block, indent, lines, attribute, extraAliases, shell);
 }
-function emitElement2(block, indent, lines, attribute, extraAliases, shell, attributeEdit) {
+function emitElement3(block, indent, lines, attribute, extraAliases, shell, attributeEdit) {
   const line = genericLine(block, indent, attribute, extraAliases, shell);
   const children = [];
   walkInputs(block, indent + 1, children);
@@ -218589,8 +218864,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "7935eda" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-26T22:06:17.004Z" : "not built";
+var BUILD_ID = true ? "637ea24" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-26T22:44:39.021Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
