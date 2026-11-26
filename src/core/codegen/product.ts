@@ -108,3 +108,39 @@ export function usesOpenEhrProduct(
 
   return model.slots.some((slot) => isOpenEhrRmType(slot.rmType));
 }
+
+interface CanvasNode {
+  type?: string;
+  inputs?: Record<string, { block?: CanvasNode; shadow?: CanvasNode }>;
+  next?: { block?: CanvasNode };
+}
+
+/**
+ * True when an XML / XML Schema canvas has structure a Mapping Model slot map
+ * cannot hold: `include_when` / `for_each_list`, or a statement input with two
+ * blocks of the same element type (17 `TextKeyWord`s share one slot id). A
+ * generator that only emits a slot map would silently drop that content.
+ */
+export function xmlCanvasNeedsTreeWalker(state: unknown): boolean {
+  const start = topBlocks(state).find((block) => block.type === "conversion_start") as CanvasNode | undefined;
+  const root = start?.next?.block as CanvasNode | undefined;
+  if (!root?.type || !(root.type === "xml_element" || root.type.startsWith("schema_"))) return false;
+  const visit = (node: CanvasNode | undefined): boolean => {
+    if (!node?.type) return false;
+    if (node.type === "include_when" || node.type === "for_each_list") return true;
+    for (const input of Object.values(node.inputs ?? {})) {
+      const child = input.block;
+      if (!child) continue;
+      const seen = new Set<string>();
+      for (let current: CanvasNode | undefined = child; current?.type; current = current.next?.block) {
+        if (seen.has(current.type) && (current.type === "xml_element" || current.type.startsWith("schema_"))) {
+          return true;
+        }
+        seen.add(current.type);
+        if (visit(current)) return true;
+      }
+    }
+    return false;
+  };
+  return visit(root);
+}

@@ -41,9 +41,15 @@ function keywordPairs(xml: string): Array<{ termId: string; note: string }> {
   const re =
     /<TextKeyWord>(?:[\s\S]*?)<TermId>\s*([^<]*?)\s*<\/TermId>(?:[\s\S]*?)<Note>([\s\S]*?)<\/Note>[\s\S]*?<\/TextKeyWord>/gi;
   for (const match of xml.matchAll(re)) {
-    pairs.push({ termId: match[1]!.trim(), note: normalizeWs(match[2] ?? "") });
+    pairs.push({ termId: match[1]!.trim(), note: normalizeWs(xmlText(match[2] ?? "")) });
   }
   return pairs.sort((a, b) => a.termId.localeCompare(b.termId) || a.note.localeCompare(b.note));
+}
+
+/** Note text as XML means it: `&quot;` and `"` are the same character. */
+function xmlText(raw: string): string {
+  return raw.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
 }
 
 function outputText(output: unknown): string {

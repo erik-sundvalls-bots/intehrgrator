@@ -296,6 +296,7 @@ export function igDecisionTable(
   name: string,
   inputs: Record<string, unknown> = {},
   outputCol?: string,
+  renderSnippet?: (template: string, locals: Record<string, unknown>) => string,
 ): unknown {
   const s = sheetOf(sheets, name);
   if (!s) return null;
@@ -368,6 +369,9 @@ export function igDecisionTable(
     const kind = meta[oi]?.outputKind ?? "value";
     if (kind === "snippet") {
       const tpl = String(cell ?? "");
+      // Full VMS-Mustache (sections, `[|value]` segments) as in the host
+      // evaluator; the regex below only covers plain `{{name}}` lookups.
+      if (renderSnippet) return tpl.includes("{{") ? renderSnippet(tpl, inputs) : tpl;
       return tpl.replace(/\{\{\s*([\w.$]+)\s*\}\}/g, (_: string, key: string) => {
         const parts = key.split(".");
         let cur: unknown = inputs;

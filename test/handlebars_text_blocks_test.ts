@@ -118,7 +118,11 @@ Deno.test("text_code emits a multiline string and stores a language", () => {
   assertEquals(block.outputConnection?.getCheck()?.includes("String"), true);
   assertEquals(block.getFieldValue("LANG"), "handlebars");
   block.setFieldValue("{{name}}\n{{unit}}", "TEXT");
+  // A Handlebars Code text is a nested template every language renders (lung-MDT).
+  assertEquals(blockToExpression(block), `handlebars(${JSON.stringify("{{name}}\n{{unit}}")}, xpathNode("$"))`);
+  block.setFieldValue("go-template", "LANG");
   assertEquals(blockToExpression(block), JSON.stringify("{{name}}\n{{unit}}"));
+  block.setFieldValue("handlebars", "LANG");
   const saved = Blockly.serialization.blocks.save(block) as {
     fields?: Record<string, unknown>;
   };

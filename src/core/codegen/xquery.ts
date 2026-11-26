@@ -212,6 +212,23 @@ export function generateXQuery(
   });
 }
 
+/**
+ * Wrap an XQuery body built from an XML / XML Schema canvas (Blockly walker in
+ * `src/blockly/xquery_codegen.ts`): the result is the Target XML itself, not
+ * the Model B slot manifest.
+ */
+export function wrapXQueryCanvasXmlModule(model: MappingModel, body: string): string {
+  return wrapXQueryModule({
+    model,
+    shape: "xml",
+    needsRm: false,
+    needsHandlebars: body.includes("intehrgrator:handlebars("),
+    productComment: "Output: Target XML built from the canvas (XML / XML Schema blocks).",
+    convertType: "item()*",
+    body,
+  });
+}
+
 function wrapXQueryModule(args: {
   model: MappingModel;
   shape: OpenEhrInstanceShape;
@@ -849,7 +866,11 @@ export function jsonDollarPathToLookup(path: string, root = "$source"): string |
   let expr = root;
   for (const seg of segments) {
     if (seg === "*") expr += "?*";
-    else if (/^\d+$/.test(seg)) expr += `?${seg === "0" ? "1" : seg}`;
+    else if (/^\d+$/.test(seg)) {
+      // `?N` raises FOAY0001 on a missing item; a missing source path is empty.
+      const n = seg === "0" ? "1" : seg;
+      expr = `(${expr})!(if (. instance of array(*) and array:size(.) ge ${n}) then ?${n} else ())`;
+    }
     else if (/^[\p{L}_][\p{L}\p{N}_]*$/u.test(seg)) expr += `?${seg}`;
     else expr += `?(${xqString(seg)})`;
   }
