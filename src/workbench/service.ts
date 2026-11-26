@@ -437,8 +437,14 @@ export class WorkbenchService {
       this.controller.loadBlocklyDefinition("agent.blockly.json", JSON.stringify(blocklyState));
       // The canvas is the source of truth: re-extract slot expressions, loops
       // and Functions so model-driven languages (Mapping preview, Handlebars,
-      // Go template) see the new workspace, not the previous mapping.
-      this.hydrateSkeletonCanvas();
+      // Go template) see the new workspace, not the previous mapping. A canvas
+      // Blockly cannot load (e.g. an abstract RM block) stays as given, so the
+      // constraint tools can still report it.
+      try {
+        this.hydrateSkeletonCanvas();
+      } catch (err) {
+        console.warn("put_blockly: canvas kept as given; model not refreshed", err);
+      }
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? "Replace Blockly workspace" });
   }
 
