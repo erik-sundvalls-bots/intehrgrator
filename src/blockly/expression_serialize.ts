@@ -1,3 +1,4 @@
+import { codeTextExpression } from "../core/output/code_text.ts";
 import type { Block } from "blockly/core";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import type { ExprAst } from "../core/expression/mod.ts";
@@ -81,8 +82,10 @@ export function blockToExpression(block: Block | null): string | null {
     }
     // Stock Blockly literals / ops
     case "text":
-    case "text_code":
       return JSON.stringify(block.getFieldValue("TEXT") ?? "");
+    case "text_code":
+      // A Handlebars LANG is a nested template every language renders (lung-MDT).
+      return codeTextExpression(block.getFieldValue("TEXT"), block.getFieldValue("LANG"));
     case "math_number":
       return String(block.getFieldValue("NUM") ?? 0);
     case "logic_boolean":
@@ -227,7 +230,11 @@ export function blockToExpression(block: Block | null): string | null {
       return `map(${parts.join(", ")})`;
     }
     case "text_handlebars": {
-      const script = blockToExpression(block.getInputTargetBlock("SCRIPT")) ?? '""';
+      const scriptBlock = block.getInputTargetBlock("SCRIPT");
+      // SCRIPT is the template text itself, not a nested render.
+      const script = scriptBlock?.type === "text_code"
+        ? JSON.stringify(scriptBlock.getFieldValue("TEXT") ?? "")
+        : blockToExpression(scriptBlock) ?? '""';
       const context = blockToExpression(block.getInputTargetBlock("CONTEXT")) ?? "map()";
       return `handlebars(${script}, ${context})`;
     }

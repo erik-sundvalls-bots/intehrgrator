@@ -33,12 +33,14 @@ import {
   createGoEmitContext,
   emitGoExpressionTemplate,
   emitGoExpr,
+  emitGoXmlTextTemplate,
   emitGoFunctionDefines,
   goQuote,
   jsonPathToGoIndex,
   type GoEmitContext,
 } from "../core/codegen/go_template.ts";
 import { parseExpression } from "../core/expression/mod.ts";
+import { isHandlebarsCodeLang } from "../core/output/code_text.ts";
 import { registerExportTargetAdapter } from "../core/codegen/mod.ts";
 import { archetypeRootIdBySlot } from "../core/openehr/rm_archetype_node_id.ts";
 import { generateGoTemplate } from "../core/codegen/go_template.ts";
@@ -178,9 +180,18 @@ export function generateGoTemplateFromWorkspace(
 
 const RAW_TEXT_BLOCK_TYPES = new Set(["text", "text_code"]);
 
+/**
+ * Literal hatch text pasted into the template as is. A Code text whose LANG is
+ * Handlebars is a nested template: it renders via the host `handlebars` func.
+ */
+function isRawTextBlock(block: Block): boolean {
+  if (!RAW_TEXT_BLOCK_TYPES.has(block.type)) return false;
+  return !(block.type === "text_code" && isHandlebarsCodeLang(block.getFieldValue("LANG")));
+}
+
 function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
   if (block.type === "term_pick") return [emitTermPickJson(block)];
-  if (!RAW_TEXT_BLOCK_TYPES.has(block.type)) {
+  if (!isRawTextBlock(block)) {
     const fromExpr = emitExpressionBlock(block, ctx);
     if (fromExpr !== null) return fromExpr;
   }
@@ -237,7 +248,7 @@ function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
 
 /** Literal hatch text (Go snippets) must not go through JSON.stringify + goQuote. */
 function emitLiveValue(block: Block, ctx: GoEmitContext, indent: number): string {
-  if (RAW_TEXT_BLOCK_TYPES.has(block.type)) {
+  if (isRawTextBlock(block)) {
     return String(block.getFieldValue("TEXT") ?? "");
   }
   if (block.type === "math_number") {
@@ -247,6 +258,16 @@ function emitLiveValue(block: Block, ctx: GoEmitContext, indent: number): string
     return block.getFieldValue("BOOL") === "TRUE" ? "true" : "false";
   }
   return (emitExpressionBlock(block, ctx) ?? emitBlock(block, ctx, indent)).join("");
+}
+
+/** An XML text/attribute value: computed values are XML-escaped; hatch text stays raw. */
+function emitXmlLiveValue(block: Block, ctx: GoEmitContext): string {
+  if (isRawTextBlock(block) || block.type === "math_number" || block.type === "logic_boolean") {
+    return emitLiveValue(block, ctx, 0);
+  }
+  const serialized = blockToExpression(block);
+  if (!serialized) return emitLiveValue(block, ctx, 0);
+  return emitGoXmlTextTemplate(parseExpression(serialized), ctx);
 }
 
 function emitExpressionBlock(block: Block, ctx: GoEmitContext): string[] | null {
@@ -554,7 +575,7 @@ function emitDvChildJson(
 function emitXmlTextishLive(block: Block, ctx: GoEmitContext, indent: number): string[] {
   const value = block.getInputTargetBlock(XML_TEXT_INPUT) ?? block.getInputTargetBlock("VALUE");
   const rendered = value
-    ? emitLiveValue(value, ctx, indent)
+    ? block.type === "xml_cdata" ? emitLiveValue(value, ctx, indent) : emitXmlLiveValue(value, ctx)
     : String(block.getFieldValue("TEXT") ?? "");
   if (block.type === "xml_cdata") return [wrapXmlCdata(rendered)];
   return rendered ? [rendered] : [];
@@ -585,7 +606,7 @@ function emitXmlDocumentLive(block: Block, ctx: GoEmitContext): string[] {
   return lines;
 }
 
-function extraStateOf(block: Block): {
+export function extraStateOf(block: Block): {
   xmlAttributes?: string[];
   fields?: Array<{ name: string; xmlKind?: string }>;
   declaration?: boolean;
@@ -664,7 +685,7 @@ function emitXmlAttributeLive(block: Block, ctx: GoEmitContext): string {
   const name = String(block.getFieldValue("NAME") ?? "").trim();
   if (!name) return "";
   const val = block.getInputTargetBlock(XML_TEXT_INPUT) ?? block.getInputTargetBlock("VALUE");
-  const rendered = val ? emitLiveValue(val, ctx, 0) : "";
+  const rendered = val ? emitXmlLiveValue(val, ctx) : "";
   return ` ${name}="${rendered}"`;
 }
 
@@ -688,7 +709,7 @@ function emitXmlOrSchema(block: Block, ctx: GoEmitContext): string[] {
       attr = attr.getNextBlock();
     }
     const text = block.getInputTargetBlock(XML_TEXT_INPUT);
-    if (text) inner.push(emitLiveValue(text, ctx, 0));
+    if (text) inner.push(emitXmlLiveValue(text, ctx));
     let current: Block | null = block.getInputTargetBlock(XML_CHILDREN_INPUT);
     while (current) {
       inner.push(...emitBlock(current, ctx, 0));
@@ -701,14 +722,14 @@ function emitXmlOrSchema(block: Block, ctx: GoEmitContext): string[] {
       const child = block.getInputTargetBlock(input.name);
       if (!child) continue;
       if (xmlAttributes.has(fieldName) || child.type === "xml_attribute") {
-        attrParts.push(` ${fieldName}="${emitLiveValue(child, ctx, 0)}"`);
+        attrParts.push(` ${fieldName}="${emitXmlLiveValue(child, ctx)}"`);
         continue;
       }
       if (input.type === STATEMENT_INPUT_TYPE || isStructureBlock(child.type)) {
         inner.push(...emitStatementChain(child, ctx, 0));
         continue;
       }
-      inner.push(`<${xmlName(fieldName)}>${emitLiveValue(child, ctx, 0)}</${xmlName(fieldName)}>`);
+      inner.push(`<${xmlName(fieldName)}>${emitXmlLiveValue(child, ctx)}</${xmlName(fieldName)}>`);
     }
   }
 
@@ -722,7 +743,7 @@ function isStructureBlock(type: string): boolean {
     type === "include_when" || type === "for_each_list";
 }
 
-function xmlTagName(block: Block): string {
+export function xmlTagName(block: Block): string {
   const slot = String(block.getFieldValue("SLOT_ID") ?? "");
   const path = slot.includes(":") ? slot.slice(slot.indexOf(":") + 1) : slot;
   const fromPath = path.split("/").filter((part) => part && !part.startsWith("@")).pop();
@@ -730,7 +751,7 @@ function xmlTagName(block: Block): string {
   return String(block.getFieldValue("NAME") ?? "element").trim() || "element";
 }
 
-function xmlName(value: string): string {
+export function xmlName(value: string): string {
   const safe = value.replace(/[^A-Za-z0-9_.-]/g, "_");
   return /^[A-Za-z_]/.test(safe) ? safe : `_${safe}`;
 }

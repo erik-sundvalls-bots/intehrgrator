@@ -445,6 +445,11 @@ function resolveOutputIndex(sheet: SheetDocument, meta: DecisionColumnMeta[], ou
   return Math.max(0, sheet.headers.length - 1);
 }
 
+/** VMS-Mustache snippet render (also bound as XQuery `intehrgrator:mustache`). */
+export function renderDecisionSnippet(template: string, locals: Record<string, unknown>): string {
+  return renderSnippet(template, locals);
+}
+
 function renderSnippet(template: string, locals: Record<string, unknown>): string {
   if (!template.includes("{{")) return template;
   const engine = Handlebars.create();

@@ -985,12 +985,60 @@ export function stripDelimiters(expr: string): string {
   return expr.replace(/^\{\{\s*/, "").replace(/\s*\}\}$/, "").replace(/^\{\{-?\s*/, "").replace(/\s*-?\}\}$/, "");
 }
 
+/**
+ * Double-quoted literal valid both as a Go string inside an action and as a
+ * JSON string: newlines and other control characters are escaped (a raw
+ * newline is an "unterminated quoted string" in Go and invalid JSON).
+ */
 export function goQuote(s: string): string {
-  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  const body = s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(
+    // deno-lint-ignore no-control-regex
+    /[\u0000-\u001f]/g,
+    (ch) => GO_CONTROL_ESCAPES[ch] ?? `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
+  return `"${body}"`;
 }
+
+const GO_CONTROL_ESCAPES: Record<string, string> = {
+  "\n": "\\n",
+  "\r": "\\r",
+  "\t": "\\t",
+};
 
 export function sanitizeGoField(name: string): string {
   return name.replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
+/**
+ * Mapping Expression as Go template text for an XML text node or attribute:
+ * computed values go through `xmlEscape`, as Mapping preview and Handlebars
+ * Output escape them (a Note holding `<!-- … -->` stays text, not a comment).
+ */
+export function emitGoXmlTextTemplate(
+  ast: ExprAst,
+  ctx: GoEmitContext = createGoEmitContext(),
+): string {
+  switch (ast.kind) {
+    case "literal":
+      return escapeXmlStatic(ast.value == null ? "" : String(ast.value));
+    case "binary":
+      return `{{ xmlEscape (${emitGoExpr(ast, ctx)}) }}`;
+    case "call":
+      if (ast.name === "concat") {
+        return ast.args.map((arg) => emitGoXmlTextTemplate(arg, ctx)).join("");
+      }
+      if (ast.name === "if") {
+        const cond = emitGoExpr(ast.args[0]!, ctx);
+        const thenPart = emitGoXmlTextTemplate(ast.args[1]!, ctx);
+        const elsePart = ast.args[2] ? emitGoXmlTextTemplate(ast.args[2]!, ctx) : "";
+        return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
+      }
+      return `{{ xmlEscape (${emitGoExpr(ast, ctx)}) }}`;
+  }
+}
+
+function escapeXmlStatic(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 export function emitGoExpressionTemplate(
@@ -1035,9 +1083,12 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
       if (isQuantifyCall(ast.name)) return emitQuantifierGo(ast, ctx);
       const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
       switch (ast.name) {
+        case "xpathBoolean":
+          // A boolean source is a real bool (as in TypeScript), so a decision
+          // table "true" row matches a filled path, not its text.
+          return `(not (not ${emitXPathGo(ast.args[0], ctx)}))`;
         case "xpathString":
         case "xpathNumber":
-        case "xpathBoolean":
         case "xpathNode":
         case "xpath":
           return emitXPathGo(ast.args[0], ctx);
@@ -1052,7 +1103,7 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
           if (mapName === "defaults" || mapName === "Parameters") {
             return `.Parameters.${sanitizeGoField(key)}`;
           }
-          return `index .${sanitizeGoField(mapName)} ${goQuote(key)}`;
+          return `(index .${sanitizeGoField(mapName)} ${goQuote(key)})`;
         }
         case "trim":
           return `(${args[0]} | trim)`;
@@ -1065,13 +1116,14 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "concat":
           return args.join("");
         case "round":
-          return `int ${args[0]}`;
+          return `(int ${args[0]})`;
         case "modulo":
           return `(${args[0]} % ${args[1]})`;
         case "constrain":
           return `(if ge ${args[0]} ${args[2]} then ${args[2]} else (if le ${args[0]} ${args[1]} then ${args[1]} else ${args[0]}))`;
         case "if":
-          return `if ${args[0]} ${args[1]} ${args[2] ?? '""'}`;
+          // Only the template form (emitGoExpressionTemplate) can branch.
+          throw goUnsupported("a conditional value inside an expression");
         case "switch":
           return args[0] ?? '""';
         case "var": {
@@ -1118,40 +1170,48 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
         case "divide":
           return `(${args[0]} / ${args[1]})`;
         case "list":
-          return `[${args.join(", ")}]`;
+          return `(list ${args.join(" ")})`;
         case "intersection":
         case "union":
         case "difference":
-          return `/* ${ast.name} not available in Go template */`;
         case "sheet_get_cell":
         case "sheet_get_xy":
         case "sheet_get_row":
         case "sheet_get_column":
         case "sheet_get_header":
         case "sheet_get_data":
-          return `/* ${ast.name} not available in Go template */`;
+          throw goUnsupported(ast.name);
         case "sheet_lookup": {
           const name = args[0] ?? `""`;
           const col = args[1] ?? `""`;
           const val = args[2] ?? `""`;
           const ret = args[3] ?? `""`;
-          return `sheetLookup ${name} ${col} ${val} ${ret}`;
+          return `(sheetLookup ${name} ${col} ${val} ${ret})`;
         }
         case "decision_table": {
           const name = args[0] ?? `""`;
           const inputs = args[1] ?? "(dict)";
           const output = args[2] ?? `""`;
-          return `decisionTable ${name} ${inputs} ${output}`;
+          return `(decisionTable ${name} ${inputs} ${output})`;
         }
         case "handlebars":
-          return `handlebars ${args[0] ?? '""'} ${args[1] ?? "(dict)"}`;
+          return `(handlebars ${args[0] ?? '""'} ${args[1] ?? "(dict)"})`;
         case "map":
           return args.length ? `(dict ${args.join(" ")})` : "(dict)";
         default:
-          return `/* unsupported: ${ast.name} */`;
+          throw goUnsupported(ast.name);
       }
     }
   }
+}
+
+/**
+ * A construct Go text/template cannot express. Fail the generation with a
+ * readable message instead of emitting an inline comment that breaks the
+ * template parse (or silently yields an empty value).
+ */
+function goUnsupported(what: string): Error {
+  return new Error(`Go templates do not support ${what}; use TypeScript, Java or XQuery`);
 }
 
 function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
@@ -1165,6 +1225,7 @@ function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
     if (path === ".") return ".";
     return `(index . ${goQuote(path)})`;
   }
+  if (path.trim() === "$") return ".Data";
   if (path.startsWith("$")) {
     return `(${jsonPathToGoIndex(path)})`;
   }
@@ -1175,14 +1236,11 @@ function emitXPathGo(pathArg: ExprAst | undefined, ctx: GoEmitContext): string {
 export function jsonPathToGoIndex(path: string): string {
   const segments = jsonPathSegments(path);
   if (!segments.length) return `index .Data ""`;
-  let expr = ".Data";
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i]!;
-    const target = i === 0 ? expr : `(${expr})`;
-    const key = /^\d+$/.test(seg) ? String(Math.max(0, Number(seg) - 1)) : goQuote(seg);
-    expr = `index ${target} ${key}`;
-  }
-  return expr;
+  const keys = segments.map((seg) => /^\d+$/.test(seg) ? String(Math.max(0, Number(seg) - 1)) : goQuote(seg));
+  if (keys.length === 1) return `index .Data ${keys[0]}`;
+  // Nested `index` fails on a missing array item or a nil step; `jget` yields
+  // nil there, as a missing source path is empty in every other language.
+  return `jget .Data ${keys.join(" ")}`;
 }
 
 function jsonPathSegments(path: string): string[] {
@@ -1221,7 +1279,49 @@ function jsonPathSegments(path: string): string[] {
   return segments.filter((seg) => seg.length > 0);
 }
 
+/**
+ * any/all/none of a list (Manchester restriction). Go templates have no
+ * lambdas, so a literal `list(a, b, …)` is unrolled: the predicate is
+ * instantiated per item and joined with `or` / `and`. A computed list or a
+ * cardinality restriction cannot be expressed and fails loudly instead of
+ * emitting a comment that breaks the template parse.
+ */
 function emitQuantifierGo(ast: Extract<ExprAst, { kind: "call" }>, ctx: GoEmitContext): string {
-  const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
-  return `/* ${ast.name}(${args.join(", ")}) */ false`;
+  const card = ast.name === "at_least" || ast.name === "at_most" || ast.name === "exactly";
+  const list = ast.args[0];
+  if (card || list?.kind !== "call" || list.name !== "list") {
+    throw new Error(
+      `Go templates do not support ${ast.name} over ${card ? "a count" : "a computed list"}; ` +
+        "use a literal list of values, or TypeScript, Java or XQuery",
+    );
+  }
+  const varAst = ast.args[1];
+  const varName = varAst?.kind === "literal" ? String(varAst.value) : "item";
+  const predAst = ast.args[2];
+  const items = list.args.map((item) =>
+    predAst ? substituteVar(predAst, varName, item) : item
+  ).map((item) => emitGoExpr(item, ctx));
+  if (!items.length) return ast.name === "any_of" ? "false" : "true";
+  const joined = items.length === 1 ? items[0]! : `(${ast.name === "all_of" ? "and" : "or"} ${items.join(" ")})`;
+  return ast.name === "none_of" ? `(not ${joined})` : joined;
+}
+
+/** `pred` with `var(name)` replaced by `value` (unrolled quantifier item). */
+function substituteVar(pred: ExprAst, name: string, value: ExprAst): ExprAst {
+  if (pred.kind === "literal") return pred;
+  if (pred.kind === "binary") {
+    return { ...pred, left: substituteVar(pred.left, name, value), right: substituteVar(pred.right, name, value) };
+  }
+  if (pred.name === "var" && pred.args[0]?.kind === "literal" && String(pred.args[0].value) === name) {
+    return value;
+  }
+  // An inner quantifier rebinding the same name shadows it.
+  if (isQuantifyCall(pred.name)) {
+    const card = pred.name === "at_least" || pred.name === "at_most" || pred.name === "exactly";
+    const inner = card ? pred.args[2] : pred.args[1];
+    if (inner?.kind === "literal" && String(inner.value) === name) {
+      return { ...pred, args: pred.args.map((arg, i) => (i === 0 ? substituteVar(arg, name, value) : arg)) };
+    }
+  }
+  return { ...pred, args: pred.args.map((arg) => substituteVar(arg, name, value)) };
 }

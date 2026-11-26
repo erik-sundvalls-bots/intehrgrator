@@ -52,6 +52,14 @@ export type ExprAst =
   }
   | { kind: "binary"; op: "+" | "-" | "*" | "/"; left: ExprAst; right: ExprAst };
 
+const STRING_ESCAPES: Record<string, string> = {
+  n: "\n",
+  t: "\t",
+  r: "\r",
+  b: "\b",
+  f: "\f",
+};
+
 const BUILTIN_NAMES = new Set([
   "xpath",
   "xpathString",
@@ -253,7 +261,12 @@ function tokenize(input: string): Token[] {
       while (i < input.length && input[i] !== quote) {
         if (input[i] === "\\") {
           i++;
-          value += input[i++];
+          const esc = input[i++] ?? "";
+          // JSON escapes: literals come from JSON.stringify (newlines in Code text).
+          if (esc === "u" && /^[0-9a-fA-F]{4}$/.test(input.slice(i, i + 4))) {
+            value += String.fromCharCode(parseInt(input.slice(i, i + 4), 16));
+            i += 4;
+          } else value += STRING_ESCAPES[esc] ?? esc;
         } else value += input[i++];
       }
       i++;

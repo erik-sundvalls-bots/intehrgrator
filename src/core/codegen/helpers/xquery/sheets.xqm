@@ -130,13 +130,23 @@ declare function igsh:cell-match($cell as item()*, $input as item()*) as xs:bool
        else $str eq $in
 };
 
+(: VMS-Mustache snippet. The intEHRgrator Test Run binds intehrgrator:mustache (the same
+   Handlebars renderer as Mapping preview); elsewhere only {{name}} placeholders are
+   supported and a section / segment snippet fails with a clear error. :)
 declare function igsh:snippet-interp($tpl as xs:string?, $inputs as map(*)) as xs:string {
   if (empty($tpl)) then ''
+  else if (not(contains($tpl, '{{'))) then $tpl
+  else let $host := function-lookup(QName('http://intehrgrator.local/xquery', 'mustache'), 2)
+  return if (exists($host)) then $host($tpl, $inputs)
+  else if (matches($tpl, '\{\{\s*[#\^/.!\[]')) then error(
+    QName('http://intehrgrator.local/xquery', 'SNIPPET-MUSTACHE'),
+    'Decision-table snippet uses Mustache sections or [segments]; bind intehrgrator:mustache($template, $inputs) or use plain {{name}} placeholders'
+  )
   else fold-left(
     map:keys($inputs),
     $tpl,
     function($acc as xs:string, $key as xs:anyAtomicType) as xs:string {
-      replace($acc, '\{\{\s*' || replace(xs:string($key), '([\\\.\+\*\?\[\]\(\)\{\}\|\^\$])', '\\$1') || '\s*\}\}', xs:string(map:get($inputs, $key)))
+      replace($acc, '\{\{\s*' || replace(xs:string($key), '([\\\.\+\*\?\[\]\(\)\{\}\|\^\$])', '\\$1') || '\s*\}\}', string-join(for $v in map:get($inputs, $key) return string($v), ''))
     }
   )
 };
