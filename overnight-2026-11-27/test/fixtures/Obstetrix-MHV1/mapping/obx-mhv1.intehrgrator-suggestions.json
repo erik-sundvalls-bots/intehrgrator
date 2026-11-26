@@ -1,0 +1,310 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "openEHR-EHR-COMPOSITION.t_encounter.v1"
+  },
+  "suggestions": [
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//category/value",
+      "block": { "type": "text", "fields": { "TEXT": "event" } },
+      "note": "openEHR composition category event (433)."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//context/EVENT_CONTEXT/start_time/value",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$[1].RegTid" }
+      },
+      "note": "Enrolment visit timestamp (source over defaults). Date-only InskrDatum is $[1].InskrDatum."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "value", "KEY1": "code_string", "KEY2": "terminology_id" },
+        "inputs": {
+          "VAL0": { "block": { "type": "text", "fields": { "TEXT": "primary medical care" } } },
+          "VAL1": { "block": { "type": "text", "fields": { "TEXT": "228" } } },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "openehr" } } }
+        }
+      }
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//composer",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 3 },
+        "fields": { "KEY0": "name", "KEY1": "id", "KEY2": "type" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Avdelning" } } },
+          "VAL1": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Barnmorska" } } },
+          "VAL2": { "block": { "type": "text", "fields": { "TEXT": "local" } } }
+        }
+      },
+      "note": "MVC unit name plus midwife staff id from the MHV1 row."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//context/EVENT_CONTEXT/other_context/at0001/items/at0002.2/items/at0002.1/items/at0003.1/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 2 },
+        "fields": { "KEY0": "id", "KEY1": "type" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Personnummer" } } },
+          "VAL1": { "block": { "type": "text", "fields": { "TEXT": "1.2.752.129.2.1.3.1" } } }
+        }
+      },
+      "note": "Swedish personnummer. Source tree path is $[1].Personnummer (1-based array row)."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//context/EVENT_CONTEXT/other_context/at0001/items/at0002.2/items/at0002.1/items/at0001.1/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$[1].Klinik" }
+      },
+      "note": "Mandatory contact-person Name; MVC clinic from the row."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.21/items/at0.2/items/at0.2/data/at0001/items/at0002.1/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$[1].SenastMens" }
+      },
+      "note": "LMP (SenastMens). Slot is DV_TEXT."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.21/items/at0.8/items/at0.2/data/at0002/items/at0003.1/value/DV_DATE_TIME/value",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$[1].BerakForSM" }
+      },
+      "note": "EDD by LMP/cycle (BerakForSM)."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.21/items/at0.8/items/at0.2/data/at0002/items/at0004.1/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$[1].BerakForSM" }
+      },
+      "note": "EDD by cycle as text."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.6/items/at0.2/data/at0002/events/at0003.1/data/at0001.1/items/at0004.1/value/DV_QUANTITY/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": { "itemCount": 2 },
+        "fields": { "KEY0": "magnitude", "KEY1": "units" },
+        "inputs": {
+          "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].Vikt" } } },
+          "VAL1": { "block": { "type": "text", "fields": { "TEXT": "kg" } } }
+        }
+      }
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.6/items/at0.2/data/at0002/events/at0003.1/time/value",
+      "block": {
+        "type": "source_query",
+        "fields": { "EXPRESSION": "$[1].InskrDatum" }
+      },
+      "note": "Weight observation time from enrolment date."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.1/data/at0001/items/at0029/items/at0064.1/items/at0081.1/value/DV_TEXT/value",
+      "block": {
+        "type": "logic_ternary",
+        "inputs": {
+          "IF": {
+            "block": {
+              "type": "logic_compare",
+              "fields": { "OP": "NEQ" },
+              "inputs": {
+                "A": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Tobak_3_man_fore_grav" } } },
+                "B": { "block": { "type": "text", "fields": { "TEXT": "" } } }
+              }
+            }
+          },
+          "THEN": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Tobak_3_man_fore_grav" } } },
+          "ELSE": {
+            "block": {
+              "type": "decision_table",
+              "fields": { "NAME": "lifestyle_code", "OUTPUT": "tobacco" },
+              "inputs": {
+                "INPUTS": {
+                  "block": {
+                    "type": "maps_create_with",
+                    "extraState": { "itemCount": 1 },
+                    "fields": { "KEY0": "code" },
+                    "inputs": {
+                      "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].TobakForegrav" } } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note": "Tobacco 3 months before: prefer *_Text, Decision table 1/2/3 as fallback."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.1/data/at0001/items/at0029/items/at0064.2/items/at0081.2/value/DV_TEXT/value",
+      "block": {
+        "type": "logic_ternary",
+        "inputs": {
+          "IF": {
+            "block": {
+              "type": "logic_compare",
+              "fields": { "OP": "NEQ" },
+              "inputs": {
+                "A": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Tobak_vid_inskr" } } },
+                "B": { "block": { "type": "text", "fields": { "TEXT": "" } } }
+              }
+            }
+          },
+          "THEN": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Tobak_vid_inskr" } } },
+          "ELSE": {
+            "block": {
+              "type": "decision_table",
+              "fields": { "NAME": "lifestyle_code", "OUTPUT": "tobacco" },
+              "inputs": {
+                "INPUTS": {
+                  "block": {
+                    "type": "maps_create_with",
+                    "extraState": { "itemCount": 1 },
+                    "fields": { "KEY0": "code" },
+                    "inputs": {
+                      "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].TobakInskr" } } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note": "Tobacco at enrolment: prefer Tobak_vid_inskr."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0098.1/value/DV_TEXT/value",
+      "block": { "type": "text", "fields": { "TEXT": "Snus" } }
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0064.1/items/at0081.1/value/DV_TEXT/value",
+      "block": {
+        "type": "decision_table",
+        "fields": { "NAME": "lifestyle_code", "OUTPUT": "snus" },
+        "inputs": {
+          "INPUTS": {
+            "block": {
+              "type": "maps_create_with",
+              "extraState": { "itemCount": 1 },
+              "fields": { "KEY0": "code" },
+              "inputs": {
+                "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].SnusForeGrav" } } }
+              }
+            }
+          }
+        }
+      },
+      "note": "No Snus *_Text field in the export; Decision table only."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0064.2/items/at0081.2/value/DV_TEXT/value",
+      "block": {
+        "type": "decision_table",
+        "fields": { "NAME": "lifestyle_code", "OUTPUT": "snus" },
+        "inputs": {
+          "INPUTS": {
+            "block": {
+              "type": "maps_create_with",
+              "extraState": { "itemCount": 1 },
+              "fields": { "KEY0": "code" },
+              "inputs": {
+                "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].SnusInskr" } } }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.3/data/at0001/items/at0064.1/items/at0081.1/value/DV_TEXT/value",
+      "block": {
+        "type": "logic_ternary",
+        "inputs": {
+          "IF": {
+            "block": {
+              "type": "logic_compare",
+              "fields": { "OP": "NEQ" },
+              "inputs": {
+                "A": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Alkohol_3_man_fore_grav" } } },
+                "B": { "block": { "type": "text", "fields": { "TEXT": "" } } }
+              }
+            }
+          },
+          "THEN": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Alkohol_3_man_fore_grav" } } },
+          "ELSE": {
+            "block": {
+              "type": "decision_table",
+              "fields": { "NAME": "lifestyle_code", "OUTPUT": "alcohol" },
+              "inputs": {
+                "INPUTS": {
+                  "block": {
+                    "type": "maps_create_with",
+                    "extraState": { "itemCount": 1 },
+                    "fields": { "KEY0": "code" },
+                    "inputs": {
+                      "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].AlkoholForeGrav" } } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note": "Alcohol 3 months before: prefer Alkohol_3_man_fore_grav."
+    },
+    {
+      "slotId": "openEHR-EHR-COMPOSITION.t_encounter.v1//content/at0.10/items/at0005.3/data/at0001/items/at0064.2/items/at0081.2/value/DV_TEXT/value",
+      "block": {
+        "type": "logic_ternary",
+        "inputs": {
+          "IF": {
+            "block": {
+              "type": "logic_compare",
+              "fields": { "OP": "NEQ" },
+              "inputs": {
+                "A": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Alkohol_vid_inskr" } } },
+                "B": { "block": { "type": "text", "fields": { "TEXT": "" } } }
+              }
+            }
+          },
+          "THEN": { "block": { "type": "source_query", "fields": { "EXPRESSION": "$[1].Alkohol_vid_inskr" } } },
+          "ELSE": {
+            "block": {
+              "type": "decision_table",
+              "fields": { "NAME": "lifestyle_code", "OUTPUT": "alcohol" },
+              "inputs": {
+                "INPUTS": {
+                  "block": {
+                    "type": "maps_create_with",
+                    "extraState": { "itemCount": 1 },
+                    "fields": { "KEY0": "code" },
+                    "inputs": {
+                      "VAL0": { "block": { "type": "source_query_number", "fields": { "EXPRESSION": "$[1].AlkoholInskr" } } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note": "Alcohol at enrolment: prefer Alkohol_vid_inskr."
+    }
+  ]
+}

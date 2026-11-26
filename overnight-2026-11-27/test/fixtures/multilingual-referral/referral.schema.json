@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/multilingual-referral/referral.schema.json",
+  "title": "Referral",
+  "description": "Referral from primary care to a specialist clinic.",
+  "x-lang": "en",
+  "x-i18n": { "sv": { "title": "Remiss", "description": "Remiss från primärvården till en specialistmottagning." } },
+  "type": "object",
+  "required": ["patientId", "priority"],
+  "properties": {
+    "patientId": {
+      "type": "string",
+      "title": "Patient id",
+      "description": "Swedish personal identity number, 12 digits.",
+      "pattern": "^[0-9]{12}$",
+      "examples": ["191212121212"],
+      "x-i18n": { "sv": { "title": "Patient-id", "description": "Personnummer, 12 siffror." } }
+    },
+    "priority": {
+      "type": "string",
+      "title": "Priority",
+      "description": "How urgent the referral is.",
+      "enum": ["ROUTINE", "URGENT"],
+      "default": "ROUTINE",
+      "x-enumDescriptions": { "ROUTINE": "Within 90 days", "URGENT": "Within 7 days" },
+      "x-i18n": { "sv": { "title": "Prioritet", "description": "Hur brådskande remissen är.", "enumDescriptions": { "ROUTINE": "Inom 90 dagar", "URGENT": "Inom 7 dagar" } } }
+    },
+    "systolic": {
+      "type": "integer",
+      "title": "Systolic",
+      "description": "Latest systolic blood pressure in mmHg. Measured sitting.",
+      "minimum": 0,
+      "maximum": 400,
+      "$comment": "Leave out when not measured.",
+      "x-i18n": { "sv": { "title": "Systoliskt", "description": "Senaste systoliska blodtrycket i mmHg." } }
+    },
+    "referralDate": { "type": "string", "format": "date", "description": "Date the referral was written." },
+    "note": { "type": "string", "maxLength": 500, "minLength": 1 }
+  }
+}

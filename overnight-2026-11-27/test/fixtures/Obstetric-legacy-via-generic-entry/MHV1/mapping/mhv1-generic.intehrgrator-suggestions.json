@@ -1,0 +1,414 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "MHV1- Prenatal visit.encounter.v1"
+  },
+  "notes": [
+    "Partial MHV1 mapping. Direct copies (category, setting, start time, care unit, LMP) have no confidence. Percents below are the chance that guess is the right slot or value. BerakForSM, BerakForUL, and BerakForET are different delivery-date calculations: SM is senaste mens, UL is ultraljud. EDD uses berakforsm. Bp_comp is a separate date-time (bp can mean beräknad partum) and these examples leave it empty."
+  ],
+  "questions": [
+    {
+      "text": "Which source date should fill estimated date of delivery?",
+      "options": [
+        {
+          "text": "berakforsm, calculated from senaste mens (SM)",
+          "recommended": true
+        },
+        "berakforul (ultraljud) when present, otherwise berakforsm",
+        "Also map berakforul and berakforet on their own date elements",
+        "Leave EDD unmapped until bp_comp (beräknad partum) is defined"
+      ]
+    },
+    {
+      "text": "How should the composer identifier be filled?",
+      "options": [
+        {
+          "text": "Name from composer, id from barnmorska, type local",
+          "recommended": true
+        },
+        "Name only",
+        "Leave the identifier empty"
+      ]
+    },
+    {
+      "text": "Weight has no unit and no measurement time. What should the observation use?",
+      "options": [
+        {
+          "text": "Units kg, and event time from context/start_time",
+          "recommended": true
+        },
+        "Magnitude only",
+        "Leave weight unmapped"
+      ]
+    },
+    {
+      "text": "Snus and assessment texts sit on elements whose English labels are unreliable. Keep this placement?",
+      "options": [
+        {
+          "text": "Keep both snus texts and bedomningtext",
+          "recommended": true
+        },
+        "Snus at enrolment only",
+        "Leave snus and assessment unmapped"
+      ]
+    }
+  ],
+  "includes": [
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.6/items/at0.2",
+      "when": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/vikt\"]"
+        }
+      },
+      "note": "Enrolment weight observation only when vikt is present."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.2/items/at0.2",
+      "when": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/senastmens\"]"
+        }
+      },
+      "note": "Last menstrual period only when senastmens is present."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.8/items/at0.2",
+      "when": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/berakforsm\"]"
+        }
+      },
+      "note": "EDD evaluation only when berakforsm (senaste mens) is present."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.10/items/at0005.2",
+      "when": {
+        "type": "logic_operation",
+        "fields": {
+          "OP": "OR"
+        },
+        "inputs": {
+          "A": {
+            "block": {
+              "type": "source_query_boolean",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/snusforegravtext\"]"
+              }
+            }
+          },
+          "B": {
+            "block": {
+              "type": "source_query_boolean",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/snusinskrtext\"]"
+              }
+            }
+          }
+        }
+      },
+      "note": "Snus summary only when a snus text is present."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.37/items/at0.2",
+      "when": {
+        "type": "source_query_boolean",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/bedomningtext\"]"
+        }
+      },
+      "note": "Assessment only when bedomningtext is present."
+    }
+  ],
+  "suggestions": [
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//category/value/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/category|value\"]"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/category|code\"]"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/category|terminology\"]"
+              }
+            }
+          }
+        }
+      },
+      "note": "Source category is openehr 433 event. The template's fixed local code is not the clinical category."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//context/EVENT_CONTEXT/start_time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/start_time\"]"
+        }
+      },
+      "note": "Composition start time from the generic context."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/setting|value\"]"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/setting|code\"]"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/setting|terminology\"]"
+              }
+            }
+          }
+        }
+      },
+      "note": "Setting 229 primary nursing care from the source, not a hardcoded 228."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//composer",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/composer|name\"]"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/barnmorska\"]"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "local"
+              }
+            }
+          }
+        }
+      },
+      "note": "Name is the FLAT composer. The id is the barnmorska number and the identifier type \"local\" is a guess.",
+      "confidence": 70
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//context/EVENT_CONTEXT/health_care_facility",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/vårdenhet/namn\"]"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/vårdenhet/identifierare:0|id\"]"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/vårdenhet/identifierare:0|type\"]"
+              }
+            }
+          }
+        }
+      },
+      "note": "Care unit name and HSA id from the generic context."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.6/items/at0.2/data/at0002/events/at0003.1/data/at0001.1/items/at0004.1/value/value/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "magnitude",
+          "KEY1": "units"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query_number",
+              "fields": {
+                "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/vikt\"]"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "kg"
+              }
+            }
+          }
+        }
+      },
+      "note": "vikt is a bare number (68–91). Units are assumed kg. The quantity's canvas label is not the clinical name.",
+      "confidence": 85
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.6/items/at0.2/data/at0002/events/at0003.1/time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/start_time\"]"
+        }
+      },
+      "note": "No weight timestamp on the generic entry. Event time reuses context/start_time.",
+      "confidence": 65
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.6/items/at0.2/data/at0002/origin/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/context/start_time\"]"
+        }
+      },
+      "note": "History origin reuses context/start_time, the same instant as the event.",
+      "confidence": 65
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.2/items/at0.2/data/at0001/items/at0002/value/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/senastmens\"]"
+        }
+      },
+      "note": "LMP date."
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.21/items/at0.8/items/at0.2/data/at0002/items/at0004/value/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/berakforsm\"]"
+        }
+      },
+      "note": "Delivery calculated from senaste mens (SM). Ultraljud (berakforul) and BerakForET are the other calculations and are unused.",
+      "confidence": 60
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0064.1/items/at0081.1/value/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/snusforegravtext\"]"
+        }
+      },
+      "note": "Placed on the snus-summary text whose Swedish name is before pregnancy. English path labels on this template are not clinical.",
+      "confidence": 70
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.10/items/at0005.2/data/at0001/items/at0029.1/items/at0064.2/items/at0081.2/value/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/snusinskrtext\"]"
+        }
+      },
+      "note": "Placed on the snus-summary text whose Swedish name is at enrolment. English path labels on this template are not clinical.",
+      "confidence": 70
+    },
+    {
+      "slotId": "MHV1- Prenatal visit.encounter.v1//content/at0.37/items/at0.2/data/at0001/items/at0002.1/value/value/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$[\"generic-obstetrix-mhv1-v1/mhv1genericentry/bedomningtext\"]"
+        }
+      },
+      "note": "Placed on the bedömning DV_TEXT. Sibling sections reuse the same node ids.",
+      "confidence": 75
+    }
+  ]
+}

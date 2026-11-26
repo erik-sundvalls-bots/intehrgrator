@@ -1,0 +1,6 @@
+# Source schema formats
+
+The .avsc file is the Avro schema used in Kafka for this use case. intEHRgrator
+loads `.avsc` as a source-field tree (record fields, not Avro document metadata).
+The .json file is a JSON Schema equivalent. Both include PDL vårdgivare name/HSAID
+so schema-driven mapping sees the same fields as the example instances.

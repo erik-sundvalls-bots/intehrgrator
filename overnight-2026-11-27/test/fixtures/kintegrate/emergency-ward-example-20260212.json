@@ -1,0 +1,241 @@
+{
+  "akutmall_undervisningsexempel_2a": {
+    "context": [
+      {}
+    ],
+    "abcde": [
+      {
+        "pulsoximetri": [
+          {
+            "ospecificerad_händelse": [
+              {
+                "spo": [
+                  {
+                    "|numerator": 98,
+                    "|denominator": 100
+                  }
+                ],
+                "inandad_syrgas": [
+                  {
+                    "på_luft": [
+                      {
+                        "|value": false
+                      }
+                    ],
+                    "syrgasflöde": [
+                      {
+                        "|magnitude": 6,
+                        "|unit": "l/min"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "mätplats": []
+          }
+        ],
+        "andning": [
+          {
+            "ospecificerad_händelse": [
+              {
+                "förekomst": [
+                  {
+                    "|code": "at0063",
+                    "|value": "Andas"
+                  }
+                ],
+                "frekvens": [
+                  {
+                    "|magnitude": 16,
+                    "|unit": "/min"
+                  }
+                ],
+                "regelbundenhet": [
+                  {
+                    "|code": "at0006",
+                    "|value": "Regelbunden"
+                  }
+                ],
+                "andningsdjup": [
+                  {
+                    "|code": "at0017",
+                    "|value": "Normal"
+                  }
+                ],
+                "klinisk_tolkning": [],
+                "inandad_syrgas": [
+                  {
+                    "syrgasflöde": [
+                      {
+                        "|unit": "l/min",
+                        "|magnitude": 6
+                      }
+                    ],
+                    "på_luft": [
+                      {
+                        "|value": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "puls_hjärtfrekvens": [
+          {
+            "ospecificerad_händelse": [
+              {
+                "närvaro": [],
+                "frekvens": [
+                  {
+                    "|magnitude": 82,
+                    "|unit": "/min"
+                  }
+                ],
+                "regelbunden": [
+                  {
+                    "|code": "at0006",
+                    "|value": "Regelbunden"
+                  }
+                ],
+                "oregelbunden_typ": [],
+                "kroppsställning": []
+              }
+            ],
+            "metod": [
+              {
+                "|code": "at1034",
+                "|value": "Automatisk, icke-invasiv"
+              }
+            ],
+            "lokalisation": [
+              {
+                "|code": "at1047",
+                "|value": "Finger"
+              }
+            ]
+          }
+        ],
+        "blodtryck": [
+          {
+            "ospecificerad_händelse": [
+              {
+                "systoliskt": [
+                  {
+                    "|magnitude": 119,
+                    "|unit": "mm[Hg]"
+                  }
+                ],
+                "diastoliskt": [
+                  {
+                    "|magnitude": 85,
+                    "|unit": "mm[Hg]"
+                  }
+                ],
+                "ställning": [
+                  {
+                    "|code": "at1001",
+                    "|value": "Sittande"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "skada": [
+          {
+            "problem_diagnos": [
+              {
+                "skada": [],
+                "anatomisk_plats": [],
+                "klinisk_beskrivning": [],
+                "datum_och_tid_för_skada": [],
+                "motionslopp_mv": [
+                  {
+                    "loppets_namn": [
+                      {
+                        "|value": "Tjejvättern 100 km"
+                      }
+                    ],
+                    "typ_av_motion": [
+                      {
+                        "|code": "at0003",
+                        "|value": "cykling"
+                      }
+                    ],
+                    "träningsvana": [],
+                    "antal_tidigare_deltaganden_i_detta_lopp": [],
+                    "tid_efter_start": [],
+                    "plats": [
+                      {
+                        "sträcka_från_start": [
+                          {
+                            "|unit": "km"
+                          }
+                        ],
+                        "adress_eller_beskrivning": [],
+                        "position": [
+                          {
+                            "longitud": [
+                              {
+                                "|magnitude": null,
+                                "|unit": "deg"
+                              }
+                            ],
+                            "latitud": [
+                              {
+                                "|magnitude": null,
+                                "|unit": "deg"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "a._fri_luftväg_airway": [
+          {
+            "luftväg": [
+              {
+                "problem_diagnos_namn": [],
+                "klinisk_beskrivning": []
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "beräkningar": [
+      {
+        "news2": [
+          {
+            "andningsfrekvens": [],
+            "syremättnad_skala_1": [],
+            "syremättnad_skala_2": [],
+            "luft_eller_syrgas": [],
+            "systoliskt_blodtryck": [],
+            "hjärtfrekvens": [],
+            "medvetandegrad": [],
+            "temperatur": [],
+            "totalpoäng": [],
+            "klinisk_riskkategori": []
+          }
+        ]
+      }
+    ]
+  },
+  "ctx": {
+    "language": "sv",
+    "territory": "SI",
+    "generic_fields": {
+      "/abcde/skada/generic-boolean-6937416": []
+    }
+  }
+}

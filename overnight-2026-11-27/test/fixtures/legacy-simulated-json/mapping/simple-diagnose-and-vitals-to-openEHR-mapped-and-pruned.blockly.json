@@ -1,0 +1,1656 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "default_context_map",
+        "extraState": {
+          "itemCount": 7,
+          "targets": [
+            [
+              "*.language"
+            ],
+            [
+              "COMPOSITION.territory"
+            ],
+            [
+              "*.encoding"
+            ],
+            [
+              "*.time"
+            ],
+            [
+              "COMPOSITION.composer"
+            ],
+            [
+              "EVENT_CONTEXT.health_care_facility"
+            ],
+            [
+              "*.subject"
+            ]
+          ]
+        },
+        "fields": {
+          "KEY0": "language",
+          "TARGETS0": "[\"*.language\"]",
+          "KEY1": "territory",
+          "TARGETS1": "[\"COMPOSITION.territory\"]",
+          "KEY2": "encoding",
+          "TARGETS2": "[\"*.encoding\"]",
+          "KEY3": "time",
+          "TARGETS3": "[\"*.time\"]",
+          "KEY4": "composer",
+          "TARGETS4": "[\"COMPOSITION.composer\"]",
+          "KEY5": "facility",
+          "TARGETS5": "[\"EVENT_CONTEXT.health_care_facility\"]",
+          "KEY6": "subject",
+          "TARGETS6": "[\"*.subject\"]"
+        },
+        "inputs": {
+          "VAL0": {
+            "shadow": {
+              "type": "text",
+              "id": "w}le/2/6QKDl.C`[Y=A|",
+              "fields": {
+                "TEXT": "en"
+              }
+            },
+            "block": {
+              "type": "term_pick",
+              "id": "D$PiEdkrY,06*#6FYt7J",
+              "inline": false,
+              "fields": {
+                "NAME": "built-in",
+                "SET": "ISO_639-1",
+                "CODE": "en",
+                "SLOT_ID": "",
+                "RM_TYPE": "CODE_PHRASE",
+                "MANDATORY": ""
+              }
+            }
+          },
+          "VAL1": {
+            "shadow": {
+              "type": "text",
+              "id": "sd+}v+-D%X%Y;XvJup2|",
+              "fields": {
+                "TEXT": "SE"
+              }
+            },
+            "block": {
+              "type": "term_pick",
+              "id": "XWZo84jG`==mWNu$da^3",
+              "inline": false,
+              "fields": {
+                "NAME": "built-in",
+                "SET": "ISO_3166-1",
+                "CODE": "SE",
+                "SLOT_ID": "",
+                "RM_TYPE": "CODE_PHRASE",
+                "MANDATORY": ""
+              }
+            }
+          },
+          "VAL2": {
+            "shadow": {
+              "type": "term_pick",
+              "id": "Mm^/:=RVY%YN4tPNzB_6",
+              "inline": false,
+              "fields": {
+                "NAME": "built-in",
+                "SET": "IANA_character-sets",
+                "CODE": "UTF-8",
+                "SLOT_ID": "",
+                "RM_TYPE": "CODE_PHRASE",
+                "MANDATORY": ""
+              }
+            }
+          },
+          "VAL3": {
+            "shadow": {
+              "type": "text",
+              "id": "i:aO]|0Vb_fkC~GoM!/I",
+              "inline": false,
+              "fields": {
+                "TEXT": "2026-08-01T09:13:58+02:00"
+              }
+            }
+          },
+          "VAL4": {
+            "shadow": {
+              "type": "text",
+              "id": "0sO!Y/mPMczbXDZ?oZ}W",
+              "inline": false,
+              "fields": {
+                "TEXT": "Dr. Who Demo"
+              }
+            }
+          },
+          "VAL5": {
+            "shadow": {
+              "type": "text",
+              "id": "?B@2wnw0y/XI{gCd24!2",
+              "inline": false,
+              "fields": {
+                "TEXT": "St. Dummy Demo Hospital"
+              }
+            }
+          },
+          "VAL6": {
+            "shadow": {
+              "type": "text",
+              "id": "%`1gLzIIFNQV3mdO,_(a",
+              "fields": {
+                "TEXT": ""
+              }
+            },
+            "block": {
+              "type": "party_self",
+              "id": "%3}%2,odpmlGdzru~gqs",
+              "extraState": {
+                "extras": [],
+                "attrs": [],
+                "rmType": "PARTY_SELF",
+                "prohibited": [],
+                "slotCards": {},
+                "rmCards": {}
+              },
+              "fields": {
+                "NAME": "",
+                "SLOT_ID": "",
+                "RM_TYPE": "PARTY_SELF",
+                "MANDATORY": "",
+                "ARCHETYPE_NODE_ID": "",
+                "ARCHETYPE_CTX": ""
+              }
+            }
+          }
+        },
+        "id": "Z+;0mQC`qQ@LD9/*R%WW",
+        "x": 20,
+        "y": 20
+      },
+      {
+        "type": "conversion_start",
+        "id": "GUjudTH!Z#7kpB}=~ccn",
+        "x": 26,
+        "y": 334,
+        "inline": false,
+        "next": {
+          "block": {
+            "type": "composition",
+            "id": "?MhQyN0VFd~oughEWy4f",
+            "extraState": {
+              "extras": [],
+              "attrs": [
+                "category",
+                "composer",
+                "language",
+                "territory",
+                "content",
+                "context"
+              ],
+              "rmType": "COMPOSITION",
+              "prohibited": [],
+              "slotCards": {
+                "category": {
+                  "min": 1,
+                  "max": 1
+                },
+                "context": {
+                  "min": 0,
+                  "max": 1
+                },
+                "content": {
+                  "min": 1,
+                  "max": null
+                },
+                "language": {
+                  "min": 1,
+                  "max": 1
+                },
+                "territory": {
+                  "min": 1,
+                  "max": 1
+                },
+                "composer": {
+                  "min": 1,
+                  "max": 1
+                }
+              },
+              "rmCards": {
+                "category": {
+                  "min": 1,
+                  "max": 1
+                },
+                "context": {
+                  "min": 0,
+                  "max": 1
+                },
+                "content": {
+                  "min": 0,
+                  "max": null
+                },
+                "language": {
+                  "min": 1,
+                  "max": 1
+                },
+                "territory": {
+                  "min": 1,
+                  "max": 1
+                },
+                "composer": {
+                  "min": 1,
+                  "max": 1
+                }
+              }
+            },
+            "fields": {
+              "NAME": "simple-diagnose-and-vitals",
+              "INSTANCE_ENCODING": "canonical-json",
+              "SLOT_ID": "simple-diagnose-and-vitals/",
+              "RM_TYPE": "COMPOSITION",
+              "MANDATORY": "1",
+              "ARCHETYPE_NODE_ID": "at0000",
+              "ARCHETYPE_CTX": "encounter"
+            },
+            "inputs": {
+              "ATTR_category": {
+                "block": {
+                  "type": "term_pick",
+                  "id": "}/Sfw)/+:_-~H3.#o~X(",
+                  "inline": false,
+                  "fields": {
+                    "NAME": "built-in",
+                    "SET": "openehr:composition_category",
+                    "CODE": "433",
+                    "SLOT_ID": "simple-diagnose-and-vitals//category/DV_CODED_TEXT/value",
+                    "RM_TYPE": "DV_CODED_TEXT",
+                    "MANDATORY": "1"
+                  }
+                }
+              },
+              "ATTR_composer": {
+                "block": {
+                  "type": "party_identified",
+                  "id": "N0T@0)~`Zg{oZ2!Z2Vk8",
+                  "extraState": {
+                    "extras": [],
+                    "attrs": [
+                      "external_ref",
+                      "identifiers",
+                      "name"
+                    ],
+                    "rmType": "PARTY_IDENTIFIED",
+                    "prohibited": [],
+                    "slotCards": {},
+                    "rmCards": {}
+                  },
+                  "fields": {
+                    "NAME": "composer",
+                    "SLOT_ID": "simple-diagnose-and-vitals//composer",
+                    "RM_TYPE": "PARTY_IDENTIFIED",
+                    "MANDATORY": "1",
+                    "ARCHETYPE_NODE_ID": "",
+                    "ARCHETYPE_CTX": "encounter"
+                  }
+                }
+              },
+              "ATTR_language": {
+                "block": {
+                  "type": "maps_get",
+                  "id": "Xy)9c0i%z{PGVAuWyopG",
+                  "fields": {
+                    "NAME": "defaults",
+                    "SLOT_ID": "simple-diagnose-and-vitals//language/value",
+                    "RM_TYPE": "CODE_PHRASE"
+                  },
+                  "inputs": {
+                    "KEY": {
+                      "shadow": {
+                        "type": "text",
+                        "id": "dqhP^IzOZz!DFb?.EYDN",
+                        "inline": false,
+                        "fields": {
+                          "TEXT": "language"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "ATTR_territory": {
+                "block": {
+                  "type": "maps_get",
+                  "id": "Rs]%ww6N@Z:ds?(CnxQu",
+                  "fields": {
+                    "NAME": "defaults",
+                    "SLOT_ID": "simple-diagnose-and-vitals//territory/value",
+                    "RM_TYPE": "CODE_PHRASE"
+                  },
+                  "inputs": {
+                    "KEY": {
+                      "shadow": {
+                        "type": "text",
+                        "id": "F5SFBm~tX$Q^pMS_KI62",
+                        "inline": false,
+                        "fields": {
+                          "TEXT": "territory"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "ATTR_content": {
+                "block": {
+                  "type": "section",
+                  "id": "-SM*qd_*kRVGr1yS*zK6",
+                  "extraState": {
+                    "extras": [],
+                    "attrs": [
+                      "name",
+                      "items"
+                    ],
+                    "rmType": "SECTION",
+                    "prohibited": [],
+                    "slotCards": {
+                      "items": {
+                        "min": 1,
+                        "max": null
+                      },
+                      "name": {
+                        "min": 1,
+                        "max": 1
+                      }
+                    },
+                    "rmCards": {
+                      "items": {
+                        "min": 0,
+                        "max": null
+                      },
+                      "name": {
+                        "min": 1,
+                        "max": 1
+                      }
+                    }
+                  },
+                  "fields": {
+                    "NAME": "Vital signs",
+                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]",
+                    "RM_TYPE": "SECTION",
+                    "MANDATORY": "1",
+                    "ARCHETYPE_NODE_ID": "at0000",
+                    "ARCHETYPE_CTX": "adhoc"
+                  },
+                  "inputs": {
+                    "ATTR_name": {
+                      "block": {
+                        "type": "dv_text",
+                        "id": "eT||Y%GGV$)g=!z7Bx92",
+                        "extraState": {
+                          "fields": []
+                        },
+                        "fields": {
+                          "NAME": "DV_TEXT",
+                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/name/DV_TEXT/value",
+                          "RM_TYPE": "DV_TEXT",
+                          "MANDATORY": "1"
+                        }
+                      }
+                    },
+                    "ATTR_items": {
+                      "block": {
+                        "type": "observation",
+                        "id": "b7=ZV32#@hl|RL3./+)O",
+                        "extraState": {
+                          "extras": [],
+                          "attrs": [
+                            "encoding",
+                            "language",
+                            "subject",
+                            "data",
+                            "protocol"
+                          ],
+                          "rmType": "OBSERVATION",
+                          "prohibited": [],
+                          "slotCards": {
+                            "data": {
+                              "min": 1,
+                              "max": 1
+                            },
+                            "protocol": {
+                              "min": 0,
+                              "max": 1
+                            },
+                            "language": {
+                              "min": 1,
+                              "max": 1
+                            },
+                            "encoding": {
+                              "min": 1,
+                              "max": 1
+                            },
+                            "subject": {
+                              "min": 1,
+                              "max": 1
+                            }
+                          },
+                          "rmCards": {
+                            "data": {
+                              "min": 1,
+                              "max": 1
+                            },
+                            "protocol": {
+                              "min": 0,
+                              "max": 1
+                            },
+                            "language": {
+                              "min": 1,
+                              "max": 1
+                            },
+                            "encoding": {
+                              "min": 1,
+                              "max": 1
+                            },
+                            "subject": {
+                              "min": 1,
+                              "max": 1
+                            }
+                          }
+                        },
+                        "fields": {
+                          "NAME": "Pulse/Heart beat",
+                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]",
+                          "RM_TYPE": "OBSERVATION",
+                          "MANDATORY": "1",
+                          "ARCHETYPE_NODE_ID": "at0000",
+                          "ARCHETYPE_CTX": "pulse"
+                        },
+                        "inputs": {
+                          "ATTR_encoding": {
+                            "block": {
+                              "type": "maps_get",
+                              "id": "]J%flVr=qB77g[eRymUr",
+                              "fields": {
+                                "NAME": "defaults",
+                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/encoding/value",
+                                "RM_TYPE": "CODE_PHRASE"
+                              },
+                              "inputs": {
+                                "KEY": {
+                                  "shadow": {
+                                    "type": "text",
+                                    "id": "~)t?Y=R8UKE0(/|S{.]=",
+                                    "inline": false,
+                                    "fields": {
+                                      "TEXT": "encoding"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "ATTR_language": {
+                            "block": {
+                              "type": "maps_get",
+                              "id": "w+IL=;Nyec3A!z;R0%|k",
+                              "fields": {
+                                "NAME": "defaults",
+                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/language/value",
+                                "RM_TYPE": "CODE_PHRASE"
+                              },
+                              "inputs": {
+                                "KEY": {
+                                  "shadow": {
+                                    "type": "text",
+                                    "id": "i{?qPA;wWJPQJzBwOdQ`",
+                                    "inline": false,
+                                    "fields": {
+                                      "TEXT": "language"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "ATTR_subject": {
+                            "block": {
+                              "type": "party_proxy",
+                              "id": "sC+XhL+YisQSP1Ia^Uih",
+                              "extraState": {
+                                "extras": [],
+                                "attrs": [],
+                                "rmType": "PARTY_PROXY",
+                                "prohibited": [],
+                                "slotCards": {},
+                                "rmCards": {}
+                              },
+                              "fields": {
+                                "NAME": "subject",
+                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/subject",
+                                "RM_TYPE": "PARTY_PROXY",
+                                "MANDATORY": "1",
+                                "ARCHETYPE_NODE_ID": "",
+                                "ARCHETYPE_CTX": "pulse"
+                              },
+                              "inputs": {
+                                "KIND": {
+                                  "block": {
+                                    "type": "maps_get",
+                                    "id": ")5dz%[YlxI)AFZ+P%)Q0",
+                                    "fields": {
+                                      "NAME": "defaults",
+                                      "SLOT_ID": "",
+                                      "RM_TYPE": ""
+                                    },
+                                    "inputs": {
+                                      "KEY": {
+                                        "shadow": {
+                                          "type": "text",
+                                          "id": "+8~vV.+cZi*CTotz2?sm",
+                                          "inline": false,
+                                          "fields": {
+                                            "TEXT": "subject"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "ATTR_data": {
+                            "block": {
+                              "type": "history",
+                              "id": "1Q9)|{]+`8),%?AVxB@4",
+                              "extraState": {
+                                "extras": [],
+                                "attrs": [
+                                  "events",
+                                  "origin"
+                                ],
+                                "rmType": "HISTORY",
+                                "prohibited": [],
+                                "slotCards": {
+                                  "events": {
+                                    "min": 1,
+                                    "max": null
+                                  },
+                                  "origin": {
+                                    "min": 1,
+                                    "max": 1
+                                  }
+                                },
+                                "rmCards": {
+                                  "events": {
+                                    "min": 0,
+                                    "max": null
+                                  },
+                                  "origin": {
+                                    "min": 1,
+                                    "max": 1
+                                  }
+                                }
+                              },
+                              "fields": {
+                                "NAME": "history",
+                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002",
+                                "RM_TYPE": "HISTORY",
+                                "MANDATORY": "1",
+                                "ARCHETYPE_NODE_ID": "at0002",
+                                "ARCHETYPE_CTX": "pulse"
+                              },
+                              "inputs": {
+                                "ATTR_events": {
+                                  "block": {
+                                    "type": "point_event",
+                                    "id": "f/l]u;=o~Ij[JDW9Racc",
+                                    "extraState": {
+                                      "extras": [],
+                                      "attrs": [
+                                        "data",
+                                        "time",
+                                        "state"
+                                      ],
+                                      "rmType": "POINT_EVENT",
+                                      "prohibited": [],
+                                      "slotCards": {
+                                        "data": {
+                                          "min": 1,
+                                          "max": 1
+                                        },
+                                        "state": {
+                                          "min": 0,
+                                          "max": 1
+                                        },
+                                        "time": {
+                                          "min": 1,
+                                          "max": 1
+                                        }
+                                      },
+                                      "rmCards": {
+                                        "data": {
+                                          "min": 1,
+                                          "max": 1
+                                        },
+                                        "state": {
+                                          "min": 0,
+                                          "max": 1
+                                        },
+                                        "time": {
+                                          "min": 1,
+                                          "max": 1
+                                        }
+                                      }
+                                    },
+                                    "fields": {
+                                      "RM_TYPE": "POINT_EVENT",
+                                      "NAME": "Any event",
+                                      "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003",
+                                      "MANDATORY": "1",
+                                      "ARCHETYPE_NODE_ID": "at0003",
+                                      "ARCHETYPE_CTX": "pulse"
+                                    },
+                                    "inputs": {
+                                      "ATTR_data": {
+                                        "block": {
+                                          "type": "item_tree",
+                                          "id": "}ZY2Ew[`TV+-3GjfgG+G",
+                                          "extraState": {
+                                            "extras": [],
+                                            "attrs": [
+                                              "items"
+                                            ],
+                                            "rmType": "ITEM_TREE",
+                                            "prohibited": [],
+                                            "slotCards": {
+                                              "items": {
+                                                "min": 0,
+                                                "max": null
+                                              }
+                                            },
+                                            "rmCards": {
+                                              "items": {
+                                                "min": 0,
+                                                "max": null
+                                              }
+                                            }
+                                          },
+                                          "fields": {
+                                            "RM_TYPE": "ITEM_TREE",
+                                            "NAME": "structure",
+                                            "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001",
+                                            "MANDATORY": "1",
+                                            "ARCHETYPE_NODE_ID": "at0001",
+                                            "ARCHETYPE_CTX": "pulse"
+                                          },
+                                          "inputs": {
+                                            "ATTR_items": {
+                                              "block": {
+                                                "type": "element",
+                                                "id": "8KTTYZA4GTP/Hu_@f$P.",
+                                                "extraState": {
+                                                  "extras": [],
+                                                  "attrs": [],
+                                                  "rmType": "DV_QUANTITY",
+                                                  "prohibited": [],
+                                                  "slotCards": {},
+                                                  "rmCards": {}
+                                                },
+                                                "fields": {
+                                                  "NAME": "Rate",
+                                                  "RM_TYPE": "DV_QUANTITY",
+                                                  "MANDATORY": "1",
+                                                  "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
+                                                  "ARCHETYPE_NODE_ID": "at0004",
+                                                  "ARCHETYPE_CTX": "pulse"
+                                                },
+                                                "inputs": {
+                                                  "VALUE": {
+                                                    "block": {
+                                                      "type": "dv_quantity",
+                                                      "id": ",?rlZEBotUiV8ZceP;BX",
+                                                      "extraState": {
+                                                        "fields": []
+                                                      },
+                                                      "fields": {
+                                                        "NAME": "Rate",
+                                                        "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/data/at0001/items/at0004/value/value/value",
+                                                        "RM_TYPE": "DV_QUANTITY",
+                                                        "MANDATORY": ""
+                                                      },
+                                                      "inputs": {
+                                                        "FLD_magnitude": {
+                                                          "block": {
+                                                            "type": "source_query_number",
+                                                            "id": "gbkcU6DUJsvW`[(je@UX",
+                                                            "fields": {
+                                                              "EXPRESSION": "$.pulse"
+                                                            }
+                                                          }
+                                                        },
+                                                        "FLD_units": {
+                                                          "shadow": {
+                                                            "type": "text",
+                                                            "id": "?6UeO)|}o4bd}xX=38x2",
+                                                            "inline": false,
+                                                            "fields": {
+                                                              "TEXT": "/min"
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "ATTR_time": {
+                                        "block": {
+                                          "type": "dv_date_time",
+                                          "id": "(inf*F[MS-En~Fp]H-S^",
+                                          "extraState": {
+                                            "fields": []
+                                          },
+                                          "fields": {
+                                            "NAME": "time",
+                                            "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/events/at0003/time/value",
+                                            "RM_TYPE": "DV_DATE_TIME",
+                                            "MANDATORY": "1"
+                                          },
+                                          "inputs": {
+                                            "FLD_value": {
+                                              "block": {
+                                                "type": "source_query",
+                                                "id": "g$y7/385jZwwgUzF=xnV",
+                                                "fields": {
+                                                  "EXPRESSION": "$.timestamp",
+                                                  "RETURN_TYPE": "string"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "ATTR_origin": {
+                                  "block": {
+                                    "type": "dv_date_time",
+                                    "id": "k*rX^07U7c72[@~i/X^J",
+                                    "extraState": {
+                                      "fields": []
+                                    },
+                                    "fields": {
+                                      "NAME": "origin",
+                                      "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.pulse.v2]/data/at0002/origin/value",
+                                      "RM_TYPE": "DV_DATE_TIME",
+                                      "MANDATORY": "1"
+                                    },
+                                    "inputs": {
+                                      "FLD_value": {
+                                        "block": {
+                                          "type": "maps_get",
+                                          "id": "838Mx*T|YxwYdB_6lIP!",
+                                          "fields": {
+                                            "NAME": "defaults",
+                                            "SLOT_ID": "",
+                                            "RM_TYPE": ""
+                                          },
+                                          "inputs": {
+                                            "KEY": {
+                                              "shadow": {
+                                                "type": "text",
+                                                "id": "aGZNxncS925OensNMY)S",
+                                                "fields": {
+                                                  "TEXT": "time"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "observation",
+                            "id": "RC;_Pzi@T6q=9GH{oi8I",
+                            "extraState": {
+                              "extras": [],
+                              "attrs": [
+                                "encoding",
+                                "language",
+                                "subject",
+                                "data",
+                                "protocol"
+                              ],
+                              "rmType": "OBSERVATION",
+                              "prohibited": [],
+                              "slotCards": {
+                                "data": {
+                                  "min": 1,
+                                  "max": 1
+                                },
+                                "protocol": {
+                                  "min": 0,
+                                  "max": 1
+                                },
+                                "language": {
+                                  "min": 1,
+                                  "max": 1
+                                },
+                                "encoding": {
+                                  "min": 1,
+                                  "max": 1
+                                },
+                                "subject": {
+                                  "min": 1,
+                                  "max": 1
+                                }
+                              },
+                              "rmCards": {
+                                "data": {
+                                  "min": 1,
+                                  "max": 1
+                                },
+                                "protocol": {
+                                  "min": 0,
+                                  "max": 1
+                                },
+                                "language": {
+                                  "min": 1,
+                                  "max": 1
+                                },
+                                "encoding": {
+                                  "min": 1,
+                                  "max": 1
+                                },
+                                "subject": {
+                                  "min": 1,
+                                  "max": 1
+                                }
+                              }
+                            },
+                            "fields": {
+                              "NAME": "Blood pressure",
+                              "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]",
+                              "RM_TYPE": "OBSERVATION",
+                              "MANDATORY": "1",
+                              "ARCHETYPE_NODE_ID": "at0000",
+                              "ARCHETYPE_CTX": "blood_pressure"
+                            },
+                            "inputs": {
+                              "ATTR_encoding": {
+                                "block": {
+                                  "type": "maps_get",
+                                  "id": ";||F8o_hnPgoGOIb^Le+",
+                                  "fields": {
+                                    "NAME": "defaults",
+                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/encoding/value",
+                                    "RM_TYPE": "CODE_PHRASE"
+                                  },
+                                  "inputs": {
+                                    "KEY": {
+                                      "shadow": {
+                                        "type": "text",
+                                        "id": "HdBC[ZobypE%#68}Ow)S",
+                                        "inline": false,
+                                        "fields": {
+                                          "TEXT": "encoding"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ATTR_language": {
+                                "block": {
+                                  "type": "maps_get",
+                                  "id": ":B8yG551@1dPzf,~nF8b",
+                                  "fields": {
+                                    "NAME": "defaults",
+                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/language/value",
+                                    "RM_TYPE": "CODE_PHRASE"
+                                  },
+                                  "inputs": {
+                                    "KEY": {
+                                      "shadow": {
+                                        "type": "text",
+                                        "id": "_T!4T`kYCbD0#qU@;Z;(",
+                                        "inline": false,
+                                        "fields": {
+                                          "TEXT": "language"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ATTR_subject": {
+                                "block": {
+                                  "type": "party_proxy",
+                                  "id": "}IP~]MC%^N78W.,]}z@o",
+                                  "extraState": {
+                                    "extras": [],
+                                    "attrs": [],
+                                    "rmType": "PARTY_PROXY",
+                                    "prohibited": [],
+                                    "slotCards": {},
+                                    "rmCards": {}
+                                  },
+                                  "fields": {
+                                    "NAME": "subject",
+                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/subject",
+                                    "RM_TYPE": "PARTY_PROXY",
+                                    "MANDATORY": "1",
+                                    "ARCHETYPE_NODE_ID": "",
+                                    "ARCHETYPE_CTX": "blood_pressure"
+                                  },
+                                  "inputs": {
+                                    "KIND": {
+                                      "block": {
+                                        "type": "maps_get",
+                                        "id": "g`y4QR}nAk9Pwl/y=DI`",
+                                        "fields": {
+                                          "NAME": "defaults",
+                                          "SLOT_ID": "",
+                                          "RM_TYPE": ""
+                                        },
+                                        "inputs": {
+                                          "KEY": {
+                                            "shadow": {
+                                              "type": "text",
+                                              "id": ":%5(IuHT/[U:fpzax-MY",
+                                              "inline": false,
+                                              "fields": {
+                                                "TEXT": "subject"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "ATTR_data": {
+                                "block": {
+                                  "type": "history",
+                                  "id": "/J~@|~Sl|vJc||KluM{6",
+                                  "extraState": {
+                                    "extras": [],
+                                    "attrs": [
+                                      "events",
+                                      "origin"
+                                    ],
+                                    "rmType": "HISTORY",
+                                    "prohibited": [],
+                                    "slotCards": {
+                                      "events": {
+                                        "min": 1,
+                                        "max": null
+                                      },
+                                      "origin": {
+                                        "min": 1,
+                                        "max": 1
+                                      }
+                                    },
+                                    "rmCards": {
+                                      "events": {
+                                        "min": 0,
+                                        "max": null
+                                      },
+                                      "origin": {
+                                        "min": 1,
+                                        "max": 1
+                                      }
+                                    }
+                                  },
+                                  "fields": {
+                                    "NAME": "History",
+                                    "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001",
+                                    "RM_TYPE": "HISTORY",
+                                    "MANDATORY": "1",
+                                    "ARCHETYPE_NODE_ID": "at0001",
+                                    "ARCHETYPE_CTX": "blood_pressure"
+                                  },
+                                  "inputs": {
+                                    "ATTR_events": {
+                                      "block": {
+                                        "type": "point_event",
+                                        "id": "q7kLTE.9s1YdndTjqB9M",
+                                        "extraState": {
+                                          "extras": [],
+                                          "attrs": [
+                                            "data",
+                                            "time",
+                                            "state"
+                                          ],
+                                          "rmType": "POINT_EVENT",
+                                          "prohibited": [],
+                                          "slotCards": {
+                                            "data": {
+                                              "min": 1,
+                                              "max": 1
+                                            },
+                                            "state": {
+                                              "min": 0,
+                                              "max": 1
+                                            },
+                                            "time": {
+                                              "min": 1,
+                                              "max": 1
+                                            }
+                                          },
+                                          "rmCards": {
+                                            "data": {
+                                              "min": 1,
+                                              "max": 1
+                                            },
+                                            "state": {
+                                              "min": 0,
+                                              "max": 1
+                                            },
+                                            "time": {
+                                              "min": 1,
+                                              "max": 1
+                                            }
+                                          }
+                                        },
+                                        "fields": {
+                                          "RM_TYPE": "POINT_EVENT",
+                                          "NAME": "Any event",
+                                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006",
+                                          "MANDATORY": "1",
+                                          "ARCHETYPE_NODE_ID": "at0006",
+                                          "ARCHETYPE_CTX": "blood_pressure"
+                                        },
+                                        "inputs": {
+                                          "ATTR_data": {
+                                            "block": {
+                                              "type": "item_tree",
+                                              "id": "3AeI4yPo=-KV0r^T(lB7",
+                                              "extraState": {
+                                                "extras": [],
+                                                "attrs": [
+                                                  "items"
+                                                ],
+                                                "rmType": "ITEM_TREE",
+                                                "prohibited": [],
+                                                "slotCards": {
+                                                  "items": {
+                                                    "min": 0,
+                                                    "max": null
+                                                  }
+                                                },
+                                                "rmCards": {
+                                                  "items": {
+                                                    "min": 0,
+                                                    "max": null
+                                                  }
+                                                }
+                                              },
+                                              "fields": {
+                                                "RM_TYPE": "ITEM_TREE",
+                                                "NAME": "blood pressure",
+                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003",
+                                                "MANDATORY": "1",
+                                                "ARCHETYPE_NODE_ID": "at0003",
+                                                "ARCHETYPE_CTX": "blood_pressure"
+                                              },
+                                              "inputs": {
+                                                "ATTR_items": {
+                                                  "block": {
+                                                    "type": "element",
+                                                    "id": "xs5y^gsWSR/7,dXFD.Zh",
+                                                    "extraState": {
+                                                      "extras": [],
+                                                      "attrs": [],
+                                                      "rmType": "DV_QUANTITY",
+                                                      "prohibited": [],
+                                                      "slotCards": {},
+                                                      "rmCards": {}
+                                                    },
+                                                    "fields": {
+                                                      "NAME": "Systolic",
+                                                      "RM_TYPE": "DV_QUANTITY",
+                                                      "MANDATORY": "1",
+                                                      "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003/items/at0004/value/value/value",
+                                                      "ARCHETYPE_NODE_ID": "at0004",
+                                                      "ARCHETYPE_CTX": "blood_pressure"
+                                                    },
+                                                    "inputs": {
+                                                      "VALUE": {
+                                                        "block": {
+                                                          "type": "dv_quantity",
+                                                          "id": "/}(kGCM.ttG;Pzik|gum",
+                                                          "extraState": {
+                                                            "fields": []
+                                                          },
+                                                          "fields": {
+                                                            "NAME": "Systolic",
+                                                            "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003/items/at0004/value/value/value",
+                                                            "RM_TYPE": "DV_QUANTITY",
+                                                            "MANDATORY": ""
+                                                          },
+                                                          "inputs": {
+                                                            "FLD_magnitude": {
+                                                              "block": {
+                                                                "type": "source_query_number",
+                                                                "id": "[9*!y6Di0Y9?udLF0EWz",
+                                                                "fields": {
+                                                                  "EXPRESSION": "$.systolic"
+                                                                }
+                                                              }
+                                                            },
+                                                            "FLD_units": {
+                                                              "shadow": {
+                                                                "type": "text",
+                                                                "id": "GwB{I=0{_vCE_9526r`S",
+                                                                "inline": false,
+                                                                "fields": {
+                                                                  "TEXT": "mm[Hg]"
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "next": {
+                                                      "block": {
+                                                        "type": "element",
+                                                        "id": "Z_0ww)z!Pt5??ybXQ///",
+                                                        "extraState": {
+                                                          "extras": [],
+                                                          "attrs": [],
+                                                          "rmType": "DV_QUANTITY",
+                                                          "prohibited": [],
+                                                          "slotCards": {},
+                                                          "rmCards": {}
+                                                        },
+                                                        "fields": {
+                                                          "NAME": "Diastolic",
+                                                          "RM_TYPE": "DV_QUANTITY",
+                                                          "MANDATORY": "1",
+                                                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003/items/at0005/value/value/value",
+                                                          "ARCHETYPE_NODE_ID": "at0005",
+                                                          "ARCHETYPE_CTX": "blood_pressure"
+                                                        },
+                                                        "inputs": {
+                                                          "VALUE": {
+                                                            "block": {
+                                                              "type": "dv_quantity",
+                                                              "id": "%0;j.F2hNdSG.w4lIoly",
+                                                              "extraState": {
+                                                                "fields": []
+                                                              },
+                                                              "fields": {
+                                                                "NAME": "Diastolic",
+                                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/data/at0003/items/at0005/value/value/value",
+                                                                "RM_TYPE": "DV_QUANTITY",
+                                                                "MANDATORY": ""
+                                                              },
+                                                              "inputs": {
+                                                                "FLD_magnitude": {
+                                                                  "block": {
+                                                                    "type": "source_query_number",
+                                                                    "id": "-Z-l2[k9HQBHbs8VlFx5",
+                                                                    "fields": {
+                                                                      "EXPRESSION": "$.diastolic"
+                                                                    }
+                                                                  }
+                                                                },
+                                                                "FLD_units": {
+                                                                  "shadow": {
+                                                                    "type": "text",
+                                                                    "id": "l8I$OQw,zkQL@H*TKNfV",
+                                                                    "inline": false,
+                                                                    "fields": {
+                                                                      "TEXT": "mm[Hg]"
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "ATTR_time": {
+                                            "block": {
+                                              "type": "dv_date_time",
+                                              "id": "Wt5|%j[%_/p`cDE2^N%b",
+                                              "extraState": {
+                                                "fields": []
+                                              },
+                                              "fields": {
+                                                "NAME": "time",
+                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/time/value",
+                                                "RM_TYPE": "DV_DATE_TIME",
+                                                "MANDATORY": "1"
+                                              },
+                                              "inputs": {
+                                                "FLD_value": {
+                                                  "block": {
+                                                    "type": "source_query",
+                                                    "id": "~dJo-QX?a2pOYEZ3wf`%",
+                                                    "fields": {
+                                                      "EXPRESSION": "$.timestamp",
+                                                      "RETURN_TYPE": "string"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "ATTR_state": {
+                                            "block": {
+                                              "type": "item_tree",
+                                              "id": "D{i5vQ4p-]3/`Shu(Kzw",
+                                              "extraState": {
+                                                "extras": [],
+                                                "attrs": [
+                                                  "items"
+                                                ],
+                                                "rmType": "ITEM_TREE",
+                                                "prohibited": [],
+                                                "slotCards": {
+                                                  "items": {
+                                                    "min": 0,
+                                                    "max": null
+                                                  }
+                                                },
+                                                "rmCards": {
+                                                  "items": {
+                                                    "min": 0,
+                                                    "max": null
+                                                  }
+                                                }
+                                              },
+                                              "fields": {
+                                                "RM_TYPE": "ITEM_TREE",
+                                                "NAME": "state structure",
+                                                "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/state/at0007",
+                                                "MANDATORY": "1",
+                                                "ARCHETYPE_NODE_ID": "at0007",
+                                                "ARCHETYPE_CTX": "blood_pressure"
+                                              },
+                                              "inputs": {
+                                                "ATTR_items": {
+                                                  "block": {
+                                                    "type": "element",
+                                                    "id": "{^E?A9hanpH@.aa||bL?",
+                                                    "extraState": {
+                                                      "extras": [],
+                                                      "attrs": [],
+                                                      "rmType": "DV_CODED_TEXT",
+                                                      "prohibited": [],
+                                                      "slotCards": {},
+                                                      "rmCards": {}
+                                                    },
+                                                    "fields": {
+                                                      "NAME": "Position",
+                                                      "RM_TYPE": "DV_CODED_TEXT",
+                                                      "MANDATORY": "1",
+                                                      "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/state/at0007/items/at0008/value/DV_CODED_TEXT/value",
+                                                      "ARCHETYPE_NODE_ID": "at0008",
+                                                      "ARCHETYPE_CTX": "blood_pressure"
+                                                    },
+                                                    "inputs": {
+                                                      "VALUE": {
+                                                        "block": {
+                                                          "type": "dv_coded_text",
+                                                          "id": "*HH*7{!1+w)?MoRa-IrG",
+                                                          "extraState": {
+                                                            "fields": []
+                                                          },
+                                                          "fields": {
+                                                            "NAME": "Position",
+                                                            "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/events/at0006/state/at0007/items/at0008/value/DV_CODED_TEXT/value",
+                                                            "RM_TYPE": "DV_CODED_TEXT",
+                                                            "MANDATORY": ""
+                                                          },
+                                                          "inputs": {
+                                                            "FLD_value": {
+                                                              "block": {
+                                                                "type": "decision_table",
+                                                                "id": "^Ujd,hBh]Qa`r[Yx4,!]",
+                                                                "fields": {
+                                                                  "NAME": "body_position",
+                                                                  "OUTPUT": "label"
+                                                                },
+                                                                "inputs": {
+                                                                  "INPUTS": {
+                                                                    "block": {
+                                                                      "type": "maps_create_with",
+                                                                      "id": "/cI@wCE~w0kE;:sY5~a0",
+                                                                      "extraState": {
+                                                                        "itemCount": 1
+                                                                      },
+                                                                      "fields": {
+                                                                        "KEY0": "position"
+                                                                      },
+                                                                      "inputs": {
+                                                                        "VAL0": {
+                                                                          "shadow": {
+                                                                            "type": "text",
+                                                                            "id": "fFsdq`xmJ9imfoBYB[bE",
+                                                                            "fields": {
+                                                                              "TEXT": ""
+                                                                            }
+                                                                          },
+                                                                          "block": {
+                                                                            "type": "source_query",
+                                                                            "id": "=~wy=;z}1D4^:W`61qKV",
+                                                                            "fields": {
+                                                                              "EXPRESSION": "$.bodyPosition",
+                                                                              "RETURN_TYPE": "string"
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                            "FLD_defining_code": {
+                                                              "block": {
+                                                                "type": "code_phrase",
+                                                                "id": "bptpkSb!HMW?;Y@_O3ty",
+                                                                "fields": {
+                                                                  "NAME": "Code Phrase",
+                                                                  "RM_TYPE": "CODE_PHRASE",
+                                                                  "SLOT_ID": ""
+                                                                },
+                                                                "inputs": {
+                                                                  "FLD_code_string": {
+                                                                    "block": {
+                                                                      "type": "decision_table",
+                                                                      "id": "1,HHKGg)nd[Y@,xzz7Wu",
+                                                                      "fields": {
+                                                                        "NAME": "body_position",
+                                                                        "OUTPUT": "code"
+                                                                      },
+                                                                      "inputs": {
+                                                                        "INPUTS": {
+                                                                          "block": {
+                                                                            "type": "maps_create_with",
+                                                                            "id": "SmRavBL~t[0QpP)W%*/t",
+                                                                            "extraState": {
+                                                                              "itemCount": 1
+                                                                            },
+                                                                            "fields": {
+                                                                              "KEY0": "position"
+                                                                            },
+                                                                            "inputs": {
+                                                                              "VAL0": {
+                                                                                "shadow": {
+                                                                                  "type": "text",
+                                                                                  "id": "[p(=x/=6n97GSWS0t{/I",
+                                                                                  "fields": {
+                                                                                    "TEXT": ""
+                                                                                  }
+                                                                                },
+                                                                                "block": {
+                                                                                  "type": "source_query",
+                                                                                  "id": "eemGKceItAZWHce3;xWX",
+                                                                                  "fields": {
+                                                                                    "EXPRESSION": "$.bodyPosition",
+                                                                                    "RETURN_TYPE": "string"
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "FLD_terminology_id": {
+                                                                    "block": {
+                                                                      "type": "text",
+                                                                      "id": "m.`2bU_%EL04K3-bVtJw",
+                                                                      "fields": {
+                                                                        "TEXT": "local"
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "ATTR_origin": {
+                                      "block": {
+                                        "type": "dv_date_time",
+                                        "id": "UA1^k^MTWIPr3AFQ{jG%",
+                                        "extraState": {
+                                          "fields": []
+                                        },
+                                        "fields": {
+                                          "NAME": "origin",
+                                          "SLOT_ID": "simple-diagnose-and-vitals//content[openEHR-EHR-SECTION.adhoc.v1]/items[openEHR-EHR-OBSERVATION.blood_pressure.v2]/data/at0001/origin/value",
+                                          "RM_TYPE": "DV_DATE_TIME",
+                                          "MANDATORY": "1"
+                                        },
+                                        "inputs": {
+                                          "FLD_value": {
+                                            "block": {
+                                              "type": "maps_get",
+                                              "id": "zky3X-9.?,V,~.=unv`_",
+                                              "fields": {
+                                                "NAME": "defaults",
+                                                "SLOT_ID": "",
+                                                "RM_TYPE": ""
+                                              },
+                                              "inputs": {
+                                                "KEY": {
+                                                  "shadow": {
+                                                    "type": "text",
+                                                    "id": ")vHsqeruZdZ;0B.@L~#f",
+                                                    "fields": {
+                                                      "TEXT": "time"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "ATTR_context": {
+                "block": {
+                  "type": "event_context",
+                  "id": "hJoY47N:3_{^.7=$3z(5",
+                  "extraState": {
+                    "extras": [
+                      "health_care_facility"
+                    ],
+                    "attrs": [
+                      "setting",
+                      "start_time",
+                      "other_context"
+                    ],
+                    "rmType": "EVENT_CONTEXT",
+                    "prohibited": [],
+                    "slotCards": {
+                      "other_context": {
+                        "min": 0,
+                        "max": 1
+                      },
+                      "start_time": {
+                        "min": 1,
+                        "max": 1
+                      },
+                      "setting": {
+                        "min": 1,
+                        "max": 1
+                      }
+                    },
+                    "rmCards": {
+                      "other_context": {
+                        "min": 0,
+                        "max": 1
+                      },
+                      "start_time": {
+                        "min": 1,
+                        "max": 1
+                      },
+                      "setting": {
+                        "min": 1,
+                        "max": 1
+                      }
+                    }
+                  },
+                  "fields": {
+                    "NAME": "EVENT_CONTEXT",
+                    "SLOT_ID": "simple-diagnose-and-vitals//context/EVENT_CONTEXT",
+                    "RM_TYPE": "EVENT_CONTEXT",
+                    "MANDATORY": "1",
+                    "ARCHETYPE_NODE_ID": "",
+                    "ARCHETYPE_CTX": "encounter"
+                  },
+                  "inputs": {
+                    "ATTR_setting": {
+                      "block": {
+                        "type": "term_pick",
+                        "id": "rhw.m,K2Ok)-!8HMy[.(",
+                        "inline": false,
+                        "fields": {
+                          "NAME": "built-in",
+                          "SET": "openehr:setting",
+                          "CODE": "238",
+                          "SLOT_ID": "simple-diagnose-and-vitals//context/EVENT_CONTEXT/setting/value",
+                          "RM_TYPE": "DV_CODED_TEXT",
+                          "MANDATORY": "1"
+                        }
+                      }
+                    },
+                    "ATTR_start_time": {
+                      "block": {
+                        "type": "dv_date_time",
+                        "id": "zo]LW5X5aFU@Q+:X-h;2",
+                        "extraState": {
+                          "fields": []
+                        },
+                        "fields": {
+                          "NAME": "start_time",
+                          "SLOT_ID": "simple-diagnose-and-vitals//context/EVENT_CONTEXT/start_time/value",
+                          "RM_TYPE": "DV_DATE_TIME",
+                          "MANDATORY": "1"
+                        },
+                        "inputs": {
+                          "FLD_value": {
+                            "block": {
+                              "type": "source_query",
+                              "id": "d4]X1z3Z|NiYyADnG-ld",
+                              "fields": {
+                                "EXPRESSION": "$.timestamp",
+                                "RETURN_TYPE": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "OPT_health_care_facility": {
+                      "block": {
+                        "type": "party_identified",
+                        "id": ")#Nt@lR-v^N~-+jO0(1.",
+                        "extraState": {
+                          "extras": [],
+                          "attrs": [
+                            "external_ref",
+                            "identifiers",
+                            "name"
+                          ],
+                          "rmType": "PARTY_IDENTIFIED",
+                          "prohibited": [],
+                          "slotCards": {},
+                          "rmCards": {}
+                        },
+                        "fields": {
+                          "NAME": "health_care_facility",
+                          "SLOT_ID": "simple-diagnose-and-vitals//context/EVENT_CONTEXT/health_care_facility",
+                          "RM_TYPE": "PARTY_IDENTIFIED",
+                          "MANDATORY": "",
+                          "ARCHETYPE_NODE_ID": "",
+                          "ARCHETYPE_CTX": "encounter"
+                        },
+                        "inputs": {
+                          "ATTR_name": {
+                            "block": {
+                              "type": "maps_get",
+                              "id": "[:?@@sciNH|J:(xy?DhJ",
+                              "fields": {
+                                "NAME": "defaults",
+                                "SLOT_ID": "",
+                                "RM_TYPE": ""
+                              },
+                              "inputs": {
+                                "KEY": {
+                                  "shadow": {
+                                    "type": "text",
+                                    "id": "uf``Xb^O[cTD-vUFe-vV",
+                                    "fields": {
+                                      "TEXT": "facility"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

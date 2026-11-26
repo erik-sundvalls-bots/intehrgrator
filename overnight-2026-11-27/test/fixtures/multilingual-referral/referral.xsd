@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic multilingual XSD (en + sv) for #277 / #278: documentation per xml:lang, enumerations with docs, pattern, ranges, attribute. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+           targetNamespace="urn:example:referral:1" xmlns="urn:example:referral:1" version="1.2">
+  <xs:element name="Referral">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">Referral from primary care to a specialist clinic.</xs:documentation>
+      <xs:documentation xml:lang="sv">Remiss från primärvården till en specialistmottagning.</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="PatientId">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">Swedish personal identity number, 12 digits.</xs:documentation>
+            <xs:documentation xml:lang="sv">Personnummer, 12 siffror.</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType><xs:restriction base="xs:string"><xs:pattern value="[0-9]{12}"/></xs:restriction></xs:simpleType>
+        </xs:element>
+        <xs:element name="Priority" type="PriorityType">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">How urgent the referral is.</xs:documentation>
+            <xs:documentation xml:lang="sv">Hur brådskande remissen är.</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="Systolic" minOccurs="0">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">Latest systolic blood pressure in mmHg.</xs:documentation>
+            <xs:documentation xml:lang="sv">Senaste systoliska blodtrycket i mmHg.</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType><xs:restriction base="xs:integer"><xs:minInclusive value="0"/><xs:maxInclusive value="400"/></xs:restriction></xs:simpleType>
+        </xs:element>
+        <xs:element name="Diagnosis" type="DiagnosisType" minOccurs="0" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">Diagnosis that motivates the referral.</xs:documentation>
+            <xs:documentation xml:lang="sv">Diagnos som motiverar remissen.</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="PriorityType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ROUTINE"><xs:annotation><xs:documentation xml:lang="en">Within 90 days</xs:documentation><xs:documentation xml:lang="sv">Inom 90 dagar</xs:documentation></xs:annotation></xs:enumeration>
+      <xs:enumeration value="URGENT"><xs:annotation><xs:documentation xml:lang="en">Within 7 days</xs:documentation><xs:documentation xml:lang="sv">Inom 7 dagar</xs:documentation></xs:annotation></xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="DiagnosisType">
+    <xs:sequence>
+      <xs:element name="Code" type="xs:string">
+        <xs:annotation><xs:documentation xml:lang="en">ICD-10-SE code.</xs:documentation><xs:documentation xml:lang="sv">ICD-10-SE-kod.</xs:documentation></xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="primary" type="xs:boolean" use="optional">
+      <xs:annotation><xs:documentation xml:lang="en">True for the main diagnosis.</xs:documentation><xs:documentation xml:lang="sv">Sant för huvuddiagnosen.</xs:documentation></xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+</xs:schema>

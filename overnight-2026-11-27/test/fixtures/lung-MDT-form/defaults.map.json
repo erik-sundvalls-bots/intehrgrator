@@ -1,0 +1,100 @@
+{
+  "type": "default_context_map",
+  "extraState": {
+    "itemCount": 8,
+    "targets": [
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      []
+    ]
+  },
+  "fields": {
+    "KEY0": "Time",
+    "TARGETS0": "[]",
+    "KEY1": "PatientId",
+    "TARGETS1": "[]",
+    "KEY2": "UserId",
+    "TARGETS2": "[]",
+    "KEY3": "Signer",
+    "TARGETS3": "[]",
+    "KEY4": "TemplateId",
+    "TARGETS4": "[]",
+    "KEY5": "TemplateType",
+    "TARGETS5": "[]",
+    "KEY6": "InvokingSystem",
+    "TARGETS6": "[]",
+    "KEY7": "UUID",
+    "TARGETS7": "[]"
+  },
+  "inputs": {
+    "VAL0": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "20250101000000"
+        }
+      }
+    },
+    "VAL1": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "194002287086"
+        }
+      }
+    },
+    "VAL2": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "TMBA"
+        }
+      }
+    },
+    "VAL3": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "TMBA"
+        }
+      }
+    },
+    "VAL4": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "0"
+        }
+      }
+    },
+    "VAL5": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "0"
+        }
+      }
+    },
+    "VAL6": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "MBA"
+        }
+      }
+    },
+    "VAL7": {
+      "block": {
+        "type": "text",
+        "fields": {
+          "TEXT": "96f60575-f7c9-47ac-ae82-83557f0296fa"
+        }
+      }
+    }
+  }
+}

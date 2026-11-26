@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>intEHRgrator — Architecture Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+  </script>
+  <style>
+    :root {
+      --ink: #0f1c1a;
+      --teal: #005C53;
+      --teal-deep: #003B49;
+      --warm: #E87722;
+      --paper: #f3f6f4;
+      --line: #c9d4d0;
+    }
+    body {
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #d7ebe6 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #fde8d4 0%, transparent 50%),
+        var(--paper);
+      color: var(--ink);
+    }
+    .display { font-family: "IBM Plex Serif", Georgia, serif; }
+    .badge-strong { background: #155e45; color: #ecfdf5; }
+    .badge-explore { background: #854d0e; color: #fef9c3; }
+    .badge-spec { background: #334155; color: #e2e8f0; }
+    .mass {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .mass-col {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      min-height: 220px;
+    }
+    .iface {
+      border: 2px solid var(--teal);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #e8f5f2;
+    }
+    .impl {
+      margin-top: 0.5rem;
+      border-left: 3px solid var(--warm);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      background: #fff8f1;
+      color: #4a3420;
+    }
+    .shallow .iface { border-style: dashed; opacity: 0.9; }
+    .shallow .impl { min-height: 4.5rem; }
+    .deep .impl { min-height: 7.5rem; }
+    .arrow {
+      text-align: center;
+      color: var(--teal-deep);
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0.35rem 0;
+    }
+    .callout-warn {
+      border-left: 4px solid #b45309;
+      background: #fffbeb;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .mermaid { background: #fff; border-radius: 0.75rem; padding: 1rem; border: 1px solid var(--line); }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen">
+  <header class="max-w-6xl mx-auto px-6 pt-10 pb-6">
+    <p class="text-sm tracking-wide uppercase text-[color:var(--teal)] font-semibold">Architecture review · deepening opportunities</p>
+    <h1 class="display text-4xl md:text-5xl font-semibold mt-2 leading-tight">intEHRgrator seams for openEHR-as-source & dual builds</h1>
+    <p class="mt-4 max-w-3xl text-lg text-slate-700">
+      Friction surfaced with an eye on merging kintegrate-style openEHR source handling and shipping separate
+      <strong>web app</strong> and <strong>VS Code / Cursor</strong> builds. Vocabulary: <em>module</em>, <em>interface</em>,
+      <em>implementation</em>, <em>depth</em>, <em>seam</em>, <em>adapter</em>, <em>leverage</em>, <em>locality</em>
+      (architecture skill); domain terms from <code>CONTEXT.md</code>.
+    </p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 pb-20 space-y-8">
+
+    <!-- Candidate 1 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">1. Source Format Handler seam</h2>
+          <p class="text-sm text-slate-600 mt-1">Files: <code>src/core/source/*</code>, <code>src/types/mod.ts</code>, <code>src/core/expression/mod.ts</code>, <code>src/core/codegen/mod.ts</code>, <code>src/workbench/controller.ts</code></p>
+        </div>
+        <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">Done</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1">Source handling is a closed <code>"json" | "xml"</code> union threaded through types, query runtime, codegen, and the workbench. openEHR Composition / FLAT / STRUCTURED as a <em>Source Schema</em> (kintegrate Integration Builder treats openEHR JSON as input) cannot plug in without forking four modules. Deletion test: deleting <code>query_runtime</code> does not vanish complexity — it reappears in every caller — but the format switch itself is shallow branching, not a deep format module.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">Deepen a <strong>Source Format Handler</strong> module: one small interface (<code>loadSchema</code>, <code>loadInstance</code>, <code>toTree</code>, <code>pathToExpression</code>, <code>createContext</code>, <code>evaluate</code>) with adapters for JSON, XML, and later <code>openehr-composition</code> (and OPT-as-source tree if needed). Mapping Expressions stay format-backed behind that seam; Target Template Skeleton / ehrtslib remain the openEHR <em>target</em> stack.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <ul class="list-disc pl-5 text-slate-700 space-y-1 mt-1">
+            <li><strong>Leverage:</strong> callers (Click-to-Map, Test Run, codegen) keep one path language insertion API while formats multiply.</li>
+            <li><strong>Locality:</strong> openEHR path / FLAT quirks live in one adapter, not scattered unions.</li>
+            <li><strong>Tests:</strong> each adapter tested at the Source Format Handler interface; workbench tests stay format-agnostic.</li>
+          </ul>
+        </div>
+        <div class="mass">
+          <div class="mass-col shallow">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Before — shallow format forks</div>
+            <div class="iface">format: "json" | "xml"</div>
+            <div class="arrow">↓ leaks into</div>
+            <div class="impl">schema_loader · query_runtime · expression builtins · codegen SourceContext · controller.bindFromNode</div>
+            <p class="text-xs text-slate-500 mt-3">Interface nearly as wide as the branching implementation. openEHR-as-source = Nth fork.</p>
+          </div>
+          <div class="mass-col deep">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">After — deep Source Format Handler</div>
+            <div class="iface">SourceFormatHandler { load · tree · path · evaluate }</div>
+            <div class="arrow">↓ adapters</div>
+            <div class="impl">JsonHandler · XmlHandler · OpenEhrCompositionHandler (kintegrate-class input) — RM path / FLAT helpers concentrated here</div>
+            <p class="text-xs text-slate-500 mt-3">Small interface, large behaviour. Second adapter makes the seam real.</p>
+          </div>
+        </div>
+        <pre class="mermaid">
+flowchart LR
+  subgraph callers [Callers]
+    CTM[Click-to-Map]
+    TR[Test Run]
+    CG[Generated Export]
+  end
+  SFH[Source Format Handler interface]
+  J[JSON adapter]
+  X[XML adapter]
+  O[openEHR Composition adapter]
+  CTM --> SFH
+  TR --> SFH
+  CG --> SFH
+  SFH --> J
+  SFH --> X
+  SFH --> O
+        </pre>
+      </div>
+    </article>
+
+    <!-- Candidate 2 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">2. Host Abstraction + dual build entries</h2>
+          <p class="text-sm text-slate-600 mt-1">Files: <code>src/host/web_adapter.ts</code>, <code>src/core/persistence/mod.ts</code>, <code>web/main.ts</code>, <code>scripts/build.ts</code>, <code>ui/split_pane.ts</code></p>
+        </div>
+        <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">Done</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1">Host Abstraction exists but is browser-shaped (<code>File</code>), co-located with <code>WebHostAdapter</code>, and storage is inverted: IndexedDB helpers live in <code>core/persistence</code> while the host re-exports them. Only one esbuild entry (<code>web/main.ts</code>). A VS Code / Cursor webview build cannot swap storage/FS without dragging IndexedDB or forking persistence. One adapter today ⇒ seam still partly hypothetical.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">Deepen Host: bytes/text pick API (no DOM <code>File</code>); move IndexedDB behind <code>WebHostAdapter</code>; keep Project Bundle serialize/import as a deep pure module. Add second build entry (<code>extension/</code> host + webview bundle sharing Mapping Editor). Prefer webview = same DOM stack; only Host + packaging differ — same pattern kintegrate is moving toward for Codespaces.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <ul class="list-disc pl-5 text-slate-700 space-y-1 mt-1">
+            <li><strong>Leverage:</strong> one workbench + Blockly stack; two thin host adapters.</li>
+            <li><strong>Locality:</strong> storage/FS/AI differences stop leaking into Mapping Model and Test Run.</li>
+            <li><strong>Tests:</strong> Host mocked in unit tests (already starting); UI tests reuse Workbench Test API inside either shell.</li>
+          </ul>
+        </div>
+        <div class="mass">
+          <div class="mass-col shallow">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Before</div>
+            <div class="iface">HostAdapter + File + IndexedDB-in-core</div>
+            <div class="impl">Single browser bundle · localStorage in split_pane · location.href in AI prompt · confirm/prompt in shell</div>
+          </div>
+          <div class="mass-col deep">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">After</div>
+            <div class="iface">HostAdapter { pickText · storage · clipboard · download · dialogs? }</div>
+            <div class="impl">WebHostAdapter (IndexedDB) · VsCodeHostAdapter (workspace FS) · shared webview Mapping Editor bundle · pure Project Bundle I/O in core</div>
+          </div>
+        </div>
+        <pre class="mermaid">
+flowchart TB
+  CORE[Shared core: Mapping Model · Blockly · Source Format Handler · codegen]
+  WEB[web app adapter + pages build]
+  VSC[VS Code / Cursor adapter + extension package]
+  CORE --> WEB
+  CORE --> VSC
+        </pre>
+      </div>
+    </article>
+
+    <!-- Candidate 3 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">3. Prefer Blockly JSON over a custom Mapping Spec DSL</h2>
+          <p class="text-sm text-slate-600 mt-1">Files: <code>docs/MAPPING_SPECIFICATION.md</code>, <code>src/core/mapping_model</code>, <code>ProjectBundle.mapping.blocklyState</code>, AI suggestion format · ADR 0001</p>
+        </div>
+        <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">Done</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1">
+            Sync Scope today invents a third language: Blockly blocks ⇄ Mapping Model ⇄ custom block-aligned DSL (<code>toSpec</code> / <code>@template composition { … }</code>).
+            That DSL is not known to LLMs, not used by other tools, and duplicates structure already in
+            <code>Blockly.serialization.workspaces.save</code> (persisted as <code>blocklyState</code>).
+            Deletion test: removing <code>core/spec</code> mostly removes projection chrome — Mapping Model + Blockly JSON already carry the mapping.
+            Growing the DSL toward text-first editing doubles maintenance without industry familiarity.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">
+            Treat <strong>Blockly native JSON</strong> as the canonical Mapping Specification / interchange surface
+            (DeepWiki: <code>RaspberryPiFoundation/blockly</code> serialization — documented <code>blocks</code> / <code>fields</code> / <code>inputs</code> / <code>extraState</code> contract; intended for restore <em>and</em> interchange).
+            Keep the slim <strong>Mapping Model</strong> (<code>slotId</code> → expression) as a <em>derived index</em> for AI patch import
+            (<code>intehrgrator-suggestions</code>), validation, and Test Run — not a parallel structural language.
+            Center CodeMirror should show pretty-printed Blockly JSON (optionally stripped of <code>x</code>/<code>y</code> for readability) or the Mapping Model slot list — not a hand-rolled DSL.
+            Informatician expression edits either patch Blockly field JSON paths or the derived <code>slots[]</code>; structural edits stay in Blockly / Optional RM Insertion.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <ul class="list-disc pl-5 text-slate-700 space-y-1 mt-1">
+            <li><strong>Leverage:</strong> LLMs and tooling already see Blockly serialization in the wild; no need to teach a private DSL.</li>
+            <li><strong>Locality:</strong> one structural truth (<code>blocklyState</code>); Mapping Model regenerates from it; <code>toSpec</code> can shrink or die.</li>
+            <li><strong>AI path:</strong> bulk structure via Blockly JSON; slot fills via existing small suggestion envelope — best of both.</li>
+          </ul>
+        </div>
+        <div class="callout-warn">
+          Caveat: raw workspace JSON includes UI chrome (coordinates, shadows, ids). Persist the full form; for human/LLM <em>review</em> prefer a filtered projection
+          (drop <code>x</code>/<code>y</code>, maybe collapse fixed RM shells) or the Mapping Model slot table — still JSON, still not a new grammar.
+          Blockly major bumps can change serialization; pin Blockly and keep Mapping Model as the migration-friendly index.
+        </div>
+        <div class="mass">
+          <div class="mass-col shallow">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Before — three languages</div>
+            <div class="iface">custom DSL ⇄ Mapping Model ⇄ Blockly JSON</div>
+            <div class="impl">toSpec projection · expression line parser · AI learns private @template syntax · dual persistence confusion</div>
+          </div>
+          <div class="mass-col deep">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">After — Blockly JSON + derived index</div>
+            <div class="iface">blocklyState (canonical) → Mapping Model slots[] (derived)</div>
+            <div class="impl">CodeMirror: Blockly JSON or slots JSON · AI: suggestions envelope and/or Blockly JSON patches · codegen/Test Run from Model</div>
+          </div>
+        </div>
+        <pre class="mermaid">
+flowchart LR
+  BW[Blockly workspace]
+  BJ[Blockly serialization JSON]
+  MM[Mapping Model slot index]
+  AI[AI suggestions / LLM edits]
+  CG[Codegen / Test Run]
+  BW --> BJ
+  BJ --> MM
+  AI --> BJ
+  AI --> MM
+  MM --> CG
+  BJ --> BW
+        </pre>
+      </div>
+    </article>
+
+    <!-- Candidate 4 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">4. Mapping pipeline depth (Sync Scope → Test Run)</h2>
+          <p class="text-sm text-slate-600 mt-1">Files: <code>src/blockly/*</code>, <code>src/core/mapping_model</code>, <code>src/core/codegen</code>, <code>src/core/test_runner</code>, <code>web/main.ts</code></p>
+        </div>
+        <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">Done</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1">Intended Sync Scope is Blockly ⇄ Mapping Model (⇄ text projection) → Generated Export → Test Run. Actual path: Click-to-Map updates Mapping Model; Blockly canvas edits only <code>markDirty()</code>; Test Run evaluates slot expressions into a stub Composition and ignores Generated Export. Dual codegen (Blockly JS generators vs <code>core/codegen</code>) splits locality. UI tests can assert slot preview today, but not “sensible openEHR Composition” until this deepens. Pair with candidate 3: do not deepen a custom DSL while fixing the pipeline.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">Make Blockly JSON → Mapping Model the sync authority: Blockly → Model on change; codegen only from Model; Test Run executes Generated Export (or a Model interpreter that is the same semantic surface). Collapse or demote unused Blockly-only generator path until it is an adapter behind the same interface. Demote or delete <code>toSpec</code> DSL as the center-pane “language.”</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <ul class="list-disc pl-5 text-slate-700 space-y-1 mt-1">
+            <li><strong>Locality:</strong> bugs in conversion live in one pipeline, not Model vs Blockly vs stub runner.</li>
+            <li><strong>Leverage:</strong> Workbench Test API / UI tests assert real Composition JSON.</li>
+            <li><strong>Deletion test:</strong> today’s thin <code>test_runner</code> fails — deleting it barely hurts; after deepening, deleting it would force N callers to reimplement ehrtslib execution.</li>
+          </ul>
+        </div>
+        <div class="mass">
+          <div class="mass-col shallow">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Before</div>
+            <div class="iface">runTest(model, example)</div>
+            <div class="impl">evaluate each slot → { COMPOSITION stub, slots } · _generatedTs unused</div>
+          </div>
+          <div class="mass-col deep">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">After</div>
+            <div class="iface">runTest(model | generatedExport, example) → Composition</div>
+            <div class="impl">Sync Scope guarantees Model freshness · ehrtslib build · validation warnings with locality next to codegen</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Candidate 5 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">5. Collapse pass-through RM attachment catalog</h2>
+          <p class="text-sm text-slate-600 mt-1">Files: <code>src/core/rm_attachment_catalog.ts</code>, <code>src/core/rm_meta.ts</code></p>
+        </div>
+        <span class="badge-explore text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">Worth exploring</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1"><code>rm_attachment_catalog.ts</code> is a ~10-line re-export of <code>getValidAttachments</code>. Deletion test: complexity vanishes — it was a pass-through. Optional RM Insertion policy (what to offer in the picker) belongs either inside a deepened attachment module or directly on <code>rm_meta</code>.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">Either delete the catalog and import <code>rm_meta</code>, or deepen it into the real Optional RM Insertion policy module (OPT context, already-present attrs, product filters) — that would earn depth once openEHR-as-source and dual hosts need consistent attachment rules.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <p class="text-slate-700 mt-1">Less AI-navigation noise; or, if deepened, one locality for attachment policy tests.</p>
+        </div>
+        <div class="mass">
+          <div class="mass-col shallow">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Before</div>
+            <div class="iface">getValidAttachments()</div>
+            <div class="impl">return rm_meta.getValidAttachments(...)</div>
+          </div>
+          <div class="mass-col deep">
+            <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">After (pick one)</div>
+            <div class="iface">rm_meta only  —or—  AttachmentPolicy { forNode, filter }</div>
+            <div class="impl">No pass-through · policy depth if picker rules grow with kintegrate merge</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Candidate 6 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">6. Workbench view seam (shell vs controller)</h2>
+          <p class="text-sm text-slate-600 mt-1">Files: <code>web/main.ts</code>, <code>src/workbench/controller.ts</code>, <code>tree_views.ts</code>, <code>codemirror_setup.ts</code></p>
+        </div>
+        <span class="badge-explore text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">Worth exploring</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1"><code>WorkbenchController</code> is mostly host-agnostic and deep, but <code>web/main.ts</code> owns dialogs, Blockly inject, and render wiring (~500+ LOC). Fine for one web app; painful when a second shell (VS Code webview HTML) must fork that glue. Workbench Test API already peeks through this seam — a good sign the interface wants formalizing.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">Extract a thin <strong>Workbench Shell</strong> module that mounts Mapping Editor + Source Pane + Output Previews given a Host + DOM roots. Web Pages and VS Code webview become two adapters that only supply roots + Host. Keep Workbench Test API as the test surface of that shell.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <p class="text-slate-700 mt-1">Locality for UI wiring; leverage for dual builds without duplicating Click-to-Map / Autoplay glue.</p>
+        </div>
+        <div class="callout-warn">
+          Do this <em>after</em> or alongside Host deepening — extracting a shell that still hard-codes <code>File</code> / IndexedDB only moves the shallow edge.
+        </div>
+      </div>
+    </article>
+
+    <!-- Candidate 7 -->
+    <article class="bg-white/80 backdrop-blur border border-[color:var(--line)] rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-[color:var(--line)] flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="display text-2xl font-semibold">7. Handlebars / kintegrate conversion dialect</h2>
+          <p class="text-sm text-slate-600 mt-1">See <code>docs/KINTEGRATE_MIGRATION.md</code>, Target instance format handlers, Better Form Bridge</p>
+        </div>
+        <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">In progress</span>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Problem</h3>
+          <p class="text-slate-700 mt-1">kintegrate’s middle column is Handlebars conversion scripts over JSON trees (often openEHR compositions). intEHRgrator’s Conversion script language is TypeScript/Java from Blockly. Merging product surfaces may tempt a third script language without a deep Conversion script language module.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Solution</h3>
+          <p class="text-slate-700 mt-1">Only if product requires it: deepen Conversion script language as adapters behind Mapping Model (<code>typescript</code> | <code>java</code> | <code>handlebars</code>), never a parallel IR. Prefer absorbing kintegrate’s <em>source</em> strengths first (candidate 1).</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-[color:var(--teal-deep)]">Benefits</h3>
+          <p class="text-slate-700 mt-1">Avoids a second mapping language; keeps AI / Blockly / spec on one Model.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- Top recommendation -->
+    <section class="rounded-2xl border-2 border-[color:var(--teal)] bg-gradient-to-br from-[#e8f5f2] to-white px-6 py-6">
+      <h2 class="display text-2xl font-semibold text-[color:var(--teal-deep)]">Top recommendation</h2>
+      <p class="mt-3 text-slate-800 text-lg">
+        Candidates <strong>1–4</strong> are implemented (Source Format Handler with openEHR-as-source,
+        Host + dual Web/VS Code builds, Blockly JSON as Mapping Spec, pipeline Sync Scope → Target instance format / Handlebars Test Run).
+        Recorded in <code>docs/adr/0001-mapping-and-target-seams.md</code>.
+        Candidate <strong>7</strong> is in progress: Handlebars conversion script language + multi-target instance formats are live;
+        Better Form Renderer ScriptApi parity remains optional follow-up.
+      </p>
+      <p class="mt-4 text-slate-600 text-sm">
+        Grounding: DeepWiki <code>ErikSundvall/kintegrate</code> (source / formTestApi); DeepWiki <code>RaspberryPiFoundation/blockly</code>
+        (<code>serialization.workspaces.save/load</code> as restore + interchange).
+        Migration notes: <code>docs/KINTEGRATE_MIGRATION.md</code>.
+      </p>
+    </section>
+
+    <section class="text-sm text-slate-600 border-t border-[color:var(--line)] pt-6">
+      <p>Updated 2026-08-02: candidates 1–4 done; candidate 7 (Handlebars / multi-target / Better Form Bridge) in progress. See ADR 0001 and KINTEGRATE_MIGRATION.md.</p>
+    </section>
+  </main>
+</body>
+</html>

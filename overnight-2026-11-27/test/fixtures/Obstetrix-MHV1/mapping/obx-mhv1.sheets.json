@@ -1,0 +1,20 @@
+[
+  {
+    "name": "lifestyle_code",
+    "kind": "decision-table",
+    "hitPolicy": "FIRST",
+    "headers": ["code", "tobacco", "snus", "alcohol"],
+    "decisionColumns": [
+      { "role": "condition" },
+      { "role": "output", "outputKind": "value", "valueType": "string" },
+      { "role": "output", "outputKind": "value", "valueType": "string" },
+      { "role": "output", "outputKind": "value", "valueType": "string" }
+    ],
+    "values": [
+      [1, "Nej", "Nej", "Aldrig"],
+      [2, "1-9 cig/dag", "Ja", "Högst 1 gång per vecka"],
+      [3, "10 el fler cig/dag", "Ja", "Mer än 1 gång per vecka"]
+    ],
+    "rowCatchAll": [false, false, false]
+  }
+]

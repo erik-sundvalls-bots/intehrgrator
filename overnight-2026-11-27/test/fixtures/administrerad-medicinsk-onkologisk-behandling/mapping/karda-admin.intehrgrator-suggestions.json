@@ -1,0 +1,566 @@
+{
+  "format": "intehrgrator-suggestions",
+  "version": "2",
+  "target": {
+    "format": "openehr-template",
+    "targetId": "AdministreradMedicinskOnkologiskBehandlingPerSubstans"
+  },
+  "loops": [
+    {
+      "attachSlotId": "/content[openEHR-EHR-ACTION.medication.v1]",
+      "block": {
+        "type": "for_each_list",
+        "fields": {
+          "VAR": "substans"
+        },
+        "inputs": {
+          "LIST": {
+            "block": {
+              "type": "source_query_node",
+              "fields": {
+                "EXPRESSION": "$.Substanser"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "suggestions": [
+    {
+      "slotId": "/context/EVENT_CONTEXT/start_time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.EncounterDate"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/setting/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "other care"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "238"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "openehr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/health_care_facility",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.Vardenhet_namn"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text_join",
+              "extraState": {
+                "itemCount": 2
+              },
+              "inputs": {
+                "ADD0": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "SE2321000016-"
+                    }
+                  }
+                },
+                "ADD1": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "$.Vardenhet_HSAID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      },
+      "note": "Care unit (Vardenhet_*), HSA-id with the Region Stockholm prefix"
+    },
+    {
+      "slotId": "/composer",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "name",
+          "KEY1": "id",
+          "KEY2": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.SignatureUser_FullName"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.SignatureUser_UserName"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0001/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.PDL_enhet_Namn"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0003/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text_join",
+              "extraState": {
+                "itemCount": 2
+              },
+              "inputs": {
+                "ADD0": {
+                  "block": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "SE2321000016-"
+                    }
+                  }
+                },
+                "ADD1": {
+                  "block": {
+                    "type": "source_query",
+                    "fields": {
+                      "EXPRESSION": "$.PDL_enhet_HSAID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "vårdenhet"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "43741000"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "http://snomed.info/sct/900000000000207008"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0001/value/DV_TEXT/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.PDL_vardgivare_Namn"
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items[at0003, 'Identifierare']/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.PDL_vardgivare_HSAID"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:1.2.752.29.4.19"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items[at0003, 'Organisationsnummer']/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "id",
+          "KEY1": "type"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "2321000016"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "urn:oid:2.5.4.97"
+              }
+            }
+          }
+        }
+      },
+      "note": "Region Stockholm organisation number (constant)"
+    },
+    {
+      "slotId": "/context/EVENT_CONTEXT/other_context/at0001/items/at0000/items/at0000/items/at0004/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "vårdgivare"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "143591000052106"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "http://snomed.info/sct/45991000052106"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "slotId": "/content[openEHR-EHR-EVALUATION.reason_for_encounter.v1]/data/at0001/items/at0004/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.Diagnosnamn_ICD10"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "$.Diagnoskod_ICD10"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "1.2.752.116.1.1.1"
+              }
+            }
+          }
+        }
+      },
+      "note": "ICD-10-SE (OID 1.2.752.116.1.1.1)"
+    },
+    {
+      "slotId": "/content[openEHR-EHR-ACTION.medication.v1]/ism_transition/at0007/careflow_step/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "Fullföljd läkemedelsbehandling"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "at0007"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "local"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans",
+      "note": "The template only allows completed / at0007"
+    },
+    {
+      "slotId": "/content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0132/value/DV_CODED_TEXT/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 3
+        },
+        "fields": {
+          "KEY0": "value",
+          "KEY1": "code_string",
+          "KEY2": "terminology_id"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "Innholdstoff_Navn"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "Innholdstoff_ATC"
+              }
+            }
+          },
+          "VAL2": {
+            "block": {
+              "type": "text",
+              "fields": {
+                "TEXT": "2.16.840.1.113883.6.73"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans",
+      "note": "ATC (OID 2.16.840.1.113883.6.73)"
+    },
+    {
+      "slotId": "/content[openEHR-EHR-ACTION.medication.v1]/description/at0017/items/at0000/items/at0139/value/value/value",
+      "block": {
+        "type": "maps_create_with",
+        "extraState": {
+          "itemCount": 2
+        },
+        "fields": {
+          "KEY0": "magnitude",
+          "KEY1": "units"
+        },
+        "inputs": {
+          "VAL0": {
+            "block": {
+              "type": "source_query_number",
+              "fields": {
+                "EXPRESSION": "Dose"
+              }
+            }
+          },
+          "VAL1": {
+            "block": {
+              "type": "source_query",
+              "fields": {
+                "EXPRESSION": "UnitCode"
+              }
+            }
+          }
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content[openEHR-EHR-ACTION.medication.v1]/protocol/at0030/items/at0103/value/DV_IDENTIFIER/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.RekvisisjonId"
+        }
+      },
+      "loopVar": "substans"
+    },
+    {
+      "slotId": "/content[openEHR-EHR-ACTION.medication.v1]/time/value",
+      "block": {
+        "type": "source_query",
+        "fields": {
+          "EXPRESSION": "$.EncounterDate"
+        }
+      },
+      "loopVar": "substans"
+    }
+  ]
+}

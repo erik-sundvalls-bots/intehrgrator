@@ -1,0 +1,663 @@
+{
+ "granskning": {
+  "context": [
+   {
+    "vårdenhet": [
+     {
+      "namn": [
+       {
+        "|value": "Testvårdenhet"
+       }
+      ],
+      "identifierare": [
+       {
+        "|id": "VE_TEST-1234",
+        "|type": "",
+        "|issuer": "",
+        "|assigner": ""
+       }
+      ],
+      "roll": [
+       {
+        "|code": "43741000",
+        "|value": "vårdenhet"
+       }
+      ],
+      "vårdgivare": [
+       {
+        "namn": [
+         {
+          "|value": "Testvårdgivare"
+         }
+        ],
+        "identifierare": [
+         {
+          "|id": "VG_TEST-1234",
+          "|type": "",
+          "|issuer": "",
+          "|assigner": ""
+         }
+        ],
+        "organisationsnummer": [
+         {
+          "|id": "999999-9999",
+          "|type": "",
+          "|issuer": "",
+          "|assigner": ""
+         }
+        ],
+        "roll": [
+         {
+          "|code": "143591000052106",
+          "|value": "vårdgivare"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "rubrik": [
+   {
+    "behållare": [
+     {
+      "deltagare": [
+       {
+        "deltagare": [
+         {
+          "namn": [
+           {
+            "|value": "Dr Dängroth"
+           }
+          ],
+          "vårdgivarroll": [
+           {
+            "specialitet": [
+             {
+              "|value": "Kirurgi"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "namn": [
+           {
+            "|value": "Dr Alban"
+           }
+          ],
+          "vårdgivarroll": [
+           {
+            "specialitet": [
+             {
+              "|value": "Musikterapi"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "bakgrund": [
+   {
+    "sjukdomshistoria": [
+     {
+      "ospecificerad_händelse": [
+       {
+        "anamnes": [
+         {
+          "|value": "andnöd vid ansträngning, smärta"
+         }
+        ],
+        "komorbiditet": [
+         {
+          "|value": "Hypertoni"
+         }
+        ],
+        "aktuellt": [
+         {
+          "|value": "Tidigare frisk, icke-rökare, motionerar sällan eller aldrig"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "sammanfattning_av_rökvanor_för_tobak": [
+     {
+      "per_typ": [
+       {
+        "typ": [
+         {
+          "|code": "at0054",
+          "|value": "Cigaretter"
+         }
+        ],
+        "status": [
+         {
+          "|code": "at0091",
+          "|value": "Har aldrig rökt"
+         }
+        ],
+        "per_episod": [
+         {
+          "typisk_användning_enheter": []
+         }
+        ],
+        "paketår_pack_years": [],
+        "slutdatum": [],
+        "kommentar": [
+         {
+          "|value": "Hustrun röker, fast oftast utomhus"
+         }
+        ]
+       }
+      ],
+      "definition_av_rökare": [
+       {
+        "|value": "Använder nu eller har slutat för mindre än 6 månader sedan"
+       }
+      ],
+      "definition_av_före_detta_rökare": [
+       {
+        "|value": "Slutade för mer än 6 månader sedan"
+       }
+      ],
+      "definition_av_paket": [
+       {
+        "quantity_value": [
+         {
+          "|unit": "st",
+          "|magnitude": 20
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "utredning_undersökning": [
+   {
+    "bilddiagnostik": [
+     {
+      "bilddiagnostiskt_resultat": [
+       {
+        "ospecificerad_händelse": [
+         {
+          "typ_av_undersökning2": [],
+          "datum": [],
+          "imaging_examination_of_an_anomaly_en": [
+           {
+            "physical_dimensions_en": [
+             {
+              "diameter_största_tumör": [
+               {
+                "quantity_value": [
+                 {
+                  "|unit": "mm"
+                 }
+                ]
+               }
+              ]
+             }
+            ],
+            "multifokalitet": [],
+            "anatomisk_lokalisation_primärtumör": [
+             {
+              "namn_på_kroppsställe": [],
+              "beskrivning": []
+             }
+            ],
+            "anatomisk_lokalisation_lymfkörtelmetastaser": [
+             {
+              "namn_på_kroppsställe": [],
+              "beskrivning": []
+             }
+            ],
+            "anatomisk_lokalisation_fjärrmetastaser": [
+             {
+              "namn_på_kroppsställe": [],
+              "beskrivning": []
+             }
+            ]
+           }
+          ],
+          "kommentar": []
+         }
+        ]
+       }
+      ],
+      "kompletterande_mr_hjärna": [
+       {
+        "ospecificerad_händelse": [
+         {
+          "typ_av_undersökning": [],
+          "anatomiskt_målområde": [],
+          "datum": [],
+          "antal_förekomster_av_ett_observerat_fynd": [
+           {
+            "antal_metastaser_i_hjärnan": []
+           }
+          ],
+          "kommentar": []
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "pad": [
+     {
+      "pad_resultat": [
+       {
+        "ospecificerad_händelse": [
+         {
+          "undersökningsnamn": [],
+          "anatomisk_lokalisation": [
+           {
+            "anatomisk_lokalisation_för_provtagning": []
+           }
+          ],
+          "laboratoriedisciplin": [
+           {
+            "|code": "2",
+            "|value": "Cytologi"
+           }
+          ],
+          "molekylärpatologisk_analys": [
+           {
+            "analysnamn": [
+             {
+              "|code": "1",
+              "|value": "EGFR"
+             }
+            ],
+            "analysresultat": [
+             {
+              "|code": "e13ec0a3-7871-46cb-911e-4b554dbea399",
+              "|value": "Positiv"
+             }
+            ],
+            "analysresultat_2": [
+             {
+              "|magnitude": null,
+              "|unit": "%"
+             }
+            ]
+           }
+          ],
+          "kommentar": []
+         }
+        ]
+       }
+      ],
+      "ingreppsmetod": [
+       {
+        "namn_på_procedur": [
+         {
+          "|code": "2000",
+          "|value": "Annan"
+         }
+        ]
+       }
+      ],
+      "problem_diagnos": [
+       {
+        "patologisk_diagnos": [
+         {
+          "|code": "C34.9B",
+          "|value": "Lungcancer, småcellig cancer"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "funktionsutredning": [
+     {
+      "funktionsstatus_enligt_ecog": [
+       {
+        "ospecificerad_händelse": [
+         {
+          "funktionsstatus_enligt_ecog": [],
+          "kommentar": []
+         }
+        ]
+       }
+      ],
+      "trapptest": [
+       {
+        "any_event": [
+         {
+          "resultat": [],
+          "distans": [
+           {
+            "|magnitude": null,
+            "|unit": "m"
+           }
+          ],
+          "orsak_ej_godkänt": [],
+          "orsak_ej_genomfört": [],
+          "saturation": [
+           {
+            "|magnitude": null,
+            "|unit": "%"
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "spirometriresultat": [
+       {
+        "ospecificerad_händelse": [
+         {
+          "fev1": [
+           {
+            "resultat": [
+             {
+              "|unit": "L"
+             }
+            ]
+           }
+          ],
+          "kvot_fev1_fvc": [
+           {
+            "resultat": [
+             {
+              "|numerator": 69,
+              "|denominator": 100
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "dlco": [
+       {
+        "any_event": [
+         {
+          "dlco": [
+           {
+            "|denominator": 100
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "ergospirometri": [
+       {
+        "any_event": [
+         {
+          "vo2max": [
+           {
+            "|magnitude": null,
+            "|unit": "ml/kg/min"
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "lungscintigrafi": [
+       {
+        "ospecificerad_händelse": [
+         {
+          "typ_av_undersökning": [
+           {
+            "|code": "303904005",
+            "|value": "Radionuclide study of respiratory function (procedure)"
+           }
+          ],
+          "namn_på_kroppsställe": [
+           {
+            "|code": "39607008",
+            "|value": "Lung"
+           }
+          ],
+          "datum": [],
+          "lungscintigrafi": [
+           {
+            "höger_lunga": [
+             {
+              "|magnitude": null,
+              "|unit": "%"
+             }
+            ],
+            "vänster_lunga": [
+             {
+              "|magnitude": null,
+              "|unit": "%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "bedömning": [
+   {
+    "behållare": [
+     {
+      "klinisk_tnm-klassificering": [
+       {
+        "tnm-version": [
+         {
+          "|code": "1",
+          "|value": "9:de utgåvan av TNM enligt International Association for the Study of Lung Cancer"
+         }
+        ],
+        "primärtumör_t": [
+         {
+          "|code": "1",
+          "|value": "Tx"
+         }
+        ],
+        "regional_lymfkörtlar_n": [
+         {
+          "|code": "2",
+          "|value": "N0"
+         }
+        ],
+        "fjärrmetastaser_m": [
+         {
+          "|code": "3",
+          "|value": "M1a"
+         }
+        ],
+        "stadieindelning": [
+         {
+          "|code": "6",
+          "|value": "Ib"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "huvuddiagnos": [
+     {
+      "icd-10": [
+       {
+        "|code": "C34.9B",
+        "|value": "Lungcancer, småcellig cancer"
+       }
+      ],
+      "datum_och_tid_för_kliniskt_erkänd": [
+       {
+        "|value": "2025-09-20"
+       }
+      ],
+      "problem_diagnoskvalificering": [
+       {
+        "diagnostisk_kategori": [
+         {
+          "|code": "at0064",
+          "|value": "Huvuddiagnos"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "bidiagnos": [
+     {
+      "icd-10": [],
+      "datum_och_tid_för_kliniskt_erkänd": [],
+      "problem_diagnoskvalificering": [
+       {
+        "diagnostisk_kategori": [
+         {
+          "|code": "at0066",
+          "|value": "Bidiagnos"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "gemensamt_beslut": [
+   {
+    "multidisciplinär_rekommendation_för_handläggning_av_cancer": [
+     {
+      "rekommenderad_behandlingsstrategi": [
+       {
+        "behandlingsalternativ": [
+         {
+          "klinisk_studie": [],
+          "bästa_understödjande_vård_bsc": [
+           {
+            "bästa_understödjande_vård_bsc": [],
+            "skäl_till_val_av_bästa_understödjande_vård": []
+           }
+          ],
+          "huvudbehandling": [
+           {
+            "intention": [
+             {
+              "|code": "1",
+              "|value": "Kurativ"
+             }
+            ],
+            "typ_av_behandling": [
+             {
+              "|code": "3",
+              "|value": "Radioterapi"
+             }
+            ],
+            "kemoterapi": [
+             {
+              "typ": []
+             }
+            ],
+            "fritext": [
+             {
+              "detaljer_om_huvudbehandling": []
+             }
+            ]
+           }
+          ],
+          "tilläggsbehandling": [
+           {
+            "intention": [
+             {
+              "|code": "1",
+              "|value": "Kurativ"
+             }
+            ],
+            "typ_av_behandling": [
+             {
+              "|code": "1",
+              "|value": "Kirurgi"
+             }
+            ],
+            "relation_till_huvudbehandling": [
+             {
+              "|code": "1",
+              "|value": "Neoadjuvant"
+             }
+            ],
+            "kemoterapi": [
+             {
+              "typ": []
+             }
+            ],
+            "fritext": [
+             {
+              "detaljer_om_tillägsbehandling": []
+             }
+            ]
+           }
+          ],
+          "kommentar": []
+         }
+        ]
+       }
+      ],
+      "vidare_utredning": [
+       {
+        "beskrivning_av_vidare_utredning": []
+       }
+      ],
+      "uppföljning": []
+     }
+    ]
+   }
+  ]
+ },
+ "ctx": {
+  "language": "sv",
+  "territory": "SE",
+  "generic_fields": {
+   "/bilddiagnostik/generic-layout_group-1268861/generic-coded_text-6688880": [],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/huvudbehandling/generic-boolean-4185102": [
+    {
+     "|value": true
+    }
+   ],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/huvudbehandling/generic-coded_text-2731640": [],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/huvudbehandling/generic-numeric_field-304835": [],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/huvudbehandling/generic-boolean-4152167": [],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/huvudbehandling/generic-quantity-3883049": [
+    {
+     "|magnitude": null,
+     "|unit": "Gy"
+    }
+   ],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/huvudbehandling/generic-quantity-5589489": [
+    {
+     "|magnitude": null,
+     "|unit": "Gy"
+    }
+   ],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/tilläggsbehandling/generic-coded_text-4836047": [
+    {
+     "|code": "8f8e6498-dad7-4973-9d5f-64e916b9273e",
+     "|value": "Nivolumab-Karboplatin-Pemetrexed"
+    }
+   ],
+   "/generic-layout_group-2467934/rekommenderad_behandlingsstrategi/behandlingsalternativ|0/generic-layout_group-1254532/tilläggsbehandling/generic-numeric_field-1611961": [
+    {
+     "|value": 3
+    }
+   ]
+  }
+ }
+}

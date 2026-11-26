@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sheets/icd10-snomed-target.schema.json",
+  "title": "CodedDiagnosisTarget",
+  "type": "object",
+  "properties": {
+    "snomed": { "type": "string" }
+  },
+  "required": ["snomed"]
+}
