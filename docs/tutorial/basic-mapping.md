@@ -79,8 +79,9 @@ A 💡 badge marks a **value-set hint**: the template (or an `enum` in a JSON Sc
 
 1. In the toolbar, open **Example Sets** and pick a row.
 2. Confirm if the canvas already has work. Loading a set **replaces** the current source, target, and mapping.
-3. Wait for the progress overlay. The status bar then says `Loaded example set "…"`.
-4. Look at the left pane and the Mapping Editor.
+3. Wait for the progress overlay to close. The target, Source Schema, mapping and grids are in, and you can already navigate and edit.
+4. The **Example Instances** load last, with a spinner of their own in the examples pane (*Loading 4 example(s)…*). When they are in, the status bar says `Loaded example set "…"`.
+5. Look at the left pane and the Mapping Editors.
 
 - **Unmapped** rows leave Template Skeleton mouths empty (yellow triangles on mandatory slots).
 - **Mapped** rows restore saved Blockly, and often Sheets and a default context map.
