@@ -900,20 +900,40 @@ function resolveNodeDisplayLabel(
     cObj,
     labelCtx.resolver.originalLanguage,
   ).text?.trim();
+  const isWtScope = Boolean(termScope?.startsWith("wt:"));
+  const baseEnTerm = labelCtx.resolver.primaryLanguage === "en"
+    ? baseLangTerm
+    : labelCtx.resolver.originalLanguage === "en"
+    ? baseOrigTerm
+    : labelCtx.resolver.resolveNodeTermInLanguage(cObj, "en").text?.trim();
+  // Guard against ehrtslib#338: when an isolated wt:* scope lacks a term
+  // (e.g. elided ITEM_TREE/HISTORY in Web Templates), ehrtslib's fallback language
+  // loop can escape into the flat root ontology in an unrelated language (e.g. zh).
+  const hasRelevantLangTerm = !isWtScope || Boolean(
+    baseLangTerm ||
+      baseOrigTerm ||
+      baseEnTerm ||
+      resolved.localizedNames?.[labelCtx.resolver.primaryLanguage] ||
+      resolved.localizedNames?.[labelCtx.resolver.originalLanguage] ||
+      resolved.localizedNames?.["en"],
+  );
+  const trustedResolverPrimary = hasRelevantLangTerm
+    ? resolved.primaryName?.trim()
+    : undefined;
   const candidateNames = [
     nameConstraint,
     nameHint,
-    resolved.primaryName,
+    trustedResolverPrimary,
     baseLangTerm,
-    ...Object.values(resolved.localizedNames ?? {}),
+    ...(hasRelevantLangTerm ? Object.values(resolved.localizedNames ?? {}) : []),
   ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
 
   let label: string;
   if (
     labelCtx.useResolverPrimary &&
-    isResolvedClinicalLabel(resolved.primaryName?.trim(), nodeId, rmType, templateId)
+    isResolvedClinicalLabel(trustedResolverPrimary, nodeId, rmType, templateId)
   ) {
-    label = resolved.primaryName!.trim();
+    label = trustedResolverPrimary!;
   } else {
     const fallback = nameLabel(nameConstraint, nodeNames) ?? resolvedNodeLabel(
       nameHint,
@@ -927,7 +947,17 @@ function resolveNodeDisplayLabel(
     );
     label = isResolvedClinicalLabel(fallback, nodeId, rmType, templateId)
       ? fallback
-      : (resolved.primaryName?.trim() || fallback);
+      : (trustedResolverPrimary || fallback);
+  }
+  if (isWtScope && !hasRelevantLangTerm && (!label || label === nodeId || /^at\d|^id\d/i.test(label))) {
+    const rmFallback: Record<string, string> = {
+      ITEM_TREE: "Item tree",
+      HISTORY: "History",
+      ITEM_LIST: "Item list",
+      ITEM_SINGLE: "Item single",
+      ITEM_TABLE: "Item table",
+    };
+    if (rmFallback[rmType]) label = rmFallback[rmType];
   }
 
   const labelLower = label.trim().toLowerCase();

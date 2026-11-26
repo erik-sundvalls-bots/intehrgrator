@@ -6,6 +6,8 @@ Add an entry under **Unreleased** in every feature or fix PR that changes user-v
 
 ## [Unreleased]
 
+- **Web Template elided-node label leak fix & Treemap → Scoped Blockly scope alignment** ([ehrtslib#338](https://github.com/ErikSundvall/ehrtslib/issues/338)): guarded openEHR skeleton label resolution so elided intermediate RM nodes (`ITEM_TREE`, `HISTORY`) in Web Templates never fall out of their isolated `wt:*` scope into unrelated fallback languages (such as Chinese `"问题/诊断名字"` on MHV1 `Estimated date of delivery (EDD)`); and made switching from a zoomed Treemap container (or clicking `Blockly ↗` on a container tile) open that exact container in **Scoped Blockly** instead of shrinking containers over 80 blocks down to a child `ENTRY`.
+
 - **ehrtslib 0.19.0** ([release](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.19), [ehrtslib#336](https://github.com/ErikSundvall/ehrtslib/issues/336)): pinned `ehrtslib` to `v0.19`. Its `XmlDeserializer` now coerces numeric and boolean RM leaves itself, so the local `coerceXmlDeserializedRmPrimitives` workaround in `template_validation.ts` is gone and openEHR `canonical-xml` output is validated with ehrtslib unpatched.
 
 - **ehrtslib 0.18.0, Edge audit fixes, openEHR XML validation, and general Blockly support for Go Template & Handlebars** ([ehrtslib v0.18](https://github.com/ErikSundvall/ehrtslib/releases/tag/v0.18), [ehrtslib#334](https://github.com/ErikSundvall/ehrtslib/issues/334), [ehrtslib#336](https://github.com/ErikSundvall/ehrtslib/issues/336)):
