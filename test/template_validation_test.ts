@@ -2,7 +2,11 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { createEmptyModel } from "@intehrgrator/core/mapping_model/mod.ts";
 import { runTest } from "@intehrgrator/core/test_runner/mod.ts";
-import { validateConvertedOutput, classifyOpenEhrValidationMessage } from "@intehrgrator/core/output/template_validation.ts";
+import {
+  classifyOpenEhrValidationMessage,
+  formatOutputValidationMessage,
+  validateConvertedOutput,
+} from "@intehrgrator/core/output/template_validation.ts";
 import { getTargetFormatHandler } from "@intehrgrator/core/target/mod.ts";
 import { generateSkeleton } from "@intehrgrator/core/skeleton/generate_skeleton.ts";
 import { WorkbenchController } from "@intehrgrator/workbench/controller.ts";
@@ -271,3 +275,216 @@ Deno.test("FLAT output: coded text mismatches from ehrtslib v0.8 are output vali
   assertEquals(conflict.length, 1);
   assert(conflict[0].message.includes("at0016"), conflict[0].message);
 });
+
+Deno.test("FLAT output: validation errors carry exact line numbers and FLAT targetPath (#373)", async () => {
+  const opt = await Deno.readTextFile(bpOptPath);
+  const target = getTargetFormatHandler("openehr-template").load("blood_pressure.opt", opt);
+  const root = "ehrbase_blood_pressure_simple.de.v0";
+  const flatPayload = {
+    "ctx/language": "en",
+    "ctx/territory": "DE",
+    "ctx/composer_name": "Dr Test",
+    "ctx/time": "2024-01-01T10:00:00Z",
+    "ctx/setting": "228",
+    [`${root}/blood_pressure_training_sample:0/systolic|magnitude`]: 120,
+    [`${root}/blood_pressure_training_sample:0/systolic|unit`]: "mm[Hg]",
+    [`${root}/blood_pressure_training_sample:0/position|code`]: "at1000",
+    [`${root}/blood_pressure_training_sample:0/position|value`]: "Standing",
+    [`${root}/blood_pressure_training_sample:0/position|terminology`]: "local",
+    [`${root}/blood_pressure_training_sample:0/cuff_size|code`]: "at0015",
+    [`${root}/blood_pressure_training_sample:0/cuff_size|value`]: "Adult",
+    [`${root}/blood_pressure_training_sample:1/systolic|magnitude`]: 130,
+    [`${root}/blood_pressure_training_sample:1/systolic|unit`]: "furlong",
+    [`${root}/blood_pressure_training_sample:1/position|code`]: "at1000",
+    [`${root}/blood_pressure_training_sample:1/position|value`]: "Standing",
+    [`${root}/blood_pressure_training_sample:1/position|terminology`]: "local",
+    [`${root}/blood_pressure_training_sample:1/cuff_size|code`]: "at0015",
+    [`${root}/blood_pressure_training_sample:1/cuff_size|value`]: "adult",
+  };
+
+  const validation = validateConvertedOutput(flatPayload, target);
+  assertEquals(validation.valid, false);
+
+  const unitErr = validation.messages.find((m) => m.message.includes("furlong"));
+  assert(unitErr, "expected unit validation error for furlong");
+  assertEquals(unitErr.line, 15);
+  assertEquals(unitErr.targetPath, `${root}/blood_pressure_training_sample:1/systolic|unit`);
+  assert(!unitErr.sourceIsAncestor);
+
+  const cuffErr = validation.messages.find((m) => m.message.includes("codedTextMismatch"));
+  assert(cuffErr, "expected codedTextMismatch error");
+  assertEquals(cuffErr.line, 20);
+  assertEquals(cuffErr.targetPath, `${root}/blood_pressure_training_sample:1/cuff_size|value`);
+  const formattedUnit = formatOutputValidationMessage(unitErr);
+  assert(formattedUnit.startsWith(`line 15: ${root}/blood_pressure_training_sample:1/systolic|unit`), formattedUnit);
+});
+
+Deno.test("FLAT, STRUCTURED, and Canonical JSON: missing content reports ancestor line, targetPath, and expectedExample (#373)", async () => {
+  const opt = await Deno.readTextFile(bpOptPath);
+  const target = getTargetFormatHandler("openehr-template").load("blood_pressure.opt", opt);
+  const root = "ehrbase_blood_pressure_simple.de.v0";
+
+  // 1. FLAT JSON missing required |unit on second occurrence (line 9)
+  const flatMissingUnit = {
+    "ctx/language": "en",
+    "ctx/territory": "DE",
+    "ctx/composer_name": "Dr Test",
+    "ctx/time": "2024-01-01T10:00:00Z",
+    "ctx/setting": "228",
+    [`${root}/blood_pressure_training_sample:0/systolic|magnitude`]: 120,
+    [`${root}/blood_pressure_training_sample:0/systolic|unit`]: "mm[Hg]",
+    [`${root}/blood_pressure_training_sample:1/systolic|magnitude`]: 135,
+  };
+  const flatVal = validateConvertedOutput(flatMissingUnit, target);
+  const flatUnitMissing = flatVal.messages.find((m) =>
+    m.message.includes("units") && m.message.includes("required")
+  );
+  assert(flatUnitMissing, "expected missing units error in FLAT JSON");
+  assertEquals(flatUnitMissing.line, 9);
+  assertEquals(flatUnitMissing.sourceIsAncestor, true);
+  assertEquals(
+    flatUnitMissing.targetPath,
+    `${root}/blood_pressure_training_sample:1/systolic|unit`,
+  );
+  assert(flatUnitMissing.expectedExample?.includes("systolic|unit"), flatUnitMissing.expectedExample);
+  const flatFormatted = formatOutputValidationMessage(flatUnitMissing);
+  assert(flatFormatted.includes("near line 9"), flatFormatted);
+  assert(flatFormatted.includes("expected at"), flatFormatted);
+  assert(flatFormatted.includes("systolic|unit"), flatFormatted);
+
+  // 2. STRUCTURED JSON missing required |unit (systolic object opens at line 12)
+  const structuredMissingUnit = {
+    ctx: {
+      language: "en",
+      territory: "DE",
+      composer_name: "Dr Test",
+      time: "2024-01-01T10:00:00Z",
+      setting: "228",
+    },
+    [root]: {
+      blood_pressure_training_sample: [
+        {
+          systolic: [{ "|magnitude": 120 }],
+          position: [{ "|code": "at1000", "|value": "Standing", "|terminology": "local" }],
+        },
+      ],
+    },
+  };
+  const structVal = validateConvertedOutput(structuredMissingUnit, target);
+  const structUnitMissing = structVal.messages.find((m) =>
+    m.message.includes("units") && m.message.includes("required")
+  );
+  assert(structUnitMissing, "expected missing units error in STRUCTURED JSON");
+  assertEquals(structUnitMissing.line, 13);
+  assertEquals(structUnitMissing.sourceIsAncestor, true);
+  assert(structUnitMissing.expectedExample?.includes('"|unit"'), structUnitMissing.expectedExample);
+
+  // 3. Canonical JSON missing required setting inside context (line 29)
+  const canonicalMissingSetting = {
+    _type: "COMPOSITION",
+    name: { _type: "DV_TEXT", value: "Blood pressure" },
+    archetype_node_id: "openEHR-EHR-COMPOSITION.report.v1",
+    language: {
+      _type: "CODE_PHRASE",
+      terminology_id: { _type: "TERMINOLOGY_ID", value: "ISO_639-1" },
+      code_string: "en",
+    },
+    territory: {
+      _type: "CODE_PHRASE",
+      terminology_id: { _type: "TERMINOLOGY_ID", value: "ISO_3166-1" },
+      code_string: "DE",
+    },
+    category: {
+      _type: "DV_CODED_TEXT",
+      value: "event",
+      defining_code: {
+        _type: "CODE_PHRASE",
+        terminology_id: { _type: "TERMINOLOGY_ID", value: "openehr" },
+        code_string: "433",
+      },
+    },
+    composer: { _type: "PARTY_IDENTIFIED", name: "Dr Test" },
+    context: {
+      _type: "EVENT_CONTEXT",
+      start_time: { _type: "DV_DATE_TIME", value: "2024-01-01T10:00:00Z" },
+    },
+  };
+  const canonVal = validateConvertedOutput(canonicalMissingSetting, target, {
+    deserializeMode: "hybrid",
+  });
+  const settingErr = canonVal.messages.find((m) =>
+    m.path.includes("setting") || m.message.toLowerCase().includes("setting")
+  );
+  assert(settingErr, "expected missing setting error in Canonical JSON");
+  assertEquals(settingErr.line, 40);
+  assertEquals(settingErr.sourceIsAncestor, true);
+  assert(settingErr.expectedExample?.includes('"setting"'), settingErr.expectedExample);
+  const canonFormatted = formatOutputValidationMessage(settingErr);
+  assert(canonFormatted.includes("near line 40"), canonFormatted);
+  assert(canonFormatted.includes("inside /context"), canonFormatted);
+});
+
+Deno.test("MHV1 FLAT output validation attaches line numbers, targetPath, and missing-event example (#373)", async () => {
+  const service = new WorkbenchService();
+  await callAgentTool(service, "register_agent", {
+    agentId: "mhv1-flat-line-numbers",
+    displayName: "mhv1-flat-line-numbers",
+  });
+  const catalogPath = join(import.meta.dirname!, "..", "examples", "example-sets.json");
+  await callAgentTool(service, "load_example_set", {
+    catalogPath,
+    setId: "mhv1-generic-entry-flat-wt",
+    includeMapping: true,
+  });
+  const tree = await callAgentTool(service, "get_source_tree", {}) as {
+    examples: Array<{ id: string; filename: string }>;
+  };
+  const nightly = tree.examples.find((ex) => ex.filename.includes("4-nightly-primigravida"));
+  assert(nightly, "expected 4-nightly-primigravida.flat.json in mhv1-generic-entry-flat-wt");
+  await callAgentTool(service, "set_active_example", { id: nightly.id });
+  const tested = await callAgentTool(service, "run_test", { outputMode: "preview" }) as {
+    testResult: TestResult;
+  };
+  assertEquals(
+    tested.testResult.outputValidation?.valid,
+    true,
+    `expected clean baseline validation on 4-nightly-primigravida, got: ${
+      tested.testResult.outputValidation?.messages?.map((m) => m.message).join("; ")
+    }`,
+  );
+
+  // Inject an observation with language/encoding but no HISTORY events to exercise
+  // #373 line-number, targetPath, sourceIsAncestor, and expectedExample diagnostics.
+  const baseFlat = typeof tested.testResult.output === "string"
+    ? JSON.parse(tested.testResult.output) as Record<string, unknown>
+    : structuredClone(tested.testResult.output as Record<string, unknown>);
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/language|code"] = "en";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/language|terminology"] = "ISO_639-1";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/encoding|code"] = "UTF-8";
+  baseFlat["mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/encoding|terminology"] = "IANA_character-sets";
+
+  const target = service.controller.getState().target!;
+  const broken = validateConvertedOutput(JSON.stringify(baseFlat, null, 2), target);
+  const messages = broken?.messages ?? [];
+  assert(messages.length > 0, "expected validation messages on broken FLAT payload");
+  for (const msg of messages) {
+    assert(
+      typeof msg.line === "number" && msg.line > 0,
+      `expected line number on "${msg.path}: ${msg.message}", got ${msg.line}`,
+    );
+    assert(
+      msg.targetPath?.startsWith("mhv1-_prenatal_visit.encounter.v1/"),
+      `expected FLAT targetPath on "${msg.path}", got ${msg.targetPath}`,
+    );
+  }
+  const historyErr = messages.find((m) => m.message.includes("HISTORY.Events_valid"));
+  assert(historyErr, "expected HISTORY.Events_valid error");
+  assertEquals(historyErr.sourceIsAncestor, true);
+  assert(
+    historyErr.expectedExample?.includes("mhv1-_prenatal_visit.encounter.v1/lifestyle_risk_factors/observation/"),
+    `expected FLAT example for empty HISTORY, got: ${historyErr.expectedExample}`,
+  );
+});
+
+
+

@@ -61,6 +61,14 @@ function contentTypeFor(rel: string): string {
   if (rel.endsWith(".css")) return "text/css; charset=utf-8";
   if (rel.endsWith(".json")) return "application/json; charset=utf-8";
   if (rel.endsWith(".html")) return "text/html; charset=utf-8";
+  if (rel.endsWith(".png")) return "image/png";
+  if (rel.endsWith(".svg")) return "image/svg+xml";
+  if (rel.endsWith(".gif")) return "image/gif";
+  if (rel.endsWith(".cur")) return "image/x-icon";
+  if (rel.endsWith(".mp3")) return "audio/mpeg";
+  if (rel.endsWith(".ogg")) return "audio/ogg";
+  if (rel.endsWith(".wav")) return "audio/wav";
+  if (rel.endsWith(".wasm")) return "application/wasm";
   return "application/octet-stream";
 }
 

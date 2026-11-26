@@ -1330,9 +1330,9 @@ function expressionToBlock(
 }
 
 function finalizeBlock(block: BlockSvg): BlockSvg {
-  if (typeof document !== "undefined") {
+  if (typeof document !== "undefined" && typeof block.initSvg === "function") {
     block.initSvg();
-    block.render();
+    if (typeof block.render === "function") block.render();
   }
   return block;
 }
@@ -1346,6 +1346,7 @@ function refreshBlockLayout(block: BlockSvg): void {
 /** Re-measure all blocks after programmatic skeleton assembly. */
 function refreshWorkspaceLayout(workspace: WorkspaceSvg): void {
   if (typeof document === "undefined") return;
+  if (!(workspace as WorkspaceSvg & { rendered?: boolean }).rendered) return;
   for (const block of workspace.getAllBlocks(false)) {
     refreshBlockLayout(block as BlockSvg);
   }

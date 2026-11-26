@@ -17,6 +17,7 @@ import type { MappingModelExtract } from "../blockly/mapping_ir.ts";
 import type { MappingModel, SkeletonNode, TargetFormatId } from "../types/mod.ts";
 import type { WorkspaceSvg } from "blockly/core";
 import { ensureRmBlockType } from "../blockly/blocks/rm_blocks.ts";
+import { filterSkeletonMandatoryOnly } from "../core/skeleton/generate_skeleton.ts";
 let generatorsReady = false;
 
 function ensureGenerators(): void {
@@ -81,9 +82,13 @@ export function scaffoldBlocklyFromSkeleton(
     uiLanguage?: string;
     targetFormat?: TargetFormatId;
     defaultsMap?: unknown;
+    scaffoldMode?: "full" | "sparse";
   },
 ): { blocklyState: unknown; extract: MappingModelExtract } {
   ensureGenerators();
+  const effectiveSkeleton = options?.scaffoldMode === "sparse"
+    ? filterSkeletonMandatoryOnly(skeleton)
+    : skeleton;
   const workspace = new Blockly.Workspace();
   const uiLanguage = options?.uiLanguage ?? "en";
   try {
@@ -100,7 +105,7 @@ export function scaffoldBlocklyFromSkeleton(
     }
     loadSkeletonIntoWorkspace(
       workspace as unknown as WorkspaceSvg,
-      skeleton,
+      effectiveSkeleton,
       model,
       null,
       uiLanguage,
@@ -156,3 +161,69 @@ export function adoptBlocklyState(
     workspace.dispose();
   }
 }
+
+export function registerRmBlocksFromJson(blocklyState: unknown): void {
+  if (!blocklyState || typeof blocklyState !== "object") return;
+  const blocks = (blocklyState as { blocks?: { blocks?: unknown[] } }).blocks?.blocks;
+  if (!Array.isArray(blocks)) return;
+  const seen = new Set<string>();
+  const walk = (b: unknown) => {
+    if (!b || typeof b !== "object") return;
+    const obj = b as Record<string, unknown>;
+    const type = typeof obj.type === "string" ? obj.type : "";
+    const fields = (obj.fields && typeof obj.fields === "object"
+      ? obj.fields
+      : {}) as Record<string, unknown>;
+    const extra = (obj.extraState && typeof obj.extraState === "object"
+      ? obj.extraState
+      : {}) as Record<string, unknown>;
+    const rmType = typeof fields.RM_TYPE === "string"
+      ? fields.RM_TYPE
+      : typeof extra.rmType === "string"
+      ? extra.rmType
+      : "";
+    if (type && rmType && !seen.has(type)) {
+      seen.add(type);
+      ensureRmBlockType(type, rmType);
+    }
+    if (obj.inputs && typeof obj.inputs === "object") {
+      for (const inp of Object.values(obj.inputs as Record<string, { block?: unknown; shadow?: unknown }>)) {
+        if (inp?.block) walk(inp.block);
+        if (inp?.shadow) walk(inp.shadow);
+      }
+    }
+    const next = obj.next as { block?: unknown; shadow?: unknown } | undefined;
+    if (next?.block) walk(next.block);
+    if (next?.shadow) walk(next.shadow);
+  };
+  for (const top of blocks) walk(top);
+}
+
+/**
+ * Invariant B — Extract MappingModelExtract from canonical Blockly JSON using a
+ * headless `Blockly.Workspace` (no DOM / no `WorkspaceSvg` mount).
+ */
+export function extractModelFromBlocklyJson(
+  blocklyState: unknown,
+  skeleton: SkeletonNode[] = [],
+): MappingModelExtract {
+  if (!blocklyState || typeof blocklyState !== "object") {
+    throw new Error("extractModelFromBlocklyJson requires Blockly workspace JSON");
+  }
+  ensureSchemaBlocksForSkeleton(skeleton);
+  registerRmBlocksFromJson(blocklyState);
+  const workspace = new Blockly.Workspace();
+  const prevEvents = Blockly.Events.isEnabled();
+  if (prevEvents) Blockly.Events.disable();
+  try {
+    Blockly.serialization.workspaces.load(
+      migrateForEachSourceState(structuredClone(blocklyState)) as Record<string, unknown>,
+      workspace,
+    );
+    return workspaceToModelJson(workspace);
+  } finally {
+    workspace.dispose();
+    if (prevEvents) Blockly.Events.enable();
+  }
+}
+

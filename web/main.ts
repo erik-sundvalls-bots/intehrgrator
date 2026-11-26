@@ -37,8 +37,10 @@ import {
   createReadonlyEditor,
   detectEditorLanguage,
   languageForExportTarget,
+  scrollEditorToLine,
   setEditorDoc,
 } from "../src/workbench/codemirror_setup.ts";
+import { formatOutputValidationMessage } from "../src/core/output/template_validation.ts";
 import {
   createMappingSpecEditor,
   mappingSpecDocumentText,
@@ -86,6 +88,7 @@ import {
   workspacePositionFromClient,
   registerCompactThrasosRenderer,
   openWorkspaceSnapshotWindow,
+  relabelBlocklyJsonFromSkeleton,
   relabelWorkspaceFromSkeleton,
   ensureDefaultsBlock,
   findDefaultsBlock,
@@ -280,7 +283,38 @@ import {
   type ExampleSetCatalog,
 } from "../src/core/example_sets/mod.ts";
 import { formatSaveTime } from "../src/core/persistence/mod.ts";
-import { collectValueSlots } from "../src/core/skeleton/generate_skeleton.ts";
+import { collectValueSlots, filterSkeletonMandatoryOnly } from "../src/core/skeleton/generate_skeleton.ts";
+import {
+  type BlocklyWorkspaceJson,
+  computeAdaptiveSliceTarget,
+  type DocumentIndex,
+  extractSlice,
+  graftSlice,
+  indexDocument,
+  SLICE_NODE_THRESHOLD,
+  type SliceHandle,
+  TREEMAP_AUTO_THRESHOLD,
+} from "../src/core/slice_engine.ts";
+import {
+  buildBreadcrumbTrail,
+  createTreemapInlinePopover,
+  createTreemapRenderer,
+  type InlinePopoverController,
+  type SourceFieldOption,
+  type TreemapOuterLayout,
+  type TreemapRenderer,
+  type TreemapStatusFilter,
+} from "../src/treemap/mod.ts";
+import {
+  acceptAiSuggestion,
+  rejectAiSuggestion,
+  setFieldInBlocklyJson,
+} from "../src/core/json_patch_helpers.ts";
+import {
+  extractModelFromBlocklyJson,
+  registerRmBlocksFromJson,
+  scaffoldBlocklyFromSkeleton,
+} from "../src/workbench/blockly_sync.ts";
 import { createIndexedDbDefaultsCatalog, factoryDefaultsMapBlockState, mapBlockFromDefaultsJson, classAttributeScaffoldTarget } from "../src/core/defaults/mod.ts";
 import {
   createBetterFormBridge,
@@ -342,12 +376,24 @@ const paneFinds: Record<string, PaneFind> = {
 };
 const blocklyMount = document.getElementById("blockly-mount")!;
 const statusMain = document.getElementById("status-main")!;
+const statusHover = document.getElementById("status-hover");
 const statusSave = document.getElementById("status-save")!;
 const statusBuild = document.getElementById("status-build")!;
+
+function setTreemapHoverStatus(text: string | null): void {
+  if (!statusHover) return;
+  if (text) {
+    statusHover.textContent = text;
+    statusHover.hidden = false;
+    statusMain.hidden = true;
+  } else {
+    statusHover.hidden = true;
+    statusHover.textContent = "";
+    statusMain.hidden = false;
+  }
+}
 const taskProgressOverlay = document.getElementById(TASK_PROGRESS_OVERLAY_ID)!;
 const exportTargetSelect = document.getElementById("export-target") as HTMLSelectElement;
-const instanceShapeSelect = document.getElementById("openehr-instance-shape") as HTMLSelectElement;
-const instanceShapeWrap = document.getElementById("openehr-instance-shape-wrap") as HTMLLabelElement;
 const mappingJsonTab = document.getElementById("tab-mapping-json") as HTMLButtonElement;
 const sheetsTab = document.getElementById("tab-sheets") as HTMLButtonElement;
 const hintsTab = document.getElementById("tab-hints") as HTMLButtonElement;
@@ -379,9 +425,14 @@ const copyAllToClipboard = (text: string) => host.copyToClipboard(text);
 const specEditor = createMappingSpecEditor(mappingJsonHost, {
   onFieldEdit: (blockId, field, value) => {
     const block = workspace?.getBlockById(blockId);
-    if (!block) return;
-    block.setFieldValue(value, field);
-    // Workspace change listener runs syncFromBlockly → Spec refresh.
+    if (block) {
+      block.setFieldValue(value, field);
+      // Workspace change listener runs syncFromBlockly → Spec refresh.
+      return;
+    }
+    if (canonicalBlocklyState) {
+      applyCanonicalFieldEdit(blockId, field, value);
+    }
   },
   onSelect: (blockId) => applyBlockSelection(blockId, "spec"),
   onCheckToggle: (blockId, checked) => toggleSpecBlockCheck(blockId, checked),
@@ -394,10 +445,10 @@ let functionLibraryUi: ReturnType<typeof mountFunctionLibraryDialog> | null = nu
 let specCheckedBlockIds = new Set<string>();
 
 function refreshMappingSpecView(blocklyState?: unknown): void {
-  if (workspace) {
+  if (workspace && editorMode === "full-blockly") {
     specCheckedBlockIds = pruneCheckedBlockIds(workspace, specCheckedBlockIds);
   }
-  const state = blocklyState ?? Blockly.serialization.workspaces.save(workspace);
+  const state = blocklyState ?? getCanonicalBlocklyState();
   const layout = specChromeUi?.getLayout() ?? "list";
   const rootId = layout === "tabs" ? specChromeUi?.getActiveRootId() ?? null : null;
   setMappingSpecFromBlockly(specEditor, state, specChrome(), { rootId });
@@ -561,6 +612,8 @@ let pendingCommitKind: "undo" | "redo" | "revert" | null = null;
 const undoGroupAuthors = new Map<string, string>();
 /** Set once the start-up project is in place; earlier changes are not history. */
 let historyReady = false;
+let lastHistoryProjectId: string | null = null;
+let projectReplaceDepth = 0;
 let historyPanel: HistoryPanelHandle | null = null;
 /** Desktop: author of the next pulled change when you started it from the history panel. */
 let nextPullAuthor: string | null = null;
@@ -657,8 +710,55 @@ function startHistory(): void {
   markCommitted();
   committedSlots = slotFingerprints(controller.getState().model.slots);
   adoptAiAuthorMarks();
+  lastHistoryProjectId = controller.getState().projectId;
   if (!isDesktopEnvironment()) chatService();
   historyReady = true;
+}
+
+/** Reset per-project canvas undo stack and attributed history on project switch (#375). */
+function resetProjectUndoHistory(
+  options: { syncDesktop?: boolean; summary?: string } = {},
+): void {
+  undoGroupAuthors.clear();
+  workspace?.clearUndo();
+  markCommitted();
+  committedSlots = slotFingerprints(controller.getState().model.slots);
+  adoptAiAuthorMarks();
+  lastHistoryProjectId = controller.getState().projectId;
+  if (!isDesktopEnvironment()) {
+    chatServiceInstance?.resetHistoryForProject();
+  } else if (options.syncDesktop !== false && isAgentBridgeSynced()) {
+    void commitUiChange(
+      controller.exportDocumentSnapshot(),
+      options.summary ?? "Load project",
+      { kind: "load_bundle", resetHistory: true },
+    ).then(() => historyPanel?.refresh());
+  }
+  refreshUndoButtons();
+  historyPanel?.refresh();
+}
+
+async function replaceProjectWithFreshHistory<T>(
+  fn: () => T | Promise<T>,
+  summary?: string,
+): Promise<T> {
+  const before = controller.getState();
+  const beforeHadContent = controller.hasWorkspaceContent();
+  projectReplaceDepth++;
+  try {
+    return await fn();
+  } finally {
+    projectReplaceDepth--;
+    if (projectReplaceDepth === 0) {
+      const after = controller.getState();
+      const changed = after.projectId !== before.projectId ||
+        after.blocklyReloadToken !== before.blocklyReloadToken ||
+        beforeHadContent !== controller.hasWorkspaceContent();
+      if (changed) {
+        resetProjectUndoHistory({ summary });
+      }
+    }
+  }
 }
 
 async function loadHistoryRows(): Promise<HistoryPanelRow[]> {
@@ -948,11 +1048,6 @@ async function loadDesktopLanguagePlugins(): Promise<void> {
     // Static GitHub Pages has no plugin endpoint.
   }
 }
-instanceShapeSelect?.addEventListener("change", () => {
-  controller.setOpenEhrInstanceShape(
-    instanceShapeSelect.value as import("@intehrgrator/types/mod.ts").OpenEhrInstanceShape,
-  );
-});
 
 function setupUiLanguageMenu(locale: IntehrLocale): void {
   const labelEl = document.getElementById("ui-language-label");
@@ -1099,6 +1194,10 @@ let altLabelFill: Promise<void> = Promise.resolve();
 
 /** Read other-language labels one at a time, painting the task detail between them. */
 function fillTargetAltLabels(key: string, langs: string[]): Promise<void> {
+  if (langs.length > 0 && targetHoverCache?.key === key) {
+    controller.setRunningTaskDetail(`Reading labels · ${langs[0]}`);
+    paintTaskOverlay();
+  }
   const run = async () => {
     const byLang: Array<[string, Map<string, string>]> = [];
     for (const lang of langs) {
@@ -1228,6 +1327,7 @@ async function bootBlockly(): Promise<void> {
   setupLanguageWidgets();
 
   workspace = Blockly.inject(blocklyMount, {
+    media: "./vendor/blockly/media/",
     theme: createModestTheme(),
     toolbox: buildDemoToolbox(locale),
     collapse: true,
@@ -1287,10 +1387,11 @@ async function bootBlockly(): Promise<void> {
   });
 
   specChromeUi = mountMappingSpecChrome(mappingJsonHost, {
-    getBlocklyState: () => Blockly.serialization.workspaces.save(workspace),
+    getBlocklyState: () => getCanonicalBlocklyState(),
     onLayoutChange: () => refreshMappingSpecView(),
   });
   wireMappingSpecLayoutMenu();
+  initTreemapUi();
 
   setDefaultsMapPickHandler(() => {
     void openDefaultsMapDialog();
@@ -1623,11 +1724,787 @@ function syncHandlebarsClickHint(): void {
   hint.hidden = !isHandlebarsInsertTarget(selected);
 }
 
-function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }): void {
+type EditorMode = "full-blockly" | "treemap" | "scoped-blockly";
+let editorMode: EditorMode = "full-blockly";
+let canonicalBlocklyState: BlocklyWorkspaceJson | null = null;
+let canonicalDocIndex: DocumentIndex | null = null;
+let activeSliceHandle: SliceHandle | null = null;
+let treemapRenderer: TreemapRenderer | null = null;
+let treemapPopover: InlinePopoverController | null = null;
+let treemapZoomRootId: string | null = null;
+let treemapQuery = "";
+let treemapStatusFilter: TreemapStatusFilter = "all";
+let treemapOuterLayout: TreemapOuterLayout = "columns";
+let treemapSelectedBlockId: string | null = null;
+let lastScopedTargetId: string | null = null;
+
+/**
+ * Pick the most suitable block id to open in Scoped Blockly from the top bar:
+ * currently zoomed Treemap container → selected tile → active/last scoped slice →
+ * first top-level child of the composition → composition root.
+ */
+function resolveScopedBlocklyTargetId(index: DocumentIndex | null = canonicalDocIndex): string | null {
+  const rootId = index?.primaryRootId ?? index?.compositionId ?? null;
+  if (!index || !rootId) return null;
+  if (
+    treemapZoomRootId &&
+    treemapZoomRootId !== rootId &&
+    index.nodes.has(treemapZoomRootId)
+  ) {
+    return treemapZoomRootId;
+  }
+  if (treemapSelectedBlockId && index.nodes.has(treemapSelectedBlockId)) {
+    return treemapSelectedBlockId;
+  }
+  if (activeSliceHandle?.targetBlockId && index.nodes.has(activeSliceHandle.targetBlockId)) {
+    return activeSliceHandle.targetBlockId;
+  }
+  if (lastScopedTargetId && index.nodes.has(lastScopedTargetId)) {
+    return lastScopedTargetId;
+  }
+  const rootNode = index.nodes.get(rootId);
+  if (rootNode && rootNode.children.length > 0) {
+    return rootNode.children[0];
+  }
+  return rootId;
+}
+
+function collectSourceFieldOptions(): SourceFieldOption[] {
+  const s = controller.getState();
+  const out: SourceFieldOption[] = [];
+  const seen = new Set<string>();
+  const walk = (node: { path?: string; name?: string; type?: string; children?: unknown[] } | null | undefined) => {
+    if (!node) return;
+    if (node.path && !seen.has(node.path)) {
+      seen.add(node.path);
+      out.push({ path: node.path, label: node.name || node.path, type: node.type });
+    }
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        walk(child as { path?: string; name?: string; type?: string; children?: unknown[] });
+      }
+    }
+  };
+  walk(s.schemaTree as unknown as { path?: string; name?: string; type?: string; children?: unknown[] });
+  walk(s.exampleTree as unknown as { path?: string; name?: string; type?: string; children?: unknown[] });
+  return out;
+}
+
+function getCanonicalBlocklyState(): Record<string, unknown> {
+  if (editorMode === "scoped-blockly" && canonicalBlocklyState && activeSliceHandle && workspace) {
+    const sliceJson = Blockly.serialization.workspaces.save(workspace) as BlocklyWorkspaceJson;
+    return graftSlice(canonicalBlocklyState, activeSliceHandle, sliceJson) as Record<string, unknown>;
+  }
+  if (editorMode === "treemap" && canonicalBlocklyState) {
+    return canonicalBlocklyState as Record<string, unknown>;
+  }
+  return workspace ? (Blockly.serialization.workspaces.save(workspace) as Record<string, unknown>) : {};
+}
+
+function updateCanonicalStateAndSync(
+  nextCanonical: BlocklyWorkspaceJson,
+  options?: { notify?: boolean; summary?: string },
+): void {
+  canonicalBlocklyState = nextCanonical;
+  canonicalDocIndex = indexDocument(canonicalBlocklyState);
+  const s = controller.getState();
   const signatureBefore = blocklySlotSignature;
+  const derived = extractModelFromBlocklyJson(canonicalBlocklyState, s.skeleton);
+  controller.syncFromBlockly(
+    canonicalBlocklyState,
+    derived.slots,
+    derived.loops,
+    derived.optionalRm,
+    {
+      notify: false,
+      targetSignature: derived.targetSignature,
+      unsupported: derived.unsupported,
+      sheetNames: derived.sheetNames,
+      instanceEncodings: derived.instanceEncodings,
+      functions: derived.functions,
+      includes: derived.includes,
+    },
+  );
+  const after = controller.getState();
+  const signatureAfter = slotSignatureFrom(after.model.slots, after.model.loops ?? []);
+  blocklySlotSignature = signatureAfter;
+  refreshMappingSpecView(canonicalBlocklyState);
+  if (editorMode === "treemap") renderTreemapAndModeBar();
+  refreshUndoButtons();
+  if (signatureBefore !== signatureAfter) {
+    void commitPendingUiChange(options?.summary ?? "Edit mapping");
+  }
+  if (options?.notify !== false) controller.notifyChange();
+}
+
+function applyCanonicalFieldEdit(blockId: string, field: string, value: string): void {
+  if (!canonicalBlocklyState) return;
+  try {
+    const next = setFieldInBlocklyJson(canonicalBlocklyState, blockId, field, value);
+    updateCanonicalStateAndSync(next, { summary: "Edit mapping spec field" });
+  } catch {
+    // Block id not present in canonical state.
+  }
+}
+
+let pulseCrumbId: string | null = null;
+let switchingFullCanvas = false;
+
+type AnimationSetting = "system" | "on" | "off";
+const ANIMATIONS_STORAGE_KEY = "intehrgrator.animations";
+
+function getAnimationSetting(): AnimationSetting {
+  try {
+    const raw = localStorage.getItem(ANIMATIONS_STORAGE_KEY);
+    if (raw === "system" || raw === "on" || raw === "off") return raw;
+  } catch {
+    // Ignore storage errors in restricted contexts.
+  }
+  return "on";
+}
+
+function systemPrefersReducedMotion(): boolean {
+  return typeof globalThis.matchMedia === "function" &&
+    globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function areAnimationsEnabled(): boolean {
+  const mode = getAnimationSetting();
+  if (mode === "on") return true;
+  if (mode === "off") return false;
+  return !systemPrefersReducedMotion();
+}
+
+function applyAnimationSetting(): void {
+  const enabled = areAnimationsEnabled();
+  document.documentElement.dataset.animations = enabled ? "on" : "off";
+  const statusEl = document.getElementById("settings-reduce-motion-status");
+  if (statusEl) {
+    statusEl.textContent = systemPrefersReducedMotion()
+      ? "System: reduce motion is ON"
+      : "System: reduce motion is OFF";
+  }
+  const mode = getAnimationSetting();
+  document.querySelectorAll<HTMLInputElement>('input[name="settings-animations"]').forEach((input) => {
+    input.checked = input.value === mode;
+  });
+}
+
+function animateCrumbFly(fromRect: DOMRect | null | undefined, toRect: DOMRect | null | undefined): void {
+  if (!fromRect || !toRect) return;
+  if (!areAnimationsEnabled()) return;
+  const pill = document.createElement("div");
+  pill.className = "tm-fly-pill";
+  pill.style.left = `${fromRect.left}px`;
+  pill.style.top = `${fromRect.top}px`;
+  pill.style.width = `${Math.max(24, fromRect.width)}px`;
+  pill.style.height = `${Math.max(16, Math.min(fromRect.height, 26))}px`;
+  pill.style.opacity = "0.95";
+  document.body.append(pill);
+  // Trigger CSS transition on next frame.
+  requestAnimationFrame(() => {
+    pill.style.left = `${toRect.left}px`;
+    pill.style.top = `${toRect.top}px`;
+    pill.style.width = `${Math.max(24, toRect.width)}px`;
+    pill.style.height = `${Math.max(16, toRect.height)}px`;
+    pill.style.opacity = "0";
+  });
+  setTimeout(() => pill.remove(), 360);
+}
+
+function setBlocklyLoadOverlay(
+  visible: boolean,
+  pct = 0,
+  laidOut = 0,
+  total = 0,
+  title?: string,
+): void {
+  const overlay = document.getElementById("blockly-load-overlay");
+  if (!overlay) return;
+  overlay.hidden = !visible;
+  if (!visible) return;
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  const titleEl = document.getElementById("blockly-load-title");
+  const pctEl = document.getElementById("blockly-load-pct");
+  const barEl = document.getElementById("blockly-load-bar");
+  const countsEl = document.getElementById("blockly-load-counts");
+  if (titleEl && title) titleEl.textContent = title;
+  if (pctEl) pctEl.textContent = `${clamped}%`;
+  if (barEl) barEl.style.width = `${clamped}%`;
+  if (countsEl) {
+    countsEl.textContent = total > 0 ? `${laidOut} / ${total} blocks` : `${laidOut} blocks`;
+  }
+}
+
+function renderTreemapAndModeBar(): void {
+  const modeSwitch = document.getElementById("editor-mode-switch");
+  const modeBar = document.getElementById("editor-mode-bar");
+  const btnTreemap = document.getElementById("btn-mode-treemap");
+  const btnScoped = document.getElementById("btn-mode-scoped");
+  const btnFull = document.getElementById("btn-mode-full");
+  const breadcrumbEl = document.getElementById("treemap-breadcrumb");
+  const controlsEl = document.getElementById("treemap-controls");
+  const treemapHost = document.getElementById("treemap-host");
+  const blocklyEl = document.getElementById("blockly-mount");
+
+  const hasContent = Boolean(
+    canonicalDocIndex?.primaryRootId ||
+      canonicalDocIndex?.compositionId ||
+      controller.getState().templateId,
+  );
+  if (modeSwitch) modeSwitch.hidden = !hasContent;
+  if (modeBar) modeBar.hidden = !hasContent || editorMode === "full-blockly";
+
+  const setActive = (el: HTMLElement | null, active: boolean) => {
+    if (!el) return;
+    el.classList.toggle("active", active);
+    el.setAttribute("aria-selected", String(active));
+  };
+  setActive(btnTreemap, editorMode === "treemap");
+  setActive(btnScoped, editorMode === "scoped-blockly");
+  setActive(btnFull, editorMode === "full-blockly");
+  if (btnScoped) {
+    const scopedTargetId = resolveScopedBlocklyTargetId();
+    const scopedAvailable = editorMode === "scoped-blockly" ||
+      Boolean(scopedTargetId) ||
+      (editorMode === "full-blockly" && hasContent);
+    btnScoped.hidden = !scopedAvailable;
+    const scopedNode = scopedTargetId ? canonicalDocIndex?.nodes.get(scopedTargetId) : null;
+    btnScoped.title = scopedNode
+      ? `Open "${scopedNode.label}" in Scoped Blockly`
+      : "Open current scope in Scoped Blockly";
+  }
+
+  if (treemapHost) treemapHost.hidden = editorMode !== "treemap";
+  const wasBlocklyHidden = Boolean(blocklyEl?.hidden);
+  if (blocklyEl) blocklyEl.hidden = editorMode === "treemap";
+  if (controlsEl) controlsEl.hidden = editorMode !== "treemap";
+  if (editorMode !== "treemap") {
+    setTreemapHoverStatus(null);
+    if (workspace) {
+      if (pendingToolboxState) {
+        const nextToolboxState = pendingToolboxState;
+        pendingToolboxState = null;
+        syncToolbox(nextToolboxState);
+      }
+      const svgEl = workspace.getParentSvg?.() ??
+        (blocklyEl?.querySelector(":scope > .injectionDiv > svg.blocklySvg") as SVGSVGElement | null);
+      const rect = svgEl?.getBoundingClientRect();
+      const svgCollapsed = !rect || rect.width < 2 || rect.height < 2;
+      if (wasBlocklyHidden || svgCollapsed) {
+        Blockly.svgResize(workspace);
+        Blockly.renderManagement?.finishQueuedRenders?.();
+        requestAnimationFrame(() => {
+          if (editorMode !== "treemap" && workspace) {
+            Blockly.svgResize(workspace);
+            Blockly.renderManagement?.finishQueuedRenders?.();
+          }
+        });
+      }
+    }
+  }
+
+  if (breadcrumbEl) {
+    if (canonicalDocIndex && (editorMode === "treemap" || editorMode === "scoped-blockly")) {
+      const focusId = editorMode === "scoped-blockly"
+        ? (activeSliceHandle?.targetBlockId ?? null)
+        : treemapZoomRootId;
+      const trail = buildBreadcrumbTrail(canonicalDocIndex, focusId);
+      breadcrumbEl.hidden = trail.length === 0;
+      breadcrumbEl.replaceChildren();
+      if (editorMode === "scoped-blockly") {
+        const backBtn = document.createElement("button");
+        backBtn.type = "button";
+        backBtn.className = "tm-back-btn";
+        backBtn.textContent = "← Treemap";
+        backBtn.addEventListener("click", () => {
+          const updated = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+          enterTreemapMode(updated, { keepZoom: true });
+        });
+        breadcrumbEl.append(backBtn);
+      }
+      trail.forEach((crumb, idx) => {
+        if (idx > 0) {
+          const sep = document.createElement("span");
+          sep.className = "tm-crumb-sep";
+          sep.textContent = "›";
+          breadcrumbEl.append(sep);
+        }
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tm-crumb-btn";
+        btn.dataset.crumbId = crumb.id;
+        if (pulseCrumbId && pulseCrumbId === crumb.id) {
+          btn.classList.add("tm-crumb-btn--pulse");
+        }
+        btn.textContent = crumb.label;
+        btn.title = `${crumb.label} (${crumb.rmType})`;
+        btn.addEventListener("click", () => {
+          const fromRect = btn.getBoundingClientRect();
+          const updated = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+          const nextZoom = idx === 0 ? null : crumb.id;
+          const changed = nextZoom !== treemapZoomRootId || editorMode !== "treemap";
+          treemapZoomRootId = nextZoom;
+          pulseCrumbId = crumb.id;
+          enterTreemapMode(updated, { keepZoom: true });
+          if (changed) {
+            treemapRenderer?.animateZoom("out");
+            const hostRect = document.getElementById("treemap-host")?.getBoundingClientRect();
+            if (hostRect) {
+              animateCrumbFly(
+                fromRect,
+                new DOMRect(hostRect.left + 12, hostRect.top + 12, Math.min(260, hostRect.width - 24), 26),
+              );
+            }
+          }
+        });
+        breadcrumbEl.append(btn);
+      });
+      pulseCrumbId = null;
+    } else {
+      breadcrumbEl.hidden = true;
+    }
+  }
+
+  if (editorMode === "treemap" && treemapRenderer && canonicalDocIndex) {
+    const s = controller.getState();
+    treemapRenderer.render({
+      index: canonicalDocIndex,
+      zoomRootId: treemapZoomRootId,
+      query: treemapQuery,
+      statusFilter: treemapStatusFilter,
+      selectedBlockId: treemapSelectedBlockId,
+      sparseFullSkeleton: s.scaffoldMode === "sparse" ? s.skeleton : null,
+      showAiBulkActions: true,
+      outerLayout: treemapOuterLayout,
+    });
+  }
+}
+
+function enterTreemapMode(
+  docJson: BlocklyWorkspaceJson,
+  options?: { keepZoom?: boolean },
+): void {
+  treemapPopover?.close();
+  canonicalBlocklyState = structuredClone(docJson);
+  canonicalDocIndex = indexDocument(canonicalBlocklyState);
+  activeSliceHandle = null;
+  editorMode = "treemap";
+  if (!options?.keepZoom) {
+    treemapZoomRootId = null;
+  }
+  renderTreemapAndModeBar();
+  refreshMappingSpecView(canonicalBlocklyState);
+}
+
+function openNodeInScopedBlockly(
+  nodeId: string,
+  options?: { exactContainer?: boolean },
+): void {
+  treemapPopover?.close();
+  const currentCanonical = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+  canonicalBlocklyState = structuredClone(currentCanonical);
+  canonicalDocIndex = indexDocument(canonicalBlocklyState);
+  const rootId = canonicalDocIndex.primaryRootId ?? canonicalDocIndex.compositionId;
+  const requestedNode = canonicalDocIndex.nodes.get(nodeId);
+  const keepExact = Boolean(
+    options?.exactContainer &&
+      requestedNode &&
+      requestedNode.children.length > 0 &&
+      !(nodeId === rootId && requestedNode.subtreeBlockCount > TREEMAP_AUTO_THRESHOLD),
+  );
+  const targetId = keepExact
+    ? nodeId
+    : computeAdaptiveSliceTarget(
+      canonicalDocIndex,
+      nodeId,
+      SLICE_NODE_THRESHOLD,
+    );
+  const { sliceJson, handle } = extractSlice(canonicalBlocklyState, targetId, {
+    collapseUnmappedOptionalClusters: true,
+  });
+  activeSliceHandle = handle;
+  lastScopedTargetId = targetId;
+  editorMode = "scoped-blockly";
+  pulseCrumbId = targetId;
+  renderTreemapAndModeBar();
+
+  const s = controller.getState();
+  registerRmBlocksFromJson(sliceJson);
+  runWithoutBlocklyEvents(() => {
+    if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+    workspace.clear();
+    Blockly.serialization.workspaces.load(
+      migrateForEachSourceState(sliceJson) as Record<string, unknown>,
+      workspace,
+    );
+    refreshWorkspaceConstraints(workspace);
+    relabelWorkspaceFromSkeleton(workspace, s.skeleton);
+  });
+  refreshAiReviewMarkers(workspace);
+  Blockly.svgResize(workspace);
+  const panId = nodeId.includes("::") ? nodeId.slice(0, nodeId.indexOf("::")) : nodeId;
+  const targetBlock = workspace.getBlockById(panId) ?? workspace.getBlockById(targetId);
+  if (targetBlock) {
+    panToBlock(targetBlock as BlockSvg);
+  }
+  refreshMappingSpecView(canonicalBlocklyState);
+}
+
+function splitCompositionContentChunks(
+  state: BlocklyWorkspaceJson,
+): {
+  baseState: BlocklyWorkspaceJson;
+  compositionId: string;
+  chunks: Array<Record<string, unknown>>;
+} | null {
+  const clone = structuredClone(state);
+  const topBlocks = clone.blocks?.blocks ?? [];
+  let comp: Record<string, unknown> | null = null;
+  for (const top of topBlocks) {
+    let cur: Record<string, unknown> | undefined = top as Record<string, unknown>;
+    while (cur) {
+      if (cur.type === "composition") {
+        comp = cur;
+        break;
+      }
+      cur = (cur.next as { block?: Record<string, unknown> } | undefined)?.block;
+    }
+    if (comp) break;
+  }
+  if (!comp || typeof comp.id !== "string") return null;
+  const inputs = comp.inputs as Record<string, { block?: Record<string, unknown> }> | undefined;
+  const firstContent = inputs?.ATTR_content?.block;
+  if (!firstContent) return null;
+
+  const chunks: Array<Record<string, unknown>> = [];
+  let cur: Record<string, unknown> | undefined = firstContent;
+  while (cur) {
+    const nextBlock = (cur.next as { block?: Record<string, unknown> } | undefined)?.block;
+    const item = structuredClone(cur);
+    delete item.next;
+    chunks.push(item);
+    cur = nextBlock;
+  }
+  if (chunks.length < 2) return null;
+
+  delete inputs!.ATTR_content;
+  return { baseState: clone, compositionId: comp.id, chunks };
+}
+
+async function switchToFullBlocklyCanvas(): Promise<void> {
+  if (switchingFullCanvas) return;
+  switchingFullCanvas = true;
+  treemapPopover?.close();
+  const fullState = migrateForEachSourceState(
+    getCanonicalBlocklyState(),
+  ) as BlocklyWorkspaceJson;
+  canonicalBlocklyState = structuredClone(fullState);
+  canonicalDocIndex = indexDocument(canonicalBlocklyState);
+  const totalBlocks = canonicalDocIndex.totalBlocks;
+  const showProgress = totalBlocks > 80;
+  activeSliceHandle = null;
+  editorMode = "full-blockly";
+  renderTreemapAndModeBar();
+
+  const blocklyMountEl = document.getElementById("blockly-mount");
+  if (showProgress && blocklyMountEl) {
+    blocklyMountEl.style.visibility = "hidden";
+  }
+
+  try {
+    if (showProgress) {
+      setBlocklyLoadOverlay(true, 0, 0, totalBlocks, "Mounting Blockly blocks…");
+      await paintFrame();
+    }
+
+    const s = controller.getState();
+    registerRmBlocksFromJson(fullState);
+    const split = showProgress ? splitCompositionContentChunks(fullState) : null;
+    const appendInternal = (
+      Blockly.serialization.blocks as unknown as {
+        appendInternal?: (
+          state: Blockly.serialization.blocks.State,
+          ws: Blockly.Workspace,
+        ) => Blockly.Block;
+      }
+    ).appendInternal;
+    const appendFn = appendInternal ?? Blockly.serialization.blocks.append;
+    const flushRenders = async (): Promise<void> => {
+      const rm = (Blockly as unknown as {
+        renderManagement?: { finishQueuedRenders?: () => Promise<void> };
+      }).renderManagement;
+      if (typeof rm?.finishQueuedRenders === "function") {
+        await rm.finishQueuedRenders();
+      }
+    };
+    const yieldTick = () => new Promise<void>((r) => setTimeout(r, 0));
+
+    if (split) {
+      runWithoutBlocklyEvents(() => {
+        if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+        workspace.clear();
+        Blockly.serialization.workspaces.load(
+          split.baseState as Record<string, unknown>,
+          workspace,
+        );
+      });
+      const mountedBase = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        (mountedBase / Math.max(1, totalBlocks)) * 65,
+        mountedBase,
+        totalBlocks,
+        "Mounting Blockly blocks…",
+      );
+      await yieldTick();
+
+      const appendedChunks: Blockly.Block[] = [];
+      const batchSize = Math.max(1, Math.ceil(split.chunks.length / 5));
+      for (let i = 0; i < split.chunks.length; i += batchSize) {
+        const batch = split.chunks.slice(i, i + batchSize);
+        runWithoutBlocklyEvents(() => {
+          for (const chunk of batch) {
+            const appended = appendFn(
+              chunk as Blockly.serialization.blocks.State,
+              workspace,
+            );
+            if (appended) appendedChunks.push(appended);
+          }
+        });
+        const mounted = workspace.getAllBlocks(false).length;
+        setBlocklyLoadOverlay(
+          true,
+          Math.min(65, (mounted / Math.max(1, totalBlocks)) * 65),
+          mounted,
+          totalBlocks,
+          "Mounting Blockly blocks…",
+        );
+        await yieldTick();
+      }
+
+      const mountedAll = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        72,
+        mountedAll,
+        Math.max(totalBlocks, mountedAll),
+        "Laying out Blockly canvas…",
+      );
+      await yieldTick();
+
+      const compBlock = workspace.getBlockById(split.compositionId);
+      const contentInput = compBlock?.getInput("ATTR_content");
+      runWithoutBlocklyEvents(() => {
+        let prevBlock: Blockly.Block | null = null;
+        for (const appended of appendedChunks) {
+          if (!prevBlock && contentInput?.connection && appended.previousConnection) {
+            contentInput.connection.connect(appended.previousConnection);
+          } else if (prevBlock?.nextConnection && appended.previousConnection) {
+            prevBlock.nextConnection.connect(appended.previousConnection);
+          }
+          prevBlock = appended;
+        }
+      });
+      await flushRenders();
+    } else {
+      runWithoutBlocklyEvents(() => {
+        if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+        workspace.clear();
+        Blockly.serialization.workspaces.load(
+          fullState as Record<string, unknown>,
+          workspace,
+        );
+      });
+      if (showProgress) {
+        const mounted = workspace.getAllBlocks(false).length;
+        setBlocklyLoadOverlay(true, 72, mounted, totalBlocks, "Laying out Blockly canvas…");
+        await yieldTick();
+        await flushRenders();
+      }
+    }
+
+    if (showProgress) {
+      const mounted = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        84,
+        mounted,
+        Math.max(totalBlocks, mounted),
+        "Applying labels & constraints…",
+      );
+      await yieldTick();
+    }
+
+    runWithoutBlocklyEvents(() => {
+      refreshWorkspaceConstraints(workspace);
+      relabelWorkspaceFromSkeleton(workspace, s.skeleton);
+    });
+    lockWorkspaceRootsExpanded(workspace);
+    refreshAiReviewMarkers(workspace);
+    separateContextMapFromProductTree(workspace);
+    Blockly.svgResize(workspace);
+    if (showProgress) {
+      await flushRenders();
+      const mounted = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        94,
+        mounted,
+        Math.max(totalBlocks, mounted),
+        "Painting canvas…",
+      );
+      await yieldTick();
+    }
+
+    refreshMappingSpecView();
+
+    if (showProgress) {
+      // Reveal #blockly-mount while the overlay is still on top at 94% so the browser's
+      // first full SVG rasterization completes BEFORE the counter hits 100%.
+      if (blocklyMountEl) {
+        blocklyMountEl.style.visibility = "";
+      }
+      await paintFrame();
+      const finalCount = workspace.getAllBlocks(false).length;
+      setBlocklyLoadOverlay(
+        true,
+        100,
+        finalCount,
+        Math.max(totalBlocks, finalCount),
+        "Canvas ready",
+      );
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    }
+  } finally {
+    if (blocklyMountEl) {
+      blocklyMountEl.style.visibility = "";
+    }
+    setBlocklyLoadOverlay(false);
+    switchingFullCanvas = false;
+  }
+}
+
+function initTreemapUi(): void {
+  const hostEl = document.getElementById("treemap-host");
+  if (!hostEl) return;
+  treemapRenderer = createTreemapRenderer(hostEl, {
+    onZoomChange: (zoomRootId, originRect) => {
+      treemapPopover?.close();
+      treemapZoomRootId = zoomRootId;
+      pulseCrumbId = zoomRootId;
+      renderTreemapAndModeBar();
+      treemapRenderer?.animateZoom("in");
+      if (originRect && zoomRootId) {
+        const crumbEl = document.querySelector<HTMLElement>(
+          `#treemap-breadcrumb [data-crumb-id="${CSS.escape(zoomRootId)}"]`,
+        );
+        animateCrumbFly(originRect, crumbEl?.getBoundingClientRect());
+      }
+    },
+    onOpenInBlockly: (nodeId) => {
+      openNodeInScopedBlockly(nodeId, { exactContainer: true });
+    },
+    onLeafClick: (datum, anchorEl) => {
+      treemapSelectedBlockId = datum.id;
+      renderTreemapAndModeBar();
+      scrollMappingSpecToBlock(specEditor, datum.id);
+      treemapPopover?.open(datum, anchorEl);
+    },
+    onGhostClick: (datum) => {
+      controller.setStatusMessage(
+        `"${datum.label}" is not scaffolded (Sparse mode) — pull it from the Target schema tab to add it.`,
+      );
+    },
+    onAiTriage: (nodeId, action, bulk) => {
+      if (!canonicalBlocklyState) return;
+      const next = action === "accept"
+        ? acceptAiSuggestion(canonicalBlocklyState, nodeId, { recursive: bulk })
+        : rejectAiSuggestion(canonicalBlocklyState, nodeId, { recursive: bulk });
+      updateCanonicalStateAndSync(next, {
+        summary: action === "accept" ? "Accept AI suggestions" : "Reject AI suggestions",
+      });
+    },
+    onHoverStatus: setTreemapHoverStatus,
+  });
+
+  treemapPopover = createTreemapInlinePopover(hostEl, {
+    getCanonicalState: () => getCanonicalBlocklyState() as BlocklyWorkspaceJson,
+    getSourceFields: collectSourceFieldOptions,
+    onApplyPatch: (nextDoc, summary) => {
+      updateCanonicalStateAndSync(nextDoc, { summary });
+    },
+    onEscalateToBlockly: (nodeId) => {
+      openNodeInScopedBlockly(nodeId);
+    },
+  });
+
+  document.getElementById("btn-mode-treemap")?.addEventListener("click", () => {
+    if (editorMode === "treemap") return;
+    const doc = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+    enterTreemapMode(doc, { keepZoom: true });
+  });
+  document.getElementById("btn-mode-scoped")?.addEventListener("click", () => {
+    if (!canonicalDocIndex) {
+      const doc = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
+      canonicalBlocklyState = structuredClone(doc);
+      canonicalDocIndex = indexDocument(canonicalBlocklyState);
+    }
+    const targetId = resolveScopedBlocklyTargetId();
+    if (targetId) {
+      openNodeInScopedBlockly(targetId, { exactContainer: true });
+    }
+  });
+  document.getElementById("btn-mode-full")?.addEventListener("click", () => {
+    if (editorMode !== "full-blockly") void switchToFullBlocklyCanvas();
+  });
+
+  const searchInput = document.getElementById("treemap-search") as HTMLInputElement | null;
+  searchInput?.addEventListener("input", () => {
+    treemapQuery = searchInput.value;
+    renderTreemapAndModeBar();
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".tm-filter-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const next = (chip.dataset.tmFilter ?? "all") as TreemapStatusFilter;
+      treemapStatusFilter = next;
+      document.querySelectorAll<HTMLButtonElement>(".tm-filter-chip").forEach((c) => {
+        c.classList.toggle("active", c === chip);
+      });
+      renderTreemapAndModeBar();
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".tm-layout-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = (btn.dataset.tmLayout === "columns" ? "columns" : "pack") as TreemapOuterLayout;
+      if (next === treemapOuterLayout) return;
+      treemapOuterLayout = next;
+      document.querySelectorAll<HTMLButtonElement>(".tm-layout-btn").forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-pressed", String(active));
+      });
+      renderTreemapAndModeBar();
+    });
+  });
+}
+
+function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }): void {
+  if (editorMode === "scoped-blockly" && canonicalBlocklyState && activeSliceHandle) {
+    const sliceJson = Blockly.serialization.workspaces.save(workspace) as BlocklyWorkspaceJson;
+    const grafted = graftSlice(canonicalBlocklyState, activeSliceHandle, sliceJson);
+    updateCanonicalStateAndSync(grafted, options);
+    return;
+  }
+  const signatureBefore = blocklySlotSignature;
+  const saved = Blockly.serialization.workspaces.save(workspace) as BlocklyWorkspaceJson;
+  canonicalBlocklyState = saved;
+  canonicalDocIndex = indexDocument(saved);
   const derived = workspaceToModelJson(workspace);
   controller.syncFromBlockly(
-    Blockly.serialization.workspaces.save(workspace),
+    saved,
     derived.slots,
     derived.loops,
     derived.optionalRm,
@@ -1644,6 +2521,7 @@ function persistBlocklyCanvas(options?: { notify?: boolean; summary?: string }):
   const s = controller.getState();
   const signatureAfter = slotSignatureFrom(s.model.slots, s.model.loops ?? []);
   blocklySlotSignature = signatureAfter;
+  renderTreemapAndModeBar();
   refreshUndoButtons();
   if (signatureBefore !== signatureAfter) void commitPendingUiChange(options?.summary ?? "Edit mapping");
   if (options?.notify !== false) controller.notifyChange();
@@ -1686,7 +2564,15 @@ function commitPendingUiChange(
   options: { ai?: { origin: UiCommitOrigin; notices: string[] }; force?: boolean } = {},
 ): Promise<void> {
   const desktop = isDesktopEnvironment();
-  if ((desktop && !isAgentBridgeSynced()) || applyingAgentBundle || !workspace || !historyReady) {
+  if (
+    (desktop && !isAgentBridgeSynced()) || applyingAgentBundle || !workspace ||
+    !historyReady || projectReplaceDepth > 0
+  ) {
+    return Promise.resolve();
+  }
+  const currentProjectId = controller.getState().projectId;
+  if (lastHistoryProjectId && currentProjectId !== lastHistoryProjectId) {
+    resetProjectUndoHistory();
     return Promise.resolve();
   }
   const signature = documentCommitSignature();
@@ -2162,6 +3048,32 @@ function applyBlockSelection(blockId: string | null, origin: "blockly" | "spec")
   try {
     selectedBlockId = blockId;
     specSelectionAnchorId = null;
+    if (origin === "spec" && blockId && editorMode === "treemap" && canonicalDocIndex) {
+      treemapSelectedBlockId = blockId;
+      const node = canonicalDocIndex.nodes.get(blockId);
+      if (node && node.parentId && node.type === "element") {
+        // Zoom to owning ENTRY/CLUSTER so the selected leaf is visible in Treemap.
+        treemapZoomRootId = computeAdaptiveSliceTarget(
+          canonicalDocIndex,
+          blockId,
+          SLICE_NODE_THRESHOLD,
+        );
+      }
+      renderTreemapAndModeBar();
+      refreshMappingSpecView();
+      return;
+    }
+    if (
+      origin === "spec" &&
+      blockId &&
+      editorMode === "scoped-blockly" &&
+      !workspace.getBlockById(blockId) &&
+      canonicalDocIndex?.nodes.has(blockId)
+    ) {
+      applyingSelection = false;
+      openNodeInScopedBlockly(blockId);
+      return;
+    }
     const block = blockId ? workspace.getBlockById(blockId) : null;
     syncHandlebarsClickHint();
     if (origin === "spec" && block) {
@@ -2302,12 +3214,22 @@ function applyDefaultContextMapAfterRefresh(): void {
   persistBlocklyCanvas({ summary: "Refresh target — apply default context map" });
 }
 
+let pendingToolboxState: ReturnType<WorkbenchController["getState"]> | null = null;
+
 function syncToolbox(s: ReturnType<WorkbenchController["getState"]>): void {
   const sig = s.skeleton.length ? skeletonToolboxSignature(s.skeleton) : "";
   const key = `${s.target?.format ?? ""}|${s.templateId}|${sig}|${s.modelLanguage ?? ""}`;
   if (key === toolboxKey) return;
-  toolboxKey = key;
   if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+  const blocklyEl = document.getElementById("blockly-mount");
+  if (editorMode === "treemap" || blocklyEl?.hidden) {
+    // Updating Blockly's toolbox while #blockly-mount is display:none triggers
+    // an internal Blockly.svgResize(workspace) that collapses <svg.blocklySvg> to 0x0.
+    pendingToolboxState = s;
+    return;
+  }
+  pendingToolboxState = null;
+  toolboxKey = key;
   workspace.updateToolbox(buildDemoToolbox(blocklyLocale, {
     targetFormat: s.target?.format,
     skeleton: s.skeleton,
@@ -2352,12 +3274,52 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
 
   if (skeletonKey !== blocklySkeletonKey) {
     if (s.blocklyState && typeof s.blocklyState === "object") {
-      const savedState = s.blocklyState;
+      const savedState = relabelBlocklyJsonFromSkeleton(
+        migrateForEachSourceState(s.blocklyState) as BlocklyWorkspaceJson,
+        s.skeleton,
+      );
+      const idx = indexDocument(savedState);
+      if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && (idx.primaryRootId ?? idx.compositionId)) {
+        // Large template: open instantaneously into Treemap Overview (zero WorkspaceSvg mount).
+        runWithoutBlocklyEvents(() => {
+          workspace.clear();
+        });
+        enterTreemapMode(savedState);
+        blocklySkeletonKey = skeletonKey;
+        blocklyLabelLanguage = labelLanguage;
+        blocklySlotSignature = slotSignature;
+        if (s.blocklyReloadToken > 0) {
+          const derived = extractModelFromBlocklyJson(savedState, s.skeleton);
+          controller.syncFromBlockly(
+            savedState,
+            derived.slots,
+            derived.loops,
+            derived.optionalRm,
+            {
+              targetSignature: derived.targetSignature,
+              unsupported: derived.unsupported,
+              sheetNames: derived.sheetNames,
+              instanceEncodings: derived.instanceEncodings,
+              functions: derived.functions,
+              includes: derived.includes,
+            },
+          );
+        }
+        return;
+      }
+      activeSliceHandle = null;
+      editorMode = "full-blockly";
+      canonicalBlocklyState = structuredClone(savedState);
+      canonicalDocIndex = idx;
+      // Unhide #blockly-mount before loading/laying out blocks so Blockly
+      // measures the real container dimensions instead of 0x0.
+      renderTreemapAndModeBar();
       runWithoutBlocklyEvents(() => {
         if (s.skeleton.length) registerSchemaBlocksFromSkeleton(s.skeleton);
+        registerRmBlocksFromJson(savedState as Record<string, unknown>);
         workspace.clear();
         Blockly.serialization.workspaces.load(
-          migrateForEachSourceState(savedState) as Record<string, unknown>,
+          savedState as Record<string, unknown>,
           workspace,
         );
         if (!findDefaultsBlock(workspace)) {
@@ -2374,6 +3336,9 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       blocklySkeletonKey = skeletonKey;
       blocklyLabelLanguage = labelLanguage;
       blocklySlotSignature = slotSignature;
+      renderTreemapAndModeBar();
+      Blockly.svgResize(workspace);
+      Blockly.renderManagement?.finishQueuedRenders?.();
       const derived = workspaceToModelJson(workspace);
       if (s.blocklyReloadToken > 0) {
         controller.syncFromBlockly(
@@ -2385,9 +3350,9 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             targetSignature: derived.targetSignature,
             unsupported: derived.unsupported,
             sheetNames: derived.sheetNames,
-      instanceEncodings: derived.instanceEncodings,
-      functions: derived.functions,
-      includes: derived.includes,
+            instanceEncodings: derived.instanceEncodings,
+            functions: derived.functions,
+            includes: derived.includes,
           },
         );
       }
@@ -2395,20 +3360,70 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
       scheduleContextMapClearance();
       return;
     } else {
+      const effectiveSkeleton = s.scaffoldMode === "sparse"
+        ? filterSkeletonMandatoryOnly(s.skeleton)
+        : s.skeleton;
+      const countSkel = (nodes: typeof effectiveSkeleton): number =>
+        nodes.reduce((sum, n) => sum + 1 + countSkel(n.children), 0);
+      if (countSkel(effectiveSkeleton) > TREEMAP_AUTO_THRESHOLD) {
+        const pendingMap = controller.consumePendingDefaultsMap();
+        const { blocklyState: headState, extract: derived } = scaffoldBlocklyFromSkeleton(
+          effectiveSkeleton,
+          s.model,
+          {
+            uiLanguage: blocklyLocale,
+            targetFormat: targetFormatOf(s),
+            defaultsMap: pendingMap ?? undefined,
+          },
+        );
+        runWithoutBlocklyEvents(() => {
+          workspace.clear();
+        });
+        enterTreemapMode(headState as BlocklyWorkspaceJson);
+        blocklySkeletonKey = skeletonKey;
+        blocklyLabelLanguage = labelLanguage;
+        blocklySlotSignature = slotSignature;
+        if (s.blocklyReloadToken > 0) {
+          controller.syncFromBlockly(
+            headState,
+            derived.slots,
+            derived.loops,
+            derived.optionalRm,
+            {
+              targetSignature: derived.targetSignature,
+              unsupported: derived.unsupported,
+              sheetNames: derived.sheetNames,
+              instanceEncodings: derived.instanceEncodings,
+              functions: derived.functions,
+              includes: derived.includes,
+            },
+          );
+        }
+        return;
+      }
+      activeSliceHandle = null;
+      editorMode = "full-blockly";
+      renderTreemapAndModeBar();
       const hadPending = applyPendingDefaultsMap();
       loadSkeletonIntoWorkspace(
         workspace,
-        s.skeleton,
+        effectiveSkeleton,
         s.model,
         s.listeningSlotId,
         blocklyLocale,
         targetFormatOf(s),
         { factory: !hadPending },
       );
+      const savedFull = Blockly.serialization.workspaces.save(workspace) as BlocklyWorkspaceJson;
+      canonicalBlocklyState = savedFull;
+      canonicalDocIndex = indexDocument(savedFull);
+      renderTreemapAndModeBar();
+      Blockly.svgResize(workspace);
+      Blockly.renderManagement?.finishQueuedRenders?.();
       const derived = workspaceToModelJson(workspace);
       if (s.blocklyReloadToken > 0) {
         controller.syncFromBlockly(
-          Blockly.serialization.workspaces.save(workspace),
+          savedFull,
           derived.slots,
           derived.loops,
           derived.optionalRm,
@@ -2416,9 +3431,9 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
             targetSignature: derived.targetSignature,
             unsupported: derived.unsupported,
             sheetNames: derived.sheetNames,
-      instanceEncodings: derived.instanceEncodings,
-      functions: derived.functions,
-      includes: derived.includes,
+            instanceEncodings: derived.instanceEncodings,
+            functions: derived.functions,
+            includes: derived.includes,
           },
         );
       }
@@ -2436,6 +3451,14 @@ function syncBlocklyWorkspace(s: ReturnType<WorkbenchController["getState"]>): v
     runWithoutBlocklyEvents(() => {
       relabelWorkspaceFromSkeleton(workspace, s.skeleton);
     });
+    if (canonicalBlocklyState) {
+      canonicalBlocklyState = relabelBlocklyJsonFromSkeleton(canonicalBlocklyState, s.skeleton);
+      canonicalDocIndex = indexDocument(canonicalBlocklyState);
+      if (editorMode === "treemap") {
+        renderTreemapAndModeBar();
+        refreshMappingSpecView(canonicalBlocklyState);
+      }
+    }
     blocklyLabelLanguage = labelLanguage;
     toolboxKey = "";
     syncToolbox(s);
@@ -2623,7 +3646,9 @@ bind("btn-new-project", () => void handleNewProject());
 bind("btn-load-project", () => void openLoadProjectDialog());
 bind("btn-save-project", () => openSaveAsDialog());
 bind("btn-export-project", () => controller.exportProject());
-bind("btn-import-project", () => void withUndoableDocumentReplace(() => controller.importProject()));
+bind("btn-import-project", () =>
+  void replaceProjectWithFreshHistory(() => controller.importProject(), "Import project")
+);
 const importAiDialog = installImportAiDialog({
   dialog: requireEl<HTMLDialogElement>("dialog-import-ai"),
   textarea: requireEl<HTMLTextAreaElement>("import-ai-text"),
@@ -2693,6 +3718,7 @@ installLocalMcpDialog();
 installExampleSetsMenu();
 installFunctionLibraryUi();
 installFileMenu();
+installSettingsMenu();
 installHelpMenu();
 
 const HELP_TUTORIAL_URL =
@@ -2739,6 +3765,54 @@ function installFileMenu(): void {
   });
   menu.querySelectorAll("button").forEach((btn) => {
     btn.addEventListener("click", () => handle.close());
+  });
+}
+
+function installSettingsMenu(): void {
+  applyAnimationSetting();
+
+  if (typeof globalThis.matchMedia === "function") {
+    const mq = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", () => applyAnimationSetting());
+    }
+  }
+
+  const trigger = document.getElementById("btn-menu-settings");
+  const menu = document.getElementById("menu-settings");
+  if (!(trigger instanceof HTMLButtonElement) || !menu) return;
+
+  installAnchoredMenu({
+    menu,
+    trigger,
+    roots: [trigger],
+    referenceEls: [trigger],
+    minWidth: 255,
+  });
+
+  menu.querySelectorAll<HTMLInputElement>('input[name="settings-animations"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      const val = radio.value;
+      if (val === "system" || val === "on" || val === "off") {
+        try {
+          localStorage.setItem(ANIMATIONS_STORAGE_KEY, val);
+        } catch {
+          // Ignore storage errors.
+        }
+        applyAnimationSetting();
+      }
+    });
+  });
+
+  const resetBtn = document.getElementById("btn-settings-animations-reset");
+  resetBtn?.addEventListener("click", () => {
+    try {
+      localStorage.setItem(ANIMATIONS_STORAGE_KEY, "on");
+    } catch {
+      // Ignore storage errors.
+    }
+    applyAnimationSetting();
   });
 }
 
@@ -2887,7 +3961,10 @@ function installExampleSetsMenu(): void {
     if (!confirmReplace()) return;
     void (async () => {
       try {
-        await withUndoableDocumentReplace(() => controller.loadExampleSet(set));
+        await replaceProjectWithFreshHistory(
+          () => controller.loadExampleSet(set),
+          `Load example set ${set.id}`,
+        );
       } catch {
         // Status bar already has the error.
       }
@@ -3635,6 +4712,12 @@ function selectedJointMapChoice(): string {
   return checked?.value ?? "factory";
 }
 
+function selectedJointScaffoldMode(): "full" | "sparse" {
+  const dialog = document.getElementById("dialog-joint-load");
+  const checked = dialog?.querySelector<HTMLInputElement>('input[name="joint-scaffold-mode"]:checked');
+  return checked?.value === "sparse" ? "sparse" : "full";
+}
+
 async function confirmJointLoad(): Promise<void> {
   const dialog = document.getElementById("dialog-joint-load") as HTMLDialogElement | null;
   const targetKind = selectedJointTargetKind();
@@ -3643,6 +4726,7 @@ async function confirmJointLoad(): Promise<void> {
     return;
   }
   const choice = selectedJointMapChoice();
+  const scaffoldMode = selectedJointScaffoldMode();
   const isNew = choice === "new";
   let mapBlock: unknown | null = null;
   if (choice === "factory") {
@@ -3669,7 +4753,13 @@ async function confirmJointLoad(): Promise<void> {
       });
     } else {
       await withUndoableDocumentReplace(() => {
-        controller.loadTargetContent(jointPendingTarget!.name, jointPendingTarget!.text);
+        controller.loadTargetContent(
+          jointPendingTarget!.name,
+          jointPendingTarget!.text,
+          undefined,
+          "replace",
+          scaffoldMode,
+        );
       });
     }
   } else if (controller.getState().templateId) {
@@ -4554,12 +5644,12 @@ function handleNewProject(): void {
     ? uiChrome().confirmNewProject
     : uiChrome().confirmNewEmpty;
   if (!confirm(message)) return;
-  void withUndoableDocumentReplace(() => {
+  void replaceProjectWithFreshHistory(() => {
     controller.newProject();
     resetBlocklyView();
     ephemeralTreeHighlight = null;
     lastActiveExampleId = null;
-  });
+  }, "New project");
 }
 
 function openSaveAsDialog(): void {
@@ -4600,7 +5690,10 @@ async function openLoadProjectDialog(): Promise<void> {
           ) {
             return;
           }
-          await withUndoableDocumentReplace(() => controller.loadStoredProject(entry.storageKey));
+          await replaceProjectWithFreshHistory(
+            () => controller.loadStoredProject(entry.storageKey),
+            `Load project ${entry.displayName}`,
+          );
           resetBlocklyView();
           ephemeralTreeHighlight = null;
         })();
@@ -4613,6 +5706,14 @@ async function openLoadProjectDialog(): Promise<void> {
 
 function render(): void {
   const s = controller.getState();
+  if (
+    historyReady &&
+    projectReplaceDepth === 0 &&
+    lastHistoryProjectId &&
+    s.projectId !== lastHistoryProjectId
+  ) {
+    resetProjectUndoHistory({ syncDesktop: false });
+  }
   const activeExampleId = s.activeExample?.id ?? null;
   if (activeExampleId !== lastActiveExampleId) {
     ephemeralTreeHighlight = null;
@@ -4798,12 +5899,6 @@ function finishCanvas(s: ReturnType<WorkbenchController["getState"]>): void {
   setEditorDoc(testOutputEditor, testOutputText, detectEditorLanguage(testOutputText));
 
   exportTargetSelect.value = s.settings.exportTarget;
-  if (instanceShapeSelect) {
-    instanceShapeSelect.value = s.settings.openEhrInstanceShape ?? "json";
-  }
-  if (instanceShapeWrap) {
-    instanceShapeWrap.hidden = s.target?.format !== "openehr-template";
-  }
   const exportBtn = exportDownloadBtn;
   if (exportBtn) exportBtn.disabled = s.settings.exportTarget === "preview";
   const testDownload = testDownloadBtn;
@@ -4898,17 +5993,8 @@ function renderTestOutputTabs(s: ReturnType<WorkbenchController["getState"]>): v
   }
 }
 
-function formatValidationListItem(
-  path: string,
-  message: string,
-  line?: number,
-): string {
-  const where = line ? `line ${line}: ${path}` : path;
-  return `${where}: ${message}`;
-}
-
 function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"]>): void {
-  const items: string[] = [];
+  const entries: Array<{ text: string; line?: number }> = [];
   const result = s.testResult;
   const validation = s.activeExample
     ? s.outputValidations[s.activeExample.id]
@@ -4916,14 +6002,22 @@ function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"
 
   if (validation?.applicable && !validation.valid) {
     for (const msg of validation.messages) {
-      items.push(formatValidationListItem(msg.path, msg.message, msg.line));
+      entries.push({ text: formatOutputValidationMessage(msg), line: msg.line });
     }
   } else if (result?.error) {
     const line = validation?.messages[0]?.line;
-    items.push(formatValidationListItem("/", result.error, line));
+    entries.push({
+      text: formatOutputValidationMessage({
+        path: "/",
+        message: result.error,
+        severity: "error",
+        line,
+      }),
+      line,
+    });
   }
-  for (const warning of result?.warnings ?? []) items.push(warning);
-  if (!items.length) {
+  for (const warning of result?.warnings ?? []) entries.push({ text: warning });
+  if (!entries.length) {
     testOutputValidationEl.hidden = true;
     testOutputValidationEl.replaceChildren();
     return;
@@ -4933,9 +6027,14 @@ function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"
   const title = document.createElement("strong");
   title.textContent = result?.error ? uiChrome().conversionFailed : uiChrome().templateValidation;
   const list = document.createElement("ul");
-  for (const text of items) {
+  for (const entry of entries) {
     const item = document.createElement("li");
-    item.textContent = text;
+    item.textContent = entry.text;
+    if (entry.line) {
+      item.classList.add("example-validation-item--clickable");
+      item.dataset.line = String(entry.line);
+      item.addEventListener("click", () => scrollEditorToLine(testOutputEditor, entry.line!));
+    }
     list.appendChild(item);
   }
   testOutputValidationEl.append(title, list);
@@ -4955,7 +6054,13 @@ function renderExampleValidation(s: ReturnType<WorkbenchController["getState"]>)
   const list = document.createElement("ul");
   for (const issue of issues) {
     const item = document.createElement("li");
-    item.textContent = `${issue.path}: ${issue.message}`;
+    const linePrefix = issue.line
+      ? issue.sourceIsAncestor ? `near line ${issue.line}: ` : `line ${issue.line}: `
+      : "";
+    const hint = issue.expectedExample
+      ? ` — e.g. ${issue.expectedExample.replace(/\s*\n\s*/g, " ")}`
+      : "";
+    item.textContent = `${linePrefix}${issue.path}: ${issue.message}${hint}`;
     list.appendChild(item);
   }
   exampleValidationEl.append(title, list);
@@ -5118,7 +6223,7 @@ function installWorkbenchTestApi(): void {
       return mappingSpecDocumentText(specEditor);
     },
     getBlocklyStateJson() {
-      return JSON.stringify(Blockly.serialization.workspaces.save(workspace));
+      return JSON.stringify(getCanonicalBlocklyState());
     },
     loadBlocklyJson(filename, content) {
       controller.loadBlocklyDefinition(filename, content);
@@ -5252,6 +6357,36 @@ function installWorkbenchTestApi(): void {
     },
     undoEventTypes() {
       return (workspace.getUndoStack?.() ?? []).map((event) => String(event.type ?? ""));
+    },
+    getEditorMode() {
+      return editorMode;
+    },
+    getMountedBlockCount() {
+      return workspace?.getAllBlocks(false).length ?? 0;
+    },
+    getCanonicalBlockCount() {
+      return canonicalDocIndex?.totalBlocks ?? workspace?.getAllBlocks(false).length ?? 0;
+    },
+    loadBlocklyState(state: unknown) {
+      const doc = migrateForEachSourceState(state) as BlocklyWorkspaceJson;
+      const idx = indexDocument(doc);
+      if (idx.totalBlocks > TREEMAP_AUTO_THRESHOLD && (idx.primaryRootId ?? idx.compositionId)) {
+        runWithoutBlocklyEvents(() => {
+          workspace.clear();
+        });
+        enterTreemapMode(doc);
+      } else {
+        activeSliceHandle = null;
+        editorMode = "full-blockly";
+        canonicalBlocklyState = structuredClone(doc);
+        canonicalDocIndex = idx;
+        runWithoutBlocklyEvents(() => {
+          workspace.clear();
+          Blockly.serialization.workspaces.load(doc as Record<string, unknown>, workspace);
+        });
+        renderTreemapAndModeBar();
+        refreshMappingSpecView(doc);
+      }
     },
   };
   // Some test helpers look for `globalThis.intehrgratorTestApi` rather than

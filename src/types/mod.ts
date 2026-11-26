@@ -314,6 +314,13 @@ export interface SkeletonNode {
    * display language.
    */
   primaryName?: string;
+  /**
+   * Additional unrenamed ontology/base terms for this node (for example the
+   * archetype base term when `L10n` overrides `label`, or a raw per-language
+   * term differing only by casing), so `outputLocatableName` still treats
+   * older saved canvases as unrenamed while preserving genuine user renames.
+   */
+  alternateLabels?: string[];
   kind: SkeletonNodeKind;
   /** RM attribute on the parent object this node occupies (e.g. data, items, value). */
   rmAttribute?: string;
@@ -533,8 +540,27 @@ export interface OutputValidationMessage {
   path: string;
   message: string;
   severity: "error" | "warning" | "info";
-  /** Best-effort line in the Conversion Test Run JSON (not from ehrtslib). */
+  /** 1-based line in the Conversion Test Run JSON. */
   line?: number;
+  /** 1-based column in the Conversion Test Run JSON. */
+  column?: number;
+  /** JSON Pointer into the Conversion Test Run JSON. */
+  jsonPointer?: string;
+  /**
+   * True when `line` points to the nearest existing ancestor container
+   * because the failing path is missing from the output.
+   */
+  sourceIsAncestor?: boolean;
+  /**
+   * Target-format path where the error or missing content belongs
+   * (e.g. FLAT key `my_template/blood_pressure/systolic|unit` or `ctx/setting`).
+   */
+  targetPath?: string;
+  /**
+   * Concise example snippet showing approximately what the missing content
+   * should look like in the target format.
+   */
+  expectedExample?: string;
 }
 
 export interface OutputValidation {

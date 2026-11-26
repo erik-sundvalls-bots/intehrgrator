@@ -5,18 +5,31 @@
 import type { OPERATIONAL_TEMPLATE } from "ehrtslib/am/openehr_am.ts";
 import { parseTemplateInput } from "ehrtslib/parser/mod.ts";
 import {
+  buildJsonSourceIndex,
+  escapeJsonPointerSegment,
+} from "ehrtslib/serialization/common/json_source_index.ts";
+import {
+  buildWebTemplate,
   CodedTextMismatchError,
   deserializeFromFlatWithIssues,
   deserializeFromStructuredWithIssues,
+  enrichSimplifiedMessagesWithSource,
   type FlatPayload,
   type FlatRmDefaultIssue,
   parseWebTemplate,
+  type ValidationSourceFormat,
+  type WebTemplate,
+  type WebTemplateNode,
   webTemplateToOpt,
 } from "ehrtslib/serialization/simplified/mod.ts";
 import { registerOpenEhrModelTypes } from "ehrtslib/serialization/common/openehr_model_registry.ts";
 import { JsonConfigurableDeserializer } from "ehrtslib/serialization/json/mod.ts";
 import { XmlDeserializer } from "ehrtslib/serialization/xml/mod.ts";
-import { TemplateValidator } from "ehrtslib/validation/mod.ts";
+import {
+  formatExpectedExampleForMissingNode,
+  TemplateValidator,
+  type ValidationMessage,
+} from "ehrtslib/validation/mod.ts";
 import type {
   OpenEhrJsonDeserializeMode,
   OutputValidation,
@@ -80,20 +93,36 @@ export function validateConvertedOutput(
       }],
     };
   }
+  let rawJsonSource: string | undefined;
+  let isXmlOutput = false;
   if (typeof output === "string") {
     const trimmed = output.trim();
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       try {
+        rawJsonSource = output;
         output = JSON.parse(trimmed) as unknown;
       } catch {
         return notApplicableOutputValidation();
       }
     } else if (trimmed.startsWith("<")) {
+      if (trimmed.startsWith("<mapping-result")) {
+        return notApplicableOutputValidation();
+      }
       try {
         ensureRmTypeRegistry();
         output = new XmlDeserializer().deserialize(trimmed);
-      } catch {
-        return notApplicableOutputValidation();
+        isXmlOutput = true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          applicable: true,
+          valid: false,
+          messages: [{
+            path: "/",
+            message: `Invalid openEHR XML: ${message}`,
+            severity: "error",
+          }],
+        };
       }
     } else {
       return notApplicableOutputValidation();
@@ -110,7 +139,8 @@ export function validateConvertedOutput(
       }],
     };
   }
-  const jsonText = JSON.stringify(output, null, 2);
+  const jsonText = rawJsonSource ?? JSON.stringify(output, null, 2);
+  const jsonSource = isXmlOutput ? undefined : jsonText;
   const deserializeMode = options.deserializeMode ?? "canonical-strict";
   try {
     const opt = operationalTemplateFromTarget(target);
@@ -125,18 +155,29 @@ export function validateConvertedOutput(
         }],
       };
     }
-    const flat = rmFromFlatDocument(output, target);
+    const webTemplate = webTemplateFromTarget(target, opt);
+    const flat = rmFromFlatDocument(output, webTemplate, jsonSource);
     const rmInstance = flat?.composition ?? asRmInstance(output, jsonText, deserializeMode);
-    const result = validator.validate(rmInstance, opt as OPERATIONAL_TEMPLATE);
+    const sourceFormat: ValidationSourceFormat = flat?.sourceFormat ?? "canonical-json";
+    const includeMissingHints = !isXmlOutput;
+    const result = validator.validate(rmInstance, opt as OPERATIONAL_TEMPLATE, {
+      jsonSource,
+      sourceFormat,
+      webTemplate,
+      includeMissingHints,
+    });
     const flatMessages = flat?.messages ?? [];
     const messages = [
       ...flatMessages,
-      ...[...result.errors, ...result.warnings].map((msg) => ({
-        path: msg.path || "/",
-        message: msg.message,
-        severity: msg.severity,
-        line: lineNumberForRmPath(jsonText, msg.path || "/"),
-      })),
+      ...[...result.errors, ...result.warnings].map((msg) =>
+        toOutputValidationMessage(msg, {
+          jsonSource,
+          sourceFormat,
+          webTemplate,
+          opt,
+          includeMissingHints,
+        })
+      ),
     ];
     return {
       applicable: true,
@@ -156,10 +197,101 @@ export function validateConvertedOutput(
         path: "/",
         message,
         severity: "error",
-        line: lineNumberForDeserializeError(jsonText, message),
+        line: jsonSource ? lineNumberForDeserializeError(jsonSource, message) : undefined,
       }],
     };
   }
+}
+
+function spreadSourceLocationFields(
+  source: {
+    sourceLine?: number;
+    sourceColumn?: number;
+    jsonPointer?: string;
+    sourceIsAncestor?: boolean;
+    targetPath?: string;
+    expectedExample?: string;
+  },
+  lineOverride?: number,
+): Partial<OutputValidationMessage> {
+  const line = lineOverride ?? source.sourceLine;
+  return {
+    ...(line !== undefined ? { line } : {}),
+    ...(source.sourceColumn !== undefined ? { column: source.sourceColumn } : {}),
+    ...(source.jsonPointer !== undefined ? { jsonPointer: source.jsonPointer } : {}),
+    ...(source.sourceIsAncestor ? { sourceIsAncestor: true } : {}),
+    ...(source.targetPath ? { targetPath: source.targetPath } : {}),
+    ...(source.expectedExample ? { expectedExample: source.expectedExample } : {}),
+  };
+}
+
+function toOutputValidationMessage(
+  msg: ValidationMessage,
+  ctx: {
+    jsonSource?: string;
+    sourceFormat: ValidationSourceFormat;
+    webTemplate?: WebTemplate;
+    opt: OPERATIONAL_TEMPLATE;
+    includeMissingHints: boolean;
+  },
+): OutputValidationMessage {
+  const path = msg.path || "/";
+  const line = msg.sourceLine ??
+    (ctx.sourceFormat === "canonical-json" && ctx.jsonSource
+      ? lineNumberForRmPath(ctx.jsonSource, path)
+      : undefined);
+  const expectedExample = msg.expectedExample ??
+    (ctx.includeMissingHints
+      ? fallbackExpectedExample(msg, ctx.sourceFormat, ctx.webTemplate, ctx.opt)
+      : undefined);
+  return {
+    path,
+    message: msg.message,
+    severity: msg.severity,
+    ...spreadSourceLocationFields({ ...msg, expectedExample }, line),
+  };
+}
+
+function isMissingOrEmptyMessage(message: string): boolean {
+  if (classifyOpenEhrValidationMessage(message) === "required-missing") return true;
+  const m = message.toLowerCase();
+  return m.includes("is_empty") || /\/=\s*void/.test(m) || m.includes("below minimum");
+}
+
+function fallbackExpectedExample(
+  msg: ValidationMessage,
+  sourceFormat: ValidationSourceFormat,
+  webTemplate: WebTemplate | undefined,
+  opt: OPERATIONAL_TEMPLATE,
+): string | undefined {
+  if (!isMissingOrEmptyMessage(msg.message)) return undefined;
+  const wtNode = webTemplate && msg.targetPath
+    ? findWebTemplateNodeForTargetPath(webTemplate, msg.targetPath)
+    : undefined;
+  return formatExpectedExampleForMissingNode({
+    format: sourceFormat,
+    rmPath: msg.path || "/",
+    webTemplateNode: wtNode,
+    flatBasePath: msg.targetPath,
+    constraintNodeId: msg.constraintNodeId,
+    template: opt,
+  });
+}
+
+function findWebTemplateNodeForTargetPath(
+  webTemplate: WebTemplate,
+  targetPath: string,
+): WebTemplateNode | undefined {
+  const pipeIdx = targetPath.indexOf("|");
+  const base = pipeIdx === -1 ? targetPath : targetPath.slice(0, pipeIdx);
+  const segments = base.split("/").slice(1).map((s) => s.replace(/:\d+$/, ""));
+  if (!segments.length) return webTemplate.tree;
+  let cur: WebTemplateNode | undefined = webTemplate.tree;
+  for (const seg of segments) {
+    cur = cur?.children?.find((c) => c.id === seg);
+    if (!cur) return undefined;
+  }
+  return cur;
 }
 
 /**
@@ -173,26 +305,38 @@ export function validateConvertedOutput(
  */
 function rmFromFlatDocument(
   output: unknown,
-  target: TargetDefinition,
-): { composition: unknown; messages: OutputValidationMessage[] } | null {
-  const json = flatCompositionJson(output);
-  const structured = json ? null : structuredCompositionJson(output);
-  if ((!json && !structured) || !target.webTemplateJson?.trim()) return null;
+  webTemplate: WebTemplate | undefined,
+  jsonSource: string | undefined,
+): {
+  composition: unknown;
+  messages: OutputValidationMessage[];
+  sourceFormat: ValidationSourceFormat;
+} | null {
+  if (!webTemplate) return null;
+  const flatPayload = flatCompositionPayload(output);
+  const structuredPayload = flatPayload ? null : structuredCompositionPayload(output);
+  if (!flatPayload && !structuredPayload) return null;
+  const sourceFormat: ValidationSourceFormat = flatPayload ? "flat-json" : "structured-json";
   try {
     ensureRmTypeRegistry();
-    const webTemplate = parseWebTemplate(target.webTemplateJson);
-    const { composition, issues } = json
-      ? deserializeFromFlatWithIssues(JSON.parse(json) as FlatPayload, webTemplate)
+    const { composition, issues } = flatPayload
+      ? deserializeFromFlatWithIssues(flatPayload, webTemplate)
       : deserializeFromStructuredWithIssues(
-        JSON.parse(structured!) as Parameters<typeof deserializeFromStructuredWithIssues>[0],
+        structuredPayload as Parameters<typeof deserializeFromStructuredWithIssues>[0],
         webTemplate,
       );
-    return { composition, messages: flatIssueMessages(issues) };
+    return {
+      composition,
+      messages: flatIssueMessages(issues, jsonSource, webTemplate, sourceFormat, flatPayload),
+      sourceFormat,
+    };
   } catch (err) {
     // deserializeFromFlatWithIssues collects mismatches as issues; if one is
     // thrown anyway, report its issues instead of trying canonical JSON.
     if (err instanceof CodedTextMismatchError) {
-      throw new FlatIssuesError(flatIssueMessages(err.issues));
+      throw new FlatIssuesError(
+        flatIssueMessages(err.issues, jsonSource, webTemplate, sourceFormat, flatPayload),
+      );
     }
     return null;
   }
@@ -205,39 +349,118 @@ class FlatIssuesError extends Error {
   }
 }
 
-/** Issue paths are RM paths in the rebuilt composition, so no FLAT line. */
-function flatIssueMessages(issues: FlatRmDefaultIssue[]): OutputValidationMessage[] {
-  return issues.map((issue) => ({
+function flatIssueMessages(
+  issues: FlatRmDefaultIssue[],
+  jsonSource: string | undefined,
+  webTemplate: WebTemplate,
+  sourceFormat: ValidationSourceFormat,
+  flatPayload: FlatPayload | null,
+): OutputValidationMessage[] {
+  if (!issues.length) return [];
+  const enriched: FlatRmDefaultIssue[] = issues.map((issue) => ({ ...issue }));
+  if (jsonSource) {
+    enrichSimplifiedMessagesWithSource(enriched, jsonSource, {
+      webTemplate,
+      sourceFormat,
+      includeMissingHints: true,
+    });
+    if (sourceFormat === "flat-json" && flatPayload) {
+      refineFlatOccurrenceLocations(enriched, flatPayload, jsonSource);
+    }
+  }
+  return enriched.map((issue) => ({
     path: issue.path || "/",
     message: issue.message,
     severity: issue.severity,
+    ...spreadSourceLocationFields(issue),
   }));
 }
 
-function flatCompositionJson(output: unknown): string | null {
-  let value: unknown = output;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed.startsWith("{")) return null;
-    try {
-      value = JSON.parse(trimmed) as unknown;
-    } catch {
-      return null;
-    }
+/**
+ * `FlatDeserializer` issues carry an AQL path without occurrence indices
+ * (`:0`, `:1`). Resolve to the specific `:N` key in `flatPayload` (preferring
+ * the occurrence whose value appears quoted in the issue message when both `:0`
+ * and `:1` exist).
+ */
+function refineFlatOccurrenceLocations(
+  issues: FlatRmDefaultIssue[],
+  flatPayload: FlatPayload,
+  jsonSource: string,
+): void {
+  const needsRefine = issues.some((i) => Boolean(i.targetPath && i.path.startsWith("/")));
+  if (!needsRefine) return;
+  let index: ReturnType<typeof buildJsonSourceIndex> | undefined;
+  try {
+    index = buildJsonSourceIndex(jsonSource);
+  } catch {
+    return;
   }
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
+  const stripOccurrences = (key: string) =>
+    key.replace(/:\d+(?=\/|\||$)/g, "");
+  const stripSuffix = (key: string) => {
+    const idx = key.indexOf("|");
+    return idx === -1 ? key : key.slice(0, idx);
+  };
+  const payloadKeys = Object.keys(flatPayload);
+  for (const issue of issues) {
+    if (!issue.targetPath || !issue.path.startsWith("/")) continue;
+    const wantNorm = stripOccurrences(issue.targetPath);
+    const wantBaseNorm = stripSuffix(wantNorm);
+    const quoted = [...issue.message.matchAll(/"([^"]+)"|'([^']+)'/g)]
+      .map((m) => m[1] ?? m[2] ?? "")
+      .filter(Boolean);
+    let byValue: string | undefined;
+    for (const q of quoted) {
+      byValue =
+        payloadKeys.find((k) => stripOccurrences(k) === wantNorm && String(flatPayload[k]) === q) ??
+        payloadKeys.find(
+          (k) =>
+            stripSuffix(stripOccurrences(k)) === wantBaseNorm && String(flatPayload[k]) === q,
+        );
+      if (byValue) break;
+    }
+    const byNorm = issue.sourceIsAncestor
+      ? payloadKeys.find((k) => stripOccurrences(k) === wantNorm)
+      : undefined;
+    const matchingKey = byValue ?? byNorm;
+    if (!matchingKey) continue;
+    const loc = index.get(`/${escapeJsonPointerSegment(matchingKey)}`);
+    if (!loc) continue;
+    issue.targetPath = matchingKey;
+    issue.jsonPointer = loc.jsonPointer;
+    issue.sourceLine = loc.sourceLine;
+    issue.sourceColumn = loc.sourceColumn;
+    issue.sourceIsAncestor = undefined;
+  }
+}
+
+function flatCompositionPayload(output: unknown): FlatPayload | null {
+  const record = asJsonObjectRecord(output);
+  if (!record) return null;
   if ("_type" in record || "archetype_node_id" in record) return null;
   const keys = Object.keys(record);
   if (!keys.some((key) => key.startsWith("ctx/") || key.includes("/"))) return null;
-  return JSON.stringify(record);
+  return record as FlatPayload;
 }
 
 /**
- * Simplified STRUCTURED: one key (the template id) holding the nested tree.
- * ehrtslib reads it back through FLAT, so its issues use FLAT paths.
+ * Simplified STRUCTURED: one root template key (plus optional `ctx`) holding
+ * the nested tree. ehrtslib reads it back through FLAT.
  */
-function structuredCompositionJson(output: unknown): string | null {
+function structuredCompositionPayload(output: unknown): Record<string, unknown> | null {
+  const record = asJsonObjectRecord(output);
+  if (!record) return null;
+  if ("_type" in record || "archetype_node_id" in record) return null;
+  const keys = Object.keys(record);
+  if (keys.some((k) => k.includes("/"))) return null;
+  const nonCtx = keys.filter((k) => k !== "ctx");
+  if (nonCtx.length !== 1 || nonCtx[0]!.startsWith("_")) return null;
+  const tree = record[nonCtx[0]!];
+  if (!tree || typeof tree !== "object" || Array.isArray(tree)) return null;
+  return record;
+}
+
+function asJsonObjectRecord(output: unknown): Record<string, unknown> | null {
   let value: unknown = output;
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -249,12 +472,32 @@ function structuredCompositionJson(output: unknown): string | null {
     }
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  const keys = Object.keys(record);
-  if (keys.length !== 1 || keys[0]!.startsWith("_") || keys[0]!.includes("/")) return null;
-  const tree = record[keys[0]!];
-  if (!tree || typeof tree !== "object") return null;
-  return JSON.stringify(record);
+  return value as Record<string, unknown>;
+}
+
+const webTemplateCache = new Map<string, WebTemplate>();
+
+function webTemplateFromTarget(
+  target: TargetDefinition,
+  opt: OPERATIONAL_TEMPLATE,
+): WebTemplate | undefined {
+  const wtJson = target.webTemplateJson?.trim() ||
+    (target.content?.trim().startsWith("{") ? target.content.trim() : "");
+  const cacheKey = wtJson || target.content?.trim() || "";
+  if (cacheKey) {
+    const cached = webTemplateCache.get(cacheKey);
+    if (cached) return cached;
+  }
+  try {
+    const wt = wtJson ? parseWebTemplate(wtJson) : buildWebTemplate(opt);
+    if (cacheKey) {
+      if (webTemplateCache.size > 16) webTemplateCache.clear();
+      webTemplateCache.set(cacheKey, wt);
+    }
+    return wt;
+  } catch {
+    return undefined;
+  }
 }
 
 function operationalTemplateFromTarget(target: TargetDefinition): OPERATIONAL_TEMPLATE | null {
@@ -324,3 +567,31 @@ export function classifyOpenEhrValidationMessage(message: string): OpenEhrValida
   if (m.includes("does not match template archetype")) return "archetype-sibling";
   return "other";
 }
+
+/**
+ * Format an output validation message for human display (#373):
+ * - Includes line number (`line N` for an exact hit, `near line N` when the
+ *   location is the nearest existing ancestor of a missing field).
+ * - Includes `targetPath` alongside `path` when they differ (e.g. FLAT keys).
+ * - Appends missing-content placement and `expectedExample` when available.
+ */
+export function formatOutputValidationMessage(msg: OutputValidationMessage): string {
+  const linePrefix = msg.line
+    ? msg.sourceIsAncestor ? `near line ${msg.line}: ` : `line ${msg.line}: `
+    : "";
+  const locationPath = msg.targetPath && msg.targetPath !== msg.path
+    ? `${msg.targetPath} (${msg.path})`
+    : msg.path;
+  let text = `${linePrefix}${locationPath}: ${msg.message}`;
+  if (msg.expectedExample) {
+    const whereHint = msg.targetPath
+      ? `at ${msg.targetPath}${msg.line ? ` (near line ${msg.line})` : ""}`
+      : msg.jsonPointer
+      ? `inside ${msg.jsonPointer}${msg.line ? ` (near line ${msg.line})` : ""}`
+      : `in root object${msg.line ? ` (near line ${msg.line})` : ""}`;
+    const compactExample = msg.expectedExample.replace(/\s*\n\s*/g, " ");
+    text += ` — expected ${whereHint}, e.g. ${compactExample}`;
+  }
+  return text;
+}
+

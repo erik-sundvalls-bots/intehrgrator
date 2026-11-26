@@ -197,6 +197,7 @@ export class WorkbenchController {
   private templateContent = "";
   private templateId = "";
   private skeleton: SkeletonNode[] = [];
+  private scaffoldMode: "full" | "sparse" = "full";
   private schemaTree: SchemaTreeNode | null = null;
   private schemaFilename = "";
   private schemaContent = "";
@@ -339,6 +340,7 @@ export class WorkbenchController {
       templateFilename: this.templateFilename,
       templateId: this.templateId,
       skeleton: this.skeleton,
+      scaffoldMode: this.scaffoldMode,
       target: this.target,
       schemaTree: this.schemaTree,
       schemaFilename: this.schemaFilename,
@@ -479,12 +481,16 @@ export class WorkbenchController {
     content: string,
     format: TargetFormatId = detectTargetFormat(filename, stripBom(content)),
     mode: "replace" | "browse" | "refresh" = "replace",
+    scaffoldMode: "full" | "sparse" = "full",
   ): RefreshDiffReport | null {
     content = stripBom(content);
     if (isTemplateJson(content)) {
       throw new Error(
         "Better .t.json templates need a GitHub blob/raw URL so dependent archetypes can be fetched. Use ▾ → From GitHub template…",
       );
+    }
+    if (mode === "replace") {
+      this.scaffoldMode = scaffoldMode;
     }
     const preferredLanguage = this.settings.display?.targetLabelLang;
     const target = getTargetFormatHandler(format).load(filename, content, {

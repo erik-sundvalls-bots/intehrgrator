@@ -64,7 +64,12 @@ export {
   setAllBlocksCollapsed,
   slotIdFromBlock,
 } from "./skeleton_loader.ts";
-export { applySkeletonBlockLabels, relabelWorkspaceFromSkeleton } from "./block_labels.ts";
+export {
+  applySkeletonBlockLabels,
+  isUnresolvedSkeletonLabel,
+  relabelBlocklyJsonFromSkeleton,
+  relabelWorkspaceFromSkeleton,
+} from "./block_labels.ts";
 export { migrateForEachSourceState } from "./migrate_for_each_source.ts";
 export { FOR_EACH_LIST_BLOCK, isLoopBlockType, sourcePathFromLoopList } from "./loop_block.ts";
 export {

@@ -69,6 +69,13 @@ export function registerGoTemplateExportAdapter(): void {
     extension: "tmpl",
     mime: "text/x-go-template",
     generate(model, options) {
+      const hasSkeleton = Boolean(options?.skeleton?.length);
+      const isOpenEhr = hasSkeleton &&
+        (model.targetFormat === "openehr-template" || (!model.targetFormat && Boolean(model.instanceEncodings?.length)));
+      const isJsonSchema = hasSkeleton && model.targetFormat === "json-schema";
+      if (isOpenEhr || isJsonSchema) {
+        return generateGoTemplate(model, options);
+      }
       if (options?.blocklyState) {
         const fromCanvas = generateGoTemplateFromBlocklyState(
           options.blocklyState,

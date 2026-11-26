@@ -18,6 +18,7 @@ const PRECACHE = [
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./vendor/blockly/media/sprites.png",
 ];
 
 self.addEventListener("install", (event) => {

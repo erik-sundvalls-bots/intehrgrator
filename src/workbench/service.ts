@@ -157,6 +157,15 @@ export class WorkbenchService {
   recordLiveChange(summary: string, kind: HistoryKind = "expression", actor: HistoryActor = USER_ACTOR): HistoryEntry | null {
     if (!this.liveCanvas || this.mutating) return null;
     const after = this.exportBundle();
+    // Switching to another project starts a fresh per-project history (#375).
+    if (this.liveBaseline && this.liveBaseline.projectId !== after.projectId) {
+      this.history.reset();
+      this.humanTook.clear();
+      this.humanWins.length = 0;
+      this.liveBaseline = after;
+      this.revision = bundleRevision(after);
+      return null;
+    }
     // Only what the revision covers (mapping, canvas, sheets) is a change.
     const changed = this.liveBaseline && bundleRevision(this.liveBaseline) !== bundleRevision(after);
     const entry = changed ? this.history.record(this.liveBaseline!, after, actor, kind, summary) : null;
@@ -170,6 +179,14 @@ export class WorkbenchService {
     if (!this.liveCanvas || this.mutating) return;
     this.liveBaseline = this.exportBundle();
     this.revision = bundleRevision(this.liveBaseline);
+  }
+
+  /** Reset undo/history when switching or reloading a project (#375). */
+  resetHistoryForProject(): void {
+    this.history.reset();
+    this.humanTook.clear();
+    this.humanWins.length = 0;
+    this.bumpRevision();
   }
 
   exportBundle(): ProjectBundle {
@@ -252,8 +269,15 @@ export class WorkbenchService {
     bundle: ProjectBundle,
     summary: string,
     kind: HistoryKind = "expression",
-    options: { actor?: HistoryActor; baseRevision?: string } = {},
+    options: { actor?: HistoryActor; baseRevision?: string; resetHistory?: boolean } = {},
   ): { revision: string; overwritten: Array<{ seq: number; actor: string; summary: string }> } {
+    const before = this.exportBundle();
+    // Switching or reloading a project starts a fresh per-project history (#375).
+    if (options.resetHistory || before.projectId !== bundle.projectId) {
+      this.controller.restoreDocumentSnapshot(structuredClone(bundle));
+      this.resetHistoryForProject();
+      return { revision: this.revision, overwritten: [] };
+    }
     const overwritten = options.baseRevision && options.baseRevision !== this.revision
       ? this.history.entriesAfterRevision(options.baseRevision)
         .filter((e) => e.actor.kind === "agent" && e.actor.id !== options.actor?.id)
@@ -265,7 +289,6 @@ export class WorkbenchService {
       this.history.updateTailSummary(turnId, summary);
       return { revision: this.revision, overwritten };
     }
-    const before = this.exportBundle();
     this.controller.restoreDocumentSnapshot(structuredClone(bundle));
     if (!options.actor || options.actor.kind === "user") this.noteHumanEditsInLeases(before, bundle);
     this.recordMutation(before, {
@@ -279,6 +302,19 @@ export class WorkbenchService {
 
   loadBundle(bundle: ProjectBundle, ctx?: MutationContext & { expectedRevision?: string }): void {
     this.assertRevision(ctx?.expectedRevision);
+    const before = this.exportBundle();
+    const switchedProject = Boolean(bundle.projectId && before.projectId && bundle.projectId !== before.projectId);
+    if (switchedProject) {
+      this.mutating = true;
+      try {
+        this.controller.restoreDocumentSnapshot(structuredClone(bundle));
+        this.syncBlocklyFromModel();
+      } finally {
+        this.mutating = false;
+      }
+      this.resetHistoryForProject();
+      return;
+    }
     this.mutate(() => {
       this.controller.restoreDocumentSnapshot(structuredClone(bundle));
       this.syncBlocklyFromModel();
@@ -789,15 +825,25 @@ export class WorkbenchService {
 
   async loadExampleSet(set: ExampleSet, ctx?: MutationContext): Promise<void> {
     const actor = this.actorNow(ctx);
-    const before = this.exportBundle();
-    await this.controller.loadExampleSet(set);
-    this.hydrateSkeletonCanvas();
-    this.recordMutation(before, {
-      ...ctx,
-      actor,
-      kind: "load_bundle",
-      summary: ctx?.summary ?? `Load example set ${set.id}`,
-    });
+    this.mutating = true;
+    try {
+      await this.controller.loadExampleSet(set);
+      this.hydrateSkeletonCanvas();
+    } finally {
+      this.mutating = false;
+    }
+    this.resetHistoryForProject();
+    if (ctx?.recordHistory !== false) {
+      const after = this.exportBundle();
+      this.history.recordBaseline(
+        emptyBundleForProject(after),
+        after,
+        actor,
+        ctx?.kind ?? "load_bundle",
+        ctx?.summary ?? `Load example set ${set.id}`,
+      );
+      this.liveBaseline = after;
+    }
   }
 
   async loadTargetFromUrl(url: string, ctx?: MutationContext): Promise<void> {
@@ -1052,6 +1098,7 @@ export class WorkbenchService {
         uiLanguage: s.modelLanguage ?? s.settings.modelLanguage ?? "en",
         targetFormat: s.target?.format,
         defaultsMap: pending ?? undefined,
+        scaffoldMode: s.scaffoldMode,
       },
     );
     this.controller.syncFromBlockly(
@@ -1158,6 +1205,31 @@ export function isScaffoldedSlotExpression(expression: string | undefined): bool
   return /^map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)$/.test(expression) ||
     /^map\("value",\s*"[^"]*",\s*"defining_code",\s*map\("terminology_id",\s*"[^"]*",\s*"code_string",\s*"[^"]*"\)\)$/
       .test(expression);
+}
+
+function emptyBundleForProject(after: ProjectBundle): ProjectBundle {
+  return {
+    version: after.version,
+    projectId: after.projectId,
+    appVersion: after.appVersion,
+    createdAt: after.createdAt,
+    updatedAt: after.createdAt,
+    target: null,
+    sourceSchema: null,
+    examples: [],
+    activeExampleId: null,
+    mapping: {
+      blocklyState: null,
+      model: {
+        modelVersion: after.mapping.model.modelVersion,
+        templateId: "",
+        slots: [],
+        optionalRm: [],
+      },
+      sheets: [],
+    },
+    settings: structuredClone(after.settings),
+  };
 }
 
 function parseBundleBytes(bytes: Uint8Array): ProjectBundle {

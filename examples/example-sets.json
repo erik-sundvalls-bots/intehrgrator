@@ -311,7 +311,7 @@
     {
       "id": "mhv1-generic-entry-to-prenatal-visit",
       "title": "Obstetric MHV1 generic entry (Simplified FLAT, operational template → Web Template) — mapped",
-      "description": "Partial mapping from the generic-entry operational template onto MHV1- Prenatal visit.encounter.v1. Examples are Simplified FLAT. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. Saved as Simplified FLAT. Canvas path labels on this Web Template are not the clinical names.",
+      "description": "Partial mapping from the generic-entry operational template onto MHV1- Prenatal visit.encounter.v1. Examples are Simplified FLAT. Include when emits weight, last menstrual period, EDD, snus summary, and the assessment only when that source value is present. Category, setting, composer, care unit, enrolment weight, and the two dates are source paths. Saved as Simplified FLAT.",
       "source": {
         "schema": "../test/fixtures/Obstetric-legacy-via-generic-entry/MHV1/source-schema/generic_obstetrix_mhv1_v1_TEMPLATE.opt",
         "instances": [

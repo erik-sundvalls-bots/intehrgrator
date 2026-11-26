@@ -126,6 +126,15 @@ export class HistoryLog {
     return this.lastActivity ? { ...this.lastActivity } : null;
   }
 
+  /** Clear entries and undo/redo stacks when switching to a different project (#375). */
+  reset(): void {
+    this.entries = [];
+    this.applied = [];
+    this.redoStack = [];
+    this.headSeq = 0;
+    this.lastActivity = null;
+  }
+
   record(
     beforeBundle: ProjectBundle,
     afterBundle: ProjectBundle,
@@ -172,6 +181,31 @@ export class HistoryLog {
     this.clearRedo();
     this.noteActivity(entry);
     void this.appendPersist(entry);
+    return entry;
+  }
+
+  /**
+   * Append a non-undoable baseline entry for a freshly loaded project (such as
+   * MCP `load_example_set`), keeping author attribution (#316, #317) while
+   * keeping Undo strictly scoped within the new project (#375).
+   */
+  recordBaseline(
+    beforeBundle: ProjectBundle,
+    afterBundle: ProjectBundle,
+    actor: HistoryActor,
+    kind: HistoryKind,
+    summary: string,
+    affectedSlotIds: string[] = [],
+  ): HistoryEntry {
+    const entry = this.append({
+      actor: { ...actor },
+      kind,
+      summary,
+      beforeBundle: structuredClone(beforeBundle),
+      afterBundle: structuredClone(afterBundle),
+      affectedSlotIds: [...affectedSlotIds],
+    });
+    this.clearRedo();
     return entry;
   }
 

@@ -68,11 +68,24 @@ export function shortArchetypeLabel(block: Block): string {
   return String(block.getFieldValue("ARCHETYPE_CTX") || "").trim();
 }
 
+const MAX_COLLAPSED_NODES = 32;
+let collapsedBudget = MAX_COLLAPSED_NODES;
+
 export function collapsedHtmlForBlock(block: Block): string {
-  return `<span class="collapsed-preview">${renderBlock(block)}</span>`;
+  const prevBudget = collapsedBudget;
+  collapsedBudget = MAX_COLLAPSED_NODES;
+  try {
+    return `<span class="collapsed-preview">${renderBlock(block)}</span>`;
+  } finally {
+    collapsedBudget = prevBudget;
+  }
 }
 
 function renderBlock(block: Block): string {
+  if (collapsedBudget <= 0) {
+    return `<span class="collapsed-ellipsis">…</span>`;
+  }
+  collapsedBudget -= 1;
   if (isTermPickBlock(block)) return renderTermPick(block);
   if (block.type === MAPS_CREATE_WITH) return renderMapBlock(block);
   if (isOpenEhrBlock(block)) return renderRmBlock(block);

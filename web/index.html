@@ -77,6 +77,28 @@
     </div>
     <button id="btn-functions" class="menubar-btn" type="button" title="Save, load, or contribute Blockly Functions; browse the GitHub Function library" data-i18n="functions" data-i18n-title="functionsTitle">Functions</button>
     <div class="menubar-item">
+      <button id="btn-menu-settings" class="menubar-btn" type="button" title="Workbench preferences" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-settings">Settings</button>
+      <div id="menu-settings" class="split-btn-menu settings-menu-panel" hidden role="menu">
+        <fieldset class="settings-fieldset">
+          <legend>Animations</legend>
+          <label class="settings-radio-row">
+            <input type="radio" name="settings-animations" value="system" />
+            <span>Follow system</span>
+          </label>
+          <label class="settings-radio-row">
+            <input type="radio" name="settings-animations" value="on" checked />
+            <span>Always on (default)</span>
+          </label>
+          <label class="settings-radio-row">
+            <input type="radio" name="settings-animations" value="off" />
+            <span>Off</span>
+          </label>
+          <div id="settings-reduce-motion-status" class="settings-system-note">System: reduce motion is OFF</div>
+          <button id="btn-settings-animations-reset" class="settings-reset-btn" type="button">Reset to default</button>
+        </fieldset>
+      </div>
+    </div>
+    <div class="menubar-item">
       <button id="btn-help" class="menubar-btn" type="button" title="Tutorial and issue reporting" data-i18n="help" data-i18n-title="helpTitle" aria-haspopup="menu" aria-controls="menu-help">Help</button>
       <div id="menu-help" class="split-btn-menu" hidden role="menu">
         <a
@@ -229,7 +251,14 @@
 
     <section class="pane mapping-pane">
       <div class="pane-header">
-        <h2 data-i18n="mappingEditors">Mapping Editors</h2>
+        <div class="pane-header-title-group">
+          <h2 data-i18n="mappingEditors">Mapping Editors</h2>
+          <div id="editor-mode-switch" class="editor-mode-switch editor-mode-switch--on-dark" role="tablist" aria-label="Editor mode" hidden>
+            <button id="btn-mode-treemap" class="editor-mode-btn" type="button" role="tab" aria-selected="false">Treemap Overview</button>
+            <button id="btn-mode-scoped" class="editor-mode-btn" type="button" role="tab" aria-selected="false" hidden>Scoped Blockly</button>
+            <button id="btn-mode-full" class="editor-mode-btn active" type="button" role="tab" aria-selected="true" title="Mount the entire template on the Blockly canvas (may take a few seconds on large templates)">Total Blockly ⏳</button>
+          </div>
+        </div>
         <div class="pane-header-actions">
           <button id="btn-undo" class="pane-btn pane-btn-on-dark pane-btn-icon" type="button" title="Undo last mapping editor action" aria-label="Undo" data-i18n-title="undo" data-i18n-aria="undo" disabled>
             <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"></path></svg>
@@ -266,7 +295,42 @@
         data-split-sizes="1.2,1"
         data-split-preferred="0"
       >
-        <div id="blockly-mount" class="blockly-mount"></div>
+        <div id="mapping-top-stage" class="mapping-top-stage">
+          <div id="editor-mode-bar" class="editor-mode-bar" hidden>
+            <div id="treemap-controls" class="treemap-controls" hidden>
+              <input id="treemap-search" class="treemap-search" type="search" placeholder="Search label, archetype, path…" aria-label="Search template nodes" />
+              <div class="treemap-filters" role="group" aria-label="Filter by mapping status">
+                <button type="button" class="tm-filter-chip active" data-tm-filter="all">All</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="mandatory-missing">⚠ Mandatory Missing</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="unmapped">○ Unmapped</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="ai-draft">✦ AI Draft</button>
+                <button type="button" class="tm-filter-chip" data-tm-filter="mapped">✓ Mapped</button>
+              </div>
+              <div id="treemap-layout-switch" class="tm-layout-switch" role="group" aria-label="Outermost layer layout">
+                <button type="button" class="tm-layout-btn active" data-tm-layout="columns" aria-pressed="true" title="List outermost blocks top-to-bottom in left-aligned columns (scroll sideways)">Columns</button>
+                <button type="button" class="tm-layout-btn" data-tm-layout="pack" aria-pressed="false" title="Pack outermost blocks to fill available space">Pack</button>
+              </div>
+              <span
+                class="tm-order-legend"
+                title="Numbers (1, 2, 3…) show each sibling's fixed output order (same top-to-bottom sequence as Blockly). Hover any number to highlight siblings and show output arrows."
+              ><span class="tm-order tm-order--sample" aria-hidden="true">1</span>→N output order</span>
+            </div>
+            <nav id="treemap-breadcrumb" class="treemap-breadcrumb" aria-label="Template path" hidden></nav>
+          </div>
+          <div id="treemap-host" class="treemap-host" hidden></div>
+          <div id="blockly-mount" class="blockly-mount"></div>
+          <div id="blockly-load-overlay" class="blockly-load-overlay" hidden role="status" aria-live="polite">
+            <div class="blockly-load-card">
+              <div class="blockly-load-spinner" aria-hidden="true"></div>
+              <div id="blockly-load-title" class="blockly-load-title">Laying out Blockly canvas…</div>
+              <div id="blockly-load-pct" class="blockly-load-pct">0%</div>
+              <div class="blockly-load-track">
+                <div id="blockly-load-bar" class="blockly-load-bar" style="width: 0%"></div>
+              </div>
+              <div id="blockly-load-counts" class="blockly-load-counts">0 blocks</div>
+            </div>
+          </div>
+        </div>
         <div class="mapping-bottom">
           <div class="mapping-editor-tabs" role="tablist" aria-label="Mapping editor text views" data-i18n-aria="mappingViewsAria">
             <div class="mapping-editor-tab-group">
@@ -424,7 +488,7 @@
               TypeScript, Handlebars, Go Template, and XQuery also run in Conversion Test Run.
               Java generates an Archie class but does not execute in the web app.
               The desktop app can add another language with --language-plugin.
-              For openEHR targets, JSON vs XML instance chooses how XQuery serializes the composition.<br>
+              For openEHR targets, choose JSON / XML / FLAT / Structured encoding on the COMPOSITION block.<br>
               Download on the script editor saves the generated script. Imports in that script open the helper or library source. The overlay Download on Conversion Test Run saves that instance.
             </span>
           </span>
@@ -439,13 +503,6 @@
             </select>
           </label>
           </span>
-          <label class="pane-select-label" id="openehr-instance-shape-wrap" hidden for="openehr-instance-shape">
-            <span data-i18n="instance">Instance</span>
-            <select id="openehr-instance-shape" title="Desired openEHR instance shape. XQuery export and Test Run use this serialization." data-i18n-title="instanceTitle">
-              <option value="json" data-i18n="jsonInstance">JSON instance</option>
-              <option value="xml" data-i18n="xmlInstance">XML instance</option>
-            </select>
-          </label>
         </div>
         <button
           type="button"
@@ -605,6 +662,7 @@
   <aside id="history-panel" class="history-panel" hidden aria-label="History" data-i18n-aria="historyTitle"></aside>
   <footer id="status-bar" class="status-bar">
     <span id="status-main" data-i18n="ready">Ready</span>
+    <span id="status-hover" class="status-hover" hidden></span>
     <span id="status-save" class="status-save"></span>
     <span id="status-build" class="status-build"></span>
   </footer>
@@ -813,6 +871,17 @@
         <div class="dialog-actions">
           <button type="button" id="joint-map-browse" data-i18n="browseMap">Browse map file…</button>
         </div>
+      </fieldset>
+      <fieldset class="joint-load-fieldset">
+        <legend data-i18n="scaffoldLegend">Template scaffolding</legend>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-scaffold-mode" value="full" checked />
+          <span data-i18n="scaffoldFull">Full template (default) — scaffold all paths</span>
+        </label>
+        <label class="joint-load-option">
+          <input type="radio" name="joint-scaffold-mode" value="sparse" />
+          <span data-i18n="scaffoldSparse">Sparse (mandatory only) — pull optional paths later from Target schema</span>
+        </label>
       </fieldset>
       <div class="dialog-actions">
         <span class="dialog-actions-spacer"></span>

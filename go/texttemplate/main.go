@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -111,6 +112,11 @@ var vmsGoAllowedIdents = map[string]bool{
 	"lower": true, "upper": true, "substr": true, "int": true,
 	"handlebars": true, "dict": true,
 	"decisionTable": true, "sheetLookup": true,
+	"toJson": true, "jget": true, "rmToXml": true, "rmToXmlFrag": true, "xmlEscape": true,
+	"codedText": true, "codePhrase": true, "partyVal": true, "dvVal": true,
+	"rmObj": true, "list": true, "toNum": true, "nonEmpty": true, "whenVal": true,
+	"concat": true, "coalesce": true,
+	"add": true, "sub": true, "mul": true, "div": true,
 }
 
 var vmsGoForbiddenIdents = map[string]bool{
@@ -363,7 +369,513 @@ func funcMapWithSheets(sheets map[string]any) template.FuncMap {
 		"sheetLookup": func(name any, matchCol any, matchVal any, returnCol any) (any, error) {
 			return hostSheetCall("goTextTemplateSheetLookup", sheets, name, matchCol, matchVal, returnCol)
 		},
+		"toJson": func(v any) (string, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "null", err
+			}
+			return string(b), nil
+		},
+		"jget": jgetHelper,
+		"xmlEscape": func(v any) string {
+			if v == nil {
+				return ""
+			}
+			return escapeXmlText(fmt.Sprint(v))
+		},
+		"rmToXml": rmToXmlHelper,
+		"rmToXmlFrag": func(tag string, v any) string {
+			var b strings.Builder
+			writeRmXmlNode(&b, tag, v, false, 1)
+			return b.String()
+		},
+		"codedText": codedTextHelper,
+		"codePhrase": codePhraseHelper,
+		"partyVal": partyValHelper,
+		"dvVal": dvValHelper,
+		"rmObj": rmObjHelper,
+		"list": listHelper,
+		"toNum": toNumHelper,
+		"nonEmpty": nonEmptyHelper,
+		"whenVal": func(cond any, val any) any {
+			if b, ok := cond.(bool); ok {
+				if b {
+					return val
+				}
+				return nil
+			}
+			if nonEmptyHelper(cond) {
+				return val
+			}
+			return nil
+		},
+		"concat": func(values ...any) string {
+			var b strings.Builder
+			for _, v := range values {
+				if v != nil {
+					b.WriteString(fmt.Sprint(v))
+				}
+			}
+			return b.String()
+		},
+		"coalesce": func(values ...any) any {
+			for _, v := range values {
+				if nonEmptyHelper(v) {
+					return v
+				}
+			}
+			return nil
+		},
+		"add": func(a, b any) float64 { return toFloat(a) + toFloat(b) },
+		"sub": func(a, b any) float64 { return toFloat(a) - toFloat(b) },
+		"mul": func(a, b any) float64 { return toFloat(a) * toFloat(b) },
+		"div": func(a, b any) float64 {
+			d := toFloat(b)
+			if d == 0 {
+				return 0
+			}
+			return toFloat(a) / d
+		},
 	}
+}
+
+func nonEmptyHelper(v any) bool {
+	if v == nil {
+		return false
+	}
+	switch x := v.(type) {
+	case string:
+		return strings.TrimSpace(x) != ""
+	case []any:
+		return len(x) > 0
+	case map[string]any:
+		return len(x) > 0
+	case bool:
+		return true
+	default:
+		return true
+	}
+}
+
+func toFloat(v any) float64 {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case json.Number:
+		f, _ := n.Float64()
+		return f
+	case string:
+		f, _ := strconv.ParseFloat(strings.TrimSpace(n), 64)
+		return f
+	default:
+		f, _ := strconv.ParseFloat(strings.TrimSpace(fmt.Sprint(v)), 64)
+		return f
+	}
+}
+
+func toNumHelper(v any) any {
+	if v == nil {
+		return nil
+	}
+	switch n := v.(type) {
+	case float64, float32, int, int64:
+		return n
+	case json.Number:
+		if f, err := n.Float64(); err == nil {
+			return f
+		}
+		return nil
+	case string:
+		s := strings.TrimSpace(n)
+		if s == "" {
+			return nil
+		}
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			return f
+		}
+		return nil
+	default:
+		return nil
+	}
+}
+
+func jgetHelper(root any, path ...any) any {
+	cur := root
+	for _, seg := range path {
+		if cur == nil {
+			return nil
+		}
+		switch node := cur.(type) {
+		case map[string]any:
+			cur = node[fmt.Sprint(seg)]
+		case []any:
+			idx, ok := segToIndex(seg)
+			if !ok || idx < 0 || idx >= len(node) {
+				return nil
+			}
+			cur = node[idx]
+		default:
+			return nil
+		}
+	}
+	return cur
+}
+
+func segToIndex(seg any) (int, bool) {
+	switch v := seg.(type) {
+	case int:
+		return v, true
+	case int64:
+		return int(v), true
+	case float64:
+		return int(v), true
+	case string:
+		i, err := strconv.Atoi(strings.TrimSpace(v))
+		return i, err == nil
+	default:
+		return 0, false
+	}
+}
+
+func listHelper(items ...any) []any {
+	out := make([]any, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		if sub, ok := item.([]any); ok {
+			for _, x := range sub {
+				if x != nil {
+					out = append(out, x)
+				}
+			}
+			continue
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func rmObjHelper(pairs ...any) any {
+	m := make(map[string]any, len(pairs)/2)
+	for i := 0; i+1 < len(pairs); i += 2 {
+		k := fmt.Sprint(pairs[i])
+		v := pairs[i+1]
+		if v == nil {
+			continue
+		}
+		if arr, ok := v.([]any); ok && len(arr) == 0 {
+			continue
+		}
+		m[k] = v
+	}
+	t, _ := m["_type"].(string)
+	switch t {
+	case "ELEMENT":
+		if _, ok := m["value"]; !ok {
+			return nil
+		}
+	case "ITEM_TREE", "SECTION":
+		if _, ok := m["items"]; !ok {
+			return nil
+		}
+	case "EVENT", "POINT_EVENT", "INTERVAL_EVENT":
+		if _, ok := m["data"]; !ok {
+			return nil
+		}
+	case "ACTIVITY":
+		if _, ok := m["description"]; !ok {
+			return nil
+		}
+	case "HISTORY":
+		if _, ok := m["events"]; !ok {
+			return nil
+		}
+	case "OBSERVATION":
+		if _, ok := m["data"]; !ok {
+			return nil
+		}
+	case "EVALUATION":
+		if _, ok := m["data"]; !ok {
+			return nil
+		}
+	case "INSTRUCTION":
+		if _, ok := m["activities"]; !ok {
+			return nil
+		}
+	case "ACTION":
+		if _, ok := m["description"]; !ok {
+			return nil
+		}
+	case "CLUSTER":
+		if _, ok := m["items"]; !ok {
+			return nil
+		}
+	}
+	return m
+}
+
+func partyValHelper(val any, fallbackType string) any {
+	if val == nil {
+		if fallbackType == "PARTY_SELF" {
+			return map[string]any{"_type": "PARTY_SELF"}
+		}
+		return nil
+	}
+	if m, ok := val.(map[string]any); ok {
+		t, _ := m["_type"].(string)
+		if t == "" {
+			if fallbackType != "" {
+				t = fallbackType
+			} else {
+				t = "PARTY_IDENTIFIED"
+			}
+		}
+		out := map[string]any{"_type": t}
+		for k, v := range m {
+			if k == "_type" {
+				continue
+			}
+			// Drop shorthand non-RM fields (e.g. `id` in defaults.composer) that fail strict RM deserialization.
+			if t == "PARTY_IDENTIFIED" && k != "name" && k != "external_ref" && k != "identifiers" {
+				continue
+			}
+			if t == "PARTY_SELF" && k != "external_ref" {
+				continue
+			}
+			out[k] = v
+		}
+		return out
+	}
+	s := strings.TrimSpace(fmt.Sprint(val))
+	if s == "" {
+		if fallbackType == "PARTY_SELF" {
+			return map[string]any{"_type": "PARTY_SELF"}
+		}
+		return nil
+	}
+	return map[string]any{"_type": "PARTY_IDENTIFIED", "name": s}
+}
+
+func codePhraseHelper(val any, terminology string) any {
+	if val == nil {
+		return nil
+	}
+	if m, ok := val.(map[string]any); ok {
+		return m
+	}
+	s := strings.TrimSpace(fmt.Sprint(val))
+	if s == "" {
+		return nil
+	}
+	return map[string]any{
+		"_type":          "CODE_PHRASE",
+		"terminology_id": map[string]any{"_type": "TERMINOLOGY_ID", "value": terminology},
+		"code_string":    s,
+	}
+}
+
+func codedTextHelper(val any, terminology string, pairs ...string) any {
+	if val == nil {
+		return nil
+	}
+	if m, ok := val.(map[string]any); ok {
+		return m
+	}
+	raw := strings.TrimSpace(fmt.Sprint(val))
+	if raw == "" {
+		return nil
+	}
+	lower := strings.ToLower(raw)
+	for _, pair := range pairs {
+		eqIdx := strings.IndexByte(pair, '=')
+		if eqIdx <= 0 {
+			continue
+		}
+		code := pair[:eqIdx]
+		label := pair[eqIdx+1:]
+		if lower == strings.ToLower(label) || lower == strings.ToLower(code) {
+			return map[string]any{
+				"_type": "DV_CODED_TEXT",
+				"value": label,
+				"defining_code": map[string]any{
+					"_type":          "CODE_PHRASE",
+					"terminology_id": map[string]any{"_type": "TERMINOLOGY_ID", "value": terminology},
+					"code_string":    code,
+				},
+			}
+		}
+	}
+	return map[string]any{
+		"_type": "DV_CODED_TEXT",
+		"value": raw,
+		"defining_code": map[string]any{
+			"_type":          "CODE_PHRASE",
+			"terminology_id": map[string]any{"_type": "TERMINOLOGY_ID", "value": terminology},
+			"code_string":    "",
+		},
+	}
+}
+
+func dvValHelper(rmType string, val any, prop string, extra ...any) any {
+	if val == nil {
+		return nil
+	}
+	if m, ok := val.(map[string]any); ok {
+		return m
+	}
+	var outVal any = val
+	switch rmType {
+	case "DV_QUANTITY", "DV_COUNT", "DV_ORDINAL", "DV_PROPORTION":
+		num := toNumHelper(val)
+		if num == nil {
+			return nil
+		}
+		outVal = num
+	case "DV_BOOLEAN":
+		switch b := val.(type) {
+		case bool:
+			outVal = b
+		case string:
+			l := strings.ToLower(strings.TrimSpace(b))
+			if l == "true" || l == "1" {
+				outVal = true
+			} else if l == "false" || l == "0" {
+				outVal = false
+			} else {
+				return nil
+			}
+		default:
+			outVal = nonEmptyHelper(val)
+		}
+	default:
+		s := fmt.Sprint(val)
+		if strings.TrimSpace(s) == "" {
+			return nil
+		}
+		outVal = s
+	}
+	m := map[string]any{
+		"_type": rmType,
+		prop:    outVal,
+	}
+	for i := 0; i+1 < len(extra); i += 2 {
+		k := fmt.Sprint(extra[i])
+		v := extra[i+1]
+		if v != nil {
+			m[k] = v
+		}
+	}
+	return m
+}
+
+func escapeXmlText(s string) string {
+	r := strings.NewReplacer(
+		"&", "&amp;",
+		"<", "&lt;",
+		">", "&gt;",
+		`"`, "&quot;",
+		"'", "&apos;",
+	)
+	return r.Replace(s)
+}
+
+func rmToXmlHelper(tag string, v any) (string, error) {
+	if s, ok := v.(string); ok {
+		trimmed := strings.TrimSpace(s)
+		if strings.HasPrefix(trimmed, "{") {
+			var parsed any
+			if err := json.Unmarshal([]byte(trimmed), &parsed); err == nil {
+				v = parsed
+			}
+		}
+	}
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	writeRmXmlNode(&b, tag, v, true, 0)
+	return b.String(), nil
+}
+
+func writeRmXmlNode(b *strings.Builder, tag string, v any, isRoot bool, depth int) {
+	if v == nil {
+		return
+	}
+	if arr, ok := v.([]any); ok {
+		for _, item := range arr {
+			writeRmXmlNode(b, tag, item, isRoot, depth)
+		}
+		return
+	}
+	indent := strings.Repeat("  ", depth)
+	if m, ok := v.(map[string]any); ok {
+		b.WriteString(indent)
+		b.WriteByte('<')
+		b.WriteString(tag)
+		if isRoot {
+			b.WriteString(` xmlns="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`)
+		}
+		if t, ok := m["_type"].(string); ok && t != "" {
+			b.WriteString(` xsi:type="`)
+			b.WriteString(escapeXmlText(t))
+			b.WriteByte('"')
+		}
+		if nid, ok := m["archetype_node_id"].(string); ok && nid != "" {
+			b.WriteString(` archetype_node_id="`)
+			b.WriteString(escapeXmlText(nid))
+			b.WriteByte('"')
+		}
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			if k == "_type" || k == "archetype_node_id" {
+				continue
+			}
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		hasChild := false
+		for _, k := range keys {
+			val := m[k]
+			if val == nil {
+				continue
+			}
+			if arr, ok := val.([]any); ok && len(arr) == 0 {
+				continue
+			}
+			if !hasChild {
+				b.WriteString(">\n")
+				hasChild = true
+			}
+			if k == "terminology_id" {
+				if _, isMap := val.(map[string]any); !isMap {
+					val = map[string]any{"_type": "TERMINOLOGY_ID", "value": fmt.Sprint(val)}
+				}
+			}
+			writeRmXmlNode(b, k, val, false, depth+1)
+		}
+		if hasChild {
+			b.WriteString(indent)
+			b.WriteString("</")
+			b.WriteString(tag)
+			b.WriteString(">\n")
+		} else {
+			b.WriteString("/>\n")
+		}
+		return
+	}
+	b.WriteString(indent)
+	b.WriteByte('<')
+	b.WriteString(tag)
+	b.WriteByte('>')
+	b.WriteString(escapeXmlText(fmt.Sprint(v)))
+	b.WriteString("</")
+	b.WriteString(tag)
+	b.WriteString(">\n")
 }
 
 func hostSheetCall(fnName string, sheets map[string]any, name any, args ...any) (any, error) {

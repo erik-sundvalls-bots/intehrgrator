@@ -572,3 +572,79 @@ Deno.test("web template renamed sections keep their own names in every language"
     );
   }
 });
+
+Deno.test("repeated archetype occurrences with differing inline OPT term_definitions honor ehrtslib occurrence scopes", () => {
+  const optXml = `<?xml version="1.0" encoding="utf-8"?>
+<template xmlns="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <language><terminology_id><value>ISO_639-1</value></terminology_id><code_string>en</code_string></language>
+  <template_id><value>repeated-sections</value></template_id>
+  <concept>repeated-sections</concept>
+  <definition xsi:type="C_ARCHETYPE_ROOT">
+    <rm_type_name>COMPOSITION</rm_type_name>
+    <node_id>at0000</node_id>
+    <archetype_id><value>openEHR-EHR-COMPOSITION.encounter.v1</value></archetype_id>
+    <term_definitions code="at0000"><items id="text">Encounter</items></term_definitions>
+    <attributes xsi:type="C_MULTIPLE_ATTRIBUTE">
+      <rm_attribute_name>content</rm_attribute_name>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>SECTION</rm_type_name>
+        <node_id>at0000</node_id>
+        <archetype_id><value>openEHR-EHR-SECTION.adhoc.v1</value></archetype_id>
+        <term_definitions code="at0000"><items id="text">First heading</items></term_definitions>
+      </children>
+      <children xsi:type="C_ARCHETYPE_ROOT">
+        <rm_type_name>SECTION</rm_type_name>
+        <node_id>at0000</node_id>
+        <archetype_id><value>openEHR-EHR-SECTION.adhoc.v1</value></archetype_id>
+        <term_definitions code="at0000"><items id="text">Second heading</items></term_definitions>
+      </children>
+    </attributes>
+  </definition>
+</template>`;
+  const { skeleton } = generateSkeleton(optXml, { language: "en" });
+  const sections = flattenSkeleton(skeleton).filter((n) => n.rmType === "SECTION");
+  assertEquals(sections.map((n) => n.label), ["First heading", "Second heading"]);
+  // Public archetypeRef strips ehrtslib's internal `#2` occurrence suffix.
+  assertEquals(
+    sections.map((n) => n.archetypeRef),
+    ["openEHR-EHR-SECTION.adhoc.v1", "openEHR-EHR-SECTION.adhoc.v1"],
+  );
+});
+
+Deno.test("ehrtslib v0.17 TemplateLabelResolver applies OPT L10n.en path annotations on renamed repeated nodes", async () => {
+  const optXml = await Deno.readTextFile(
+    join(
+      import.meta.dirname!,
+      "fixtures/ordinerad-medicinsk-onkologisk-behandling/target-schema/OrdineradMedicinskOnkologiskBehandling_MedKurdag.1.0.0-alpha.27.sv.en.opt",
+    ),
+  );
+  const enNodes = flattenSkeleton(generateSkeleton(optXml, { language: "en" }).skeleton);
+  const orgNr = enNodes.find((n) =>
+    n.rmType === "ELEMENT" && n.nameConstraint === "Organisationsnummer"
+  );
+  assert(orgNr, "expected Organisationsnummer ELEMENT in MedKurdag");
+  assertEquals(orgNr.label, "Organisational number");
+  assertEquals(orgNr.primaryName, "Organisationsnummer");
+
+  // Sibling at0003 named Identifierare stays Identifier in English (no cross-contamination).
+  const idSibling = enNodes.find((n) =>
+    n.rmType === "ELEMENT" && n.nameConstraint === "Identifierare"
+  );
+  assert(idSibling, "expected Identifierare ELEMENT in MedKurdag");
+  assertEquals(idSibling.label, "Identifier");
+});
+
+Deno.test("ehrtslib v0.17 Web Template synthetic wt: scopes never leak into public archetypeRef", async () => {
+  const wtJson = await Deno.readTextFile(
+    join(
+      import.meta.dirname!,
+      "fixtures/Obstetric-legacy-via-generic-entry/MHV1/target-schema/mhv1-prenatal-visit.encounter.v1.wt.json",
+    ),
+  );
+  const nodes = flattenSkeleton(generateSkeletonFromWebTemplate(wtJson, { language: "en" }).skeleton);
+  const leaked = nodes.filter((n) =>
+    n.archetypeRef && (n.archetypeRef.startsWith("wt:") || n.archetypeRef.includes("#"))
+  );
+  assertEquals(leaked.map((n) => n.archetypeRef), []);
+});
+

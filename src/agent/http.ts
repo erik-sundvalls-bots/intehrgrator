@@ -115,6 +115,7 @@ export function createAgentApiHandler(
         const result = service.commitFromUi(body.bundle, body.summary, body.kind ?? "expression", {
           actor: uiCommitActor(body.origin),
           baseRevision: typeof body.baseRevision === "string" ? body.baseRevision : undefined,
+          resetHistory: body.resetHistory === true,
         });
         return json(result);
       }
@@ -233,6 +234,8 @@ export interface UiCommitBody {
   baseRevision?: string;
   /** Set for an AI chat turn; omitted for a person's edit. */
   origin?: { origin: "ai-chat"; provider?: string; model?: string; turnId?: string };
+  /** True when the UI switched/reloaded a project and history should reset (#375). */
+  resetHistory?: boolean;
 }
 
 /** The UI can commit as the person or as its own AI chat, not as an MCP agent. */

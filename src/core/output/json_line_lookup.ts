@@ -1,10 +1,28 @@
 /**
- * Best-effort JSON source line lookup for validation messages.
- * ehrtslib validators expose RM paths only — line numbers are inferred locally.
+ * JSON source line lookup for validation and deserialization messages.
+ * Uses ehrtslib's JSON Pointer source index with regex fallbacks for partial JSON.
  */
+
+import {
+  buildJsonSourceIndex,
+  rmPathToJsonPointer,
+} from "ehrtslib/serialization/common/json_source_index.ts";
 
 /** Map an RM/instance path (`/content[0]/data/...`) to a line in pretty-printed JSON. */
 export function lineNumberForRmPath(json: string, rmPath: string): number | undefined {
+  try {
+    const index = buildJsonSourceIndex(json);
+    const pointer = rmPathToJsonPointer(rmPath);
+    const exact = index.get(pointer);
+    if (exact) return exact.sourceLine;
+    const parts = pointer.split("/").filter(Boolean);
+    for (let len = parts.length - 1; len >= 1; len--) {
+      const anc = index.get(`/${parts.slice(0, len).join("/")}`);
+      if (anc) return anc.sourceLine;
+    }
+  } catch {
+    // Fall back to regex lookup when JSON text is malformed
+  }
   const segments = rmPath
     .split("/")
     .filter(Boolean)
