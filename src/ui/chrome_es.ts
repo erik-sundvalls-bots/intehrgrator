@@ -397,6 +397,8 @@ export const es: ChromeMessages = {
   setPlural: "conjuntos",
   loadedExampleSet: 'Conjunto de ejemplos "{name}" cargado',
   exampleSetFailed: 'El conjunto de ejemplos "{name}" falló: {detail}',
+  examplesLoadingPane: 'Cargando {n} ejemplo(s)…',
+  loadingExampleSetExamples: 'Cargando {n} ejemplo(s) para "{name}"',
   addedExample: "Ejemplo {name} añadido",
   addedExampleMismatch: "Ejemplo {name} añadido con {n} {mismatch} de esquema",
   mismatchSingular: "desajuste",

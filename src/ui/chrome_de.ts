@@ -397,6 +397,8 @@ export const de: ChromeMessages = {
   setPlural: "Sets",
   loadedExampleSet: 'Beispielset "{name}" geladen',
   exampleSetFailed: 'Beispielset "{name}" fehlgeschlagen: {detail}',
+  examplesLoadingPane: '{n} Beispiel(e) werden geladen…',
+  loadingExampleSetExamples: '{n} Beispiel(e) für "{name}" werden geladen',
   addedExample: "Beispiel {name} hinzugefügt",
   addedExampleMismatch: "Beispiel {name} mit {n} Schema-{mismatch} hinzugefügt",
   mismatchSingular: "Abweichung",
