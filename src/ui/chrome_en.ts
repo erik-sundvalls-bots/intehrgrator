@@ -469,6 +469,8 @@ export const en = {
   setPlural: "sets",
   loadedExampleSet: 'Loaded example set "{name}"',
   exampleSetFailed: 'Example set "{name}" failed: {detail}',
+  examplesLoadingPane: 'Loading {n} example(s)…',
+  loadingExampleSetExamples: 'Loading {n} example(s) for "{name}"',
   addedExample: "Added example {name}",
   addedExampleMismatch: "Added example {name} with {n} schema {mismatch}",
   mismatchSingular: "mismatch",
