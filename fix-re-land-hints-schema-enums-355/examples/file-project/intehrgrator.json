@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "mapping": "mapping/main.mapping.json",
+  "target": "targets/person.schema.json",
+  "source": {
+    "schema": "schemas/person.schema.json",
+    "examples": "source"
+  },
+  "output": {
+    "directory": "output",
+    "script": { "language": "typescript", "path": "output/conversion.ts" }
+  }
+}

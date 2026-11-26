@@ -1,4 +1,12 @@
 {
+  "fix/re-land-hints-schema-enums-355": {
+    "built": "2026-11-26T10:55:58Z",
+    "dir": "fix-re-land-hints-schema-enums-355",
+    "mode": "merged",
+    "pr": "382\thttps://github.com/regionstockholm/intehrgrator/pull/382\tOPEN\tRe-land value-set hints for JSON Schema and XSD (#355, #357)",
+    "sha": "cf36eb021ad4198c52e5785d898f7f4bb5191017",
+    "upstream": "51afba9fcc1c204b0736df8027acd2600d4f1815"
+  },
   "issue-218-pane-search": {
     "built": "2026-10-19T19:59:13Z",
     "dir": "issue-218-pane-search",

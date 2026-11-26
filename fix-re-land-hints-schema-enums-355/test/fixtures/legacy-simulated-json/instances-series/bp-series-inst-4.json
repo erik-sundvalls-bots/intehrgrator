@@ -1,0 +1,24 @@
+{
+  "patientId": "p-nightly-series-04",
+  "diagnosis": {
+    "code": "S42.0",
+    "codeSystem": "ICD-10",
+    "display": "Fracture of clavicle"
+  },
+  "measurements": [
+    {
+      "timestamp": "2026-09-20T08:05:00Z",
+      "systolic": 138,
+      "diastolic": 86,
+      "pulse": 70,
+      "bodyPosition": "sitting"
+    },
+    {
+      "timestamp": "2026-09-20T16:40:00Z",
+      "systolic": 126,
+      "diastolic": 78,
+      "pulse": 66,
+      "bodyPosition": "standing"
+    }
+  ]
+}

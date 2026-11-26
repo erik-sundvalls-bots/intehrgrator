@@ -1,0 +1,126 @@
+{
+  "type": "default_context_map",
+  "extraState": {
+    "itemCount": 6,
+    "targets": [
+      [
+        "*.language"
+      ],
+      [
+        "COMPOSITION.territory"
+      ],
+      [
+        "*.encoding"
+      ],
+      [
+        "*.time"
+      ],
+      [
+        "COMPOSITION.composer"
+      ],
+      [
+        "EVENT_CONTEXT.health_care_facility"
+      ]
+    ]
+  },
+  "fields": {
+    "KEY0": "language",
+    "TARGETS0": "[\"*.language\"]",
+    "KEY1": "territory",
+    "TARGETS1": "[\"COMPOSITION.territory\"]",
+    "KEY2": "encoding",
+    "TARGETS2": "[\"*.encoding\"]",
+    "KEY3": "time",
+    "TARGETS3": "[\"*.time\"]",
+    "KEY4": "composer",
+    "TARGETS4": "[\"COMPOSITION.composer\"]",
+    "KEY5": "facility",
+    "TARGETS5": "[\"EVENT_CONTEXT.health_care_facility\"]"
+  },
+  "inputs": {
+    "VAL0": {
+      "shadow": {
+        "type": "text",
+        "id": "w}le/2/6QKDl.C`[Y=A|",
+        "fields": {
+          "TEXT": "sv"
+        }
+      },
+      "block": {
+        "type": "term_pick",
+        "id": "D$PiEdkrY,06*#6FYt7J",
+        "fields": {
+          "NAME": "built-in",
+          "SET": "ISO_639-1",
+          "CODE": "sv",
+          "SLOT_ID": "",
+          "RM_TYPE": "CODE_PHRASE",
+          "MANDATORY": ""
+        }
+      }
+    },
+    "VAL1": {
+      "shadow": {
+        "type": "text",
+        "id": "sd+}v+-D%X%Y;XvJup2|",
+        "fields": {
+          "TEXT": "SE"
+        }
+      },
+      "block": {
+        "type": "term_pick",
+        "id": "8)[oT$qD=SwKC|H~4RvF",
+        "fields": {
+          "NAME": "built-in",
+          "SET": "ISO_3166-1",
+          "CODE": "SE",
+          "SLOT_ID": "",
+          "RM_TYPE": "CODE_PHRASE",
+          "MANDATORY": ""
+        }
+      }
+    },
+    "VAL2": {
+      "shadow": {
+        "type": "term_pick",
+        "id": "Mm^/:=RVY%YN4tPNzB_6",
+        "fields": {
+          "NAME": "built-in",
+          "SET": "IANA_character-sets",
+          "CODE": "UTF-8",
+          "SLOT_ID": "",
+          "RM_TYPE": "CODE_PHRASE",
+          "MANDATORY": ""
+        }
+      }
+    },
+    "VAL3": {
+      "shadow": {
+        "type": "text",
+        "id": "|X8UxusfT0..+x#S/.?0",
+        "fields": {
+          "TEXT": "2026-08-01T09:13:58+02:00"
+        }
+      }
+    },
+    "VAL4": {
+      "shadow": {
+        "type": "text",
+        "id": "0sO!Y/mPMczbXDZ?oZ}W",
+        "fields": {
+          "TEXT": "Dr. Who Demo"
+        }
+      }
+    },
+    "VAL5": {
+      "shadow": {
+        "type": "text",
+        "id": "06sq;w3Oc9eSbj_C*]hp",
+        "fields": {
+          "TEXT": "St. Dummy Demo Hospital"
+        }
+      }
+    }
+  },
+  "id": ")QS07%I/y;_CUV,`TYRJ"
+}

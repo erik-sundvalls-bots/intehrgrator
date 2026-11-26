@@ -1,0 +1,202 @@
+{
+  "connect.name": "se.karolinska.schemas.karda.cytodos.AdministrationRCCV1",
+  "fields": [
+    {
+      "name": "CytodosAdministrationKey",
+      "type": "int"
+    },
+    {
+      "default": null,
+      "name": "Personnummer",
+      "type": ["null", "string"]
+    },
+    {
+      "name": "RekvisisjonId",
+      "type": "int"
+    },
+    {
+      "default": null,
+      "name": "ExternalEncounterId",
+      "type": ["null", "int"]
+    },
+    {
+      "name": "EncounterId",
+      "type": "int"
+    },
+    {
+      "default": null,
+      "name": "EncounterDate",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "EncounterStatus",
+      "type": ["null", "int"]
+    },
+    {
+      "default": null,
+      "name": "EncounterStatus_LongDescription",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "SignatureUser_FullName",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "SignatureUser_UserName",
+      "type": ["null", "string"]
+    },
+    {
+      "name": "PDL_enhet_Namn",
+      "type": "string"
+    },
+    {
+      "name": "PDL_enhet_HSAID",
+      "type": "string"
+    },
+    {
+      "default": null,
+      "name": "PDL_vardgivare_Namn",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "PDL_vardgivare_HSAID",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Sparrgrupp",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Inskrivningstidpunkt",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Utskrivningstidpunkt",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Diagnoskod_ICD10",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Diagnosnamn_ICD10",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Vardenhet_id",
+      "type": [
+        "null",
+        {
+          "connect.type": "int16",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "default": null,
+      "name": "Vardenhet_namn",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Vardenhet_HSAID",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "SenastUppdaterad",
+      "type": [
+        "null",
+        {
+          "connect.name": "org.apache.kafka.connect.data.Timestamp",
+          "connect.version": 1,
+          "logicalType": "timestamp-millis",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "default": null,
+      "name": "SenastUppdaterad_orig",
+      "type": ["null", "string"]
+    },
+    {
+      "default": null,
+      "name": "Substanser",
+      "type": [
+        "null",
+        {
+          "items": [
+            "null",
+            {
+              "connect.name": "se.karolinska.schemas.karda.cytodos.AdministrationRCCV1Substanser",
+              "fields": [
+                {
+                  "default": null,
+                  "name": "ContentID",
+                  "type": ["null", "int"]
+                },
+                {
+                  "default": null,
+                  "name": "AdministrationStatus",
+                  "type": ["null", "int"]
+                },
+                {
+                  "default": null,
+                  "name": "AdministrationStatus_LongDescription",
+                  "type": ["null", "string"]
+                },
+                {
+                  "default": null,
+                  "name": "OrderLineId",
+                  "type": ["null", "int"]
+                },
+                {
+                  "default": null,
+                  "name": "Dose",
+                  "type": ["null", "double"]
+                },
+                {
+                  "default": null,
+                  "name": "UnitCode",
+                  "type": ["null", "string"]
+                },
+                {
+                  "default": null,
+                  "name": "SubstanceType",
+                  "type": ["null", "int"]
+                },
+                {
+                  "default": null,
+                  "name": "Innholdstoff_Navn",
+                  "type": ["null", "string"]
+                },
+                {
+                  "default": null,
+                  "name": "Innholdstoff_ATC",
+                  "type": ["null", "string"]
+                }
+              ],
+              "name": "AdministrationRCCV1Substanser",
+              "type": "record"
+            }
+          ],
+          "type": "array"
+        }
+      ]
+    }
+  ],
+  "name": "AdministrationRCCV1",
+  "namespace": "se.karolinska.schemas.karda.cytodos",
+  "type": "record"
+}

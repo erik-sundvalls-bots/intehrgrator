@@ -1,0 +1,901 @@
+    <Keywords>
+        <TextKeywords>
+
+<!-- Kompletterande information -->
+            <TextKeyWord>                                
+                <TermId>6300</TermId>
+                <Note>Denna journalanteckning har upprättats via openEHR-formulär och journalförts i TakeCare. Ändring och rättelse av innehållet ska ske i formuläret och inte direkt i TakeCare, för att säkerställa samstämmighet mellan systemen. </Note>
+            </TextKeyWord>
+            
+<!-- Deltagare -->
+            {{#if granskning.deltagare.[0].behållare_för_demografiska_uppgifter.[0].tillfällig_deltaglista.[0].deltagare.[0].[|value]}}
+            <TextKeyWord>                                
+                <TermId>5074</TermId>
+                <Note>{{granskning.deltagare.[0].behållare_för_demografiska_uppgifter.[0].tillfällig_deltaglista.[0].deltagare.[0].[|value]}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Aktuell situation -->
+            {{#if granskning.nuvarande_situation_och_bakgrund.[0].klinisk_synopsis.[0].aktuellt.[0].[|value]}}
+            <TextKeyWord>                                
+                <TermId>4502</TermId>
+                <Note>{{granskning.nuvarande_situation_och_bakgrund.[0].klinisk_synopsis.[0].aktuellt.[0].[|value]}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Tid/nuv.sjukdomar -->            
+            {{#if granskning.nuvarande_situation_och_bakgrund.[0].sjukdomshistoria.[0].komorbiditet.[0].[|value]}}
+            <TextKeyWord>                                
+                <TermId>209</TermId>
+                <Note>{{granskning.nuvarande_situation_och_bakgrund.[0].sjukdomshistoria.[0].komorbiditet.[0].[|value]}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Rökvanor -->
+            {{#if granskning.nuvarande_situation_och_bakgrund.[0].sammanfattning_av_rökvanor_för_tobak.[0].övergripande_status.[0].[|value]}}
+            <TextKeyWord>
+                <TermId>8754</TermId>
+                <Note>{{#if (eq granskning.nuvarande_situation_och_bakgrund.[0].sammanfattning_av_rökvanor_för_tobak.[0].övergripande_status.[0].[|value] "Har aldrig rökt")}}
+{{~granskning.nuvarande_situation_och_bakgrund.[0].sammanfattning_av_rökvanor_för_tobak.[0].övergripande_status.[0].[|value]}}
+{{else}}
+{{#each granskning.nuvarande_situation_och_bakgrund.[0].sammanfattning_av_rökvanor_för_tobak}}
+{{#each per_typ}}
+{{status.[0].[|value]}} ({{typ.[0].[|value]}})
+{{#if paketår.[0].[|value]}}Paketår: {{paketår.[0].[|value]}}
+{{/if}}
+{{#if slutdatum.[0].[|value]}}Slutade: {{slutdatum.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}{{/each}}
+{{~/if}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Magnetisk resonanstomografi -->
+            {{#if (and (eq granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] "MR") 
+                       (or granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] 
+                       		 granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+													 granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value]
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].kommentar.[0].[|value] granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].kompletterande_bilddiagnostik_hjärna.[0].datum.[0].[|value] granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other]))}}            <TextKeyWord>                                
+                <TermId>12683</TermId>
+                <Note>{{#each granskning.utredning_undersökning.[0].bilddiagnostik}}
+{{~#if (or bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] 
+				   bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other])}}
+{{bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value]}}{{bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other]}}, {{bilddiagnostiskt_resultat.[0].anatomisk_lokalisation_för_undersökning.[0].[|value]}}
+{{/if}}
+{{#if bilddiagnostiskt_resultat.[0].datum.[0].[|value]}}
+{{bilddiagnostiskt_resultat.[0].datum.[0].[|value]}}
+{{/if}}
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}
+{{#if (or anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value] 
+					anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|other]
+          kommentar.[0].[|value])}}
+Misstänkt primärtumör: {{anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|other]}}
+{{/if}}
+{{#if fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude]}}
+Diameter största tumör: {{fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude]}}{{fysiska_dimensioner.[0].diameter_största_tumör.[0].[|unit]}}
+{{/if}}
+{{#if multifokalitet.[0].[|value]}}
+Multifokal: {{multifokalitet.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#if (or bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value]
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value])}}
+
+Misstänkta lymfkörtelmetastaser:
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}
+{{anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other]}} {{toLowerCase anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value]}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if (or bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value]
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value])}}
+
+Misstänkta fjärrmetastaser:
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}
+{{anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other]}} {{toLowerCase anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value]}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if bilddiagnostiskt_resultat.[0].kommentar.[0].[|value]}}
+
+Övergripande kommentar: {{bilddiagnostiskt_resultat.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#each kompletterande_bilddiagnostik_hjärna}}
+{{#if datum.[0].[|value]}}
+
+Kompletterande bilddiagnostik hjärna: {{datum.[0].[|value]}}
+{{/if}} 
+{{#if typ_av_undersökning.[0].[|other]}}
+Typ av undersökning: {{typ_av_undersökning.[0].[|other]}}
+{{else}}{{#if typ_av_undersökning.[0].[|value]}}Typ av undersökning: {{typ_av_undersökning.[0].[|value]}}
+{{/if}}{{/if~}} 
+{{#if (ne antal_förekomster_av_ett_observerat_fynd.[0].antal_lesioner_i_hjärnan.[0].[|value] null)}}
+Antal funna metastaser hjärna: {{antal_förekomster_av_ett_observerat_fynd.[0].antal_lesioner_i_hjärnan.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}} 
+{{/each}}
+{{/each}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Ultraljud -->
+            {{#if (and (eq granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] "Ultraljud") 
+                       (or granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] 
+                       		 granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+													 granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value]
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].kommentar.[0].[|value] granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].kompletterande_bilddiagnostik_hjärna.[0].datum.[0].[|value] granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other]))}}            <TextKeyWord>                                
+                <TermId>4829</TermId>
+                <Note>{{#each granskning.utredning_undersökning.[0].bilddiagnostik}}
+{{~#if (or bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] 
+					 bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other])}}
+{{bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value]}}{{bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other]}}, {{bilddiagnostiskt_resultat.[0].anatomisk_lokalisation_för_undersökning.[0].[|value]}}
+{{/if}}
+{{#if bilddiagnostiskt_resultat.[0].datum.[0].[|value]}}
+{{bilddiagnostiskt_resultat.[0].datum.[0].[|value]}}
+{{/if}}
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}
+{{#if (or anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value] 
+					anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|other]
+          kommentar.[0].[|value])}}
+Misstänkt primärtumör: {{anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|other]}}
+{{/if}}
+{{#if fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude]}}
+Diameter största tumör: {{fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude]}}{{fysiska_dimensioner.[0].diameter_största_tumör.[0].[|unit]}}
+{{/if}}
+{{#if multifokalitet.[0].[|value]}}
+Multifokal: {{multifokalitet.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#if (or bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value]
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value])}}
+
+Misstänkta lymfkörtelmetastaser:
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}
+{{anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other]}} {{toLowerCase anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value]}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if (or bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value]
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value])}}
+
+Misstänkta fjärrmetastaser:
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}
+{{anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other]}} {{toLowerCase anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value]}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if bilddiagnostiskt_resultat.[0].kommentar.[0].[|value]}}
+
+Övergripande kommentar: {{bilddiagnostiskt_resultat.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#each kompletterande_bilddiagnostik_hjärna}}
+{{#if datum.[0].[|value]}}
+
+Kompletterande bilddiagnostik hjärna: {{datum.[0].[|value]}}
+{{/if}} 
+{{#if typ_av_undersökning.[0].[|other]}}
+Typ av undersökning: {{typ_av_undersökning.[0].[|other]}}
+{{else}}{{#if typ_av_undersökning.[0].[|value]}}Typ av undersökning: {{typ_av_undersökning.[0].[|value]}}
+{{/if}}{{/if~}} 
+{{#if (ne antal_förekomster_av_ett_observerat_fynd.[0].antal_lesioner_i_hjärnan.[0].[|value] null)}}
+Antal funna metastaser hjärna: {{antal_förekomster_av_ett_observerat_fynd.[0].antal_lesioner_i_hjärnan.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}} 
+{{/each}}
+{{/each}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Röntgenundersökning -->
+            {{#if (and (and (ne granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] "Ultraljud") 
+            								(ne granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] "MR")) 
+                       (or granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] 
+                       		 granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+													 granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value]
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].kommentar.[0].[|value] granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].kommentar.[0].[|value] 
+                           granskning.utredning_undersökning.[0].bilddiagnostik.[0].kompletterande_bilddiagnostik_hjärna.[0].datum.[0].[|value] granskning.utredning_undersökning.[0].bilddiagnostik.[0].bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other]))}}
+            <TextKeyWord>                                
+                <TermId>59</TermId>
+                <Note>{{#each granskning.utredning_undersökning.[0].bilddiagnostik}}
+{{~#if (or bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value] 
+ 					 bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other])}}
+{{bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|value]}}{{bilddiagnostiskt_resultat.[0].typ_av_undersökning.[0].[|other]}}, {{bilddiagnostiskt_resultat.[0].anatomisk_lokalisation_för_undersökning.[0].[|value]}}
+{{/if}}
+{{#if bilddiagnostiskt_resultat.[0].datum.[0].[|value]}}
+{{bilddiagnostiskt_resultat.[0].datum.[0].[|value]}}
+{{/if}}
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkt_primärtumör}}
+{{#if (or anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value] 
+					anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|other]
+          kommentar.[0].[|value])}}
+Misstänkt primärtumör: {{anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkt_primärtumör.[0].namn_på_kroppsställe.[0].[|other]}}
+{{/if}}
+{{#if fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude]}}
+Diameter största tumör: {{fysiska_dimensioner.[0].diameter_största_tumör.[0].[|magnitude]}}{{fysiska_dimensioner.[0].diameter_största_tumör.[0].[|unit]}}
+{{/if}}
+{{#if multifokalitet.[0].[|value]}}
+Multifokal: {{multifokalitet.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#if (or bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[0].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value]
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+					bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser.[1].anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value])}}
+
+Misstänkta lymfkörtelmetastaser:
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_lymfkörtelmetastaser}}
+{{anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].namn_på_kroppsställe.[0].[|other]}} {{toLowerCase anatomisk_lokalisation_misstänkta_lymfkörtelmetastaser.[0].lateralitet.[0].[|value]}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if (or bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[0].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value]
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].kommentar.[0].[|value] 
+          bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser.[1].anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value])}}
+
+Misstänkta fjärrmetastaser:
+{{#each bilddiagnostiskt_resultat.[0].bilddiagnostisk_undersökning_av_misstänkta_fjärrmetastaser}}
+{{anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|value]}}{{anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].namn_på_kroppsställe.[0].[|other]}} {{toLowerCase anatomisk_lokalisation_misstänkta_fjärrmetastaser.[0].lateralitet.[0].[|value]}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if bilddiagnostiskt_resultat.[0].kommentar.[0].[|value]}}
+
+Övergripande kommentar: {{bilddiagnostiskt_resultat.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#each kompletterande_bilddiagnostik_hjärna}}
+{{#if datum.[0].[|value]}}
+
+Kompletterande bilddiagnostik hjärna: {{datum.[0].[|value]}}
+{{/if}} 
+{{#if typ_av_undersökning.[0].[|other]}}
+Typ av undersökning: {{typ_av_undersökning.[0].[|other]}}
+{{else}}{{#if typ_av_undersökning.[0].[|value]}}Typ av undersökning: {{typ_av_undersökning.[0].[|value]}}
+{{/if}}{{/if~}} 
+{{#if (ne antal_förekomster_av_ett_observerat_fynd.[0].antal_lesioner_i_hjärnan.[0].[|value] null)}}
+Antal funna metastaser hjärna: {{antal_förekomster_av_ett_observerat_fynd.[0].antal_lesioner_i_hjärnan.[0].[|value]}}
+{{/if}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}} 
+{{/each}}
+{{/each}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- PAD/CYT -->
+            {{#if (or granskning.utredning_undersökning.[0].patologisk_undersökning.[0].ingreppsmetod.[0].ingreppsmetod.[0].[|value] 
+            					granskning.utredning_undersökning.[0].patologisk_undersökning.[0].ingreppsmetod.[0].ingreppsmetod.[0].[|other] 
+                     	granskning.utredning_undersökning.[0].patologisk_undersökning.[0].morfologisk_patologisk_undersökning.[0].morfologisk_patologisk_undersökning.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].immunhistokemisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|other] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].immunhistokemisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|other] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|other] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].resultat.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].immunhistokemisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysresultat.[0].[|numerator] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[0].problem_diagnos.[0].patologisk_diagnos.[0].[|value] granskning.utredning_undersökning.[0].patologisk_undersökning.[0].problem_diagnos.[0].kommentar.[0].[|value]
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].ingreppsmetod.[0].ingreppsmetod.[0].[|value] 
+            					granskning.utredning_undersökning.[0].patologisk_undersökning.[1].ingreppsmetod.[0].ingreppsmetod.[0].[|other] 
+                     	granskning.utredning_undersökning.[0].patologisk_undersökning.[1].morfologisk_patologisk_undersökning.[0].morfologisk_patologisk_undersökning.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].immunhistokemisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|other] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].immunhistokemisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|other] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|other] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].resultat.[0].[|value] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].immunhistokemisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysresultat.[0].[|numerator] 
+                      granskning.utredning_undersökning.[0].patologisk_undersökning.[1].problem_diagnos.[0].patologisk_diagnos.[0].[|value] granskning.utredning_undersökning.[0].patologisk_undersökning.[0].problem_diagnos.[0].kommentar.[0].[|value])}}
+            <TextKeyWord>                                
+                <TermId>178</TermId>
+                <Note>{{#each granskning.utredning_undersökning.[0].patologisk_undersökning}}
+{{#if ingreppsmetod.[0].ingreppsmetod.[0].[|value]}}
+Ingreppsmetod: {{ingreppsmetod.[0].ingreppsmetod.[0].[|value]}}
+{{/if}}
+{{#if ingreppsmetod.[0].ingreppsmetod.[0].[|other]}}
+Ingreppsmetod: {{ingreppsmetod.[0].ingreppsmetod.[0].[|other]}}
+{{/if}}
+{{#if ingreppsmetod.[0].anatomisk_lokalisation_för_provtagning.[0].[|value]}}
+Lokalisation: {{ingreppsmetod.[0].anatomisk_lokalisation_för_provtagning.[0].[|value]}}
+{{/if}}
+{{#if morfologisk_patologisk_undersökning.[0].morfologisk_patologisk_undersökning.[0].[|value]}}
+Typ av morfologisk patologisk undersökning: {{morfologisk_patologisk_undersökning.[0].morfologisk_patologisk_undersökning.[0].[|value]}}
+{{/if}}
+{{#if (or molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|value] molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].analysnamn.[0].[|other] molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|other] molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|value] molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat.[0].förekomst_av_genetisk_variant.[0].resultat.[0].[|value])}}
+
+Molekylärpatologisk analys:
+{{/if}}
+{{#each molekylärpatologisk_analys.[0].ospecificerad_händelse.[0].analysresultat}}
+{{#if analysnamn.[0].[|value]}}
+{{analysnamn.[0].[|value]}}
+{{~/if}}
+{{#if analysnamn.[0].[|other]}}
+{{analysnamn.[0].[|other]}}
+{{~/if}}
+{{#if förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|value]}}
+ {{förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|value]}}
+{{~/if}}
+{{#if förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|other]}}
+ {{förekomst_av_genetisk_variant.[0].namn_på_variant.[0].[|other]}}
+{{~/if}}
+{{#if förekomst_av_genetisk_variant.[0].resultat.[0].[|value]}}
+: {{förekomst_av_genetisk_variant.[0].resultat.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#each immunhistokemisk_analys.[0].ospecificerad_händelse}}
+{{#if (or analysresultat.[0].analysnamn.[0].[|value] 
+					analysresultat.[0].analysnamn.[0].[|other] 
+					analysresultat.[0].analysresultat.[0].[|numerator])}}
+
+Immunohistokemisk analys:
+{{/if}}
+{{#each analysresultat}}
+{{#if analysnamn.[0].[|value]}}
+{{analysnamn.[0].[|value]}}
+{{~/if}}
+{{#if analysnamn.[0].[|other]}}
+{{analysnamn.[0].[|other]}}
+{{~/if}}
+{{#if analysresultat.[0].[|numerator]}}
+: {{analysresultat.[0].[|numerator]}}%
+{{else}}{{#if (or analysnamn.[0].[|value]	
+									analysnamn.[0].[|other])}}:
+{{/if}}
+{{/if}}
+{{/each}}
+
+{{/each}}
+{{#if problem_diagnos.[0].patologisk_diagnos.[0].[|value]}}
+
+Patologisk diagnos: {{problem_diagnos.[0].patologisk_diagnos.[0].[|code]}} {{problem_diagnos.[0].patologisk_diagnos.[0].[|value]}}
+{{else}}
+{{#if problem_diagnos.[0].patologisk_diagnos.[0].[|other]}}
+
+Patologisk diagnos: {{problem_diagnos.[0].patologisk_diagnos.[0].[|other]}}
+{{/if}}
+{{/if}}
+{{#if problem_diagnos.[0].kommentar.[0].[|value]}}
+Kommentar: {{problem_diagnos.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#unless @last}}
+-------------------------------
+{{/unless}}
+{{/each}}
+</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Performance status -->
+            {{#if granskning.utredning_undersökning.[0].funktionsutredning.[0].funktionsstatus_enligt_ecog.[0].funktionsstatus_enligt_ecog.[0].[|value]}}
+            <TextKeyWord>
+                <TermId>5154</TermId>
+                <Note>{{#each granskning.utredning_undersökning.[0].funktionsutredning.[0].funktionsstatus_enligt_ecog.[0].funktionsstatus_enligt_ecog~}}
+            {{[|ordinal]}}, {{[|value]}}
+            {{~/each}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Lungfunktion -->
+            {{#if (or granskning.utredning_undersökning.[0].funktionsutredning.[0].trapptest.[0].resultat.[0].[|value] 
+            					granskning.utredning_undersökning.[0].funktionsutredning.[0].spirometriresultat.[0].fev1.[0].fev1_liter.[0].[|magnitude] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].spirometriresultat.[0].fev1.[0].fev1.[0].[|numerator] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].dlco.[0].dlco.[0].[|numerator] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].ergospirometri.[0].vo2max.[0].[|magnitude] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].lungscintigrafi.[0].datum.[0].[|value] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].lungscintigrafi.[0].lungscintigrafi.[0].anatomisk_lokalisation.[0].[|value] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].lungscintigrafi.[0].lungscintigrafi.[0].relativ_perfusion.[0].[|magnitude]
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].lungscintigrafi.[0].lungscintigrafi.[1].anatomisk_lokalisation.[0].[|value] 
+                      granskning.utredning_undersökning.[0].funktionsutredning.[0].lungscintigrafi.[0].lungscintigrafi.[1].relativ_perfusion.[0].[|magnitude])}}
+            <TextKeyWord>                                
+                <TermId>404</TermId>
+                <Note>{{#each granskning.utredning_undersökning.[0].funktionsutredning}}
+{{~#if trapptest.[0].resultat.[0].[|value]}}
+{{trapptest.[0].resultat.[0].[|value]}} trapptest.
+{{/if}}
+{{#if trapptest.[0].orsak_ej_godkänt.[0].[|value]}}Orsak: {{trapptest.[0].orsak_ej_godkänt.[0].[|value]}}.
+{{/if}}
+{{#if trapptest.[0].orsak_ej_genomfört.[0].[|value]}}Orsak: {{trapptest.[0].orsak_ej_genomfört.[0].[|value]}}.
+{{/if}}
+{{#if trapptest.[0].distans.[0].[|magnitude]}}Gick {{trapptest.[0].distans.[0].[|magnitude]}}{{trapptest.[0].distans.[0].[|unit]}} i trappa.
+{{/if}}
+{{#if pulsoximetri.[0].spo.[0].[|numerator]}}Saturation: {{pulsoximetri.[0].spo.[0].[|numerator]}}%
+{{/if}}
+{{#if spirometriresultat.[0].fev1.[0].fev1_liter.[0].[|magnitude]}}
+FEV1: {{spirometriresultat.[0].fev1.[0].fev1_liter.[0].[|magnitude]}}{{spirometriresultat.[0].fev1.[0].fev1_liter.[0].[|unit]}}
+{{/if}}
+{{#if spirometriresultat.[0].fev1.[0].fev1.[0].[|numerator]}}
+FEV1: {{spirometriresultat.[0].fev1.[0].fev1.[0].[|numerator]}}%
+{{/if}}
+{{#if dlco.[0].dlco.[0].[|numerator]}}
+DLCO: {{dlco.[0].dlco.[0].[|numerator]}}%
+{{/if}}
+{{#if ergospirometri.[0].vo2max.[0].[|magnitude]}}
+Vo2max: {{ergospirometri.[0].vo2max.[0].[|magnitude]}}{{ergospirometri.[0].vo2max.[0].[|unit]}}
+{{/if}}
+{{#if (or lungscintigrafi.[0].datum.[0].[|value] lungscintigrafi.[0].lungscintigrafi.[0].anatomisk_lokalisation.[0].[|value] 
+					lungscintigrafi.[0].lungscintigrafi.[0].relativ_perfusion.[0].[|magnitude]
+          lungscintigrafi.[0].datum.[0].[|value] lungscintigrafi.[0].lungscintigrafi.[1].anatomisk_lokalisation.[0].[|value] 
+					lungscintigrafi.[0].lungscintigrafi.[1].relativ_perfusion.[0].[|magnitude])}}
+
+Lungscintigrafi: {{lungscintigrafi.[0].datum.[0].[|value]}}
+{{#each lungscintigrafi.[0].lungscintigrafi}}
+{{anatomisk_lokalisation.[0].[|value]}} {{relativ_perfusion.[0].[|magnitude]}}{{#if relativ_perfusion.[0].[|magnitude]}}{{relativ_perfusion.[0].[|unit]}}{{/if}}
+{{/each}}
+{{/if}}
+{{#if kommentar_om_funktionsutredning.[0].fritext.[0].kommentar.[0].[|value]}}
+
+Kommentar: {{kommentar_om_funktionsutredning.[0].fritext.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{/each}}</Note>
+            </TextKeyWord>
+{{/if}}
+
+<!-- Tumörstadium och -grad -->
+            {{#if (or
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].primärtumör_t.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].regional_lymfkörtlar_n.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].fjärrmetastaser_m.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].stadieindelning.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].primärtumör_t.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].regional_lymfkörtlar_n.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].fjärrmetastaser_m.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].stadieindelning.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].primärtumör_t.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].regional_lymfkörtlar_n.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].fjärrmetastaser_m.[0].[|value]
+granskning.gemensam_bedömning.[0].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].stadieindelning.[0].[|value]
+granskning.gemensam_bedömning.[0].kommentar_tnm_och_stadieindelning.[0].fritext.[0].kommentar.[0].[|value] 
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].primärtumör_t.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].regional_lymfkörtlar_n.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].fjärrmetastaser_m.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer].[0].stadieindelning.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].primärtumör_t.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].regional_lymfkörtlar_n.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].fjärrmetastaser_m.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom].[0].stadieindelning.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].primärtumör_t.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].regional_lymfkörtlar_n.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].fjärrmetastaser_m.[0].[|value]
+granskning.gemensam_bedömning.[1].tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom].[0].stadieindelning.[0].[|value]
+granskning.gemensam_bedömning.[1].kommentar_tnm_och_stadieindelning.[0].fritext.[0].kommentar.[0].[|value])}}   
+            <TextKeyWord>                                
+                <TermId>959</TermId>
+                <Note>{{#each granskning.gemensam_bedömning}}
+{{~#each tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_lungcancer]}}
+{{~#if (or primärtumör_t.[0].[|value] regional_lymfkörtlar_n.[0].[|value] fjärrmetastaser_m.[0].[|value] stadieindelning.[0].[|value])}}
+Lunga: {{primärtumör_t.[0].[|value]}} {{regional_lymfkörtlar_n.[0].[|value]}} {{fjärrmetastaser_m.[0].[|value]}} - {{stadieindelning.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#each tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_tymom]}}
+{{#if (or primärtumör_t.[0].[|value] regional_lymfkörtlar_n.[0].[|value] fjärrmetastaser_m.[0].[|value] stadieindelning.[0].[|value])}}
+Tymom: {{primärtumör_t.[0].[|value]}} {{regional_lymfkörtlar_n.[0].[|value]}} {{fjärrmetastaser_m.[0].[|value]}} - {{stadieindelning.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#each tnm_och_stadieindelning.[0].[klinisk_tnm-klassificering_pleuramesoteliom]}}
+{{#if (or primärtumör_t.[0].[|value] regional_lymfkörtlar_n.[0].[|value] fjärrmetastaser_m.[0].[|value] stadieindelning.[0].[|value])}}
+Pleuramesoteliom: {{primärtumör_t.[0].[|value]}} {{regional_lymfkörtlar_n.[0].[|value]}} {{fjärrmetastaser_m.[0].[|value]}} - {{stadieindelning.[0].[|value]}}
+{{/if}}
+{{/each}}
+{{#if kommentar_tnm_och_stadieindelning.[0].fritext.[0].kommentar.[0].[|value]}}
+Kommentar: {{kommentar_tnm_och_stadieindelning.[0].fritext.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#unless @last}}
+-------------------------------
+{{/unless}}
+{{/each}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Screening, Studie -->
+{{#if granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].patient_aktuell_för_studiescreening.[0].[|value]}}
+            <TextKeyWord>                                
+                <TermId>5146</TermId>
+                <Note>{{granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].patient_aktuell_för_studiescreening.[0].[|value]}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Behandlingsrekommendation -->
+            {{#if (or 
+granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].intention.[0].[|value] 
+granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].huvudbehandling.[0].typ_av_behandling.[0].[|value] 
+granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] 
+granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].tilläggsbehandling.[0].typ_av_behandling.[0].[|value]
+granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].vidare_utredning.[0].[|value]
+granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].kommentar.[0].[|value]
+)}}            <TextKeyWord>                                
+                <TermId>14351</TermId>
+                <Note>
+{{~#each granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi}}
+
+{{~#if (and intention.[0].[|value] huvudbehandling.[0].typ_av_behandling.[0].[|value] tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- intention + huvud + relation + tillägg -->
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#if intention.[0].[|value]}}{{toLowerCase intention.[0].[|value]}} {{/if}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+{{~#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Adjuvant" ))}}Följt av {{else}}{{~#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Neoadjuvant" ))}}Föregått av {{else}}{{~#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Perioperativ" ))}}Rekommenderas också tilläggsbehandling i form av {{else}}{{~#if tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}}Patienten rekommenderas {{/if}}{{/if}}{{/if}}{{/if}}
+{{~#each tilläggsbehandling}}
+{{~#if relation_till_huvudbehandling.[0].[|value]}}{{toLowerCase relation_till_huvudbehandling.[0].[|value]}} {{/if}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~/each}}
+{{~#each tilläggsbehandling}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- huvud + relation + tillägg -->
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+{{~#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Adjuvant" ))}}Följt av {{else}}{{~#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Neoadjuvant" ))}}Föregått av {{else}}{{~#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Perioperativ" ))}}Rekommenderas också tilläggsbehandling i form av {{else}}{{~#if tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}}Patienten rekommenderas {{/if}}{{/if}}{{/if}}{{/if}}
+{{~#each tilläggsbehandling}}
+{{~#if relation_till_huvudbehandling.[0].[|value]}}{{toLowerCase relation_till_huvudbehandling.[0].[|value]}} {{/if}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~/each}}
+{{~#each tilläggsbehandling}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and intention.[0].[|value] tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- intention + relation + tillägg -->
+Patienten rekommenderas{{#if intention.[0].[|value]}} {{toLowerCase intention.[0].[|value]}}{{/if}} behandling.
+{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Adjuvant")}} Följt av {{else}}{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Neoadjuvant")}} Föregått av {{else}}{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Perioperativ")}} Rekommenderas också tilläggsbehandling i form av {{else}}{{~#if tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}} Patienten rekommenderas {{/if}}{{/if}}{{/if}}{{/if}}
+{{~#each tilläggsbehandling}}
+{{~#if relation_till_huvudbehandling.[0].[|value]}}{{toLowerCase relation_till_huvudbehandling.[0].[|value]}} {{/if}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~/each}}
+{{~#each tilläggsbehandling}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- relation + tillägg -->
+Patienten rekommenderas {{toLowerCase tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}}
+{{~#each tilläggsbehandling}} {{#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~/each}}
+{{~#each tilläggsbehandling}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and intention.[0].[|value] huvudbehandling.[0].typ_av_behandling.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- intention + huvud + tillägg -->
+
+Patienten rekommenderas {{toLowerCase intention.[0].[|value]}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}} {{toLowerCase form_av_kemoradioterapi.[0].[|value]}}{{/if}}
+{{~#if typ_av_behandling.[0].[|value]}} {{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+{{~#each tilläggsbehandling}}
+Tillsammans med {{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}} {{toLowerCase form_av_kemoradioterapi.[0].[|value]}}{{/if}}
+{{~#if typ_av_behandling.[0].[|value]}} {{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and intention.[0].[|value] huvudbehandling.[0].typ_av_behandling.[0].[|value] tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value])}}
+  <!-- intention + huvud + relation -->
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#if intention.[0].[|value]}}{{toLowerCase intention.[0].[|value]}} {{/if}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Adjuvant")}}Följt av adjuvant behandling. {{else}}{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Neoadjuvant")}}Föregått av neoadjuvant behandling. {{else}}{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Perioperativ")}}Rekommenderas också perioperativ behandling. {{else}}{{~#if tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}} Relation till huvudbehandling: {{toLowerCase tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}
+
+{{else}}{{#if (and intention.[0].[|value] huvudbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- intention + huvud -->
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#if intention.[0].[|value]}}{{toLowerCase intention.[0].[|value]}} {{/if}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and intention.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- intention + tillägg -->
+Patienten rekommenderas{{#if intention.[0].[|value]}} {{toLowerCase intention.[0].[|value]}}{{/if}}
+{{~#each tilläggsbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}} {{toLowerCase form_av_kemoradioterapi.[0].[|value]}}{{/if}}
+{{~#if typ_av_behandling.[0].[|value]}} {{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and intention.[0].[|value] tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value])}}
+  <!-- intention + relation -->
+Patienten rekommenderas {{toLowerCase intention.[0].[|value]}} {{toLowerCase tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}} behandling.
+
+{{else}}{{#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] tilläggsbehandling.[0].typ_av_behandling.[0].[|value])}}
+  <!-- huvud + tillägg -->
+  
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}} {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+{{~#each tilläggsbehandling}}
+Tillsammans med{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}} {{toLowerCase form_av_kemoradioterapi.[0].[|value]}}{{/if}}
+{{~#if typ_av_behandling.[0].[|value]}} {{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}} {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if (and huvudbehandling.[0].typ_av_behandling.[0].[|value] tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value])}}
+  <!-- huvud + relation -->
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}} {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}} Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}} Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Adjuvant")}}Följt av adjuvant behandling. {{else}}{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Neoadjuvant")}}Föregått av neoadjuvant behandling. {{else}}{{~#if (eq tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value] "Perioperativ")}}Rekommenderas också perioperativ tilläggsbehandling.{{/if}}{{/if}}{{/if}}
+
+{{~else}}{{#if huvudbehandling.[0].typ_av_behandling.[0].[|value]}}
+  <!-- bara huvud -->
+{{#each huvudbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas {{/if}}
+{{~/each}}
+{{~#each huvudbehandling}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}}{{toLowerCase form_av_kemoradioterapi.[0].[|value]}} {{/if}}
+{{~#if typ_av_behandling.[0].[|value]}}{{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}} {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if tilläggsbehandling.[0].typ_av_behandling.[0].[|value]}}
+  <!-- bara tillägg -->
+{{#each tilläggsbehandling}}
+{{#if typ_av_behandling.[0].[|value]}}Patienten rekommenderas{{/if}}
+{{~#if (and (eq typ_av_behandling.[0].[|value] "Kemoradioterapi") form_av_kemoradioterapi.[0].[|value])}} {{toLowerCase form_av_kemoradioterapi.[0].[|value]}}{{/if}}
+{{~#if typ_av_behandling.[0].[|value]}} {{toLowerCase typ_av_behandling.[0].[|value]}}{{/if}}
+{{~#if (and regim.[0].[|value] antal_kurer.[0].[|value])}} enligt regim {{regim.[0].[|value]}}, {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if regim.[0].[|value]}} enligt regim {{regim.[0].[|value]}}. {{else}}{{#if antal_kurer.[0].[|value]}} {{antal_kurer.[0].[|value]}} kurer. {{else}}{{#if annan_regim.[0].[|value]}} enligt regim {{annan_regim.[0].[|value]}}. {{else}}{{#if typ_av_behandling.[0].[|value]}}. {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+{{~#if (and fraktionsdos.[0].[|magnitude] totaldos.[0].[|magnitude])}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}, Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{else}}{{#if fraktionsdos.[0].[|magnitude]}}Fraktionsdos: {{fraktionsdos.[0].[|magnitude]}} {{fraktionsdos.[0].[|unit]}}. {{else}}{{#if totaldos.[0].[|magnitude]}}Totaldos: {{totaldos.[0].[|magnitude]}} {{totaldos.[0].[|unit]}}. {{/if}}{{/if}}{{/if}}
+{{~/each}}
+
+{{else}}{{#if tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}}
+  <!-- bara relation -->
+Patienten rekommenderas {{ toLowerCase tilläggsbehandling.[0].relation_till_huvudbehandling.[0].[|value]}} tilläggsbehandling.
+
+{{else}}{{#if intention.[0].[|value]}}
+  <!-- bara intention -->
+Patienten rekommenderas{{#if (eq intention.[0].[|value] "Best supportive care (BSC)")}} {{intention.[0].[|value]}}.{{else}} {{toLowerCase intention.[0].[|value]}} behandling.{{/if}}
+{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+
+{{~/each}}
+{{#if granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].huvudbehandling.[0].kommentar.[0].[|value]}}
+Detaljer om huvudbehandling: {{granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].huvudbehandling.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#if granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].tilläggsbehandling.[0].kommentar.[0].[|value]}}
+Detaljer om tilläggsbehandling: {{granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].rekommenderad_behandlingsstrategi.[0].tilläggsbehandling.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#if granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].kommentar.[0].[|value]}}
+Kommentar om behandlingsstrategi: {{granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#if granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].vidare_utredning.[0].[|value]}}
+Vidare utredning: {{granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].vidare_utredning.[0].[|value]}}
+{{/if}}
+</Note>
+</TextKeyWord>
+{{/if}}
+
+<!-- Uppföljning -->
+            {{#if granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].uppföljning.[0].[|value]}}
+            <TextKeyWord>                                
+                <TermId>2034</TermId>
+                <Note>{{granskning.gemensamt_beslut.[0].multidisciplinär_handläggning_vid_cancer.[0].uppföljning.[0].[|value]}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Ingår i standardiserat vårdförlopp, SVF -->
+            {{#if granskning.ordination_av_vårdförlopp.[0].ordination.[0].[svf-start].[0].[|value]}}
+            <TextKeyWord>                                
+                <TermId>14837</TermId>
+                <Note>{{#each granskning.ordination_av_vårdförlopp}}
+{{~ordination.[0].vårdförlopp.[0].[|value]}}, Start: {{ordination.[0].[svf-start].[0].[|value]}}
+{{#if ordination.[0].datum_senaste_start_av_första_behandling_enligt_svf.[0].[|value]}}
+Datum senaste start av första behandling enligt SVF: {{ordination.[0].datum_senaste_start_av_första_behandling_enligt_svf.[0].[|value]}}
+{{/if}}
+{{/each}}</Note>
+            </TextKeyWord>
+            {{/if}}
+
+<!-- Åtgärd -->
+            {{#if granskning.genomförd_konferens.[0].[kvå-kod].[0].[|code]}}
+            <TextKeyWord>                                
+                <TermId>2169</TermId>
+                <Note>({{granskning.genomförd_konferens.[0].[kvå-kod].[0].[|code]}}) {{granskning.genomförd_konferens.[0].[kvå-kod].[0].[|value]}}</Note>
+            </TextKeyWord>
+            {{/if}} 
+
+        </TextKeywords>
+        <DatetimeKeywords>
+
+<!-- Diagnos och diagnosgrund, Cancer -->                                
+        		{{#if (or granskning.gemensam_bedömning.[0].huvuddiagnos.[0].[icd-10].[0].[|value]
+        					    granskning.gemensam_bedömning.[0].huvuddiagnos.[0].[icd-10].[0].[|other]
+            					granskning.gemensam_bedömning.[0].huvuddiagnos.[0].datum_och_tid_för_kliniskt_erkänd.[0].[|value] 
+                      granskning.gemensam_bedömning.[0].huvuddiagnos.[0].kommentar.[0].[|value] 
+                      granskning.gemensam_bedömning.[0].bidiagnos.[0].[icd-10].[0].[|value]
+                      granskning.gemensam_bedömning.[0].bidiagnos.[0].[icd-10].[0].[|other]
+                      granskning.gemensam_bedömning.[0].bidiagnos.[0].datum_och_tid_för_kliniskt_erkänd.[0].[|value] 
+                      granskning.gemensam_bedömning.[0].bidiagnos.[0].kommentar.[0].[|value]
+                      granskning.gemensam_bedömning.[0].bidiagnos.[1].[icd-10].[0].[|value]
+                      granskning.gemensam_bedömning.[0].bidiagnos.[1].[icd-10].[0].[|other]
+                      granskning.gemensam_bedömning.[0].bidiagnos.[1].datum_och_tid_för_kliniskt_erkänd.[0].[|value] 
+                      granskning.gemensam_bedömning.[0].bidiagnos.[1].kommentar.[0].[|value])}}
+<DatetimeKeyword> 
+            		<TermId>13983</TermId>
+                	<Note>{{#each granskning.gemensam_bedömning}}                  
+{{~#if huvuddiagnos.[0].[icd-10].[0].[|value]}}
+{{~huvuddiagnos.[0].[icd-10].[0].[|code]}} {{huvuddiagnos.[0].[icd-10].[0].[|value]}}
+{{else}}
+{{~#if huvuddiagnos.[0].[icd-10].[0].[|other]}}
+{{huvuddiagnos.[0].[icd-10].[0].[|other]}}
+{{/if}}
+{{/if}}
+{{~#if huvuddiagnos.[0].datum_och_tid_för_kliniskt_erkänd.[0].[|value]}}
+({{huvuddiagnos.[0].datum_och_tid_för_kliniskt_erkänd.[0].[|value]}})
+{{/if}}
+{{#if huvuddiagnos.[0].kommentar.[0].[|value]}}
+Kommentar: {{huvuddiagnos.[0].kommentar.[0].[|value]}}
+{{/if}}
+{{#if (or bidiagnos.[0].[icd-10].[0].[|value]
+          bidiagnos.[0].[icd-10].[0].[|other]
+					bidiagnos.[0].kommentar.[0].[|value]
+          bidiagnos.[1].[icd-10].[0].[|value]
+          bidiagnos.[1].[icd-10].[0].[|other]
+					bidiagnos.[1].kommentar.[0].[|value])}}
+Bidiagnoser
+{{#each bidiagnos}}
+{{#if [icd-10].[0].[|value]}}
+{{[icd-10].[0].[|code]}} {{[icd-10].[0].[|value]}}
+{{else}}
+{{#if [icd-10].[0].[|other]}}
+{{[icd-10].[0].[|other]}}
+{{/if}}
+{{/if}}
+{{#if datum_och_tid_för_kliniskt_erkänd.[0].[|value]}}
+({{datum_och_tid_för_kliniskt_erkänd.[0].[|value]}})
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{else}}
+{{#if kommentar.[0].[|value]}}
+Kommentar: {{kommentar.[0].[|value]}}
+{{/if}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{#unless @last}}
+-------------------------------
+{{/unless}}
+{{/each}}</Note>
+              <Value></Value>
+        		</DatetimeKeyword>
+{{/if}} 
+        </DatetimeKeywords> 
+    </Keywords>
