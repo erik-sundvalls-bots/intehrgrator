@@ -14,11 +14,11 @@ Back to the [tutorial index](../TUTORIAL.md).
 | **Sheets** | Lookup grids. **Add sheet** creates an empty grid the same way. `sheet_get_*` and `sheet_lookup` pick the grid from a name dropdown. |
 | **Variables** / **Functions** | Same section of the toolbox, under the divider with the two grid drawers. |
 
-## Sheets tab
+## Tables & Sheets tab
 
-The **Sheets** tab in the Mapping Editor embeds a spreadsheet for grids owned by the project. Paste a terminology table there, name it, and look up a cell from a Blockly block. A sheet is reference data: every row is a fact, not a rule.
+The **Tables & Sheets** tab below the canvas in the Mapping Editors pane embeds a spreadsheet for grids owned by the project. Paste a terminology table there, name it, and look up a cell from a Blockly block. A sheet is reference data: every row is a fact, not a rule.
 
-<img src="../assets/tutorial/sheets-tab.png" alt="Tables and Sheets tab with Add sheet, Add decision table, and Import CSV" />
+<img src="../assets/tutorial/sheets-tab.png" width="560" alt="Tables and Sheets tab of the chemotherapy decision-table set: Add sheet, Add decision table, Rename, Delete, Import CSV, Export CSV and Fullscreen, tabs for three decision tables, and the fatigue_note table with an answer condition, a snippet output and the FIRST hit policy" />
 
 *Tables & Sheets is where the grids live. Blockly blocks only read them.*
 
@@ -26,7 +26,9 @@ The **Sheets** tab in the Mapping Editor embeds a spreadsheet for grids owned by
 
 Use a decision table when several independent inputs together pick an output: a TermId and a narrative note, a hit policy of “first matching row”, a don’t-care cell. The Example Set rows marked **mapped, decision tables** (lung-MDT and chemo) are the worked examples. They keep the same instances and target as the mapped sibling, and they author Notes and TermIds as tables instead of nested `if` / `eq` blocks.
 
-**Add sheet**, **Add decision table**, rename, delete, import, export, and fullscreen sit at the top-right of the Mapping Editor pane, in the same place as the Mapping Spec actions.
+**Add sheet**, **Add decision table**, **Rename**, **Delete**, **Import CSV**, **Export CSV**, and **Fullscreen** sit to the right of the tab names, where the Mapping Spec actions are on the Mapping Spec tab. Each grid has its own tab under them; a decision table is marked `· DT`.
+
+The **mapped, decision tables** Lung-MDT set has a large XML target, so it opens in **Treemap Overview**. The grids are in Tables & Sheets either way. To see the eval blocks that read them, switch to **Total Blockly ⏳**, or open one section in **Scoped Blockly**. See [Large templates](treemap.md).
 
 On a decision table, **Add input/condition** adds a condition column. **Add output** adds an output column. **Add default row** appends a catch-all row: every input cell is don’t-care (`—`). The same `—` can be written into any cell from that cell’s context menu.
 
