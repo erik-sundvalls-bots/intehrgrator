@@ -2097,16 +2097,29 @@ function enterTreemapMode(
   refreshMappingSpecView(canonicalBlocklyState);
 }
 
-function openNodeInScopedBlockly(nodeId: string): void {
+function openNodeInScopedBlockly(
+  nodeId: string,
+  options?: { exactContainer?: boolean },
+): void {
   treemapPopover?.close();
   const currentCanonical = getCanonicalBlocklyState() as BlocklyWorkspaceJson;
   canonicalBlocklyState = structuredClone(currentCanonical);
   canonicalDocIndex = indexDocument(canonicalBlocklyState);
-  const targetId = computeAdaptiveSliceTarget(
-    canonicalDocIndex,
-    nodeId,
-    SLICE_NODE_THRESHOLD,
+  const rootId = canonicalDocIndex.primaryRootId ?? canonicalDocIndex.compositionId;
+  const requestedNode = canonicalDocIndex.nodes.get(nodeId);
+  const keepExact = Boolean(
+    options?.exactContainer &&
+      requestedNode &&
+      requestedNode.children.length > 0 &&
+      !(nodeId === rootId && requestedNode.subtreeBlockCount > TREEMAP_AUTO_THRESHOLD),
   );
+  const targetId = keepExact
+    ? nodeId
+    : computeAdaptiveSliceTarget(
+      canonicalDocIndex,
+      nodeId,
+      SLICE_NODE_THRESHOLD,
+    );
   const { sliceJson, handle } = extractSlice(canonicalBlocklyState, targetId, {
     collapseUnmappedOptionalClusters: true,
   });
@@ -2390,7 +2403,7 @@ function initTreemapUi(): void {
       }
     },
     onOpenInBlockly: (nodeId) => {
-      openNodeInScopedBlockly(nodeId);
+      openNodeInScopedBlockly(nodeId, { exactContainer: true });
     },
     onLeafClick: (datum, anchorEl) => {
       treemapSelectedBlockId = datum.id;
@@ -2439,7 +2452,7 @@ function initTreemapUi(): void {
     }
     const targetId = resolveScopedBlocklyTargetId();
     if (targetId) {
-      openNodeInScopedBlockly(targetId);
+      openNodeInScopedBlockly(targetId, { exactContainer: true });
     }
   });
   document.getElementById("btn-mode-full")?.addEventListener("click", () => {

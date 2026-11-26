@@ -301,16 +301,44 @@ Deno.test("UI: MHV1 loads instantaneously into Treemap Overview (<300ms), filter
     //    clicking the root breadcrumb zooms out with animation + pulses the root breadcrumb.
     await depth1Header.click();
     await page.waitForTimeout(50);
-    const zoomInCheck = await page.evaluate(() => ({
-      hasZoomInClass: Boolean(document.querySelector("#treemap-host .treemap-stage.treemap-stage--zoom-in")),
-      pulsingCrumbs: document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn--pulse").length,
-      crumbCount: document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn").length,
-      scopedHidden: Boolean((document.getElementById("btn-mode-scoped") as HTMLElement | null)?.hidden),
-    }));
+    const zoomInCheck = await page.evaluate(() => {
+      const crumbs = [...document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn")];
+      return {
+        hasZoomInClass: Boolean(document.querySelector("#treemap-host .treemap-stage.treemap-stage--zoom-in")),
+        pulsingCrumbs: document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn--pulse").length,
+        crumbCount: crumbs.length,
+        zoomedCrumbId: crumbs.at(-1)?.getAttribute("data-crumb-id") ?? "",
+        scopedHidden: Boolean((document.getElementById("btn-mode-scoped") as HTMLElement | null)?.hidden),
+      };
+    });
     assertEquals(zoomInCheck.hasZoomInClass, true, "expected zoom-in stage animation class");
     assert(zoomInCheck.pulsingCrumbs >= 1, "expected affected breadcrumb to pulse on zoom-in");
     assert(zoomInCheck.crumbCount >= 2, "expected breadcrumb trail to include zoomed section");
     assertEquals(zoomInCheck.scopedHidden, false, "Scoped Blockly must stay available when zoomed in Treemap");
+
+    // Switching from a zoomed Treemap container (> 80 blocks) to Scoped Blockly
+    // must open that exact container, not shrink to a smaller child ENTRY.
+    await page.click("#btn-mode-scoped");
+    await page.waitForTimeout(80);
+    const scopedAlignCheck = await page.evaluate(() => {
+      const api = (globalThis as unknown as { intehrgratorTestApi: IntehrgratorTestApi }).intehrgratorTestApi;
+      const crumbs = [...document.querySelectorAll("#treemap-breadcrumb .tm-crumb-btn")];
+      return {
+        mode: api.getEditorMode(),
+        scopedCrumbId: crumbs.at(-1)?.getAttribute("data-crumb-id") ?? "",
+        crumbCount: crumbs.length,
+      };
+    });
+    assertEquals(scopedAlignCheck.mode, "scoped-blockly");
+    assertEquals(
+      scopedAlignCheck.scopedCrumbId,
+      zoomInCheck.zoomedCrumbId,
+      "Scoped Blockly must match the zoomed Treemap container instead of shrinking to a child ENTRY",
+    );
+    assertEquals(scopedAlignCheck.crumbCount, zoomInCheck.crumbCount);
+
+    await page.click("#btn-mode-treemap");
+    await page.waitForTimeout(50);
 
     await page.locator("#treemap-breadcrumb .tm-crumb-btn").first().click();
     await page.waitForTimeout(50);
