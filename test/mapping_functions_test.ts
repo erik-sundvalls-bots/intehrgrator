@@ -24,6 +24,7 @@ import {
 } from "@intehrgrator/core/mapping_model/mod.ts";
 import { generate } from "@intehrgrator/core/codegen/mod.ts";
 import { generateGoTemplate } from "@intehrgrator/core/codegen/go_template.ts";
+import { ensureGoTemplateWasm, executeGoTemplate } from "@intehrgrator/core/output/go_template_runtime.ts";
 import {
   createSourceContext,
   evaluate,
@@ -175,14 +176,16 @@ Deno.test("VMS-Go rejects statement Function values instead of dropping the STAC
   );
 });
 
-Deno.test("VMS-Go rejects Map-value Functions instead of treating their inputs as named Maps", () => {
-  for (
-    const body of ['maps_entries(var("who"))', 'maps_get(var("who"), "code")']
-  ) {
-    const model = modelWithGreetCalls();
-    model.functions![0].body = body;
-    assertThrows(() => generateGoTemplate(model), Error, "Map-value");
-  }
+Deno.test("VMS-Go reads a Map-value Function input with jget; Map entries still fail loudly", () => {
+  const getter = modelWithGreetCalls();
+  getter.functions![0].body = 'maps_get(var("who"), "code")';
+  const go = generateGoTemplate(getter);
+  assertStringIncludes(go, '(jget .who "code")');
+  assertEquals(go.includes("(index .who"), false, "the input is a value, not a named Map");
+
+  const entries = modelWithGreetCalls();
+  entries.functions![0].body = 'maps_entries(var("who"))';
+  assertThrows(() => generateGoTemplate(entries), Error, "Map-value");
 });
 
 Deno.test("unsupported Function statements fail rather than hollowing out their body", () => {
@@ -388,4 +391,14 @@ Deno.test("generic Map getter round-trips a record parameter and a computed key;
   } finally {
     ws.dispose();
   }
+});
+
+Deno.test("VMS-Go inlines a Function call nested in an expression (template is an action, not a value)", async () => {
+  const model = modelWithGreetCalls();
+  model.slots[0]!.expression = 'change_case(call("greet", "Ada"), "UPPERCASE")';
+  const go = generateGoTemplate(model);
+  assertEquals(go.includes("(template "), false);
+  assertEquals(go.includes("upper (template"), false);
+  await ensureGoTemplateWasm();
+  assertStringIncludes(executeGoTemplate(go, {}), "HELLO ADA");
 });

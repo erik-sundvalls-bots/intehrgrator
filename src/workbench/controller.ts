@@ -260,6 +260,8 @@ export class WorkbenchController {
   private statusMessage = "Ready";
   private taskProgress: TaskProgress | null = null;
   private taskDepth = 0;
+  /** Why the last conversion-script generation for the current Output mode failed (null when it worked). */
+  private generationError: string | null = null;
   /** Suppresses debounced Conversion Test Run while `loadExampleSet` is in progress. */
   private exampleSetLoadDepth = 0;
   /**
@@ -2560,6 +2562,7 @@ export class WorkbenchController {
   }
 
   private refreshDerived(): void {
+    this.generationError = null;
     this.applyTargetIdLanguage();
     // Spec view is widgets over the pretty Blockly JSON document.
     this.specText = formatBlocklyState(this.getBlocklyState?.() ?? this.blocklyState);
@@ -2572,17 +2575,26 @@ export class WorkbenchController {
       this.generatedCode = MAPPING_PREVIEW_SCRIPT_PLACEHOLDER;
       return;
     }
-    this.generatedCode = mode === "go-template" || this.model.templateId || this.blocklyState
-      ? generate(this.model, mode, {
-        handlebarsTemplate: this.handlebarsTemplate,
-        blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
-        skeleton: this.skeleton,
-        instanceShape: this.model.instanceEncodings?.length
-          ? instanceShapeForEncoding(preferredInstanceEncoding(this.model))
-          : this.settings.openEhrInstanceShape,
-        webTemplateJson: this.target?.webTemplateJson,
-      })
-      : "";
+    try {
+      this.generatedCode = mode === "go-template" || this.model.templateId || this.blocklyState
+        ? generate(this.model, mode, {
+          handlebarsTemplate: this.handlebarsTemplate,
+          blocklyState: this.getBlocklyState?.() ?? this.blocklyState,
+          skeleton: this.skeleton,
+          instanceShape: this.model.instanceEncodings?.length
+            ? instanceShapeForEncoding(preferredInstanceEncoding(this.model))
+            : this.settings.openEhrInstanceShape,
+          webTemplateJson: this.target?.webTemplateJson,
+        })
+        : "";
+    } catch (err) {
+      // A construct the language cannot express (e.g. Go templates and a
+      // statement-bodied Function) must show as an error, not escape a timer
+      // and leave a stale script on screen.
+      const detail = err instanceof Error ? err.message : String(err);
+      this.generationError = detail;
+      this.generatedCode = `// Conversion script generation failed: ${detail}\n`;
+    }
   }
 
   private schedulePostLoadOutput(): void {
@@ -2700,6 +2712,9 @@ export class WorkbenchController {
         `// ${label} generates a conversion script in the desktop app.\n` +
         "// Conversion Test Run for a plugin language stays on Mapping preview.\n";
       return { ok: false, output: message, error: message.trim(), warnings: [] };
+    }
+    if (this.generationError && isConversionScriptLanguage(mode)) {
+      return { ok: false, output: this.generatedCode, error: this.generationError, warnings: [] };
     }
     if (isConversionScriptLanguage(mode) && mode !== "typescript" && mode !== "handlebars" && mode !== "go-template" && mode !== "xquery") {
       const message = unimplementedTestRunMessage(mode);

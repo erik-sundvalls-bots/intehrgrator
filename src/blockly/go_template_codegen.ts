@@ -32,6 +32,7 @@ import type { MappingModel } from "../types/mod.ts";
 import {
   createGoEmitContext,
   emitGoExpressionTemplate,
+  emitGoPlainTextTemplate,
   emitGoExpr,
   emitGoXmlTextTemplate,
   emitGoFunctionDefines,
@@ -99,20 +100,24 @@ export function generateGoTemplateFromBlocklyState(
   if (!state || typeof state !== "object") return null;
   const workspace = new Blockly.Workspace();
   try {
-    const snapshot = migrateForEachSourceState(
-      JSON.parse(JSON.stringify(state)) as Record<string, unknown>,
-    );
     let generated: string | null = null;
     runWithoutBlocklyEvents(() => {
-      ensureStockBlocklyMessages();
-      if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
-      Blockly.serialization.workspaces.load(snapshot, workspace);
+      try {
+        const snapshot = migrateForEachSourceState(
+          JSON.parse(JSON.stringify(state)) as Record<string, unknown>,
+        );
+        ensureStockBlocklyMessages();
+        if (skeleton?.length) registerSchemaBlocksFromSkeleton(skeleton);
+        Blockly.serialization.workspaces.load(snapshot, workspace);
+      } catch (err) {
+        console.warn("Go template codegen could not load the Blockly canvas; falling back to JSON walker", err);
+        return;
+      }
+      // A construct Go cannot express fails loudly; it must not fall back to
+      // the JSON walker, which would silently emit a different (empty) value.
       generated = generateGoTemplateFromWorkspace(workspace, model, skeleton);
     });
     return generated;
-  } catch (err) {
-    console.warn("Go template codegen from Blockly failed; falling back to JSON walker", err);
-    return null;
   } finally {
     workspace.dispose();
   }
@@ -153,7 +158,7 @@ export function generateGoTemplateFromWorkspace(
   let body: string[] | null = null;
   if (instanceRoot?.type === TEXT_DOCUMENT_BLOCK_TYPE) {
     const value = instanceRoot.getInputTargetBlock("VALUE");
-    body = value ? emitBlock(value, ctx, 0) : ['""'];
+    body = value ? emitTextDocumentValue(value, ctx) : ['""'];
   } else if (instanceRoot) {
     body = emitBlock(instanceRoot, ctx, 0);
   } else {
@@ -244,6 +249,14 @@ function emitBlock(block: Block, ctx: GoEmitContext, indent: number): string[] {
   }
 
   return [`{{- /* unsupported block: ${block.type} */ -}}`];
+}
+
+/** A Text document's value: computed text prints as plain text, not as a quoted JSON literal. */
+function emitTextDocumentValue(block: Block, ctx: GoEmitContext): string[] {
+  if (isRawTextBlock(block) || block.type === "term_pick") return emitBlock(block, ctx, 0);
+  const serialized = blockToExpression(block);
+  if (!serialized) return emitBlock(block, ctx, 0);
+  return [emitGoPlainTextTemplate(parseExpression(serialized), ctx)];
 }
 
 /** Literal hatch text (Go snippets) must not go through JSON.stringify + goQuote. */

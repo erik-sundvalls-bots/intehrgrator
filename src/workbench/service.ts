@@ -435,6 +435,10 @@ export class WorkbenchService {
     this.assertRevision(expectedRevision);
     this.mutate(() => {
       this.controller.loadBlocklyDefinition("agent.blockly.json", JSON.stringify(blocklyState));
+      // The canvas is the source of truth: re-extract slot expressions, loops
+      // and Functions so model-driven languages (Mapping preview, Handlebars,
+      // Go template) see the new workspace, not the previous mapping.
+      this.hydrateSkeletonCanvas();
     }, { ...ctx, kind: "block_graph", summary: ctx?.summary ?? "Replace Blockly workspace" });
   }
 

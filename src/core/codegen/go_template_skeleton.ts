@@ -9,13 +9,15 @@
  * `checkVmsGo`, execute in the Go WASM runtime, and pass strict output validation.
  */
 import type {
+  MappingFunction,
   MappingInclude,
   MappingLoop,
   MappingModel,
   MappingSlot,
   SkeletonNode,
 } from "../../types/mod.ts";
-import { type ExprAst, parseExpression } from "../expression/mod.ts";
+import { type ExprAst, isQuantifyCall, parseExpression } from "../expression/mod.ts";
+import { goUnsupported, inlineGoFunctionCall, unrollGoQuantifier } from "./go_expr_common.ts";
 import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import { rmArchetypeNodeId, rmLocatableName } from "../openehr/rm_archetype_node_id.ts";
 import { isListAttribute } from "./typescript.ts";
@@ -36,8 +38,8 @@ interface GoSkelCtx {
   loopBindings: Record<string, string>;
   /** Extra variable bindings (e.g. loop index / length). */
   varBindings: Record<string, string>;
-  /** Function parameter names when inside a `define` body. */
-  fnParams?: Set<string>;
+  /** Mapping Functions; calls are inlined (Go templates have no return values). */
+  functions?: MappingFunction[];
 }
 
 function goStr(s: string): string {
@@ -119,30 +121,45 @@ function emitGoAstExpr(ast: ExprAst, ctx: GoSkelCtx): string {
     if (typeof ast.value === "number") return String(ast.value);
     return goStr(String(ast.value));
   }
-  if (ast.kind === "var") {
-    if (ctx.varBindings[ast.name]) return ctx.varBindings[ast.name]!;
-    if (ctx.loopBindings[ast.name]) return ctx.loopBindings[ast.name]!;
-    if (ctx.fnParams?.has(ast.name)) return `(jget . ${goStr(ast.name)})`;
-    return `(jget .Data ${goStr(ast.name)})`;
+  if (ast.kind === "binary") {
+    const fn = { "+": "add", "-": "sub", "*": "mul", "/": "div" }[ast.op];
+    return `(${fn} ${emitGoAstExpr(ast.left, ctx)} ${emitGoAstExpr(ast.right, ctx)})`;
   }
-  const name = ast.name;
+  // Lenient: older suggestion files may carry legacy call names.
+  const name: string = ast.name;
   const args = ast.args;
+  const arg = (i: number, fallback: string) => args[i] ? emitGoAstExpr(args[i]!, ctx) : fallback;
 
+  if (isQuantifyCall(name)) return unrollGoQuantifier(ast, (item) => emitGoAstExpr(item, ctx));
   if (
     name === "xpathString" || name === "xpathNumber" ||
-    name === "xpathBoolean" || name === "xpath" || name === "xpathList"
+    name === "xpathBoolean" || name === "xpath" || name === "xpathList" ||
+    name === "xpathNode" || name === "xpathNodes"
   ) {
     const p = args[0]?.kind === "literal" ? String(args[0].value) : "";
     const base = emitGoPathExpr(p, ctx);
     if (name === "xpathNumber") return `(toNum ${base})`;
-    if (name === "xpathBoolean") return `(nonEmpty ${base})`;
+    // Effective boolean value, as TypeScript: a JSON `false` stays false.
+    if (name === "xpathBoolean") return `(not (not ${base}))`;
     return base;
   }
+  if (name === "var") {
+    const varName = args[0]?.kind === "literal" ? String(args[0].value) : "";
+    if (ctx.varBindings[varName]) return ctx.varBindings[varName]!;
+    if (ctx.loopBindings[varName]) return ctx.loopBindings[varName]!;
+    throw goUnsupported(`the variable ${varName || "(unnamed)"} outside a loop or Function`);
+  }
+  if (name === "call") {
+    return emitGoAstExpr(inlineGoFunctionCall(ast, ctx.functions), ctx);
+  }
   if (name === "maps_get") {
-    const mapName = args[0]?.kind === "literal" ? String(args[0].value) : "";
-    const keyArg = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    if (mapName === "defaults") return `(jget .Parameters ${keyArg})`;
-    return `(jget .Data ${keyArg})`;
+    const mapArg = args[0];
+    const keyArg = arg(1, '""');
+    if (mapArg?.kind === "literal") {
+      // Only the `defaults` Map is named; any other literal name is empty (as TypeScript).
+      return String(mapArg.value) === "defaults" ? `(jget .Parameters ${keyArg})` : "nil";
+    }
+    return `(jget ${arg(0, "nil")} ${keyArg})`;
   }
   if (name === "map") {
     const pairs: string[] = [];
@@ -156,23 +173,24 @@ function emitGoAstExpr(ast: ExprAst, ctx: GoSkelCtx): string {
     return items.length ? `(list ${items.join(" ")})` : "(list)";
   }
   if (name === "if") {
-    const cond = args[0] ? emitGoAstExpr(args[0], ctx) : "false";
-    const t = args[1] ? emitGoAstExpr(args[1], ctx) : "nil";
-    const f = args[2] ? emitGoAstExpr(args[2], ctx) : "nil";
-    return `(coalesce (whenVal ${cond} ${t}) ${f})`;
+    return `(ifElse ${arg(0, "false")} ${arg(1, "nil")} ${arg(2, "nil")})`;
+  }
+  if (name === "switch") {
+    if (args.length < 2) return "nil";
+    return `(switchVal ${args.map((a) => emitGoAstExpr(a, ctx)).join(" ")})`;
   }
   if (name === "and" || name === "or") {
-    const items = args.map((a) => `(nonEmpty ${emitGoAstExpr(a, ctx)})`);
-    return `(${name} ${items.join(" ")})`;
+    const items = args.map((a) => emitGoAstExpr(a, ctx));
+    if (!items.length) return name === "and" ? "true" : "false";
+    return items.length === 1 ? items[0]! : `(${name} ${items.join(" ")})`;
   }
   if (name === "not") {
-    const a = args[0] ? emitGoAstExpr(args[0], ctx) : "false";
-    return `(not (nonEmpty ${a}))`;
+    return `(not ${arg(0, "false")})`;
   }
-  if (name === "eq" || name === "ne" || name === "lt" || name === "le" || name === "gt" || name === "ge") {
-    const a = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const b = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    return `(${name} ${a} ${b})`;
+  if (name === "eq") return `(same ${arg(0, "nil")} ${arg(1, "nil")})`;
+  if (name === "ne") return `(not (same ${arg(0, "nil")} ${arg(1, "nil")}))`;
+  if (name === "lt" || name === "le" || name === "gt" || name === "ge") {
+    return `(cmpNum "${name}" ${arg(0, "nil")} ${arg(1, "nil")})`;
   }
   if (name === "concat") {
     const items = args.map((a) => emitGoAstExpr(a, ctx));
@@ -182,70 +200,56 @@ function emitGoAstExpr(ast: ExprAst, ctx: GoSkelCtx): string {
     const items = args.map((a) => emitGoAstExpr(a, ctx));
     return items.length ? `(coalesce ${items.join(" ")})` : "nil";
   }
-  if (name === "trim") {
-    return `(trim ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name === "toLowerCase" || name === "lower") {
-    return `(lower ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name === "toUpperCase" || name === "upper") {
-    return `(upper ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name === "changeCase") {
-    const val = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
+  if (name === "trim") return `(trim ${arg(0, '""')})`;
+  if (name === "toLowerCase" || name === "lower") return `(lower ${arg(0, '""')})`;
+  if (name === "toUpperCase" || name === "upper") return `(upper ${arg(0, '""')})`;
+  if (name === "change_case" || name === "changeCase") {
+    const val = arg(0, '""');
     const mode = args[1]?.kind === "literal" ? String(args[1].value).toUpperCase() : "LOWERCASE";
-    return mode === "UPPERCASE" ? `(upper ${val})` : `(lower ${val})`;
+    if (mode === "UPPERCASE") return `(upper ${val})`;
+    if (mode === "TITLECASE") return `(title ${val})`;
+    return `(lower ${val})`;
   }
   if (name === "replace") {
-    const src = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const oldVal = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    const newVal = args[2] ? emitGoAstExpr(args[2], ctx) : '""';
-    return `(replace ${oldVal} ${newVal} ${src})`;
+    return `(replace ${arg(1, '""')} ${arg(2, '""')} ${arg(0, '""')})`;
   }
   if (name === "add" || name === "sub" || name === "mul" || name === "div") {
-    const a = args[0] ? emitGoAstExpr(args[0], ctx) : "0";
-    const b = args[1] ? emitGoAstExpr(args[1], ctx) : "0";
-    return `(${name} ${a} ${b})`;
+    return `(${name} ${arg(0, "0")} ${arg(1, "0")})`;
   }
-  if (name === "length" || name === "listLength") {
-    return `(len ${args[0] ? emitGoAstExpr(args[0], ctx) : "(list)"})`;
+  if (name === "round") return `(round ${arg(0, "0")})`;
+  if (name === "modulo") return `(mod ${arg(0, "0")} ${arg(1, "1")})`;
+  if (name === "constrain") return `(clamp ${arg(0, "0")} ${arg(1, "0")} ${arg(2, "0")})`;
+  if (name === "length" || name === "listLength" || name === "lists_length") {
+    return `(count ${arg(0, "nil")})`;
+  }
+  if (name === "lists_getIndex") {
+    const where = args[1]?.kind === "literal" ? String(args[1].value) : "FROM_START";
+    return `(listAt ${arg(0, "nil")} ${goStr(where)} ${arg(2, "1")})`;
   }
   if (name === "sheet_lookup") {
     const sArgs = args.slice(0, 4).map((a) => emitGoAstExpr(a, ctx));
     return `(sheetLookup ${sArgs.join(" ")})`;
   }
   if (name === "decision_table") {
-    const sheetName = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const outCol = args[1] ? emitGoAstExpr(args[1], ctx) : '""';
-    const dictPairs: string[] = [];
-    for (let i = 2; i + 1 < args.length; i += 2) {
-      dictPairs.push(emitGoAstExpr(args[i]!, ctx), emitGoAstExpr(args[i + 1]!, ctx));
-    }
-    return `(decisionTable ${sheetName} (dict ${dictPairs.join(" ")}) ${outCol})`;
+    // decision_table(name, inputsMap, output), as the Blockly serializer writes it.
+    return `(decisionTable ${arg(0, '""')} ${arg(1, "(dict)")} ${arg(2, '""')})`;
   }
   if (name === "handlebars") {
-    const tmpl = args[0] ? emitGoAstExpr(args[0], ctx) : '""';
-    const c = args[1] ? emitGoAstExpr(args[1], ctx) : ctx.sourceExpr;
-    return `(handlebars ${tmpl} ${c})`;
+    return `(handlebars ${arg(0, '""')} ${arg(1, ctx.sourceExpr)})`;
   }
-  if (name === "toNumber" || name === "number") {
-    return `(toNum ${args[0] ? emitGoAstExpr(args[0], ctx) : "nil"})`;
-  }
-  if (name === "toString" || name === "string") {
-    return `(concat ${args[0] ? emitGoAstExpr(args[0], ctx) : '""'})`;
-  }
-  return '""';
+  if (name === "toNumber" || name === "number") return `(toNum ${arg(0, "nil")})`;
+  if (name === "toString" || name === "string") return `(concat ${arg(0, '""')})`;
+  throw goUnsupported(name === "maps_entries" ? "Map-value entries" : name);
+}
+
+/** Parse and emit a Mapping Expression; a parse or lowering error fails generation loudly. */
+function emitGoExpressionSource(expression: string, ctx: GoSkelCtx): string {
+  return emitGoAstExpr(parseExpression(expression), ctx);
 }
 
 function goShellGen(ctx: GoSkelCtx): ShellCodegen {
   return {
-    expr: (expression) => {
-      try {
-        return emitGoAstExpr(parseExpression(expression), ctx);
-      } catch {
-        return "nil";
-      }
-    },
+    expr: (expression) => emitGoExpressionSource(expression, ctx),
     object: (rmType, fields) => {
       const normalized = rmType === "CODE_PHRASE"
         ? fields.map(([k, v]) =>
@@ -280,17 +284,14 @@ export function emitGoJsonSchemaProduct(
     sourceExpr: ".Data",
     loopBindings: {},
     varBindings: {},
+    functions: model.functions,
   };
 
   const emitNode = (node: SkeletonNode): string | null => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
-      try {
-        return emitGoAstExpr(parseExpression(slot.expression), ctx);
-      } catch {
-        return "nil";
-      }
+      return emitGoExpressionSource(slot.expression, ctx);
     }
     const pairs: string[] = [];
     for (const child of node.children) {
@@ -331,13 +332,9 @@ function emitGoSkelValue(node: SkeletonNode, ctx: GoSkelCtx): string | null {
   const coded = node.rmType === "DV_CODED_TEXT" ? codedTextParts(slot?.expression) : null;
   let expr: string | null = null;
   if (slot?.expression) {
-    try {
-      expr = coded
-        ? (coded.value ? emitGoAstExpr(coded.value, ctx) : null)
-        : emitGoAstExpr(parseExpression(slot.expression), ctx);
-    } catch {
-      expr = "nil";
-    }
+    expr = coded
+      ? (coded.value ? emitGoAstExpr(coded.value, ctx) : null)
+      : emitGoExpressionSource(slot.expression, ctx);
   }
   const fields = node.fixedFields ?? {};
   const rmType = node.rmType;
@@ -432,12 +429,8 @@ function emitGoSkelValue(node: SkeletonNode, ctx: GoSkelCtx): string | null {
 function guardGoExpr(node: SkeletonNode, expr: string, ctx: GoSkelCtx): string {
   const inc = ctx.includes?.find((item) => item.slotId === node.slotId);
   if (!inc?.when || inc.elseEmits) return expr;
-  try {
-    const cond = emitGoAstExpr(parseExpression(inc.when), ctx);
-    return `(whenVal ${cond} ${expr})`;
-  } catch {
-    return expr;
-  }
+  const cond = emitGoExpressionSource(inc.when, ctx);
+  return `(whenVal ${cond} ${expr})`;
 }
 
 function emitGoPureNode(
@@ -672,6 +665,7 @@ export function emitGoOpenEhrProduct(
     sourceExpr: ".Data",
     loopBindings: {},
     varBindings: {},
+    functions: model.functions,
   };
 
   const root = skeleton[0];
