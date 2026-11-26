@@ -142,6 +142,7 @@ export {
   ensureDefaultsBlock,
   findDefaultsBlock,
   hydrateDefaultsMapArgument,
+  hydrateDefaultsMapInCanvasJson,
   placeDefaultsBesideSkeleton,
   separateContextMapFromProductTree,
   restoreDefaultsBlockState,

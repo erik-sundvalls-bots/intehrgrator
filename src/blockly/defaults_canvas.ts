@@ -533,3 +533,45 @@ function moveTo(block: Blockly.Block, x: number, y: number): void {
     : { x: 0, y: 0 };
   (block as BlockSvg).moveBy(x - cur.x, y - cur.y);
 }
+
+/**
+ * JSON form of {@link hydrateDefaultsMapArgument} for a canvas that is not
+ * mounted, e.g. a large mapping opened in Treemap Overview. Only the
+ * `default_context_map` top block is replaced (or added); every other top
+ * block is left exactly as it was, so this needs no schema/RM block types.
+ */
+export function hydrateDefaultsMapInCanvasJson<
+  T extends { blocks?: { languageVersion?: number; blocks?: Array<Record<string, unknown>> } },
+>(
+  doc: T,
+  mapBlockState: unknown,
+  uiLanguage: string,
+  targetFormat?: TargetFormatId,
+): T {
+  const tops = doc.blocks?.blocks ?? [];
+  const index = tops.findIndex((b) => b?.type === DEFAULT_CONTEXT_MAP_TYPE);
+  const workspace = new Blockly.Workspace();
+  try {
+    registerDefaultsBlocks();
+    if (index >= 0) {
+      Blockly.serialization.blocks.append(structuredClone(tops[index]), workspace);
+    }
+    hydrateDefaultsMapArgument(workspace, mapBlockState, uiLanguage, targetFormat);
+    const block = findDefaultsBlock(workspace);
+    if (!block) return doc;
+    const json = Blockly.serialization.blocks.save(block) as Record<string, unknown> | null;
+    if (!json) return doc;
+    const prev = index >= 0 ? tops[index] : null;
+    if (prev && typeof prev.x === "number") json.x = prev.x;
+    if (prev && typeof prev.y === "number") json.y = prev.y;
+    const nextTops = [...tops];
+    if (index >= 0) nextTops[index] = json;
+    else nextTops.unshift(json);
+    return {
+      ...doc,
+      blocks: { languageVersion: doc.blocks?.languageVersion ?? 0, ...doc.blocks, blocks: nextTops },
+    };
+  } finally {
+    workspace.dispose();
+  }
+}
