@@ -51,6 +51,6 @@ export const HANDLEBARS_HELPERS_BLOB =
 export const GO_TEMPLATE_HELPERS_BLOB =
   `${BLOB}/go/texttemplate/main.go`;
 
-/** ehrtslib pin matching deno.json `ehrtslib/` (jsDelivr `gh@v0.19`). */
+/** ehrtslib pin matching deno.json `ehrtslib/` (jsDelivr `gh@v0.20`). */
 export const EHRTSLIB_BLOB_PREFIX =
-  "https://github.com/ErikSundvall/ehrtslib/blob/v0.19/";
+  "https://github.com/ErikSundvall/ehrtslib/blob/v0.20/";
