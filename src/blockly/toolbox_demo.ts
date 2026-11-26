@@ -367,7 +367,6 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
             type: "text_code",
             fields: { LANG: "handlebars", TEXT: "" },
           },
-          { kind: "block", type: "text_regex_replace" },
           {
             kind: "block",
             type: "text_handlebars",
@@ -380,6 +379,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
               },
             },
           },
+          { kind: "block", type: "text_regex_replace" },
           { kind: "block", type: "text_join", extraState: { itemCount: 2 } },
           {
             kind: "block",

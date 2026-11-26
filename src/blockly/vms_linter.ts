@@ -10,7 +10,6 @@ import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { isSourceQueryBlockType } from "./source_query.ts";
 import { isPlaceholderSourcePath } from "./listening.ts";
 import { checkVmsHbs } from "../core/output/vms_hbs.ts";
-import { checkVmsGoSync } from "../core/output/vms_go.ts";
 import { compileLiteralPath, jsonDollarPathToLookup } from "../core/codegen/xquery.ts";
 
 export const HATCH_REMOVED =
@@ -141,9 +140,7 @@ export function isTemplateEscapeHatch(
   if (lang === "handlebars") {
     return Boolean(text.trim()) && !checkVmsHbs(text).ok;
   }
-  if (lang === "go-template") {
-    if (!text.trim()) return false;
-    return !checkVmsGoSync(text).ok;
-  }
+  // #386: Go template text is not part of the visual language at all.
+  if (lang === "go-template") return text.includes("{{");
   return false;
 }

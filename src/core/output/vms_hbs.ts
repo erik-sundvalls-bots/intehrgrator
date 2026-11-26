@@ -85,6 +85,7 @@ export const VMS_HBS_ALLOWED_HELPERS: Readonly<Record<string, boolean>> = {
   toUpperCase: true,
   trim: true,
   replace: true,
+  regexReplace: true,
   concat: true,
   coalesce: true,
   nonEmpty: true,

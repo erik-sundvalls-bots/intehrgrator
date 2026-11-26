@@ -673,7 +673,10 @@ function blockNodeToExpression(block: BlockNode): string | null {
     case "variables_get":
       return `var(${JSON.stringify(String(block.fields?.VAR ?? "v"))})`;
     case "procedures_callreturn": {
-      const name = String(block.fields?.NAME ?? "").trim();
+      // Saved workspaces keep the callee in extraState.name (fields.NAME is optional).
+      const name = String(
+        block.fields?.NAME ?? (block.extraState as { name?: string } | undefined)?.name ?? "",
+      ).trim();
       if (!name) return null;
       const args: string[] = [];
       for (let i = 0; block.inputs && `ARG${i}` in block.inputs; i++) {
@@ -1151,6 +1154,11 @@ export function emitGoExpressionTemplate(
           ? emitGoExpressionTemplate(ast.args[2]!, ctx)
           : "";
         return `{{- if ${cond} -}}${thenPart}{{- else -}}${elsePart}{{- end -}}`;
+      }
+      if (ast.name === "call") {
+        // A whole-value Function call stays the `{{template}}` action of its define.
+        const name = ast.args[0]?.kind === "literal" ? String(ast.args[0].value) : "";
+        return `{{ ${emitGoExpr(ast, { ...ctx, inlining: new Set([...(ctx.inlining ?? []), name]) })} }}`;
       }
       return `{{ ${emitGoExpr(ast, ctx)} }}`;
   }

@@ -66,3 +66,11 @@ See [formal-verification-export.md — Out-of-dialect templates: not accepted](.
 ## Amendment 2026-11-03
 
 **Change:** VMS-Hbs allows the Kintegrate helpers `inc` and `dec` (`v + 1` and `v - 1`). They were already in the Integration Builder helper set this dialect tracks. Mapping preview and every conversion-script runtime that renders VMS-Hbs register the same functions.
+
+## Amendment 2026-11-26 (#386)
+
+**Change:** the visual language (Blockly canvas and Treemap) has **no Go template syntax**. A Code text block with LANG = Go template that holds `{{…}}` is not run in any language: generation stops with "Go template text is not supported in a Code text block; use blocks or Handlebars", and the workspace linter reports the same text. The LANG option stays as "Go Template (unsupported)" so older projects still load and show the finding; the toolbox no longer offers it. Decided by Erik Sundvall.
+
+**Why:** the only Go Code text came from a one-time conversion of the production chemo script into the chemo Example Sets. Only the Go runtime read it; Mapping preview, Handlebars, TypeScript and XQuery printed the Go source as the Note. Those sets are now built from ordinary blocks (text join, if/then/else, compare, change case, the new **replace regex** block) plus a `clean_free_text` Function.
+
+**Unchanged:** Go template stays a Conversion script (output) language. VMS-Go above now describes only the generated Go script, not authored canvas text.

@@ -2,6 +2,7 @@ import { assert, assertEquals, assertFalse } from "@std/assert";
 import { join } from "@std/path";
 import { Blockly } from "@intehrgrator/blockly/blockly_core.ts";
 import { registerMapBlocks } from "@intehrgrator/blockly/blocks/map_blocks.ts";
+import { ensureStockBlocklyMessages } from "@intehrgrator/blockly/stock_messages.ts";
 import { registerTargetBlocks } from "@intehrgrator/blockly/blocks/target_blocks.ts";
 import { registerExpressionBlocks } from "@intehrgrator/blockly/blocks/expression_blocks.ts";
 import { registerTextBlocks } from "@intehrgrator/blockly/blocks/text_blocks.ts";
@@ -329,6 +330,8 @@ Deno.test("chemo-symptoms Blockly mapping covers every PROD TermId on schema blo
 
   const { workspace } = loadTakeCareWorkspace();
   try {
+    // Notes use stock text/logic blocks (#386), whose dropdowns need Blockly's messages.
+    ensureStockBlocklyMessages();
     Blockly.serialization.workspaces.load(mapping, workspace);
     const loaded = workspace.getAllBlocks(false).map((block) => block.type);
     assertEquals(loaded.filter((type) => type === "schema_TextKeyWord").length, 16);

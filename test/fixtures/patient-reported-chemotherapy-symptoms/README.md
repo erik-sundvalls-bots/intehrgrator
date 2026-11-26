@@ -8,9 +8,24 @@ into TakeCare `ProfdocHISMessage` XML.
 The Blockly mapping uses **schema-generated TakeCare blocks**
 (`schema_ProfdocHISMessage`, `schema_TextKeyWord`, `schema_NumericKeyword`, …)
 from `test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd`, not generic
-`xml_element` blocks. Complex `<Note>` bodies stay as `text_code`
-(LANG=`go-template`) copied from the production script, including
-`{{ template "cleanAndQuoteFreeTextInput" … }}`.
+`xml_element` blocks. Every `<Note>` is built from ordinary blocks: text
+join, if/then/else, compare, lower case and **replace regex**. Patient free
+text goes through the `clean_free_text` Function, which replaces the PROD
+`cleanAndQuoteFreeTextInput` Go `define`. The note expressions live in
+`scripts/chemo_symptom_notes.ts`.
+
+Mapping preview, Handlebars, TypeScript, XQuery and Go Template give the same
+Notes, and they match what the PROD script wrote
+(`test/chemo_all_languages_test.ts`). Java cannot build this XML tree yet and
+says so.
+
+Earlier versions copied each PROD `<Note>` body into a Code text block
+(LANG=`go-template`). Only Go ran that text; the other languages printed the Go
+source as the Note ([#386](https://github.com/regionstockholm/intehrgrator/issues/386)).
+
+Deliberate differences from PROD: XML escaping is left to the generator (PROD
+escaped by hand first); the measured-temperature sentence (2025) appears only
+when a temperature was entered; leading and trailing spaces are trimmed.
 
 ## Contents
 
@@ -25,7 +40,9 @@ from `test/fixtures/TakeCare/TakeCare-CasenoteWrite-edit01.xsd`, not generic
 
 ## What the mapping does
 
-1. Emits the `cleanAndQuoteFreeTextInput` Go `define` (used by several notes).
+1. Defines the `clean_free_text(text)` Function: newlines and tabs become
+   spaces, characters outside the PROD allowed set are dropped, runs of spaces
+   collapse, and the result is trimmed. Notes put the result in double quotes.
 2. Emits a `<ProfdocHISMessage>` envelope with header fields from the Defaults
    Map. `TemplateType` is the literal `1`; optional `Signed` is `0`.
 3. If the patient answered **Nej** (or aptit/matintag code `3`) on **every**
