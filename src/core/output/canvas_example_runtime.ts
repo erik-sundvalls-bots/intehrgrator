@@ -4,6 +4,7 @@
  */
 import { evaluate, type SourceContext } from "../source/query_runtime.ts";
 import { TEXT_DOCUMENT_BLOCK_TYPE } from "../../blockly/instance_root.ts";
+import { stringifyJson } from "../codegen/numeric_format.ts";
 
 interface BlocklyInput {
   block?: BlocklyNode;
@@ -144,7 +145,7 @@ export function renderJsonCanvasFromBlockly(
     (type) => type === "json_object" || type === "json_array",
   );
   if (!root) return null;
-  return `${JSON.stringify(valueOf(root, ctx), null, 2)}\n`;
+  return `${stringifyJson(valueOf(root, ctx), 2)}\n`;
 }
 
 /**

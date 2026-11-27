@@ -15,8 +15,43 @@ declare function igbk:items($v as item()*) as item()* {
   for $x in $v return if ($x instance of array(*)) then $x?* else $x
 };
 
+declare function igbk:finite-or-error($n as xs:numeric, $form as xs:string) as empty-sequence() {
+  if ($n ne $n or $n = xs:double("INF") or $n = xs:double("-INF"))
+  then error((), concat("The target form ", $form, " cannot express ", string($n), "; Infinity and NaN are not permitted."))
+  else ()
+};
+
+declare function igbk:plain-decimal($n as xs:numeric) as xs:string {
+  let $_ := igbk:finite-or-error($n, "xml-decimal")
+  return if ($n = 0) then "0"
+    else if ($n = floor($n) and abs($n) lt 1e15) then string(xs:integer($n))
+    else string(xs:decimal($n))
+};
+
 declare function igbk:num-text($n as xs:numeric) as xs:string {
-  if ($n = floor($n) and abs($n) lt 1e15) then string(xs:integer($n)) else string($n)
+  igbk:plain-decimal($n)
+};
+
+declare function igbk:xml-double-text($n as xs:numeric) as xs:string {
+  if ($n ne $n) then "NaN"
+  else if ($n = xs:double("INF")) then "INF"
+  else if ($n = xs:double("-INF")) then "-INF"
+  else igbk:plain-decimal($n)
+};
+
+declare function igbk:json-atom($n as xs:numeric) as xs:numeric {
+  let $_ := igbk:finite-or-error($n, "json")
+  return if ($n = floor($n) and abs($n) le 9007199254740991) then xs:integer($n)
+    else $n
+};
+
+declare function igbk:json-canon($v as item()*) as item()* {
+  if (empty($v)) then ()
+  else if (count($v) gt 1) then for $x in $v return igbk:json-canon($x)
+  else if ($v instance of array(*)) then array { for $x in $v?* return igbk:json-canon($x) }
+  else if ($v instance of map(*)) then map:merge(for $k in map:keys($v) return map { $k: igbk:json-canon($v($k)) })
+  else if ($v instance of xs:numeric) then igbk:json-atom($v)
+  else $v
 };
 
 declare function igbk:text($v as item()*) as xs:string {

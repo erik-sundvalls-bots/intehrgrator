@@ -975,7 +975,11 @@ public class IntehrgratorRuntime {
 
   /**
    * A value as Target text, the way Mapping preview prints it: null → "",
-   * whole numbers without ".0", Jackson scalars as their text, lists joined.
+   * XML Schema xs:decimal lexical form (plain decimal, no exponent, no ".0"
+   * on whole numbers), Jackson scalars as their text, lists joined.
+   * Non-finite values keep Java's {@code Double.toString} so sheet cells do
+   * not throw; use {@link #formatXmlNumber} / {@link #formatJsonNumber} when
+   * writing a typed target field that must reject NaN / Infinity.
    */
   public static String xmlText(Object value) {
     if (value == null) return "";
@@ -990,10 +994,14 @@ public class IntehrgratorRuntime {
       }
       return node.toString();
     }
-    if (value instanceof Double || value instanceof Float) {
-      double d = ((Number) value).doubleValue();
-      if (Double.isFinite(d) && d == Math.rint(d) && Math.abs(d) < 1e15) return Long.toString((long) d);
-      return Double.toString(d);
+    if (value instanceof Number n) {
+      if (n instanceof Integer || n instanceof Long || n instanceof Short || n instanceof Byte
+        || n instanceof java.math.BigInteger) {
+        return n.toString();
+      }
+      double d = n.doubleValue();
+      if (!Double.isFinite(d)) return Double.toString(d);
+      return formatXmlDecimal(d);
     }
     if (value instanceof List<?> list) {
       StringBuilder out = new StringBuilder();
@@ -1001,6 +1009,63 @@ public class IntehrgratorRuntime {
       return out.toString();
     }
     return String.valueOf(value);
+  }
+
+  /**
+   * RFC 8259 JSON number: shortest plain or scientific form, no {@code .0} on
+   * integers, error on NaN / Infinity.
+   */
+  public static String formatJsonNumber(double d) {
+    if (!Double.isFinite(d)) {
+      throw new IllegalArgumentException(
+        "JSON (RFC 8259 §6) cannot express " + d + "; Infinity and NaN are not permitted.");
+    }
+    if (d == 0d) return "0";
+    if (d == Math.rint(d) && Math.abs(d) <= 9007199254740991d) {
+      return java.math.BigDecimal.valueOf(d).toBigInteger().toString();
+    }
+    // Prefer a short scientific form in the ECMA-262 range; otherwise plain decimal.
+    double abs = Math.abs(d);
+    if (abs >= 1e21 || (abs != 0d && abs < 1e-6)) {
+      return Double.toString(d).replace('E', 'e').replace("e+", "e+").replace(".0e", "e");
+    }
+    return formatXmlDecimal(d);
+  }
+
+  /**
+   * XML Schema lexical form: {@code xml-integer}, {@code xml-decimal} (default)
+   * or {@code xml-double} (allows INF / NaN).
+   */
+  public static String formatXmlNumber(double d, String form) {
+    if ("xml-double".equals(form)) {
+      if (Double.isNaN(d)) return "NaN";
+      if (d == Double.POSITIVE_INFINITY) return "INF";
+      if (d == Double.NEGATIVE_INFINITY) return "-INF";
+      if (Double.doubleToRawLongBits(d) == Double.doubleToRawLongBits(-0.0d)) return "-0";
+      return formatXmlDecimal(d);
+    }
+    if (!Double.isFinite(d)) {
+      String typ = "xml-integer".equals(form) ? "xs:integer" : "xs:decimal";
+      throw new IllegalArgumentException(
+        "XML Schema " + typ + " cannot express " + d + "; Infinity and NaN are not in the lexical space.");
+    }
+    if ("xml-integer".equals(form)) {
+      if (d != Math.rint(d)) {
+        throw new IllegalArgumentException(
+          "XML Schema xs:integer cannot express " + formatXmlDecimal(d) + "; the value is not a whole number.");
+      }
+    }
+    return formatXmlDecimal(d);
+  }
+
+  /** Canonical xs:decimal: no exponent, no trailing zeros, no decimal point on integers. */
+  public static String formatXmlDecimal(double d) {
+    if (!Double.isFinite(d)) {
+      throw new IllegalArgumentException(
+        "XML Schema xs:decimal cannot express " + d + "; Infinity and NaN are not in the lexical space.");
+    }
+    if (d == 0d) return "0";
+    return java.math.BigDecimal.valueOf(d).stripTrailingZeros().toPlainString();
   }
 
   public Object decisionTable(String name, Map<String, Object> inputs) {

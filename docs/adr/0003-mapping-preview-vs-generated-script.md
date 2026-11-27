@@ -29,3 +29,13 @@ On the **Verifiable Mapping Subset (VMS)**, CI treats these paths as cross-check
 When preview and TypeScript disagree on a VMS mapping, treat it as a **mapping bug** (robustness violation per formal-verification-export.md), not an author workflow choice.
 
 Silent `undefined` in generated TypeScript for VMS-kept block types is forbidden; see `test/vms_golden_test.ts`.
+
+## Amendment 2026-11-27 (#393 number formats)
+
+Every Conversion Script language writes numbers in the **target's** standard
+lexical form (XML Schema 1.1, RFC 8259 JSON, openEHR RM / ITS, TakeCare XSD),
+using a shared helper rather than each language's default `String(n)`. See
+[numeric-formats.md](../numeric-formats.md). Mapping preview and the generated
+scripts must agree on that spelling. A Test Run warning is logged only when
+the chosen target cannot express the value exactly.
+

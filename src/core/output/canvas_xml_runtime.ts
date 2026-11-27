@@ -15,6 +15,7 @@ import {
 } from "../source/query_runtime.ts";
 import { renderHandlebars } from "./handlebars_dialect.ts";
 import { jsonBlockReader, stockMathOrOpExpression } from "../expression/blockly_op_blocks.ts";
+import { formatNumber } from "../codegen/numeric_format.ts";
 import {
   injectXmlnsOnOpenTag,
   wrapXmlCdata,
@@ -310,7 +311,10 @@ function renderXmlOrSchema(block: BlocklyNode, ctx: SourceContext): string[] {
 function renderValue(block: BlocklyNode, ctx: SourceContext): string {
   const type = block.type ?? "";
   if (type === "text") return String(block.fields?.TEXT ?? "");
-  if (type === "math_number") return String(block.fields?.NUM ?? "0");
+  if (type === "math_number") {
+    const n = Number(block.fields?.NUM ?? 0);
+    return Number.isFinite(n) ? formatNumber(n, "xml-decimal").text : String(block.fields?.NUM ?? "0");
+  }
   if (type === "logic_boolean") return block.fields?.BOOL === "TRUE" ? "true" : "false";
   if (type === "text_code") {
     const lang = String(block.fields?.LANG ?? "");
@@ -550,7 +554,8 @@ function escapeXml(value: string): string {
 
 function stringify(value: unknown): string {
   if (value == null) return "";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (typeof value === "number") return formatNumber(value, "xml-decimal").text;
+  if (typeof value === "string" || typeof value === "boolean") {
     return String(value);
   }
   try {
