@@ -51,6 +51,7 @@ import { generateGoTemplate } from "../codegen/go_template.ts";
 import { DEFAULTS_MAP_NAME, namedMapsFromBlocklyState } from "../defaults/mod.ts";
 import { sheetsToBag } from "../sheets/mod.ts";
 import { validateConvertedOutput } from "../output/template_validation.ts";
+import { attachNumericLimitLogs } from "../codegen/numeric_limits.ts";
 import { compactSlotId } from "../ai/slot_tree.ts";
 import {
   formatTestRunPayload,
@@ -79,6 +80,15 @@ export interface RunTestOptions {
 }
 
 export function runTest(
+  model: MappingModel,
+  exampleContent: string,
+  format: SourceFormatId,
+  options: RunTestOptions = {},
+): TestResult {
+  return attachNumericLimitLogs(runTestBody(model, exampleContent, format, options));
+}
+
+function runTestBody(
   model: MappingModel,
   exampleContent: string,
   format: SourceFormatId,
@@ -238,6 +248,7 @@ export function runTest(
       const output = renderHandlebars(template, ctx.data, {
         slots: slotValues,
         defaults,
+        sheets: ctx.sheets,
       });
       const outputValidation = validateConvertedOutput(output, target, {
         deserializeMode: options.openEhrJsonDeserializeMode,
@@ -309,7 +320,7 @@ export function runTest(
           output = canvasOutput;
         } else {
           const template = options.handlebarsTemplate ?? target?.content ?? "";
-          output = renderHandlebars(template, ctx.data, { slots: slotValues });
+          output = renderHandlebars(template, ctx.data, { slots: slotValues, sheets: ctx.sheets });
         }
       }
     } else if (target) {

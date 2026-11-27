@@ -28,6 +28,7 @@ export interface IntehrMessages {
   CAT_TARGET_SCHEMA: string;
   CAT_LOGIC: string;
   CAT_MATH: string;
+  MATH_NUMERIC_NOTE: string;
   CAT_TEXT: string;
   CAT_LISTS_AND_MAPS: string;
   CAT_DECISION_TABLES: string;
@@ -104,6 +105,7 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_TARGET_SCHEMA: "Target schema",
     CAT_LOGIC: "Loops & Logic",
     CAT_MATH: "Math",
+    MATH_NUMERIC_NOTE: "Numbers are IEEE-754 binary64 in every language (safe integers up to ±2⁵³−1). Very large or very small values (|n| ≥ 1e21 or |n| < 1e-6) may print with different exponent spelling in Go, Java and XQuery. Ordinary numbers match.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Lists & maps",
     CAT_DECISION_TABLES: "Decision Tables",
@@ -191,6 +193,7 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_TARGET_SCHEMA: "Målschema",
     CAT_LOGIC: "Loopar & logik",
     CAT_MATH: "Matematik",
+    MATH_NUMERIC_NOTE: "Tal är IEEE-754 binary64 i varje språk (säkra heltal upp till ±2⁵³−1). Mycket stora eller små värden (|n| ≥ 1e21 eller |n| < 1e-6) kan skrivas med olika exponentform i Go, Java och XQuery. Vanliga tal stämmer överens.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listor & mappar",
     CAT_DECISION_TABLES: "Beslutstabeller",
@@ -278,6 +281,7 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_TARGET_SCHEMA: "Zielschema",
     CAT_LOGIC: "Schleifen & Logik",
     CAT_MATH: "Mathematik",
+    MATH_NUMERIC_NOTE: "Zahlen sind in jeder Sprache IEEE-754-binary64 (sichere ganze Zahlen bis ±2⁵³−1). Sehr große oder kleine Werte (|n| ≥ 1e21 oder |n| < 1e-6) können in Go, Java und XQuery unterschiedlich geschrieben werden. Gewöhnliche Zahlen stimmen überein.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listen & Maps",
     CAT_DECISION_TABLES: "Entscheidungstabellen",
@@ -365,6 +369,7 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_TARGET_SCHEMA: "Esquema destino",
     CAT_LOGIC: "Bucles y lógica",
     CAT_MATH: "Matemáticas",
+    MATH_NUMERIC_NOTE: "Los números son IEEE-754 binary64 en todos los lenguajes (enteros seguros hasta ±2⁵³−1). Los valores muy grandes o muy pequeños (|n| ≥ 1e21 o |n| < 1e-6) pueden escribirse con distinta notación exponencial en Go, Java y XQuery. Los números habituales coinciden.",
     CAT_TEXT: "Texto",
     CAT_LISTS_AND_MAPS: "Listas y mapas",
     CAT_DECISION_TABLES: "Tablas de decisión",
@@ -452,6 +457,7 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_TARGET_SCHEMA: "Esquema de destinació",
     CAT_LOGIC: "Bucles i lògica",
     CAT_MATH: "Matemàtiques",
+    MATH_NUMERIC_NOTE: "Els nombres són IEEE-754 binary64 en tots els llenguatges (enters segurs fins a ±2⁵³−1). Els valors molt grans o molt petits (|n| ≥ 1e21 o |n| < 1e-6) poden escriure's amb una notació exponencial diferent en Go, Java i XQuery. Els nombres habituals coincideixen.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Llistes i mapes",
     CAT_DECISION_TABLES: "Taules de decisió",
@@ -539,6 +545,7 @@ const TABLE: Record<IntehrLocale, IntehrMessages> = {
     CAT_TARGET_SCHEMA: "Schéma cible",
     CAT_LOGIC: "Boucles et logique",
     CAT_MATH: "Math",
+    MATH_NUMERIC_NOTE: "Les nombres sont en IEEE-754 binary64 dans tous les langages (entiers sûrs jusqu'à ±2⁵³−1). Les valeurs très grandes ou très petites (|n| ≥ 1e21 ou |n| < 1e-6) peuvent s'écrire avec un exposant différent en Go, Java et XQuery. Les nombres ordinaires correspondent.",
     CAT_TEXT: "Texte",
     CAT_LISTS_AND_MAPS: "Listes et maps",
     CAT_DECISION_TABLES: "Tables de décision",

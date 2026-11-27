@@ -338,6 +338,7 @@ export const es: ChromeMessages = {
   schemaMismatch: "Desajuste de esquema:",
   conversionFailed: "La conversión falló:",
   templateValidation: "Validación de la plantilla:",
+  conversionNotes: "Notas de conversión:",
   noWorkspace: "No hay espacio de trabajo Blockly",
   noFunctionsOnCanvas: "No hay funciones en el lienzo. Extraiga a función o cargue desde la biblioteca.",
   contribute: "Aportar",

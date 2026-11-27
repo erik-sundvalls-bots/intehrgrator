@@ -582,6 +582,11 @@ export interface TestResult {
   output?: unknown;
   error?: string;
   warnings: string[];
+  /**
+   * Runtime notices that do not fail the Test Run (e.g. numeric-limit
+   * formatting differences between languages, issue #393).
+   */
+  logs?: string[];
   outputValidation?: OutputValidation;
 }
 

@@ -351,6 +351,7 @@ export function buildDemoToolbox(locale: string, context: ToolboxContext = {}): 
               HIGH: { shadow: { type: "math_number", fields: { NUM: 100 } } },
             },
           },
+          { kind: "label", text: m.MATH_NUMERIC_NOTE },
         ],
       },
       {

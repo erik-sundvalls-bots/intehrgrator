@@ -379,6 +379,7 @@ export const en = {
   schemaMismatch: "Schema mismatch:",
   conversionFailed: "Conversion failed:",
   templateValidation: "Template validation:",
+  conversionNotes: "Conversion notes:",
   noWorkspace: "No Blockly workspace",
   noFunctionsOnCanvas: "No Functions on the canvas. Extract to function, or load from the library.",
   contribute: "Contribute",

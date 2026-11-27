@@ -13,6 +13,7 @@ export const VMS_REMOVED_BLOCK_TYPES = [
   // `include_when` is the VMS guarded emit. Do not put it here.
   "math_random_int",
   "math_random_float",
+  "colour_random",
   "text_print",
   "lists_setIndex",
   "lists_repeat",

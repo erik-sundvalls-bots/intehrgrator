@@ -152,16 +152,13 @@ const BLOCKS_394: Record<string, B> = {
   "logic_list_restriction NONE (literal list)": blk("logic_list_restriction", { OP: "NONE" }, { LIST: list3(), PRED: cmp("EQ", item(), txt("z")) }),
   "logic_list_restriction EXACTLY 1 (literal list)": blk("logic_list_restriction", { OP: "EXACTLY", N: 1 }, { LIST: list3(), PRED: cmp("EQ", item(), txt("a")) }, { count: true }),
   "maps_get (Map value)": blk("maps_get", {}, { MAP: kMap(), KEY: txt("k") }),
+  "sheet_lookup": blk("sheet_lookup", { NAME: "Units" }, { MATCH_COL: txt("code"), MATCH_VAL: q("$.unit"), RETURN_COL: txt("label") }),
 };
 
 const CASES: Record<string, B> = { ...BLOCKS_393, ...BLOCKS_394 };
 
 /** Constructs a language cannot express: generation fails with this message. */
 const LOUD: Record<string, { block: B; languages: Record<string, string> }> = {
-  "sheet_lookup": {
-    block: blk("sheet_lookup", { NAME: "Units" }, { MATCH_COL: txt("code"), MATCH_VAL: q("$.unit"), RETURN_COL: txt("label") }),
-    languages: { handlebars: "Handlebars scripts do not support Sheets and Decision tables" },
-  },
   "lists_set_operation": {
     block: blk("lists_set_operation", { OP: "BOTH" }, { A: list3(), B: list(txt("a")) }),
     languages: {
@@ -274,9 +271,11 @@ Deno.test("block parity (all languages): text_handlebars on one field stays a fi
     assert(result.ok, `${mode}: ${result.error}`);
     assertEquals(value, "DEMO-001", mode);
   }
-  const hb = await unitIn(service, "handlebars");
-  assertEquals(hb.result.ok, false, "Handlebars must fail loudly (design decision on #394)");
-  assertStringIncludes(String(hb.result.error), "Handlebars scripts do not support a Handlebars block inside a value");
+  for (const mode of ["handlebars"] as const) {
+    const { result, value } = await unitIn(service, mode);
+    assert(result.ok, `${mode}: ${result.error}`);
+    assertEquals(value, "DEMO-001", mode);
+  }
 });
 
 Deno.test("block parity (all languages): Java gives the TypeScript value for every block", async () => {
