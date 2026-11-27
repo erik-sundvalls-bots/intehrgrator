@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-09-10
 - Amended: 2026-10-29 — out-of-dialect templates are not accepted (no hatch); see [Amendment 2026-10-29](#amendment-2026-10-29)
+- Amended: 2026-11-27 — VMS-Hbs value helpers, host-bound Sheets, `eachLen`, and inlined literal Handlebars values; see [Amendment 2026-11-27](#amendment-2026-11-27-394)
 
 ## Context
 
@@ -74,3 +75,18 @@ See [formal-verification-export.md — Out-of-dialect templates: not accepted](.
 **Why:** the only Go Code text came from a one-time conversion of the production chemo script into the chemo Example Sets. Only the Go runtime read it; Mapping preview, Handlebars, TypeScript and XQuery printed the Go source as the Note. Those sets are now built from ordinary blocks (text join, if/then/else, compare, change case, the new **replace regex** block) plus a `clean_free_text` Function.
 
 **Unchanged:** Go template stays a Conversion script (output) language. VMS-Go above now describes only the generated Go script, not authored canvas text.
+
+
+## Amendment 2026-11-27 (#394)
+
+**Change:** VMS-Hbs adds the value helpers generated Conversion Scripts already emit, plus host-bound Sheets helpers matching VMS-Go, a loop-length block helper, and generation-time inlining of a literal Handlebars value. Decided by Erik Sundvall on [#394](https://github.com/regionstockholm/intehrgrator/issues/394).
+
+**Helpers added to the VMS-Hbs whitelist** (register them in every Kintegrate / intEHRgrator Handlebars runtime, including `HandlebarsSupport.java` when that runtime renders these constructs):
+
+- Value helpers from the TypeScript-parity lowering: `same`, `cmpNum`, `ifElse`, `switchVal`, `title`, `round`, `mod`, `clamp`, `listAt`, `count`, `blk`.
+- Host-bound Sheets (ADR 0005), as in VMS-Go: `sheetLookup` and `decisionTable`. They read `_sheets` from the render root. The host (Mapping preview, Conversion Test Run, generated-script runtime) must place the convert-time sheet bag there. Other sheet accessors (`sheet_get_cell`, …) stay unsupported in Handlebars, as in Go.
+- `eachLen` — like `#each`, but `@len` is the collection length at entry, so Loop length is defined inside the loop. (`#each` is unchanged for authored templates.)
+
+**Literal Handlebars values:** a `handlebars()` / `text_handlebars` value whose script is a literal VMS-Hbs template is **spliced into the parent at generation time** (lowered to `concat` / `jget` / `ifElse` / the helpers above). There is no runtime `handlebars` helper. A computed (non-literal) template inside a value still fails generation with a clear error.
+
+**Unchanged:** `#with`, `lookup`, `#log`, partials, and unregistered helpers stay forbidden.

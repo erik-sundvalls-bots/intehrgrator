@@ -1896,7 +1896,7 @@ var require_no_conflict = __commonJS({
   "node_modules/.deno/handlebars@4.7.10/node_modules/handlebars/dist/cjs/handlebars/no-conflict.js"(exports2, module) {
     "use strict";
     exports2.__esModule = true;
-    exports2["default"] = function(Handlebars6) {
+    exports2["default"] = function(Handlebars7) {
       (function() {
         if (typeof globalThis === "object") return;
         Object.prototype.__defineGetter__("__magic__", function() {
@@ -1906,11 +1906,11 @@ var require_no_conflict = __commonJS({
         delete Object.prototype.__magic__;
       })();
       var $Handlebars = globalThis.Handlebars;
-      Handlebars6.noConflict = function() {
-        if (globalThis.Handlebars === Handlebars6) {
+      Handlebars7.noConflict = function() {
+        if (globalThis.Handlebars === Handlebars7) {
           globalThis.Handlebars = $Handlebars;
         }
-        return Handlebars6;
+        return Handlebars7;
       };
     };
     module.exports = exports2["default"];
@@ -7381,6 +7381,24 @@ var init_handlebars = __esm({
       slot(slotId, options) {
         return options.data?.root?._slots?.[String(slotId)];
       },
+      /**
+       * `#each` plus a precomputed `@len` (the collection length at entry).
+       * Used so Loop length works inside a generated Handlebars loop (#394).
+       */
+      eachLen(list2, options) {
+        const items = hbsAsList(list2);
+        if (typeof options.fn !== "function") return items;
+        const data = Object.create(options.data ?? null);
+        data.len = items.length;
+        const chunks = [];
+        for (let i5 = 0; i5 < items.length; i5++) {
+          data.index = i5;
+          data.first = i5 === 0;
+          data.last = i5 === items.length - 1;
+          chunks.push(options.fn(items[i5], { data }));
+        }
+        return chunks.join("");
+      },
       ...intehrgratorValueHelpers
     };
   }
@@ -7637,61 +7655,22 @@ var init_vms_hbs = __esm({
       clamp: true,
       listAt: true,
       count: true,
-      blk: true
+      blk: true,
+      sheetLookup: true,
+      decisionTable: true,
+      eachLen: true
     };
     FORBIDDEN_BLOCK_HELPERS = /* @__PURE__ */ new Set(["with", "log"]);
     FORBIDDEN_INLINE_HELPERS = /* @__PURE__ */ new Set(["lookup", "log", "with"]);
   }
 });
 
-// src/core/output/handlebars_dialect.ts
-function createKintegrateHandlebars() {
-  const engine = import_handlebars2.default.create();
-  registerKintegrateHandlebarsHelpers(engine);
-  return engine;
-}
-function renderHandlebars(templateSource, source, options = {}) {
-  const engine = createKintegrateHandlebars();
-  const root = isRecord(source) ? {
-    ...source,
-    _data: source,
-    _slots: options.slots ?? {},
-    _defaults: options.defaults ?? {}
-  } : {
-    value: source,
-    _data: source,
-    _slots: options.slots ?? {},
-    _defaults: options.defaults ?? {}
-  };
-  const knownHelpersOnly = options.knownHelpersOnly ?? true;
-  const template = engine.compile(templateSource, {
-    strict: options.strict ?? false,
-    noEscape: true,
-    data: true,
-    preventIndent: false,
-    knownHelpers: VMS_HBS_ALLOWED_HELPERS,
-    knownHelpersOnly
-  });
-  return template(root, {
-    allowProtoMethodsByDefault: false,
-    allowProtoPropertiesByDefault: false
-  });
-}
-function precompileHandlebars(templateSource) {
-  return String(createKintegrateHandlebars().precompile(templateSource, {
-    noEscape: true,
-    data: true
-  }));
-}
-function isRecord(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-var import_handlebars2;
-var init_handlebars_dialect = __esm({
-  "src/core/output/handlebars_dialect.ts"() {
-    import_handlebars2 = __toESM(require_lib());
-    init_handlebars();
-    init_vms_hbs();
+// src/core/sheets/types.ts
+var ROW_NAME_COLUMN, DONT_CARE_GLYPHS;
+var init_types2 = __esm({
+  "src/core/sheets/types.ts"() {
+    ROW_NAME_COLUMN = "__row";
+    DONT_CARE_GLYPHS = /* @__PURE__ */ new Set(["", "\u2014", "\u2013", "-", "*"]);
   }
 });
 
@@ -7726,15 +7705,6 @@ function parseA1(ref) {
 }
 var init_a1 = __esm({
   "src/core/sheets/a1.ts"() {
-  }
-});
-
-// src/core/sheets/types.ts
-var ROW_NAME_COLUMN, DONT_CARE_GLYPHS;
-var init_types2 = __esm({
-  "src/core/sheets/types.ts"() {
-    ROW_NAME_COLUMN = "__row";
-    DONT_CARE_GLYPHS = /* @__PURE__ */ new Set(["", "\u2014", "\u2013", "-", "*"]);
   }
 });
 
@@ -8165,7 +8135,7 @@ function renderDecisionSnippet(template, locals) {
 }
 function renderSnippet(template, locals) {
   if (!template.includes("{{")) return template;
-  const engine = import_handlebars4.default.create();
+  const engine = import_handlebars2.default.create();
   const compiled = engine.compile(template, {
     noEscape: true,
     knownHelpersOnly: true,
@@ -8367,10 +8337,10 @@ function predicateInterval(p4) {
       return { lo: Number.NEGATIVE_INFINITY, hi: p4.value, loInc: true, hiInc: false };
   }
 }
-var import_handlebars4, DECISION_ALL_OUTPUTS, RANGE_RE, COMPARE_RE;
+var import_handlebars2, DECISION_ALL_OUTPUTS, RANGE_RE, COMPARE_RE;
 var init_decision_table = __esm({
   "src/core/sheets/decision_table.ts"() {
-    import_handlebars4 = __toESM(require_lib());
+    import_handlebars2 = __toESM(require_lib());
     init_vms_hbs();
     init_a1();
     init_model();
@@ -8378,6 +8348,198 @@ var init_decision_table = __esm({
     DECISION_ALL_OUTPUTS = "*";
     RANGE_RE = /^(-?\d+(?:\.\d+)?)\s*\.\.\s*(-?\d+(?:\.\d+)?)$/;
     COMPARE_RE = /^(>=|<=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/;
+  }
+});
+
+// src/core/sheets/csv.ts
+var init_csv = __esm({
+  "src/core/sheets/csv.ts"() {
+  }
+});
+
+// src/core/sheets/evaluate.ts
+function isSheetAccessor(name2) {
+  return SHEET_ACCESSOR_NAMES.includes(name2);
+}
+function evalSheetCall(name2, args, bag) {
+  const sheet = bag[String(args[0] ?? "")];
+  if (!sheet) return null;
+  try {
+    switch (name2) {
+      case "sheet_get_cell":
+        return getCellA1(sheet, String(args[1] ?? "A1"));
+      case "sheet_get_xy":
+        return getXy(sheet, Number(args[1] ?? 0), Number(args[2] ?? 0));
+      case "sheet_get_row":
+        return getRow(sheet, Number(args[1] ?? 0));
+      case "sheet_get_column":
+        return getColumn(sheet, Number(args[1] ?? 0));
+      case "sheet_get_header":
+        return getHeader(sheet, Number(args[1] ?? 0));
+      case "sheet_get_data":
+        return getData(sheet);
+      case "sheet_lookup":
+        return sheetLookup(
+          sheet,
+          args[1],
+          args[2],
+          args.length >= 4 ? args[3] : void 0
+        );
+      case "decision_table": {
+        const inputs = asInputRecord(args[1]);
+        const outputCol = args.length >= 3 ? String(args[2] ?? "") : void 0;
+        return evaluateDecisionTable(sheet, inputs, outputCol || void 0);
+      }
+    }
+  } catch (err2) {
+    if (name2 === "decision_table") throw err2;
+    return null;
+  }
+}
+function asInputRecord(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return {};
+}
+var SHEET_ACCESSOR_NAMES;
+var init_evaluate = __esm({
+  "src/core/sheets/evaluate.ts"() {
+    init_decision_table();
+    init_model();
+    SHEET_ACCESSOR_NAMES = [
+      "sheet_get_cell",
+      "sheet_get_xy",
+      "sheet_get_row",
+      "sheet_get_column",
+      "sheet_get_header",
+      "sheet_get_data",
+      "sheet_lookup",
+      "decision_table"
+    ];
+  }
+});
+
+// src/core/sheets/mod.ts
+var init_mod2 = __esm({
+  "src/core/sheets/mod.ts"() {
+    init_types2();
+    init_a1();
+    init_model();
+    init_decision_table();
+    init_csv();
+    init_evaluate();
+  }
+});
+
+// src/core/output/handlebars_dialect.ts
+function createKintegrateHandlebars() {
+  const engine = import_handlebars3.default.create();
+  registerKintegrateHandlebarsHelpers(engine);
+  registerSheetHandlebarsHelpers(engine);
+  return engine;
+}
+function sheetBagFrom(sheets) {
+  if (!sheets) return {};
+  if (Array.isArray(sheets)) {
+    const bag = {};
+    for (const sheet of sheets) bag[sheet.name] = sheet;
+    return bag;
+  }
+  return sheets;
+}
+function resolveSheet(bag, name2) {
+  if (!bag) return null;
+  const key = String(name2 ?? "");
+  const raw = bag[key];
+  if (!raw) return null;
+  try {
+    return normalizeSheet(raw);
+  } catch {
+    return null;
+  }
+}
+function inputsRecord(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return {};
+}
+function registerSheetHandlebarsHelpers(engine) {
+  engine.registerHelper(
+    "sheetLookup",
+    (sheet, matchCol, matchVal, returnCol, options) => {
+      let ret = returnCol;
+      let opts = options;
+      if (ret && typeof ret === "object" && ret !== null && "data" in ret && opts === void 0) {
+        opts = ret;
+        ret = void 0;
+      }
+      const doc2 = resolveSheet(opts?.data?.root?._sheets, sheet);
+      if (!doc2) return null;
+      return sheetLookup(
+        doc2,
+        matchCol,
+        matchVal,
+        ret === void 0 || ret === null || ret === "" ? void 0 : ret
+      ) ?? null;
+    }
+  );
+  engine.registerHelper(
+    "decisionTable",
+    (table, inputs, output, options) => {
+      const doc2 = resolveSheet(options?.data?.root?._sheets, table);
+      if (!doc2) return null;
+      const column = output == null || output === "" ? void 0 : String(output);
+      return evaluateDecisionTable(doc2, inputsRecord(inputs), column);
+    }
+  );
+}
+function renderHandlebars(templateSource, source, options = {}) {
+  const engine = createKintegrateHandlebars();
+  const root = isRecord(source) ? {
+    ...source,
+    _data: source,
+    _slots: options.slots ?? {},
+    _defaults: options.defaults ?? {},
+    _sheets: options.sheets ? sheetBagFrom(options.sheets) : source._sheets ?? {}
+  } : {
+    value: source,
+    _data: source,
+    _slots: options.slots ?? {},
+    _defaults: options.defaults ?? {},
+    _sheets: sheetBagFrom(options.sheets)
+  };
+  const knownHelpersOnly = options.knownHelpersOnly ?? true;
+  const template = engine.compile(templateSource, {
+    strict: options.strict ?? false,
+    noEscape: true,
+    data: true,
+    preventIndent: false,
+    knownHelpers: VMS_HBS_ALLOWED_HELPERS,
+    knownHelpersOnly
+  });
+  return template(root, {
+    allowProtoMethodsByDefault: false,
+    allowProtoPropertiesByDefault: false
+  });
+}
+function precompileHandlebars(templateSource) {
+  return String(createKintegrateHandlebars().precompile(templateSource, {
+    noEscape: true,
+    data: true
+  }));
+}
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+var import_handlebars3;
+var init_handlebars_dialect = __esm({
+  "src/core/output/handlebars_dialect.ts"() {
+    import_handlebars3 = __toESM(require_lib());
+    init_handlebars();
+    init_vms_hbs();
+    init_mod2();
   }
 });
 
@@ -192048,7 +192210,7 @@ function executeGoTemplate(templateSource, data, options) {
   installHandlebarsHost();
   installSheetHosts();
   const dataJson = JSON.stringify(data);
-  const sheetsJson = JSON.stringify(sheetBagFrom(options?.sheets));
+  const sheetsJson = JSON.stringify(sheetBagFrom2(options?.sheets));
   if (!wasmExecutor) {
     throw new Error(
       "Go template WASM runtime is not loaded. Call ensureGoTemplateWasm() before Conversion Test Run, or rebuild with `deno task wasm:go-template`."
@@ -192119,7 +192281,7 @@ function installSheetHosts() {
     }
   };
 }
-function sheetBagFrom(sheets) {
+function sheetBagFrom2(sheets) {
   if (!sheets) return {};
   if (Array.isArray(sheets)) return sheetsToBag(sheets);
   return sheets;
@@ -194892,65 +195054,8 @@ function upsertLoop(model, loop) {
   return { ...model, loops: loops2 };
 }
 
-// src/core/sheets/evaluate.ts
-init_decision_table();
-init_model();
-var SHEET_ACCESSOR_NAMES = [
-  "sheet_get_cell",
-  "sheet_get_xy",
-  "sheet_get_row",
-  "sheet_get_column",
-  "sheet_get_header",
-  "sheet_get_data",
-  "sheet_lookup",
-  "decision_table"
-];
-function isSheetAccessor(name2) {
-  return SHEET_ACCESSOR_NAMES.includes(name2);
-}
-function evalSheetCall(name2, args, bag) {
-  const sheet = bag[String(args[0] ?? "")];
-  if (!sheet) return null;
-  try {
-    switch (name2) {
-      case "sheet_get_cell":
-        return getCellA1(sheet, String(args[1] ?? "A1"));
-      case "sheet_get_xy":
-        return getXy(sheet, Number(args[1] ?? 0), Number(args[2] ?? 0));
-      case "sheet_get_row":
-        return getRow(sheet, Number(args[1] ?? 0));
-      case "sheet_get_column":
-        return getColumn(sheet, Number(args[1] ?? 0));
-      case "sheet_get_header":
-        return getHeader(sheet, Number(args[1] ?? 0));
-      case "sheet_get_data":
-        return getData(sheet);
-      case "sheet_lookup":
-        return sheetLookup(
-          sheet,
-          args[1],
-          args[2],
-          args.length >= 4 ? args[3] : void 0
-        );
-      case "decision_table": {
-        const inputs = asInputRecord(args[1]);
-        const outputCol = args.length >= 3 ? String(args[2] ?? "") : void 0;
-        return evaluateDecisionTable(sheet, inputs, outputCol || void 0);
-      }
-    }
-  } catch (err2) {
-    if (name2 === "decision_table") throw err2;
-    return null;
-  }
-}
-function asInputRecord(value) {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value;
-  }
-  return {};
-}
-
 // src/core/expression/mod.ts
+init_evaluate();
 init_blockly_ops();
 init_blockly_ops();
 var LOGIC_COMPARE_NAMES = ["eq", "ne", "lt", "le", "gt", "ge"];
@@ -214881,7 +214986,7 @@ function isAttribute(name2) {
 // node_modules/.deno/fast-xml-parser@5.12.1/node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
 var json2xml_default = Builder;
 
-// openehr-term-xml:/tmp/previews-ex/src/src/core/openehr_term_xml_embed.ts
+// openehr-term-xml:/tmp/previews-dec/src/src/core/openehr_term_xml_embed.ts
 function openEhrTerminologyXml() {
   return {
     en: `<terminology name="openehr" language="en" version="3.1.0" date="2024-04-11">
@@ -256700,12 +256805,150 @@ function indentLines2(src, n5) {
   return src.map((line) => line.length ? pad + line : line);
 }
 
-// src/core/codegen/handlebars_codegen.ts
+// src/core/codegen/handlebars_literal.ts
+var import_handlebars6 = __toESM(require_lib());
+var HBS = "Handlebars scripts";
 function hbsStr(s5) {
   return JSON.stringify(s5);
 }
+function pathOriginal(node) {
+  if (!node) return "";
+  if (node.original) return node.original;
+  if (node.path?.original) return node.path.original;
+  if (node.path?.parts?.length) return node.path.parts.join(".");
+  return "";
+}
+function jget(contextExpr, path) {
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "." || trimmed === "this") return contextExpr;
+  const parts = trimmed.split(".").filter(Boolean);
+  if (!parts.length) return contextExpr;
+  return `(jget ${contextExpr} ${parts.map(hbsStr).join(" ")})`;
+}
+function lowerExpr(node, contextExpr) {
+  const type = node.type ?? "";
+  if (type === "PathExpression" || type === "Id") return jget(contextExpr, pathOriginal(node));
+  if (type === "StringLiteral") return hbsStr(String(node.value ?? ""));
+  if (type === "NumberLiteral") return String(node.value ?? 0);
+  if (type === "BooleanLiteral") return node.value ? "true" : "false";
+  if (type === "NullLiteral" || type === "UndefinedLiteral") return "null";
+  if (type === "SubExpression") return lowerMustache(node, contextExpr);
+  throw goUnsupported(
+    `a Handlebars ${type || "construct"} inside a value (only a literal VMS-Hbs template can be inlined)`,
+    HBS
+  );
+}
+function lowerMustache(node, contextExpr) {
+  const name2 = pathOriginal(node);
+  const params = (node.params ?? []).map((p4) => lowerExpr(p4, contextExpr));
+  if (!name2) return "null";
+  if (!params.length && !node.hash?.pairs?.length) {
+    return jget(contextExpr, name2);
+  }
+  const args = params.join(" ");
+  switch (name2) {
+    case "toUpperCase":
+    case "toLowerCase":
+    case "trim":
+    case "title":
+    case "toNum":
+    case "not":
+    case "nonEmpty":
+    case "inc":
+    case "dec":
+    case "count":
+      return `(${name2} ${args || '""'})`;
+    case "eq":
+      return `(same ${params[0] ?? "null"} ${params[1] ?? "null"})`;
+    case "ne":
+      return `(ifElse (same ${params[0] ?? "null"} ${params[1] ?? "null"}) false true)`;
+    case "concat":
+    case "coalesce":
+    case "replace":
+    case "regexReplace":
+    case "add":
+    case "sub":
+    case "mul":
+    case "div":
+    case "and":
+    case "or":
+    case "ifElse":
+    case "cmpNum":
+    case "round":
+    case "mod":
+    case "clamp":
+    case "listAt":
+    case "jget":
+    case "blk":
+      return `(${name2}${args ? " " + args : ""})`;
+    default:
+      throw goUnsupported(
+        `the Handlebars helper ${name2} inside a value (inline only VMS-Hbs helpers that lower to an expression)`,
+        HBS
+      );
+  }
+}
+function lowerBody(nodes, contextExpr) {
+  const parts = [];
+  for (const node of nodes ?? []) {
+    const type = node.type ?? "";
+    if (type === "ContentStatement") {
+      const text2 = String(node.value ?? "");
+      if (text2) parts.push(hbsStr(text2));
+      continue;
+    }
+    if (type === "CommentStatement") continue;
+    if (type === "MustacheStatement") {
+      parts.push(lowerMustache(node, contextExpr));
+      continue;
+    }
+    if (type === "BlockStatement") {
+      const name2 = pathOriginal(node);
+      if (name2 === "if" || name2 === "unless") {
+        const cond = node.params?.[0] ? lowerExpr(node.params[0], contextExpr) : "false";
+        const thenExpr = lowerBody(node.program?.body, contextExpr);
+        const elseExpr = node.inverse?.body?.length ? lowerBody(node.inverse.body, contextExpr) : '""';
+        const pred = name2 === "unless" ? `(ifElse ${cond} false true)` : cond;
+        parts.push(`(ifElse ${pred} ${thenExpr} ${elseExpr})`);
+        continue;
+      }
+      throw goUnsupported(
+        `a Handlebars {{#${name2}}} block inside a value (only {{#if}} / {{#unless}} and interpolations are inlined)`,
+        HBS
+      );
+    }
+    if (type === "Program") {
+      parts.push(lowerBody(node.body, contextExpr));
+      continue;
+    }
+    throw goUnsupported(
+      `a Handlebars ${type || "construct"} inside a value (only a literal VMS-Hbs template can be inlined)`,
+      HBS
+    );
+  }
+  if (!parts.length) return '""';
+  if (parts.length === 1) return parts[0];
+  return `(concat ${parts.join(" ")})`;
+}
+function lowerLiteralHandlebarsToExpr(script, contextExpr) {
+  let ast;
+  try {
+    ast = import_handlebars6.default.parse(script);
+  } catch (err2) {
+    throw goUnsupported(
+      `an invalid Handlebars template inside a value (${err2 instanceof Error ? err2.message : String(err2)})`,
+      HBS
+    );
+  }
+  return lowerBody(ast.body, contextExpr || "@root._data");
+}
+
+// src/core/codegen/handlebars_codegen.ts
+function hbsStr2(s5) {
+  return JSON.stringify(s5);
+}
 function hbsHashKey(k4) {
-  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k4) ? k4 : hbsStr(k4);
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k4) ? k4 : hbsStr2(k4);
 }
 function jsonPathToJgetArgs2(path) {
   const body = path.trim().replace(/^\$\.?/, "");
@@ -256723,18 +256966,18 @@ function jsonPathToJgetArgs2(path) {
       const inner = body.slice(i5 + 1, close).trim();
       if (inner.startsWith("'") && inner.endsWith("'") || inner.startsWith('"') && inner.endsWith('"')) {
         const unquoted = inner.slice(1, -1).replace(/\\(['"\\])/g, "$1");
-        args.push(hbsStr(unquoted));
+        args.push(hbsStr2(unquoted));
       } else if (/^\d+$/.test(inner)) {
         args.push(String(Math.max(0, Number(inner) - 1)));
       } else if (inner !== "*") {
-        args.push(hbsStr(inner));
+        args.push(hbsStr2(inner));
       }
       i5 = close + 1;
       continue;
     }
     let j4 = i5;
     while (j4 < body.length && body[j4] !== "." && body[j4] !== "[") j4++;
-    if (j4 > i5) args.push(hbsStr(body.slice(i5, j4)));
+    if (j4 > i5) args.push(hbsStr2(body.slice(i5, j4)));
     i5 = j4;
   }
   return args;
@@ -256763,21 +257006,21 @@ function emitHbsPathExpr(path, ctx) {
     return primary;
   }
   if (trimmed.startsWith("/")) {
-    const parts = trimmed.split("/").filter(Boolean).map((p4) => hbsStr(p4));
+    const parts = trimmed.split("/").filter(Boolean).map((p4) => hbsStr2(p4));
     return parts.length ? `(jget ${ctx.sourceExpr} ${parts.join(" ")})` : ctx.sourceExpr;
   }
-  return `(jget ${ctx.sourceExpr} ${hbsStr(trimmed)})`;
+  return `(jget ${ctx.sourceExpr} ${hbsStr2(trimmed)})`;
 }
-var HBS = "Handlebars scripts";
+var HBS2 = "Handlebars scripts";
 function hbsUnsupported(what) {
-  return goUnsupported(what, HBS);
+  return goUnsupported(what, HBS2);
 }
 function emitHbsAstExpr(ast, ctx) {
   if (ast.kind === "literal") {
     if (ast.value === null || ast.value === void 0) return "null";
     if (typeof ast.value === "boolean") return ast.value ? "true" : "false";
     if (typeof ast.value === "number") return String(ast.value);
-    return hbsStr(String(ast.value));
+    return hbsStr2(String(ast.value));
   }
   if (ast.kind === "binary") {
     const fn2 = { "+": "add", "-": "sub", "*": "mul", "/": "div" }[ast.op];
@@ -256788,12 +257031,12 @@ function emitHbsAstExpr(ast, ctx) {
   const arg = (i5, fallback) => args[i5] ? emitHbsAstExpr(args[i5], ctx) : fallback;
   if (isQuantifyCall(name2)) {
     return unrollGoQuantifier(ast, (item) => emitHbsAstExpr(item, ctx), {
-      language: HBS,
+      language: HBS2,
       negate: (expr) => `(ifElse ${expr} false true)`
     });
   }
   if (isBlocklyOpName(name2)) {
-    return `(blk ${[hbsStr(name2), ...args.map((a5) => emitHbsAstExpr(a5, ctx))].join(" ")})`;
+    return `(blk ${[hbsStr2(name2), ...args.map((a5) => emitHbsAstExpr(a5, ctx))].join(" ")})`;
   }
   if (name2 === "xpathString" || name2 === "xpathNumber" || name2 === "xpathBoolean" || name2 === "xpath" || name2 === "xpathList" || name2 === "xpathNode" || name2 === "xpathNodes") {
     const p4 = args[0]?.kind === "literal" ? String(args[0].value) : "";
@@ -256809,7 +257052,7 @@ function emitHbsAstExpr(ast, ctx) {
     throw hbsUnsupported(`the variable ${varName || "(unnamed)"} outside a loop or Function`);
   }
   if (name2 === "call") {
-    return emitHbsAstExpr(inlineGoFunctionCall(ast, ctx.functions, 0, HBS), ctx);
+    return emitHbsAstExpr(inlineGoFunctionCall(ast, ctx.functions, 0, HBS2), ctx);
   }
   if (name2 === "maps_get") {
     const mapArg = args[0];
@@ -256881,16 +257124,28 @@ function emitHbsAstExpr(ast, ctx) {
   if (name2 === "length" || name2 === "listLength" || name2 === "lists_length") return `(count ${arg(0, "null")})`;
   if (name2 === "lists_getIndex") {
     const where = args[1]?.kind === "literal" ? String(args[1].value) : "FROM_START";
-    return `(listAt ${arg(0, "null")} ${hbsStr(where)} ${arg(2, "1")})`;
+    return `(listAt ${arg(0, "null")} ${hbsStr2(where)} ${arg(2, "1")})`;
   }
   if (name2 === "handlebars") {
-    throw hbsUnsupported("a Handlebars block inside a value (use the Handlebars text directly)");
+    const scriptAst = args[0];
+    if (scriptAst?.kind !== "literal") {
+      throw hbsUnsupported(
+        "a computed Handlebars template inside a value (only a literal template is inlined at generation time)"
+      );
+    }
+    return lowerLiteralHandlebarsToExpr(String(scriptAst.value ?? ""), arg(1, "@root._data"));
   }
   if (name2 === "toNumber" || name2 === "number") return `(toNum ${arg(0, "null")})`;
   if (name2 === "toString" || name2 === "string") return `(concat ${arg(0, '""')})`;
-  if (name2 === "sheet_lookup" || name2 === "decision_table" || name2.startsWith("sheet_")) {
+  if (name2 === "sheet_lookup") {
+    return `(sheetLookup ${arg(0, '""')} ${arg(1, '""')} ${arg(2, '""')} ${arg(3, '""')})`;
+  }
+  if (name2 === "decision_table") {
+    return `(decisionTable ${arg(0, '""')} ${arg(1, "(dict)")} ${arg(2, '""')})`;
+  }
+  if (name2.startsWith("sheet_")) {
     throw hbsUnsupported(
-      "Sheets and Decision tables (the VMS-Hbs runtime has no Sheets; see issue #394)"
+      name2 + " (Handlebars scripts support sheetLookup and decisionTable only, like Go)"
     );
   }
   throw hbsUnsupported(
@@ -256905,7 +257160,7 @@ function hbsShellGen(ctx) {
         ([k4, v4]) => k4 === "terminology_id" && !v4.includes("TERMINOLOGY_ID") ? [k4, `(rmObj _type="TERMINOLOGY_ID" value=${v4})`] : [k4, v4]
       ) : fields;
       const hashParts = normalized.map(([k4, v4]) => `${hbsHashKey(k4)}=${v4}`);
-      return `(rmObj _type=${hbsStr(rmType)}${hashParts.length ? " " + hashParts.join(" ") : ""})`;
+      return `(rmObj _type=${hbsStr2(rmType)}${hashParts.length ? " " + hashParts.join(" ") : ""})`;
     },
     list: (items) => items.length ? `(list ${items.join(" ")})` : "(list)",
     octets: (code) => {
@@ -256981,15 +257236,15 @@ function emitHbsSkelValue(node, ctx) {
   if (rmType === "CODE_PHRASE") {
     const term = fields.terminology_id ?? "";
     const code = fields.code_string ?? fields.defining_code;
-    const codeExpr = expr ?? (code ? hbsStr(code) : null);
+    const codeExpr = expr ?? (code ? hbsStr2(code) : null);
     if (!term && !codeExpr) return null;
-    return `(codePhrase ${codeExpr ?? '""'} ${hbsStr(term)})`;
+    return `(codePhrase ${codeExpr ?? '""'} ${hbsStr2(term)})`;
   }
   if (rmType === "DV_QUANTITY") {
     if (!expr) return null;
     const hasShellUnits = Boolean(slot?.shellFragments && "units" in slot.shellFragments);
     const extras = [
-      ...hasShellUnits ? [] : [`units=${hbsStr(fields.units ?? "")}`],
+      ...hasShellUnits ? [] : [`units=${hbsStr2(fields.units ?? "")}`],
       ...shellHash
     ];
     return `(dvVal "DV_QUANTITY" ${expr} "magnitude"${extras.length ? " " + extras.join(" ") : ""})`;
@@ -256997,7 +257252,7 @@ function emitHbsSkelValue(node, ctx) {
   if (rmType === "DV_COUNT" || rmType === "DV_ORDINAL" || rmType === "DV_PROPORTION") {
     if (!expr) return null;
     const prop = rmType === "DV_ORDINAL" ? "value" : "magnitude";
-    return `(dvVal ${hbsStr(rmType)} ${expr} ${hbsStr(prop)}${shellHash.length ? " " + shellHash.join(" ") : ""})`;
+    return `(dvVal ${hbsStr2(rmType)} ${expr} ${hbsStr2(prop)}${shellHash.length ? " " + shellHash.join(" ") : ""})`;
   }
   if (rmType === "DV_BOOLEAN") {
     if (!expr) return null;
@@ -257005,15 +257260,15 @@ function emitHbsSkelValue(node, ctx) {
   }
   if (rmType === "DV_CODED_TEXT") {
     if (!expr && !coded && isClinicalElementValue) return null;
-    const value = expr ?? (fields.value ? hbsStr(fields.value) : null);
+    const value = expr ?? (fields.value ? hbsStr2(fields.value) : null);
     const fixedCode = fields.defining_code ?? fields.code_string;
-    const term = coded?.terminology ? emitHbsAstExpr(coded.terminology, ctx) : hbsStr(fields.terminology_id ?? "openehr");
-    const code = coded?.code ? emitHbsAstExpr(coded.code, ctx) : fixedCode ? hbsStr(fixedCode) : null;
+    const term = coded?.terminology ? emitHbsAstExpr(coded.terminology, ctx) : hbsStr2(fields.terminology_id ?? "openehr");
+    const code = coded?.code ? emitHbsAstExpr(coded.code, ctx) : fixedCode ? hbsStr2(fixedCode) : null;
     if (!code && !value) return null;
     const hasShellDef = Boolean(slot?.shellFragments && "defining_code" in slot.shellFragments);
     if (value && !coded && !hasShellDef && node.allowedValues?.length) {
-      const pairs = node.allowedValues.map((av) => hbsStr(`${av.code}=${av.label}`)).join(" ");
-      const avTerm = hbsStr(node.allowedValues[0]?.terminologyId ?? fields.terminology_id ?? "local");
+      const pairs = node.allowedValues.map((av) => hbsStr2(`${av.code}=${av.label}`)).join(" ");
+      const avTerm = hbsStr2(node.allowedValues[0]?.terminologyId ?? fields.terminology_id ?? "local");
       return `(codedText ${value} ${avTerm} ${pairs})`;
     }
     if (value && !coded && !code && !hasShellDef && node.rmAttribute === "category") {
@@ -257029,18 +257284,18 @@ function emitHbsSkelValue(node, ctx) {
     return objExpr;
   }
   if (rmType === "DV_DATE_TIME" || rmType === "DV_DATE" || rmType === "DV_TIME" || rmType === "DV_DURATION" || rmType === "DV_URI" || rmType === "DV_EHR_URI" || rmType === "DV_TEXT" || rmType === "DV_IDENTIFIER") {
-    const value = expr ?? (isClinicalElementValue ? null : fields.value ? hbsStr(fields.value) : null);
+    const value = expr ?? (isClinicalElementValue ? null : fields.value ? hbsStr2(fields.value) : null);
     if (!value) return null;
     const prop = rmType === "DV_IDENTIFIER" ? "id" : "value";
-    return `(dvVal ${hbsStr(rmType)} ${value} ${hbsStr(prop)}${shellHash.length ? " " + shellHash.join(" ") : ""})`;
+    return `(dvVal ${hbsStr2(rmType)} ${value} ${hbsStr2(prop)}${shellHash.length ? " " + shellHash.join(" ") : ""})`;
   }
   if (rmType === "PARTY_PROXY" || rmType === "PARTY_IDENTIFIED" || rmType === "PARTY_SELF") {
     const fallback = rmType === "PARTY_SELF" || node.rmAttribute === "subject" ? "PARTY_SELF" : "PARTY_IDENTIFIED";
-    if (expr) return `(partyVal ${expr} ${hbsStr(fallback)})`;
+    if (expr) return `(partyVal ${expr} ${hbsStr2(fallback)})`;
     if (fallback === "PARTY_SELF") return `(rmObj _type="PARTY_SELF")`;
     return null;
   }
-  if (expr) return `(dvVal ${hbsStr(rmType)} ${expr} "value")`;
+  if (expr) return `(dvVal ${hbsStr2(rmType)} ${expr} "value")`;
   return null;
 }
 function guardHbsExpr(node, expr, ctx) {
@@ -257066,15 +257321,15 @@ function emitHbsPureNode(node, ctx, parentArchetypeRef) {
     return null;
   }
   const pairs = [];
-  pairs.push(["_type", hbsStr(node.rmType)]);
+  pairs.push(["_type", hbsStr2(node.rmType)]);
   const locatableName = rmLocatableName(node);
   if (locatableName && shouldEmitHbsSkelName(node)) {
-    pairs.push(["name", `(rmObj _type="DV_TEXT" value=${hbsStr(locatableName)})`]);
+    pairs.push(["name", `(rmObj _type="DV_TEXT" value=${hbsStr2(locatableName)})`]);
   }
   const nodeId = rmArchetypeNodeId(node, parentArchetypeRef);
-  if (nodeId) pairs.push(["archetype_node_id", hbsStr(nodeId)]);
+  if (nodeId) pairs.push(["archetype_node_id", hbsStr2(nodeId)]);
   if (node.rmType === "ACTIVITY") {
-    pairs.push(["action_archetype_id", hbsStr(node.fixedFields?.action_archetype_id ?? "/.*/")]);
+    pairs.push(["action_archetype_id", hbsStr2(node.fixedFields?.action_archetype_id ?? "/.*/")]);
   }
   const childRef = node.archetypeRef ?? parentArchetypeRef;
   const grouped = /* @__PURE__ */ new Map();
@@ -257132,17 +257387,17 @@ function emitHbsLoopedNode(node, ctx, isXml, isRoot, parentArchetypeRef, tagOver
       varBindings: {
         ...ctx.varBindings,
         [loopIndexBinderName(loop.varName)]: "@index",
-        [loopLengthBinderName(loop.varName)]: "0"
+        [loopLengthBinderName(loop.varName)]: "@len"
       }
     };
     const innerHasLoop = nodeHasLoop2(node, innerCtx.loops);
     if (innerHasLoop) {
       const body = emitHbsLoopedNode(node, innerCtx, isXml, false, parentArchetypeRef, tag);
-      return isXml ? `{{#each ${colExpr}}}${body}{{/each}}` : `{{#each ${colExpr}}}{{#if @index}},{{/if}}${body}{{/each}}`;
+      return isXml ? `{{#eachLen ${colExpr}}}${body}{{/eachLen}}` : `{{#eachLen ${colExpr}}}{{#if @index}},{{/if}}${body}{{/eachLen}}`;
     }
     const pure = emitHbsPureNode(node, innerCtx, parentArchetypeRef);
     if (!pure) return "";
-    return isXml ? `{{#each ${colExpr}}}{{rmToXmlFrag ${hbsStr(tag)} ${pure}}}{{/each}}` : `{{#each ${colExpr}}}{{#if (nonEmpty ${pure})}}{{#if @index}},{{/if}}{{toJson ${pure}}}{{/if}}{{/each}}`;
+    return isXml ? `{{#eachLen ${colExpr}}}{{rmToXmlFrag ${hbsStr2(tag)} ${pure}}}{{/eachLen}}` : `{{#eachLen ${colExpr}}}{{#if (nonEmpty ${pure})}}{{#if @index}},{{/if}}{{toJson ${pure}}}{{/if}}{{/eachLen}}`;
   }
   const locatableName = rmLocatableName(node);
   const nodeId = rmArchetypeNodeId(node, parentArchetypeRef);
@@ -257177,20 +257432,20 @@ function emitHbsLoopedNode(node, ctx, isXml, isRoot, parentArchetypeRef, tagOver
           parts.push(emitHbsLoopedNode(child, ctx, true, false, childRef, attr));
         } else {
           const pure = emitHbsPureNode(child, ctx, childRef);
-          if (pure) parts.push(`{{rmToXmlFrag ${hbsStr(attr)} ${pure}}}`);
+          if (pure) parts.push(`{{rmToXmlFrag ${hbsStr2(attr)} ${pure}}}`);
         }
       }
     }
     parts.push(`</${tag}>`);
     return parts.join("");
   }
-  const fields = [`"_type": ${hbsStr(node.rmType)}`];
+  const fields = [`"_type": ${hbsStr2(node.rmType)}`];
   if (locatableName && shouldEmitHbsSkelName(node) && !grouped.has("name")) {
-    fields.push(`"name": {"_type": "DV_TEXT", "value": ${hbsStr(locatableName)}}`);
+    fields.push(`"name": {"_type": "DV_TEXT", "value": ${hbsStr2(locatableName)}}`);
   }
-  if (nodeId) fields.push(`"archetype_node_id": ${hbsStr(nodeId)}`);
+  if (nodeId) fields.push(`"archetype_node_id": ${hbsStr2(nodeId)}`);
   if (node.rmType === "ACTIVITY") {
-    fields.push(`"action_archetype_id": ${hbsStr(node.fixedFields?.action_archetype_id ?? "/.*/")}`);
+    fields.push(`"action_archetype_id": ${hbsStr2(node.fixedFields?.action_archetype_id ?? "/.*/")}`);
   }
   for (const [attr, children] of grouped) {
     const listAttr = isListAttribute(node.rmType, attr);
@@ -257204,15 +257459,15 @@ function emitHbsLoopedNode(node, ctx, isXml, isRoot, parentArchetypeRef, tagOver
         return pure ? `{{toJson ${pure}}}` : "";
       }).filter(Boolean);
       if (!rendered.length) continue;
-      fields.push(listAttr ? `${hbsStr(attr)}: [${rendered.join(",")}]` : `${hbsStr(attr)}: ${rendered[0]}`);
+      fields.push(listAttr ? `${hbsStr2(attr)}: [${rendered.join(",")}]` : `${hbsStr2(attr)}: ${rendered[0]}`);
     } else if (listAttr) {
       const pureItems = children.map((c5) => emitHbsPureNode(c5, ctx, childRef)).filter((x4) => Boolean(x4));
       if (!pureItems.length) continue;
-      fields.push(`${hbsStr(attr)}: {{toJson (list ${pureItems.join(" ")})}}`);
+      fields.push(`${hbsStr2(attr)}: {{toJson (list ${pureItems.join(" ")})}}`);
     } else {
       const pure = emitHbsPureNode(children[0], ctx, childRef);
       if (!pure) continue;
-      fields.push(`${hbsStr(attr)}: {{toJson ${pure}}}`);
+      fields.push(`${hbsStr2(attr)}: {{toJson ${pure}}}`);
     }
   }
   return `{ ${fields.join(", ")} }`;
@@ -257969,6 +258224,7 @@ init_handlebars_dialect();
 var DEFAULTS_MAP_NAME = "defaults";
 
 // src/core/source/query_runtime.ts
+init_evaluate();
 function createSourceContext(content2, format4, kind = format4 === "xml" ? "xml" : "json") {
   if (kind === "json") {
     const parsed = parseJsonDocument(content2);
@@ -258665,7 +258921,7 @@ function isRecord6(value) {
 
 // src/core/codegen/run_typescript.ts
 init_fontoxpath_esm();
-var import_handlebars7 = __toESM(require_lib());
+var import_handlebars8 = __toESM(require_lib());
 
 // src/core/codegen/helpers/typescript.ts
 var typescript_exports = {};
@@ -259088,8 +259344,8 @@ function igDecisionTable(sheets, name2, inputs = {}, outputCol, renderSnippet2) 
   }
   return all ? rowMap(matches[0]) : cellOut(matches[0], oi);
 }
-function igHandlebars(Handlebars6, template, context) {
-  const engine = Handlebars6.create();
+function igHandlebars(Handlebars7, template, context) {
+  const engine = Handlebars7.create();
   registerKintegrateHandlebarsHelpers(engine);
   return engine.compile(template, { noEscape: true, data: true })(context ?? {});
 }
@@ -259193,7 +259449,7 @@ function generatedScriptRuntime() {
     parseWebTemplate,
     serializeToFlatJson,
     serializeToStructuredJson,
-    Handlebars: import_handlebars7.default
+    Handlebars: import_handlebars8.default
   };
 }
 function stripGeneratedTypeScript(source) {
@@ -272067,6 +272323,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Target schema",
     CAT_LOGIC: "Loops & Logic",
     CAT_MATH: "Math",
+    MATH_NUMERIC_NOTE: "Numbers are IEEE-754 binary64 in every language (safe integers up to \xB12\u2075\xB3\u22121). Very large or very small values (|n| \u2265 1e21 or |n| < 1e-6) may print with different exponent spelling in Go, Java and XQuery. Ordinary numbers match.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Lists & maps",
     CAT_DECISION_TABLES: "Decision Tables",
@@ -272141,6 +272398,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "M\xE5lschema",
     CAT_LOGIC: "Loopar & logik",
     CAT_MATH: "Matematik",
+    MATH_NUMERIC_NOTE: "Tal \xE4r IEEE-754 binary64 i varje spr\xE5k (s\xE4kra heltal upp till \xB12\u2075\xB3\u22121). Mycket stora eller sm\xE5 v\xE4rden (|n| \u2265 1e21 eller |n| < 1e-6) kan skrivas med olika exponentform i Go, Java och XQuery. Vanliga tal st\xE4mmer \xF6verens.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listor & mappar",
     CAT_DECISION_TABLES: "Beslutstabeller",
@@ -272215,6 +272473,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Zielschema",
     CAT_LOGIC: "Schleifen & Logik",
     CAT_MATH: "Mathematik",
+    MATH_NUMERIC_NOTE: "Zahlen sind in jeder Sprache IEEE-754-binary64 (sichere ganze Zahlen bis \xB12\u2075\xB3\u22121). Sehr gro\xDFe oder kleine Werte (|n| \u2265 1e21 oder |n| < 1e-6) k\xF6nnen in Go, Java und XQuery unterschiedlich geschrieben werden. Gew\xF6hnliche Zahlen stimmen \xFCberein.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listen & Maps",
     CAT_DECISION_TABLES: "Entscheidungstabellen",
@@ -272289,6 +272548,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Esquema destino",
     CAT_LOGIC: "Bucles y l\xF3gica",
     CAT_MATH: "Matem\xE1ticas",
+    MATH_NUMERIC_NOTE: "Los n\xFAmeros son IEEE-754 binary64 en todos los lenguajes (enteros seguros hasta \xB12\u2075\xB3\u22121). Los valores muy grandes o muy peque\xF1os (|n| \u2265 1e21 o |n| < 1e-6) pueden escribirse con distinta notaci\xF3n exponencial en Go, Java y XQuery. Los n\xFAmeros habituales coinciden.",
     CAT_TEXT: "Texto",
     CAT_LISTS_AND_MAPS: "Listas y mapas",
     CAT_DECISION_TABLES: "Tablas de decisi\xF3n",
@@ -272363,6 +272623,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Esquema de destinaci\xF3",
     CAT_LOGIC: "Bucles i l\xF2gica",
     CAT_MATH: "Matem\xE0tiques",
+    MATH_NUMERIC_NOTE: "Els nombres s\xF3n IEEE-754 binary64 en tots els llenguatges (enters segurs fins a \xB12\u2075\xB3\u22121). Els valors molt grans o molt petits (|n| \u2265 1e21 o |n| < 1e-6) poden escriure's amb una notaci\xF3 exponencial diferent en Go, Java i XQuery. Els nombres habituals coincideixen.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Llistes i mapes",
     CAT_DECISION_TABLES: "Taules de decisi\xF3",
@@ -272437,6 +272698,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Sch\xE9ma cible",
     CAT_LOGIC: "Boucles et logique",
     CAT_MATH: "Math",
+    MATH_NUMERIC_NOTE: "Les nombres sont en IEEE-754 binary64 dans tous les langages (entiers s\xFBrs jusqu'\xE0 \xB12\u2075\xB3\u22121). Les valeurs tr\xE8s grandes ou tr\xE8s petites (|n| \u2265 1e21 ou |n| < 1e-6) peuvent s'\xE9crire avec un exposant diff\xE9rent en Go, Java et XQuery. Les nombres ordinaires correspondent.",
     CAT_TEXT: "Texte",
     CAT_LISTS_AND_MAPS: "Listes et maps",
     CAT_DECISION_TABLES: "Tables de d\xE9cision",
@@ -272886,6 +273148,7 @@ var en2 = {
   schemaMismatch: "Schema mismatch:",
   conversionFailed: "Conversion failed:",
   templateValidation: "Template validation:",
+  conversionNotes: "Conversion notes:",
   noWorkspace: "No Blockly workspace",
   noFunctionsOnCanvas: "No Functions on the canvas. Extract to function, or load from the library.",
   contribute: "Contribute",
@@ -273534,6 +273797,7 @@ var ca = {
   schemaMismatch: "Discrep\xE0ncia d'esquema:",
   conversionFailed: "La conversi\xF3 ha fallat:",
   templateValidation: "Validaci\xF3 de la plantilla:",
+  conversionNotes: "Notes de conversi\xF3:",
   noWorkspace: "No hi ha cap espai de treball Blockly",
   noFunctionsOnCanvas: "No hi ha funcions al llen\xE7. Extreu a funci\xF3 o carrega'n des de la biblioteca.",
   contribute: "Contribueix",
@@ -274037,6 +274301,7 @@ var de2 = {
   schemaMismatch: "Schemaabweichung:",
   conversionFailed: "Konvertierung fehlgeschlagen:",
   templateValidation: "Vorlagenpr\xFCfung:",
+  conversionNotes: "Konvertierungshinweise:",
   noWorkspace: "Keine Blockly-Arbeitsfl\xE4che",
   noFunctionsOnCanvas: "Keine Funktionen auf der Fl\xE4che. In eine Funktion auslagern oder aus der Bibliothek laden.",
   contribute: "Beisteuern",
@@ -274540,6 +274805,7 @@ var es = {
   schemaMismatch: "Desajuste de esquema:",
   conversionFailed: "La conversi\xF3n fall\xF3:",
   templateValidation: "Validaci\xF3n de la plantilla:",
+  conversionNotes: "Notas de conversi\xF3n:",
   noWorkspace: "No hay espacio de trabajo Blockly",
   noFunctionsOnCanvas: "No hay funciones en el lienzo. Extraiga a funci\xF3n o cargue desde la biblioteca.",
   contribute: "Aportar",
@@ -275043,6 +275309,7 @@ var fr2 = {
   schemaMismatch: "\xC9cart de sch\xE9ma :",
   conversionFailed: "La conversion a \xE9chou\xE9 :",
   templateValidation: "Validation du mod\xE8le :",
+  conversionNotes: "Notes de conversion :",
   noWorkspace: "Aucun espace Blockly",
   noFunctionsOnCanvas: "Aucune fonction sur le canevas. Extraire en fonction, ou charger depuis la biblioth\xE8que.",
   contribute: "Proposer",
@@ -275595,6 +275862,7 @@ var sv = {
   schemaMismatch: "Schemaavvikelse:",
   conversionFailed: "Konverteringen misslyckades:",
   templateValidation: "Mallvalidering:",
+  conversionNotes: "Konverteringsanteckningar:",
   noWorkspace: "Ingen Blockly-arbetsyta",
   noFunctionsOnCanvas: "Inga funktioner p\xE5 arbetsytan. Bryt ut till funktion eller ladda fr\xE5n biblioteket.",
   contribute: "Bidra",
@@ -281927,11 +282195,8 @@ function identifierFromUnknown(value) {
   return { _type: "DV_IDENTIFIER", id: String(value) };
 }
 
-// src/core/sheets/mod.ts
-init_types2();
-init_a1();
-init_model();
-init_decision_table();
+// src/core/test_runner/mod.ts
+init_mod2();
 
 // src/core/output/json_line_lookup.ts
 function lineNumberForRmPath(json2, rmPath) {
@@ -282355,8 +282620,81 @@ function classifyOpenEhrValidationMessage(message) {
   return "other";
 }
 
+// src/core/codegen/numeric_limits.ts
+var JS_FIXED_MAX = 1e21;
+var JS_FIXED_MIN = 1e-6;
+var SAFE_INTEGER_MAX = Number.MAX_SAFE_INTEGER;
+var FLOAT64_MAX = Number.MAX_VALUE;
+function numericLimitWarning(n5) {
+  if (!Number.isFinite(n5)) {
+    return `Numeric limit: ${n5} is not a finite number (IEEE-754 overflow or an empty math result).`;
+  }
+  const abs = Math.abs(n5);
+  if (abs >= JS_FIXED_MAX || abs !== 0 && abs < JS_FIXED_MIN) {
+    return `Numeric limit: ${n5} is in the range where languages print exponents differently (ECMA-262 uses scientific notation for |n| \u2265 1e21 or |n| < 1e-6; Go, Java and XQuery may use a different spelling).`;
+  }
+  if (Number.isInteger(n5) && abs > SAFE_INTEGER_MAX) {
+    return `Numeric limit: ${n5} is outside the safe integer range \xB1${SAFE_INTEGER_MAX} (2^53\u22121). Integers this large are not exact in binary64, so languages may print them differently.`;
+  }
+  return null;
+}
+function collectNumericLimitLogs(output) {
+  const seen = /* @__PURE__ */ new Set();
+  const logs = [];
+  const visit = (value) => {
+    if (typeof value === "number") {
+      const abs = Math.abs(value);
+      const formatting = !Number.isFinite(value) || abs >= JS_FIXED_MAX || value !== 0 && abs < JS_FIXED_MIN;
+      if (!formatting) return;
+      const msg2 = numericLimitWarning(value);
+      if (msg2 && !seen.has(msg2)) {
+        seen.add(msg2);
+        logs.push(msg2);
+      }
+      return;
+    }
+    if (typeof value === "string") {
+      const re2 = /[-+]?(?:\d+\.\d+|\.\d+|\d+)(?:[eE][-+]?\d+)/g;
+      const reFixedTiny = /[-+]?(?:0\.\d*[1-9]\d*)/g;
+      const consider2 = /* @__PURE__ */ new Set();
+      for (const match of value.match(re2) ?? []) consider2.add(Number(match));
+      for (const match of value.match(reFixedTiny) ?? []) {
+        const n5 = Number(match);
+        if (n5 !== 0 && Math.abs(n5) < JS_FIXED_MIN) consider2.add(n5);
+      }
+      for (const n5 of consider2) {
+        if (!Number.isFinite(n5)) continue;
+        const msg2 = numericLimitWarning(n5);
+        if (msg2 && !seen.has(msg2)) {
+          seen.add(msg2);
+          logs.push(msg2);
+        }
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
+    if (value && typeof value === "object") {
+      for (const item of Object.values(value)) visit(item);
+    }
+  };
+  visit(output);
+  return logs;
+}
+function attachNumericLimitLogs(result, log = (m4) => console.warn(m4)) {
+  const extra = collectNumericLimitLogs(result.output);
+  if (!extra.length) return result;
+  for (const line of extra) log(line);
+  return { ...result, logs: [...result.logs ?? [], ...extra] };
+}
+
 // src/core/test_runner/mod.ts
 function runTest(model, exampleContent, format4, options = {}) {
+  return attachNumericLimitLogs(runTestBody(model, exampleContent, format4, options));
+}
+function runTestBody(model, exampleContent, format4, options = {}) {
   const warnings2 = [];
   const mode = options.outputMode ?? "preview";
   if (isConversionScriptLanguage(mode) && mode !== "typescript" && mode !== "handlebars" && mode !== "go-template" && mode !== "xquery") {
@@ -282489,7 +282827,8 @@ function runTest(model, exampleContent, format4, options = {}) {
       const { values: slotValues2 } = evaluateSlotValues(model, handler, ctx, warnings2, target?.skeleton ?? []);
       const output2 = renderHandlebars(template, ctx.data, {
         slots: slotValues2,
-        defaults: defaults2
+        defaults: defaults2,
+        sheets: ctx.sheets
       });
       const outputValidation2 = validateConvertedOutput(output2, target, {
         deserializeMode: options.openEhrJsonDeserializeMode
@@ -282559,7 +282898,7 @@ ${code}`;
           output = canvasOutput;
         } else {
           const template = options.handlebarsTemplate ?? target?.content ?? "";
-          output = renderHandlebars(template, ctx.data, { slots: slotValues });
+          output = renderHandlebars(template, ctx.data, { slots: slotValues, sheets: ctx.sheets });
         }
       }
     } else if (target) {
@@ -285996,6 +286335,7 @@ var VMS_REMOVED_BLOCK_TYPES = [
   // `include_when` is the VMS guarded emit. Do not put it here.
   "math_random_int",
   "math_random_float",
+  "colour_random",
   "text_print",
   "lists_setIndex",
   "lists_repeat",
@@ -287442,6 +287782,7 @@ function pinnedDocUrl(path, version = APP_VERSION) {
 }
 
 // src/agent/inspect.ts
+init_mod2();
 var ABSTRACT_EVENT_WARNING = "EVENT is abstract. Choose POINT_EVENT or INTERVAL_EVENT \u2014 runtime instances cannot be the abstract EVENT class.";
 var ABSTRACT_ITEM_STRUCTURE_WARNING = "ITEM_STRUCTURE is abstract. Choose ITEM_TREE, ITEM_LIST, ITEM_TABLE, or ITEM_SINGLE \u2014 runtime instances cannot be the abstract ITEM_STRUCTURE class.";
 function outlineDescription(text2) {
@@ -290795,6 +291136,62 @@ function createSchemaStructureBlock(workspace3, node, isRoot) {
   return block;
 }
 
+// src/blockly/strip_random_dropdowns.ts
+var RANDOM_DROPDOWN_FIELDS = {
+  text_charAt: ["WHERE"],
+  text_getSubstring: ["WHERE1", "WHERE2"],
+  lists_getIndex: ["WHERE"],
+  lists_getSublist: ["WHERE1", "WHERE2"],
+  math_on_list: ["OP"]
+};
+function withoutRandomUnlessCurrent(options, current) {
+  return options.filter((opt) => {
+    if (!Array.isArray(opt) || opt.length < 2) return true;
+    return String(opt[1]) !== "RANDOM" || current === "RANDOM";
+  });
+}
+function patchDropdown(block, fieldName) {
+  const field = block.getField(fieldName);
+  if (!field || field.menuGenerator_ === void 0) return;
+  if (field.__igNoRandom) return;
+  const original = field.menuGenerator_;
+  const generate2 = function() {
+    const raw = typeof original === "function" ? original.call(this) : original;
+    const list2 = Array.isArray(raw) ? raw : [];
+    return withoutRandomUnlessCurrent(list2, field.getValue());
+  };
+  field.menuGenerator_ = generate2;
+  const origValidate = field.doClassValidation_?.bind(field);
+  if (origValidate) {
+    field.doClassValidation_ = (newValue) => {
+      if (newValue === "RANDOM") return "RANDOM";
+      return origValidate(newValue);
+    };
+  }
+  field.__igNoRandom = true;
+}
+function stripRandomDropdowns() {
+  for (const [type, fields] of Object.entries(RANDOM_DROPDOWN_FIELDS)) {
+    const def2 = Blockly.Blocks[type];
+    if (!def2?.init) continue;
+    if (def2.__igNoRandom) continue;
+    const original = def2.init;
+    def2.init = function() {
+      original.call(this);
+      for (const name2 of fields) patchDropdown(this, name2);
+    };
+    def2.__igNoRandom = true;
+  }
+}
+function randomDropdownFieldNames(blockType) {
+  return RANDOM_DROPDOWN_FIELDS[blockType] ?? [];
+}
+var RANDOM_BLOCK_TYPES = [
+  "math_random_int",
+  "math_random_float",
+  "colour_random"
+];
+
 // src/blockly/blocks/include_when.ts
 var INCLUDE_WHEN_BLOCK = "include_when";
 function registerIncludeWhenBlock() {
@@ -291028,6 +291425,7 @@ function hasPlaceholderSourceQuery(block) {
 // src/blockly/vms_linter.ts
 init_vms_hbs();
 var HATCH_REMOVED = "Removed from Verifiable Mapping Subset \u2014 unverified / not in declarative export";
+var HATCH_RANDOM = "Random is not supported \u2014 a mapping must give the same output for the same input. This comes from stock Blockly and is not part of the language.";
 var HATCH_JSON_XML = "Ad-hoc JSON/XML tree \u2014 unverified / not in declarative export";
 var HATCH_DYNAMIC_PATH = "Non-literal source path \u2014 unverified / not in declarative export";
 var HATCH_OUT_OF_DIALECT_HBS = "Handlebars outside VMS-Hbs \u2014 unverified / not in declarative export";
@@ -291051,9 +291449,19 @@ function isLiteralSourcePath(path) {
 }
 function blockHatchMessages(block) {
   const messages = [];
+  if (RANDOM_BLOCK_TYPES.includes(block.type)) {
+    messages.push(HATCH_RANDOM);
+    return messages;
+  }
   if (isVmsRemovedBlockType(block.type)) {
     messages.push(HATCH_REMOVED);
     return messages;
+  }
+  for (const field of randomDropdownFieldNames(block.type)) {
+    if (String(block.getFieldValue(field) ?? "") === "RANDOM") {
+      messages.push(HATCH_RANDOM);
+      break;
+    }
   }
   if (block.type === INCLUDE_WHEN_BLOCK) {
     const when = block.getInputTargetBlock("WHEN");
@@ -322536,6 +322944,9 @@ function setMandatoryFlag(block, mandatory) {
   setFieldIfPresent2(block, "MANDATORY", mandatory ? "1" : "");
 }
 
+// src/blockly/decision_table_sync.ts
+init_mod2();
+
 // src/blockly/function_bundle.ts
 init_model();
 function ensureEnLocale() {
@@ -322629,6 +323040,9 @@ function maxTopY(workspace3) {
   }
   return max3;
 }
+
+// src/blockly/grammatical_join.ts
+init_mod2();
 
 // src/blockly/collapsed_preview.ts
 var EMOJI = SYMBOL_TABLE_EMOJI_SYMBOLS;
@@ -323190,6 +323604,7 @@ function initBlocklyGenerators() {
     registerTextBlocks();
     registerConversionStartBlock();
     registerLogicBlocks();
+    stripRandomDropdowns();
     registerExtractToFunctionMenu();
     registerGenerators();
     registerTypeScriptExportAdapter();
@@ -323729,6 +324144,9 @@ function buildRefreshMergePrompt(report) {
   }
   return body.join("\n");
 }
+
+// src/workbench/controller.ts
+init_mod2();
 
 // src/host/url_history.ts
 var HISTORY_KINDS = ["schema", "example", "target"];
