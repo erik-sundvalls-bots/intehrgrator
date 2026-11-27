@@ -6,6 +6,7 @@
 import { GO_TEMPLATE_CODE_TEXT_UNSUPPORTED } from "../core/output/code_text.ts";
 import type { Block } from "blockly/core";
 import { isVmsEscapeBlockType, isVmsRemovedBlockType } from "./vms.ts";
+import { randomDropdownFieldNames, RANDOM_BLOCK_TYPES } from "./strip_random_dropdowns.ts";
 import { INCLUDE_WHEN_BLOCK } from "./blocks/include_when.ts";
 import { isSourceQueryBlockType } from "./source_query.ts";
 import { isPlaceholderSourcePath } from "./listening.ts";
@@ -14,6 +15,8 @@ import { compileLiteralPath, jsonDollarPathToLookup } from "../core/codegen/xque
 
 export const HATCH_REMOVED =
   "Removed from Verifiable Mapping Subset — unverified / not in declarative export";
+export const HATCH_RANDOM =
+  "Random is not supported — a mapping must give the same output for the same input. This comes from stock Blockly and is not part of the language.";
 export const HATCH_JSON_XML =
   "Ad-hoc JSON/XML tree — unverified / not in declarative export";
 export const HATCH_DYNAMIC_PATH =
@@ -54,9 +57,21 @@ export function isLiteralSourcePath(path: string): boolean {
 export function blockHatchMessages(block: Block): string[] {
   const messages: string[] = [];
 
+  if ((RANDOM_BLOCK_TYPES as readonly string[]).includes(block.type)) {
+    messages.push(HATCH_RANDOM);
+    return messages;
+  }
+
   if (isVmsRemovedBlockType(block.type)) {
     messages.push(HATCH_REMOVED);
     return messages;
+  }
+
+  for (const field of randomDropdownFieldNames(block.type)) {
+    if (String(block.getFieldValue(field) ?? "") === "RANDOM") {
+      messages.push(HATCH_RANDOM);
+      break;
+    }
   }
 
   if (block.type === INCLUDE_WHEN_BLOCK) {

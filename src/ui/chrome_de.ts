@@ -338,6 +338,7 @@ export const de: ChromeMessages = {
   schemaMismatch: "Schemaabweichung:",
   conversionFailed: "Konvertierung fehlgeschlagen:",
   templateValidation: "Vorlagenprüfung:",
+  conversionNotes: "Konvertierungshinweise:",
   noWorkspace: "Keine Blockly-Arbeitsfläche",
   noFunctionsOnCanvas: "Keine Funktionen auf der Fläche. In eine Funktion auslagern oder aus der Bibliothek laden.",
   contribute: "Beisteuern",

@@ -7,6 +7,7 @@ import {
   HATCH_DYNAMIC_PATH,
   HATCH_JSON_XML,
   HATCH_OUT_OF_DIALECT_HBS,
+  HATCH_RANDOM,
   HATCH_REMOVED,
   isLiteralSourcePath,
 } from "@intehrgrator/blockly/vms_linter.ts";
@@ -88,3 +89,26 @@ Deno.test("blockConstraintMessages includes hatch warnings", async () => {
   assert(messages.includes(HATCH_OUT_OF_DIALECT_HBS), messages.join(" | "));
   workspace.dispose();
 });
+
+Deno.test("workspace hatch: random blocks and RANDOM dropdowns get a clear warning (#393)", () => {
+  ensure();
+  const workspace = new Blockly.Workspace();
+  const randInt = workspace.newBlock("math_random_int");
+  assertEquals(blockHatchMessages(randInt), [HATCH_RANDOM]);
+
+  // colour_random is in VMS_REMOVED but stock colour blocks are not registered here.
+
+  const letter = workspace.newBlock("text_charAt");
+  letter.setFieldValue("RANDOM", "WHERE");
+  assertEquals(blockHatchMessages(letter), [HATCH_RANDOM]);
+
+  const first = workspace.newBlock("text_charAt");
+  first.setFieldValue("FIRST", "WHERE");
+  assertEquals(blockHatchMessages(first).includes(HATCH_RANDOM), false);
+
+  const onList = workspace.newBlock("math_on_list");
+  onList.setFieldValue("RANDOM", "OP");
+  assertEquals(blockHatchMessages(onList), [HATCH_RANDOM]);
+  workspace.dispose();
+});
+

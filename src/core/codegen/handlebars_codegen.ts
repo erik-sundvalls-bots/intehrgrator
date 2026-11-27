@@ -26,6 +26,7 @@ import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { isRelativeAuthoringPath } from "../mapping_model/loops.ts";
 import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
 import { octetBytes } from "../rm_shell_fragment.ts";
+import { lowerLiteralHandlebarsToExpr } from "./handlebars_literal.ts";
 
 interface HbsSkelCtx {
   slots: Map<string, MappingSlot>;
@@ -249,13 +250,25 @@ function emitHbsAstExpr(ast: ExprAst, ctx: HbsSkelCtx): string {
     return `(listAt ${arg(0, "null")} ${hbsStr(where)} ${arg(2, "1")})`;
   }
   if (name === "handlebars") {
-    throw hbsUnsupported("a Handlebars block inside a value (use the Handlebars text directly)");
+    const scriptAst = args[0];
+    if (scriptAst?.kind !== "literal") {
+      throw hbsUnsupported(
+        "a computed Handlebars template inside a value (only a literal template is inlined at generation time)",
+      );
+    }
+    return lowerLiteralHandlebarsToExpr(String(scriptAst.value ?? ""), arg(1, "@root._data"));
   }
   if (name === "toNumber" || name === "number") return `(toNum ${arg(0, "null")})`;
   if (name === "toString" || name === "string") return `(concat ${arg(0, '""')})`;
-  if (name === "sheet_lookup" || name === "decision_table" || name.startsWith("sheet_")) {
+  if (name === "sheet_lookup") {
+    return `(sheetLookup ${arg(0, '""')} ${arg(1, '""')} ${arg(2, '""')} ${arg(3, '""')})`;
+  }
+  if (name === "decision_table") {
+    return `(decisionTable ${arg(0, '""')} ${arg(1, "(dict)")} ${arg(2, '""')})`;
+  }
+  if (name.startsWith("sheet_")) {
     throw hbsUnsupported(
-      "Sheets and Decision tables (the VMS-Hbs runtime has no Sheets; see issue #394)",
+      name + " (Handlebars scripts support sheetLookup and decisionTable only, like Go)",
     );
   }
   throw hbsUnsupported(
@@ -570,21 +583,21 @@ function emitHbsLoopedNode(
       varBindings: {
         ...ctx.varBindings,
         [loopIndexBinderName(loop.varName)]: "@index",
-        [loopLengthBinderName(loop.varName)]: "0",
+        [loopLengthBinderName(loop.varName)]: "@len",
       },
     };
     const innerHasLoop = nodeHasLoop(node, innerCtx.loops);
     if (innerHasLoop) {
       const body = emitHbsLoopedNode(node, innerCtx, isXml, false, parentArchetypeRef, tag);
       return isXml
-        ? `{{#each ${colExpr}}}${body}{{/each}}`
-        : `{{#each ${colExpr}}}{{#if @index}},{{/if}}${body}{{/each}}`;
+        ? `{{#eachLen ${colExpr}}}${body}{{/eachLen}}`
+        : `{{#eachLen ${colExpr}}}{{#if @index}},{{/if}}${body}{{/eachLen}}`;
     }
     const pure = emitHbsPureNode(node, innerCtx, parentArchetypeRef);
     if (!pure) return "";
     return isXml
-      ? `{{#each ${colExpr}}}{{rmToXmlFrag ${hbsStr(tag)} ${pure}}}{{/each}}`
-      : `{{#each ${colExpr}}}{{#if (nonEmpty ${pure})}}{{#if @index}},{{/if}}{{toJson ${pure}}}{{/if}}{{/each}}`;
+      ? `{{#eachLen ${colExpr}}}{{rmToXmlFrag ${hbsStr(tag)} ${pure}}}{{/eachLen}}`
+      : `{{#eachLen ${colExpr}}}{{#if (nonEmpty ${pure})}}{{#if @index}},{{/if}}{{toJson ${pure}}}{{/if}}{{/eachLen}}`;
   }
 
   const locatableName = rmLocatableName(node);

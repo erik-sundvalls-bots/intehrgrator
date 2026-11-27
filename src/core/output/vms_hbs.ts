@@ -74,6 +74,9 @@ export const VMS_HBS_HELPERS = [
   "listAt",
   "count",
   "blk",
+  "sheetLookup",
+  "decisionTable",
+  "eachLen",
 ] as const;
 
 /** Helpers allowed in VMS-Hbs (knownHelpersOnly). */
@@ -130,6 +133,9 @@ export const VMS_HBS_ALLOWED_HELPERS: Readonly<Record<string, boolean>> = {
   listAt: true,
   count: true,
   blk: true,
+  sheetLookup: true,
+  decisionTable: true,
+  eachLen: true,
 };
 
 const FORBIDDEN_BLOCK_HELPERS = new Set(["with", "log"]);

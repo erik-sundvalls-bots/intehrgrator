@@ -1,11 +1,20 @@
 import Handlebars from "handlebars";
 import { registerKintegrateHandlebarsHelpers } from "../codegen/helpers/handlebars.ts";
 import { VMS_HBS_ALLOWED_HELPERS } from "./vms_hbs.ts";
+import {
+  evaluateDecisionTable,
+  normalizeSheet,
+  sheetLookup,
+  type SheetBag,
+  type SheetDocument,
+} from "../sheets/mod.ts";
 
 export interface HandlebarsRenderOptions {
   strict?: boolean;
   slots?: Readonly<Record<string, unknown>>;
   defaults?: Readonly<Record<string, unknown>>;
+  /** Convert-time named Sheets on the render root as `_sheets` (ADR 0005 / #394). */
+  sheets?: SheetDocument[] | SheetBag;
   /** When true (default), reject helpers outside VMS-Hbs (ADR 0009). */
   knownHelpersOnly?: boolean;
 }
@@ -14,7 +23,70 @@ export interface HandlebarsRenderOptions {
 export function createKintegrateHandlebars(): typeof Handlebars {
   const engine = Handlebars.create();
   registerKintegrateHandlebarsHelpers(engine);
+  registerSheetHandlebarsHelpers(engine);
   return engine;
+}
+
+function sheetBagFrom(sheets: SheetDocument[] | SheetBag | undefined): SheetBag {
+  if (!sheets) return {};
+  if (Array.isArray(sheets)) {
+    const bag: SheetBag = {};
+    for (const sheet of sheets) bag[sheet.name] = sheet;
+    return bag;
+  }
+  return sheets;
+}
+
+function resolveSheet(bag: SheetBag | undefined, name: unknown): SheetDocument | null {
+  if (!bag) return null;
+  const key = String(name ?? "");
+  const raw = bag[key];
+  if (!raw) return null;
+  try {
+    return normalizeSheet(raw);
+  } catch {
+    return null;
+  }
+}
+
+function inputsRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+/** Host-bound Sheets helpers, like Go `sheetLookup` / `decisionTable`. */
+function registerSheetHandlebarsHelpers(engine: typeof Handlebars): void {
+  engine.registerHelper(
+    "sheetLookup",
+    (sheet: unknown, matchCol: unknown, matchVal: unknown, returnCol: unknown, options?: { data?: { root?: { _sheets?: SheetBag } } }) => {
+      // Handlebars always passes `options` last; returnCol may be omitted.
+      let ret = returnCol;
+      let opts = options;
+      if (ret && typeof ret === "object" && ret !== null && "data" in (ret as object) && opts === undefined) {
+        opts = ret as { data?: { root?: { _sheets?: SheetBag } } };
+        ret = undefined;
+      }
+      const doc = resolveSheet(opts?.data?.root?._sheets, sheet);
+      if (!doc) return null;
+      return sheetLookup(
+        doc,
+        matchCol as string | number,
+        matchVal,
+        ret === undefined || ret === null || ret === "" ? undefined : ret as string | number,
+      ) ?? null;
+    },
+  );
+  engine.registerHelper(
+    "decisionTable",
+    (table: unknown, inputs: unknown, output: unknown, options: { data?: { root?: { _sheets?: SheetBag } } }) => {
+      const doc = resolveSheet(options?.data?.root?._sheets, table);
+      if (!doc) return null;
+      const column = output == null || output === "" ? undefined : String(output);
+      return evaluateDecisionTable(doc, inputsRecord(inputs), column);
+    },
+  );
 }
 
 export function renderHandlebars(
@@ -29,12 +101,16 @@ export function renderHandlebars(
       _data: source,
       _slots: options.slots ?? {},
       _defaults: options.defaults ?? {},
+      _sheets: options.sheets
+        ? sheetBagFrom(options.sheets)
+        : (source as { _sheets?: SheetBag })._sheets ?? {},
     }
     : {
       value: source,
       _data: source,
       _slots: options.slots ?? {},
       _defaults: options.defaults ?? {},
+      _sheets: sheetBagFrom(options.sheets),
     };
   const knownHelpersOnly = options.knownHelpersOnly ?? true;
   const template = engine.compile(templateSource, {

@@ -116,3 +116,34 @@ Deno.test("Click-to-Map wraps repeating containers with for_each_list", () => {
   assertEquals(event.getParent()?.getInputTargetBlock("LIST")?.type, "source_query_node");
   workspace.dispose();
 });
+
+Deno.test("Math toolbox includes the numeric-limits info note (#393)", () => {
+  const toolbox = buildDemoToolbox("en") as {
+    contents: Array<{ name?: string; contents?: Array<{ kind?: string; text?: string }> }>;
+  };
+  const math = toolbox.contents.find((c) => c.name === msg("en").CAT_MATH);
+  const labels = (math?.contents ?? []).filter((c) => c.kind === "label").map((c) => c.text);
+  assertEquals(labels.includes(msg("en").MATH_NUMERIC_NOTE), true);
+});
+
+Deno.test("stock dropdowns do not offer RANDOM on a new block, but keep it on a loaded one (#393)", () => {
+  ensure();
+  const workspace = new Blockly.Workspace();
+
+  const fresh = workspace.newBlock("text_charAt");
+  const freshField = fresh.getField("WHERE") as { getOptions(): Array<[string, string]> };
+  assertEquals(freshField.getOptions().some((opt) => opt[1] === "RANDOM"), false);
+
+  const loaded = workspace.newBlock("text_charAt");
+  loaded.setFieldValue("RANDOM", "WHERE");
+  assertEquals(loaded.getFieldValue("WHERE"), "RANDOM");
+  const loadedField = loaded.getField("WHERE") as { getOptions(): Array<[string, string]> };
+  assertEquals(loadedField.getOptions().some((opt) => opt[1] === "RANDOM"), true);
+
+  const list = workspace.newBlock("math_on_list");
+  const listField = list.getField("OP") as { getOptions(): Array<[string, string]> };
+  assertEquals(listField.getOptions().some((opt) => opt[1] === "RANDOM"), false);
+
+  workspace.dispose();
+});
+

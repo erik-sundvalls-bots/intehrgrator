@@ -19,6 +19,10 @@ import { blocklyOp } from "./blockly_ops.ts";
 
 export interface KintegrateHandlebarsOptions {
   data?: {
+    index?: number;
+    first?: boolean;
+    last?: boolean;
+    len?: number;
     root?: {
       _slots?: Record<string, unknown>;
       _defaults?: Record<string, unknown>;
@@ -26,6 +30,8 @@ export interface KintegrateHandlebarsOptions {
     };
   };
   hash?: Record<string, unknown>;
+  fn?: (context: unknown, opts?: { data?: KintegrateHandlebarsOptions["data"] }) => string;
+  inverse?: (context?: unknown) => string;
 }
 
 /** `(v) => v + 1` — JavaScript `+`, so a string concatenates. */
@@ -415,6 +421,24 @@ export const kintegrateHandlebarsHelpers = {
   },
   slot(this: unknown, slotId: unknown, options: KintegrateHandlebarsOptions) {
     return options.data?.root?._slots?.[String(slotId)];
+  },
+  /**
+   * `#each` plus a precomputed `@len` (the collection length at entry).
+   * Used so Loop length works inside a generated Handlebars loop (#394).
+   */
+  eachLen(this: unknown, list: unknown, options: KintegrateHandlebarsOptions) {
+    const items = hbsAsList(list);
+    if (typeof options.fn !== "function") return items;
+    const data = Object.create(options.data ?? null) as NonNullable<KintegrateHandlebarsOptions["data"]>;
+    data.len = items.length;
+    const chunks: string[] = [];
+    for (let i = 0; i < items.length; i++) {
+      data.index = i;
+      data.first = i === 0;
+      data.last = i === items.length - 1;
+      chunks.push(options.fn(items[i], { data }));
+    }
+    return chunks.join("");
   },
   ...intehrgratorValueHelpers,
 };

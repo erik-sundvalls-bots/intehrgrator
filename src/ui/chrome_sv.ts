@@ -388,6 +388,7 @@ export const sv: ChromeMessages = {
   schemaMismatch: "Schemaavvikelse:",
   conversionFailed: "Konverteringen misslyckades:",
   templateValidation: "Mallvalidering:",
+  conversionNotes: "Konverteringsanteckningar:",
   noWorkspace: "Ingen Blockly-arbetsyta",
   noFunctionsOnCanvas: "Inga funktioner på arbetsytan. Bryt ut till funktion eller ladda från biblioteket.",
   contribute: "Bidra",

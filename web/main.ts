@@ -6055,6 +6055,7 @@ function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"
     });
   }
   for (const warning of result?.warnings ?? []) entries.push({ text: warning });
+  for (const line of result?.logs ?? []) entries.push({ text: line });
   if (!entries.length) {
     testOutputValidationEl.hidden = true;
     testOutputValidationEl.replaceChildren();
@@ -6063,7 +6064,12 @@ function renderTestOutputValidation(s: ReturnType<WorkbenchController["getState"
   testOutputValidationEl.hidden = false;
   testOutputValidationEl.replaceChildren();
   const title = document.createElement("strong");
-  title.textContent = result?.error ? uiChrome().conversionFailed : uiChrome().templateValidation;
+  const chrome = uiChrome();
+  title.textContent = result?.error
+    ? chrome.conversionFailed
+    : (validation?.applicable && !validation.valid)
+    ? chrome.templateValidation
+    : chrome.conversionNotes;
   const list = document.createElement("ul");
   for (const entry of entries) {
     const item = document.createElement("li");
