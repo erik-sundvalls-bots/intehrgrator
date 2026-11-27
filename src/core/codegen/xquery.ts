@@ -17,7 +17,7 @@ import type {
   TargetSignatureNode,
 } from "../../types/mod.ts";
 import { expressionUsesRelativeSourcePath } from "../mapping_model/loops.ts";
-import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
+import { parseExpression, type ExprAst, isBlocklyOpName, isQuantifyCall } from "../expression/mod.ts";
 import {
   functionIdentMap,
   valueFunctions,
@@ -548,10 +548,21 @@ export function emitXQueryExpr(ast: ExprAst, env: XQueryEmitEnv = {}): string {
       if (typeof ast.value === "boolean") return ast.value ? "true()" : "false()";
       return String(ast.value);
     case "binary":
+      // XQuery divides with `div` (`/` is the path operator); ÷ 0 is empty, as Mapping preview.
+      if (ast.op === "/") {
+        return `(let $igDivisor := ${emitXQueryExpr(ast.right, env)} return if ($igDivisor = 0) then () else ${
+          emitXQueryExpr(ast.left, env)
+        } div $igDivisor)`;
+      }
       return `(${emitXQueryExpr(ast.left, env)} ${ast.op} ${emitXQueryExpr(ast.right, env)})`;
     case "call": {
       if (isQuantifyCall(ast.name)) return emitQuantifierXq(ast, env);
       const args = ast.args.map((a) => emitXQueryExpr(a, env));
+      if (isBlocklyOpName(ast.name)) {
+        const call = `igbk:op(${xqString(ast.name)}, [ ${args.join(", ")} ])`;
+        // A list result is an array, so it stays one value (a JSON array in a map entry).
+        return blocklyOpReturnsList(ast) ? `array { ${call} }` : call;
+      }
       switch (ast.name) {
         case "trim":
           return `normalize-space(${args[0]})`;
@@ -1412,4 +1423,21 @@ function xqString(value: string): string {
 
 function xqComment(value: string): string {
   return value.replace(/:\)/g, ": )");
+}
+
+/** #393 ops whose result is a list (`igbk:op` returns a sequence; the caller wraps it). */
+function blocklyOpReturnsList(ast: Extract<ExprAst, { kind: "call" }>): boolean {
+  const first = ast.args[0];
+  const literal = first?.kind === "literal" ? String(first.value) : "";
+  switch (ast.name) {
+    case "lists_getSublist":
+    case "lists_reverse":
+    case "lists_sort":
+      return true;
+    case "lists_split":
+      return literal !== "JOIN";
+    case "math_on_list":
+      return literal === "MODE";
+  }
+  return false;
 }

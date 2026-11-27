@@ -7,9 +7,11 @@ import type { MappingStatement } from "../../types/mod.ts";
 import type { MappingFunction } from "../../types/mod.ts";
 import type { ExprAst } from "../expression/mod.ts";
 import {
+  isBlocklyOpName,
   isQuantifyCall,
   parseExpression,
 } from "../expression/mod.ts";
+import { blocklyOp } from "../codegen/helpers/blockly_ops.ts";
 import { renderHandlebars } from "../output/handlebars_dialect.ts";
 import { DEFAULTS_MAP_NAME } from "../defaults/factory.ts";
 import { evalSheetCall, isSheetAccessor } from "../sheets/evaluate.ts";
@@ -115,6 +117,7 @@ function evalAst(ast: ExprAst, ctx: SourceContext): unknown {
       }
       if (ast.name === "if") return evalAst(ast.args[0]!, ctx) ? evalAst(ast.args[1]!, ctx) : evalAst(ast.args[2]!, ctx);
       const args = ast.args.map((a) => evalAst(a, ctx));
+      if (isBlocklyOpName(ast.name)) return blocklyOp(ast.name, ...args);
       switch (ast.name) {
         case "trim":
           return String(args[0] ?? "").trim();

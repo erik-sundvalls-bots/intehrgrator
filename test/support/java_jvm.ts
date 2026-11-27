@@ -131,3 +131,99 @@ export async function runGeneratedJava(
   sources.forEach((s, i) => out.set(s.name, Deno.readTextFileSync(join(work, `${i}.out.xml`))));
   return out;
 }
+
+/**
+ * Compiles many generated ConversionScripts in one javac run (each moved to its
+ * own package) and runs each on one source. Returns the output per script id.
+ */
+export async function runGeneratedJavaBatch(
+  label: string,
+  scripts: Array<{ id: string; code: string }>,
+  defaults: Record<string, unknown>,
+  sheets: unknown[],
+  source: string,
+): Promise<Map<string, string>> {
+  const cp = await javaClasspath();
+  const work = await Deno.makeTempDir({ prefix: `intehrgrator-java-${label.replace(/[^\w-]/g, "_")}-` });
+  const base = join(work, "src", "se", "regionstockholm", "intehrgrator");
+  const runtimeDir = join(base, "runtime");
+  await Deno.mkdir(runtimeDir, { recursive: true });
+  const helperRoot = join(root, "src", "core", "codegen", "helpers", "java");
+  const files: string[] = [];
+  for (const file of ["IntehrgratorRuntime.java", "HandlebarsSupport.java"]) {
+    await Deno.copyFile(join(helperRoot, file), join(runtimeDir, file));
+    files.push(join(runtimeDir, file));
+  }
+  const calls: string[] = [];
+  for (const [i, script] of scripts.entries()) {
+    const pkg = `s${i}`;
+    const dir = join(base, "generated", pkg);
+    await Deno.mkdir(dir, { recursive: true });
+    const code = script.code.replace(
+      /^package se\.regionstockholm\.intehrgrator\.generated;/m,
+      `package se.regionstockholm.intehrgrator.generated.${pkg};`,
+    );
+    await Deno.writeTextFile(join(dir, "ConversionScript.java"), code);
+    files.push(join(dir, "ConversionScript.java"));
+    calls.push(
+      `    run(${i}, () -> new se.regionstockholm.intehrgrator.generated.${pkg}.ConversionScript().convert(source, defaults, sheets), args[3]);`,
+    );
+  }
+  const main = `import java.nio.file.*;
+import java.util.*;
+import com.fasterxml.jackson.databind.*;
+import se.regionstockholm.intehrgrator.runtime.IntehrgratorRuntime.Sheet;
+
+public class JvmBatchMain {
+  interface Conv { Object run() throws Exception; }
+  static void run(int i, Conv conv, String outDir) throws Exception {
+    String out;
+    try {
+      out = "OK " + String.valueOf(conv.run());
+    } catch (Throwable e) {
+      out = "ERR " + e;
+    }
+    Files.writeString(Path.of(outDir, i + ".out"), out);
+  }
+  public static void main(String[] args) throws Exception {
+    ObjectMapper json = new ObjectMapper();
+    @SuppressWarnings("unchecked")
+    Map<String, Object> defaults = json.readValue(Files.readString(Path.of(args[0])), Map.class);
+    Map<String, Sheet> sheets = Sheet.mapFromJson(Files.readString(Path.of(args[1])));
+    JsonNode source = json.readTree(Files.readString(Path.of(args[2])));
+${calls.join("\n")}
+  }
+}
+`;
+  await Deno.writeTextFile(join(work, "src", "JvmBatchMain.java"), main);
+  files.push(join(work, "src", "JvmBatchMain.java"));
+  await Deno.writeTextFile(join(work, "defaults.json"), JSON.stringify(defaults));
+  await Deno.writeTextFile(join(work, "sheets.json"), JSON.stringify(sheets));
+  await Deno.writeTextFile(join(work, "source.json"), source);
+  const outDir = join(work, "out");
+  await Deno.mkdir(outDir);
+  const classes = join(work, "classes");
+  const compiled = await new Deno.Command("javac", {
+    args: ["--release", "21", "-nowarn", "-cp", cp, "-d", classes, ...files],
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  if (!compiled.success) throw new Error(`${label}: javac failed\n${new TextDecoder().decode(compiled.stderr)}`);
+  const ran = await new Deno.Command("java", {
+    args: [
+      "-cp",
+      `${classes}:${cp}`,
+      "JvmBatchMain",
+      join(work, "defaults.json"),
+      join(work, "sheets.json"),
+      join(work, "source.json"),
+      outDir,
+    ],
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  if (!ran.success) throw new Error(`${label}: java failed\n${new TextDecoder().decode(ran.stderr)}`);
+  const out = new Map<string, string>();
+  scripts.forEach((s, i) => out.set(s.id, Deno.readTextFileSync(join(outDir, `${i}.out`))));
+  return out;
+}

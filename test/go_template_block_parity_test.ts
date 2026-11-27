@@ -70,6 +70,16 @@ const SAME_AS_TYPESCRIPT: Record<string, B> = {
   "logic_list_restriction EXACTLY 1 (literal list)": blk("logic_list_restriction", { OP: "EXACTLY", N: 1 }, { LIST: list3(), PRED: cmp("EQ", item(), txt("a")) }, { count: true }),
   "maps_get (Map value)": blk("maps_get", {}, { MAP: kMap(), KEY: txt("k") }),
   "sheet_lookup": blk("sheet_lookup", { NAME: "Units" }, { MATCH_COL: txt("code"), MATCH_VAL: q("$.unit"), RETURN_COL: txt("label") }),
+  // #393 (all languages: block_parity_all_languages_test.ts); here for the text-document emitter too.
+  "math_arithmetic POWER": arith("POWER", num(2), num(3)),
+  "math_round ROUNDUP": blk("math_round", { OP: "ROUNDUP" }, { NUM: num(2.1) }),
+  "text_length": blk("text_length", {}, { VALUE: q("$.patientId") }),
+  "text_getSubstring": blk("text_getSubstring", { WHERE1: "FROM_END", WHERE2: "LAST" }, { STRING: q("$.patientId"), AT1: num(3) }),
+  "math_on_list AVERAGE": blk("math_on_list", { OP: "AVERAGE" }, { LIST: blk("lists_create_with", {}, { ADD0: sys(), ADD1: dia() }, { itemCount: 2 }) }),
+  "lists_sort + lists_split JOIN": blk("lists_split", { MODE: "JOIN" }, {
+    INPUT: blk("lists_sort", { TYPE: "TEXT", DIRECTION: "-1" }, { LIST: list3() }),
+    DELIM: txt("|"),
+  }),
 };
 
 const LOUD_IN_GO: Record<string, [B, string]> = {

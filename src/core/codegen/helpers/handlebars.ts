@@ -15,6 +15,8 @@
  * the raw GitHub URL.
  */
 
+import { blocklyOp } from "./blockly_ops.ts";
+
 export interface KintegrateHandlebarsOptions {
   data?: {
     root?: {
@@ -112,6 +114,83 @@ function hbsWriteRmXmlNode(
   }
   out.push(`${indent}<${tag}>${hbsEscapeXml(String(val))}</${tag}>\n`);
 }
+
+function hbsSameItem(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a === "number" && typeof b === "number") return a === b;
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function hbsAsList(v: unknown): unknown[] {
+  if (Array.isArray(v)) return v;
+  if (v === null || v === undefined) return [];
+  return [v];
+}
+
+/**
+ * Value helpers for generated Handlebars scripts (issue #394). Same names and
+ * meaning as the Go Template FuncMap (`go/texttemplate/main.go`), so both
+ * generated scripts read alike and match Mapping preview.
+ */
+export const intehrgratorValueHelpers = {
+  /** Mapping preview equality: strict, numbers by value, lists and maps by JSON. */
+  same: (a: unknown, b: unknown) => hbsSameItem(a, b),
+  /** `Number(a) <op> Number(b)` with op lt / le / gt / ge. */
+  cmpNum: (op: unknown, a: unknown, b: unknown) => {
+    const x = Number(a);
+    const y = Number(b);
+    switch (String(op)) {
+      case "lt":
+        return x < y;
+      case "le":
+        return x <= y;
+      case "gt":
+        return x > y;
+      case "ge":
+        return x >= y;
+    }
+    return false;
+  },
+  /** Value if-then-else with JavaScript truthiness; an empty THEN stays empty. */
+  ifElse: (cond: unknown, t: unknown, f: unknown) => (cond ? t : f),
+  /** switchVal value key1 val1 … default */
+  switchVal: (...args: unknown[]) => {
+    const params = args.slice(0, -1);
+    if (params.length < 2) return null;
+    const [value, ...rest] = params;
+    const fallback = rest.pop();
+    for (let i = 0; i + 1 < rest.length; i += 2) {
+      if (hbsSameItem(value, rest[i])) return rest[i + 1];
+    }
+    return fallback;
+  },
+  title: (v: unknown) =>
+    v == null ? "" : String(v).replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()),
+  round: (v: unknown) => Math.round(Number(v ?? 0)),
+  mod: (a: unknown, b: unknown) => {
+    const d = Number(b ?? 1);
+    return d === 0 ? null : Number(a ?? 0) % d;
+  },
+  clamp: (v: unknown, lo: unknown, hi: unknown) => Math.min(Number(hi ?? 0), Math.max(Number(lo ?? 0), Number(v ?? 0))),
+  /** 1-based list item (FIRST / LAST / FROM_START / FROM_END), null outside the list. */
+  listAt: (items: unknown, where: unknown, at: unknown) => {
+    const list = hbsAsList(items);
+    const n = Number(at ?? 1);
+    const w = String(where);
+    const i = w === "FIRST" ? 0 : w === "LAST" ? list.length - 1 : w === "FROM_END" ? list.length - n : n - 1;
+    return i >= 0 && i < list.length ? list[i] : null;
+  },
+  count: (v: unknown) => hbsAsList(v).length,
+  /** Blockly text / math / list block (`blocklyOp`, issue #393). */
+  blk: (name: unknown, ...rest: unknown[]) => blocklyOp(String(name), ...rest.slice(0, -1)),
+};
 
 export const kintegrateHandlebarsHelpers = {
   eq: (left: unknown, right: unknown) => left === right,
@@ -337,6 +416,7 @@ export const kintegrateHandlebarsHelpers = {
   slot(this: unknown, slotId: unknown, options: KintegrateHandlebarsOptions) {
     return options.data?.root?._slots?.[String(slotId)];
   },
+  ...intehrgratorValueHelpers,
 };
 
 export function registerKintegrateHandlebarsHelpers(

@@ -146,6 +146,300 @@ public class IntehrgratorRuntime {
     return java.util.Objects.equals(a, b);
   }
 
+  // --- Blockly text, math and list blocks (issue #393) ---------------------
+  // Mirrors blocklyOp in src/core/codegen/helpers/blockly_ops.ts; the per-block
+  // parity test compares the two. Positions are 1-based like Blockly; a number
+  // result that is not finite gives null.
+
+  private static Object blkPlain(Object v) {
+    if (v instanceof com.fasterxml.jackson.databind.JsonNode node) {
+      if (node.isNull() || node.isMissingNode()) return null;
+      if (node.isNumber()) return node.doubleValue();
+      if (node.isBoolean()) return node.booleanValue();
+      if (node.isTextual()) return node.asText();
+      if (node.isArray()) {
+        List<Object> out = new ArrayList<>();
+        node.forEach(item -> out.add(blkPlain(item)));
+        return out;
+      }
+      return node.toString();
+    }
+    return v;
+  }
+
+  private static List<Object> blkList(Object v) {
+    Object p = blkPlain(v);
+    if (p instanceof List<?> list) return new ArrayList<>(list);
+    if (p == null) return new ArrayList<>();
+    return new ArrayList<>(List.of(p));
+  }
+
+  /** JavaScript String(v): null → "", whole numbers without ".0", lists joined with ",". */
+  public static String jsString(Object v) {
+    Object p = blkPlain(v);
+    if (p == null) return "";
+    if (p instanceof Number n) {
+      double d = n.doubleValue();
+      if (Double.isFinite(d) && d == Math.rint(d) && Math.abs(d) < 1e21) {
+        return java.math.BigDecimal.valueOf(d).toBigInteger().toString();
+      }
+      if (Double.isNaN(d)) return "NaN";
+      return java.math.BigDecimal.valueOf(d).stripTrailingZeros().toPlainString();
+    }
+    if (p instanceof List<?> list) {
+      StringBuilder out = new StringBuilder();
+      for (int i = 0; i < list.size(); i++) {
+        if (i > 0) out.append(',');
+        out.append(jsString(list.get(i)));
+      }
+      return out.toString();
+    }
+    if (p instanceof Map<?, ?>) return "[object Object]";
+    return String.valueOf(p);
+  }
+
+  /** JavaScript Number(v) (NaN where JavaScript gives NaN). */
+  public static double jsNumber(Object v) {
+    Object p = blkPlain(v);
+    if (p == null) return 0d;
+    if (p instanceof Number n) return n.doubleValue();
+    if (p instanceof Boolean b) return b ? 1d : 0d;
+    String s = String.valueOf(p).trim();
+    if (s.isEmpty()) return 0d;
+    try {
+      return Double.parseDouble(s);
+    } catch (NumberFormatException e) {
+      return Double.NaN;
+    }
+  }
+
+  private static Object blkFinite(double d) {
+    if (!Double.isFinite(d)) return null;
+    return d == 0d ? 0d : d;
+  }
+
+  private static boolean blkSame(Object a, Object b) {
+    Object x = blkPlain(a);
+    Object y = blkPlain(b);
+    if (x instanceof Number p && y instanceof Number q) return p.doubleValue() == q.doubleValue();
+    return java.util.Objects.equals(x, y);
+  }
+
+  private static int blkStart(Object where, Object at, int len) {
+    return switch (jsString(where)) {
+      case "FIRST" -> 0;
+      case "FROM_END" -> len - (int) jsNumber(at);
+      case "FROM_START" -> (int) jsNumber(at) - 1;
+      default -> throw new IllegalArgumentException(
+          "Unsupported position " + jsString(where) + " (RANDOM is not supported in generated code)");
+    };
+  }
+
+  private static int blkEnd(Object where, Object at, int len) {
+    return switch (jsString(where)) {
+      case "LAST" -> len;
+      case "FROM_END" -> len - (int) jsNumber(at) + 1;
+      case "FROM_START" -> (int) jsNumber(at);
+      default -> throw new IllegalArgumentException("Unsupported position " + jsString(where));
+    };
+  }
+
+  private static int[] blkRange(int len, Object[] a, int from) {
+    int start = Math.max(0, blkStart(blkArg(a, from), blkArg(a, from + 1), len));
+    int end = Math.min(len, blkEnd(blkArg(a, from + 2), blkArg(a, from + 3), len));
+    return new int[] {start, Math.max(start, end)};
+  }
+
+  private static Object blkArg(Object[] a, int i) {
+    return i < a.length ? a[i] : null;
+  }
+
+  private static List<Double> blkNumbers(Object v) {
+    List<Double> out = new ArrayList<>();
+    for (Object item : blkList(v)) {
+      if (item == null || item instanceof Boolean) continue;
+      if (item instanceof String s && s.trim().isEmpty()) continue;
+      double d = jsNumber(item);
+      if (Double.isFinite(d)) out.add(d);
+    }
+    return out;
+  }
+
+  private static boolean blkPrime(double n) {
+    if (n != Math.rint(n) || n < 2) return false;
+    long v = (long) n;
+    if (v < 4) return true;
+    if (v % 2 == 0) return false;
+    for (long i = 3; i * i <= v; i += 2) if (v % i == 0) return false;
+    return true;
+  }
+
+  private static List<String> blkCodePoints(String s) {
+    List<String> out = new ArrayList<>();
+    s.codePoints().forEach(cp -> out.add(new String(Character.toChars(cp))));
+    return out;
+  }
+
+  /** One Blockly op; names as BLOCKLY_OP_NAMES in blockly_ops.ts. */
+  public static Object blocklyOp(String name, Object... a) {
+    switch (name) {
+      case "text_length":
+        return (double) jsString(blkArg(a, 0)).codePointCount(0, jsString(blkArg(a, 0)).length());
+      case "text_isEmpty":
+        return jsString(blkArg(a, 0)).isEmpty();
+      case "text_indexOf": {
+        List<String> t = blkCodePoints(jsString(blkArg(a, 0)));
+        List<String> f = blkCodePoints(jsString(blkArg(a, 1)));
+        int idx = "LAST".equals(jsString(blkArg(a, 2))) ? java.util.Collections.lastIndexOfSubList(t, f)
+            : java.util.Collections.indexOfSubList(t, f);
+        return (double) (idx + 1);
+      }
+      case "text_charAt": {
+        List<String> t = blkCodePoints(jsString(blkArg(a, 0)));
+        int i = "LAST".equals(jsString(blkArg(a, 1))) ? t.size() - 1 : blkStart(blkArg(a, 1), blkArg(a, 2), t.size());
+        return i >= 0 && i < t.size() ? t.get(i) : "";
+      }
+      case "text_getSubstring": {
+        List<String> t = blkCodePoints(jsString(blkArg(a, 0)));
+        int[] r = blkRange(t.size(), a, 1);
+        return String.join("", t.subList(r[0], r[1]));
+      }
+      case "math_single": {
+        double x = jsNumber(blkArg(a, 1));
+        return switch (jsString(blkArg(a, 0))) {
+          case "ROOT" -> blkFinite(Math.sqrt(x));
+          case "ABS" -> blkFinite(Math.abs(x));
+          case "NEG" -> blkFinite(-x);
+          case "LN" -> blkFinite(Math.log(x));
+          case "LOG10" -> blkFinite(Math.log10(x));
+          case "EXP" -> blkFinite(Math.exp(x));
+          case "POW10" -> blkFinite(Math.pow(10, x));
+          default -> throw new IllegalArgumentException("Unsupported math_single operator " + jsString(blkArg(a, 0)));
+        };
+      }
+      case "math_number_property": {
+        double n = jsNumber(blkArg(a, 1));
+        if (!Double.isFinite(n)) return false;
+        return switch (jsString(blkArg(a, 0))) {
+          case "EVEN" -> n % 2 == 0;
+          case "ODD" -> Math.abs(n % 2) == 1;
+          case "PRIME" -> blkPrime(n);
+          case "WHOLE" -> n % 1 == 0;
+          case "POSITIVE" -> n > 0;
+          case "NEGATIVE" -> n < 0;
+          case "DIVISIBLE_BY" -> {
+            double d = jsNumber(blkArg(a, 2));
+            yield Double.isFinite(d) && d != 0 && n % d == 0;
+          }
+          default -> throw new IllegalArgumentException("Unsupported math_number_property " + jsString(blkArg(a, 0)));
+        };
+      }
+      case "math_on_list": {
+        List<Double> xs = blkNumbers(blkArg(a, 1));
+        String op = jsString(blkArg(a, 0));
+        double sum = 0;
+        for (double x : xs) sum += x;
+        switch (op) {
+          case "SUM":
+            return blkFinite(sum);
+          case "MODE": {
+            Map<Double, Integer> counts = new LinkedHashMap<>();
+            for (double x : xs) counts.merge(x, 1, Integer::sum);
+            int top = counts.values().stream().max(Integer::compare).orElse(0);
+            List<Object> out = new ArrayList<>();
+            counts.forEach((x, c) -> {
+              if (c == top) out.add(x);
+            });
+            return out;
+          }
+          case "MIN", "MAX", "AVERAGE", "MEDIAN", "STD_DEV":
+            if (xs.isEmpty()) return null;
+            break;
+          default:
+            throw new IllegalArgumentException(
+                "Unsupported math_on_list operator " + op + " (RANDOM is not supported in generated code)");
+        }
+        switch (op) {
+          case "MIN":
+            return xs.stream().min(Double::compare).get();
+          case "MAX":
+            return xs.stream().max(Double::compare).get();
+          case "AVERAGE":
+            return blkFinite(sum / xs.size());
+          case "MEDIAN": {
+            List<Double> s = new ArrayList<>(xs);
+            java.util.Collections.sort(s);
+            int mid = s.size() / 2;
+            return s.size() % 2 == 1 ? s.get(mid) : (s.get(mid - 1) + s.get(mid)) / 2;
+          }
+          default: {
+            double mean = sum / xs.size();
+            double v = 0;
+            for (double x : xs) v += (x - mean) * (x - mean);
+            return blkFinite(Math.sqrt(v / xs.size()));
+          }
+        }
+      }
+      case "lists_isEmpty":
+        return blkList(blkArg(a, 0)).isEmpty();
+      case "lists_indexOf": {
+        List<Object> items = blkList(blkArg(a, 0));
+        Object find = blkArg(a, 1);
+        if ("LAST".equals(jsString(blkArg(a, 2)))) {
+          for (int i = items.size() - 1; i >= 0; i--) if (blkSame(items.get(i), find)) return (double) (i + 1);
+          return 0d;
+        }
+        for (int i = 0; i < items.size(); i++) if (blkSame(items.get(i), find)) return (double) (i + 1);
+        return 0d;
+      }
+      case "lists_getSublist": {
+        List<Object> items = blkList(blkArg(a, 0));
+        int[] r = blkRange(items.size(), a, 1);
+        return new ArrayList<>(items.subList(r[0], r[1]));
+      }
+      case "lists_reverse": {
+        List<Object> items = blkList(blkArg(a, 0));
+        java.util.Collections.reverse(items);
+        return items;
+      }
+      case "lists_sort": {
+        List<Object> items = blkList(blkArg(a, 0));
+        String type = jsString(blkArg(a, 1));
+        int dir = jsNumber(blkArg(a, 2)) < 0 ? -1 : 1;
+        java.util.Comparator<Object> cmp = switch (type) {
+          case "TEXT" -> (x, y) -> Integer.signum(jsString(x).compareTo(jsString(y)));
+          case "IGNORE_CASE" -> (x, y) -> Integer.signum(jsString(x).toLowerCase().compareTo(jsString(y).toLowerCase()));
+          default -> (x, y) -> {
+            double p = jsNumber(x);
+            double q = jsNumber(y);
+            return p < q ? -1 : p > q ? 1 : 0;
+          };
+        };
+        items.sort((x, y) -> dir * cmp.compare(x, y));
+        return items;
+      }
+      case "lists_split": {
+        String delim = jsString(blkArg(a, 2));
+        if ("JOIN".equals(jsString(blkArg(a, 0)))) {
+          List<String> parts = new ArrayList<>();
+          for (Object item : blkList(blkArg(a, 1))) parts.add(jsString(item));
+          return String.join(delim, parts);
+        }
+        String input = jsString(blkArg(a, 1));
+        if (delim.isEmpty()) return new ArrayList<Object>(blkCodePoints(input));
+        return new ArrayList<Object>(Arrays.asList(input.split(java.util.regex.Pattern.quote(delim), -1)));
+      }
+      case "power":
+        return blkFinite(Math.pow(jsNumber(blkArg(a, 0)), jsNumber(blkArg(a, 1))));
+      case "round_up":
+        return blkFinite(Math.ceil(jsNumber(blkArg(a, 0))));
+      case "round_down":
+        return blkFinite(Math.floor(jsNumber(blkArg(a, 0))));
+      default:
+        throw new IllegalArgumentException("Unknown Blockly op " + name);
+    }
+  }
+
   public static List<Object> setIntersection(List<Object> a, List<Object> b) {
     List<Object> out = new ArrayList<>();
     for (Object item : a) if (b.stream().anyMatch(other -> sameItem(item, other))) out.add(item);

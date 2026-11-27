@@ -26,19 +26,6 @@ function topBlocks(state: unknown): BlocklyNode[] {
   return Array.isArray(blocks) ? blocks : [];
 }
 
-function visit<T>(node: BlocklyNode | undefined, pick: (block: BlocklyNode) => T | null): T | null {
-  if (!node?.type) return null;
-  const hit = pick(node);
-  if (hit != null) return hit;
-  if (node.inputs) {
-    for (const input of Object.values(node.inputs)) {
-      const found = visit(inputChild(input), pick);
-      if (found != null) return found;
-    }
-  }
-  return visit(node.next?.block, pick);
-}
-
 function serializeBlock(block: BlocklyNode | undefined): string | null {
   if (!block?.type) return null;
   switch (block.type) {
@@ -77,29 +64,42 @@ function serializeBlock(block: BlocklyNode | undefined): string | null {
   }
 }
 
-/** SCRIPT text of the first canvas `text_handlebars` product, if any. */
-export function canvasHandlebarsScriptLiteral(state: unknown): string | null {
+/**
+ * The canvas `text_handlebars` product block: the VALUE of the Text document
+ * that is the instance root (Conversion start → Text document → Handlebars).
+ * A `text_handlebars` used as a value anywhere else (a JSON Schema field, an
+ * XML element, inside a text join) is an ordinary value and does not turn the
+ * whole canvas into a Handlebars product (issue #394).
+ */
+function canvasHandlebarsProductBlock(state: unknown): BlocklyNode | null {
   for (const top of topBlocks(state)) {
-    const found = visit(top, (block) => {
-      if (block.type !== "text_handlebars") return null;
-      const script = inputChild(block.inputs?.SCRIPT);
-      return script?.fields?.TEXT != null ? String(script.fields.TEXT) : null;
-    });
-    if (found != null) return found;
+    const roots: BlocklyNode[] = [];
+    if (top.type === "conversion_start") {
+      for (let node = top.next?.block; node; node = node.next?.block) roots.push(node);
+    } else {
+      roots.push(top);
+    }
+    for (const root of roots) {
+      if (root.type !== "text_document") continue;
+      const value = inputChild(root.inputs?.VALUE);
+      if (value?.type === "text_handlebars") return value;
+    }
   }
   return null;
 }
 
+/** SCRIPT text of the canvas `text_handlebars` product, if any. */
+export function canvasHandlebarsScriptLiteral(state: unknown): string | null {
+  const block = canvasHandlebarsProductBlock(state);
+  const script = inputChild(block?.inputs?.SCRIPT);
+  return script?.fields?.TEXT != null ? String(script.fields.TEXT) : null;
+}
+
 /**
- * Mapping Expression `handlebars(script, context)` for the first canvas
+ * Mapping Expression `handlebars(script, context)` for the canvas
  * `text_handlebars` product, or `null` when the canvas has none.
  */
 export function canvasHandlebarsExpression(state: unknown): string | null {
-  for (const top of topBlocks(state)) {
-    const found = visit(top, (block) =>
-      block.type === "text_handlebars" ? serializeBlock(block) : null
-    );
-    if (found != null) return found;
-  }
-  return null;
+  const block = canvasHandlebarsProductBlock(state);
+  return block ? serializeBlock(block) : null;
 }

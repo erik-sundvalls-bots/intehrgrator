@@ -1,4 +1,7 @@
 import { SHEET_ACCESSOR_NAMES, type SheetAccessorName } from "../sheets/evaluate.ts";
+import { BLOCKLY_OP_NAMES, type BlocklyOpName } from "../codegen/helpers/blockly_ops.ts";
+
+export { BLOCKLY_OP_NAMES, type BlocklyOpName, isBlocklyOpName } from "../codegen/helpers/blockly_ops.ts";
 
 /** Boolean compare / connectives used by stock Logic blocks and DL predicates. */
 export const LOGIC_COMPARE_NAMES = ["eq", "ne", "lt", "le", "gt", "ge"] as const;
@@ -48,7 +51,8 @@ export type ExprAst =
       | LogicQuantifyName
       | LogicCardinalityName
       | LogicSetName
-      | SheetAccessorName;
+      | SheetAccessorName
+      | BlocklyOpName;
     args: ExprAst[];
   }
   | { kind: "binary"; op: "+" | "-" | "*" | "/"; left: ExprAst; right: ExprAst };
@@ -91,6 +95,7 @@ const BUILTIN_NAMES = new Set([
   ...LOGIC_CARDINALITY_NAMES,
   ...LOGIC_SET_NAMES,
   ...SHEET_ACCESSOR_NAMES,
+  ...BLOCKLY_OP_NAMES,
 ]);
 
 export function isQuantifyCall(
