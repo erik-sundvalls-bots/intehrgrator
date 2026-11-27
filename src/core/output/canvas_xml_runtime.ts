@@ -14,6 +14,7 @@ import {
   type SourceContext,
 } from "../source/query_runtime.ts";
 import { renderHandlebars } from "./handlebars_dialect.ts";
+import { jsonBlockReader, stockMathOrOpExpression } from "../expression/blockly_op_blocks.ts";
 import {
   injectXmlnsOnOpenTag,
   wrapXmlCdata,
@@ -361,6 +362,8 @@ function evalSerializedExpr(
 
 function serializeBlock(block: BlocklyNode | undefined): string | null {
   if (!block?.type) return null;
+  const stock = stockMathOrOpExpression(block.type, jsonBlockReader(block, (child) => serializeBlock(child)));
+  if (stock !== undefined) return stock;
   switch (block.type) {
     case "text":
     case "text_code":

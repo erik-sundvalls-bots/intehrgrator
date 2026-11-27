@@ -122,6 +122,7 @@ var vmsGoAllowedIdents = map[string]bool{
 	"same": true, "cmpNum": true, "ifElse": true, "switchVal": true,
 	"title": true, "round": true, "mod": true, "clamp": true,
 	"listAt": true, "count": true, "text": true,
+	"blk": true,
 }
 
 var vmsGoForbiddenIdents = map[string]bool{
@@ -473,6 +474,7 @@ func funcMapWithSheets(sheets map[string]any) template.FuncMap {
 		"listAt": listAtHelper,
 		"count":  func(v any) int { return len(asListHelper(v)) },
 		"text":   textHelper,
+		"blk":    blkHelper,
 	}
 }
 

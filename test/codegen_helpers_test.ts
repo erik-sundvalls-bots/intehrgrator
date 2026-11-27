@@ -13,6 +13,7 @@ import {
 import { importLinkSpans, resolveImportHref } from "@intehrgrator/core/codegen/import_links.ts";
 import { xquerySourceModule, xqueryRmModule } from "@intehrgrator/core/codegen/xquery_modules.ts";
 import { xquerySheetsModule } from "@intehrgrator/core/codegen/xquery_sheets.ts";
+import { xqueryBlocksModule } from "@intehrgrator/core/codegen/xquery_blocks.ts";
 import { TYPESCRIPT_HELPERS_SPECIFIER } from "@intehrgrator/core/codegen/helpers/locations.ts";
 
 function normalizeLf(text: string): string {
@@ -106,6 +107,7 @@ Deno.test("generated XQuery imports helper modules instead of pasting them", asy
   assertEquals(normalizeLf(await Deno.readTextFile(new URL("source.xqm", root))), xquerySourceModule());
   assertEquals(normalizeLf(await Deno.readTextFile(new URL("rm.xqm", root))), xqueryRmModule());
   assertEquals(normalizeLf(await Deno.readTextFile(new URL("sheets.xqm", root))), xquerySheetsModule());
+  assertEquals(normalizeLf(await Deno.readTextFile(new URL("blocks.xqm", root))), xqueryBlocksModule());
 });
 
 Deno.test("import specifiers resolve to GitHub source pages", () => {

@@ -37,6 +37,8 @@ public final class HandlebarsSupport {
       engine.registerHelper("regexReplace", (ctx, options) -> String.valueOf(ctx == null ? "" : ctx)
           .replaceAll(String.valueOf(options.param(0, "")), java.util.regex.Matcher.quoteReplacement(String.valueOf(options.param(1, "")))));
       engine.registerHelper("slot", (ctx, options) -> "");
+      // Blockly text / math / list blocks (issue #393): blk "name" args...
+      engine.registerHelper("blk", (ctx, options) -> IntehrgratorRuntime.blocklyOp(String.valueOf(ctx), options.params));
       engine.registerHelperMissing((ctx, options) -> {
         // Handlebars.java also lands here for a plain lookup that finds nothing.
         if (options.params.length > 0 || !options.hash.isEmpty()) {

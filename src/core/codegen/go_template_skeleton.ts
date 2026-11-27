@@ -16,7 +16,7 @@ import type {
   MappingSlot,
   SkeletonNode,
 } from "../../types/mod.ts";
-import { type ExprAst, isQuantifyCall, parseExpression } from "../expression/mod.ts";
+import { type ExprAst, isBlocklyOpName, isQuantifyCall, parseExpression } from "../expression/mod.ts";
 import { goUnsupported, inlineGoFunctionCall, unrollGoQuantifier } from "./go_expr_common.ts";
 import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import { rmArchetypeNodeId, rmLocatableName } from "../openehr/rm_archetype_node_id.ts";
@@ -131,6 +131,9 @@ function emitGoAstExpr(ast: ExprAst, ctx: GoSkelCtx): string {
   const arg = (i: number, fallback: string) => args[i] ? emitGoAstExpr(args[i]!, ctx) : fallback;
 
   if (isQuantifyCall(name)) return unrollGoQuantifier(ast, (item) => emitGoAstExpr(item, ctx));
+  if (isBlocklyOpName(name)) {
+    return `(blk ${[goStr(name), ...args.map((a) => emitGoAstExpr(a, ctx))].join(" ")})`;
+  }
   if (
     name === "xpathString" || name === "xpathNumber" ||
     name === "xpathBoolean" || name === "xpath" || name === "xpathList" ||

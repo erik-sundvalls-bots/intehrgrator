@@ -63,6 +63,17 @@ export const VMS_HBS_HELPERS = [
   "rmToXml",
   "rmToXmlFrag",
   "slot",
+  "same",
+  "cmpNum",
+  "ifElse",
+  "switchVal",
+  "title",
+  "round",
+  "mod",
+  "clamp",
+  "listAt",
+  "count",
+  "blk",
 ] as const;
 
 /** Helpers allowed in VMS-Hbs (knownHelpersOnly). */
@@ -108,6 +119,17 @@ export const VMS_HBS_ALLOWED_HELPERS: Readonly<Record<string, boolean>> = {
   rmToXml: true,
   rmToXmlFrag: true,
   slot: true,
+  same: true,
+  cmpNum: true,
+  ifElse: true,
+  switchVal: true,
+  title: true,
+  round: true,
+  mod: true,
+  clamp: true,
+  listAt: true,
+  count: true,
+  blk: true,
 };
 
 const FORBIDDEN_BLOCK_HELPERS = new Set(["with", "log"]);

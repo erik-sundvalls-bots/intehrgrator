@@ -3,6 +3,11 @@ import type { Block } from "blockly/core";
 import { ensureStockBlocklyMessages } from "./stock_messages.ts";
 import type { ExprAst } from "../core/expression/mod.ts";
 import { parseExpression, serialize } from "../core/expression/mod.ts";
+import {
+  blocklyOpBlockExpression,
+  mathArithmeticExpression,
+  mathRoundExpression,
+} from "../core/expression/blockly_op_blocks.ts";
 import { TERM_PICK_NONE, termSetById } from "../core/openehr_term_catalog.ts";
 import {
   loopIndexBinderName,
@@ -70,6 +75,11 @@ function sourceQueryFieldExpression(expr: string, fn: string): string {
 
 export function blockToExpression(block: Block | null): string | null {
   if (!block) return null;
+  const op = blocklyOpBlockExpression(block.type, {
+    field: (name) => block.getField(name) ? String(block.getFieldValue(name) ?? "") : undefined,
+    input: (name) => block.getInput(name) ? blockToExpression(block.getInputTargetBlock(name)) : null,
+  });
+  if (op !== undefined) return op;
 
   switch (block.type) {
     case "source_query":
@@ -120,22 +130,17 @@ export function blockToExpression(block: Block | null): string | null {
       const elseV = blockToExpression(block.getInputTargetBlock("ELSE"));
       return `if(${cond ?? "false"}, ${thenV ?? "null"}, ${elseV ?? "null"})`;
     }
-    case "math_arithmetic": {
-      const a = blockToExpression(block.getInputTargetBlock("A"));
-      const b = blockToExpression(block.getInputTargetBlock("B"));
-      const opMap: Record<string, "+" | "-" | "*" | "/"> = {
-        ADD: "+",
-        MINUS: "-",
-        MULTIPLY: "*",
-        DIVIDE: "/",
-      };
-      const op = opMap[block.getFieldValue("OP")] ?? "+";
-      return `(${a ?? "0"} ${op} ${b ?? "0"})`;
-    }
-    case "math_round": {
-      const num = blockToExpression(block.getInputTargetBlock("NUM")) ?? "0";
-      return `round(${num})`;
-    }
+    case "math_arithmetic":
+      return mathArithmeticExpression(
+        String(block.getFieldValue("OP") ?? "ADD"),
+        blockToExpression(block.getInputTargetBlock("A")),
+        blockToExpression(block.getInputTargetBlock("B")),
+      );
+    case "math_round":
+      return mathRoundExpression(
+        String(block.getFieldValue("OP") ?? "ROUND"),
+        blockToExpression(block.getInputTargetBlock("NUM")),
+      );
     case "math_modulo": {
       const a = blockToExpression(block.getInputTargetBlock("DIVIDEND")) ?? "0";
       const b = blockToExpression(block.getInputTargetBlock("DIVISOR")) ?? "1";
@@ -657,6 +662,8 @@ export function astToExpressionBlock(
       }
       return finalize(block);
     }
+    const opBlock = blocklyOpBlockFromAst(workspace, ast, finalize);
+    if (opBlock) return finalize(opBlock);
     if (isRestrictionCall(ast.name)) {
       const block = restrictionBlockFromAst(workspace, ast, finalize);
       if (block) return finalize(block);
@@ -683,6 +690,55 @@ export function astToExpressionBlock(
 }
 
 type CallAst = Extract<ExprAst, { kind: "call" }>;
+
+/**
+ * Stock block layout for the #393 ops whose block has no position mutator:
+ * field names come from literal arguments, inputs from the others.
+ * `charAt` / `getSubstring` / `getSublist` stay as a Mapping Expression block.
+ */
+const OP_BLOCK_LAYOUT: Record<string, { type: string; args: Array<{ field?: string; input?: string; op?: string }> }> = {
+  power: { type: "math_arithmetic", args: [{ input: "A" }, { input: "B" }] },
+  round_up: { type: "math_round", args: [{ input: "NUM" }] },
+  round_down: { type: "math_round", args: [{ input: "NUM" }] },
+  text_length: { type: "text_length", args: [{ input: "VALUE" }] },
+  text_isEmpty: { type: "text_isEmpty", args: [{ input: "VALUE" }] },
+  text_indexOf: { type: "text_indexOf", args: [{ input: "VALUE" }, { input: "FIND" }, { field: "END" }] },
+  math_single: { type: "math_single", args: [{ field: "OP" }, { input: "NUM" }] },
+  math_on_list: { type: "math_on_list", args: [{ field: "OP" }, { input: "LIST" }] },
+  lists_isEmpty: { type: "lists_isEmpty", args: [{ input: "VALUE" }] },
+  lists_indexOf: { type: "lists_indexOf", args: [{ input: "VALUE" }, { input: "FIND" }, { field: "END" }] },
+  lists_reverse: { type: "lists_reverse", args: [{ input: "LIST" }] },
+  lists_sort: { type: "lists_sort", args: [{ input: "LIST" }, { field: "TYPE" }, { field: "DIRECTION" }] },
+  lists_split: { type: "lists_split", args: [{ field: "MODE" }, { input: "INPUT" }, { input: "DELIM" }] },
+};
+
+function blocklyOpBlockFromAst(
+  workspace: Workspace,
+  ast: CallAst,
+  finalize: (block: BlockSvg) => BlockSvg,
+): BlockSvg | null {
+  const layout = OP_BLOCK_LAYOUT[ast.name];
+  if (!layout) return null;
+  const fieldArgs = layout.args.map((slot, i) => slot.field ? ast.args[i] : undefined);
+  if (fieldArgs.some((arg) => arg !== undefined && arg.kind !== "literal")) return null;
+  ensureStockBlocklyMessages();
+  const block = workspace.newBlock(layout.type) as BlockSvg & { updateType_?: (t: string) => void };
+  if (ast.name === "power") block.setFieldValue("POWER", "OP");
+  if (ast.name === "round_up") block.setFieldValue("ROUNDUP", "OP");
+  if (ast.name === "round_down") block.setFieldValue("ROUNDDOWN", "OP");
+  layout.args.forEach((slot, i) => {
+    const arg = ast.args[i];
+    if (!arg) return;
+    if (slot.field) {
+      block.setFieldValue(String((arg as { value: unknown }).value), slot.field);
+      if (slot.field === "MODE") block.updateType_?.(String((arg as { value: unknown }).value));
+      return;
+    }
+    const child = astToExpressionBlock(workspace, arg, "string", finalize);
+    block.getInput(slot.input!)?.connection?.connect(child.outputConnection!);
+  });
+  return block;
+}
 
 /**
  * Build one `logic_list_restriction` from `all_of` / `at_least` / … .

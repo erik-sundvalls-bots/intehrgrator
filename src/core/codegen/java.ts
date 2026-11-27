@@ -10,7 +10,7 @@ import { emitImperativeStack } from "./function_statements.ts";
  */
 
 import type { MappingFunction, MappingLoop, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
-import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
+import { parseExpression, type ExprAst, isBlocklyOpName, isQuantifyCall } from "../expression/mod.ts";
 import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import { attributesFor, baseRmTypeName, isAbstractType, isSubtypeOf, resolveGenericSlotType } from "../rm_meta.ts";
 import {
@@ -388,6 +388,9 @@ export function emitJavaExpression(ast: ExprAst, ctx: JavaEmitContext): string {
     case "call": {
       if (isQuantifyCall(ast.name)) return emitQuantifierJava(ast, ctx);
       const args = ast.args.map((a) => emitJavaExpression(a, ctx));
+      if (isBlocklyOpName(ast.name)) {
+        return `blocklyOp(${[JSON.stringify(ast.name), ...args.map((a) => `(Object) ${a}`)].join(", ")})`;
+      }
       switch (ast.name) {
         case "trim":
           return `asString(${args[0]}).trim()`;
@@ -1520,6 +1523,7 @@ function javaStaticHelperNames(body: string): string[] {
     "mapValueGet",
     "appendList",
     "listGetIndex",
+    "blocklyOp",
     "mapOf",
     "sameItem",
     "setIntersection",

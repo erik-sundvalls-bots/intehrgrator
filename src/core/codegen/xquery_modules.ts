@@ -5,6 +5,8 @@ import {
   XQUERY_SOURCE_SPECIFIER,
 } from "./helpers/locations.ts";
 import { xquerySheetsImport, xquerySheetsModule } from "./xquery_sheets.ts";
+import { xqueryBlocksImport, xqueryBlocksModule } from "./xquery_blocks.ts";
+import { XQUERY_BLOCKS_NS, XQUERY_BLOCKS_SPECIFIER } from "./helpers/locations.ts";
 
 const SOURCE_BODY = [
     "(: --- Source access (fontoxpath-authored paths → XQuery 3.1) --- :)",
@@ -212,6 +214,7 @@ export function xqueryHelperImports(script: string): string[] {
     lines.push(`import module namespace igrm = "${XQUERY_RM_NS}" at "${XQUERY_RM_SPECIFIER}";`);
   }
   if (/\bigsh:/.test(script)) lines.push(xquerySheetsImport());
+  if (/\bigbk:/.test(script)) lines.push(xqueryBlocksImport());
   return lines;
 }
 
@@ -232,5 +235,6 @@ export function xqueryHelperModules(): XQueryHelperModule[] {
       at: "https://raw.githubusercontent.com/regionstockholm/intehrgrator/main/src/core/codegen/helpers/xquery/sheets.xqm",
       text: xquerySheetsModule(),
     },
+    { prefix: "igbk", namespace: XQUERY_BLOCKS_NS, at: XQUERY_BLOCKS_SPECIFIER, text: xqueryBlocksModule() },
   ];
 }

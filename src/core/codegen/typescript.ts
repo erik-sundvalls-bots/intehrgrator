@@ -23,7 +23,7 @@ import type {
 } from "../../types/mod.ts";
 import { loopIndexBinderName, loopLengthBinderName } from "../loop_binders.ts";
 import { namedLoopBinding } from "../named_loop_path.ts";
-import { parseExpression, type ExprAst, isQuantifyCall } from "../expression/mod.ts";
+import { parseExpression, type ExprAst, isBlocklyOpName, isQuantifyCall } from "../expression/mod.ts";
 import { DEFAULT_ACTION_ARCHETYPE_ID, isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import {
   propsLackClinicalContent,
@@ -111,6 +111,7 @@ export function emitTsExpression(ast: ExprAst, ctx: TsEmitContext): string {
     case "call": {
       if (isQuantifyCall(ast.name)) return emitQuantifierTs(ast, ctx);
       const args = ast.args.map((a) => emitTsExpression(a, ctx));
+      if (isBlocklyOpName(ast.name)) return `blocklyOp(${[JSON.stringify(ast.name), ...args].join(", ")})`;
       switch (ast.name) {
         case "trim":
           return `String(${args[0]} ?? "").trim()`;
@@ -499,6 +500,7 @@ function typescriptHelperImportNames(helpers: Set<string>, body: string): string
   if (helpers.has("node") || uses("xpathNode(")) names.push("igXpathNode");
   if (uses("asList(")) names.push("asList");
   if (uses("listGetIndex(")) names.push("listGetIndex");
+  if (uses("blocklyOp(")) names.push("blocklyOp");
   if (uses("mapEntries(")) names.push("mapEntries");
   if (uses("mapValueGet(")) names.push("mapValueGet");
   if (uses("sameItem(")) names.push("sameItem");

@@ -1,4 +1,5 @@
 export { mapEntries, mapValueGet } from "../../map_values.ts";
+export { blocklyOp } from "./blockly_ops.ts";
 // The helpers mirror the loose values a generated script passes through.
 // deno-lint-ignore-file no-explicit-any
 /**

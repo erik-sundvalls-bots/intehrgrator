@@ -8,13 +8,15 @@
  * `renderHandlebars`, and passes strict openEHR / JSON Schema output validation.
  */
 import type {
+  MappingFunction,
   MappingInclude,
   MappingLoop,
   MappingModel,
   MappingSlot,
   SkeletonNode,
 } from "../../types/mod.ts";
-import { type ExprAst, parseExpression } from "../expression/mod.ts";
+import { type ExprAst, isBlocklyOpName, isQuantifyCall, parseExpression } from "../expression/mod.ts";
+import { goUnsupported, inlineGoFunctionCall, unrollGoQuantifier } from "./go_expr_common.ts";
 import { isAutoFixedValueSlot, LOCATABLE_TYPES } from "../rm_mandatory.ts";
 import { rmArchetypeNodeId, rmLocatableName } from "../openehr/rm_archetype_node_id.ts";
 import { isListAttribute } from "./typescript.ts";
@@ -34,6 +36,8 @@ interface HbsSkelCtx {
   /** Loop variable name → Handlebars context path (`this` or `../`). */
   loopBindings: Record<string, string>;
   varBindings: Record<string, string>;
+  /** Blockly Functions, inlined at each `call(...)` (expression-bodied only). */
+  functions?: MappingFunction[];
 }
 
 function hbsStr(s: string): string {
@@ -111,6 +115,18 @@ function emitHbsPathExpr(path: string, ctx: HbsSkelCtx): string {
   return `(jget ${ctx.sourceExpr} ${hbsStr(trimmed)})`;
 }
 
+const HBS = "Handlebars scripts";
+
+/** A construct the Handlebars script cannot express: fail generation with a readable message. */
+function hbsUnsupported(what: string): Error {
+  return goUnsupported(what, HBS);
+}
+
+/**
+ * Mapping Expression → VMS-Hbs subexpression. Mirrors the Go Template lowering
+ * (`go_template_skeleton.ts`) helper for helper, so the two generated scripts
+ * give the same values as Mapping preview; anything else fails generation.
+ */
 function emitHbsAstExpr(ast: ExprAst, ctx: HbsSkelCtx): string {
   if (ast.kind === "literal") {
     if (ast.value === null || ast.value === undefined) return "null";
@@ -118,36 +134,59 @@ function emitHbsAstExpr(ast: ExprAst, ctx: HbsSkelCtx): string {
     if (typeof ast.value === "number") return String(ast.value);
     return hbsStr(String(ast.value));
   }
-  if (ast.kind === "var") {
-    if (ctx.varBindings[ast.name]) return ctx.varBindings[ast.name]!;
-    if (ctx.loopBindings[ast.name]) return ctx.loopBindings[ast.name]!;
-    return `(jget @root._data ${hbsStr(ast.name)})`;
+  if (ast.kind === "binary") {
+    const fn = { "+": "add", "-": "sub", "*": "mul", "/": "div" }[ast.op];
+    return `(${fn} ${emitHbsAstExpr(ast.left, ctx)} ${emitHbsAstExpr(ast.right, ctx)})`;
   }
-  const name = ast.name;
+  // Lenient: older suggestion files may carry legacy call names.
+  const name: string = ast.name;
   const args = ast.args;
+  const arg = (i: number, fallback: string) => args[i] ? emitHbsAstExpr(args[i]!, ctx) : fallback;
 
+  if (isQuantifyCall(name)) {
+    return unrollGoQuantifier(ast, (item) => emitHbsAstExpr(item, ctx), {
+      language: HBS,
+      negate: (expr) => `(ifElse ${expr} false true)`,
+    });
+  }
+  if (isBlocklyOpName(name)) {
+    return `(blk ${[hbsStr(name), ...args.map((a) => emitHbsAstExpr(a, ctx))].join(" ")})`;
+  }
   if (
     name === "xpathString" || name === "xpathNumber" ||
-    name === "xpathBoolean" || name === "xpath" || name === "xpathList"
+    name === "xpathBoolean" || name === "xpath" || name === "xpathList" ||
+    name === "xpathNode" || name === "xpathNodes"
   ) {
     const p = args[0]?.kind === "literal" ? String(args[0].value) : "";
     const base = emitHbsPathExpr(p, ctx);
     if (name === "xpathNumber") return `(toNum ${base})`;
-    if (name === "xpathBoolean") return `(nonEmpty ${base})`;
+    // Effective boolean value, as TypeScript: a JSON `false` stays false.
+    if (name === "xpathBoolean") return `(ifElse ${base} true false)`;
     return base;
   }
+  if (name === "var") {
+    const varName = args[0]?.kind === "literal" ? String(args[0].value) : "";
+    if (ctx.varBindings[varName]) return ctx.varBindings[varName]!;
+    if (ctx.loopBindings[varName]) return ctx.loopBindings[varName]!;
+    throw hbsUnsupported(`the variable ${varName || "(unnamed)"} outside a loop or Function`);
+  }
+  if (name === "call") {
+    return emitHbsAstExpr(inlineGoFunctionCall(ast, ctx.functions, 0, HBS), ctx);
+  }
   if (name === "maps_get") {
-    const mapName = args[0]?.kind === "literal" ? String(args[0].value) : "";
-    const keyArg = args[1] ? emitHbsAstExpr(args[1], ctx) : '""';
-    if (mapName === "defaults") return `(defaultVal ${keyArg})`;
-    return `(jget @root._data ${keyArg})`;
+    const mapArg = args[0];
+    const keyArg = arg(1, '""');
+    if (mapArg?.kind === "literal") {
+      // Only the `defaults` Map is named; any other literal name is empty (as TypeScript).
+      return String(mapArg.value) === "defaults" ? `(defaultVal ${keyArg})` : "null";
+    }
+    return `(jget ${arg(0, "null")} ${keyArg})`;
   }
   if (name === "map") {
     const pairs: string[] = [];
     for (let i = 0; i + 1 < args.length; i += 2) {
-      if (args[i]?.kind === "literal") {
-        pairs.push(`${hbsHashKey(String(args[i]!.value))}=${emitHbsAstExpr(args[i + 1]!, ctx)}`);
-      }
+      if (args[i]?.kind !== "literal") throw hbsUnsupported("a Map key that is not literal text");
+      pairs.push(`${hbsHashKey(String(args[i]!.value))}=${emitHbsAstExpr(args[i + 1]!, ctx)}`);
     }
     return pairs.length ? `(dict ${pairs.join(" ")})` : "(dict)";
   }
@@ -155,33 +194,26 @@ function emitHbsAstExpr(ast: ExprAst, ctx: HbsSkelCtx): string {
     const items = args.map((a) => emitHbsAstExpr(a, ctx));
     return items.length ? `(list ${items.join(" ")})` : "(list)";
   }
-  if (name === "if") {
-    const cond = args[0] ? emitHbsAstExpr(args[0], ctx) : "false";
-    const t = args[1] ? emitHbsAstExpr(args[1], ctx) : "null";
-    const f = args[2] ? emitHbsAstExpr(args[2], ctx) : "null";
-    return `(coalesce (whenVal ${cond} ${t}) ${f})`;
+  if (name === "if") return `(ifElse ${arg(0, "false")} ${arg(1, "null")} ${arg(2, "null")})`;
+  if (name === "switch") {
+    if (args.length < 2) return "null";
+    return `(switchVal ${args.map((a) => emitHbsAstExpr(a, ctx)).join(" ")})`;
   }
   if (name === "and" || name === "or") {
-    const items = args.map((a) => `(nonEmpty ${emitHbsAstExpr(a, ctx)})`);
+    const items = args.map((a) => emitHbsAstExpr(a, ctx));
+    if (!items.length) return name === "and" ? "true" : "false";
+    // The helpers use JavaScript truthiness, as Mapping preview.
     return `(${name} ${items.join(" ")})`;
   }
-  if (name === "not") {
-    return `(not ${args[0] ? emitHbsAstExpr(args[0], ctx) : "false"})`;
+  // `not` in VMS-Hbs is "is empty" (Kintegrate): a false Boolean is not empty.
+  if (name === "not") return `(ifElse ${arg(0, "false")} false true)`;
+  if (name === "eq") return `(same ${arg(0, "null")} ${arg(1, "null")})`;
+  if (name === "ne") return `(ifElse (same ${arg(0, "null")} ${arg(1, "null")}) false true)`;
+  if (name === "lt" || name === "le" || name === "gt" || name === "ge") {
+    return `(cmpNum "${name}" ${arg(0, "null")} ${arg(1, "null")})`;
   }
-  if (name === "eq" || name === "ne" || name === "lt" || name === "gt") {
-    const a = args[0] ? emitHbsAstExpr(args[0], ctx) : '""';
-    const b = args[1] ? emitHbsAstExpr(args[1], ctx) : '""';
-    return `(${name} ${a} ${b})`;
-  }
-  if (name === "le" || name === "lte") {
-    const a = args[0] ? emitHbsAstExpr(args[0], ctx) : "0";
-    const b = args[1] ? emitHbsAstExpr(args[1], ctx) : "0";
-    return `(lte ${a} ${b})`;
-  }
-  if (name === "ge" || name === "gte") {
-    const a = args[0] ? emitHbsAstExpr(args[0], ctx) : "0";
-    const b = args[1] ? emitHbsAstExpr(args[1], ctx) : "0";
-    return `(gte ${a} ${b})`;
+  if (name === "lte" || name === "gte") {
+    return `(cmpNum "${name === "lte" ? "le" : "ge"}" ${arg(0, "null")} ${arg(1, "null")})`;
   }
   if (name === "concat") {
     const items = args.map((a) => emitHbsAstExpr(a, ctx));
@@ -191,51 +223,53 @@ function emitHbsAstExpr(ast: ExprAst, ctx: HbsSkelCtx): string {
     const items = args.map((a) => emitHbsAstExpr(a, ctx));
     return items.length ? `(coalesce ${items.join(" ")})` : "null";
   }
-  if (name === "trim") return `(trim ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
-  if (name === "regex_replace") {
-    const items = [0, 1, 2].map((i) => args[i] ? emitHbsAstExpr(args[i]!, ctx) : '""');
-    return `(regexReplace ${items.join(" ")})`;
+  if (name === "trim") return `(trim ${arg(0, '""')})`;
+  if (name === "regex_replace" || name === "regexReplace") {
+    return `(regexReplace ${arg(0, '""')} ${arg(1, '""')} ${arg(2, '""')})`;
   }
-  if (name === "toLowerCase" || name === "lower") {
-    return `(toLowerCase ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name === "toUpperCase" || name === "upper") {
-    return `(toUpperCase ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
-  }
-  if (name === "changeCase") {
-    const val = args[0] ? emitHbsAstExpr(args[0], ctx) : '""';
+  if (name === "toLowerCase" || name === "lower") return `(toLowerCase ${arg(0, '""')})`;
+  if (name === "toUpperCase" || name === "upper") return `(toUpperCase ${arg(0, '""')})`;
+  if (name === "change_case" || name === "changeCase") {
+    const val = arg(0, '""');
     const mode = args[1]?.kind === "literal" ? String(args[1].value).toUpperCase() : "LOWERCASE";
-    return mode === "UPPERCASE" ? `(toUpperCase ${val})` : `(toLowerCase ${val})`;
+    if (mode === "UPPERCASE") return `(toUpperCase (concat ${val}))`;
+    if (mode === "TITLECASE") return `(title ${val})`;
+    return `(toLowerCase (concat ${val}))`;
   }
-  if (name === "replace") {
-    const src = args[0] ? emitHbsAstExpr(args[0], ctx) : '""';
-    const oldVal = args[1] ? emitHbsAstExpr(args[1], ctx) : '""';
-    const newVal = args[2] ? emitHbsAstExpr(args[2], ctx) : '""';
-    return `(replace ${src} ${oldVal} ${newVal})`;
-  }
+  if (name === "replace") return `(replace ${arg(0, '""')} ${arg(1, '""')} ${arg(2, '""')})`;
   if (name === "add" || name === "sub" || name === "mul" || name === "div") {
-    const a = args[0] ? emitHbsAstExpr(args[0], ctx) : "0";
-    const b = args[1] ? emitHbsAstExpr(args[1], ctx) : "0";
-    return `(${name} ${a} ${b})`;
+    return `(${name} ${arg(0, "0")} ${arg(1, "0")})`;
   }
-  if (name === "toNumber" || name === "number") {
-    return `(toNum ${args[0] ? emitHbsAstExpr(args[0], ctx) : "null"})`;
+  if (name === "round") return `(round ${arg(0, "0")})`;
+  if (name === "modulo") return `(mod ${arg(0, "0")} ${arg(1, "1")})`;
+  if (name === "constrain") return `(clamp ${arg(0, "0")} ${arg(1, "0")} ${arg(2, "0")})`;
+  if (name === "length" || name === "listLength" || name === "lists_length") return `(count ${arg(0, "null")})`;
+  if (name === "lists_getIndex") {
+    const where = args[1]?.kind === "literal" ? String(args[1].value) : "FROM_START";
+    return `(listAt ${arg(0, "null")} ${hbsStr(where)} ${arg(2, "1")})`;
   }
-  if (name === "toString" || name === "string") {
-    return `(concat ${args[0] ? emitHbsAstExpr(args[0], ctx) : '""'})`;
+  if (name === "handlebars") {
+    throw hbsUnsupported("a Handlebars block inside a value (use the Handlebars text directly)");
   }
-  return '""';
+  if (name === "toNumber" || name === "number") return `(toNum ${arg(0, "null")})`;
+  if (name === "toString" || name === "string") return `(concat ${arg(0, '""')})`;
+  if (name === "sheet_lookup" || name === "decision_table" || name.startsWith("sheet_")) {
+    throw hbsUnsupported(
+      "Sheets and Decision tables (the VMS-Hbs runtime has no Sheets; see issue #394)",
+    );
+  }
+  throw hbsUnsupported(
+    name === "maps_entries"
+      ? "Map-value entries"
+      : name === "intersection" || name === "union" || name === "difference"
+      ? `list set operations (${name})`
+      : name,
+  );
 }
 
 function hbsShellGen(ctx: HbsSkelCtx): ShellCodegen {
   return {
-    expr: (expression) => {
-      try {
-        return emitHbsAstExpr(parseExpression(expression), ctx);
-      } catch {
-        return "null";
-      }
-    },
+    expr: (expression) => emitHbsAstExpr(parseExpression(expression), ctx),
     object: (rmType, fields) => {
       const normalized = rmType === "CODE_PHRASE"
         ? fields.map(([k, v]) =>
@@ -270,17 +304,14 @@ export function emitHandlebarsJsonSchemaProduct(
     sourceExpr: "@root._data",
     loopBindings: {},
     varBindings: {},
+    functions: model.functions,
   };
 
   const emitNode = (node: SkeletonNode): string | null => {
     if (node.kind === "value") {
       const slot = ctx.slots.get(node.slotId);
       if (!slot?.expression) return null;
-      try {
-        return emitHbsAstExpr(parseExpression(slot.expression), ctx);
-      } catch {
-        return "null";
-      }
+      return emitHbsAstExpr(parseExpression(slot.expression), ctx);
     }
     const entries: Array<[string, string]> = [];
     for (const child of node.children) {
@@ -324,13 +355,9 @@ function emitHbsSkelValue(node: SkeletonNode, ctx: HbsSkelCtx): string | null {
   const coded = node.rmType === "DV_CODED_TEXT" ? codedTextParts(slot?.expression) : null;
   let expr: string | null = null;
   if (slot?.expression) {
-    try {
-      expr = coded
-        ? (coded.value ? emitHbsAstExpr(coded.value, ctx) : null)
-        : emitHbsAstExpr(parseExpression(slot.expression), ctx);
-    } catch {
-      expr = "null";
-    }
+    expr = coded
+      ? (coded.value ? emitHbsAstExpr(coded.value, ctx) : null)
+      : emitHbsAstExpr(parseExpression(slot.expression), ctx);
   }
   const fields = node.fixedFields ?? {};
   const rmType = node.rmType;
@@ -422,12 +449,8 @@ function emitHbsSkelValue(node: SkeletonNode, ctx: HbsSkelCtx): string | null {
 function guardHbsExpr(node: SkeletonNode, expr: string, ctx: HbsSkelCtx): string {
   const inc = ctx.includes?.find((item) => item.slotId === node.slotId);
   if (!inc?.when || inc.elseEmits) return expr;
-  try {
-    const cond = emitHbsAstExpr(parseExpression(inc.when), ctx);
-    return `(whenVal ${cond} ${expr})`;
-  } catch {
-    return expr;
-  }
+  const cond = emitHbsAstExpr(parseExpression(inc.when), ctx);
+  return `(whenVal ${cond} ${expr})`;
 }
 
 function emitHbsPureNode(
@@ -655,6 +678,7 @@ export function emitHandlebarsOpenEhrProduct(
     sourceExpr: "@root._data",
     loopBindings: {},
     varBindings: {},
+    functions: model.functions,
   };
   const header = [
     `{{!-- Generated by intEHRgrator — Handlebars Conversion Script (openEHR ${isXml ? "XML" : "JSON"}) --}}`,

@@ -30,6 +30,8 @@ export const XQUERY_RM_NS =
   "https://github.com/regionstockholm/intehrgrator/ns/helpers/rm";
 export const XQUERY_SHEETS_NS =
   "https://github.com/regionstockholm/intehrgrator/ns/helpers/sheets";
+export const XQUERY_BLOCKS_NS =
+  "https://github.com/regionstockholm/intehrgrator/ns/helpers/blocks";
 
 export const XQUERY_SOURCE_SPECIFIER =
   `${RAW}/src/core/codegen/helpers/xquery/source.xqm`;
@@ -37,6 +39,8 @@ export const XQUERY_RM_SPECIFIER =
   `${RAW}/src/core/codegen/helpers/xquery/rm.xqm`;
 export const XQUERY_SHEETS_SPECIFIER =
   `${RAW}/src/core/codegen/helpers/xquery/sheets.xqm`;
+export const XQUERY_BLOCKS_SPECIFIER =
+  `${RAW}/src/core/codegen/helpers/xquery/blocks.xqm`;
 
 export const XQUERY_SOURCE_BLOB =
   `${BLOB}/src/core/codegen/helpers/xquery/source.xqm`;

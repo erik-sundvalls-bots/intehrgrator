@@ -19,7 +19,8 @@ import type { ExprAst } from "../expression/mod.ts";
 import type { MappingFunction, MappingModel, MappingSlot, SkeletonNode } from "../../types/mod.ts";
 import { primaryMappingAttribute } from "../rm_meta.ts";
 import { GO_TEMPLATE_HELPERS_BLOB } from "./helpers/locations.ts";
-import { parseExpression, isQuantifyCall } from "../expression/mod.ts";
+import { parseExpression, isBlocklyOpName, isQuantifyCall } from "../expression/mod.ts";
+import { jsonBlockReader, stockMathOrOpExpression } from "../expression/blockly_op_blocks.ts";
 import { goUnsupported, inlineGoFunctionCall, unrollGoQuantifier } from "./go_expr_common.ts";
 import { octetBytes } from "../rm_shell_fragment.ts";
 import { emitShellFields, type ShellCodegen } from "./shell_emit.ts";
@@ -585,6 +586,11 @@ function emitValueFromSerialized(block: BlockNode, ctx: GoEmitContext): string[]
 
 /** Best-effort Mapping Expression serialization for Blockly JSON nodes (JSON walker). */
 function blockNodeToExpression(block: BlockNode): string | null {
+  const stock = stockMathOrOpExpression(
+    String(block.type ?? ""),
+    jsonBlockReader(block, (child: BlockNode) => blockNodeToExpression(child)),
+  );
+  if (stock !== undefined) return stock;
   switch (block.type) {
     case "text":
     case "text_code":
@@ -1229,6 +1235,7 @@ export function emitGoExpr(ast: ExprAst, ctx: GoEmitContext = createGoEmitContex
       if (ast.name === "call") return emitGoExpr(inlineGoFunctionCall(ast, ctx.mappingFunctions), ctx);
       const args = ast.args.map((arg) => emitGoExpr(arg, ctx));
       const name: string = ast.name;
+      if (isBlocklyOpName(name)) return `(blk ${[goQuote(name), ...args].join(" ")})`;
       switch (name) {
         case "xpathBoolean":
           // A boolean source is a real bool (as in TypeScript), so a decision
