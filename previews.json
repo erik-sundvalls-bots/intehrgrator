@@ -208,11 +208,11 @@
     "upstream": "805e6f35bf4f4abc6ff9b7185eac3024143ad686"
   },
   "overnight/2026-11-27": {
-    "built": "2026-11-27T06:01:37Z",
+    "built": "2026-11-28T04:36:59Z",
     "dir": "overnight-2026-11-27",
     "mode": "merged",
     "pr": "\t\t\t",
-    "sha": "4de73a50ed89a8c8bcbffc04c629520f6fffabb9",
+    "sha": "99324207e830869f452dbe30230008634a7157a6",
     "upstream": "cc8e1626ca082ea1583f6644a5e8d17b934c7fc4"
   },
   "preview-integration": {

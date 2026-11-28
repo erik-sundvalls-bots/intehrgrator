@@ -27291,6 +27291,217 @@ var init_blockly_ops = __esm({
   }
 });
 
+// src/core/codegen/numeric_format.ts
+function normalizeSchemaType(type) {
+  const raw = String(type ?? "").trim();
+  const local = raw.includes(":") ? raw.slice(raw.lastIndexOf(":") + 1) : raw;
+  return local.trim().toLowerCase();
+}
+function numberFormForSchemaType(type, output) {
+  const t12 = normalizeSchemaType(type);
+  if (INTEGER_TYPES.has(t12)) return "xml-integer";
+  if (output === "json") {
+    if (DECIMAL_TYPES.has(t12) || DOUBLE_TYPES.has(t12)) return "json";
+    return "json";
+  }
+  if (DOUBLE_TYPES.has(t12)) return "xml-double";
+  return "xml-decimal";
+}
+function numberFormForRmAttribute(rmType, attr, output) {
+  const t12 = String(rmType ?? "").trim().toUpperCase();
+  const a8 = String(attr ?? "").trim();
+  if (a8 === "precision") return "xml-integer";
+  if (t12 === "DV_COUNT" && (a8 === "magnitude" || a8 === "")) return "xml-integer";
+  if (t12 === "DV_ORDINAL" && (a8 === "value" || a8 === "")) return "xml-integer";
+  if (t12 === "DV_PROPORTION" && (a8 === "numerator" || a8 === "denominator")) {
+    return output === "xml" ? "xml-double" : "json";
+  }
+  if (t12 === "DV_QUANTITY" && (a8 === "magnitude" || a8 === "")) {
+    return output === "xml" ? "xml-double" : "json";
+  }
+  return numberFormForSchemaType(void 0, output);
+}
+function formatNumber(value, form, options = {}) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+  }
+  switch (form) {
+    case "json":
+      return formatJsonNumber(value, options);
+    case "xml-integer":
+      return formatXmlInteger(value, options);
+    case "xml-decimal":
+      return formatXmlDecimal(value, options);
+    case "xml-double":
+      return formatXmlDouble(value, options);
+  }
+}
+function formatJsonNumber(value, _options = {}) {
+  if (!Number.isFinite(value)) {
+    throw new NumberFormatError(
+      `JSON (RFC 8259 \xA76) cannot express ${String(value)}; Infinity and NaN are not permitted.`
+    );
+  }
+  const text2 = JSON.stringify(value);
+  const warning = exactnessWarning(value, "json");
+  return warning ? { text: text2, warning } : { text: text2 };
+}
+function formatXmlInteger(value, options = {}) {
+  if (!Number.isFinite(value)) {
+    throw new NumberFormatError(
+      `XML Schema xs:integer cannot express ${String(value)}; the lexical space is a signed whole number with no decimal point or exponent.`
+    );
+  }
+  if (!isIntegerValued(value)) {
+    throw new NumberFormatError(
+      `XML Schema xs:integer cannot express ${canonicalDecimal(value)}; the value is not a whole number.`
+    );
+  }
+  const range = INTEGER_RANGES[normalizeSchemaType(options.schemaType)];
+  if (range && (value < range.min || value > range.max)) {
+    const typ = options.schemaType ?? "integer";
+    throw new NumberFormatError(
+      `XML Schema ${typ} cannot express ${canonicalDecimal(value)}; it is outside the type's range.`
+    );
+  }
+  const text2 = canonicalDecimal(value);
+  const warning = exactnessWarning(value, "xml-integer");
+  return warning ? { text: text2, warning } : { text: text2 };
+}
+function formatXmlDecimal(value, options = {}) {
+  if (!Number.isFinite(value)) {
+    throw new NumberFormatError(
+      `XML Schema xs:decimal cannot express ${String(value)}; Infinity and NaN are not in the lexical space, and exponents are not allowed.`
+    );
+  }
+  const text2 = applyPrecision(value, options.precision, false);
+  const warning = exactnessWarning(value, "xml-decimal");
+  return warning ? { text: text2, warning } : { text: text2 };
+}
+function formatXmlDouble(value, options = {}) {
+  if (Number.isNaN(value)) return { text: "NaN" };
+  if (value === Infinity) return { text: "INF" };
+  if (value === -Infinity) return { text: "-INF" };
+  if (Object.is(value, -0)) return { text: "-0" };
+  const text2 = applyPrecision(value, options.precision, false);
+  const warning = exactnessWarning(value, "xml-double");
+  return warning ? { text: text2, warning } : { text: text2 };
+}
+function stringifyJson(value, space3) {
+  return JSON.stringify(value, (_key, v5) => {
+    if (typeof v5 === "number" && !Number.isFinite(v5)) {
+      throw new NumberFormatError(
+        `JSON (RFC 8259 \xA76) cannot express ${String(v5)}; Infinity and NaN are not permitted.`
+      );
+    }
+    return v5;
+  }, space3);
+}
+function isIntegerValued(n10) {
+  return Number.isFinite(n10) && n10 === Math.trunc(n10);
+}
+function exactnessWarning(n10, form) {
+  if (!Number.isFinite(n10)) {
+    if (form === "xml-double") return void 0;
+    return `The target form ${form} cannot express ${String(n10)} exactly (Infinity and NaN are not permitted).`;
+  }
+  if (isIntegerValued(n10) && Math.abs(n10) > SAFE_INTEGER_MAX) {
+    return `The integer ${canonicalDecimal(n10)} is outside \xB1${SAFE_INTEGER_MAX} (2^53\u22121) and cannot be expressed exactly in IEEE-754 binary64, so typical JSON / XML receivers may not recover the same value (RFC 8259 \xA76).`;
+  }
+  if (Math.abs(n10) > FLOAT64_MAX) {
+    return `The value overflows IEEE-754 binary64.`;
+  }
+  return void 0;
+}
+function canonicalDecimal(n10) {
+  if (!Number.isFinite(n10)) {
+    throw new NumberFormatError(`Cannot write ${String(n10)} as a plain decimal.`);
+  }
+  if (n10 === 0) return "0";
+  const sign = n10 < 0 ? "-" : "";
+  const { int, frac } = expandLexeme(JSON.stringify(Math.abs(n10)));
+  const i12 = stripLeadingZeros(int);
+  const f8 = stripTrailingZeros(frac);
+  return f8 ? `${sign}${i12}.${f8}` : `${sign}${i12}`;
+}
+function applyPrecision(n10, precision, _json) {
+  if (precision === void 0 || precision < 0) return canonicalDecimal(n10);
+  if (precision === 0) {
+    return canonicalDecimal(Math.round(n10));
+  }
+  const fixed = n10.toFixed(precision);
+  if (/^-0\.?0*$/.test(fixed)) return `0.${"0".repeat(precision)}`;
+  return fixed;
+}
+function expandLexeme(lexeme) {
+  const m5 = /^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(lexeme);
+  if (!m5) return { int: "0", frac: "" };
+  const digits = m5[1] + (m5[2] ?? "");
+  const exp = m5[3] !== void 0 ? Number(m5[3]) : 0;
+  const point = m5[1].length + exp;
+  if (point <= 0) return { int: "0", frac: "0".repeat(-point) + digits };
+  if (point >= digits.length) {
+    return { int: digits + "0".repeat(point - digits.length), frac: "" };
+  }
+  return { int: digits.slice(0, point), frac: digits.slice(point) };
+}
+function stripLeadingZeros(int) {
+  const s8 = int.replace(/^0+(?=\d)/, "");
+  return s8.length ? s8 : "0";
+}
+function stripTrailingZeros(frac) {
+  return frac.replace(/0+$/, "");
+}
+var SAFE_INTEGER_MAX, FLOAT64_MAX, NumberFormatError, INTEGER_TYPES, DOUBLE_TYPES, DECIMAL_TYPES, INTEGER_RANGES;
+var init_numeric_format = __esm({
+  "src/core/codegen/numeric_format.ts"() {
+    SAFE_INTEGER_MAX = Number.MAX_SAFE_INTEGER;
+    FLOAT64_MAX = Number.MAX_VALUE;
+    NumberFormatError = class extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "NumberFormatError";
+      }
+    };
+    INTEGER_TYPES = /* @__PURE__ */ new Set([
+      "integer",
+      "int",
+      "long",
+      "short",
+      "byte",
+      "nonnegativeinteger",
+      "negativeinteger",
+      "nonpositiveinteger",
+      "positiveinteger",
+      "unsignedint",
+      "unsignedlong",
+      "unsignedshort",
+      "unsignedbyte",
+      "integer32",
+      "integer64"
+    ]);
+    DOUBLE_TYPES = /* @__PURE__ */ new Set([
+      "double",
+      "float",
+      "real"
+    ]);
+    DECIMAL_TYPES = /* @__PURE__ */ new Set([
+      "decimal"
+    ]);
+    INTEGER_RANGES = {
+      byte: { min: -128, max: 127 },
+      short: { min: -32768, max: 32767 },
+      int: { min: -2147483648, max: 2147483647 },
+      unsignedbyte: { min: 0, max: 255 },
+      unsignedshort: { min: 0, max: 65535 },
+      unsignedint: { min: 0, max: 4294967295 },
+      nonnegativeinteger: { min: 0, max: Infinity },
+      positiveinteger: { min: 1, max: Infinity },
+      nonpositiveinteger: { min: -Infinity, max: 0 },
+      negativeinteger: { min: -Infinity, max: -1 }
+    };
+  }
+});
+
 // src/core/codegen/helpers/handlebars.ts
 function hbsInc(value) {
   return value + 1;
@@ -27319,7 +27530,7 @@ function hbsToNum(v5) {
 function hbsEscapeXml(s8) {
   return s8.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
-function hbsWriteRmXmlNode(tag, val, isRoot, depth, out) {
+function hbsWriteRmXmlNode(tag, val, isRoot, depth, out, parentRmType, parentPrecision) {
   if (val === null || val === void 0) return;
   if (Array.isArray(val)) {
     for (const item of val) hbsWriteRmXmlNode(tag, item, isRoot, depth, out);
@@ -27347,7 +27558,8 @@ function hbsWriteRmXmlNode(tag, val, isRoot, depth, out) {
       if (k5 === "terminology_id" && typeof child !== "object") {
         child = { _type: "TERMINOLOGY_ID", value: String(child) };
       }
-      hbsWriteRmXmlNode(k5, child, false, depth + 1, childLines);
+      const precision = typeof rec.precision === "number" ? rec.precision : parentPrecision;
+      hbsWriteRmXmlNode(k5, child, false, depth + 1, childLines, typeof rec._type === "string" ? rec._type : parentRmType, precision);
     }
     if (childLines.length) {
       out.push(`${open}>
@@ -27357,6 +27569,14 @@ function hbsWriteRmXmlNode(tag, val, isRoot, depth, out) {
       out.push(`${open}/>
 `);
     }
+    return;
+  }
+  if (typeof val === "number") {
+    const form = numberFormForRmAttribute(parentRmType, tag, "xml");
+    const precision = tag === "magnitude" || tag === "numerator" || tag === "denominator" ? parentPrecision : void 0;
+    const text2 = formatNumber(val, form, { precision }).text;
+    out.push(`${indent}<${tag}>${hbsEscapeXml(text2)}</${tag}>
+`);
     return;
   }
   out.push(`${indent}<${tag}>${hbsEscapeXml(String(val))}</${tag}>
@@ -27386,6 +27606,7 @@ var intehrgratorValueHelpers, kintegrateHandlebarsHelpers;
 var init_handlebars = __esm({
   "src/core/codegen/helpers/handlebars.ts"() {
     init_blockly_ops();
+    init_numeric_format();
     intehrgratorValueHelpers = {
       /** Mapping preview equality: strict, numbers by value, lists and maps by JSON. */
       same: (a8, b9) => hbsSameItem(a8, b9),
@@ -27633,7 +27854,7 @@ var init_handlebars = __esm({
         }
         return res2;
       },
-      toJson: (val) => JSON.stringify(val ?? null),
+      toJson: (val) => stringifyJson(val ?? null),
       rmToXml: (tag, val) => {
         let target = val;
         if (typeof target === "string" && target.trim().startsWith("{")) {
@@ -130974,8 +131195,43 @@ declare function igbk:items($v as item()*) as item()* {
   for $x in $v return if ($x instance of array(*)) then $x?* else $x
 };
 
+declare function igbk:finite-or-error($n as xs:numeric, $form as xs:string) as empty-sequence() {
+  if ($n ne $n or $n = xs:double("INF") or $n = xs:double("-INF"))
+  then error((), concat("The target form ", $form, " cannot express ", string($n), "; Infinity and NaN are not permitted."))
+  else ()
+};
+
+declare function igbk:plain-decimal($n as xs:numeric) as xs:string {
+  let $_ := igbk:finite-or-error($n, "xml-decimal")
+  return if ($n = 0) then "0"
+    else if ($n = floor($n) and abs($n) lt 1e15) then string(xs:integer($n))
+    else string(xs:decimal($n))
+};
+
 declare function igbk:num-text($n as xs:numeric) as xs:string {
-  if ($n = floor($n) and abs($n) lt 1e15) then string(xs:integer($n)) else string($n)
+  igbk:plain-decimal($n)
+};
+
+declare function igbk:xml-double-text($n as xs:numeric) as xs:string {
+  if ($n ne $n) then "NaN"
+  else if ($n = xs:double("INF")) then "INF"
+  else if ($n = xs:double("-INF")) then "-INF"
+  else igbk:plain-decimal($n)
+};
+
+declare function igbk:json-atom($n as xs:numeric) as xs:numeric {
+  let $_ := igbk:finite-or-error($n, "json")
+  return if ($n = floor($n) and abs($n) le 9007199254740991) then xs:integer($n)
+    else $n
+};
+
+declare function igbk:json-canon($v as item()*) as item()* {
+  if (empty($v)) then ()
+  else if (count($v) gt 1) then for $x in $v return igbk:json-canon($x)
+  else if ($v instance of array(*)) then array { for $x in $v?* return igbk:json-canon($x) }
+  else if ($v instance of map(*)) then map:merge(for $k in map:keys($v) return map { $k: igbk:json-canon($v($k)) })
+  else if ($v instance of xs:numeric) then igbk:json-atom($v)
+  else $v
 };
 
 declare function igbk:text($v as item()*) as xs:string {
@@ -135186,8 +135442,7 @@ function wrapXQueryCanvasXmlModule(model, body) {
 function wrapXQueryModule(args) {
   const method = args.shape === "json" ? "json" : "xml";
   const userFns = emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model));
-  const helperImports = xqueryHelperImports(`${userFns.join("\n")}
-${args.body}`);
+  const resultExpr = method === "json" ? "igbk:json-canon(local:convert($source))" : "local:convert($source)";
   const rmToXmlFn = args.needsRm && args.shape === "xml" ? [
     "declare function local:rm-to-xml($tag as xs:string, $val as item()*) as element()* {",
     "  for $item in (if ($val instance of array(*)) then $val?* else $val)",
@@ -135207,11 +135462,22 @@ ${args.body}`);
     "        else local:rm-to-xml($k, $v)",
     "      }",
     "    else if (exists($item)) then",
-    '      element { QName("http://schemas.openehr.org/v1", $tag) } { string($item) }',
+    '      element { QName("http://schemas.openehr.org/v1", $tag) } {',
+    "        if ($item instance of xs:numeric) then",
+    '          if ($tag = "magnitude" or $tag = "numerator" or $tag = "denominator") then igbk:xml-double-text($item)',
+    "          else igbk:plain-decimal($item)",
+    "        else string($item)",
+    "      }",
     "    else ()",
     "};",
     ""
   ] : [];
+  const helperImports = xqueryHelperImports(
+    `${rmToXmlFn.join("\n")}
+${userFns.join("\n")}
+${args.body}
+${resultExpr}`
+  );
   const lines = [
     'xquery version "3.1";',
     "",
@@ -135249,7 +135515,7 @@ ${args.body}`);
     args.body,
     "};",
     "",
-    "local:convert($source)",
+    resultExpr,
     ""
   ];
   return lines.join("\n");
@@ -143737,6 +144003,7 @@ init_handlebars_dialect();
 
 // src/core/output/canvas_xml_runtime.ts
 init_handlebars_dialect();
+init_numeric_format();
 function inputChild3(input) {
   return input?.block ?? input?.shadow;
 }
@@ -143952,7 +144219,10 @@ function renderXmlOrSchema(block, ctx) {
 function renderValue(block, ctx) {
   const type = block.type ?? "";
   if (type === "text") return String(block.fields?.TEXT ?? "");
-  if (type === "math_number") return String(block.fields?.NUM ?? "0");
+  if (type === "math_number") {
+    const n10 = Number(block.fields?.NUM ?? 0);
+    return Number.isFinite(n10) ? formatNumber(n10, "xml-decimal").text : String(block.fields?.NUM ?? "0");
+  }
   if (type === "logic_boolean") return block.fields?.BOOL === "TRUE" ? "true" : "false";
   if (type === "text_code") {
     const lang = String(block.fields?.LANG ?? "");
@@ -144169,7 +144439,8 @@ function escapeXml2(value) {
 }
 function stringify(value) {
   if (value == null) return "";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (typeof value === "number") return formatNumber(value, "xml-decimal").text;
+  if (typeof value === "string" || typeof value === "boolean") {
     return String(value);
   }
   try {
@@ -155015,7 +155286,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Target schema",
     CAT_LOGIC: "Loops & Logic",
     CAT_MATH: "Math",
-    MATH_NUMERIC_NOTE: "Numbers are IEEE-754 binary64 in every language (safe integers up to \xB12\u2075\xB3\u22121). Very large or very small values (|n| \u2265 1e21 or |n| < 1e-6) may print with different exponent spelling in Go, Java and XQuery. Ordinary numbers match.",
+    MATH_NUMERIC_NOTE: "Numbers are IEEE-754 binary64 (safe integers up to \xB12\u2075\xB3\u22121). JSON follows RFC 8259 (shortest form, no .0 on integers, no NaN/Infinity). XML Schema: xs:integer has no decimal point or exponent; xs:decimal is plain decimal, never an exponent; xs:double also allows INF and NaN. A conversion warning appears only when the target cannot express the value exactly.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Lists & maps",
     CAT_DECISION_TABLES: "Decision Tables",
@@ -155090,7 +155361,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "M\xE5lschema",
     CAT_LOGIC: "Loopar & logik",
     CAT_MATH: "Matematik",
-    MATH_NUMERIC_NOTE: "Tal \xE4r IEEE-754 binary64 i varje spr\xE5k (s\xE4kra heltal upp till \xB12\u2075\xB3\u22121). Mycket stora eller sm\xE5 v\xE4rden (|n| \u2265 1e21 eller |n| < 1e-6) kan skrivas med olika exponentform i Go, Java och XQuery. Vanliga tal st\xE4mmer \xF6verens.",
+    MATH_NUMERIC_NOTE: "Tal \xE4r IEEE-754 binary64 (s\xE4kra heltal upp till \xB12\u2075\xB3\u22121). JSON f\xF6ljer RFC 8259 (kortaste formen, inget .0 p\xE5 heltal, inget NaN/Infinity). XML Schema: xs:integer utan decimaltecken eller exponent; xs:decimal \xE4r vanligt decimalformat, aldrig exponent; xs:double till\xE5ter \xE4ven INF och NaN. En varning visas bara n\xE4r m\xE5let inte kan uttrycka v\xE4rdet exakt.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listor & mappar",
     CAT_DECISION_TABLES: "Beslutstabeller",
@@ -155165,7 +155436,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Zielschema",
     CAT_LOGIC: "Schleifen & Logik",
     CAT_MATH: "Mathematik",
-    MATH_NUMERIC_NOTE: "Zahlen sind in jeder Sprache IEEE-754-binary64 (sichere ganze Zahlen bis \xB12\u2075\xB3\u22121). Sehr gro\xDFe oder kleine Werte (|n| \u2265 1e21 oder |n| < 1e-6) k\xF6nnen in Go, Java und XQuery unterschiedlich geschrieben werden. Gew\xF6hnliche Zahlen stimmen \xFCberein.",
+    MATH_NUMERIC_NOTE: "Zahlen sind IEEE-754-binary64 (sichere ganze Zahlen bis \xB12\u2075\xB3\u22121). JSON folgt RFC 8259 (k\xFCrzeste Form, kein .0 bei ganzen Zahlen, kein NaN/Infinity). XML Schema: xs:integer ohne Dezimalpunkt oder Exponent; xs:decimal ist eine reine Dezimalzahl, nie mit Exponent; xs:double erlaubt auch INF und NaN. Eine Warnung erscheint nur, wenn das Ziel den Wert nicht exakt darstellen kann.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Listen & Maps",
     CAT_DECISION_TABLES: "Entscheidungstabellen",
@@ -155240,7 +155511,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Esquema destino",
     CAT_LOGIC: "Bucles y l\xF3gica",
     CAT_MATH: "Matem\xE1ticas",
-    MATH_NUMERIC_NOTE: "Los n\xFAmeros son IEEE-754 binary64 en todos los lenguajes (enteros seguros hasta \xB12\u2075\xB3\u22121). Los valores muy grandes o muy peque\xF1os (|n| \u2265 1e21 o |n| < 1e-6) pueden escribirse con distinta notaci\xF3n exponencial en Go, Java y XQuery. Los n\xFAmeros habituales coinciden.",
+    MATH_NUMERIC_NOTE: "Los n\xFAmeros son IEEE-754 binary64 (enteros seguros hasta \xB12\u2075\xB3\u22121). JSON sigue RFC 8259 (forma m\xE1s corta, sin .0 en enteros, sin NaN/Infinity). XML Schema: xs:integer sin punto decimal ni exponente; xs:decimal es decimal simple, nunca exponente; xs:double tambi\xE9n admite INF y NaN. Solo hay aviso cuando el destino no puede expresar el valor con exactitud.",
     CAT_TEXT: "Texto",
     CAT_LISTS_AND_MAPS: "Listas y mapas",
     CAT_DECISION_TABLES: "Tablas de decisi\xF3n",
@@ -155315,7 +155586,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Esquema de destinaci\xF3",
     CAT_LOGIC: "Bucles i l\xF2gica",
     CAT_MATH: "Matem\xE0tiques",
-    MATH_NUMERIC_NOTE: "Els nombres s\xF3n IEEE-754 binary64 en tots els llenguatges (enters segurs fins a \xB12\u2075\xB3\u22121). Els valors molt grans o molt petits (|n| \u2265 1e21 o |n| < 1e-6) poden escriure's amb una notaci\xF3 exponencial diferent en Go, Java i XQuery. Els nombres habituals coincideixen.",
+    MATH_NUMERIC_NOTE: "Els nombres s\xF3n IEEE-754 binary64 (enters segurs fins a \xB12\u2075\xB3\u22121). JSON segueix RFC 8259 (forma m\xE9s curta, sense .0 als enters, sense NaN/Infinity). XML Schema: xs:integer sense punt decimal ni exponent; xs:decimal \xE9s decimal simple, mai exponent; xs:double tamb\xE9 admet INF i NaN. Nom\xE9s hi ha un av\xEDs quan el dest\xED no pot expressar el valor amb exactitud.",
     CAT_TEXT: "Text",
     CAT_LISTS_AND_MAPS: "Llistes i mapes",
     CAT_DECISION_TABLES: "Taules de decisi\xF3",
@@ -155390,7 +155661,7 @@ var TABLE2 = {
     CAT_TARGET_SCHEMA: "Sch\xE9ma cible",
     CAT_LOGIC: "Boucles et logique",
     CAT_MATH: "Math",
-    MATH_NUMERIC_NOTE: "Les nombres sont en IEEE-754 binary64 dans tous les langages (entiers s\xFBrs jusqu'\xE0 \xB12\u2075\xB3\u22121). Les valeurs tr\xE8s grandes ou tr\xE8s petites (|n| \u2265 1e21 ou |n| < 1e-6) peuvent s'\xE9crire avec un exposant diff\xE9rent en Go, Java et XQuery. Les nombres ordinaires correspondent.",
+    MATH_NUMERIC_NOTE: "Les nombres sont en IEEE-754 binary64 (entiers s\xFBrs jusqu'\xE0 \xB12\u2075\xB3\u22121). JSON suit RFC 8259 (forme la plus courte, pas de .0 sur les entiers, pas de NaN/Infinity). XML Schema : xs:integer sans point d\xE9cimal ni exposant ; xs:decimal est un d\xE9cimal simple, jamais d'exposant ; xs:double autorise aussi INF et NaN. Un avertissement n'appara\xEEt que lorsque la cible ne peut pas exprimer la valeur exactement.",
     CAT_TEXT: "Texte",
     CAT_LISTS_AND_MAPS: "Listes et maps",
     CAT_DECISION_TABLES: "Tables de d\xE9cision",
@@ -164539,6 +164810,7 @@ function registerConversionStartBlock() {
 }
 
 // src/core/output/canvas_example_runtime.ts
+init_numeric_format();
 function inputChild4(input) {
   return input?.block ?? input?.shadow;
 }
@@ -164630,7 +164902,7 @@ function renderJsonCanvasFromBlockly(state, ctx) {
     (type) => type === "json_object" || type === "json_array"
   );
   if (!root) return null;
-  return `${JSON.stringify(valueOf(root, ctx), null, 2)}
+  return `${stringifyJson(valueOf(root, ctx), 2)}
 `;
 }
 function renderTextDocumentFromBlockly(state, ctx) {
@@ -166092,32 +166364,23 @@ function formatOutputValidationMessage(msg2) {
 }
 
 // src/core/codegen/numeric_limits.ts
-var JS_FIXED_MAX = 1e21;
-var JS_FIXED_MIN = 1e-6;
-var SAFE_INTEGER_MAX = Number.MAX_SAFE_INTEGER;
-var FLOAT64_MAX = Number.MAX_VALUE;
-function numericLimitWarning(n10) {
-  if (!Number.isFinite(n10)) {
-    return `Numeric limit: ${n10} is not a finite number (IEEE-754 overflow or an empty math result).`;
-  }
-  const abs = Math.abs(n10);
-  if (abs >= JS_FIXED_MAX || abs !== 0 && abs < JS_FIXED_MIN) {
-    return `Numeric limit: ${n10} is in the range where languages print exponents differently (ECMA-262 uses scientific notation for |n| \u2265 1e21 or |n| < 1e-6; Go, Java and XQuery may use a different spelling).`;
-  }
-  if (Number.isInteger(n10) && abs > SAFE_INTEGER_MAX) {
-    return `Numeric limit: ${n10} is outside the safe integer range \xB1${SAFE_INTEGER_MAX} (2^53\u22121). Integers this large are not exact in binary64, so languages may print them differently.`;
-  }
-  return null;
+init_numeric_format();
+function inferNumberForm(output) {
+  if (typeof output === "string" && /^\s*</.test(output)) return "xml-decimal";
+  return "json";
 }
-function collectNumericLimitLogs(output) {
+function numericLimitWarning(n10, form = "json") {
+  const msg2 = exactnessWarning(n10, form);
+  return msg2 ?? null;
+}
+function collectNumericLimitLogs(output, form) {
+  const resolved = form ?? inferNumberForm(output);
   const seen = /* @__PURE__ */ new Set();
   const logs = [];
   const visit = (value) => {
     if (typeof value === "number") {
-      const abs = Math.abs(value);
-      const formatting = !Number.isFinite(value) || abs >= JS_FIXED_MAX || value !== 0 && abs < JS_FIXED_MIN;
-      if (!formatting) return;
-      const msg2 = numericLimitWarning(value);
+      if (Number.isFinite(value)) return;
+      const msg2 = numericLimitWarning(value, resolved);
       if (msg2 && !seen.has(msg2)) {
         seen.add(msg2);
         logs.push(msg2);
@@ -166125,20 +166388,25 @@ function collectNumericLimitLogs(output) {
       return;
     }
     if (typeof value === "string") {
-      const re2 = /[-+]?(?:\d+\.\d+|\.\d+|\d+)(?:[eE][-+]?\d+)/g;
-      const reFixedTiny = /[-+]?(?:0\.\d*[1-9]\d*)/g;
-      const consider2 = /* @__PURE__ */ new Set();
-      for (const match of value.match(re2) ?? []) consider2.add(Number(match));
-      for (const match of value.match(reFixedTiny) ?? []) {
-        const n10 = Number(match);
-        if (n10 !== 0 && Math.abs(n10) < JS_FIXED_MIN) consider2.add(n10);
-      }
-      for (const n10 of consider2) {
-        if (!Number.isFinite(n10)) continue;
-        const msg2 = numericLimitWarning(n10);
+      const specials = value.match(/\b(?:NaN|-?INF|-?Infinity)\b/g) ?? [];
+      for (const s8 of specials) {
+        const n10 = s8 === "NaN" ? NaN : s8.includes("-") ? -Infinity : Infinity;
+        const msg2 = numericLimitWarning(n10, resolved);
         if (msg2 && !seen.has(msg2)) {
           seen.add(msg2);
           logs.push(msg2);
+        }
+      }
+      if (resolved === "xml-integer" || resolved === "xml-decimal") {
+        const re2 = /[-+]?(?:\d+\.\d+|\.\d+|\d+)(?:[eE][-+]?\d+)/g;
+        for (const match of value.match(re2) ?? []) {
+          const n10 = Number(match);
+          if (!Number.isFinite(n10)) continue;
+          const msg2 = `The target form ${resolved} cannot express ${match} exactly; XML Schema ${resolved === "xml-integer" ? "xs:integer" : "xs:decimal"} does not allow an exponent.`;
+          if (!seen.has(msg2)) {
+            seen.add(msg2);
+            logs.push(msg2);
+          }
         }
       }
       return;
@@ -174589,62 +174857,6 @@ function uniqueSchemaContainerNodes(skeleton) {
   return out;
 }
 
-// src/blockly/strip_random_dropdowns.ts
-var RANDOM_DROPDOWN_FIELDS = {
-  text_charAt: ["WHERE"],
-  text_getSubstring: ["WHERE1", "WHERE2"],
-  lists_getIndex: ["WHERE"],
-  lists_getSublist: ["WHERE1", "WHERE2"],
-  math_on_list: ["OP"]
-};
-function withoutRandomUnlessCurrent(options, current) {
-  return options.filter((opt) => {
-    if (!Array.isArray(opt) || opt.length < 2) return true;
-    return String(opt[1]) !== "RANDOM" || current === "RANDOM";
-  });
-}
-function patchDropdown(block, fieldName) {
-  const field = block.getField(fieldName);
-  if (!field || field.menuGenerator_ === void 0) return;
-  if (field.__igNoRandom) return;
-  const original = field.menuGenerator_;
-  const generate2 = function() {
-    const raw = typeof original === "function" ? original.call(this) : original;
-    const list2 = Array.isArray(raw) ? raw : [];
-    return withoutRandomUnlessCurrent(list2, field.getValue());
-  };
-  field.menuGenerator_ = generate2;
-  const origValidate = field.doClassValidation_?.bind(field);
-  if (origValidate) {
-    field.doClassValidation_ = (newValue) => {
-      if (newValue === "RANDOM") return "RANDOM";
-      return origValidate(newValue);
-    };
-  }
-  field.__igNoRandom = true;
-}
-function stripRandomDropdowns() {
-  for (const [type, fields] of Object.entries(RANDOM_DROPDOWN_FIELDS)) {
-    const def2 = Blockly2.Blocks[type];
-    if (!def2?.init) continue;
-    if (def2.__igNoRandom) continue;
-    const original = def2.init;
-    def2.init = function() {
-      original.call(this);
-      for (const name2 of fields) patchDropdown(this, name2);
-    };
-    def2.__igNoRandom = true;
-  }
-}
-function randomDropdownFieldNames(blockType) {
-  return RANDOM_DROPDOWN_FIELDS[blockType] ?? [];
-}
-var RANDOM_BLOCK_TYPES = [
-  "math_random_int",
-  "math_random_float",
-  "colour_random"
-];
-
 // src/blockly/blocks/include_when.ts
 var INCLUDE_WHEN_BLOCK = "include_when";
 function registerIncludeWhenBlock() {
@@ -174938,7 +175150,6 @@ function listeningTargetFromBlock(block) {
 // src/blockly/vms_linter.ts
 init_vms_hbs();
 var HATCH_REMOVED = "Removed from Verifiable Mapping Subset \u2014 unverified / not in declarative export";
-var HATCH_RANDOM = "Random is not supported \u2014 a mapping must give the same output for the same input. This comes from stock Blockly and is not part of the language.";
 var HATCH_JSON_XML = "Ad-hoc JSON/XML tree \u2014 unverified / not in declarative export";
 var HATCH_DYNAMIC_PATH = "Non-literal source path \u2014 unverified / not in declarative export";
 var HATCH_OUT_OF_DIALECT_HBS = "Handlebars outside VMS-Hbs \u2014 unverified / not in declarative export";
@@ -174962,19 +175173,9 @@ function isLiteralSourcePath(path) {
 }
 function blockHatchMessages(block) {
   const messages = [];
-  if (RANDOM_BLOCK_TYPES.includes(block.type)) {
-    messages.push(HATCH_RANDOM);
-    return messages;
-  }
   if (isVmsRemovedBlockType(block.type)) {
     messages.push(HATCH_REMOVED);
     return messages;
-  }
-  for (const field of randomDropdownFieldNames(block.type)) {
-    if (String(block.getFieldValue(field) ?? "") === "RANDOM") {
-      messages.push(HATCH_RANDOM);
-      break;
-    }
   }
   if (block.type === INCLUDE_WHEN_BLOCK) {
     const when = block.getInputTargetBlock("WHEN");
@@ -189462,7 +189663,7 @@ var NumberMarker = class extends GutterMarker {
     return document.createTextNode(this.number);
   }
 };
-function formatNumber(view, number2) {
+function formatNumber2(view, number2) {
   return view.state.facet(lineNumberConfig).formatNumber(number2, view.state);
 }
 var lineNumberGutter = /* @__PURE__ */ activeGutters.compute([lineNumberConfig], (state) => ({
@@ -189474,7 +189675,7 @@ var lineNumberGutter = /* @__PURE__ */ activeGutters.compute([lineNumberConfig],
   lineMarker(view, line, others) {
     if (others.some((m5) => m5.toDOM))
       return null;
-    return new NumberMarker(formatNumber(view, view.state.doc.lineAt(line.from).number));
+    return new NumberMarker(formatNumber2(view, view.state.doc.lineAt(line.from).number));
   },
   widgetMarker: (view, widget, block) => {
     for (let m5 of view.state.facet(lineNumberWidgetMarker)) {
@@ -189486,10 +189687,10 @@ var lineNumberGutter = /* @__PURE__ */ activeGutters.compute([lineNumberConfig],
   },
   lineMarkerChange: (update2) => update2.startState.facet(lineNumberConfig) != update2.state.facet(lineNumberConfig),
   initialSpacer(view) {
-    return new NumberMarker(formatNumber(view, maxLineNumber(view.state.doc.lines)));
+    return new NumberMarker(formatNumber2(view, maxLineNumber(view.state.doc.lines)));
   },
   updateSpacer(spacer, update2) {
-    let max3 = formatNumber(update2.view, maxLineNumber(update2.view.state.doc.lines));
+    let max3 = formatNumber2(update2.view, maxLineNumber(update2.view.state.doc.lines));
     return max3 == spacer.number ? spacer : new NumberMarker(max3);
   },
   domEventHandlers: state.facet(lineNumberConfig).domEventHandlers,
@@ -203372,6 +203573,57 @@ function registerTextBlocks() {
   };
 }
 
+// src/blockly/strip_random_dropdowns.ts
+var RANDOM_DROPDOWN_FIELDS = {
+  text_charAt: ["WHERE"],
+  text_getSubstring: ["WHERE1", "WHERE2"],
+  lists_getIndex: ["WHERE"],
+  lists_getSublist: ["WHERE1", "WHERE2"],
+  math_on_list: ["OP"]
+};
+function withoutRandom(options) {
+  return options.filter((opt) => {
+    if (!Array.isArray(opt) || opt.length < 2) return true;
+    return String(opt[1]) !== "RANDOM";
+  });
+}
+function patchDropdown(block, fieldName) {
+  const field = block.getField(fieldName);
+  if (!field || field.menuGenerator_ === void 0) return;
+  if (field.__igNoRandom) return;
+  const original = field.menuGenerator_;
+  const generate2 = function() {
+    const raw = typeof original === "function" ? original.call(this) : original;
+    const list2 = Array.isArray(raw) ? raw : [];
+    return withoutRandom(list2);
+  };
+  field.menuGenerator_ = generate2;
+  field.__igNoRandom = true;
+}
+function stripRandomDropdowns() {
+  for (const [type, fields] of Object.entries(RANDOM_DROPDOWN_FIELDS)) {
+    const def2 = Blockly2.Blocks[type];
+    if (!def2?.init) continue;
+    if (def2.__igNoRandom) continue;
+    const original = def2.init;
+    def2.init = function() {
+      original.call(this);
+      for (const name2 of fields) patchDropdown(this, name2);
+    };
+    def2.__igNoRandom = true;
+  }
+}
+function unregisterRandomBlocks() {
+  for (const type of RANDOM_BLOCK_TYPES) {
+    delete Blockly2.Blocks[type];
+  }
+}
+var RANDOM_BLOCK_TYPES = [
+  "math_random_int",
+  "math_random_float",
+  "colour_random"
+];
+
 // src/blockly/blockly_events.ts
 var afterEventsEnabled = null;
 function setAfterBlocklyEventsEnabled(handler) {
@@ -209159,6 +209411,7 @@ function initBlocklyGenerators() {
     registerConversionStartBlock();
     registerLogicBlocks();
     stripRandomDropdowns();
+    unregisterRandomBlocks();
     registerExtractToFunctionMenu();
     registerGenerators();
     registerTypeScriptExportAdapter();
@@ -220295,8 +220548,8 @@ function canvasFindAdapter(options) {
 }
 
 // web/build_info.ts
-var BUILD_ID = true ? "4de73a5" : "dev";
-var BUILD_TIMESTAMP = true ? "2026-11-27T06:01:35.178Z" : "not built";
+var BUILD_ID = true ? "9932420" : "dev";
+var BUILD_TIMESTAMP = true ? "2026-11-28T04:36:56.343Z" : "not built";
 
 // node_modules/.deno/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/css-tag.js
 var t7 = globalThis;
