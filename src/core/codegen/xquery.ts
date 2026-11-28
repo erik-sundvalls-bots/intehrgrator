@@ -240,7 +240,7 @@ function wrapXQueryModule(args: {
 }): string {
   const method = args.shape === "json" ? "json" : "xml";
   const userFns = emitXQueryUserFunctions(args.model, userFunctionXqEnv(args.model));
-  const helperImports = xqueryHelperImports(`${userFns.join("\n")}\n${args.body}`);
+  const resultExpr = method === "json" ? "igbk:json-canon(local:convert($source))" : "local:convert($source)";
   const rmToXmlFn = args.needsRm && args.shape === "xml"
     ? [
       "declare function local:rm-to-xml($tag as xs:string, $val as item()*) as element()* {",
@@ -261,12 +261,20 @@ function wrapXQueryModule(args: {
       "        else local:rm-to-xml($k, $v)",
       "      }",
       "    else if (exists($item)) then",
-      '      element { QName("http://schemas.openehr.org/v1", $tag) } { string($item) }',
+      '      element { QName("http://schemas.openehr.org/v1", $tag) } {',
+      "        if ($item instance of xs:numeric) then",
+      '          if ($tag = "magnitude" or $tag = "numerator" or $tag = "denominator") then igbk:xml-double-text($item)',
+      "          else igbk:plain-decimal($item)",
+      "        else string($item)",
+      "      }",
       "    else ()",
       "};",
       "",
     ]
     : [];
+  const helperImports = xqueryHelperImports(
+    `${rmToXmlFn.join("\n")}\n${userFns.join("\n")}\n${args.body}\n${resultExpr}`,
+  );
   const lines: string[] = [
     'xquery version "3.1";',
     "",
@@ -308,7 +316,7 @@ function wrapXQueryModule(args: {
     args.body,
     "};",
     "",
-    "local:convert($source)",
+    resultExpr,
     "",
   ];
   return lines.join("\n");

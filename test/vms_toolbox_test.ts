@@ -126,19 +126,20 @@ Deno.test("Math toolbox includes the numeric-limits info note (#393)", () => {
   assertEquals(labels.includes(msg("en").MATH_NUMERIC_NOTE), true);
 });
 
-Deno.test("stock dropdowns do not offer RANDOM on a new block, but keep it on a loaded one (#393)", () => {
+Deno.test("stock dropdowns do not offer RANDOM, and a loaded RANDOM value is not kept (#393)", () => {
   ensure();
   const workspace = new Blockly.Workspace();
 
   const fresh = workspace.newBlock("text_charAt");
   const freshField = fresh.getField("WHERE") as { getOptions(): Array<[string, string]> };
   assertEquals(freshField.getOptions().some((opt) => opt[1] === "RANDOM"), false);
-
-  const loaded = workspace.newBlock("text_charAt");
-  loaded.setFieldValue("RANDOM", "WHERE");
-  assertEquals(loaded.getFieldValue("WHERE"), "RANDOM");
-  const loadedField = loaded.getField("WHERE") as { getOptions(): Array<[string, string]> };
-  assertEquals(loadedField.getOptions().some((opt) => opt[1] === "RANDOM"), true);
+  try {
+    fresh.setFieldValue("RANDOM", "WHERE");
+  } catch {
+    // rejected
+  }
+  assertEquals(fresh.getFieldValue("WHERE") === "RANDOM", false);
+  assertEquals(freshField.getOptions().some((opt) => opt[1] === "RANDOM"), false);
 
   const list = workspace.newBlock("math_on_list");
   const listField = list.getField("OP") as { getOptions(): Array<[string, string]> };

@@ -19,7 +19,7 @@ import {
   registerDecisionTableBlocks,
 } from "./blocks/decision_table_blocks.ts";
 import { registerTextBlocks } from "./blocks/text_blocks.ts";
-import { stripRandomDropdowns } from "./strip_random_dropdowns.ts";
+import { stripRandomDropdowns, unregisterRandomBlocks } from "./strip_random_dropdowns.ts";
 import {
   currentItemName,
   currentLoopItemName,
@@ -256,6 +256,7 @@ export function initBlocklyGenerators(): void {
     registerConversionStartBlock();
     registerLogicBlocks();
     stripRandomDropdowns();
+    unregisterRandomBlocks();
     registerExtractToFunctionMenu();
     registerGenerators();
     registerTypeScriptExportAdapter();

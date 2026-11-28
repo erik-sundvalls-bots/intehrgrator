@@ -16,6 +16,7 @@
  */
 
 import { blocklyOp } from "./blockly_ops.ts";
+import { formatNumber, numberFormForRmAttribute, stringifyJson } from "../numeric_format.ts";
 
 export interface KintegrateHandlebarsOptions {
   data?: {
@@ -79,6 +80,8 @@ function hbsWriteRmXmlNode(
   isRoot: boolean,
   depth: number,
   out: string[],
+  parentRmType?: string,
+  parentPrecision?: number,
 ): void {
   if (val === null || val === undefined) return;
   if (Array.isArray(val)) {
@@ -109,13 +112,23 @@ function hbsWriteRmXmlNode(
       if (k === "terminology_id" && typeof child !== "object") {
         child = { _type: "TERMINOLOGY_ID", value: String(child) };
       }
-      hbsWriteRmXmlNode(k, child, false, depth + 1, childLines);
+      const precision = typeof rec.precision === "number" ? rec.precision : parentPrecision;
+      hbsWriteRmXmlNode(k, child, false, depth + 1, childLines, typeof rec._type === "string" ? rec._type : parentRmType, precision);
     }
     if (childLines.length) {
       out.push(`${open}>\n`, ...childLines, `${indent}</${tag}>\n`);
     } else {
       out.push(`${open}/>\n`);
     }
+    return;
+  }
+  if (typeof val === "number") {
+    const form = numberFormForRmAttribute(parentRmType, tag, "xml");
+    const precision = tag === "magnitude" || tag === "numerator" || tag === "denominator"
+      ? parentPrecision
+      : undefined;
+    const text = formatNumber(val, form, { precision }).text;
+    out.push(`${indent}<${tag}>${hbsEscapeXml(text)}</${tag}>\n`);
     return;
   }
   out.push(`${indent}<${tag}>${hbsEscapeXml(String(val))}</${tag}>\n`);
@@ -400,7 +413,7 @@ export const kintegrateHandlebarsHelpers = {
     }
     return res;
   },
-  toJson: (val: unknown) => JSON.stringify(val ?? null),
+  toJson: (val: unknown) => stringifyJson(val ?? null),
   rmToXml: (tag: unknown, val: unknown) => {
     let target = val;
     if (typeof target === "string" && target.trim().startsWith("{")) {

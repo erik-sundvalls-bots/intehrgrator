@@ -6,31 +6,34 @@ import {
   numericLimitWarning,
 } from "@intehrgrator/core/codegen/numeric_limits.ts";
 
-Deno.test("numericLimitWarning is silent for ordinary numbers", () => {
+Deno.test("numericLimitWarning is silent when the target can express the value", () => {
   assertEquals(numericLimitWarning(0), null);
   assertEquals(numericLimitWarning(3.14), null);
   assertEquals(numericLimitWarning(1e6), null);
   assertEquals(numericLimitWarning(1e-6), null);
+  assertEquals(numericLimitWarning(1e-7, "json"), null);
+  assertEquals(numericLimitWarning(1e-7, "xml-decimal"), null);
+  assertEquals(numericLimitWarning(1e21, "json") != null, true); // 1e21 is an unsafe integer
   assertEquals(numericLimitWarning(9007199254740991), null);
 });
 
-Deno.test("numericLimitWarning fires at the ECMA-262 / safe-integer bounds", () => {
-  const large = numericLimitWarning(1e21);
-  const small = numericLimitWarning(1e-7);
-  const unsafe = numericLimitWarning(9007199254740993);
-  const inf = numericLimitWarning(Infinity);
-  assertEquals(Boolean(large && large.includes("1e21")), true);
-  assertEquals(Boolean(small && small.includes("1e-6")), true);
+Deno.test("numericLimitWarning fires only when the target cannot express the value exactly", () => {
+  const unsafe = numericLimitWarning(9007199254740993, "json");
+  const infJson = numericLimitWarning(Infinity, "json");
+  const infDouble = numericLimitWarning(Infinity, "xml-double");
   assertEquals(Boolean(unsafe && unsafe.includes("2^53")), true);
-  assertEquals(Boolean(inf && inf.includes("finite")), true);
+  assertEquals(Boolean(infJson && infJson.includes("cannot express")), true);
+  assertEquals(infDouble, null);
 });
 
-Deno.test("collectNumericLimitLogs walks JSON and printed numbers", () => {
-  const logs = collectNumericLimitLogs({ n: 1e21, text: "value is 1e-7 and 3" });
-  assertEquals(logs.length >= 2, true);
-  const result = attachNumericLimitLogs({ ok: true, output: 1e21, warnings: [] }, () => {});
-  assertEquals((result.logs?.length ?? 0) > 0, true);
-  // Large integer IDs are described in the toolbox note, not logged per conversion.
+Deno.test("collectNumericLimitLogs does not flag expressible scientific or large IDs", () => {
+  assertEquals(collectNumericLimitLogs({ n: 1e-7, text: "value is 1e-7 and 3" }, "json"), []);
   assertEquals(collectNumericLimitLogs({ id: 900000000000207000 }), []);
-  assertEquals(NUMERIC_LIMIT_NOTE.includes("binary64"), true);
+  const infLogs = collectNumericLimitLogs({ n: Infinity }, "json");
+  assertEquals(infLogs.length > 0, true);
+  const xmlExp = collectNumericLimitLogs("<Value>1e-7</Value>", "xml-decimal");
+  assertEquals(xmlExp.length > 0, true);
+  const result = attachNumericLimitLogs({ ok: true, output: Infinity, warnings: [] }, () => {});
+  assertEquals((result.logs?.length ?? 0) > 0, true);
+  assertEquals(NUMERIC_LIMIT_NOTE.includes("RFC 8259"), true);
 });

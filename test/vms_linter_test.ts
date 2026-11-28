@@ -7,7 +7,6 @@ import {
   HATCH_DYNAMIC_PATH,
   HATCH_JSON_XML,
   HATCH_OUT_OF_DIALECT_HBS,
-  HATCH_RANDOM,
   HATCH_REMOVED,
   isLiteralSourcePath,
 } from "@intehrgrator/blockly/vms_linter.ts";
@@ -90,25 +89,32 @@ Deno.test("blockConstraintMessages includes hatch warnings", async () => {
   workspace.dispose();
 });
 
-Deno.test("workspace hatch: random blocks and RANDOM dropdowns get a clear warning (#393)", () => {
+Deno.test("random blocks are unregistered; RANDOM dropdown values are not kept (#393)", () => {
   ensure();
+  assertEquals(Boolean(Blockly.Blocks["math_random_int"]), false);
+  assertEquals(Boolean(Blockly.Blocks["math_random_float"]), false);
+  assertEquals(Boolean(Blockly.Blocks["colour_random"]), false);
+
   const workspace = new Blockly.Workspace();
-  const randInt = workspace.newBlock("math_random_int");
-  assertEquals(blockHatchMessages(randInt), [HATCH_RANDOM]);
-
-  // colour_random is in VMS_REMOVED but stock colour blocks are not registered here.
-
   const letter = workspace.newBlock("text_charAt");
-  letter.setFieldValue("RANDOM", "WHERE");
-  assertEquals(blockHatchMessages(letter), [HATCH_RANDOM]);
+  try {
+    letter.setFieldValue("RANDOM", "WHERE");
+  } catch {
+    // Blockly may reject the unknown dropdown value.
+  }
+  assertEquals(letter.getFieldValue("WHERE") === "RANDOM", false);
 
   const first = workspace.newBlock("text_charAt");
   first.setFieldValue("FIRST", "WHERE");
-  assertEquals(blockHatchMessages(first).includes(HATCH_RANDOM), false);
+  assertEquals(first.getFieldValue("WHERE"), "FIRST");
 
   const onList = workspace.newBlock("math_on_list");
-  onList.setFieldValue("RANDOM", "OP");
-  assertEquals(blockHatchMessages(onList), [HATCH_RANDOM]);
+  try {
+    onList.setFieldValue("RANDOM", "OP");
+  } catch {
+    // rejected
+  }
+  assertEquals(onList.getFieldValue("OP") === "RANDOM", false);
   workspace.dispose();
 });
 

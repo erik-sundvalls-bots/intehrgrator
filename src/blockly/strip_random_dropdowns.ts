@@ -8,9 +8,11 @@
  * modes ("letter at random", "random item of a list", …). Those modes
  * break determinism and must not be offered for new mappings.
  *
- * An old workspace that still has WHERE/OP = RANDOM keeps the option
- * visible so the value is not silently rewritten, and the workspace
- * linter plus codegen report a clear error.
+ * The RANDOM option is removed from the menu outright. An old workspace
+ * that still has WHERE/OP = RANDOM is handled like any other invalid
+ * dropdown value (the field does not keep it). Dedicated random blocks
+ * (`math_random_int`, `math_random_float`, `colour_random`) are
+ * unregistered so they load as unknown blocks.
  */
 import type { Block } from "blockly/core";
 import { Blockly } from "./blockly_core.ts";
@@ -30,13 +32,12 @@ interface DropdownField {
   getValue(): string;
   getOptions?: (useCache?: boolean) => MenuOption[];
   menuGenerator_?: MenuGenerator;
-  doClassValidation_?: (newValue?: string) => string | null | undefined;
 }
 
-function withoutRandomUnlessCurrent(options: MenuOption[], current: string): MenuOption[] {
+function withoutRandom(options: MenuOption[]): MenuOption[] {
   return options.filter((opt) => {
     if (!Array.isArray(opt) || opt.length < 2) return true;
-    return String(opt[1]) !== "RANDOM" || current === "RANDOM";
+    return String(opt[1]) !== "RANDOM";
   });
 }
 
@@ -48,20 +49,13 @@ function patchDropdown(block: Block, fieldName: string): void {
   const generate = function (this: unknown): MenuOption[] {
     const raw = typeof original === "function" ? original.call(this) : original;
     const list = Array.isArray(raw) ? raw : [];
-    return withoutRandomUnlessCurrent(list, field.getValue());
+    return withoutRandom(list);
   };
   field.menuGenerator_ = generate;
-  const origValidate = field.doClassValidation_?.bind(field);
-  if (origValidate) {
-    field.doClassValidation_ = (newValue?: string) => {
-      if (newValue === "RANDOM") return "RANDOM";
-      return origValidate(newValue);
-    };
-  }
   (field as { __igNoRandom?: boolean }).__igNoRandom = true;
 }
 
-/** Patch stock Blockly block inits so new blocks have no RANDOM dropdown option. */
+/** Patch stock Blockly block inits so dropdowns have no RANDOM option. */
 export function stripRandomDropdowns(): void {
   for (const [type, fields] of Object.entries(RANDOM_DROPDOWN_FIELDS)) {
     const def = Blockly.Blocks[type] as { init?: (this: Block) => void } | undefined;
@@ -73,6 +67,13 @@ export function stripRandomDropdowns(): void {
       for (const name of fields) patchDropdown(this, name);
     };
     (def as { __igNoRandom?: boolean }).__igNoRandom = true;
+  }
+}
+
+/** Unregister dedicated random blocks so old workspaces load them as unknown. */
+export function unregisterRandomBlocks(): void {
+  for (const type of RANDOM_BLOCK_TYPES) {
+    delete Blockly.Blocks[type];
   }
 }
 

@@ -376,9 +376,12 @@ func funcMapWithSheets(sheets map[string]any) template.FuncMap {
 			return hostSheetCall("goTextTemplateSheetLookup", sheets, name, matchCol, matchVal, returnCol)
 		},
 		"toJson": func(v any) (string, error) {
+			if err := rejectNonFiniteJSON(v); err != nil {
+				return "", err
+			}
 			b, err := json.Marshal(v)
 			if err != nil {
-				return "null", err
+				return "", err
 			}
 			return string(b), nil
 		},
@@ -387,12 +390,12 @@ func funcMapWithSheets(sheets map[string]any) template.FuncMap {
 			if v == nil {
 				return ""
 			}
-			return escapeXmlText(fmt.Sprint(v))
+			return escapeXmlText(textHelper(v))
 		},
 		"rmToXml": rmToXmlHelper,
 		"rmToXmlFrag": func(tag string, v any) string {
 			var b strings.Builder
-			writeRmXmlNode(&b, tag, v, false, 1)
+			writeRmXmlNode(&b, tag, v, false, 1, "", nil)
 			return b.String()
 		},
 		"codedText":  codedTextHelper,
@@ -645,9 +648,162 @@ func textHelper(v any) string {
 		}
 		return string(b)
 	case float64:
-		return strconv.FormatFloat(x, 'f', -1, 64)
+		s, err := formatXmlDecimal(x)
+		if err != nil {
+			// textHelper is also used for general interpolation; keep a visible token
+			// rather than silently printing NaN into xs:decimal fields.
+			return ""
+		}
+		return s
+	case float32:
+		s, err := formatXmlDecimal(float64(x))
+		if err != nil {
+			return ""
+		}
+		return s
+	case int, int8, int16, int32, int64:
+		return fmt.Sprint(x)
+	}
+	if f, ok := asFloat64(v); ok {
+		s, err := formatXmlDecimal(f)
+		if err != nil {
+			return ""
+		}
+		return s
 	}
 	return fmt.Sprint(v)
+}
+
+// formatXmlDecimal is the xs:decimal canonical form: no exponent, no trailing
+// zeros, no decimal point on whole numbers. NaN / Inf are rejected.
+func formatXmlDecimal(n float64) (string, error) {
+	if math.IsNaN(n) || math.IsInf(n, 0) {
+		return "", fmt.Errorf("XML Schema xs:decimal cannot express %v; Infinity and NaN are not in the lexical space", n)
+	}
+	if n == 0 {
+		return "0", nil
+	}
+	return strconv.FormatFloat(n, 'f', -1, 64), nil
+}
+
+func formatXmlNumber(n float64, form string) (string, error) {
+	switch form {
+	case "xml-double":
+		if math.IsNaN(n) {
+			return "NaN", nil
+		}
+		if math.IsInf(n, 1) {
+			return "INF", nil
+		}
+		if math.IsInf(n, -1) {
+			return "-INF", nil
+		}
+		if n == 0 && math.Signbit(n) {
+			return "-0", nil
+		}
+		return formatXmlDecimal(n)
+	case "xml-integer":
+		if math.IsNaN(n) || math.IsInf(n, 0) {
+			return "", fmt.Errorf("XML Schema xs:integer cannot express %v; Infinity and NaN are not in the lexical space", n)
+		}
+		if n != math.Trunc(n) {
+			s, _ := formatXmlDecimal(n)
+			return "", fmt.Errorf("XML Schema xs:integer cannot express %s; the value is not a whole number", s)
+		}
+		return formatXmlDecimal(n)
+	default:
+		return formatXmlDecimal(n)
+	}
+}
+
+func formatJsonNumber(n float64) (string, error) {
+	if math.IsNaN(n) || math.IsInf(n, 0) {
+		return "", fmt.Errorf("JSON (RFC 8259 §6) cannot express %v; Infinity and NaN are not permitted", n)
+	}
+	b, err := json.Marshal(n)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func asFloat64(v any) (float64, bool) {
+	switch x := v.(type) {
+	case float64:
+		return x, true
+	case float32:
+		return float64(x), true
+	case int:
+		return float64(x), true
+	case int8:
+		return float64(x), true
+	case int16:
+		return float64(x), true
+	case int32:
+		return float64(x), true
+	case int64:
+		return float64(x), true
+	case uint:
+		return float64(x), true
+	case uint8:
+		return float64(x), true
+	case uint16:
+		return float64(x), true
+	case uint32:
+		return float64(x), true
+	case uint64:
+		return float64(x), true
+	case json.Number:
+		f, err := x.Float64()
+		return f, err == nil
+	default:
+		return 0, false
+	}
+}
+
+func rejectNonFiniteJSON(v any) error {
+	switch x := v.(type) {
+	case float64:
+		_, err := formatJsonNumber(x)
+		return err
+	case float32:
+		_, err := formatJsonNumber(float64(x))
+		return err
+	case map[string]any:
+		for _, item := range x {
+			if err := rejectNonFiniteJSON(item); err != nil {
+				return err
+			}
+		}
+	case []any:
+		for _, item := range x {
+			if err := rejectNonFiniteJSON(item); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func numberFormForRm(rmType, attr string) string {
+	t := strings.ToUpper(strings.TrimSpace(rmType))
+	a := strings.TrimSpace(attr)
+	if a == "precision" {
+		return "xml-integer"
+	}
+	if t == "DV_COUNT" && (a == "magnitude" || a == "") {
+		return "xml-integer"
+	}
+	if t == "DV_ORDINAL" && (a == "value" || a == "") {
+		return "xml-integer"
+	}
+	if t == "DV_PROPORTION" && (a == "numerator" || a == "denominator") {
+		return "xml-double"
+	}
+	if t == "DV_QUANTITY" && (a == "magnitude" || a == "") {
+		return "xml-double"
+	}
+	return "xml-decimal"
 }
 
 func nonEmptyHelper(v any) bool {
@@ -1009,17 +1165,17 @@ func rmToXmlHelper(tag string, v any) (string, error) {
 	}
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
-	writeRmXmlNode(&b, tag, v, true, 0)
+	writeRmXmlNode(&b, tag, v, true, 0, "", nil)
 	return b.String(), nil
 }
 
-func writeRmXmlNode(b *strings.Builder, tag string, v any, isRoot bool, depth int) {
+func writeRmXmlNode(b *strings.Builder, tag string, v any, isRoot bool, depth int, parentType string, precision any) {
 	if v == nil {
 		return
 	}
 	if arr, ok := v.([]any); ok {
 		for _, item := range arr {
-			writeRmXmlNode(b, tag, item, isRoot, depth)
+			writeRmXmlNode(b, tag, item, isRoot, depth, parentType, precision)
 		}
 		return
 	}
@@ -1067,7 +1223,15 @@ func writeRmXmlNode(b *strings.Builder, tag string, v any, isRoot bool, depth in
 					val = map[string]any{"_type": "TERMINOLOGY_ID", "value": fmt.Sprint(val)}
 				}
 			}
-			writeRmXmlNode(b, k, val, false, depth+1)
+			nextType := parentType
+			if t, ok := m["_type"].(string); ok && t != "" {
+				nextType = t
+			}
+			var nextPrec any = precision
+			if p, ok := m["precision"]; ok {
+				nextPrec = p
+			}
+			writeRmXmlNode(b, k, val, false, depth+1, nextType, nextPrec)
 		}
 		if hasChild {
 			b.WriteString(indent)
@@ -1083,7 +1247,17 @@ func writeRmXmlNode(b *strings.Builder, tag string, v any, isRoot bool, depth in
 	b.WriteByte('<')
 	b.WriteString(tag)
 	b.WriteByte('>')
-	b.WriteString(escapeXmlText(fmt.Sprint(v)))
+	leaf := fmt.Sprint(v)
+	if f, ok := asFloat64(v); ok {
+		form := numberFormForRm(parentType, tag)
+		s, err := formatXmlNumber(f, form)
+		if err != nil {
+			leaf = ""
+		} else {
+			leaf = s
+		}
+	}
+	b.WriteString(escapeXmlText(leaf))
 	b.WriteString("</")
 	b.WriteString(tag)
 	b.WriteString(">\n")
